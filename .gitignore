@@ -1,0 +1,9 @@
+# Ignore tools
+/bin
+cmd/mircat/mircat
+
+# Ignore coverprofiles
+*.coverprofile
+
+# Ignore IDE config folders
+.idea

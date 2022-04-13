@@ -1,0 +1,75 @@
+/*
+Copyright IBM Corp. All Rights Reserved.
+
+SPDX-License-Identifier: Apache-2.0
+*/
+
+syntax = "proto3";
+
+package isspbftpb;
+
+import "requestpb/requestpb.proto";
+
+option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/isspbftpb";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Preprepare {
+  uint64 sn = 1;
+  uint64 view = 2;
+  requestpb.Batch batch = 3;
+  bool aborted = 4;
+}
+
+message Prepare {
+  uint64 sn = 1;
+  uint64 view = 2;
+  bytes digest = 3;
+}
+
+message Commit {
+  uint64 sn = 1;
+  uint64 view = 2;
+  bytes digest = 3;
+}
+
+message ViewChange {
+  uint64 view = 1;
+  map<uint64, Prepare> pset = 2;
+  map<uint64, Prepare> qset = 3;
+}
+
+// ============================================================
+// Events
+// ============================================================
+
+message ReqWaitReference {
+  uint64   sn = 1;
+  uint64 view = 2;
+}
+
+message PersistPreprepare {
+  Preprepare preprepare = 1;
+}
+
+message PersistPrepare {
+  Prepare prepare = 1;
+}
+
+message PersistCommit {
+  Commit commit = 1;
+}
+
+message PreprepareHashOrigin {
+  Preprepare preprepare = 1;
+}
+
+// ============================================================
+// Status
+// ============================================================
+
+message Status {
+  // TODO: Add the representation of the state of a PBFT instance here.
+}
