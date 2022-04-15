@@ -12,7 +12,7 @@
 package grpctransport
 
 import (
-	messagepb "github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
+	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

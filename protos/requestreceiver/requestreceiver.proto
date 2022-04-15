@@ -10,7 +10,7 @@ package requestreceiver;
 
 import "requestpb/requestpb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/requestreceiver";
+option go_package = "github.com/filecoin-project/mir/pkg/requestreceiver";
 
 service RequestReceiver {
   rpc Listen(stream requestpb.Request) returns(ByeBye);

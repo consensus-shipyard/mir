@@ -8,10 +8,10 @@ package iss
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // sbInstance represents an instance of Sequenced Broadcast and is the type of each ISS orderer.

@@ -6,9 +6,8 @@ At its interface, ISS is a classic
 that establishes a total order of client requests with typical liveness and safety properties,
 applicable to any replicated service, such as resilient databases or a blockchain ordering layer.
 It is a further development and a successor of the [Mir-BFT protocol](https://arxiv.org/abs/1906.05552)
-(not to be confused with the MirBFT library using which ISS is implemented,
-see the [description of MirBFT](/README.md#relation-to-the-mir-bft-algorithm)).
-
+(not to be confused with the Mir library used to implement ISS,
+see the [description of Mir](/README.md#relation-to-the-mir-bft-algorithm)).
 
 ISS achieves scalability without requiring a primary node to periodically decide on the protocol configuration.
 It multiplexes multiple instances of a leader-driven consensus protocol

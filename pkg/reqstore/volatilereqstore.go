@@ -8,8 +8,8 @@ package reqstore
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // VolatileRequestStore is an in-memory implementation of modules.RequestStore.

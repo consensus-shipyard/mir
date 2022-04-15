@@ -8,7 +8,7 @@ syntax = "proto3";
 
 package requestpb;
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/requestpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/requestpb";
 
 message Request {
   uint64 client_id = 1;

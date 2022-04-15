@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/eventlog"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/recordingpb"
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	"io"
 	"os"
 	"reflect"

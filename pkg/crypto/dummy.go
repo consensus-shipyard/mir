@@ -9,7 +9,7 @@ package crypto
 import (
 	"bytes"
 	"fmt"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // TODO: Write comments.

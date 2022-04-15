@@ -4,7 +4,7 @@ package requestreceiver
 
 import (
 	context "context"
-	requestpb "github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

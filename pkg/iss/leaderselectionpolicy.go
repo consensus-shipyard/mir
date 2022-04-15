@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package iss
 
-import t "github.com/hyperledger-labs/mirbft/pkg/types"
+import t "github.com/filecoin-project/mir/pkg/types"
 
 // A LeaderSelectionPolicy implements the algorithm for selecting a set of leaders in each ISS epoch.
 // In a nutshell, it gathers information about suspected leaders in the past epochs

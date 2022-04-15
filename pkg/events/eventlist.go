@@ -8,7 +8,7 @@ package events
 
 import (
 	"container/list"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 // EventList represents a list of Events, e.g. as produced by a module.

@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package modules
 
-import t "github.com/hyperledger-labs/mirbft/pkg/types"
+import t "github.com/filecoin-project/mir/pkg/types"
 
 // TODO: Augment to support threshold signatures.
 

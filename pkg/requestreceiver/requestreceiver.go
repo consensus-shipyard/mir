@@ -9,10 +9,10 @@ package requestreceiver
 import (
 	"context"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 	"net"
@@ -24,7 +24,7 @@ type RequestReceiver struct {
 	UnimplementedRequestReceiverServer
 
 	// The Node to which to submit the received requests.
-	node *mirbft.Node
+	node *mir.Node
 
 	// The gRPC server used by this networking module.
 	grpcServer *grpc.Server
@@ -44,7 +44,7 @@ type RequestReceiver struct {
 // The returned RequestReceiver is not yet running (able to receive requests).
 // This needs to be done explicitly by calling the Start() method.
 // For the requests to be processed by passed Node, the Node must also be running.
-func NewRequestReceiver(node *mirbft.Node, logger logging.Logger) *RequestReceiver {
+func NewRequestReceiver(node *mir.Node, logger logging.Logger) *RequestReceiver {
 	// If no logger was given, only write errors to the console.
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
@@ -57,10 +57,10 @@ func NewRequestReceiver(node *mirbft.Node, logger logging.Logger) *RequestReceiv
 }
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
-// It receives messages from the gRPC client running on the MirBFT client
+// It receives messages from the gRPC client running on the Mir client
 // and submits them to the Node associated with this RequestReceiver.
 // This function is called by the gRPC system on every new connection
-// from a MirBFT client's gRPC client.
+// from a Mir client's gRPC client.
 func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 
 	// Print address of incoming connection.

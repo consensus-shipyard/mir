@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // ********************************************************************************
-//       Chat demo application for demonstrating the usage of MirBFT             //
+//         Chat demo application for demonstrating the usage of Mir              //
 //                             (main executable)                                 //
 //                                                                               //
 //                     Run with --help flag for usage info.                      //
@@ -18,17 +18,17 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft"
-	mirCrypto "github.com/hyperledger-labs/mirbft/pkg/crypto"
-	"github.com/hyperledger-labs/mirbft/pkg/dummyclient"
-	"github.com/hyperledger-labs/mirbft/pkg/grpctransport"
-	"github.com/hyperledger-labs/mirbft/pkg/iss"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	"github.com/hyperledger-labs/mirbft/pkg/reqstore"
-	"github.com/hyperledger-labs/mirbft/pkg/requestreceiver"
-	"github.com/hyperledger-labs/mirbft/pkg/simplewal"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/dummyclient"
+	"github.com/filecoin-project/mir/pkg/grpctransport"
+	"github.com/filecoin-project/mir/pkg/iss"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/reqstore"
+	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/simplewal"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"path"
@@ -55,7 +55,7 @@ const (
 type parsedArgs struct {
 
 	// Numeric ID of this node.
-	// The package github.com/hyperledger-labs/mirbft/pkg/types defines this and other types used by the library.
+	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
 	OwnId t.NodeID
 
 	// If set, print verbose output to stdout.
@@ -105,11 +105,11 @@ func main() {
 	}
 
 	// ================================================================================
-	// Create and initialize various modules used by mirbft.
+	// Create and initialize various modules used by mir.
 	// ================================================================================
 
 	// Initialize the write-ahead log.
-	// This is where the MirBFT library will continuously persist its state
+	// This is where the Mir library will continuously persist its state
 	// for the case of restarts / crash-recovery events.
 	// At the time of writing this comment, restarts / crash-recovery is not yet implemented though.
 	// Nevertheless, running this code will create a directory with the WAL file in it.
@@ -129,7 +129,7 @@ func main() {
 	}()
 
 	// Initialize the networking module.
-	// MirBFT will use it for transporting nod-to-node messages.
+	// Mir will use it for transporting nod-to-node messages.
 	net := grpctransport.NewGrpcTransport(nodeAddrs, args.OwnId, nil)
 	if err := net.Start(); err != nil {
 		panic(err)
@@ -150,25 +150,25 @@ func main() {
 	}
 
 	// ================================================================================
-	// Create a MirBFT Node, attaching the ChatApp implementation and other modules.
+	// Create a Mir Node, attaching the ChatApp implementation and other modules.
 	// ================================================================================
 
-	// Create a MirBFT Node, using a default configuration and passing the modules initialized just above.
-	node, err := mirbft.NewNode(args.OwnId, &mirbft.NodeConfig{Logger: logger}, &modules.Modules{
+	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
+	node, err := mir.NewNode(args.OwnId, &mir.NodeConfig{Logger: logger}, &modules.Modules{
 		Net:          net,
 		WAL:          wal,
 		RequestStore: reqStore,
 		Protocol:     issProtocol,
 
-		// This is the application logic MirBFT is going to deliver requests to.
-		// It requires to have access to the request store, as MirBFT only passes request references to it.
+		// This is the application logic Mir is going to deliver requests to.
+		// It requires to have access to the request store, as Mir only passes request references to it.
 		// It is the application's responsibility to get the necessary request data from the request store.
 		// For the implementation of the application, see app.go.
 		App: NewChatApp(reqStore),
 
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.
-		// TODO: Remove this line once a default crypto implementation is provided by MirBFT.
+		// TODO: Remove this line once a default crypto implementation is provided by Mir.
 		Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
 	})
 
@@ -276,7 +276,7 @@ func main() {
 
 // Parses the command-line arguments and returns them in a params struct.
 func parseArgs(args []string) *parsedArgs {
-	app := kingpin.New("chat-demo", "Small chat application to demonstrate the usage of the MirBFT library.")
+	app := kingpin.New("chat-demo", "Small chat application to demonstrate the usage of the Mir library.")
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
 	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.

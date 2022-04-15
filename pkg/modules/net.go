@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package modules
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // ReceivedMessage represents a message received over the network.

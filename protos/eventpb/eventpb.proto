@@ -12,7 +12,7 @@ import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/eventpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
 // Event represents a state event to be injected into the state machine
 message Event {

@@ -1,6 +1,6 @@
 # Chat Demo Application
 
-This is a small application for demonstrating the usage of MirBFT.
+This is a small application for demonstrating the usage of Mir.
 The comments in the code explain in detail how the library is instantiated and used.
 
 This is a very minimal application that is not challenging the library in any way,

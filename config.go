@@ -6,9 +6,9 @@ SPDX-License-Identifier: Apache-2.0
 Refactored: 1
 */
 
-package mirbft
+package mir
 
-import "github.com/hyperledger-labs/mirbft/pkg/logging"
+import "github.com/filecoin-project/mir/pkg/logging"
 
 // The NodeConfig struct represents configuration parameters of the node
 // that are independent of the protocol the Node is executing.

@@ -9,8 +9,8 @@ package iss
 import (
 	"container/list"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 // requestBucket represents a subset of received requests (called a Bucket in ISS)

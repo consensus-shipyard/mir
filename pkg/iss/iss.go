@@ -4,9 +4,9 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-// Package iss contains the implementation of the ISS protocol, the new generation of MirBFT.
+// Package iss contains the implementation of the ISS protocol, the new generation of Mir.
 // For the details of the protocol, see (TODO).
-// To use ISS, instantiate it by calling `iss.New` and use it as the Protocol module when instantiating a mirbft.Node.
+// To use ISS, instantiate it by calling `iss.New` and use it as the Protocol module when instantiating a mir.Node.
 // A default configuration (to pass, among other arguments, to `iss.New`)
 // can be obtained from `iss.DefaultConfig`.
 //
@@ -16,16 +16,16 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/messagebuffer"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/statuspb"
-	"github.com/hyperledger-labs/mirbft/pkg/serializing"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/messagebuffer"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	"github.com/filecoin-project/mir/pkg/serializing"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -227,7 +227,7 @@ type ISS struct {
 	lastStableCheckpoint *isspb.StableCheckpoint
 }
 
-// New returns a new initialized instance of the ISS protocol module to be used when instantiating a mirbft.Node.
+// New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
 // - ownID:  the ID of the node being instantiated with ISS.
 // - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).

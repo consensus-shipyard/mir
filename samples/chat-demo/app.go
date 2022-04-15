@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // ********************************************************************************
-//       Chat demo application for demonstrating the usage of MirBFT             //
+//         Chat demo application for demonstrating the usage of Mir              //
 //                            (application logic)                                //
 // ********************************************************************************
 
@@ -13,14 +13,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"google.golang.org/protobuf/proto"
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application
-// showcasing the usage of the MirBFT library.
-// An initialized instance of this struct needs to be passed to the mirbft.NewNode() method of all nodes
+// showcasing the usage of the Mir library.
+// An initialized instance of this struct needs to be passed to the mir.NewNode() method of all nodes
 // for the system to run the chat demo app.
 type ChatApp struct {
 
@@ -28,13 +28,13 @@ type ChatApp struct {
 	// to which each delivered request appends one message.
 	messages []string
 
-	// The request store module (also passed to the MirBFT library at startup)
+	// The request store module (also passed to the Mir library at startup)
 	// is used for accessing the request payloads containing the chat message data.
 	reqStore modules.RequestStore
 }
 
 // NewChatApp returns a new instance of the chat demo application.
-// The reqStore must be the same request store that is passed to the mirbft.NewNode() function as a module.
+// The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
 func NewChatApp(reqStore modules.RequestStore) *ChatApp {
 	return &ChatApp{
 		messages: make([]string, 0),
@@ -69,7 +69,7 @@ func (chat *ChatApp) Apply(batch *requestpb.Batch) error {
 
 // Snapshot returns a binary representation of the application state.
 // The returned value can be passed to RestoreState().
-// At the time of writing this comment, the MirBFT library does not support state transfer
+// At the time of writing this comment, the Mir library does not support state transfer
 // and Snapshot is never actually called.
 // We include its implementation for completeness.
 func (chat *ChatApp) Snapshot() ([]byte, error) {

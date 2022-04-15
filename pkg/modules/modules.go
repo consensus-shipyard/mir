@@ -12,13 +12,13 @@ package modules
 import (
 	"crypto"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/clients"
-	"github.com/hyperledger-labs/mirbft/pkg/reqstore"
+	"github.com/filecoin-project/mir/pkg/clients"
+	"github.com/filecoin-project/mir/pkg/reqstore"
 )
 
 // The Modules structs groups the modules a Node consists of.
 type Modules struct {
-	Net           Net              // Sends messages produced by MirBFT through the network.
+	Net           Net              // Sends messages produced by Mir through the network.
 	Hasher        Hasher           // Computes hashes of requests and other data.
 	Crypto        Crypto           // Performs cryptographic operations (except for computing hashes)
 	App           App              // Implements user application logic. The user is expected to provide this module.

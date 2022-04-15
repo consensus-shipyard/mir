@@ -6,10 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 Refactored: 1
 */
 
-package mirbft
+package mir
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/statuspb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"sync"
 )
 

@@ -12,9 +12,9 @@
 package eventpb
 
 import (
-	isspb "github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	messagepb "github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	requestpb "github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
+	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

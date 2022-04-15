@@ -9,7 +9,7 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 // FakeApp represents a dummy stub application used for testing only.

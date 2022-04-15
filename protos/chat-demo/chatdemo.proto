@@ -8,7 +8,7 @@ syntax = "proto3";
 
 package chat_demo;
 
-option go_package = "github.com/hyperledger-labs/mirbft/cmd/main";
+option go_package = "github.com/filecoin-project/mir/cmd/main";
 
 message AppState {
   repeated string messages = 1;

@@ -12,8 +12,8 @@
 package isspb
 
 import (
-	isspbftpb "github.com/hyperledger-labs/mirbft/pkg/pb/isspbftpb"
-	requestpb "github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	isspbftpb "github.com/filecoin-project/mir/pkg/pb/isspbftpb"
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

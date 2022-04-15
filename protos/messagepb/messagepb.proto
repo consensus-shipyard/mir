@@ -11,7 +11,7 @@ package messagepb;
 import "requestpb/requestpb.proto";
 import "isspb/isspb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/messagepb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
 message Message {
   oneof type {

@@ -10,7 +10,7 @@ package isspbftpb;
 
 import "requestpb/requestpb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/isspbftpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/isspbftpb";
 
 // ============================================================
 // Messages

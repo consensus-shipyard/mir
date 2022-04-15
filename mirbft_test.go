@@ -4,12 +4,12 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package mirbft_test
+package mir_test
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft"
-	"github.com/hyperledger-labs/mirbft/pkg/deploytest"
+	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/onsi/ginkgo/extensions/table"
 	"io/ioutil"
 	"os"
@@ -89,7 +89,7 @@ var _ = Describe("Basic test", func() {
 		// Check whether all the test replicas exited correctly.
 		Expect(finalStatuses).NotTo(BeNil())
 		for _, status := range finalStatuses {
-			if status.ExitErr != mirbft.ErrStopped {
+			if status.ExitErr != mir.ErrStopped {
 				Expect(status.ExitErr).NotTo(HaveOccurred())
 			}
 			Expect(status.StatusErr).NotTo(HaveOccurred())
@@ -123,7 +123,7 @@ var _ = Describe("Basic test", func() {
 
 				// ErrStopped indicates normal termination.
 				// If another error is detected, print it.
-				if nodeStatus.ExitErr == mirbft.ErrStopped {
+				if nodeStatus.ExitErr == mir.ErrStopped {
 					fmt.Printf("\nStopped normally\n")
 				} else {
 					fmt.Printf("\nStopped with error: %+v\n", nodeStatus.ExitErr)
@@ -159,7 +159,7 @@ var _ = Describe("Basic test", func() {
 			NumReplicas:     1,
 			Transport:       "fake",
 			NumFakeRequests: 10,
-			Directory:       "mirbft-deployment-test",
+			Directory:       "mir-deployment-test",
 			Duration:        4 * time.Second,
 		}),
 		table.Entry("Submits 10 fake requests with 1 node, loading WAL", &deploytest.TestConfig{
@@ -167,7 +167,7 @@ var _ = Describe("Basic test", func() {
 			NumClients:      1,
 			Transport:       "fake",
 			NumFakeRequests: 10,
-			Directory:       "mirbft-deployment-test",
+			Directory:       "mir-deployment-test",
 			Duration:        4 * time.Second,
 		}),
 		table.Entry("Submits 10 fake requests with 4 nodes", &deploytest.TestConfig{
@@ -230,7 +230,7 @@ func createDeploymentDir(config *deploytest.TestConfig) error {
 		}
 	} else {
 		// If no directory is configured, create a temporary directory in the OS-default location.
-		tmpDir, err := ioutil.TempDir("", "mirbft-deployment-test.")
+		tmpDir, err := ioutil.TempDir("", "mir-deployment-test.")
 		fmt.Printf("Creating temp dir: %s\n", tmpDir)
 		if err != nil {
 			return err

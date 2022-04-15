@@ -5,20 +5,20 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft"
-	"github.com/hyperledger-labs/mirbft/pkg/clients"
-	mirCrypto "github.com/hyperledger-labs/mirbft/pkg/crypto"
-	"github.com/hyperledger-labs/mirbft/pkg/eventlog"
-	"github.com/hyperledger-labs/mirbft/pkg/grpctransport"
-	"github.com/hyperledger-labs/mirbft/pkg/iss"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/statuspb"
-	"github.com/hyperledger-labs/mirbft/pkg/requestreceiver"
-	"github.com/hyperledger-labs/mirbft/pkg/serializing"
-	"github.com/hyperledger-labs/mirbft/pkg/simplewal"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/clients"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/grpctransport"
+	"github.com/filecoin-project/mir/pkg/iss"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/serializing"
+	"github.com/filecoin-project/mir/pkg/simplewal"
+	t "github.com/filecoin-project/mir/pkg/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
@@ -31,7 +31,7 @@ var (
 	FakeClientHasher modules.Hasher = crypto.SHA256
 )
 
-// TestReplica represents one replica (that uses one instance of the mirbft.Node) in the test system.
+// TestReplica represents one replica (that uses one instance of the mir.Node) in the test system.
 type TestReplica struct {
 
 	// ID of the replica as seen by the protocol.
@@ -45,7 +45,7 @@ type TestReplica struct {
 	Dir string
 
 	// Configuration of the node corresponding to this replica.
-	Config *mirbft.NodeConfig
+	Config *mir.NodeConfig
 
 	// List of replica IDs constituting the (static) membership.
 	Membership []t.NodeID
@@ -119,8 +119,8 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ClientIDs, tr.Id, mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
-	// Create the mirbft node for this replica.
-	node, err := mirbft.NewNode(
+	// Create the mir node for this replica.
+	node, err := mir.NewNode(
 		tr.Id,
 		tr.Config,
 		&modules.Modules{
@@ -192,20 +192,20 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 // NodeStatus represents the final status of a test replica.
 type NodeStatus struct {
 
-	// Status as returned by mirbft.Node.Status()
+	// Status as returned by mir.Node.Status()
 	Status *statuspb.NodeStatus
 
-	// Potential error returned by mirbft.Node.Status() in case of obtaining of the status failed.
+	// Potential error returned by mir.Node.Status() in case of obtaining of the status failed.
 	StatusErr error
 
-	// Reason the node terminated, as returned by mirbft.Node.Run()
+	// Reason the node terminated, as returned by mir.Node.Run()
 	ExitErr error
 }
 
 // Submits n fake requests to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeRequests(node *mirbft.Node, stopC <-chan struct{}, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{}, wg *sync.WaitGroup) {
 	defer GinkgoRecover()
 	defer wg.Done()
 

@@ -8,7 +8,7 @@ syntax = "proto3";
 
 package recordingpb;
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/recordingpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/recordingpb";
 
 import "eventpb/eventpb.proto";
 

@@ -7,10 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // The sbEventService is an object used by an orderer (an instance of Sequenced Broadcast) to create events.

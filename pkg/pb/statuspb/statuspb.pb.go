@@ -12,7 +12,7 @@
 package statuspb
 
 import (
-	isspb "github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
+	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

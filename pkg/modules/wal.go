@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package modules
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // The WAL (Write-Ahead Log) implements a persistent write-ahead log for the case of crashes and restarts.

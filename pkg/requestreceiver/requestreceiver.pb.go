@@ -12,7 +12,7 @@
 package requestreceiver
 
 import (
-	requestpb "github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

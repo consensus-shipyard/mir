@@ -7,10 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Strip removes the follow-up events from event (stored under event.Next) and sets event.Next to nil.

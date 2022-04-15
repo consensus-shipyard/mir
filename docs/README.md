@@ -1,6 +1,6 @@
-# MirBFT Library Architecture
+# Mir Library Architecture
 
-MirBFT is a Total Order Broadcast (TOB) / State Machine Replication (SMR) library.
+Mir is a framework for implementing, debugging, and analyzing distributed protocols implemented as a library.
 This document describes the architecture and inner workings of the library
 and is intended for its developers rather than for its users.
 
@@ -8,11 +8,12 @@ and is intended for its developers rather than for its users.
 ## _Node_
 
 The top-level component of the library is the [_Node_](/node.go).
-The user of the library instantiates a _Node_ object which serves as the interface to the MirBFT library.
+The user of the library instantiates a _Node_ object which serves as the interface to the Mir library.
 Here we focus on the inner workings of a _Node_.
 A _Node_ contains several [`modules`](/pkg/modules) that,
 inspired by the architecture of [etcdraft](https://github.com/etcd-io/etcd/tree/master/raft),
 interact through [_Events_](/protos/eventpb/eventpb.proto), also borrowing concepts from the actor model.
+Unlike etcdraft, however, the _Node_ also implements an event loop that orchestrates the processing of those _Events_.
 
 
 ## _Events_
@@ -63,13 +64,13 @@ The interface of each module is task-specific.
 
 Multiple implementations of a module can exist.
 When instantiating a _Node_, the library user chooses which module implementations to use.
-This is done by means of the [_Modules_](/pkg/modules/modules.go) object passed to the `mirbft.NewNode()` function.
-The user instantiates the desired modules, groups them in a _Modules_ object and passes this object to `mirbft.NewNode()`.
-The library provides default module implementations (not yet - TODO) for the user to use out of the box,
+This is done by means of the [_Modules_](/pkg/modules/modules.go) object passed to the `mir.NewNode()` function.
+The user instantiates the desired modules, groups them in a _Modules_ object and passes this object to `mir.NewNode()`.
+The library provides default implementations of some modules for the user to use out of the box,
 but the user is free to supply its own ones.
 
-The following modules constitute the MirBFT implementation (not all of them are implemented yet - TODO).
-- [Net](/pkg/modules/net.go) sends messages produced by MirBFT through the network.
+The following modules constitute the Mir implementation (not all of them are implemented yet).
+- [Net](/pkg/modules/net.go) sends messages produced by Mir through the network.
 - [Hasher](/pkg/modules/hasher.go) computes hashes of requests and other data.
 - [Crypto](/pkg/modules/crypto.go) performs cryptographic operations (except for computing hashes).
 - [App](/pkg/modules/app.go) implements the user application logic. The user is expected to provide this module.
@@ -162,15 +163,15 @@ The [Protocol](/pkg/modules/protocol.go) module implements the logic of the dist
 executed by the library.
 It consumes and produces a large variety of _Events_.
 
-The Protocol module (similarly to the expected implementation of the App module)
-implements a deterministic state machine.
-Processing of _Events_ by the Protocol module is sequential and deterministic (watch out for iteration over maps!).
-Thus, the same sequence of input _Events_
-will always result in the same protocol state and the same sequence of output _Events_.
-This is important for debugging (TODO: Implement and document `mircat`)
+The Protocol module (similarly to the expected implementation of the App module) implements a state machine.
+Processing of _Events_ by the Protocol module is sequential
+and, if possible, should be implemented in a deterministic way (watch out for iteration over maps!).
+If the Protocol module is implemented deterministically, the same sequence of input _Events_
+will always result in the same protocol state and the same sequence of output _Events_,
+which is useful for debugging (see [`mircat`](/cmd/mircat)).
 
-For performance reasons, the processing of each event should be simple, fast, and non-blocking.
-All "expensive" operations should be delegated to the other modules, which exist also for this reason.
+For performance reasons, the processing of each _Event_ should be simple, fast, and non-blocking.
+All "expensive" operations should be delegated to the other modules, which exist for this purpose.
 For example, instead of computing a cryptographic hash inside the Protocol module,
 the module should rather output a hash request event, have it processed by the Hasher module,
 and wait for a hash result event (while sequentially processing other incoming events).
@@ -203,7 +204,5 @@ and the same logic must be capable to reinitialize itself when those stored even
 **_The Interceptor_** produces the **_event log_**.
 This is a list of **_all events_** that occurred and is meant only for debugging (not for recovery).
 The _Node_'s modules have no influence on what is intercepted.
-The event log is intended to be processed by the `mircat` utility
+The event log is intended to be processed by the [`mircat` utility](/cmd/mircat)
 to gain more insight into what exactly is happening inside the _Node_.
-
-TODO: Link mircat here when it's ready.

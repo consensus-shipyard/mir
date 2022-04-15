@@ -4,24 +4,24 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package mirbft
+package mir
 
 import (
 	"context"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/statuspb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"sync"
 	"time"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
 
-// Node is the local instance of MirBFT and the application's interface to the mirbft library.
+// Node is the local instance of Mir and the application's interface to the mir library.
 type Node struct {
 	ID     t.NodeID    // Protocol-level node ID
 	Config *NodeConfig // Node-level (protocol-independent) configuration, like buffer sizes, logging, ...

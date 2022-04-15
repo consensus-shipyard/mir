@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package modules
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 // App represents an application this library is used for replicating.

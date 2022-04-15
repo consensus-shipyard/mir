@@ -8,7 +8,7 @@ package serializing
 
 import (
 	"encoding/binary"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 // TODO: Write doc.

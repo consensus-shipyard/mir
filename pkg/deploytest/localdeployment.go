@@ -2,7 +2,7 @@ package deploytest
 
 import (
 	"fmt"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 func LocalAddresses(nodeIDs []t.NodeID, basePort int) map[t.NodeID]string {

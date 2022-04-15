@@ -21,8 +21,8 @@ package messagebuffer
 
 import (
 	"container/list"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/logging"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/protobuf/proto"
 )
 

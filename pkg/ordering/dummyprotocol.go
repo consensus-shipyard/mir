@@ -8,13 +8,13 @@ package ordering
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/messagepb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/statuspb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // DummyProtocol is a stub for a protocol state machine implementation.

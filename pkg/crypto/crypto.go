@@ -17,14 +17,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
 	"io/ioutil"
 	"strings"
 )
 
 // Crypto represents an instance of the Crypto module that can be used at Node instantiation
-// (when calling mirbft.NewNode)
+// (when calling mir.NewNode)
 type Crypto struct {
 
 	// Private key used for signing.

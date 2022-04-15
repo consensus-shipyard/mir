@@ -11,7 +11,7 @@ package isspb;
 import "isspbftpb/isspbftpb.proto";
 import "requestpb/requestpb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/isspb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
 // ============================================================
 // Messages

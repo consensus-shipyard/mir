@@ -8,7 +8,7 @@ package iss
 
 import (
 	"fmt"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // The Config type defines all the ISS configuration parameters.

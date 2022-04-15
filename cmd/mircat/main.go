@@ -10,7 +10,7 @@ import (
 )
 
 // mircat is a tool for reviewing Mir state machine recordings.
-// It understands the format encoded via github.com/hyperledger-labs/mirbft/eventlog
+// It understands the format encoded via github.com/hyperledger-labs/mir/eventlog
 // and is able to parse and filter these log files based on the events.
 
 type arguments struct {

@@ -16,8 +16,8 @@ package reqstore
 import (
 	"fmt"
 	badger "github.com/dgraph-io/badger/v2"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/pkg/errors"
 )
 

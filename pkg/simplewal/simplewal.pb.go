@@ -12,7 +12,7 @@
 package simplewal
 
 import (
-	eventpb "github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
+	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

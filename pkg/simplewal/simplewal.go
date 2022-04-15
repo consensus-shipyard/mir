@@ -11,14 +11,14 @@ SPDX-License-Identifier: Apache-2.0
 //       truncating using a more abstract concept (e.g. increasing non-unique numbers attached to entries).
 
 // Package simplewal is a basic WAL implementation meant to be the first 'real' WAL
-// option for mirbft. More sophisticated WALs with checksums, byte alignments, etc.
+// option for mir. More sophisticated WALs with checksums, byte alignments, etc.
 // may be produced in the future, but this is just a simple place to start.
 package simplewal
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"sync"
 
 	"github.com/pkg/errors"

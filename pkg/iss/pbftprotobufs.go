@@ -17,9 +17,9 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspb"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/isspbftpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // ============================================================

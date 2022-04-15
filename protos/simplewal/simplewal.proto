@@ -10,7 +10,7 @@ package simplewal;
 
 import "eventpb/eventpb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/simplewal";
+option go_package = "github.com/filecoin-project/mir/pkg/simplewal";
 
 message WALEntry {
   uint64 retention_index = 1;

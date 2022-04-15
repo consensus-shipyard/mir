@@ -9,12 +9,12 @@ package dummyclient
 import (
 	"context"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/requestpb"
-	"github.com/hyperledger-labs/mirbft/pkg/requestreceiver"
-	"github.com/hyperledger-labs/mirbft/pkg/serializing"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/serializing"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/grpc"
 	"sync"
 )
@@ -148,7 +148,7 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 	}
 }
 
-// Disconnect closes all open connections to MirBFT nodes.
+// Disconnect closes all open connections to Mir nodes.
 func (dc *DummyClient) Disconnect() {
 
 	// Close connections to all nodes.

@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package modules
 
-import "github.com/hyperledger-labs/mirbft/pkg/events"
+import "github.com/filecoin-project/mir/pkg/events"
 
 // EventInterceptor provides a way to gain insight into the internal operation of the node.
 // Before being passed to the respective target modules, events can be intercepted and logged

@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 Refactored: 1
 */
 
-package mirbft_test
+package mir_test
 
 import (
 	"fmt"
@@ -24,11 +24,11 @@ import (
 // and independent of time (for instance, by specifying step counts), but for
 // the more 'real' integration stress tests, this is not possible.  Since
 // the CI hardware is weak, and, the race detector slows testing considerably,
-// this value is overridden via MIRBFT_TEST_CONTEXT_TIMEOUT in CI.
+// this value is overridden via MIR_TEST_CONTEXT_TIMEOUT in CI.
 var ContextTimeout = 30 * time.Second
 
 func init() {
-	val := os.Getenv("MIRBFT_TEST_STRESS_TICK_INTERVAL")
+	val := os.Getenv("MIR_TEST_STRESS_TICK_INTERVAL")
 	if val != "" {
 		dur, err := time.ParseDuration(val)
 		if err != nil {
@@ -39,7 +39,7 @@ func init() {
 		tickInterval = dur
 	}
 
-	val = os.Getenv("MIRBFT_TEST_STRESS_TEST_TIMEOUT")
+	val = os.Getenv("MIR_TEST_STRESS_TEST_TIMEOUT")
 	if val != "" {
 		dur, err := time.ParseDuration(val)
 		if err != nil {
@@ -52,16 +52,16 @@ func init() {
 }
 
 // Runs the tests specified (in separate files) using the Ginkgo testing framework.
-func TestMirbft(t *testing.T) {
+func TestMir(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	// Override the ContextTimeout value based on an environment variable.
-	val := os.Getenv("MIRBFT_TEST_CONTEXT_TIMEOUT")
+	val := os.Getenv("MIR_TEST_CONTEXT_TIMEOUT")
 	if val != "" {
 		dur, err := time.ParseDuration(val)
 		Expect(err).NotTo(HaveOccurred())
 		ContextTimeout = dur
 	}
 
-	RunSpecs(t, "Mirbft Suite")
+	RunSpecs(t, "Mir Suite")
 }

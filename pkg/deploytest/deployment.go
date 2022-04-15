@@ -10,13 +10,13 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft"
-	mirCrypto "github.com/hyperledger-labs/mirbft/pkg/crypto"
-	"github.com/hyperledger-labs/mirbft/pkg/dummyclient"
-	"github.com/hyperledger-labs/mirbft/pkg/grpctransport"
-	"github.com/hyperledger-labs/mirbft/pkg/logging"
-	"github.com/hyperledger-labs/mirbft/pkg/modules"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/dummyclient"
+	"github.com/filecoin-project/mir/pkg/grpctransport"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"path/filepath"
 	"sync"
 	"time"
@@ -104,7 +104,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 	for i := range replicas {
 
 		// Configure the test replica's node.
-		config := &mirbft.NodeConfig{
+		config := &mir.NodeConfig{
 			Logger: logging.Decorate(logger, fmt.Sprintf("Node %d: ", i)),
 		}
 

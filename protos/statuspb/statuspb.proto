@@ -10,7 +10,7 @@ package statuspb;
 
 import "isspb/isspb.proto";
 
-option go_package = "github.com/hyperledger-labs/mirbft/pkg/pb/statuspb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/statuspb";
 
 message NodeStatus {
   ProtocolStatus protocol = 1;

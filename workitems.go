@@ -6,12 +6,12 @@ SPDX-License-Identifier: Apache-2.0
 Refactored: 1
 */
 
-package mirbft
+package mir
 
 import (
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 // WorkItems is a buffer for storing outstanding events that need to be processed by the node.

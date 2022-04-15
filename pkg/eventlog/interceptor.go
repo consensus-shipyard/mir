@@ -15,9 +15,9 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"fmt"
-	"github.com/hyperledger-labs/mirbft/pkg/events"
-	"github.com/hyperledger-labs/mirbft/pkg/pb/recordingpb"
-	t "github.com/hyperledger-labs/mirbft/pkg/types"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
 	"sync"
 	"time"
@@ -82,7 +82,7 @@ func BufferSizeOpt(size int) RecorderOpt {
 }
 
 // Recorder is intended to be used as an imlementation of the
-// mirbft.EventInterceptor interface.  It receives state events,
+// mir.EventInterceptor interface.  It receives state events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
 	nodeID            t.NodeID
