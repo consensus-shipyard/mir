@@ -79,6 +79,10 @@ func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInst
 	}}})
 }
 
+func AppSnapshotHashOrigin(seqNr t.SeqNr) *eventpb.HashOrigin {
+	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotSn{AppSnapshotSn: seqNr.Pb()}})
+}
+
 // ------------------------------------------------------------
 // SB Instance Events
 

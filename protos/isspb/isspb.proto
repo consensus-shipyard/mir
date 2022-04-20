@@ -63,8 +63,9 @@ message ISSEvent {
 
 message ISSHashOrigin {
   oneof type {
-    SBHashOrigin   sb           = 1;
-    uint64         log_entry_sn = 2;
+    SBHashOrigin   sb              = 1;
+    uint64         log_entry_sn    = 2;
+    uint64         app_snapshot_sn = 3;
   }
 }
 

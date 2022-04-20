@@ -38,6 +38,9 @@ type checkpointTracker struct {
 	// Application snapshot data associated with this checkpoint.
 	appSnapshot []byte
 
+	// Hash of the application snapshot data associated with this checkpoint.
+	appSnapshotHash []byte
+
 	// Set of nodes from which any Checkpoint message has been received.
 	// This is necessary for ignoring all but the first message a node sends, regardless of the snapshot hash.
 	confirmations map[t.NodeID]struct{}
@@ -90,8 +93,18 @@ func (ct *checkpointTracker) Start(epoch t.EpochNr, membership []t.NodeID) *even
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
 
 	// Save received snapshot
-	// TODO: Compute and save the hash of the snapshot as well.
 	ct.appSnapshot = snapshot
+
+	// Initiate computing the hash of the snapshot
+	hashEvent := events.HashRequest([][]byte{snapshot}, AppSnapshotHashOrigin(ct.seqNr))
+
+	return (&events.EventList{}).PushBack(hashEvent)
+}
+
+func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events.EventList {
+
+	// Save the received snapshot hash
+	ct.appSnapshotHash = snapshotHash
 
 	// Write Checkpoint to WAL
 	walEvent := events.WALAppend(PersistCheckpointEvent(ct.seqNr, ct.appSnapshot), t.WALRetIndex(ct.epoch))
