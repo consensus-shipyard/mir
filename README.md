@@ -96,7 +96,7 @@ but has since been made completely independent of Mir-BFT.
 Even the implementation of the Mir-BFT protocol itself has been abandoned and replaced by its successor,
 [ISS](/pkg/iss), which is intended to be the first protocol implemented within Mir.
 However, since Mir is designed to be modular and versatile,
-ISS is just one (the first) of the protocols implemented in ISS.
+ISS is just one (the first) of the protocols implemented in Mir.
 
 ## Current Status
 
@@ -106,9 +106,6 @@ This document itself is more than likely to still change.
 You are more than welcome to contribute to accelerating the development of the Mir library
 as an open-source contributor.
 Have a look at the [Contributions section](#contributing) if you want to help out!
-
-[![Build Status](https://github.com/filecoin-project/mir/actioSns/workflows/test.yml/badge.svg)](https://github.com/filecoin-project/mir/actions)
-[![GoDoc](https://godoc.org/github.com/filecoin-project/mir?status.svg)](https://godoc.org/github.com/filecoin-project/mir)
 
 ## Compiling and running tests
 
