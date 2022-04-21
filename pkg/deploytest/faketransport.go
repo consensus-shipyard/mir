@@ -78,7 +78,7 @@ func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
 	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- msg:
 	default:
-		fmt.Printf("Warning: Dropping message %T from %d to %d\n", msg.Type, source, dest)
+		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)
 	}
 }
 
@@ -110,7 +110,7 @@ func (ft *FakeTransport) Start() {
 						// fmt.Printf("Sending message from %d to %d\n", i, j)
 						select {
 						case ft.NodeSinks[j] <- modules.ReceivedMessage{
-							Sender: t.NodeID(i),
+							Sender: t.NewNodeIDFromInt(i),
 							Msg:    msg,
 						}:
 						case <-ft.DoneC:

@@ -147,7 +147,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 
 		// Create new DummyClient
 		netClients = append(netClients, dummyclient.NewDummyClient(
-			t.ClientID(i),
+			t.NewClientIDFromInt(i),
 			crypto.SHA256,
 			//			&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 			cryptoModule,
@@ -228,7 +228,7 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]string, len(nodeIds))
 	for _, id := range nodeIds {
-		p, err := strconv.Atoi(string(id))
+		p, err := strconv.Atoi(id.Pb())
 		if err != nil {
 			panic(fmt.Errorf("could not convert node ID: %w", err))
 		}
@@ -244,7 +244,7 @@ func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 	// Each test replica is on the local machine - 127.0.0.1
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for _, tr := range d.TestReplicas {
-		p, err := strconv.Atoi(string(tr.Id))
+		p, err := strconv.Atoi(tr.Id.Pb())
 		if err != nil {
 			panic(fmt.Errorf("could not convert test replica ID: %w", err))
 		}
