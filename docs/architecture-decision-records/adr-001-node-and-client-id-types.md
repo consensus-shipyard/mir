@@ -25,6 +25,7 @@ We will use strings as the underlying type for node and client IDs.
 ## Status
 
 Proposed (Apr 20, 2022)
+Accepted (Apr 21, 2022)
 
 ## Consequences
 
