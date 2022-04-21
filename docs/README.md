@@ -3,6 +3,7 @@
 Mir is a framework for implementing, debugging, and analyzing distributed protocols implemented as a library.
 This document describes the architecture and inner workings of the library
 and is intended for its developers rather than for its users.
+We also keep a [log of design choices](/docs/architecture-decision-records) using Architecture Decision Records (ADRs).
 
 
 ## _Node_

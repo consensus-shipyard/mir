@@ -141,6 +141,7 @@ The dependencies should be downloaded and installed automatically.
 ## Documentation
 
 For a description of the design and inner workings of the library, see [Mir Library Architecture](/docs).
+We also keep a log of [Architecture Decision Records (ADRs)](/docs/architecture-decision-records).
 
 For a small demo application, see [/samples/chat-demo](/samples/chat-demo)
 
