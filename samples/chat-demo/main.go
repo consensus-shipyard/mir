@@ -87,7 +87,12 @@ func main() {
 
 	// IDs of nodes that are part of the system.
 	// This example uses a static configuration of 4 nodes.
-	nodeIds := []t.NodeID{"0", "1", "2", "3"}
+	nodeIds := []t.NodeID{
+		t.NewNodeIDFromInt(0),
+		t.NewNodeIDFromInt(1),
+		t.NewNodeIDFromInt(2),
+		t.NewNodeIDFromInt(3),
+	}
 
 	// Generate addresses and ports of participating nodes.
 	// All nodes are on the local machine, but listen on different port numbers.
