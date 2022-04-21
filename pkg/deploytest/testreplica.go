@@ -5,6 +5,14 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/clients"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -19,12 +27,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/serializing"
 	"github.com/filecoin-project/mir/pkg/simplewal"
 	t "github.com/filecoin-project/mir/pkg/types"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 var (
@@ -75,20 +77,20 @@ func (tr *TestReplica) EventLogFile() string {
 //   - The final status of the replica
 //   - The error that made the node terminate
 //   - The error that occurred while obtaining the final node status
-func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) NodeStatus {
+func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) NodeStatus {
 
 	// Create logical time for the test replica.
 	// (Note that this is not just for testing - production deployment also only uses this form of time.)
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
-	//// Initialize the request store.
-	//reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
-	//err := os.MkdirAll(reqStorePath, 0700)
-	//Expect(err).NotTo(HaveOccurred())
-	//reqStore, err := reqstore.Open(reqStorePath)
-	//Expect(err).NotTo(HaveOccurred())
-	//defer reqStore.Close()
+	// // Initialize the request store.
+	// reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
+	// err := os.MkdirAll(reqStorePath, 0700)
+	// Expect(err).NotTo(HaveOccurred())
+	// reqStore, err := reqstore.Open(reqStorePath)
+	// Expect(err).NotTo(HaveOccurred())
+	// defer reqStore.Close()
 
 	// Initialize the write-ahead log.
 	walPath := filepath.Join(tr.Dir, "wal")
@@ -128,12 +130,12 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 			App:           tr.App,
 			WAL:           wal,
 			ClientTracker: clients.SigningTracker(logging.Decorate(tr.Config.Logger, "CT: ")),
-			//Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
+			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 			Protocol:    issProtocol,
 			Interceptor: interceptor,
-			//// Use dummy crypto module that only produces signatures
-			//// consisting of a single zero byte and treats those signatures as valid.
-			//Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
+			// // Use dummy crypto module that only produces signatures
+			// // consisting of a single zero byte and treats those signatures as valid.
+			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
 			Crypto: cryptoModule,
 		},
 	)
@@ -150,7 +152,7 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 
 	// Start thread submitting requests from a (single) hypothetical client.
 	// The client submits a predefined number of requests and then stops.
-	go tr.submitFakeRequests(node, stopC, &wg)
+	go tr.submitFakeRequests(ctx, node, &wg)
 
 	// ATTENTION! This is hacky!
 	// If the test replica used the GRPC transport, initialize the Net module.
@@ -162,7 +164,7 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 	}
 
 	// Run the node until it stops and obtain the node's final status.
-	exitErr := node.Run(stopC, ticker.C)
+	exitErr := node.Run(ctx, ticker.C)
 	fmt.Println("Run returned!")
 
 	finalStatus, statusErr := node.Status(context.Background())
@@ -205,7 +207,7 @@ type NodeStatus struct {
 // Submits n fake requests to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{}, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, wg *sync.WaitGroup) {
 	defer GinkgoRecover()
 	defer wg.Done()
 
@@ -216,7 +218,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 
 	for i := 0; i < tr.NumFakeRequests; i++ {
 		select {
-		case <-stopC:
+		case <-ctx.Done():
 			// Stop submitting if shutting down.
 			break
 		default:
@@ -243,7 +245,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 				t.ReqNo(reqMsg.ReqNo),
 				reqMsg.Data,
 				reqMsg.Authenticator,
-				//[]byte{0}, // Fake signature. Relies on the Nodes using DummyCrypto{DummySig: []byte{0}}
+				// []byte{0}, // Fake signature. Relies on the Nodes using DummyCrypto{DummySig: []byte{0}}
 			); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,

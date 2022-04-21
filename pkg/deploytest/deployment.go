@@ -10,6 +10,10 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"path/filepath"
+	"sync"
+	"time"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -17,9 +21,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"path/filepath"
-	"sync"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -164,8 +165,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 // Run launches the test deployment.
 // It starts all test replicas, the dummy client, and the fake message transport subsystem,
 // waits until the replicas stop, and returns the final statuses of all the replicas.
-// Closing the passed stopC channel makes the deployment terminate by signaling all those subsystems to stop gracefully.
-func (d *Deployment) Run(tickInterval time.Duration, stopC <-chan struct{}) []NodeStatus {
+func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []NodeStatus {
 
 	// Initialize helper variables.
 	finalStatuses := make([]NodeStatus, len(d.TestReplicas))
@@ -183,7 +183,7 @@ func (d *Deployment) Run(tickInterval time.Duration, stopC <-chan struct{}) []No
 			defer wg.Done()
 
 			fmt.Printf("Node %d: running\n", i)
-			finalStatuses[i] = testReplica.Run(tickInterval, stopC)
+			finalStatuses[i] = testReplica.Run(ctx, tickInterval)
 			fmt.Printf("Node %d: exit with exitErr=%v\n", i, finalStatuses[i].ExitErr)
 			cancelClientConnections()
 		}(i, testReplica)
@@ -202,8 +202,7 @@ func (d *Deployment) Run(tickInterval time.Duration, stopC <-chan struct{}) []No
 		}(client)
 	}
 
-	// Wait until the deployment receives the stop signal (stopC closed)
-	<-stopC
+	<-ctx.Done()
 
 	// Disconnect DummyClients
 	cancelClientConnections()

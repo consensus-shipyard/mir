@@ -9,14 +9,15 @@ package mir
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sync"
-	"time"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
@@ -121,10 +122,10 @@ func (n *Node) Step(ctx context.Context, source t.NodeID, msg *messagepb.Message
 
 	// Pre-process the incoming message and return an error if pre-processing fails.
 	// TODO: Re-enable pre-processing.
-	//err := preProcess(msg)
-	//if err != nil {
+	// err := preProcess(msg)
+	// if err != nil {
 	//	return errors.WithMessage(err, "pre-processing message failed")
-	//}
+	// }
 
 	// Create a MessageReceived event
 	e := (&events.EventList{}).PushBack(events.MessageReceived(source, msg))
@@ -173,7 +174,7 @@ func (n *Node) SubmitRequest(
 // The node stops when exitC is closed.
 // Logical time ticks need to be written to tickC by the calling code.
 // The function call is blocking and only returns when the node stops.
-func (n *Node) Run(exitC <-chan struct{}, tickC <-chan time.Time) error {
+func (n *Node) Run(ctx context.Context, tickC <-chan time.Time) error {
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
@@ -193,7 +194,7 @@ func (n *Node) Run(exitC <-chan struct{}, tickC <-chan time.Time) error {
 	}
 
 	// Start processing of events.
-	return n.process(exitC, tickC)
+	return n.process(ctx, tickC)
 }
 
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
@@ -222,7 +223,7 @@ func (n *Node) processWAL() error {
 // which mostly consists of routing events between the node's modules.
 // Stops and returns when exitC is closed.
 // Logical time ticks need to be written to tickC by the calling code.
-func (n *Node) process(exitC <-chan struct{}, tickC <-chan time.Time) error {
+func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
 	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
@@ -276,6 +277,8 @@ func (n *Node) process(exitC <-chan struct{}, tickC <-chan time.Time) error {
 
 		// Wait until any events are ready and write them to the appropriate location.
 		select {
+		case <-ctx.Done():
+			n.workErrNotifier.Fail(ErrStopped)
 
 		// Write pending events to module input channels.
 		// This is also the only place events are (potentially) intercepted.
@@ -330,8 +333,6 @@ func (n *Node) process(exitC <-chan struct{}, tickC <-chan time.Time) error {
 
 		case <-n.workErrNotifier.ExitC():
 			return n.workErrNotifier.Err()
-		case <-exitC:
-			n.workErrNotifier.Fail(ErrStopped)
 		}
 
 		// If any events have been added to the work items,
