@@ -8,4 +8,4 @@ When an ADR is added or updated, the following table of contents must manually b
 
 ## Table of contents
 
-- [001: Node and client ID types](adr-001-node-and-client-id-types.md) (proposed)
+- [001: Node and client ID types](adr-001-node-and-client-id-types.md) (Accepted Apr 21, 2022)
