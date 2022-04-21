@@ -371,7 +371,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Store request data.
 			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store request (c%sr%d) data: %w",
+				return nil, fmt.Errorf("cannot store request (c%vr%d) data: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)
@@ -379,7 +379,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Mark request as authenticated.
 			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark request (c%sr%d) as authenticated: %w",
+				return nil, fmt.Errorf("cannot mark request (c%vr%d) as authenticated: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)
@@ -387,7 +387,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Store request authenticator.
 			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, storeEvent.Authenticator); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator (c%sr%d) of request: %w",
+				return nil, fmt.Errorf("cannot store authenticator (c%vr%d) of request: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)

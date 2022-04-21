@@ -696,7 +696,7 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 	// TODO: This lookup is extremely inefficient, computing the membership set on each message validation.
 	//       Cache the output of membershipSet() throughout the epoch.
 	if _, ok := membershipSet(iss.config.Membership)[from]; !ok {
-		return fmt.Errorf("sender of SB message not in the membership: %s", from)
+		return fmt.Errorf("sender of SB message not in the membership: %v", from)
 	}
 
 	return nil
@@ -920,7 +920,7 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(reqRef *requestpb.RequestRef) string {
-	return fmt.Sprintf("%s-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
+	return fmt.Sprintf("%v-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
 }
 
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.

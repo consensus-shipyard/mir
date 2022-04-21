@@ -220,8 +220,9 @@ func (d *Deployment) Run(tickInterval time.Duration, stopC <-chan struct{}) []No
 	return finalStatuses
 }
 
-// Creates an instance of GrpcTransport based on the numeric IDs of test replicas.
-// The network address of each test replica is the loopback 127.0.0.1
+// localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
+// It is assumed that node ID strings must be parseable to decimal numbers.
+// The network address of each test replica is the loopback 127.0.0.1.
 func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcTransport {
 
 	// Compute network addresses and ports for all test replicas.
@@ -238,10 +239,12 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 	return grpctransport.NewGrpcTransport(membership, ownId, nil)
 }
 
+// localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns
+// an address map.
+// It is assumed that node ID strings must be parseable to decimal numbers.
+// Each test replica is on the local machine - 127.0.0.1
 func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 
-	// Compute network addresses and ports for the RequestReceivers at all replicas.
-	// Each test replica is on the local machine - 127.0.0.1
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for _, tr := range d.TestReplicas {
 		p, err := strconv.Atoi(tr.Id.Pb())
