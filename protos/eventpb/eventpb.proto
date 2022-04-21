@@ -78,12 +78,12 @@ message RequestReady {
 }
 
 message SendMessage {
-  repeated uint64 destinations = 1;
+  repeated string destinations = 1;
   messagepb.Message msg = 2;
 }
 
 message MessageReceived {
-  uint64 from = 1;
+  string from = 1;
   messagepb.Message msg = 2;
 }
 

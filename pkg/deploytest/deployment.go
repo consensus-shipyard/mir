@@ -10,6 +10,13 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"time"
+
+	. "github.com/onsi/ginkgo"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -17,11 +24,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"path/filepath"
-	"sync"
-	"time"
-
-	. "github.com/onsi/ginkgo"
 )
 
 const (
@@ -89,14 +91,14 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 	// Create a dummy static membership with replica IDs from 0 to len(replicas) - 1
 	membership := make([]t.NodeID, testConfig.NumReplicas)
 	for i := 0; i < len(membership); i++ {
-		membership[i] = t.NodeID(i)
+		membership[i] = t.NewNodeIDFromInt(i)
 	}
 
 	// Compute a list of all client IDs.
 	// It consists of all dummy client IDs, plus the "fake" client associated with replicas submitting requests directly
-	clientIDs := []t.ClientID{0} // "Fake" client has always ID 0, others start from 1.
+	clientIDs := []t.ClientID{t.NewClientIDFromInt(0)} // "Fake" client has always ID "0", others start from "1".
 	for i := 1; i <= testConfig.NumClients; i++ {
-		clientIDs = append(clientIDs, t.ClientID(i))
+		clientIDs = append(clientIDs, t.NewClientIDFromInt(i))
 	}
 
 	// Create all TestReplicas for this deployment.
@@ -112,14 +114,14 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		var transport modules.Net
 		switch testConfig.Transport {
 		case "fake":
-			transport = fakeTransport.Link(t.NodeID(i))
+			transport = fakeTransport.Link(t.NewNodeIDFromInt(i))
 		case "grpc":
-			transport = localGrpcTransport(membership, t.NodeID(i))
+			transport = localGrpcTransport(membership, t.NewNodeIDFromInt(i))
 		}
 
 		// Create instance of test replica.
 		replicas[i] = &TestReplica{
-			Id:              t.NodeID(i),
+			Id:              t.NewNodeIDFromInt(i),
 			Config:          config,
 			Membership:      membership,
 			ClientIDs:       clientIDs,
@@ -138,7 +140,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		// for the "fake" requests submitted directly by the TestReplicas.
 
 		// Create client-specific Crypto module
-		cryptoModule, err := mirCrypto.ClientPseudo(membership, clientIDs, t.ClientID(i), mirCrypto.DefaultPseudoSeed)
+		cryptoModule, err := mirCrypto.ClientPseudo(membership, clientIDs, t.NewClientIDFromInt(i), mirCrypto.DefaultPseudoSeed)
 		if err != nil {
 			return nil, err
 		}
@@ -226,7 +228,11 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]string, len(nodeIds))
 	for _, id := range nodeIds {
-		membership[id] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+id)
+		p, err := strconv.Atoi(string(id))
+		if err != nil {
+			panic(fmt.Errorf("could not convert node ID: %w", err))
+		}
+		membership[id] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+p)
 	}
 
 	return grpctransport.NewGrpcTransport(membership, ownId, nil)
@@ -238,7 +244,11 @@ func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 	// Each test replica is on the local machine - 127.0.0.1
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for _, tr := range d.TestReplicas {
-		addrs[tr.Id] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+tr.Id)
+		p, err := strconv.Atoi(string(tr.Id))
+		if err != nil {
+			panic(fmt.Errorf("could not convert test replica ID: %w", err))
+		}
+		addrs[tr.Id] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+p)
 	}
 
 	return addrs

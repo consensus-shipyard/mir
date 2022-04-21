@@ -17,7 +17,7 @@ service GrpcTransport {
 }
 
 message GrpcMessage {
-	uint64 sender = 1;
+	string sender = 1;
 	messagepb.Message msg = 2;
 }
 

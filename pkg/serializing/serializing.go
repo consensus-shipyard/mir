@@ -8,6 +8,7 @@ package serializing
 
 import (
 	"encoding/binary"
+
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
@@ -16,9 +17,8 @@ import (
 func RequestForHash(req *requestpb.Request) [][]byte {
 
 	// Encode integer fields.
-	clientIDBuf := make([]byte, 8)
+	clientIDBuf := []byte(req.ClientId)
 	reqNoBuf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(clientIDBuf, req.ClientId)
 	binary.LittleEndian.PutUint64(reqNoBuf, req.ReqNo)
 
 	// Note that the signature is *not* part of the hashed data.

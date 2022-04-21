@@ -10,12 +10,14 @@ package mir
 
 import (
 	"fmt"
+	"runtime/debug"
+
+	"github.com/pkg/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/pkg/errors"
-	"runtime/debug"
 )
 
 // Input and output channels for the modules within the Node.
@@ -369,7 +371,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Store request data.
 			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store request (c%dr%d) data: %w",
+				return nil, fmt.Errorf("cannot store request (c%sr%d) data: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)
@@ -377,7 +379,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Mark request as authenticated.
 			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark request (c%dr%d) as authenticated: %w",
+				return nil, fmt.Errorf("cannot mark request (c%sr%d) as authenticated: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)
@@ -385,7 +387,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 			// Store request authenticator.
 			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, storeEvent.Authenticator); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator (c%dr%d) of request: %w",
+				return nil, fmt.Errorf("cannot store authenticator (c%sr%d) of request: %w",
 					storeEvent.RequestRef.ClientId,
 					storeEvent.RequestRef.ReqNo,
 					err)

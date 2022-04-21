@@ -16,6 +16,9 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -26,7 +29,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================
@@ -979,10 +981,9 @@ func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
 func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 
 	// Encode integer fields.
+	suspectBuf := []byte(entry.Suspect.Pb())
 	snBuf := make([]byte, 8)
-	suspectBuf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(snBuf, entry.Sn.Pb())
-	binary.LittleEndian.PutUint64(suspectBuf, entry.Suspect.Pb())
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)

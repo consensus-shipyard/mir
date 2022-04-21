@@ -5,6 +5,15 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/clients"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -19,12 +28,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/serializing"
 	"github.com/filecoin-project/mir/pkg/simplewal"
 	t "github.com/filecoin-project/mir/pkg/types"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
 
 var (
@@ -82,13 +85,13 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
-	//// Initialize the request store.
-	//reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
-	//err := os.MkdirAll(reqStorePath, 0700)
-	//Expect(err).NotTo(HaveOccurred())
-	//reqStore, err := reqstore.Open(reqStorePath)
-	//Expect(err).NotTo(HaveOccurred())
-	//defer reqStore.Close()
+	// // Initialize the request store.
+	// reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
+	// err := os.MkdirAll(reqStorePath, 0700)
+	// Expect(err).NotTo(HaveOccurred())
+	// reqStore, err := reqstore.Open(reqStorePath)
+	// Expect(err).NotTo(HaveOccurred())
+	// defer reqStore.Close()
 
 	// Initialize the write-ahead log.
 	walPath := filepath.Join(tr.Dir, "wal")
@@ -128,12 +131,12 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 			App:           tr.App,
 			WAL:           wal,
 			ClientTracker: clients.SigningTracker(logging.Decorate(tr.Config.Logger, "CT: ")),
-			//Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
+			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 			Protocol:    issProtocol,
 			Interceptor: interceptor,
-			//// Use dummy crypto module that only produces signatures
-			//// consisting of a single zero byte and treats those signatures as valid.
-			//Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
+			// // Use dummy crypto module that only produces signatures
+			// // consisting of a single zero byte and treats those signatures as valid.
+			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
 			Crypto: cryptoModule,
 		},
 	)
@@ -141,7 +144,11 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
-	err = requestReceiver.Start(RequestListenPort + int(tr.Id))
+	p, err := strconv.Atoi(string(tr.Id))
+	if err != nil {
+		panic(fmt.Errorf("could not convert node ID %s: %w", tr.Id, err))
+	}
+	err = requestReceiver.Start(RequestListenPort + p)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Initialize WaitGroup for the replica's request submission thread.
@@ -211,7 +218,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 
 	// Instantiate a Crypto module for signing the requests.
 	// The ID of the fake client is always 0.
-	cryptoModule, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, 0, mirCrypto.DefaultPseudoSeed)
+	cryptoModule, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, "0", mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
 	for i := 0; i < tr.NumFakeRequests; i++ {
@@ -225,7 +232,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 			// Create new request message. This is only necessary for proper signing
 			// and the message will be "taken apart" just a few lines later, when submitting it to the Node.
 			reqMsg := &requestpb.Request{
-				ClientId: 0,
+				ClientId: "0",
 				ReqNo:    t.ReqNo(i).Pb(),
 				Data:     []byte(fmt.Sprintf("Request %d", i)),
 			}
@@ -243,7 +250,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 				t.ReqNo(reqMsg.ReqNo),
 				reqMsg.Data,
 				reqMsg.Authenticator,
-				//[]byte{0}, // Fake signature. Relies on the Nodes using DummyCrypto{DummySig: []byte{0}}
+				// []byte{0}, // Fake signature. Relies on the Nodes using DummyCrypto{DummySig: []byte{0}}
 			); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,
