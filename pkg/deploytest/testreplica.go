@@ -78,7 +78,7 @@ func (tr *TestReplica) EventLogFile() string {
 //   - The final status of the replica
 //   - The error that made the node terminate
 //   - The error that occurred while obtaining the final node status
-func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) NodeStatus {
+func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) NodeStatus {
 
 	// Create logical time for the test replica.
 	// (Note that this is not just for testing - production deployment also only uses this form of time.)
@@ -157,7 +157,7 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 
 	// Start thread submitting requests from a (single) hypothetical client.
 	// The client submits a predefined number of requests and then stops.
-	go tr.submitFakeRequests(node, stopC, &wg)
+	go tr.submitFakeRequests(ctx, node, &wg)
 
 	// ATTENTION! This is hacky!
 	// If the test replica used the GRPC transport, initialize the Net module.
@@ -169,7 +169,7 @@ func (tr *TestReplica) Run(tickInterval time.Duration, stopC <-chan struct{}) No
 	}
 
 	// Run the node until it stops and obtain the node's final status.
-	exitErr := node.Run(stopC, ticker.C)
+	exitErr := node.Run(ctx, ticker.C)
 	fmt.Println("Run returned!")
 
 	finalStatus, statusErr := node.Status(context.Background())
@@ -212,7 +212,7 @@ type NodeStatus struct {
 // Submits n fake requests to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{}, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, wg *sync.WaitGroup) {
 	defer GinkgoRecover()
 	defer wg.Done()
 
@@ -223,7 +223,7 @@ func (tr *TestReplica) submitFakeRequests(node *mir.Node, stopC <-chan struct{},
 
 	for i := 0; i < tr.NumFakeRequests; i++ {
 		select {
-		case <-stopC:
+		case <-ctx.Done():
 			// Stop submitting if shutting down.
 			break
 		default:

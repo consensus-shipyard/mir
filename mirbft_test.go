@@ -7,13 +7,16 @@ SPDX-License-Identifier: Apache-2.0
 package mir_test
 
 import (
+	"context"
 	"fmt"
-	"github.com/filecoin-project/mir"
-	"github.com/filecoin-project/mir/pkg/deploytest"
-	"github.com/onsi/ginkgo/extensions/table"
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/onsi/ginkgo/extensions/table"
+
+	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/deploytest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,9 +42,6 @@ var _ = Describe("Basic test", func() {
 		// The deployment used by the test.
 		deployment *deploytest.Deployment
 
-		// Channel used to stop the deployment.
-		stopC = make(chan struct{})
-
 		// When the deployment stops, the final node statuses will be written here.
 		finalStatuses []deploytest.NodeStatus
 
@@ -50,17 +50,22 @@ var _ = Describe("Basic test", func() {
 		// We are not deleting them on the fly, to make it possible for a test
 		// to access a directory created by a previous test.
 		tempDirs = make(map[string]struct{})
+
+		ctx context.Context
 	)
 
 	// Before each run, clear the test state variables.
 	BeforeEach(func() {
 		finalStatuses = nil
-		stopC = make(chan struct{})
+		ctx = context.Background()
 	})
 
 	// Define what happens when the test runs.
 	// Each run is parametrized with a TestConfig
 	testFunc := func(testConfig *deploytest.TestConfig) {
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
 
 		// Set current test config so it can be accessed after the test is complete.
 		currentTestConfig = testConfig
@@ -79,12 +84,12 @@ var _ = Describe("Basic test", func() {
 		if testConfig.Duration != 0 {
 			go func() {
 				time.Sleep(testConfig.Duration)
-				close(stopC)
+				cancel()
 			}()
 		}
 
 		// Run deployment until it stops and returns final node statuses.
-		finalStatuses = deployment.Run(tickInterval, stopC)
+		finalStatuses = deployment.Run(ctx, tickInterval)
 
 		// Check whether all the test replicas exited correctly.
 		Expect(finalStatuses).NotTo(BeNil())
