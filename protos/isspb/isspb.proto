@@ -77,8 +77,9 @@ message PersistCheckpoint {
 }
 
 message StableCheckpoint {
-  uint64 epoch = 1;
-  uint64 sn    = 2;
+  uint64 epoch =             1;
+  uint64 sn    =             2;
+  bytes  app_snapshot_hash = 3;
   // TODO: Some form of checkpoint certificate will need to go here.
 }
 

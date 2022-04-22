@@ -165,8 +165,9 @@ func (ct *checkpointTracker) stable() bool {
 func (ct *checkpointTracker) announceStable() *events.EventList {
 	// Create a stable checkpoint object.
 	stableCheckpoint := &isspb.StableCheckpoint{
-		Epoch: ct.epoch.Pb(),
-		Sn:    ct.seqNr.Pb(),
+		Epoch:           ct.epoch.Pb(),
+		Sn:              ct.seqNr.Pb(),
+		AppSnapshotHash: ct.appSnapshotHash,
 	}
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.
