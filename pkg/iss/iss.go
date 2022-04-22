@@ -16,6 +16,9 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -26,7 +29,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================
@@ -694,7 +696,7 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 	// TODO: This lookup is extremely inefficient, computing the membership set on each message validation.
 	//       Cache the output of membershipSet() throughout the epoch.
 	if _, ok := membershipSet(iss.config.Membership)[from]; !ok {
-		return fmt.Errorf("sender of SB message not in the membership: %d", from)
+		return fmt.Errorf("sender of SB message not in the membership: %v", from)
 	}
 
 	return nil
@@ -918,7 +920,7 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(reqRef *requestpb.RequestRef) string {
-	return fmt.Sprintf("%d-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
+	return fmt.Sprintf("%v-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
 }
 
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.
@@ -979,10 +981,9 @@ func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
 func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 
 	// Encode integer fields.
+	suspectBuf := []byte(entry.Suspect.Pb())
 	snBuf := make([]byte, 8)
-	suspectBuf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(snBuf, entry.Sn.Pb())
-	binary.LittleEndian.PutUint64(suspectBuf, entry.Suspect.Pb())
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)

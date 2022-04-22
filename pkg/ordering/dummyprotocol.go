@@ -8,6 +8,7 @@ package ordering
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -84,12 +85,12 @@ func (dp *DummyProtocol) Status() (s *statuspb.ProtocolStatus, err error) {
 }
 
 // Handles a new incoming request.
-// In the DummyProtocol, the leader (always node 0) commits it directly
+// In the DummyProtocol, the leader (always node "0") commits it directly
 // and forwards it to all replicas, also persisting these steps in the WAL.
 // Non-leaders ignore incoming requests.
 func (dp *DummyProtocol) handleRequest(ref *requestpb.RequestRef) *events.EventList {
 
-	if dp.ownId == 0 {
+	if dp.ownId == "0" {
 		// If I am the leader, handle request.
 		dp.logger.Log(logging.LevelDebug, "Handling Request.", "clientId", ref.ClientId, "reqNo", ref.ReqNo)
 

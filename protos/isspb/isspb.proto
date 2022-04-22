@@ -146,7 +146,7 @@ message SBDeliver {
 }
 
 message SBMessageReceived {
-  uint64 from = 1;
+  string from = 1;
   SBInstanceMessage msg = 2;
 }
 
@@ -190,7 +190,7 @@ message Status {
 }
 
 message SBStatus {
-  uint64 leader = 1;
+  string leader = 1;
   // TODO: Represent whole status here, e.g., the segment etc.
   //       Put common SB-related fields here and add a field for subprotocol-specific status.
 }

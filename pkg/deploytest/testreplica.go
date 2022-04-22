@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -143,7 +144,11 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
-	err = requestReceiver.Start(RequestListenPort + int(tr.Id))
+	p, err := strconv.Atoi(string(tr.Id))
+	if err != nil {
+		panic(fmt.Errorf("could not convert node ID %s: %w", tr.Id, err))
+	}
+	err = requestReceiver.Start(RequestListenPort + p)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Initialize WaitGroup for the replica's request submission thread.
@@ -213,7 +218,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 
 	// Instantiate a Crypto module for signing the requests.
 	// The ID of the fake client is always 0.
-	cryptoModule, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, 0, mirCrypto.DefaultPseudoSeed)
+	cryptoModule, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, t.NewClientIDFromInt(0), mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
 	for i := 0; i < tr.NumFakeRequests; i++ {
@@ -227,7 +232,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 			// Create new request message. This is only necessary for proper signing
 			// and the message will be "taken apart" just a few lines later, when submitting it to the Node.
 			reqMsg := &requestpb.Request{
-				ClientId: 0,
+				ClientId: string(t.NewClientIDFromInt(0)),
 				ReqNo:    t.ReqNo(i).Pb(),
 				Data:     []byte(fmt.Sprintf("Request %d", i)),
 			}

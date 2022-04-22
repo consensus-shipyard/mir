@@ -8,9 +8,10 @@ package crypto
 
 import (
 	"fmt"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
 	prand "math/rand"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 var (
@@ -58,7 +59,7 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	if c == nil {
 		if err == nil {
 			// Own ID was not found and Crypto module instantiation was not even attempted.
-			return nil, fmt.Errorf("ownID (%d) not found among nodes", ownID)
+			return nil, fmt.Errorf("ownID (%v) not found among nodes", ownID)
 		} else {
 			// Crypto module instantiation failed.
 			return nil, err
@@ -108,7 +109,7 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 	if c == nil {
 		if err == nil {
 			// Own ID was not found and Crypto module instantiation was not even attempted.
-			return nil, fmt.Errorf("ownID (%d) not found among clients", ownID)
+			return nil, fmt.Errorf("ownID (%v) not found among clients", ownID)
 		} else {
 			// Crypto module instantiation failed.
 			return nil, err
