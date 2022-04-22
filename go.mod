@@ -13,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/tidwall/wal v0.1.3
 	github.com/ttacon/chalk v0.0.0-20160626202418-22c06c80ed31
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

@@ -11,11 +11,25 @@ package deploytest
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
+
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sync"
 )
+
+// unsafeIDtoi calls strconv.Atoi, but doesn't check an error.
+// It must be used in trusted deployment only.
+func unsafeIDtoi(in interface{}) (out int) {
+	switch id := in.(type) {
+	case t.NodeID:
+		out, _ = strconv.Atoi(string(id))
+	case t.ClientID:
+		out, _ = strconv.Atoi(string(id))
+	}
+	return
+}
 
 type FakeLink struct {
 	FakeTransport *FakeTransport
@@ -28,7 +42,7 @@ func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
 }
 
 func (fl *FakeLink) ReceiveChan() <-chan modules.ReceivedMessage {
-	return fl.FakeTransport.NodeSinks[fl.Source]
+	return fl.FakeTransport.NodeSinks[unsafeIDtoi(fl.Source)]
 }
 
 type FakeTransport struct {
@@ -62,9 +76,9 @@ func NewFakeTransport(nodes int) *FakeTransport {
 
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
-	case ft.Buffers[int(source)][int(dest)] <- msg:
+	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- msg:
 	default:
-		fmt.Printf("Warning: Dropping message %T from %d to %d\n", msg.Type, source, dest)
+		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)
 	}
 }
 
@@ -76,7 +90,7 @@ func (ft *FakeTransport) Link(source t.NodeID) *FakeLink {
 }
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan modules.ReceivedMessage {
-	return ft.NodeSinks[int(dest)]
+	return ft.NodeSinks[unsafeIDtoi(dest)]
 }
 
 func (ft *FakeTransport) Start() {
@@ -96,7 +110,7 @@ func (ft *FakeTransport) Start() {
 						// fmt.Printf("Sending message from %d to %d\n", i, j)
 						select {
 						case ft.NodeSinks[j] <- modules.ReceivedMessage{
-							Sender: t.NodeID(i),
+							Sender: t.NewNodeIDFromInt(i),
 							Msg:    msg,
 						}:
 						case <-ft.DoneC:

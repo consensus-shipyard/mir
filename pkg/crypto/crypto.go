@@ -17,10 +17,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
 	"io/ioutil"
 	"strings"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Crypto represents an instance of the Crypto module that can be used at Node instantiation
@@ -140,7 +141,6 @@ func (c *Crypto) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID)
 // Note that RegisterClientKey must be used to register the client's public key before calling VerifyClientSig,
 // otherwise VerifyClientSig will fail.
 func (c *Crypto) VerifyClientSig(data [][]byte, signature []byte, clientID t.ClientID) error {
-
 	pubKey, ok := c.clientKeys[clientID]
 	if !ok {
 		return fmt.Errorf("no public key for client with ID %d", clientID)

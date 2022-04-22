@@ -9,16 +9,18 @@ package grpctransport
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/peer"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
+
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (

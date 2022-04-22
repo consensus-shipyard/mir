@@ -7,3 +7,9 @@ cmd/mircat/mircat
 
 # Ignore IDE config folders
 .idea
+
+# Ignore test artifacts
+mir-deployment-test
+
+# Ignore sample artifacts
+chat-demo-wal

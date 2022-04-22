@@ -18,6 +18,14 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"os"
+	"path"
+	"strconv"
+	"sync"
+	"time"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -29,11 +37,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/simplewal"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"path"
-	"sync"
-	"time"
 )
 
 const (
@@ -84,14 +87,23 @@ func main() {
 
 	// IDs of nodes that are part of the system.
 	// This example uses a static configuration of 4 nodes.
-	nodeIds := []t.NodeID{0, 1, 2, 3}
+	nodeIds := []t.NodeID{
+		t.NewNodeIDFromInt(0),
+		t.NewNodeIDFromInt(1),
+		t.NewNodeIDFromInt(2),
+		t.NewNodeIDFromInt(3),
+	}
 
 	// Generate addresses and ports of participating nodes.
 	// All nodes are on the local machine, but listen on different port numbers.
 	// Change this or make this configurable do deploy different nodes on different physical machines.
 	nodeAddrs := make(map[t.NodeID]string)
 	for _, i := range nodeIds {
-		nodeAddrs[i] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
+		p, err := strconv.Atoi(string(i))
+		if err != nil {
+			panic(fmt.Errorf("could not convert node ID: %w", err))
+		}
+		nodeAddrs[i] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+p)
 	}
 
 	// Generate addresses and ports for client request receivers.
@@ -101,7 +113,11 @@ func main() {
 	// however, will only submit the received requests to its associated Node.
 	reqReceiverAddrs := make(map[t.NodeID]string)
 	for _, i := range nodeIds {
-		reqReceiverAddrs[i] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
+		p, err := strconv.Atoi(string(i))
+		if err != nil {
+			panic(fmt.Errorf("could not convert node ID: %w", err))
+		}
+		reqReceiverAddrs[i] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+p)
 	}
 
 	// ================================================================================
@@ -114,7 +130,7 @@ func main() {
 	// At the time of writing this comment, restarts / crash-recovery is not yet implemented though.
 	// Nevertheless, running this code will create a directory with the WAL file in it.
 	// Those need to be manually removed.
-	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%d", args.OwnId))
+	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%s", args.OwnId))
 	wal, err := simplewal.Open(walPath)
 	if err != nil {
 		panic(err)
@@ -200,7 +216,11 @@ func main() {
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
 	reqReceiver := requestreceiver.NewRequestReceiver(node, logger)
-	if err := reqReceiver.Start(reqReceiverBasePort + int(args.OwnId)); err != nil {
+	p, err := strconv.Atoi(string(args.OwnId))
+	if err != nil {
+		panic(fmt.Errorf("could not convert node ID: %w", err))
+	}
+	if err := reqReceiver.Start(reqReceiverBasePort + p); err != nil {
 		panic(err)
 	}
 
@@ -213,7 +233,7 @@ func main() {
 	// Also note that the client IDs are in a different namespace than Node IDs.
 	// The client also needs to be initialized with a Hasher and Crypto module in order to be able to sign requests.
 	// We use a dummy Crypto module set up the same way as the Node's Crypto module,
-	// so the client's signatures are acceptedl.
+	// so the client's signatures are accepted.
 	client := dummyclient.NewDummyClient(
 		t.ClientID(args.OwnId),
 		crypto.SHA256,
@@ -280,7 +300,7 @@ func parseArgs(args []string) *parsedArgs {
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
 	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
-	ownId := app.Arg("id", "Numeric ID of this node").Required().Uint64()
+	ownId := app.Arg("id", "Numeric ID of this node").Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)

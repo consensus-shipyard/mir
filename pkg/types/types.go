@@ -6,20 +6,26 @@ SPDX-License-Identifier: Apache-2.0
 
 package types
 
+import "strconv"
+
 // ================================================================================
 
 // NodeID represents the numeric ID of a node.
-type NodeID uint64
+type NodeID string
+
+func NewNodeIDFromInt(id int) NodeID {
+	return NodeID(strconv.Itoa(id))
+}
 
 // Pb converts a NodeID to its underlying native type.
-func (nid NodeID) Pb() uint64 {
-	return uint64(nid)
+func (nid NodeID) Pb() string {
+	return string(nid)
 }
 
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
-func NodeIDSlicePb(nids []NodeID) []uint64 {
-	pbSlice := make([]uint64, len(nids), len(nids))
+func NodeIDSlicePb(nids []NodeID) []string {
+	pbSlice := make([]string, len(nids), len(nids))
 	for i, nid := range nids {
 		pbSlice[i] = nid.Pb()
 	}
@@ -29,11 +35,15 @@ func NodeIDSlicePb(nids []NodeID) []uint64 {
 // ================================================================================
 
 // ClientID represents the numeric ID of a client.
-type ClientID uint64
+type ClientID string
+
+func NewClientIDFromInt(id int) ClientID {
+	return ClientID(strconv.Itoa(id))
+}
 
 // Pb converts a ClientID to its underlying native type.
-func (cid ClientID) Pb() uint64 {
-	return uint64(cid)
+func (cid ClientID) Pb() string {
+	return string(cid)
 }
 
 // ================================================================================

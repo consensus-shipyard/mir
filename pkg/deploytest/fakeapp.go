@@ -9,6 +9,7 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
@@ -19,7 +20,7 @@ type FakeApp struct {
 	RequestsProcessed uint64
 }
 
-// Apply
+// Apply implements Apply.
 func (fa *FakeApp) Apply(batch *requestpb.Batch) error {
 	for range batch.Requests {
 		fa.RequestsProcessed++

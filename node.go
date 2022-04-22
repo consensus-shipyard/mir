@@ -9,14 +9,15 @@ package mir
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sync"
-	"time"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
@@ -121,10 +122,10 @@ func (n *Node) Step(ctx context.Context, source t.NodeID, msg *messagepb.Message
 
 	// Pre-process the incoming message and return an error if pre-processing fails.
 	// TODO: Re-enable pre-processing.
-	//err := preProcess(msg)
-	//if err != nil {
+	// err := preProcess(msg)
+	// if err != nil {
 	//	return errors.WithMessage(err, "pre-processing message failed")
-	//}
+	// }
 
 	// Create a MessageReceived event
 	e := (&events.EventList{}).PushBack(events.MessageReceived(source, msg))

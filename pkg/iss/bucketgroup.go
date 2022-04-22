@@ -59,7 +59,7 @@ func (buckets bucketGroup) Select(bucketIDs []int) bucketGroup {
 // Thus, the same request may map to some bucket in one group and to a different bucket in a different group,
 // even if the former bucket is part of the latter group.
 func (buckets bucketGroup) RequestBucket(reqRef *requestpb.RequestRef) *requestBucket {
-	bucketID := int(reqRef.ClientId+reqRef.ReqNo) % len(buckets) // If types change, this might need to be updated.
+	bucketID := int(reqRef.ReqNo) % len(buckets) // If types change, this might need to be updated.
 	return buckets.Get(bucketID)
 }
 
