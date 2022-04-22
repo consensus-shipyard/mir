@@ -144,7 +144,7 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
-	p, err := strconv.Atoi(string(tr.Id))
+	p, err := strconv.Atoi(tr.Id.Pb())
 	if err != nil {
 		panic(fmt.Errorf("could not convert node ID %s: %w", tr.Id, err))
 	}

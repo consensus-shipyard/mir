@@ -15,18 +15,20 @@ package reqstore
 
 import (
 	"fmt"
-	badger "github.com/dgraph-io/badger/v2"
+
+	"github.com/dgraph-io/badger/v2"
+	"github.com/pkg/errors"
+
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/pkg/errors"
 )
 
 func reqKey(ack *requestpb.RequestRef) []byte {
-	return []byte(fmt.Sprintf("req-%d.%d.%x", ack.ClientId, ack.ReqNo, ack.Digest))
+	return []byte(fmt.Sprintf("req-%v.%d.%x", ack.ClientId, ack.ReqNo, ack.Digest))
 }
 
 func allocKey(clientID t.ClientID, reqNo t.ReqNo) []byte {
-	return []byte(fmt.Sprintf("alloc-%d.%d", clientID, reqNo))
+	return []byte(fmt.Sprintf("alloc-%v.%d", clientID, reqNo))
 }
 
 type Store struct {

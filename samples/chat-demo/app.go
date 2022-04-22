@@ -13,9 +13,11 @@ package main
 
 import (
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"google.golang.org/protobuf/proto"
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application
@@ -56,7 +58,7 @@ func (chat *ChatApp) Apply(batch *requestpb.Batch) error {
 		if err != nil {
 			return err
 		}
-		chatMessage := fmt.Sprintf("Client %d: %s", reqRef.ClientId, string(reqData))
+		chatMessage := fmt.Sprintf("Client %v: %s", reqRef.ClientId, string(reqData))
 
 		// Append the received chat message to the chat history.
 		chat.messages = append(chat.messages, chatMessage)
@@ -96,7 +98,7 @@ func (chat *ChatApp) RestoreState(snapshot []byte) error {
 	chat.messages = state.Messages
 
 	// Print new state
-	fmt.Println("\n CHAT STATE RESTORED. SHOWING ALL CHAT HISTORY FROM THE BEGINNING.\n")
+	fmt.Printf("\n CHAT STATE RESTORED. SHOWING ALL CHAT HISTORY FROM THE BEGINNING.\n")
 	for _, message := range chat.messages {
 		fmt.Println(message)
 	}

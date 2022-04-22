@@ -9,14 +9,16 @@ package dummyclient
 import (
 	"context"
 	"fmt"
+	"sync"
+
+	"google.golang.org/grpc"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/grpc"
-	"sync"
 )
 
 const (
@@ -81,7 +83,7 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 			// Print debug info.
 			if err != nil {
 				dc.logger.Log(logging.LevelError,
-					fmt.Sprintf("Failed to connect to node %d (%s).", id, addr))
+					fmt.Sprintf("Failed to connect to node %v (%s).", id, addr))
 			} else {
 				dc.logger.Log(logging.LevelDebug,
 					fmt.Sprintf("Node %d (%s) connected.", id, addr))
@@ -154,9 +156,9 @@ func (dc *DummyClient) Disconnect() {
 	// Close connections to all nodes.
 	for id, connection := range dc.connections {
 		if connection == nil {
-			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("No connection to close to node %d", id))
+			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("No connection to close to node %v", id))
 		} else if _, err := connection.CloseAndRecv(); err != nil {
-			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %d", id))
+			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v", id))
 		}
 	}
 }

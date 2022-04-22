@@ -142,7 +142,7 @@ func (dp *DummyProtocol) handleMessage(message *messagepb.Message, from t.NodeID
 
 	default:
 		// Panic if message type is not known.
-		panic(fmt.Sprintf("unknown DummyProtocol message type (from %d): %T", from, message.Type))
+		panic(fmt.Sprintf("unknown DummyProtocol message type (from %v): %T", from, message.Type))
 	}
 }
 

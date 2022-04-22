@@ -8,6 +8,7 @@ package clients
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -104,5 +105,5 @@ func (ct *SigningClientTracker) Status() (s *statuspb.ClientTrackerStatus, err e
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(reqRef *requestpb.RequestRef) string {
-	return fmt.Sprintf("%d-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
+	return fmt.Sprintf("%v-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
 }

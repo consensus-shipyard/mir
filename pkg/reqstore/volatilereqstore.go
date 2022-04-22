@@ -8,6 +8,7 @@ package reqstore
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -36,12 +37,12 @@ type requestInfo struct {
 
 // Returns the string representation of a request reference.
 func requestKey(ref *requestpb.RequestRef) string {
-	return fmt.Sprintf("r-%d.%d.%x", ref.ClientId, ref.ReqNo, ref.Digest)
+	return fmt.Sprintf("r-%v.%d.%x", ref.ClientId, ref.ReqNo, ref.Digest)
 }
 
 // Returns the string representation of a request ID.
 func idKey(clientId t.ClientID, reqNo t.ReqNo) string {
-	return fmt.Sprintf("i-%d.%d", clientId, reqNo)
+	return fmt.Sprintf("i-%v.%d", clientId, reqNo)
 }
 
 // Adds a digest to the request ID index.
@@ -122,12 +123,12 @@ func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byt
 			return data, nil
 		} else {
 			// If the entry exists, but contains no data, return an error.
-			return nil, fmt.Errorf(fmt.Sprintf("request (%d-%d.%x) not present",
+			return nil, fmt.Errorf(fmt.Sprintf("request (%v-%d.%x) not present",
 				reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 		}
 	} else {
 		// If the entry does not exist, return an error.
-		return nil, fmt.Errorf(fmt.Sprintf("request (%d-%d.%x) not present",
+		return nil, fmt.Errorf(fmt.Sprintf("request (%v-%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
 }
@@ -156,7 +157,7 @@ func (vrs *VolatileRequestStore) IsAuthenticated(reqRef *requestpb.RequestRef) (
 		return reqInfo.authenticated, nil
 	} else {
 		// If the entry does not exist, return an error.
-		return false, fmt.Errorf(fmt.Sprintf("request (%d.%d.%x) not present",
+		return false, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
 }
@@ -193,12 +194,12 @@ func (vrs *VolatileRequestStore) GetAuthenticator(reqRef *requestpb.RequestRef) 
 			return auth, nil
 		} else {
 			// If the entry exists, but contains no authenticator, return an error.
-			return nil, fmt.Errorf(fmt.Sprintf("request (%d.%d.%x) not present",
+			return nil, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
 				reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 		}
 	} else {
 		// If the entry does not exist, return an error.
-		return nil, fmt.Errorf(fmt.Sprintf("request (%d.%d.%x) not present",
+		return nil, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
 }

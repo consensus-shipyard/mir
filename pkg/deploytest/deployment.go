@@ -11,9 +11,10 @@ import (
 	"crypto"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
+
+	. "github.com/onsi/ginkgo"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -22,8 +23,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
-
-	. "github.com/onsi/ginkgo"
 )
 
 const (
@@ -226,12 +225,8 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]string, len(nodeIds))
-	for _, id := range nodeIds {
-		p, err := strconv.Atoi(id.Pb())
-		if err != nil {
-			panic(fmt.Errorf("could not convert node ID: %w", err))
-		}
-		membership[id] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+p)
+	for i := range nodeIds {
+		membership[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+i)
 	}
 
 	return grpctransport.NewGrpcTransport(membership, ownId, nil)
@@ -244,12 +239,8 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
-	for _, tr := range d.TestReplicas {
-		p, err := strconv.Atoi(tr.Id.Pb())
-		if err != nil {
-			panic(fmt.Errorf("could not convert test replica ID: %w", err))
-		}
-		addrs[tr.Id] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+p)
+	for i, tr := range d.TestReplicas {
+		addrs[tr.Id] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+i)
 	}
 
 	return addrs
