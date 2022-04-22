@@ -12,6 +12,8 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	"bytes"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -46,14 +48,18 @@ type checkpointTracker struct {
 	// Set of nodes from which any Checkpoint message has been received.
 	// This is necessary for ignoring all but the first message a node sends, regardless of the snapshot hash.
 	confirmations map[t.NodeID]struct{}
+
+	// Set of Checkpoint messages that were received ahead of time.
+	pendingMessages map[t.NodeID]*isspb.Checkpoint
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
 func newCheckpointTracker(sn t.SeqNr, logger logging.Logger) *checkpointTracker {
 	return &checkpointTracker{
-		Logger:        logger,
-		seqNr:         sn,
-		confirmations: make(map[t.NodeID]struct{}),
+		Logger:          logger,
+		seqNr:           sn,
+		confirmations:   make(map[t.NodeID]struct{}),
+		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
 		// the epoch and membership fields will be set later by iss.startCheckpoint
 		// the appSnapshot field will be set by ProcessAppSnapshot
 	}
@@ -120,38 +126,44 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash)
 	walEvent.FollowUp(events.SendMessage(m, ct.membership))
 
-	// If the app snapshot was the last thing missing for the checkpoint to become stable,
-	// also produce the necessary events.
-	if ct.stable() {
-		walEvent.FollowUps(ct.announceStable().Slice())
+	// Apply pending Checkpoint messages
+	for s, m := range ct.pendingMessages {
+		walEvent.FollowUps(ct.applyMessage(m, s).Slice())
 	}
 
 	// Return resulting WALEvent (with the SendMessage event appended).
 	return (&events.EventList{}).PushBack(walEvent)
 }
 
-func (ct *checkpointTracker) applyMessage(chkpMsg *isspb.Checkpoint, source t.NodeID) *events.EventList {
+func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID) *events.EventList {
 
 	// If checkpoint is already stable, ignore message.
 	if ct.stable() {
 		return &events.EventList{}
 	}
 
-	// TODO: Check signature of the sender.
+	// Check snapshot hash
+	if ct.appSnapshotHash == nil {
+		// The message is received too early, put it aside
+		ct.pendingMessages[source] = msg
+		return &events.EventList{}
+	} else if !bytes.Equal(ct.appSnapshotHash, msg.AppSnapshotHash) {
+		// Snapshot hash mismatch
+		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching app snapshot hash.", "source", source)
+		return &events.EventList{}
+	}
 
-	// TODO: Distinguish messages by snapshot hash,
-	//       separately keeping the set of nodes from which a Checkpoint message has been received.
-
-	// Ignore duplicate messages (regardless of snapshot hash).
+	// Ignore duplicate messages.
 	if _, ok := ct.confirmations[source]; ok {
 		return &events.EventList{}
 	}
+
+	// TODO: Check signature of the sender.
 
 	// TODO: Only accept messages from nodes in membership.
 	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
 
 	// Note the reception of a Checkpoint message from node `source`.
-	// TODO: take the snapshot hash into account. Separate data structures will be needed for that.
 	ct.confirmations[source] = struct{}{}
 
 	// If, after having applied this message, the checkpoint became stable, produce the necessary events.
