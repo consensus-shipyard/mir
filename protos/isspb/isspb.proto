@@ -70,8 +70,9 @@ message ISSHashOrigin {
 }
 
 message PersistCheckpoint {
-  uint64 sn           = 1;
-  bytes  app_snapshot = 2;
+  uint64 sn                = 1;
+  bytes  app_snapshot      = 2;
+  bytes  app_snapshot_hash = 3;
 }
 
 message StableCheckpoint {

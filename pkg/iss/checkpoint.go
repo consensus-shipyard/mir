@@ -107,7 +107,8 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 	ct.appSnapshotHash = snapshotHash
 
 	// Write Checkpoint to WAL
-	walEvent := events.WALAppend(PersistCheckpointEvent(ct.seqNr, ct.appSnapshot), t.WALRetIndex(ct.epoch))
+	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash)
+	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	// TODO: Add hash of the snapshot
