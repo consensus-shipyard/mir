@@ -173,10 +173,11 @@ func SBMessage(epoch t.EpochNr, instance t.SBInstanceID, msg *isspb.SBInstanceMe
 	}}})
 }
 
-func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr) *messagepb.Message {
+func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, appSnapshotHash []byte) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_Checkpoint{Checkpoint: &isspb.Checkpoint{
-		Epoch: epoch.Pb(),
-		Sn:    sn.Pb(),
+		Epoch:           epoch.Pb(),
+		Sn:              sn.Pb(),
+		AppSnapshotHash: appSnapshotHash,
 	}}})
 }
 

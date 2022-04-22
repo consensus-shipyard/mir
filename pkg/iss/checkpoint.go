@@ -111,10 +111,10 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	// TODO: Add hash of the snapshot
 	// TODO: Add signature.
 	// TODO: Implement checkpoint message retransmission.
-	walEvent.FollowUp(events.SendMessage(CheckpointMessage(ct.epoch, ct.seqNr), ct.membership))
+	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash)
+	walEvent.FollowUp(events.SendMessage(m, ct.membership))
 
 	// If the app snapshot was the last thing missing for the checkpoint to become stable,
 	// also produce the necessary events.
