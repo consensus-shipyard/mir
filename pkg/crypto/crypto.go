@@ -128,7 +128,7 @@ func (c *Crypto) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID)
 
 	pubKey, ok := c.nodeKeys[nodeID]
 	if !ok {
-		return fmt.Errorf("no public key for node with ID %d", nodeID)
+		return fmt.Errorf("no public key for node with ID %v", nodeID)
 	}
 
 	return c.verifySig(data, signature, pubKey)
@@ -143,7 +143,7 @@ func (c *Crypto) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID)
 func (c *Crypto) VerifyClientSig(data [][]byte, signature []byte, clientID t.ClientID) error {
 	pubKey, ok := c.clientKeys[clientID]
 	if !ok {
-		return fmt.Errorf("no public key for client with ID %d", clientID)
+		return fmt.Errorf("no public key for client with ID %v", clientID)
 	}
 
 	return c.verifySig(data, signature, pubKey)

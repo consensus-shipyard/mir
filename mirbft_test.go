@@ -13,13 +13,12 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/deploytest"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var (

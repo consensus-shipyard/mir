@@ -98,12 +98,8 @@ func main() {
 	// All nodes are on the local machine, but listen on different port numbers.
 	// Change this or make this configurable do deploy different nodes on different physical machines.
 	nodeAddrs := make(map[t.NodeID]string)
-	for _, i := range nodeIds {
-		p, err := strconv.Atoi(string(i))
-		if err != nil {
-			panic(fmt.Errorf("could not convert node ID: %w", err))
-		}
-		nodeAddrs[i] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+p)
+	for i := range nodeIds {
+		nodeAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
 	}
 
 	// Generate addresses and ports for client request receivers.
@@ -112,12 +108,8 @@ func main() {
 	// (each client sends its requests to all request receivers). Each request receiver,
 	// however, will only submit the received requests to its associated Node.
 	reqReceiverAddrs := make(map[t.NodeID]string)
-	for _, i := range nodeIds {
-		p, err := strconv.Atoi(string(i))
-		if err != nil {
-			panic(fmt.Errorf("could not convert node ID: %w", err))
-		}
-		reqReceiverAddrs[i] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+p)
+	for i := range nodeIds {
+		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
 	}
 
 	// ================================================================================
@@ -199,16 +191,16 @@ func main() {
 	// ================================================================================
 
 	// Initialize variables to synchronize Node startup and shutdown.
-	stopC := make(chan struct{}) // Closing this channel will signal the Node to stop.
-	var nodeErr error            // The error returned from running the Node will be stored here.
-	var wg sync.WaitGroup        // The Node will call Done() on this WaitGroup when it actually stops.
+	ctx := context.Background() // Calling Done() on this context will signal the Node to stop.
+	var nodeErr error           // The error returned from running the Node will be stored here.
+	var wg sync.WaitGroup       // The Node will call Done() on this WaitGroup when it actually stops.
 	wg.Add(1)
 
 	// Start the node in a separate goroutine
 	go func() {
 		// Since the Node does not have any notion of real time,
 		// it needs to be supplied with logical time in form of a Ticker.
-		nodeErr = node.Run(stopC, time.NewTicker(100*time.Millisecond).C)
+		nodeErr = node.Run(ctx, time.NewTicker(100*time.Millisecond).C)
 		wg.Done()
 	}()
 
@@ -287,7 +279,7 @@ func main() {
 	if args.Verbose {
 		fmt.Println("Stopping server.")
 	}
-	close(stopC)
+	ctx.Done()
 	wg.Wait()
 
 	// and print the error returned by the stopped node.

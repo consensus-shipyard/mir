@@ -9,15 +9,17 @@ package requestreceiver
 import (
 	"context"
 	"fmt"
+	"net"
+	"strconv"
+	"sync"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/peer"
-	"net"
-	"strconv"
-	"sync"
 )
 
 type RequestReceiver struct {
@@ -91,7 +93,7 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 		); srErr != nil {
 
 			// If submitting fails, stop receiving further request (and close connection).
-			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%d-%d): %v. Closing connection.",
+			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%v-%d): %v. Closing connection.",
 				req.ClientId, req.ReqNo, srErr))
 			break
 		}

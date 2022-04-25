@@ -168,7 +168,7 @@ func (gt *GrpcTransport) Stop() {
 	// Close connections to other nodes.
 	for id, connection := range gt.connections {
 		if _, err := connection.CloseAndRecv(); err != nil {
-			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %d: %v", id, err))
+			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 		}
 	}
 
@@ -213,9 +213,9 @@ func (gt *GrpcTransport) Connect() {
 			// Print debug info.
 			if err != nil {
 				gt.logger.Log(logging.LevelError,
-					fmt.Sprintf("Failed to connect to node %d (%s): %v", id, addr, err))
+					fmt.Sprintf("Failed to connect to node %v (%s): %v", id, addr, err))
 			} else {
-				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %d (%s) connected.", id, addr))
+				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
 		}(nodeId, nodeAddr)
