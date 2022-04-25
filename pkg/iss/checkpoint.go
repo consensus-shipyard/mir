@@ -13,6 +13,7 @@ package iss
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -20,6 +21,7 @@ import (
 // checkpointTracker represents the state associated with a single instance of the checkpoint protocol
 // (establishing a single stable checkpoint).
 type checkpointTracker struct {
+	logging.Logger
 
 	// Epoch to which this checkpoint belongs.
 	// It is always the epoch the checkpoint's associated sequence number (seqNr) is part of.
@@ -47,8 +49,9 @@ type checkpointTracker struct {
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
-func newCheckpointTracker(sn t.SeqNr) *checkpointTracker {
+func newCheckpointTracker(sn t.SeqNr, logger logging.Logger) *checkpointTracker {
 	return &checkpointTracker{
+		Logger:        logger,
 		seqNr:         sn,
 		confirmations: make(map[t.NodeID]struct{}),
 		// the epoch and membership fields will be set later by iss.startCheckpoint
@@ -63,7 +66,8 @@ func (iss *ISS) getCheckpointTracker(sn t.SeqNr) *checkpointTracker {
 
 	// If no checkpoint tracker with sequence number sn exists, create a new one.
 	if _, ok := iss.checkpoints[sn]; !ok {
-		iss.checkpoints[sn] = newCheckpointTracker(sn)
+		logger := logging.Decorate(iss.logger, "CT: ", "sn", sn)
+		iss.checkpoints[sn] = newCheckpointTracker(sn, logger)
 	}
 
 	// Look up and return checkpoint tracker.
