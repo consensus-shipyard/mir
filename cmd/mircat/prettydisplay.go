@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/ttacon/chalk"
 	"strconv"
+
+	"github.com/ttacon/chalk"
 )
 
 //handles the formatted display of events
@@ -14,8 +15,8 @@ func getMetaTag(eventType string, metadata eventMetadata) string {
 	boldCyan := chalk.Cyan.NewStyle().WithTextStyle(chalk.Bold)
 	return fmt.Sprintf("%s %s",
 		boldGreen.Style(fmt.Sprintf("[ Event_%s ]", eventType)),
-		boldCyan.Style(fmt.Sprintf("[ Node #%s ] [ Time _%s ] [ Index #%s ]",
-			strconv.FormatUint(metadata.nodeID, 10),
+		boldCyan.Style(fmt.Sprintf("[ Node #%v ] [ Time _%s ] [ Index #%s ]",
+			metadata.nodeID,
 			strconv.FormatInt(metadata.time, 10),
 			strconv.FormatUint(metadata.index, 10))),
 	)

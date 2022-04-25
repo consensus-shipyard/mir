@@ -4,19 +4,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
-	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	"io"
 	"os"
 	"reflect"
 	"strings"
+
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type eventMetadata struct {
 	time   int64
-	nodeID uint64
+	nodeID t.NodeID
 	index  uint64
 }
 
@@ -35,7 +37,7 @@ func processEvents(args *arguments) error {
 
 	for entry, err := reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 		metadata := eventMetadata{
-			nodeID: entry.NodeId,
+			nodeID: t.NodeID(entry.NodeId),
 			time:   entry.Time,
 		}
 		//getting events from entry
