@@ -169,23 +169,24 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 
 	// Initialize helper variables.
 	finalStatuses := make([]NodeStatus, len(d.TestReplicas))
-	var wg sync.WaitGroup
+	var nodeWg sync.WaitGroup
+	var clientWg sync.WaitGroup
 
-	clientConnectionCtx, cancelClientConnections := context.WithCancel(context.Background())
+	clientCtx, cancelClients := context.WithCancel(context.Background())
 
 	// Start the Mir nodes.
+	nodeWg.Add(len(d.TestReplicas))
 	for i, testReplica := range d.TestReplicas {
 
 		// Start the replica in a separate goroutine.
-		wg.Add(1)
 		go func(i int, testReplica *TestReplica) {
 			defer GinkgoRecover()
-			defer wg.Done()
+			defer nodeWg.Done()
 
 			fmt.Printf("Node %d: running\n", i)
 			finalStatuses[i] = testReplica.Run(ctx, tickInterval)
 			fmt.Printf("Node %d: exit with exitErr=%v\n", i, finalStatuses[i].ExitErr)
-			cancelClientConnections()
+			cancelClients()
 		}(i, testReplica)
 	}
 
@@ -194,24 +195,24 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 	defer d.FakeTransport.Stop()
 
 	// Connect the deployment's DummyClients to all replicas and have them submit their requests in separate goroutines.
+	// Each dummy client connects to the replicas, submits the prescribed number of requests and disconnects.
+	clientWg.Add(len(d.Clients))
 	for _, client := range d.Clients {
-		client.Connect(clientConnectionCtx, d.localRequestReceiverAddrs())
 		go func(c *dummyclient.DummyClient) {
-			GinkgoRecover()
-			submitDummyRequests(c, d.testConfig.NumNetRequests)
+			defer GinkgoRecover()
+			defer clientWg.Done()
+
+			c.Connect(clientCtx, d.localRequestReceiverAddrs())
+			submitDummyRequests(clientCtx, c, d.testConfig.NumNetRequests)
+			c.Disconnect()
 		}(client)
 	}
 
 	<-ctx.Done()
 
-	// Disconnect DummyClients
-	cancelClientConnections()
-	for _, client := range d.Clients {
-		client.Disconnect()
-	}
-
-	// Wait for all replicas to terminate
-	wg.Wait()
+	// Wait for all replicas and clients to terminate
+	nodeWg.Wait()
+	clientWg.Wait()
 
 	fmt.Printf("All go routines shut down\n")
 	return finalStatuses
@@ -246,10 +247,21 @@ func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 	return addrs
 }
 
-func submitDummyRequests(client *dummyclient.DummyClient, n int) {
+// submitDummyRequests submits n dummy requests using client.
+// It returns when all requests have been submitted or when ctx is done.
+func submitDummyRequests(ctx context.Context, client *dummyclient.DummyClient, n int) {
 	for i := 0; i < n; i++ {
-		if err := client.SubmitRequest([]byte(fmt.Sprintf("Request %d", i))); err != nil {
-			panic(err)
+		// For each request to be submitted
+
+		select {
+		case <-ctx.Done():
+			// Return immediately if context finished.
+			return
+		default:
+			// Submit the request and check for error.
+			if err := client.SubmitRequest([]byte(fmt.Sprintf("Request %d", i))); err != nil {
+				panic(err)
+			}
 		}
 	}
 }
