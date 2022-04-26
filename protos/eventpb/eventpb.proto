@@ -26,16 +26,20 @@ message Event {
     requestpb.Request    request                = 6;
     HashRequest          hash_request           = 7;
     HashResult           hash_result            = 8;
-    RequestReady         request_ready          = 9;
-    SendMessage          send_message           = 10;
-    MessageReceived      message_received       = 11;
-    Deliver              deliver                = 12;
-    isspb.ISSEvent       iss                    = 13;
-    VerifyRequestSig     verify_request_sig     = 14;
-    RequestSigVerified   request_sig_verified   = 15;
-    StoreVerifiedRequest store_verified_request = 16;
-    AppSnapshotRequest   app_snapshot_request   = 17;
-    AppSnapshot          app_snapshot           = 18;
+    SignRequest          sign_request           = 9;
+    SignResult           sign_result            = 10;
+    VerifyNodeSig        verify_node_sig        = 11;
+    NodeSigVerified      node_sig_verified      = 12;
+    RequestReady         request_ready          = 13;
+    SendMessage          send_message           = 14;
+    MessageReceived      message_received       = 15;
+    Deliver              deliver                = 16;
+    isspb.ISSEvent       iss                    = 17;
+    VerifyRequestSig     verify_request_sig     = 18;
+    RequestSigVerified   request_sig_verified   = 19;
+    StoreVerifiedRequest store_verified_request = 20;
+    AppSnapshotRequest   app_snapshot_request   = 21;
+    AppSnapshot          app_snapshot           = 22;
 
     // Dummy events for testing purposes only.
     PersistDummyBatch persist_dummy_batch   = 101;
@@ -70,6 +74,42 @@ message HashOrigin {
   oneof type {
     requestpb.Request   request  = 1;
     isspb.ISSHashOrigin iss      = 2;
+  }
+}
+
+message SignRequest {
+  repeated bytes data = 1;
+  SignOrigin origin = 2;
+}
+
+message SignResult {
+  bytes signature = 1;
+  SignOrigin origin = 2;
+}
+
+message SignOrigin {
+  oneof type {
+    isspb.ISSSignOrigin iss = 2;
+  }
+}
+
+message VerifyNodeSig {
+  repeated bytes data        = 1;
+  bytes          signature   = 2;
+  SigVerOrigin   origin      = 3;
+  string         node_id     = 4;
+}
+
+message NodeSigVerified {
+  SigVerOrigin origin  = 1;
+  string       node_id = 2;
+  bool         valid   = 3;
+  string       error   = 4;
+}
+
+message SigVerOrigin {
+  oneof type {
+    isspb.ISSSigVerOrigin iss = 1;
   }
 }
 

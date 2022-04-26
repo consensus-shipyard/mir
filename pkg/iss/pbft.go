@@ -5,6 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // TODO: Put the PBFT sub-protocol implementation in a separate package that the iss package imports.
+//       When doing that, split the code meaningfully in multiple files.
 
 package iss
 
@@ -377,6 +378,10 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyRequestsReady(e.RequestsReady)
 	case *isspb.SBInstanceEvent_HashResult:
 		return pbft.applyHashResult(e.HashResult)
+	case *isspb.SBInstanceEvent_SignResult:
+		return pbft.applySignResult(e.SignResult)
+	case *isspb.SBInstanceEvent_NodeSigVerified:
+		return pbft.applyNodeSigVerified(e.NodeSigVerified)
 	case *isspb.SBInstanceEvent_PbftPersistPreprepare:
 		return pbft.applyPbftPersistPreprepare(e.PbftPersistPreprepare)
 	case *isspb.SBInstanceEvent_MessageReceived:
@@ -486,9 +491,36 @@ func (pbft *pbftInstance) applyHashResult(result *isspb.SBHashResult) *events.Ev
 	// Depending on the origin of the hash result, continue processing where the hash was needed.
 	switch origin := result.Origin.Type.(type) {
 	case *isspb.SBInstanceHashOrigin_PbftPreprepare:
-		return pbft.applyPreprepareHashResult(result.Digest, origin.PbftPreprepare.Preprepare)
+		return pbft.applyPreprepareHashResult(result.Digest, origin.PbftPreprepare)
 	default:
 		panic(fmt.Sprintf("unknown hash origin type: %T", origin))
+	}
+}
+
+func (pbft *pbftInstance) applySignResult(result *isspb.SBSignResult) *events.EventList {
+	// Depending on the origin of the sign result, continue processing where the signature was needed.
+	switch origin := result.Origin.Type.(type) {
+	default:
+		panic(fmt.Sprintf("unknown sign origin type: %T", origin))
+	}
+}
+
+func (pbft *pbftInstance) applyNodeSigVerified(result *isspb.SBNodeSigVerified) *events.EventList {
+
+	// Ignore events with invalid signatures.
+	if !result.Valid {
+		pbft.logger.Log(logging.LevelWarn,
+			"Ignoring invalid signature.",
+			"from", result.NodeId,
+			"error", result.Origin.Type,
+			"error", result.Error,
+		)
+	}
+
+	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
+	switch origin := result.Origin.Type.(type) {
+	default:
+		panic(fmt.Sprintf("unknown signature verification origin type: %T", origin))
 	}
 }
 
@@ -516,7 +548,7 @@ func (pbft *pbftInstance) applyPreprepareHashResult(digest []byte, preprepare *i
 }
 
 // applyPbftPersistPreprepare processes a preprepare message loaded from the WAL.
-func (pbft *pbftInstance) applyPbftPersistPreprepare(_ *isspbftpb.PersistPreprepare) *events.EventList {
+func (pbft *pbftInstance) applyPbftPersistPreprepare(_ *isspbftpb.Preprepare) *events.EventList {
 
 	// TODO: Implement this.
 	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: Preprepare (unimplemented)")
@@ -733,7 +765,7 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 
 	// Create a Preprepare message send Event.
 	msgSendEvent := pbft.eventService.SendMessage(
-		PbftPreprepareMessage(preprepare),
+		PbftPreprepareSBMessage(preprepare),
 		pbft.segment.Membership,
 	)
 
@@ -819,7 +851,7 @@ func (pbft *pbftInstance) sendPrepare(msgContent *isspbftpb.Prepare) *events.Eve
 
 	// Append send event as a follow-up
 	persistEvent.FollowUp(pbft.eventService.SendMessage(
-		PbftPrepareMessage(msgContent),
+		PbftPrepareSBMessage(msgContent),
 		pbft.segment.Membership,
 	))
 
@@ -836,7 +868,7 @@ func (pbft *pbftInstance) sendCommit(msgContent *isspbftpb.Commit) *events.Event
 
 	// Append send event as a follow-up
 	persistEvent.FollowUp(pbft.eventService.SendMessage(
-		PbftCommitMessage(msgContent),
+		PbftCommitSBMessage(msgContent),
 		pbft.segment.Membership,
 	))
 
@@ -912,6 +944,6 @@ func serializePreprepareForHashing(preprepare *isspbftpb.Preprepare) [][]byte {
 
 func preprepareHashOrigin(preprepare *isspbftpb.Preprepare) *isspb.SBInstanceHashOrigin {
 	return &isspb.SBInstanceHashOrigin{Type: &isspb.SBInstanceHashOrigin_PbftPreprepare{
-		PbftPreprepare: &isspbftpb.PreprepareHashOrigin{Preprepare: preprepare},
+		PbftPreprepare: preprepare,
 	}}
 }

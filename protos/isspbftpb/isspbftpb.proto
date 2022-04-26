@@ -36,9 +36,26 @@ message Commit {
 }
 
 message ViewChange {
-  uint64 view = 1;
-  map<uint64, Prepare> pset = 2;
-  map<uint64, Prepare> qset = 3;
+  uint64             view       = 1;
+  repeated PSetEntry p_set      = 2;
+  repeated QSetEntry q_set      = 3;
+}
+
+message SignedViewChange {
+  ViewChange view_change = 1;
+  bytes      signature   = 2;
+}
+
+message PSetEntry {
+  uint64 sn     = 1;
+  uint64 view   = 2;
+  bytes  digest = 3;
+}
+
+message QSetEntry {
+  uint64 sn     = 1;
+  uint64 view   = 2;
+  bytes  digest = 3;
 }
 
 // ============================================================
@@ -48,22 +65,6 @@ message ViewChange {
 message ReqWaitReference {
   uint64   sn = 1;
   uint64 view = 2;
-}
-
-message PersistPreprepare {
-  Preprepare preprepare = 1;
-}
-
-message PersistPrepare {
-  Prepare prepare = 1;
-}
-
-message PersistCommit {
-  Commit commit = 1;
-}
-
-message PreprepareHashOrigin {
-  Preprepare preprepare = 1;
 }
 
 // ============================================================

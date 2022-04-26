@@ -43,9 +43,10 @@ message Checkpoint {
 
 message SBInstanceMessage {
   oneof type {
-    isspbftpb.Preprepare pbft_preprepare = 1;
-    isspbftpb.Prepare    pbft_prepare    = 2;
-    isspbftpb.Commit     pbft_commit     = 3;
+    isspbftpb.Preprepare        pbft_preprepare         = 1;
+    isspbftpb.Prepare           pbft_prepare            = 2;
+    isspbftpb.Commit            pbft_commit             = 3;
+    isspbftpb.SignedViewChange  pbft_signed_view_change = 4;
   }
 }
 
@@ -67,6 +68,18 @@ message ISSHashOrigin {
     SBHashOrigin   sb              = 1;
     uint64         log_entry_sn    = 2;
     uint64         app_snapshot_sn = 3;
+  }
+}
+
+message ISSSignOrigin {
+  oneof type {
+    SBSignOrigin sb = 1;
+  }
+}
+
+message ISSSigVerOrigin {
+  oneof type {
+    SBSigVerOrigin sb = 1;
   }
 }
 
@@ -109,11 +122,13 @@ message SBInstanceEvent {
     SBRequestsReady   requests_ready    = 9;
     SBHashRequest     hash_request      = 10;
     SBHashResult      hash_result       = 11;
+    SBSignResult      sign_result       = 12;
+    SBNodeSigVerified node_sig_verified = 13;
 
-    isspbftpb.PersistPreprepare    pbft_persist_preprepare = 12;
-    isspbftpb.PersistPrepare       pbft_persist_prepare    = 13;
-    isspbftpb.PersistCommit        pbft_persist_commit     = 14;
-    //isspbftpb.PreprepareHashResult pbft_hash_result        = 15;
+    isspbftpb.Preprepare       pbft_persist_preprepare         = 100;
+    isspbftpb.Prepare          pbft_persist_prepare            = 101;
+    isspbftpb.Commit           pbft_persist_commit             = 102;
+    isspbftpb.SignedViewChange pbft_persist_signed_view_change = 103;
   }
 }
 
@@ -179,7 +194,43 @@ message SBHashOrigin {
 
 message SBInstanceHashOrigin {
   oneof type {
-    isspbftpb.PreprepareHashOrigin pbft_preprepare = 1;
+    isspbftpb.Preprepare pbft_preprepare = 1;
+  }
+}
+
+message SBSignResult {
+  bytes                signature = 1;
+  SBInstanceSignOrigin origin    = 2;
+}
+
+message SBSignOrigin {
+  uint64               epoch    = 1;
+  uint64               instance = 2;
+  SBInstanceSignOrigin origin   = 3;
+}
+
+message SBInstanceSignOrigin {
+  oneof type {
+    isspbftpb.ViewChange pbft_view_change = 1;
+  }
+}
+
+message SBNodeSigVerified {
+  string                 node_id = 1;
+  bool                   valid   = 2;
+  string                 error   = 3;
+  SBInstanceSigVerOrigin origin  = 4;
+}
+
+message SBSigVerOrigin {
+  uint64                 epoch    = 1;
+  uint64                 instance = 2;
+  SBInstanceSigVerOrigin origin   = 3;
+}
+
+message SBInstanceSigVerOrigin {
+  oneof type {
+    isspbftpb.SignedViewChange pbft_signed_view_change = 1;
   }
 }
 

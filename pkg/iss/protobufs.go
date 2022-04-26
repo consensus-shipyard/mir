@@ -38,6 +38,14 @@ func HashOrigin(origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
+func SignOrigin(origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
+	return &eventpb.SignOrigin{Type: &eventpb.SignOrigin_Iss{Iss: origin}}
+}
+
+func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
+	return &eventpb.SigVerOrigin{Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
+}
+
 func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash []byte) *eventpb.Event {
 	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
 		Sn:              sn.Pb(),
@@ -82,6 +90,26 @@ func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInst
 
 func AppSnapshotHashOrigin(seqNr t.SeqNr) *eventpb.HashOrigin {
 	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotSn{AppSnapshotSn: seqNr.Pb()}})
+}
+
+func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
+	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
+		Epoch:    epoch.Pb(),
+		Instance: instance.Pb(),
+		Origin:   origin,
+	}}})
+}
+
+func SBSigVerOrigin(
+	epoch t.EpochNr,
+	instance t.SBInstanceID,
+	origin *isspb.SBInstanceSigVerOrigin,
+) *eventpb.SigVerOrigin {
+	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_Sb{Sb: &isspb.SBSigVerOrigin{
+		Epoch:    epoch.Pb(),
+		Instance: instance.Pb(),
+		Origin:   origin,
+	}}})
 }
 
 // ------------------------------------------------------------
@@ -153,6 +181,27 @@ func SBRequestsReady(ref *isspb.SBReqWaitReference) *isspb.SBInstanceEvent {
 func SBHashResultEvent(digest []byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_HashResult{HashResult: &isspb.SBHashResult{
 		Digest: digest,
+		Origin: origin,
+	}}}
+}
+
+func SBSignResultEvent(signature []byte, origin *isspb.SBInstanceSignOrigin) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_SignResult{SignResult: &isspb.SBSignResult{
+		Signature: signature,
+		Origin:    origin,
+	}}}
+}
+
+func SBNodeSigVerifiedEvent(
+	valid bool,
+	error string,
+	nodeID t.NodeID,
+	origin *isspb.SBInstanceSigVerOrigin,
+) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_NodeSigVerified{NodeSigVerified: &isspb.SBNodeSigVerified{
+		NodeId: nodeID.Pb(),
+		Valid:  valid,
+		Error:  error,
 		Origin: origin,
 	}}}
 }

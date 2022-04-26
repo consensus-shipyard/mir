@@ -28,25 +28,25 @@ import (
 
 func PbftPersistPreprepare(preprepare *isspbftpb.Preprepare) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftPersistPreprepare{
-		PbftPersistPreprepare: &isspbftpb.PersistPreprepare{
-			Preprepare: preprepare,
-		},
+		PbftPersistPreprepare: preprepare,
 	}}
 }
 
 func PbftPersistPrepare(prepare *isspbftpb.Prepare) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftPersistPrepare{
-		PbftPersistPrepare: &isspbftpb.PersistPrepare{
-			Prepare: prepare,
-		},
+		PbftPersistPrepare: prepare,
 	}}
 }
 
 func PbftPersistCommit(commit *isspbftpb.Commit) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftPersistCommit{
-		PbftPersistCommit: &isspbftpb.PersistCommit{
-			Commit: commit,
-		},
+		PbftPersistCommit: commit,
+	}}
+}
+
+func PbftPersistSignedViewChange(signedViewChange *isspbftpb.SignedViewChange) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftPersistSignedViewChange{
+		PbftPersistSignedViewChange: signedViewChange,
 	}}
 }
 
@@ -60,22 +60,22 @@ func PbftReqWaitReference(sn t.SeqNr, view t.PBFTViewNr) *isspb.SBReqWaitReferen
 }
 
 // ============================================================
-// Messages
+// SB Instance Messages
 // ============================================================
 
-func PbftPreprepareMessage(content *isspbftpb.Preprepare) *isspb.SBInstanceMessage {
+func PbftPreprepareSBMessage(content *isspbftpb.Preprepare) *isspb.SBInstanceMessage {
 	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftPreprepare{
 		PbftPreprepare: content,
 	}}
 }
 
-func PbftPrepareMessage(content *isspbftpb.Prepare) *isspb.SBInstanceMessage {
+func PbftPrepareSBMessage(content *isspbftpb.Prepare) *isspb.SBInstanceMessage {
 	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftPrepare{
 		PbftPrepare: content,
 	}}
 }
 
-func PbftCommitMessage(content *isspbftpb.Commit) *isspb.SBInstanceMessage {
+func PbftCommitSBMessage(content *isspbftpb.Commit) *isspb.SBInstanceMessage {
 	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftCommit{
 		PbftCommit: content,
 	}}

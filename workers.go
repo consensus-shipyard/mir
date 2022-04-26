@@ -298,6 +298,28 @@ func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventLis
 			} else {
 				eventsOut.PushBack(events.RequestSigVerified(reqRef, false, err.Error()))
 			}
+		case *eventpb.Event_SignRequest:
+			// Compute a signature over the provided data and produce a SignResult event.
+
+			if signature, err := n.modules.Crypto.Sign(e.SignRequest.Data); err == nil {
+				eventsOut.PushBack(events.SignResult(signature, e.SignRequest.Origin))
+			} else {
+				return nil, err
+			}
+		case *eventpb.Event_VerifyNodeSig:
+			// Verify a node signature (e.g., one that was attached to a received message)
+
+			// Convenience variables
+			ve := e.VerifyNodeSig
+			nodeID := t.NodeID(ve.NodeId)
+
+			err := n.modules.Crypto.VerifyNodeSig(ve.Data, ve.Signature, t.NodeID(ve.NodeId))
+			// Create result event, depending on verification outcome.
+			if err == nil {
+				eventsOut.PushBack(events.NodeSigVerified(true, "", nodeID, ve.Origin))
+			} else {
+				eventsOut.PushBack(events.NodeSigVerified(false, err.Error(), nodeID, ve.Origin))
+			}
 		default:
 			// Complain about all other incoming event types.
 			return nil, errors.Errorf("unexpected type of Crypto event: %T", event.Type)
