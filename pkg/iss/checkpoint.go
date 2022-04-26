@@ -12,7 +12,10 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	"bytes"
+
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -20,6 +23,7 @@ import (
 // checkpointTracker represents the state associated with a single instance of the checkpoint protocol
 // (establishing a single stable checkpoint).
 type checkpointTracker struct {
+	logging.Logger
 
 	// Epoch to which this checkpoint belongs.
 	// It is always the epoch the checkpoint's associated sequence number (seqNr) is part of.
@@ -38,16 +42,24 @@ type checkpointTracker struct {
 	// Application snapshot data associated with this checkpoint.
 	appSnapshot []byte
 
+	// Hash of the application snapshot data associated with this checkpoint.
+	appSnapshotHash []byte
+
 	// Set of nodes from which any Checkpoint message has been received.
 	// This is necessary for ignoring all but the first message a node sends, regardless of the snapshot hash.
 	confirmations map[t.NodeID]struct{}
+
+	// Set of Checkpoint messages that were received ahead of time.
+	pendingMessages map[t.NodeID]*isspb.Checkpoint
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
-func newCheckpointTracker(sn t.SeqNr) *checkpointTracker {
+func newCheckpointTracker(sn t.SeqNr, logger logging.Logger) *checkpointTracker {
 	return &checkpointTracker{
-		seqNr:         sn,
-		confirmations: make(map[t.NodeID]struct{}),
+		Logger:          logger,
+		seqNr:           sn,
+		confirmations:   make(map[t.NodeID]struct{}),
+		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
 		// the epoch and membership fields will be set later by iss.startCheckpoint
 		// the appSnapshot field will be set by ProcessAppSnapshot
 	}
@@ -60,7 +72,8 @@ func (iss *ISS) getCheckpointTracker(sn t.SeqNr) *checkpointTracker {
 
 	// If no checkpoint tracker with sequence number sn exists, create a new one.
 	if _, ok := iss.checkpoints[sn]; !ok {
-		iss.checkpoints[sn] = newCheckpointTracker(sn)
+		logger := logging.Decorate(iss.logger, "CT: ", "sn", sn)
+		iss.checkpoints[sn] = newCheckpointTracker(sn, logger)
 	}
 
 	// Look up and return checkpoint tracker.
@@ -90,50 +103,67 @@ func (ct *checkpointTracker) Start(epoch t.EpochNr, membership []t.NodeID) *even
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
 
 	// Save received snapshot
-	// TODO: Compute and save the hash of the snapshot as well.
 	ct.appSnapshot = snapshot
 
+	// Initiate computing the hash of the snapshot
+	hashEvent := events.HashRequest([][]byte{snapshot}, AppSnapshotHashOrigin(ct.seqNr))
+
+	return (&events.EventList{}).PushBack(hashEvent)
+}
+
+func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events.EventList {
+
+	// Save the received snapshot hash
+	ct.appSnapshotHash = snapshotHash
+
 	// Write Checkpoint to WAL
-	walEvent := events.WALAppend(PersistCheckpointEvent(ct.seqNr, ct.appSnapshot), t.WALRetIndex(ct.epoch))
+	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash)
+	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	// TODO: Add hash of the snapshot
 	// TODO: Add signature.
 	// TODO: Implement checkpoint message retransmission.
-	walEvent.FollowUp(events.SendMessage(CheckpointMessage(ct.epoch, ct.seqNr), ct.membership))
+	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash)
+	walEvent.FollowUp(events.SendMessage(m, ct.membership))
 
-	// If the app snapshot was the last thing missing for the checkpoint to become stable,
-	// also produce the necessary events.
-	if ct.stable() {
-		walEvent.FollowUps(ct.announceStable().Slice())
+	// Apply pending Checkpoint messages
+	for s, m := range ct.pendingMessages {
+		walEvent.FollowUps(ct.applyMessage(m, s).Slice())
 	}
 
 	// Return resulting WALEvent (with the SendMessage event appended).
 	return (&events.EventList{}).PushBack(walEvent)
 }
 
-func (ct *checkpointTracker) applyMessage(chkpMsg *isspb.Checkpoint, source t.NodeID) *events.EventList {
+func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID) *events.EventList {
 
 	// If checkpoint is already stable, ignore message.
 	if ct.stable() {
 		return &events.EventList{}
 	}
 
-	// TODO: Check signature of the sender.
+	// Check snapshot hash
+	if ct.appSnapshotHash == nil {
+		// The message is received too early, put it aside
+		ct.pendingMessages[source] = msg
+		return &events.EventList{}
+	} else if !bytes.Equal(ct.appSnapshotHash, msg.AppSnapshotHash) {
+		// Snapshot hash mismatch
+		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching app snapshot hash.", "source", source)
+		return &events.EventList{}
+	}
 
-	// TODO: Distinguish messages by snapshot hash,
-	//       separately keeping the set of nodes from which a Checkpoint message has been received.
-
-	// Ignore duplicate messages (regardless of snapshot hash).
+	// Ignore duplicate messages.
 	if _, ok := ct.confirmations[source]; ok {
 		return &events.EventList{}
 	}
+
+	// TODO: Check signature of the sender.
 
 	// TODO: Only accept messages from nodes in membership.
 	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
 
 	// Note the reception of a Checkpoint message from node `source`.
-	// TODO: take the snapshot hash into account. Separate data structures will be needed for that.
 	ct.confirmations[source] = struct{}{}
 
 	// If, after having applied this message, the checkpoint became stable, produce the necessary events.
@@ -151,8 +181,9 @@ func (ct *checkpointTracker) stable() bool {
 func (ct *checkpointTracker) announceStable() *events.EventList {
 	// Create a stable checkpoint object.
 	stableCheckpoint := &isspb.StableCheckpoint{
-		Epoch: ct.epoch.Pb(),
-		Sn:    ct.seqNr.Pb(),
+		Epoch:           ct.epoch.Pb(),
+		Sn:              ct.seqNr.Pb(),
+		AppSnapshotHash: ct.appSnapshotHash,
 	}
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.

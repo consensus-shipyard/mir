@@ -392,6 +392,9 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digest, t.SeqNr(origin.LogEntrySn))
+	case *isspb.ISSHashOrigin_AppSnapshotSn:
+		// Hash originates from delivering an event of the application creating a state snapshot
+		return iss.applyAppSnapshotHashResult(result.Digest, t.SeqNr(origin.AppSnapshotSn))
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
 	}
@@ -464,6 +467,12 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 	// is the first sequence number not yet delivered to the application.
 	return iss.processCommitted()
 
+}
+
+// applyAppSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
+// It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated sequence number).
+func (iss *ISS) applyAppSnapshotHashResult(digest []byte, appSnapshotSN t.SeqNr) *events.EventList {
+	return iss.getCheckpointTracker(appSnapshotSN).ProcessAppSnapshotHash(digest)
 }
 
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),
