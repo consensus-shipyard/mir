@@ -153,7 +153,7 @@ If you want to contribute, have a look at the open [issues](https://github.com/f
 If you have any questions (specific or general),
 do not hesitate to drop an email to the active [maintainer(s)](/MAINTAINERS.md)
 or write a message to the developers in the
-public Slack channel [#consensus](https://filecoinproject.slack.com/archives/C02D73MHM63) of the Filecoin project.
+public Slack channel [#mir-dev](https://filecoinproject.slack.com/archives/C03C77HN3AS) of the Filecoin project.
 
 ## Active maintainer(s)
 
