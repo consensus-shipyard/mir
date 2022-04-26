@@ -53,6 +53,19 @@ func (ec *sbEventService) HashRequest(data [][]byte, origin *isspb.SBInstanceHas
 	return events.HashRequest(data, SBHashOrigin(ec.epoch, ec.instanceID, origin))
 }
 
+func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSignOrigin) *eventpb.Event {
+	return events.SignRequest(data, SBSignOrigin(ec.epoch, ec.instanceID, origin))
+}
+
+func (ec *sbEventService) VerifyNodeSig(
+	data [][]byte,
+	signature []byte,
+	nodeID t.NodeID,
+	origin *isspb.SBInstanceSigVerOrigin,
+) *eventpb.Event {
+	return events.VerifyNodeSig(data, signature, nodeID, SBSigVerOrigin(ec.epoch, ec.instanceID, origin))
+}
+
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).
 func (ec *sbEventService) SBEvent(event *isspb.SBInstanceEvent) *eventpb.Event {
 	return SBEvent(ec.epoch, ec.instanceID, event)

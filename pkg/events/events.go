@@ -98,6 +98,53 @@ func HashResult(digest []byte, origin *eventpb.HashOrigin) *eventpb.Event {
 	}}}
 }
 
+// SignRequest returns an event representing a request to the crypto module for computing the signature over data.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// SignResult produced by the crypto module.
+func SignRequest(data [][]byte, origin *eventpb.SignOrigin) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_SignRequest{SignRequest: &eventpb.SignRequest{
+		Data:   data,
+		Origin: origin,
+	}}}
+}
+
+// SignResult returns an event representing the computation of a signature by the crypto module.
+// It contains the computed signature and the SignOrigin,
+// an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the contained signature.
+func SignResult(signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_SignResult{SignResult: &eventpb.SignResult{
+		Signature: signature,
+		Origin:    origin,
+	}}}
+}
+
+// VerifyNodeSig returns an event representing a request to the crypto module for verifying the signature of a node.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// NodeSigVerified event produced by the crypto module.
+func VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID, origin *eventpb.SigVerOrigin) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_VerifyNodeSig{VerifyNodeSig: &eventpb.VerifyNodeSig{
+		Data:      data,
+		Signature: signature,
+		NodeId:    nodeID.Pb(),
+		Origin:    origin,
+	}}}
+}
+
+// NodeSigVerified returns an event representing the verification of a node's signature by the crypto module.
+// It contains the result of a verification
+// (as a boolean value and an error procuded by the Crypto module if the verification failed)
+//and the SigVerOrigin, an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the result of the signature verification..
+func NodeSigVerified(valid bool, error string, nodeID t.NodeID, origin *eventpb.SigVerOrigin) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_NodeSigVerified{NodeSigVerified: &eventpb.NodeSigVerified{
+		Valid:  valid,
+		Error:  error,
+		NodeId: nodeID.Pb(),
+		Origin: origin,
+	}}}
+}
+
 // RequestReady returns an event signifying that a new request is ready to be inserted into the protocol state machine.
 // This normally occurs when the request has been received, persisted, authenticated, and an authenticator is available.
 func RequestReady(requestRef *requestpb.RequestRef) *eventpb.Event {

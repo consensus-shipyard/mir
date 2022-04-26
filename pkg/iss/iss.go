@@ -300,6 +300,10 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
 		return iss.applyTick(e.Tick)
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
+	case *eventpb.Event_SignResult:
+		return iss.applySignResult(e.SignResult)
+	case *eventpb.Event_NodeSigVerified:
+		return iss.applyNodeSigVerified(e.NodeSigVerified)
 	case *eventpb.Event_RequestReady:
 		return iss.applyRequestReady(e.RequestReady)
 	case *eventpb.Event_AppSnapshot:
@@ -373,12 +377,15 @@ func (iss *ISS) applyTick(tick *eventpb.Tick) *events.EventList {
 	return eventsOut
 }
 
+// applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
+// A HashResult event means that a hash requested by this module has been computed by the Hasher module
+// and is now ready to be processed.
 func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
-	// We know already that the has origin is the HashOrigin is of type ISS, since ISS produces no other types
+	// We know already that the hash origin is the HashOrigin is of type ISS, since ISS produces no other types
 	// and all HashResults with a different origin would not have been routed here.
 	issOrigin := result.Origin.Type.(*eventpb.HashOrigin_Iss).Iss
 
-	// Further inspect the origin of the initial hash request.
+	// Further inspect the origin of the initial hash request and decide what to do with it.
 	switch origin := issOrigin.Type.(type) {
 	case *isspb.ISSHashOrigin_Sb:
 		// If the original hash request has been produced by an SB instance,
@@ -397,6 +404,59 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 		return iss.applyAppSnapshotHashResult(result.Digest, t.SeqNr(origin.AppSnapshotSn))
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
+	}
+}
+
+// applySignResult applies the SignResult event to the state of the ISS protocol state machine.
+// A SignResult event means that a signature requested by this module has been computed by the Crypto module
+// and is now ready to be processed.
+func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
+	// We know already that the SignOrigin is of type ISS, since ISS produces no other types
+	// and all SignResults with a different origin would not have been routed here.
+	issOrigin := result.Origin.Type.(*eventpb.SignOrigin_Iss).Iss
+
+	// Further inspect the origin of the initial signing request and decide what to do with it.
+	switch origin := issOrigin.Type.(type) {
+	case *isspb.ISSSignOrigin_Sb:
+		// If the original sign request has been produced by an SB instance,
+		// create an appropriate SBEvent and apply it.
+		// Note: Note that this is quite inefficient, allocating unnecessary boilerplate objects inside SBEvent().
+		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
+		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
+		epoch := t.EpochNr(origin.Sb.Epoch)
+		instance := t.SBInstanceID(origin.Sb.Instance)
+		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
+	default:
+		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
+	}
+}
+
+// applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
+// Such an event means that a signature verification requested by this module has been completed by the Crypto module
+// and is now ready to be processed.
+func (iss *ISS) applyNodeSigVerified(result *eventpb.NodeSigVerified) *events.EventList {
+	// We know already that the SigVerOrigin is of type ISS, since ISS produces no other types
+	// and all NodeSigVerified events with a different origin would not have been routed here.
+	issOrigin := result.Origin.Type.(*eventpb.SigVerOrigin_Iss).Iss
+
+	// Further inspect the origin of the initial signature verification request and decide what to do with it.
+	switch origin := issOrigin.Type.(type) {
+	case *isspb.ISSSigVerOrigin_Sb:
+		// If the original verification request has been produced by an SB instance,
+		// create an appropriate SBEvent and apply it.
+		// Note: Note that this is quite inefficient, allocating unnecessary boilerplate objects inside SBEvent().
+		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
+		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
+		epoch := t.EpochNr(origin.Sb.Epoch)
+		instance := t.SBInstanceID(origin.Sb.Instance)
+		return iss.ApplyEvent(SBEvent(epoch, instance, SBNodeSigVerifiedEvent(
+			result.Valid,
+			result.Error,
+			t.NodeID(result.NodeId),
+			origin.Sb.Origin,
+		)))
+	default:
+		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
 }
 
@@ -595,6 +655,8 @@ func (iss *ISS) applyRetransmitRequestsMessage(req *isspb.RetransmitRequests, fr
 
 // initEpoch initializes a new ISS epoch with the given epoch number.
 func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
+
+	iss.logger.Log(logging.LevelInfo, "New epoch", "epochNr", newEpoch)
 
 	// Set the new epoch number and re-initialize list of orderers.
 	iss.epoch = epochInfo{
