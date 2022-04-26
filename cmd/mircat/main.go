@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sort"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"sort"
 )
 
 // mircat is a tool for reviewing Mir state machine recordings.
@@ -29,7 +30,7 @@ type arguments struct {
 // toList is used to convert sets to a format used by the survey library.
 func toList(set map[string]struct{}) []string {
 	list := make([]string, 0, len(set))
-	for item, _ := range set {
+	for item := range set {
 		list = append(list, item)
 	}
 	sort.Strings(list)
