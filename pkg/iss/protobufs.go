@@ -35,7 +35,7 @@ func Event(event *isspb.ISSEvent) *eventpb.Event {
 }
 
 func HashOrigin(origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{Type: &eventpb.HashOrigin_Iss{origin}}
+	return &eventpb.HashOrigin{Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
 func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash []byte) *eventpb.Event {
