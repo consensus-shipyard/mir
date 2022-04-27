@@ -88,6 +88,7 @@ message PersistCheckpoint {
   uint64 sn                = 1;
   bytes  app_snapshot      = 2;
   bytes  app_snapshot_hash = 3;
+  bytes  signature         = 4;
 }
 
 message StableCheckpoint {

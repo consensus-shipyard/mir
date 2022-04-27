@@ -46,11 +46,12 @@ func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
 	return &eventpb.SigVerOrigin{Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
 }
 
-func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash []byte) *eventpb.Event {
+func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature []byte) *eventpb.Event {
 	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
 		Sn:              sn.Pb(),
 		AppSnapshot:     appSnapshot,
 		AppSnapshotHash: appSnapshotHash,
+		Signature:       signature,
 	}}})
 }
 
