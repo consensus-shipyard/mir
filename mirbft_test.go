@@ -89,6 +89,7 @@ var _ = Describe("Basic test", func() {
 
 		// Run deployment until it stops and returns final node statuses.
 		finalStatuses = deployment.Run(ctx, tickInterval)
+		fmt.Printf("Deployment run returned.")
 
 		// Check whether all the test replicas exited correctly.
 		Expect(finalStatuses).NotTo(BeNil())
