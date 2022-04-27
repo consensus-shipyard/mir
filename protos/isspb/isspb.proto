@@ -73,7 +73,8 @@ message ISSHashOrigin {
 
 message ISSSignOrigin {
   oneof type {
-    SBSignOrigin sb = 1;
+    SBSignOrigin sb            = 1;
+    uint64       checkpoint_sn = 2;
   }
 }
 

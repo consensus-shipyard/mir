@@ -92,6 +92,10 @@ func AppSnapshotHashOrigin(seqNr t.SeqNr) *eventpb.HashOrigin {
 	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotSn{AppSnapshotSn: seqNr.Pb()}})
 }
 
+func CheckpointSignOrigin(seqNr t.SeqNr) *eventpb.SignOrigin {
+	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointSn{CheckpointSn: seqNr.Pb()}})
+}
+
 func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
 	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
 		Epoch:    epoch.Pb(),
