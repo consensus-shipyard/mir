@@ -426,6 +426,8 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceID(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
+	case *isspb.ISSSignOrigin_CheckpointSn:
+		return iss.applyCheckpointSignResult(result.Signature, t.SeqNr(origin.CheckpointSn))
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
@@ -533,6 +535,12 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 // It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated sequence number).
 func (iss *ISS) applyAppSnapshotHashResult(digest []byte, appSnapshotSN t.SeqNr) *events.EventList {
 	return iss.getCheckpointTracker(appSnapshotSN).ProcessAppSnapshotHash(digest)
+}
+
+// applyCheckpointSignResult applies the event of receiving the Checkpoint message signature.
+// It passes the signature to the appropriate CheckpointTracker (identified by the event's associated sequence number).
+func (iss *ISS) applyCheckpointSignResult(signature []byte, seqNr t.SeqNr) *events.EventList {
+	return iss.getCheckpointTracker(seqNr).ProcessCheckpointSignResult(signature)
 }
 
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),

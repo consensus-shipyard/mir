@@ -17,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -115,6 +116,15 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 
 	// Save the received snapshot hash
 	ct.appSnapshotHash = snapshotHash
+
+	// Request signature
+	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
+	sigEvent := events.SignRequest(sigData, CheckpointSignOrigin(ct.seqNr))
+
+	return (&events.EventList{}).PushBack(sigEvent)
+}
+
+func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *events.EventList {
 
 	// Write Checkpoint to WAL
 	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash)

@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // TODO: Write doc.
@@ -39,4 +40,14 @@ func BatchForHash(batch *requestpb.Batch) [][]byte {
 
 	// Return populated output slice.
 	return data
+}
+
+func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]byte {
+	epochBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(epochBytes, uint64(epoch))
+
+	snBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(snBytes, uint64(seqNr))
+
+	return [][]byte{epochBytes, snBytes, snapshotHash}
 }
