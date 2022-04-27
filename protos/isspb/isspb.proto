@@ -39,6 +39,7 @@ message Checkpoint {
   uint64 epoch =           1;
   uint64 sn    =           2;
   bytes  appSnapshotHash = 3;
+  bytes  signature       = 4;
 }
 
 message SBInstanceMessage {
