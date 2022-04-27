@@ -166,16 +166,22 @@ func (gt *GrpcTransport) Start() error {
 func (gt *GrpcTransport) Stop() {
 
 	// Close connections to other nodes.
+	// Using CloseSend() instead of CloseAndRecv(), since CloseAndRecv() sometimes (not very often) blocks indefinitely.
+	// This behavior is strange, since the server is stopping gracefully
+	// and should wait until all connections are properly closed.
+	// TODO: Investigate the problem of CloseAndRecv() sometimes blocking indefinitely.
 	for id, connection := range gt.connections {
-		if _, err := connection.CloseAndRecv(); err != nil {
+		gt.logger.Log(logging.LevelDebug, "Closing connection\n", "to", id)
+		if err := connection.CloseSend(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 		}
+		gt.logger.Log(logging.LevelDebug, "Closed connection\n", "to", id)
 	}
 
 	// Stop own gRPC server.
+	gt.logger.Log(logging.LevelDebug, "Stopping gRPC server")
 	gt.grpcServer.GracefulStop()
-
-	gt.logger.Log(logging.LevelDebug, "GrpcTransport stopped.")
+	gt.logger.Log(logging.LevelDebug, "gRPC server stopped")
 }
 
 // ServerError returns the error returned by the gRPC server's Serve() call.
