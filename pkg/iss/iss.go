@@ -457,6 +457,8 @@ func (iss *ISS) applyNodeSigVerified(result *eventpb.NodeSigVerified) *events.Ev
 			t.NodeID(result.NodeId),
 			origin.Sb.Origin,
 		)))
+	case *isspb.ISSSigVerOrigin_CheckpointSn:
+		return iss.applyCheckpointSigVerResult(result.Valid, result.Error, t.NodeID(result.NodeId), t.SeqNr(origin.CheckpointSn))
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
@@ -541,6 +543,11 @@ func (iss *ISS) applyAppSnapshotHashResult(digest []byte, appSnapshotSN t.SeqNr)
 // It passes the signature to the appropriate CheckpointTracker (identified by the event's associated sequence number).
 func (iss *ISS) applyCheckpointSignResult(signature []byte, seqNr t.SeqNr) *events.EventList {
 	return iss.getCheckpointTracker(seqNr).ProcessCheckpointSignResult(signature)
+}
+
+// It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated sequence number).
+func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, seqNr t.SeqNr) *events.EventList {
+	return iss.getCheckpointTracker(seqNr).ProcessSigVerified(valid, err, node)
 }
 
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),

@@ -162,17 +162,29 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 		return &events.EventList{}
 	}
 
+	// TODO: Only accept messages from nodes in membership.
+	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
+
 	// Ignore duplicate messages.
 	if _, ok := ct.confirmations[source]; ok {
 		return &events.EventList{}
 	}
 
-	// TODO: Check signature of the sender.
+	// Verify signature of the sender.
+	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.appSnapshotHash)
+	verifySigEvent := events.VerifyNodeSig(sigData, msg.Signature, source, CheckpointSigVerOrigin(ct.seqNr))
 
-	// TODO: Only accept messages from nodes in membership.
-	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
+	return (&events.EventList{}).PushBack(verifySigEvent)
+}
 
-	// Note the reception of a Checkpoint message from node `source`.
+func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t.NodeID) *events.EventList {
+
+	if !valid {
+		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", source, "error", err)
+		return &events.EventList{}
+	}
+
+	// Note the reception of a valid Checkpoint message from node `source`.
 	ct.confirmations[source] = struct{}{}
 
 	// If, after having applied this message, the checkpoint became stable, produce the necessary events.

@@ -81,7 +81,8 @@ message ISSSignOrigin {
 
 message ISSSigVerOrigin {
   oneof type {
-    SBSigVerOrigin sb = 1;
+    SBSigVerOrigin sb            = 1;
+    uint64         checkpoint_sn = 2;
   }
 }
 

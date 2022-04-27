@@ -97,6 +97,10 @@ func CheckpointSignOrigin(seqNr t.SeqNr) *eventpb.SignOrigin {
 	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointSn{CheckpointSn: seqNr.Pb()}})
 }
 
+func CheckpointSigVerOrigin(seqNr t.SeqNr) *eventpb.SigVerOrigin {
+	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointSn{CheckpointSn: seqNr.Pb()}})
+}
+
 func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
 	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
 		Epoch:    epoch.Pb(),
