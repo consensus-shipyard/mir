@@ -97,7 +97,7 @@ message StableCheckpoint {
   uint64 epoch =             1;
   uint64 sn    =             2;
   bytes  app_snapshot_hash = 3;
-  // TODO: Some form of checkpoint certificate will need to go here.
+  map<string, bytes> cert  = 4;
 }
 
 // PersistStableCheckpoint needs to be a separate Event from StableCheckpoint, since both are ISSEvents,

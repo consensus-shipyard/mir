@@ -213,11 +213,19 @@ func (ct *checkpointTracker) stable() bool {
 }
 
 func (ct *checkpointTracker) announceStable() *events.EventList {
+
+	// Assemble a multisig certificate from the received signatures.
+	cert := make(map[string][]byte)
+	for node := range ct.confirmations {
+		cert[node.Pb()] = ct.signatures[node]
+	}
+
 	// Create a stable checkpoint object.
 	stableCheckpoint := &isspb.StableCheckpoint{
 		Epoch:           ct.epoch.Pb(),
 		Sn:              ct.seqNr.Pb(),
 		AppSnapshotHash: ct.appSnapshotHash,
+		Cert:            cert,
 	}
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.
