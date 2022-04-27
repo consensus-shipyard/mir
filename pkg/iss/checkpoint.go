@@ -26,6 +26,9 @@ import (
 type checkpointTracker struct {
 	logging.Logger
 
+	// The ID of the node executing this instance of the protocol.
+	ownID t.NodeID
+
 	// Epoch to which this checkpoint belongs.
 	// It is always the epoch the checkpoint's associated sequence number (seqNr) is part of.
 	epoch t.EpochNr
@@ -46,8 +49,10 @@ type checkpointTracker struct {
 	// Hash of the application snapshot data associated with this checkpoint.
 	appSnapshotHash []byte
 
-	// Set of nodes from which any Checkpoint message has been received.
-	// This is necessary for ignoring all but the first message a node sends, regardless of the snapshot hash.
+	// Set of (potentially invalid) nodes' signatures.
+	signatures map[t.NodeID][]byte
+
+	// Set of nodes from which a valid Checkpoint messages has been received.
 	confirmations map[t.NodeID]struct{}
 
 	// Set of Checkpoint messages that were received ahead of time.
@@ -55,10 +60,12 @@ type checkpointTracker struct {
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
-func newCheckpointTracker(sn t.SeqNr, logger logging.Logger) *checkpointTracker {
+func newCheckpointTracker(ownID t.NodeID, sn t.SeqNr, logger logging.Logger) *checkpointTracker {
 	return &checkpointTracker{
 		Logger:          logger,
+		ownID:           ownID,
 		seqNr:           sn,
+		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
 		// the epoch and membership fields will be set later by iss.startCheckpoint
@@ -74,7 +81,7 @@ func (iss *ISS) getCheckpointTracker(sn t.SeqNr) *checkpointTracker {
 	// If no checkpoint tracker with sequence number sn exists, create a new one.
 	if _, ok := iss.checkpoints[sn]; !ok {
 		logger := logging.Decorate(iss.logger, "CT: ", "sn", sn)
-		iss.checkpoints[sn] = newCheckpointTracker(sn, logger)
+		iss.checkpoints[sn] = newCheckpointTracker(iss.ownID, sn, logger)
 	}
 
 	// Look up and return checkpoint tracker.
@@ -126,6 +133,10 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 
 func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *events.EventList {
 
+	// Save received own checkpoint signature
+	ct.signatures[ct.ownID] = signature
+	ct.confirmations[ct.ownID] = struct{}{}
+
 	// Write Checkpoint to WAL
 	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash, signature)
 	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
@@ -166,9 +177,10 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
 
 	// Ignore duplicate messages.
-	if _, ok := ct.confirmations[source]; ok {
+	if _, ok := ct.signatures[source]; ok {
 		return &events.EventList{}
 	}
+	ct.signatures[source] = msg.Signature
 
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.appSnapshotHash)
@@ -181,6 +193,7 @@ func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t
 
 	if !valid {
 		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", source, "error", err)
+		ct.signatures[source] = nil
 		return &events.EventList{}
 	}
 
