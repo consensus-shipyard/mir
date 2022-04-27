@@ -229,7 +229,11 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 		membership[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+i)
 	}
 
-	return grpctransport.NewGrpcTransport(membership, ownId, nil)
+	return grpctransport.NewGrpcTransport(
+		membership,
+		ownId,
+		logging.Decorate(logging.ConsoleInfoLogger, "gRPC: ", "node", ownId),
+	)
 }
 
 // localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns
