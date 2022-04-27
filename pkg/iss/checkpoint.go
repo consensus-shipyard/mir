@@ -131,9 +131,8 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	// TODO: Add signature.
 	// TODO: Implement checkpoint message retransmission.
-	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash)
+	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash, signature)
 	walEvent.FollowUp(events.SendMessage(m, ct.membership))
 
 	// Apply pending Checkpoint messages
