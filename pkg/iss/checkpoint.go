@@ -130,6 +130,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 	for s, m := range ct.pendingMessages {
 		walEvent.FollowUps(ct.applyMessage(m, s).Slice())
 	}
+	ct.pendingMessages = nil
 
 	// Return resulting WALEvent (with the SendMessage event appended).
 	return (&events.EventList{}).PushBack(walEvent)
