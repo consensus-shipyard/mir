@@ -165,12 +165,12 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 	case *grpctransport.GrpcTransport:
 		err := transport.Start()
 		Expect(err).NotTo(HaveOccurred())
-		transport.Connect()
+		transport.Connect(ctx)
 	}
 
 	// Run the node until it stops and obtain the node's final status.
 	exitErr := node.Run(ctx, ticker.C)
-	fmt.Println("Node run returned!")
+	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
 
 	finalStatus, statusErr := node.Status(context.Background())
 
@@ -180,15 +180,15 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 
 	// Wait for the local request submission thread.
 	wg.Wait()
-	fmt.Println("Fake request submission done.")
+	tr.Config.Logger.Log(logging.LevelInfo, "Fake request submission done.")
 
 	// ATTENTION! This is hacky!
 	// If the test replica used the GRPC transport, stop the Net module.
 	switch transport := tr.Net.(type) {
 	case *grpctransport.GrpcTransport:
-		fmt.Println("Stopping gRPC transport.")
+		tr.Config.Logger.Log(logging.LevelDebug, "Stopping gRPC transport.")
 		transport.Stop()
-		fmt.Println("gRPC transport stopped.")
+		tr.Config.Logger.Log(logging.LevelDebug, "gRPC transport stopped.")
 	}
 
 	// Return the final node status.

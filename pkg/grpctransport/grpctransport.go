@@ -118,12 +118,20 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 
 	// For each message received
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
-		// Write the message to the channel. This channel will be read by the user of the module.
-		gt.incomingMessages <- modules.ReceivedMessage{Sender: t.NodeID(grpcMsg.Sender), Msg: grpcMsg.Msg}
+		select {
+		case gt.incomingMessages <- modules.ReceivedMessage{Sender: t.NodeID(grpcMsg.Sender), Msg: grpcMsg.Msg}:
+			// Write the message to the channel. This channel will be read by the user of the module.
+
+		case <-srv.Context().Done():
+			// If the connection closes before all its messages have been processed, ignore the unprocessed messages.
+			gt.logger.Log(logging.LevelDebug, "Ignoring message, connection terminating.",
+				"addr", p.Addr.String(), err, err)
+			break
+		}
 	}
 
 	// Log error message produced on termination of the above loop.
-	gt.logger.Log(logging.LevelInfo, fmt.Sprintf("Connection terminated: %s (%v)", p.Addr.String(), err))
+	gt.logger.Log(logging.LevelInfo, "Connection terminated.", "addr", p.Addr.String(), err, err)
 
 	// Send gRPC response message and close connection.
 	return srv.SendAndClose(&ByeBye{})
@@ -166,16 +174,12 @@ func (gt *GrpcTransport) Start() error {
 func (gt *GrpcTransport) Stop() {
 
 	// Close connections to other nodes.
-	// Using CloseSend() instead of CloseAndRecv(), since CloseAndRecv() sometimes (not very often) blocks indefinitely.
-	// This behavior is strange, since the server is stopping gracefully
-	// and should wait until all connections are properly closed.
-	// TODO: Investigate the problem of CloseAndRecv() sometimes blocking indefinitely.
 	for id, connection := range gt.connections {
-		gt.logger.Log(logging.LevelDebug, "Closing connection\n", "to", id)
+		gt.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
 		if err := connection.CloseSend(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 		}
-		gt.logger.Log(logging.LevelDebug, "Closed connection\n", "to", id)
+		gt.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
 	}
 
 	// Stop own gRPC server.
@@ -194,7 +198,7 @@ func (gt *GrpcTransport) ServerError() error {
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
-func (gt *GrpcTransport) Connect() {
+func (gt *GrpcTransport) Connect(ctx context.Context) {
 
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
@@ -211,7 +215,7 @@ func (gt *GrpcTransport) Connect() {
 			defer wg.Done()
 
 			// Create and store connection
-			connection, err := gt.connectToNode(addr) // May take long time, execute before acquiring the lock.
+			connection, err := gt.connectToNode(ctx, addr) // May take long time, execute before acquiring the lock.
 			lock.Lock()
 			gt.connections[id] = connection
 			lock.Unlock()
@@ -232,7 +236,7 @@ func (gt *GrpcTransport) Connect() {
 }
 
 // Establishes a connection to a single node at address addrString.
-func (gt *GrpcTransport) connectToNode(addrString string) (GrpcTransport_ListenClient, error) {
+func (gt *GrpcTransport) connectToNode(ctx context.Context, addrString string) (GrpcTransport_ListenClient, error) {
 
 	gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 
@@ -254,7 +258,7 @@ func (gt *GrpcTransport) connectToNode(addrString string) (GrpcTransport_ListenC
 
 	// Remotely invoke the Listen function on the other node's gRPC server.
 	// As this is "stream of requests"-type RPC, it returns a message sink.
-	msgSink, err := client.Listen(context.Background())
+	msgSink, err := client.Listen(ctx)
 	if err != nil {
 		if cerr := conn.Close(); cerr != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Failed to close connection: %v", cerr))

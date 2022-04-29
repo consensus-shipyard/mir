@@ -115,7 +115,11 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		case "fake":
 			transport = fakeTransport.Link(t.NewNodeIDFromInt(i))
 		case "grpc":
-			transport = localGrpcTransport(membership, t.NewNodeIDFromInt(i))
+			transport = localGrpcTransport(
+				membership,
+				t.NewNodeIDFromInt(i),
+				logging.Decorate(config.Logger, "gRPC: "),
+			)
 		}
 
 		// Create instance of test replica.
@@ -221,7 +225,7 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 // localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // The network address of each test replica is the loopback 127.0.0.1.
-func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcTransport {
+func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID, logger logging.Logger) *grpctransport.GrpcTransport {
 
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
@@ -233,7 +237,7 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID) *grpctransport.GrpcT
 	return grpctransport.NewGrpcTransport(
 		membership,
 		ownId,
-		logging.Decorate(logging.ConsoleInfoLogger, "gRPC: ", "node", ownId),
+		logger,
 	)
 }
 
