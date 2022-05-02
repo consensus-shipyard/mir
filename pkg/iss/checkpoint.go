@@ -100,7 +100,7 @@ func (ct *checkpointTracker) Start(epoch t.EpochNr, membership []t.NodeID) *even
 	// Save the membership this instance of the checkpoint protocol will use.
 	// This is required in case where the membership changes before the checkpoint sub-protocol finishes.
 	// That is also why the content of the Membership slice needs to be copied.
-	ct.membership = make([]t.NodeID, len(membership), len(membership))
+	ct.membership = make([]t.NodeID, len(membership))
 	copy(ct.membership, membership)
 
 	// Request a snapshot of the application state.

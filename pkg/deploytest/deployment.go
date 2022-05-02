@@ -176,8 +176,6 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 	var nodeWg sync.WaitGroup
 	var clientWg sync.WaitGroup
 
-	clientCtx, cancelClients := context.WithCancel(context.Background())
-
 	// Start the Mir nodes.
 	nodeWg.Add(len(d.TestReplicas))
 	for i, testReplica := range d.TestReplicas {
@@ -190,7 +188,6 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 			fmt.Printf("Node %d: running\n", i)
 			finalStatuses[i] = testReplica.Run(ctx, tickInterval)
 			fmt.Printf("Node %d: exit with exitErr=%v\n", i, finalStatuses[i].ExitErr)
-			cancelClients()
 		}(i, testReplica)
 	}
 
@@ -206,8 +203,8 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 			defer GinkgoRecover()
 			defer clientWg.Done()
 
-			c.Connect(clientCtx, d.localRequestReceiverAddrs())
-			submitDummyRequests(clientCtx, c, d.testConfig.NumNetRequests)
+			c.Connect(ctx, d.localRequestReceiverAddrs())
+			submitDummyRequests(ctx, c, d.testConfig.NumNetRequests)
 			c.Disconnect()
 		}(client)
 	}

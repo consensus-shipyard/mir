@@ -117,7 +117,8 @@ func CheckConfig(c *Config) error {
 	}
 
 	// MaxBatchSize must not be negative (it can be zero though, signifying infinite batch size).
-	if c.MaxBatchSize < 0 {
+	// This check is technically not necessary for an unsigned type, but we keep it in case the type changes one day.
+	if c.MaxBatchSize < 0 { // nolint
 		return fmt.Errorf("negative MaxBatchSize: %d", c.MaxBatchSize)
 	}
 

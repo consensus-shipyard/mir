@@ -187,5 +187,5 @@ func (dp *DummyProtocol) announceRequests() *events.EventList {
 
 // Takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(reqRef *requestpb.RequestRef) string {
-	return fmt.Sprintf("%d-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
+	return fmt.Sprintf("%v-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
 }

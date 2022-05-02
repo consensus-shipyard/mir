@@ -82,11 +82,9 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 
 			// Print debug info.
 			if err != nil {
-				dc.logger.Log(logging.LevelError,
-					fmt.Sprintf("Failed to connect to node %v (%s).", id, addr))
+				dc.logger.Log(logging.LevelDebug, "Failed to connect to node.", "id", id, "addr", addr)
 			} else {
-				dc.logger.Log(logging.LevelDebug,
-					fmt.Sprintf("Node %d (%s) connected.", id, addr))
+				dc.logger.Log(logging.LevelDebug, "Node connected.", "id", id, "addr", addr)
 			}
 
 		}(nodeId, nodeAddr)

@@ -25,7 +25,7 @@ func (nid NodeID) Pb() string {
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
 func NodeIDSlicePb(nids []NodeID) []string {
-	pbSlice := make([]string, len(nids), len(nids))
+	pbSlice := make([]string, len(nids))
 	for i, nid := range nids {
 		pbSlice[i] = nid.Pb()
 	}

@@ -115,9 +115,13 @@ var _ = Describe("Basic test", func() {
 
 			// Keep the generated data
 			retainedDir := fmt.Sprintf("failed-test-data/%s", currentTestConfig.Directory)
-			os.MkdirAll(retainedDir, 0777)
-			os.Rename(currentTestConfig.Directory, retainedDir)
-			fmt.Printf("Test failed. Moved deployment data to: %s\n", retainedDir)
+			fmt.Printf("Test failed. Moving deployment data to: %s\n", retainedDir)
+			if err := os.MkdirAll(retainedDir, 0777); err != nil {
+				fmt.Printf("Failed to create directlry: %s\n", retainedDir)
+			}
+			if err := os.Rename(currentTestConfig.Directory, retainedDir); err != nil {
+				fmt.Printf("Failed renaming directory %s to %s\n", currentTestConfig.Directory, retainedDir)
+			}
 
 			// Print final status of the system.
 			fmt.Printf("\n\nPrinting status because of failed test in %s\n",

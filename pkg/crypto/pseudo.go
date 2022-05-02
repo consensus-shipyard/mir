@@ -129,8 +129,8 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 func generateKeys(numKeys int, randomness io.Reader) (privKeys [][]byte, pubKeys [][]byte, err error) {
 
 	// Initialize empty lists of keys.
-	privKeys = make([][]byte, numKeys, numKeys)
-	pubKeys = make([][]byte, numKeys, numKeys)
+	privKeys = make([][]byte, numKeys)
+	pubKeys = make([][]byte, numKeys)
 
 	// Generate key pairs.
 	for i := 0; i < numKeys; i++ {

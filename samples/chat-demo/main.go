@@ -122,7 +122,7 @@ func main() {
 	// At the time of writing this comment, restarts / crash-recovery is not yet implemented though.
 	// Nevertheless, running this code will create a directory with the WAL file in it.
 	// Those need to be manually removed.
-	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%s", args.OwnId))
+	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%v", args.OwnId))
 	wal, err := simplewal.Open(walPath)
 	if err != nil {
 		panic(err)
@@ -142,7 +142,7 @@ func main() {
 	if err := net.Start(); err != nil {
 		panic(err)
 	}
-	net.Connect()
+	net.Connect(context.Background())
 
 	// Create a new request store. Request payloads will be stored in it.
 	// Generally, the request store should be a persistent one,

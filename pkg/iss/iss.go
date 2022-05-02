@@ -1030,7 +1030,7 @@ func membershipSet(membership []t.NodeID) map[t.NodeID]struct{} {
 func newPBFTConfig(issConfig *Config) *PBFTConfig {
 
 	// Make a copy of the current membership.
-	pbftMembership := make([]t.NodeID, len(issConfig.Membership), len(issConfig.Membership))
+	pbftMembership := make([]t.NodeID, len(issConfig.Membership))
 	copy(pbftMembership, issConfig.Membership)
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
@@ -1091,10 +1091,4 @@ func strongQuorum(n int) int {
 	// assuming n = 3f + 1:
 	//     2 *  f    + 1
 	return 2*(n-1)/3 + 1
-}
-
-func weakQuorum(n int) int {
-	// assuming n = 3f + 1:
-	//      f      + 1
-	return (n-1)/3 + 1
 }
