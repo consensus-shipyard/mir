@@ -58,7 +58,9 @@ func checkboxes(label string, opts map[string]struct{}) map[string]struct{} {
 		Message: label,
 		Options: toList(opts),
 	}
-	survey.AskOne(prompt, &selected)
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		fmt.Printf("Error selecting event types: %v", err)
+	}
 
 	return toSet(selected)
 }

@@ -341,8 +341,9 @@ func (n *Node) processSendEvents(eventsIn *events.EventList) (*events.EventList,
 				if t.NodeID(destId) == n.ID {
 					eventsOut.PushBack(events.MessageReceived(n.ID, e.SendMessage.Msg))
 				} else {
-					n.modules.Net.Send(t.NodeID(destId), e.SendMessage.Msg)
-					// TODO: Handle sending errors.
+					if err := n.modules.Net.Send(t.NodeID(destId), e.SendMessage.Msg); err != nil { // nolint
+						// TODO: Handle sending errors (and remove "nolint" comment above).
+					}
 				}
 			}
 		default:

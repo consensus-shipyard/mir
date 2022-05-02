@@ -31,7 +31,7 @@ func RequestForHash(req *requestpb.Request) [][]byte {
 func BatchForHash(batch *requestpb.Batch) [][]byte {
 
 	// Allocate output slice.
-	data := make([][]byte, len(batch.Requests), len(batch.Requests))
+	data := make([][]byte, len(batch.Requests))
 
 	// Collect all request digests in the batch.
 	for i, reqRef := range batch.Requests {

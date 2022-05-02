@@ -16,6 +16,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
@@ -97,7 +98,7 @@ type Recorder struct {
 	exitErrMutex sync.Mutex
 }
 
-func NewRecorder(nodeID t.NodeID, dest io.Writer, opts ...RecorderOpt) *Recorder {
+func NewRecorder(nodeID t.NodeID, dest io.Writer, logger logging.Logger, opts ...RecorderOpt) *Recorder {
 	startTime := time.Now()
 
 	i := &Recorder{
@@ -124,7 +125,14 @@ func NewRecorder(nodeID t.NodeID, dest io.Writer, opts ...RecorderOpt) *Recorder
 		}
 	}
 
-	go i.run(dest)
+	go func() {
+		err := i.run(dest)
+		if err != nil {
+			logger.Log(logging.LevelError, "Interceptor returned with error.", "err", err)
+		} else {
+			logger.Log(logging.LevelDebug, "Interceptor returned successfully.")
+		}
+	}()
 
 	return i
 }

@@ -58,7 +58,7 @@ func (vrs *VolatileRequestStore) updateIdIndex(reqRef *requestpb.RequestRef) {
 	}
 
 	// Add a copy of the digest to the index entry.
-	d := make([]byte, len(reqRef.Digest), len(reqRef.Digest))
+	d := make([]byte, len(reqRef.Digest))
 	copy(d, reqRef.Digest)
 	entry[fmt.Sprintf("%x", reqRef.Digest)] = d
 }
@@ -101,7 +101,7 @@ func (vrs *VolatileRequestStore) PutRequest(reqRef *requestpb.RequestRef, data [
 
 	// Copy the request data to the entry (potentially discarding an old one).
 	// Note that a full copy is made, so the stored data is not dependent on what happens with the original data.
-	reqInfo.data = make([]byte, len(data), len(data))
+	reqInfo.data = make([]byte, len(data))
 	copy(reqInfo.data, data)
 
 	return nil
@@ -118,7 +118,7 @@ func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byt
 			// And if the referenced entry contains request data.
 
 			// Return a copy of the data (not a pointer to the data itself)
-			data := make([]byte, len(reqInfo.data), len(reqInfo.data))
+			data := make([]byte, len(reqInfo.data))
 			copy(data, reqInfo.data)
 			return data, nil
 		} else {
@@ -172,7 +172,7 @@ func (vrs *VolatileRequestStore) PutAuthenticator(reqRef *requestpb.RequestRef, 
 	// Copy the authenticator to the entry (potentially discarding an old one).
 	// Note that a full copy is made, so the stored authenticator
 	// is not dependent on what happens with the original authenticator passed to the function.
-	reqInfo.authenticator = make([]byte, len(auth), len(auth))
+	reqInfo.authenticator = make([]byte, len(auth))
 	copy(reqInfo.authenticator, auth)
 
 	return nil
@@ -189,7 +189,7 @@ func (vrs *VolatileRequestStore) GetAuthenticator(reqRef *requestpb.RequestRef) 
 			// And if the referenced entry contains an authenticator.
 
 			// Return a copy of the authenticator (not a pointer to the data itself)
-			auth := make([]byte, len(reqInfo.authenticator), len(reqInfo.authenticator))
+			auth := make([]byte, len(reqInfo.authenticator))
 			copy(auth, reqInfo.authenticator)
 			return auth, nil
 		} else {
@@ -217,7 +217,7 @@ func (vrs *VolatileRequestStore) GetDigestsByID(clientId t.ClientID, reqNo t.Req
 		// (If no entry is present, no digests will be added and an empty slice will be returned.)
 		for _, digest := range indexEntry {
 			// For each digest in the entry, append a copy of it to the list of digests that will be returned
-			d := make([]byte, len(digest), len(digest))
+			d := make([]byte, len(digest))
 			copy(d, digest)
 			digests = append(digests, d)
 		}

@@ -105,7 +105,7 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 	file, err := os.Create(tr.EventLogFile())
 	Expect(err).NotTo(HaveOccurred())
 	defer file.Close()
-	interceptor := eventlog.NewRecorder(tr.Id, file)
+	interceptor := eventlog.NewRecorder(tr.Id, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	defer func() {
 		err := interceptor.Stop()
 		Expect(err).NotTo(HaveOccurred())

@@ -20,7 +20,7 @@ type bucketGroup []*requestBucket
 // newBuckets returns a new group of numBuckets initialized buckets.
 // The logger will be used to output bucket-related debugging messages.
 func newBuckets(numBuckets int, logger logging.Logger) *bucketGroup {
-	buckets := make([]*requestBucket, numBuckets, numBuckets)
+	buckets := make([]*requestBucket, numBuckets)
 	for i := 0; i < numBuckets; i++ {
 		buckets[i] = newRequestBucket(i, logging.Decorate(logger, "Bucket: ", "bID", i))
 	}

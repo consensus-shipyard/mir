@@ -144,6 +144,9 @@ func (gt *GrpcTransport) Start() error {
 
 	// Obtain own port number from membership.
 	_, ownPort, err := splitAddrPort(gt.membership[gt.ownId])
+	if err != nil {
+		return err
+	}
 
 	gt.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for connections on port %d", ownPort))
 

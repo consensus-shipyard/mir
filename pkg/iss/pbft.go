@@ -197,7 +197,7 @@ func (slot *pbftSlot) checkPrepared() bool {
 			slot.Prepares[from] = nil
 
 			// If the digest in the Prepare message matches that of the Preprepare, add the message to the valid ones.
-			if bytes.Compare(prepare.Digest, slot.Digest) == 0 {
+			if bytes.Equal(prepare.Digest, slot.Digest) {
 				slot.ValidPrepares = append(slot.ValidPrepares, prepare)
 			}
 		}
@@ -233,7 +233,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 			slot.Commits[from] = nil
 
 			// If the digest in the Commit message matches that of the Preprepare, add the message to the valid ones.
-			if bytes.Compare(commit.Digest, slot.Digest) == 0 {
+			if bytes.Equal(commit.Digest, slot.Digest) {
 				slot.ValidCommits = append(slot.ValidCommits, commit)
 			}
 		}
@@ -241,11 +241,6 @@ func (slot *pbftSlot) checkCommitted() bool {
 
 	// Return true if enough matching Prepare messages have been received.
 	return len(slot.ValidCommits) >= 2*slot.f+1
-}
-
-type pbftViewChange struct {
-	view     t.PBFTViewNr
-	messages map[t.NodeID]*isspbftpb.ViewChange
 }
 
 // ============================================================
