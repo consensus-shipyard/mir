@@ -304,32 +304,18 @@ func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventLis
 			} else {
 				return nil, err
 			}
-		case *eventpb.Event_VerifyNodeSig:
-			// Verify a node signature (e.g., one that was attached to a received message)
-
-			// Convenience variables
-			ve := e.VerifyNodeSig
-			nodeID := t.NodeID(ve.NodeId)
-
-			err := n.modules.Crypto.VerifyNodeSig(ve.Data.Data, ve.Signature, t.NodeID(ve.NodeId))
-			// Create result event, depending on verification outcome.
-			if err == nil {
-				eventsOut.PushBack(events.NodeSigVerified(true, "", nodeID, ve.Origin))
-			} else {
-				eventsOut.PushBack(events.NodeSigVerified(false, err.Error(), nodeID, ve.Origin))
-			}
-		case *eventpb.Event_VerifyNodeSigBatch:
+		case *eventpb.Event_VerifyNodeSigs:
 			// Verify a batch of node signatures
 
 			// Convenience variables
-			ve := e.VerifyNodeSigBatch
-			results := make([]bool, len(ve.Data))
-			errors := make([]string, len(ve.Data))
+			verifyEvent := e.VerifyNodeSigs
+			results := make([]bool, len(verifyEvent.Data))
+			errors := make([]string, len(verifyEvent.Data))
 			allOK := true
 
 			// Verify each signature.
-			for i, data := range ve.Data {
-				err := n.modules.Crypto.VerifyNodeSig(data.Data, ve.Signatures[i], t.NodeID(ve.NodeIds[i]))
+			for i, data := range verifyEvent.Data {
+				err := n.modules.Crypto.VerifyNodeSig(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
 				if err == nil {
 					results[i] = true
 					errors[i] = ""
@@ -341,11 +327,11 @@ func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventLis
 			}
 
 			// Return result event
-			eventsOut.PushBack(events.NodeSigBatchVerified(
+			eventsOut.PushBack(events.NodeSigsVerified(
 				results,
 				errors,
-				t.NodeIDSlice(ve.NodeIds),
-				ve.Origin,
+				t.NodeIDSlice(verifyEvent.NodeIds),
+				verifyEvent.Origin,
 				allOK,
 			))
 

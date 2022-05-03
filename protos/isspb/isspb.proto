@@ -115,19 +115,19 @@ message SBEvent {
 
 message SBInstanceEvent {
   oneof type {
-    SBInit            init              = 1;
-    SBDeliver         deliver           = 2;
-    SBMessageReceived message_received  = 3;
-    SBPendingRequests pending_requests  = 4;
-    SBTick            tick              = 5;
-    SBCutBatch        cut_batch         = 6;
-    SBBatchReady      batch_ready       = 7;
-    SBWaitForRequests wait_for_requests = 8;
-    SBRequestsReady   requests_ready    = 9;
-    SBHashRequest     hash_request      = 10;
-    SBHashResult      hash_result       = 11;
-    SBSignResult      sign_result       = 12;
-    SBNodeSigVerified node_sig_verified = 13;
+    SBInit             init               = 1;
+    SBDeliver          deliver            = 2;
+    SBMessageReceived  message_received   = 3;
+    SBPendingRequests  pending_requests   = 4;
+    SBTick             tick               = 5;
+    SBCutBatch         cut_batch          = 6;
+    SBBatchReady       batch_ready        = 7;
+    SBWaitForRequests  wait_for_requests  = 8;
+    SBRequestsReady    requests_ready     = 9;
+    SBHashRequest      hash_request       = 10;
+    SBHashResult       hash_result        = 11;
+    SBSignResult       sign_result        = 12;
+    SBNodeSigsVerified node_sigs_verified = 13;
 
     isspbftpb.Preprepare       pbft_persist_preprepare         = 100;
     isspbftpb.Prepare          pbft_persist_prepare            = 101;
@@ -219,11 +219,12 @@ message SBInstanceSignOrigin {
   }
 }
 
-message SBNodeSigVerified {
-  string                 node_id = 1;
-  bool                   valid   = 2;
-  string                 error   = 3;
-  SBInstanceSigVerOrigin origin  = 4;
+message SBNodeSigsVerified {
+  repeated string        node_ids = 1;
+  repeated bool          valid    = 2;
+  repeated string        errors   = 3;
+  SBInstanceSigVerOrigin origin   = 4;
+  bool                   all_ok   = 5;
 }
 
 message SBSigVerOrigin {

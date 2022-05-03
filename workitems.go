@@ -63,8 +63,7 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			wi.client.PushBack(event)
 		case *eventpb.Event_StoreVerifiedRequest:
 			wi.reqStore.PushBack(event)
-		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest,
-			*eventpb.Event_VerifyNodeSig, *eventpb.Event_VerifyNodeSigBatch:
+		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest, *eventpb.Event_VerifyNodeSigs:
 			wi.crypto.PushBack(event)
 		case *eventpb.Event_HashRequest:
 			wi.hash.PushBack(event)
@@ -86,23 +85,9 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
 			}
-		case *eventpb.Event_NodeSigVerified, *eventpb.Event_NodeSigBatchVerified:
+		case *eventpb.Event_NodeSigsVerified:
 			// For signature verification results, their origin determines the destination.
-
-			// Extract the Origin.
-			// This clumsy switch statement is necessary,
-			// because even though both the possible types of t contain an origin,
-			// it needs to be extracted differently from each one.
-			var sigVerOrigin *eventpb.SigVerOrigin
-			switch sigVerResult := t.(type) {
-			case *eventpb.Event_NodeSigVerified:
-				sigVerOrigin = sigVerResult.NodeSigVerified.Origin
-			case *eventpb.Event_NodeSigBatchVerified:
-				sigVerOrigin = sigVerResult.NodeSigBatchVerified.Origin
-			}
-
-			// Decide where to route the Event based on its origin.
-			switch sigVerOrigin.Type.(type) {
+			switch t.NodeSigsVerified.Origin.Type.(type) {
 			case *eventpb.SigVerOrigin_Iss:
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)

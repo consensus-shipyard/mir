@@ -302,8 +302,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
 		return iss.applySignResult(e.SignResult)
-	case *eventpb.Event_NodeSigVerified:
-		return iss.applyNodeSigVerified(e.NodeSigVerified)
+	case *eventpb.Event_NodeSigsVerified:
+		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_RequestReady:
 		return iss.applyRequestReady(e.RequestReady)
 	case *eventpb.Event_AppSnapshot:
@@ -436,7 +436,7 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 // applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
 // Such an event means that a signature verification requested by this module has been completed by the Crypto module
 // and is now ready to be processed.
-func (iss *ISS) applyNodeSigVerified(result *eventpb.NodeSigVerified) *events.EventList {
+func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.EventList {
 	// We know already that the SigVerOrigin is of type ISS, since ISS produces no other types
 	// and all NodeSigVerified events with a different origin would not have been routed here.
 	issOrigin := result.Origin.Type.(*eventpb.SigVerOrigin_Iss).Iss
@@ -451,14 +451,21 @@ func (iss *ISS) applyNodeSigVerified(result *eventpb.NodeSigVerified) *events.Ev
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceID(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(epoch, instance, SBNodeSigVerifiedEvent(
+		return iss.ApplyEvent(SBEvent(epoch, instance, SBNodeSigsVerifiedEvent(
 			result.Valid,
-			result.Error,
-			t.NodeID(result.NodeId),
+			result.Errors,
+			t.NodeIDSlice(result.NodeIds),
 			origin.Sb.Origin,
+			result.AllOk,
 		)))
 	case *isspb.ISSSigVerOrigin_CheckpointSn:
-		return iss.applyCheckpointSigVerResult(result.Valid, result.Error, t.NodeID(result.NodeId), t.SeqNr(origin.CheckpointSn))
+		// A checkpoint only has one signature and thus each slice of the result only contains one element.
+		return iss.applyCheckpointSigVerResult(
+			result.Valid[0],
+			result.Errors[0],
+			t.NodeID(result.NodeIds[0]),
+			t.SeqNr(origin.CheckpointSn),
+		)
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}

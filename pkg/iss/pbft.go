@@ -375,8 +375,8 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyHashResult(e.HashResult)
 	case *isspb.SBInstanceEvent_SignResult:
 		return pbft.applySignResult(e.SignResult)
-	case *isspb.SBInstanceEvent_NodeSigVerified:
-		return pbft.applyNodeSigVerified(e.NodeSigVerified)
+	case *isspb.SBInstanceEvent_NodeSigsVerified:
+		return pbft.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *isspb.SBInstanceEvent_PbftPersistPreprepare:
 		return pbft.applyPbftPersistPreprepare(e.PbftPersistPreprepare)
 	case *isspb.SBInstanceEvent_MessageReceived:
@@ -500,15 +500,15 @@ func (pbft *pbftInstance) applySignResult(result *isspb.SBSignResult) *events.Ev
 	}
 }
 
-func (pbft *pbftInstance) applyNodeSigVerified(result *isspb.SBNodeSigVerified) *events.EventList {
+func (pbft *pbftInstance) applyNodeSigsVerified(result *isspb.SBNodeSigsVerified) *events.EventList {
 
 	// Ignore events with invalid signatures.
-	if !result.Valid {
+	if !result.AllOk {
 		pbft.logger.Log(logging.LevelWarn,
-			"Ignoring invalid signature.",
-			"from", result.NodeId,
-			"error", result.Origin.Type,
-			"error", result.Error,
+			"Ignoring invalid signature, ignoring event (with all signatures).",
+			"from", result.NodeIds,
+			"type", result.Origin.Type,
+			"errors", result.Errors,
 		)
 	}
 

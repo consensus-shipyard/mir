@@ -119,38 +119,12 @@ func SignResult(signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
 	}}}
 }
 
-// VerifyNodeSig returns an event representing a request to the crypto module for verifying the signature of a node.
-// The origin is an object used to maintain the context for the requesting module and will be included in the
-// NodeSigVerified event produced by the crypto module.
-func VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID, origin *eventpb.SigVerOrigin) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_VerifyNodeSig{VerifyNodeSig: &eventpb.VerifyNodeSig{
-		Data:      &eventpb.SigVerData{Data: data},
-		Signature: signature,
-		NodeId:    nodeID.Pb(),
-		Origin:    origin,
-	}}}
-}
-
-// NodeSigVerified returns an event representing the verification of a node's signature by the crypto module.
-// It contains the result of a verification
-// (as a boolean value and an error produced by the Crypto module if the verification failed)
-// and the SigVerOrigin, an object used to maintain the context for the requesting module,
-// i.e., information about what to do with the result of the signature verification.
-func NodeSigVerified(valid bool, error string, nodeID t.NodeID, origin *eventpb.SigVerOrigin) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_NodeSigVerified{NodeSigVerified: &eventpb.NodeSigVerified{
-		Valid:  valid,
-		Error:  error,
-		NodeId: nodeID.Pb(),
-		Origin: origin,
-	}}}
-}
-
-// VerifyNodeSigBatch returns an event representing a request to the crypto module
+// VerifyNodeSigs returns an event representing a request to the crypto module
 // for verifying a batch of node signatures.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // NodeSigVerified event produced by the crypto module.
 // For each signed message the data argument contains a slice of byte slices (thus [][][]byte)
-func VerifyNodeSigBatch(
+func VerifyNodeSigs(
 	data [][][]byte,
 	signatures [][]byte,
 	nodeIDs []t.NodeID,
@@ -159,12 +133,12 @@ func VerifyNodeSigBatch(
 
 	// First, construct a slice of SigVerData objects
 	sigVerData := make([]*eventpb.SigVerData, len(data))
-	for _, d := range data {
-		sigVerData = append(sigVerData, &eventpb.SigVerData{Data: d})
+	for i, d := range data {
+		sigVerData[i] = &eventpb.SigVerData{Data: d}
 	}
 
 	// Then return the actual Event.
-	return &eventpb.Event{Type: &eventpb.Event_VerifyNodeSigBatch{VerifyNodeSigBatch: &eventpb.VerifyNodeSigBatch{
+	return &eventpb.Event{Type: &eventpb.Event_VerifyNodeSigs{VerifyNodeSigs: &eventpb.VerifyNodeSigs{
 		Data:       sigVerData,
 		Signatures: signatures,
 		NodeIds:    t.NodeIDSlicePb(nodeIDs),
@@ -172,23 +146,23 @@ func VerifyNodeSigBatch(
 	}}}
 }
 
-// NodeSigBatchVerified returns an event representing the result of the verification
+// NodeSigsVerified returns an event representing the result of the verification
 // of multiple nodes' signatures by the crypto module.
 // It contains the results of the verifications
 // (as boolean values and errors produced by the Crypto module if the verification failed)
 // and the SigVerOrigin, an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the results of the signature verification.
 // The allOK argument must be set to true if the valid argument only contains true values.
-func NodeSigBatchVerified(
+func NodeSigsVerified(
 	valid []bool,
 	errors []string,
 	nodeIDs []t.NodeID,
 	origin *eventpb.SigVerOrigin,
 	allOk bool,
 ) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_NodeSigBatchVerified{NodeSigBatchVerified: &eventpb.NodeSigBatchVerified{
+	return &eventpb.Event{Type: &eventpb.Event_NodeSigsVerified{NodeSigsVerified: &eventpb.NodeSigsVerified{
 		Valid:   valid,
-		Error:   errors,
+		Errors:  errors,
 		NodeIds: t.NodeIDSlicePb(nodeIDs),
 		Origin:  origin,
 		AllOk:   allOk,

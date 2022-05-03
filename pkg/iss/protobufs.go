@@ -201,18 +201,22 @@ func SBSignResultEvent(signature []byte, origin *isspb.SBInstanceSignOrigin) *is
 	}}}
 }
 
-func SBNodeSigVerifiedEvent(
-	valid bool,
-	error string,
-	nodeID t.NodeID,
+func SBNodeSigsVerifiedEvent(
+	valid []bool,
+	errors []string,
+	nodeIDs []t.NodeID,
 	origin *isspb.SBInstanceSigVerOrigin,
+	allOK bool,
 ) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_NodeSigVerified{NodeSigVerified: &isspb.SBNodeSigVerified{
-		NodeId: nodeID.Pb(),
-		Valid:  valid,
-		Error:  error,
-		Origin: origin,
-	}}}
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_NodeSigsVerified{
+		NodeSigsVerified: &isspb.SBNodeSigsVerified{
+			NodeIds: t.NodeIDSlicePb(nodeIDs),
+			Valid:   valid,
+			Errors:  errors,
+			Origin:  origin,
+			AllOk:   allOK,
+		},
+	}}
 }
 
 // ============================================================
