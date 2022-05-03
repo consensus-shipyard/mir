@@ -185,7 +185,12 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.appSnapshotHash)
-	verifySigEvent := events.VerifyNodeSig(sigData, msg.Signature, source, CheckpointSigVerOrigin(ct.seqNr))
+	verifySigEvent := events.VerifyNodeSigs(
+		[][][]byte{sigData},
+		[][]byte{msg.Signature},
+		[]t.NodeID{source},
+		CheckpointSigVerOrigin(ct.seqNr),
+	)
 
 	return (&events.EventList{}).PushBack(verifySigEvent)
 }

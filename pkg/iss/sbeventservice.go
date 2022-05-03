@@ -57,13 +57,13 @@ func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSig
 	return events.SignRequest(data, SBSignOrigin(ec.epoch, ec.instanceID, origin))
 }
 
-func (ec *sbEventService) VerifyNodeSig(
-	data [][]byte,
-	signature []byte,
-	nodeID t.NodeID,
+func (ec *sbEventService) VerifyNodeSigs(
+	data [][][]byte,
+	signatures [][]byte,
+	nodeIDs []t.NodeID,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.Event {
-	return events.VerifyNodeSig(data, signature, nodeID, SBSigVerOrigin(ec.epoch, ec.instanceID, origin))
+	return events.VerifyNodeSigs(data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instanceID, origin))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).

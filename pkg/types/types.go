@@ -22,6 +22,16 @@ func (nid NodeID) Pb() string {
 	return string(nid)
 }
 
+// NodeIDSlice converts a slice of NodeIDs represented directly as their underlying native type
+// to a slice of abstractly typed node IDs.
+func NodeIDSlice(nids []string) []NodeID {
+	nodeIDs := make([]NodeID, len(nids))
+	for i, nid := range nids {
+		nodeIDs[i] = NodeID(nid)
+	}
+	return nodeIDs
+}
+
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
 func NodeIDSlicePb(nids []NodeID) []string {

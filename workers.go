@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/pkg/errors"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
@@ -114,7 +112,7 @@ func (n *Node) processEvents(
 	// Process events.
 	newEvents, err := processFunc(eventsIn)
 	if err != nil {
-		return errors.WithMessage(err, "could not process events")
+		return fmt.Errorf("could not process events: %w", err)
 	}
 
 	// Merge the pending follow-up Events with the newly generated Events.
@@ -206,13 +204,13 @@ func (n *Node) processWALEvents(eventsIn *events.EventList) (*events.EventList, 
 				return nil, fmt.Errorf("could not persist dummy batch: %w", err)
 			}
 		default:
-			return nil, errors.Errorf("unexpected type of WAL event: %T", event.Type)
+			return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
 		}
 	}
 
 	// Then we sync the WAL
 	if err := n.modules.WAL.Sync(); err != nil {
-		return nil, errors.WithMessage(err, "failed to sync WAL")
+		return nil, fmt.Errorf("failed to sync WAL: %w", err)
 	}
 
 	return eventsOut, nil
@@ -226,7 +224,7 @@ func (n *Node) processClientEvents(eventsIn *events.EventList) (*events.EventLis
 
 		newEvents, err := n.safeApplyClientEvent(event)
 		if err != nil {
-			return nil, errors.WithMessage(err, "err applying client event")
+			return nil, fmt.Errorf("err applying client event: %w", err)
 		}
 		eventsOut.PushBackList(newEvents)
 	}
@@ -265,7 +263,7 @@ func (n *Node) processHashEvents(eventsIn *events.EventList) (*events.EventList,
 			eventsOut.PushBack(events.HashResult(h.Sum(nil), e.HashRequest.Origin))
 		default:
 			// Complain about all other incoming event types.
-			return nil, errors.Errorf("unexpected type of Hash event: %T", event.Type)
+			return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
 		}
 	}
 
@@ -306,23 +304,40 @@ func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventLis
 			} else {
 				return nil, err
 			}
-		case *eventpb.Event_VerifyNodeSig:
-			// Verify a node signature (e.g., one that was attached to a received message)
+		case *eventpb.Event_VerifyNodeSigs:
+			// Verify a batch of node signatures
 
 			// Convenience variables
-			ve := e.VerifyNodeSig
-			nodeID := t.NodeID(ve.NodeId)
+			verifyEvent := e.VerifyNodeSigs
+			results := make([]bool, len(verifyEvent.Data))
+			errors := make([]string, len(verifyEvent.Data))
+			allOK := true
 
-			err := n.modules.Crypto.VerifyNodeSig(ve.Data, ve.Signature, t.NodeID(ve.NodeId))
-			// Create result event, depending on verification outcome.
-			if err == nil {
-				eventsOut.PushBack(events.NodeSigVerified(true, "", nodeID, ve.Origin))
-			} else {
-				eventsOut.PushBack(events.NodeSigVerified(false, err.Error(), nodeID, ve.Origin))
+			// Verify each signature.
+			for i, data := range verifyEvent.Data {
+				err := n.modules.Crypto.VerifyNodeSig(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
+				if err == nil {
+					results[i] = true
+					errors[i] = ""
+				} else {
+					results[i] = false
+					errors[i] = err.Error()
+					allOK = false
+				}
 			}
+
+			// Return result event
+			eventsOut.PushBack(events.NodeSigsVerified(
+				results,
+				errors,
+				t.NodeIDSlice(verifyEvent.NodeIds),
+				verifyEvent.Origin,
+				allOK,
+			))
+
 		default:
 			// Complain about all other incoming event types.
-			return nil, errors.Errorf("unexpected type of Crypto event: %T", event.Type)
+			return nil, fmt.Errorf("unexpected type of Crypto event: %T", event.Type)
 		}
 	}
 
@@ -347,7 +362,7 @@ func (n *Node) processSendEvents(eventsIn *events.EventList) (*events.EventList,
 				}
 			}
 		default:
-			return nil, errors.Errorf("unexpected type of Net event: %T", event.Type)
+			return nil, fmt.Errorf("unexpected type of Net event: %T", event.Type)
 		}
 	}
 
@@ -375,7 +390,7 @@ func (n *Node) processAppEvents(eventsIn *events.EventList) (*events.EventList, 
 				return (&events.EventList{}).PushBack(events.AppSnapshot(t.SeqNr(e.AppSnapshotRequest.Sn), data)), nil
 			}
 		default:
-			return nil, errors.Errorf("unexpected type of App event: %T", event.Type)
+			return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 		}
 	}
 
@@ -440,7 +455,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 
 	// Then sync the request store, ensuring that all updates to its state are persisted.
 	if err := n.modules.RequestStore.Sync(); err != nil {
-		return nil, errors.WithMessage(err, "could not sync request store, unsafe to continue")
+		return nil, fmt.Errorf("could not sync request store, unsafe to continue: %w", err)
 	}
 
 	return eventsOut, nil
@@ -453,7 +468,7 @@ func (n *Node) processProtocolEvents(eventsIn *events.EventList) (*events.EventL
 
 		newEvents, err := n.safeApplyProtocolEvent(event)
 		if err != nil {
-			return nil, errors.WithMessage(err, "error applying protocol event")
+			return nil, fmt.Errorf("error applying protocol event: %w", err)
 		}
 		eventsOut.PushBackList(newEvents)
 	}

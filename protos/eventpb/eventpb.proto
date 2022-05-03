@@ -18,28 +18,28 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 message Event {
   // TODO, normalize naming, for instance Complete/Completed
   oneof type {
-    Init                 init                   = 1;
-    Tick                 tick                   = 2;
-    WALAppend            wal_append             = 3;
-    WALEntry             wal_entry              = 4;
-    WALTruncate          wal_truncate           = 5;
-    requestpb.Request    request                = 6;
-    HashRequest          hash_request           = 7;
-    HashResult           hash_result            = 8;
-    SignRequest          sign_request           = 9;
-    SignResult           sign_result            = 10;
-    VerifyNodeSig        verify_node_sig        = 11;
-    NodeSigVerified      node_sig_verified      = 12;
-    RequestReady         request_ready          = 13;
-    SendMessage          send_message           = 14;
-    MessageReceived      message_received       = 15;
-    Deliver              deliver                = 16;
-    isspb.ISSEvent       iss                    = 17;
-    VerifyRequestSig     verify_request_sig     = 18;
-    RequestSigVerified   request_sig_verified   = 19;
-    StoreVerifiedRequest store_verified_request = 20;
-    AppSnapshotRequest   app_snapshot_request   = 21;
-    AppSnapshot          app_snapshot           = 22;
+    Init                 init                    = 1;
+    Tick                 tick                    = 2;
+    WALAppend            wal_append              = 3;
+    WALEntry             wal_entry               = 4;
+    WALTruncate          wal_truncate            = 5;
+    requestpb.Request    request                 = 6;
+    HashRequest          hash_request            = 7;
+    HashResult           hash_result             = 8;
+    SignRequest          sign_request            = 9;
+    SignResult           sign_result             = 10;
+    VerifyNodeSigs       verify_node_sigs        = 11;
+    NodeSigsVerified     node_sigs_verified      = 12;
+    RequestReady         request_ready           = 13;
+    SendMessage          send_message            = 14;
+    MessageReceived      message_received        = 15;
+    Deliver              deliver                 = 16;
+    isspb.ISSEvent       iss                     = 17;
+    VerifyRequestSig     verify_request_sig      = 18;
+    RequestSigVerified   request_sig_verified    = 19;
+    StoreVerifiedRequest store_verified_request  = 20;
+    AppSnapshotRequest   app_snapshot_request    = 21;
+    AppSnapshot          app_snapshot            = 22;
 
     // Dummy events for testing purposes only.
     PersistDummyBatch persist_dummy_batch   = 101;
@@ -93,18 +93,23 @@ message SignOrigin {
   }
 }
 
-message VerifyNodeSig {
-  repeated bytes data        = 1;
-  bytes          signature   = 2;
-  SigVerOrigin   origin      = 3;
-  string         node_id     = 4;
+message SigVerData {
+  repeated bytes data = 1;
 }
 
-message NodeSigVerified {
-  SigVerOrigin origin  = 1;
-  string       node_id = 2;
-  bool         valid   = 3;
-  string       error   = 4;
+message VerifyNodeSigs {
+  repeated SigVerData data       = 1;
+  repeated bytes      signatures = 2;
+  SigVerOrigin        origin     = 3;
+  repeated string     node_ids   = 4;
+}
+
+message NodeSigsVerified {
+  SigVerOrigin    origin   = 1;
+  repeated string node_ids = 2;
+  repeated bool   valid    = 3;
+  repeated string errors   = 4;
+  bool            all_ok   = 5;
 }
 
 message SigVerOrigin {

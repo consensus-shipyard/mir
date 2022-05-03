@@ -63,7 +63,7 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			wi.client.PushBack(event)
 		case *eventpb.Event_StoreVerifiedRequest:
 			wi.reqStore.PushBack(event)
-		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest, *eventpb.Event_VerifyNodeSig:
+		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest, *eventpb.Event_VerifyNodeSigs:
 			wi.crypto.PushBack(event)
 		case *eventpb.Event_HashRequest:
 			wi.hash.PushBack(event)
@@ -85,9 +85,9 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
 			}
-		case *eventpb.Event_NodeSigVerified:
+		case *eventpb.Event_NodeSigsVerified:
 			// For signature verification results, their origin determines the destination.
-			switch t.NodeSigVerified.Origin.Type.(type) {
+			switch t.NodeSigsVerified.Origin.Type.(type) {
 			case *eventpb.SigVerOrigin_Iss:
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
