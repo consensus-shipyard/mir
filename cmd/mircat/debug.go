@@ -39,8 +39,13 @@ func debug(args *arguments) error {
 	defer stopNode()
 
 	// Create channel for node output events and start printing its contents.
-	nodeOutput := make(chan *events.EventList)
-	go printNodeOutput(nodeOutput)
+	var nodeOutput chan *events.EventList
+	if args.showNodeEvents {
+		nodeOutput = make(chan *events.EventList)
+		go printNodeOutput(nodeOutput)
+	} else {
+		nodeOutput = nil
+	}
 
 	// Start the debugger node.
 	go func() {
@@ -50,7 +55,7 @@ func debug(args *arguments) error {
 	}()
 
 	// Keep track of the position of events in the recorded log.
-	index := uint64(0)
+	index := 0
 
 	// Process event log.
 	// Each entry can contain multiple events.
@@ -68,11 +73,14 @@ func debug(args *arguments) error {
 		for _, event := range entry.Events {
 
 			// Set the index of the event in the event log.
-			metadata.index = index
+			metadata.index = uint64(index)
 
 			// If the event was selected by the user for inspection, pause before submitting it to the node.
 			// The processing continues after the user's interactive confirmation.
-			if selected(event, args.selectedEvents, args.selectedIssEvents) && index >= uint64(args.offset) {
+			if selected(event, args.selectedEvents, args.selectedIssEvents) &&
+				index >= args.offset &&
+				(args.limit == 0 || index < args.offset+args.limit) {
+
 				stopBeforeNext(event, metadata)
 			}
 

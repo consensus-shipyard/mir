@@ -11,22 +11,22 @@ import (
 	"github.com/ttacon/chalk"
 	"google.golang.org/protobuf/encoding/protojson"
 	"io"
-	"os"
 	"strconv"
 )
 
 // extracts events from eventlog entries and
 // forwards them for display
-func displayEvents(srcFile *os.File, events map[string]struct{}, issEvents map[string]struct{}, offset int) error {
+func displayEvents(args *arguments) error {
 
 	//new reader
-	reader, err := eventlog.NewReader(srcFile)
+	reader, err := eventlog.NewReader(args.srcFile)
 
 	if err != nil {
 		return err
 	}
 
-	index := uint64(0) // a counter set to track the log indices
+	// Keep track of the position of events in the recorded log.
+	index := 0
 
 	var entry *recordingpb.Entry
 	for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
@@ -36,15 +36,15 @@ func displayEvents(srcFile *os.File, events map[string]struct{}, issEvents map[s
 		}
 		//getting events from entry
 		for _, event := range entry.Events {
-			metadata.index = index
+			metadata.index = uint64(index)
 
-			if _, ok := events[eventName(event)]; ok && index >= uint64(offset) {
+			if _, ok := args.selectedEvents[eventName(event)]; ok && index >= args.offset && (args.limit == 0 || index < args.offset+args.limit) {
 				// If event type has been selected for displaying
 
 				switch e := event.Type.(type) {
 				case *eventpb.Event_Iss:
 					// Only display selected sub-types of the ISS Event
-					if _, ok := issEvents[issEventName(e.Iss)]; ok {
+					if _, ok := args.selectedIssEvents[issEventName(e.Iss)]; ok {
 						displayEvent(event, metadata)
 					}
 				default:

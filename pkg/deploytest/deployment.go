@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/iss"
 	"path/filepath"
 	"sync"
 	"time"
@@ -60,6 +61,9 @@ type TestConfig struct {
 
 	// Duration after which the test deployment will be asked to shut down.
 	Duration time.Duration
+
+	// If not nil, the TestReplica with ID 0 will use this ISS configuration instead of the default one.
+	FirstReplicaISSConfig *iss.Config
 }
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.
@@ -122,7 +126,13 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			)
 		}
 
-		// Create instance of test replica.
+		// Create instance of TestReplica.
+		// The first TestReplica might get a special ISS configuration.
+		// This is useful if one replica should do something else than the others during the test (e.g., fail).
+		var issConfig *iss.Config
+		if i == 0 {
+			issConfig = testConfig.FirstReplicaISSConfig
+		}
 		replicas[i] = &TestReplica{
 			Id:              t.NewNodeIDFromInt(i),
 			Config:          config,
@@ -132,6 +142,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			App:             &FakeApp{},
 			Net:             transport,
 			NumFakeRequests: testConfig.NumFakeRequests,
+			ISSConfig:       issConfig,
 		}
 	}
 

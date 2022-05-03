@@ -172,6 +172,10 @@ func SBBatchReadyEvent(batch *requestpb.Batch, pendingReqsLeft t.NumRequests) *i
 	}}}
 }
 
+func SBResurrectBatchEvent(batch *requestpb.Batch) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_ResurrectBatch{ResurrectBatch: batch}}
+}
+
 func SBWaitForRequestsEvent(reference *isspb.SBReqWaitReference, requests []*requestpb.RequestRef) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_WaitForRequests{
 		WaitForRequests: &isspb.SBWaitForRequests{

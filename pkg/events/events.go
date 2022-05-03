@@ -132,8 +132,8 @@ func SignResult(signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
 // VerifyNodeSigs returns an event representing a request to the crypto module
 // for verifying a batch of node signatures.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
-// NodeSigVerified event produced by the crypto module.
-// For each signed message the data argument contains a slice of byte slices (thus [][][]byte)
+// NodeSigsVerified event produced by the crypto module.
+// For each signed message, the data argument contains a slice of byte slices (thus [][][]byte)
 func VerifyNodeSigs(
 	data [][][]byte,
 	signatures [][]byte,

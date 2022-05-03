@@ -53,6 +53,8 @@ func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SB
 		return iss.applySBInstCutBatch(instance, t.NumRequests(e.CutBatch.MaxSize))
 	case *isspb.SBInstanceEvent_WaitForRequests:
 		return iss.applySBInstWaitForRequests(instance, e.WaitForRequests)
+	case *isspb.SBInstanceEvent_ResurrectBatch:
+		return iss.applySBInstResurrectBatch(instance, e.ResurrectBatch)
 	default:
 		if int(instance) > len(iss.epoch.Orderers) {
 			panic(fmt.Sprintf("invalid SB event instance number (event type %T): %d", event.Type, instance))
@@ -171,4 +173,17 @@ func (iss *ISS) applySBInstWaitForRequests(
 		// If all requests are already available, notify the orderer directly.
 		return missingReqs.Orderer.ApplyEvent(SBRequestsReady(ref.SBRef))
 	}
+}
+
+// applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed
+// or committed. Through the ResurrectBatch event, an orderer "returns" a batch it was unable to order.
+func (iss *ISS) applySBInstResurrectBatch(_ t.SBInstanceNr, batch *requestpb.Batch) *events.EventList {
+
+	// Put each request in its corresponding bucket.
+	for _, reqRef := range batch.Requests {
+		iss.buckets.RequestBucket(reqRef).Resurrect(reqRef)
+	}
+
+	// No further actions to be performed.
+	return &events.EventList{}
 }

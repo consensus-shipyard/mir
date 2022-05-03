@@ -6,7 +6,10 @@ SPDX-License-Identifier: Apache-2.0
 
 package types
 
-import "strconv"
+import (
+	"encoding/binary"
+	"strconv"
+)
 
 // ================================================================================
 
@@ -64,6 +67,31 @@ type SeqNr uint64
 // Pb converts a SeqNr to its underlying native type.
 func (sn SeqNr) Pb() uint64 {
 	return uint64(sn)
+}
+
+// Bytes converts a SeqNr to a slice of bytes (useful for serialization).
+func (sn SeqNr) Bytes() []byte {
+	return uint64ToBytes(uint64(sn))
+}
+
+// SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
+// to a slice of abstractly typed sequence nubmers.
+func SeqNrSlice(sns []uint64) []SeqNr {
+	seqNrs := make([]SeqNr, len(sns))
+	for i, nid := range sns {
+		seqNrs[i] = SeqNr(nid)
+	}
+	return seqNrs
+}
+
+// SeqNrSlicePb converts a slice of SeqNrs to a slice of the native type underlying SeqNr.
+// This is required for serialization using Protocol Buffers.
+func SeqNrSlicePb(sns []SeqNr) []uint64 {
+	pbSlice := make([]uint64, len(sns))
+	for i, sn := range sns {
+		pbSlice[i] = sn.Pb()
+	}
+	return pbSlice
 }
 
 // ================================================================================
@@ -124,4 +152,20 @@ type PBFTViewNr uint64
 // Pb converts a PBFTViewNr to its underlying native type
 func (v PBFTViewNr) Pb() uint64 {
 	return uint64(v)
+}
+
+// Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
+func (v PBFTViewNr) Bytes() []byte {
+	return uint64ToBytes(uint64(v))
+}
+
+// ================================================================================
+// Auxiliary functions
+// ================================================================================
+
+// Encode view number.
+func uint64ToBytes(n uint64) []byte {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, n)
+	return buf
 }
