@@ -16,6 +16,8 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/exp/constraints"
+	"sort"
 
 	"google.golang.org/protobuf/proto"
 
@@ -1035,7 +1037,8 @@ func newPBFTConfig(issConfig *Config) *PBFTConfig {
 		MsgBufCapacity:           issConfig.MsgBufCapacity,
 		MaxBatchSize:             issConfig.MaxBatchSize,
 		ViewChangeBatchTimeout:   issConfig.PBFTViewChangeBatchTimeout,
-		ViewChangeSegmentTimeout: issConfig.PBFTViewChangeBatchTimeout,
+		ViewChangeSegmentTimeout: issConfig.PBFTViewChangeSegmentTimeout,
+		ViewChangeResendPeriod:   issConfig.PBFTViewChangeResendPeriod,
 	}
 }
 
@@ -1099,4 +1102,20 @@ func weakQuorum(n int) int {
 	// assuming n > 3f:
 	//   return min q: q > f
 	return maxFaulty(n) + 1
+}
+
+func iterateSorted[K constraints.Ordered, V any](m map[K]V, f func(key K, value V) (cont bool)) {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	for _, k := range keys {
+		if !f(k, m[k]) {
+			break
+		}
+	}
 }

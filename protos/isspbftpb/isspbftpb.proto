@@ -46,6 +46,14 @@ message SignedViewChange {
   bytes      signature   = 2;
 }
 
+message NewView {
+  uint64                    view                = 1;
+  repeated string           view_change_senders = 3;
+  repeated SignedViewChange signed_view_changes = 2;
+  repeated uint64           preprepare_seq_nrs  = 4;
+  repeated Preprepare       preprepares         = 5;
+}
+
 message PSetEntry {
   uint64 sn     = 1;
   uint64 view   = 2;
@@ -56,6 +64,11 @@ message QSetEntry {
   uint64 sn     = 1;
   uint64 view   = 2;
   bytes  digest = 3;
+}
+
+message PreprepareRequest {
+  bytes  digest = 1;
+  uint64 sn     = 2;
 }
 
 // ============================================================

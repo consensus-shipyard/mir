@@ -9,6 +9,8 @@ package mir_test
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/iss"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"io/ioutil"
 	"os"
 	"time"
@@ -151,24 +153,34 @@ var _ = Describe("Basic test", func() {
 		}
 	})
 
+	// Create an alternative ISS configuration for a 4-node deployment with a long batch timeout.
+	// It will be used to simulate one node being slow.
+	membership := make([]t.NodeID, 4)
+	for i := 0; i < len(membership); i++ {
+		membership[i] = t.NewNodeIDFromInt(i)
+	}
+	slowProposeConfig := iss.DefaultConfig(membership)
+	slowProposeConfig.MaxProposeDelay = 40
+
 	table.DescribeTable("Simple tests", testFunc,
 		table.Entry("Does nothing with 1 node", &deploytest.TestConfig{
 			NumReplicas: 1,
 			Transport:   "fake",
 			Directory:   "",
-			Duration:    2 * time.Second,
+			Duration:    4 * time.Second,
 		}),
 		table.Entry("Does nothing with 4 nodes", &deploytest.TestConfig{
-			NumReplicas: 4,
-			Transport:   "fake",
-			Directory:   "",
-			Duration:    2 * time.Second,
+			NumReplicas:           4,
+			Transport:             "fake",
+			Directory:             "",
+			Duration:              20 * time.Second,
+			FirstReplicaISSConfig: slowProposeConfig,
 		}),
 		table.Entry("Submits 10 fake requests with 1 node", &deploytest.TestConfig{
 			NumReplicas:     1,
 			Transport:       "fake",
 			NumFakeRequests: 10,
-			Directory:       "mir-deployment-test",
+			Directory:       "mirbft-deployment-test",
 			Duration:        4 * time.Second,
 		}),
 		table.Entry("Submits 10 fake requests with 1 node, loading WAL", &deploytest.TestConfig{
@@ -176,16 +188,17 @@ var _ = Describe("Basic test", func() {
 			NumClients:      1,
 			Transport:       "fake",
 			NumFakeRequests: 10,
-			Directory:       "mir-deployment-test",
+			Directory:       "mirbft-deployment-test",
 			Duration:        4 * time.Second,
 		}),
-		table.Entry("Submits 10 fake requests with 4 nodes", &deploytest.TestConfig{
-			NumReplicas:     4,
-			NumClients:      0,
-			Transport:       "fake",
-			NumFakeRequests: 10,
-			Directory:       "",
-			Duration:        2 * time.Second,
+		table.Entry("Submits 100 fake requests with 4 nodes", &deploytest.TestConfig{
+			NumReplicas:           4,
+			NumClients:            0,
+			Transport:             "fake",
+			NumFakeRequests:       100,
+			Directory:             "",
+			Duration:              4 * time.Second,
+			FirstReplicaISSConfig: slowProposeConfig,
 		}),
 		table.Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{
 			NumReplicas:     4,
@@ -193,7 +206,7 @@ var _ = Describe("Basic test", func() {
 			Transport:       "grpc",
 			NumFakeRequests: 10,
 			Directory:       "",
-			Duration:        2 * time.Second,
+			Duration:        4 * time.Second,
 		}),
 		table.Entry("Submits 10 requests with 1 node and actual networking", &deploytest.TestConfig{
 			NumReplicas:    1,
@@ -201,7 +214,7 @@ var _ = Describe("Basic test", func() {
 			Transport:      "grpc",
 			NumNetRequests: 10,
 			Directory:      "",
-			Duration:       2 * time.Second,
+			Duration:       4 * time.Second,
 		}),
 		table.Entry("Submits 10 requests with 4 nodes and actual networking", &deploytest.TestConfig{
 			NumReplicas:    4,

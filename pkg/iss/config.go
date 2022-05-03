@@ -89,6 +89,7 @@ type Config struct {
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
 	PBFTViewChangeBatchTimeout   int
 	PBFTViewChangeSegmentTimeout int
+	PBFTViewChangeResendPeriod   int
 }
 
 // CheckConfig checks whether the given configuration satisfies all necessary constraints.
@@ -158,13 +159,16 @@ func CheckConfig(c *Config) error {
 // for which DefaultConfig can serve as a starting point.
 func DefaultConfig(membership []t.NodeID) *Config {
 	return &Config{
-		Membership:         membership,
-		SegmentLength:      10,
-		MaxBatchSize:       4,
-		MaxProposeDelay:    2,
-		NumBuckets:         len(membership),
-		LeaderPolicy:       &SimpleLeaderPolicy{Membership: membership},
-		RequestNAckTimeout: 16,
-		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
+		Membership:                   membership,
+		SegmentLength:                8,
+		MaxBatchSize:                 4,
+		MaxProposeDelay:              16,
+		NumBuckets:                   len(membership),
+		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
+		RequestNAckTimeout:           16,
+		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
+		PBFTViewChangeBatchTimeout:   64,
+		PBFTViewChangeSegmentTimeout: 256,
+		PBFTViewChangeResendPeriod:   4,
 	}
 }

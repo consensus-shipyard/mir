@@ -49,6 +49,9 @@ message SBInstanceMessage {
     isspbftpb.Prepare           pbft_prepare            = 2;
     isspbftpb.Commit            pbft_commit             = 3;
     isspbftpb.SignedViewChange  pbft_signed_view_change = 4;
+    isspbftpb.PreprepareRequest pbft_preprepare_request = 5;
+    isspbftpb.Preprepare        pbft_missing_preprepare = 6;
+    isspbftpb.NewView           pbft_new_view           = 7;
   }
 }
 
@@ -129,11 +132,13 @@ message SBInstanceEvent {
     SBHashResult       hash_result        = 11;
     SBSignResult       sign_result        = 12;
     SBNodeSigsVerified node_sigs_verified = 13;
+    requestpb.Batch   resurrect_batch   = 14;
 
     isspbftpb.Preprepare       pbft_persist_preprepare         = 100;
     isspbftpb.Prepare          pbft_persist_prepare            = 101;
     isspbftpb.Commit           pbft_persist_commit             = 102;
     isspbftpb.SignedViewChange pbft_persist_signed_view_change = 103;
+    isspbftpb.NewView          pbft_persist_new_view           = 104;
   }
 }
 
@@ -192,14 +197,17 @@ message SBHashResult {
 }
 
 message SBHashOrigin {
-  uint64 epoch = 1;
-  uint64 instance = 2;
-  SBInstanceHashOrigin origin = 3;
+  uint64               epoch    = 1;
+  uint64               instance = 2;
+  SBInstanceHashOrigin origin   = 3;
 }
 
 message SBInstanceHashOrigin {
   oneof type {
-    isspbftpb.Preprepare pbft_preprepare = 1;
+    isspbftpb.Preprepare pbft_preprepare         = 1;
+    isspbftpb.Preprepare pbft_missing_preprepare = 2;
+    isspbftpb.NewView    pbft_new_view           = 3;
+    uint64               pbft_empty_preprepares  = 4;
   }
 }
 
@@ -237,6 +245,7 @@ message SBSigVerOrigin {
 message SBInstanceSigVerOrigin {
   oneof type {
     isspbftpb.SignedViewChange pbft_signed_view_change = 1;
+    isspbftpb.NewView          pbft_new_view           = 2;
   }
 }
 
