@@ -395,13 +395,13 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceID(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digest, origin.Sb.Origin)))
+		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digests, origin.Sb.Origin)))
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
-		return iss.applyLogEntryHashResult(result.Digest, t.SeqNr(origin.LogEntrySn))
+		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
 	case *isspb.ISSHashOrigin_AppSnapshotSn:
 		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyAppSnapshotHashResult(result.Digest, t.SeqNr(origin.AppSnapshotSn))
+		return iss.applyAppSnapshotHashResult(result.Digests[0], t.SeqNr(origin.AppSnapshotSn))
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
 	}

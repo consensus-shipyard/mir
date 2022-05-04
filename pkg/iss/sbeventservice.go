@@ -49,7 +49,7 @@ func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event
 	return events.WALAppend(SBEvent(ec.epoch, ec.instanceID, event), t.WALRetIndex(ec.epoch))
 }
 
-func (ec *sbEventService) HashRequest(data [][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
+func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
 	return events.HashRequest(data, SBHashOrigin(ec.epoch, ec.instanceID, origin))
 }
 

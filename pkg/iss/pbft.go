@@ -477,7 +477,7 @@ func (pbft *pbftInstance) applyRequestsReady(requestsReady *isspb.SBRequestsRead
 
 	// Request the computation of the hash of the Preprepare message.
 	return (&events.EventList{}).PushBack(pbft.eventService.HashRequest(
-		serializePreprepareForHashing(slot.Preprepare),
+		[][][]byte{serializePreprepareForHashing(slot.Preprepare)},
 		preprepareHashOrigin(slot.Preprepare)),
 	)
 }
@@ -486,7 +486,7 @@ func (pbft *pbftInstance) applyHashResult(result *isspb.SBHashResult) *events.Ev
 	// Depending on the origin of the hash result, continue processing where the hash was needed.
 	switch origin := result.Origin.Type.(type) {
 	case *isspb.SBInstanceHashOrigin_PbftPreprepare:
-		return pbft.applyPreprepareHashResult(result.Digest, origin.PbftPreprepare)
+		return pbft.applyPreprepareHashResult(result.Digests[0], origin.PbftPreprepare)
 	default:
 		panic(fmt.Sprintf("unknown hash origin type: %T", origin))
 	}

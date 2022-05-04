@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package protos
 
+//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative commonpb/commonpb.proto
 //go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative messagepb/messagepb.proto
 //go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative requestpb/requestpb.proto
 //go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative eventpb/eventpb.proto
