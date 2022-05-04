@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package commonpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/commonpb";
+
+message HashData {
+  repeated bytes data = 1;
+}

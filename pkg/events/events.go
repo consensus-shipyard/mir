@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -78,23 +79,32 @@ func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte, authenticato
 	}}}
 }
 
-// HashRequest returns an event representing a request to the hashing module for computing the hash of data.
-// the origin is an object used to maintain the context for the requesting module and will be included in the
+// HashRequest returns an event representing a request to the hashing module for computing hashes of data.
+// For each object to be hashed the data argument contains a slice of byte slices representing it (thus [][][]byte).
+// The origin is an object used to maintain the context for the requesting module and will be included in the
 // HashResult produced by the hashing module.
-func HashRequest(data [][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
+func HashRequest(data [][][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
+
+	// First, construct a slice of HashData objects
+	hashData := make([]*commonpb.HashData, len(data))
+	for i, d := range data {
+		hashData[i] = &commonpb.HashData{Data: d}
+	}
+
 	return &eventpb.Event{Type: &eventpb.Event_HashRequest{HashRequest: &eventpb.HashRequest{
-		Data:   data,
+		Data:   hashData,
 		Origin: origin,
 	}}}
 }
 
-// HashResult returns an event representing the computation of a hash by the hashing module.
-// It contains the computed digest and the HashOrigin, an object used to maintain the context for the requesting module,
+// HashResult returns an event representing the computation of hashes by the hashing module.
+// It contains the computed digests and the HashOrigin,
+// an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained digest.
-func HashResult(digest []byte, origin *eventpb.HashOrigin) *eventpb.Event {
+func HashResult(digests [][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_HashResult{HashResult: &eventpb.HashResult{
-		Digest: digest,
-		Origin: origin,
+		Digests: digests,
+		Origin:  origin,
 	}}}
 }
 

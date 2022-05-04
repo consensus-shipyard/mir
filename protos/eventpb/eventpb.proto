@@ -8,6 +8,7 @@ syntax = "proto3";
 
 package eventpb;
 
+import "commonpb/commonpb.proto";
 import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
@@ -61,13 +62,13 @@ message Init {}
 message Tick {}
 
 message HashRequest {
-  repeated bytes data = 1;
-  HashOrigin origin = 2;
+  repeated commonpb.HashData data   = 1;
+  HashOrigin                 origin = 2;
 }
 
 message HashResult {
-  bytes digest = 1;
-  HashOrigin origin = 2;
+  repeated bytes digests = 1;
+  HashOrigin     origin  = 2;
 }
 
 message HashOrigin {

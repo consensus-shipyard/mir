@@ -8,6 +8,7 @@ syntax = "proto3";
 
 package isspb;
 
+import "commonpb/commonpb.proto";
 import "isspbftpb/isspbftpb.proto";
 import "requestpb/requestpb.proto";
 
@@ -180,14 +181,14 @@ message SBPendingRequests {
 message SBTick {
 }
 
-message SBHashResult {
-  bytes                digest = 1;
-  SBInstanceHashOrigin origin = 2;
+message SBHashRequest {
+  repeated commonpb.HashData data   = 1;
+  SBHashOrigin               origin = 2;
 }
 
-message SBHashRequest {
-  repeated bytes data   = 1;
-  SBHashOrigin   origin = 2;
+message SBHashResult {
+  repeated bytes       digests = 1;
+  SBInstanceHashOrigin origin  = 2;
 }
 
 message SBHashOrigin {

@@ -40,7 +40,7 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 
 		req := e.Request
 		return (&events.EventList{}).PushBack(events.HashRequest(
-			serializing.RequestForHash(req),
+			[][][]byte{serializing.RequestForHash(req)},
 			&eventpb.HashOrigin{Type: &eventpb.HashOrigin_Request{Request: req}},
 		))
 
@@ -51,7 +51,7 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 
 		// Create a reference to the received request, including the computed hash.
 		req := e.HashResult.Origin.Type.(*eventpb.HashOrigin_Request).Request
-		digest := e.HashResult.Digest
+		digest := e.HashResult.Digests[0]
 		reqRef := &requestpb.RequestRef{
 			ClientId: req.ClientId,
 			ReqNo:    req.ReqNo,

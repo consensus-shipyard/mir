@@ -187,10 +187,10 @@ func SBRequestsReady(ref *isspb.SBReqWaitReference) *isspb.SBInstanceEvent {
 	}}}
 }
 
-func SBHashResultEvent(digest []byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {
+func SBHashResultEvent(digests [][]byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_HashResult{HashResult: &isspb.SBHashResult{
-		Digest: digest,
-		Origin: origin,
+		Digests: digests,
+		Origin:  origin,
 	}}}
 }
 

@@ -255,12 +255,26 @@ func (n *Node) processHashEvents(eventsIn *events.EventList) (*events.EventList,
 		switch e := event.Type.(type) {
 		case *eventpb.Event_HashRequest:
 			// HashRequest is the only event understood by the hasher module.
-			// Hash all the data and create a hashResult event.
-			h := n.modules.Hasher.New()
-			for _, data := range e.HashRequest.Data {
-				h.Write(data)
+
+			// Create a slice for the resulting digests containing one element for each data item to be hashed.
+			digests := make([][]byte, len(e.HashRequest.Data))
+
+			// Hash each data item contained in the event
+			for i, data := range e.HashRequest.Data {
+
+				// One data item consists of potentially multiple byte slices.
+				// Add each of them to the hash function.
+				h := n.modules.Hasher.New()
+				for _, d := range data.Data {
+					h.Write(d)
+				}
+
+				// Save resulting digest in the result slice
+				digests[i] = h.Sum(nil)
 			}
-			eventsOut.PushBack(events.HashResult(h.Sum(nil), e.HashRequest.Origin))
+
+			// Return all computed digests in one common event.
+			eventsOut.PushBack(events.HashResult(digests, e.HashRequest.Origin))
 		default:
 			// Complain about all other incoming event types.
 			return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
