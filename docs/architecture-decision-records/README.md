@@ -12,3 +12,4 @@ When an ADR is added or updated, the following table of contents must manually b
 ## Table of contents
 
 - [ADR-0001](0001-node-and-client-id-types.md) - Node and client ID types (Accepted Apr 21, 2022)
+- [ADR-0002](0002-timer-module.md) - Timer module (Accepted May 2, 2022)
