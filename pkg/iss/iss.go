@@ -583,6 +583,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 }
 
 func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) *events.EventList {
+	eventsOut := &events.EventList{}
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
 		// If this is the most recent checkpoint observed, save it.
@@ -593,13 +594,15 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			"replacingSn", iss.lastStableCheckpoint.Sn)
 		iss.lastStableCheckpoint = stableCheckpoint
 
-		// TODO: Perform WAL truncation (and other cleanup).
+		eventsOut.PushBack(events.WALTruncate(t.WALRetIndex(stableCheckpoint.Epoch)))
+
+		// TODO: Remove old SB instances
 
 	} else {
-		iss.logger.Log(logging.LevelInfo, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
+		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
 	}
 
-	return &events.EventList{}
+	return eventsOut
 }
 
 // applyMessageReceived applies a message received over the network.
