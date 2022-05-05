@@ -196,6 +196,15 @@ func WALAppend(event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Even
 	}}}
 }
 
+// WALTruncate returns and event on removing all entries from the WAL
+// that have been appended with a retentionIndex smaller than the
+// specified one.
+func WALTruncate(retentionIndex t.WALRetIndex) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_WalTruncate{WalTruncate: &eventpb.WALTruncate{
+		RetentionIndex: retentionIndex.Pb(),
+	}}}
+}
+
 // WALEntry returns an event of reading an entry from the WAL.
 // Those events are used at system initialization.
 func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
