@@ -199,6 +199,11 @@ func (n *Node) processWALEvents(eventsIn *events.EventList) (*events.EventList, 
 				return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",
 					e.WalAppend.RetentionIndex, err)
 			}
+		case *eventpb.Event_WalTruncate:
+			if err := n.modules.WAL.Truncate(t.WALRetIndex(e.WalTruncate.RetentionIndex)); err != nil {
+				return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
+					e.WalTruncate.RetentionIndex, err)
+			}
 		case *eventpb.Event_PersistDummyBatch:
 			if err := n.modules.WAL.Append(event, 0); err != nil {
 				return nil, fmt.Errorf("could not persist dummy batch: %w", err)

@@ -10,6 +10,7 @@ package mir
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
@@ -92,7 +93,7 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
 			}
-		case *eventpb.Event_WalAppend:
+		case *eventpb.Event_WalAppend, *eventpb.Event_WalTruncate:
 			wi.wal.PushBack(event)
 		case *eventpb.Event_Deliver, *eventpb.Event_AppSnapshotRequest:
 			wi.app.PushBack(event)
