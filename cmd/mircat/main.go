@@ -95,7 +95,8 @@ func main() {
 	// Scan the event log and collect all occurring event types.
 	allEvents, allISSEvents, totalEvents, err := getEventList(args.srcFile)
 	if err != nil {
-		kingpin.Fatalf("Cannot retrieve events from src file", err)
+		kingpin.Errorf("Error parsing src file", err)
+		fmt.Printf("\n\n!!!\nContinuing after error. Event list might be incomplete!\n!!!\n\n")
 	}
 	fmt.Printf("Total number of events found: %d\n", totalEvents)
 
@@ -112,7 +113,7 @@ func main() {
 	// Process all events.
 	err = processEvents(args)
 	if err != nil {
-		kingpin.Fatalf("Error Processing Events", err)
+		kingpin.Errorf("Error Processing Events", err)
 	}
 
 }

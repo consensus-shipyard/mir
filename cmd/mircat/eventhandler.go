@@ -109,7 +109,7 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 		}
 	}
 	if err != io.EOF {
-		return nil, nil, cnt, fmt.Errorf("failed reading event log: %w", err)
+		return events, issEvents, cnt, fmt.Errorf("failed reading event log: %w", err)
 	}
 
 	return events, issEvents, cnt, nil
