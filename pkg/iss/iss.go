@@ -857,13 +857,6 @@ func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events
 func (iss *ISS) processCommitted() *events.EventList {
 	eventsOut := &events.EventList{}
 
-	// In case more than one Deliver events are produced, they need to be chained (using the Next field)
-	// so they are guaranteed to be processed in the same order as they have been created.
-	// firstDeliverEvent is the one ultimately returned by processCommitted.
-	// lastDeliverEvent is the one every new event is appended to (before becoming the lastDeliverEvent itself)
-	var firstDeliverEvent *eventpb.Event = nil
-	var lastDeliverEvent *eventpb.Event = nil
-
 	// The iss.nextDeliveredSN variable always contains the lowest sequence number
 	// for which no batch has been delivered yet.
 	// As long as there is an entry in the commitLog with that sequence number,
@@ -873,30 +866,13 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// TODO: Once system configuration requests are introduced, apply them here.
 
 		// Create a new Deliver event.
-		deliverEvent := events.Deliver(iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch)
+		eventsOut.PushBack(events.Deliver(iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
 
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.",
 			"sn", iss.nextDeliveredSN, "nReq", len(iss.commitLog[iss.nextDeliveredSN].Batch.Requests))
 
-		if firstDeliverEvent == nil {
-			// If this is the first event produced, it is the first and last one at the same time
-			firstDeliverEvent = deliverEvent
-			lastDeliverEvent = deliverEvent
-		} else {
-			// If an event already has been produced,
-			// append the new event to the end of the event chain and make it the last event.
-			lastDeliverEvent.Next = append(lastDeliverEvent.Next, deliverEvent)
-			lastDeliverEvent = deliverEvent
-		}
-
 		iss.nextDeliveredSN++
-	}
-
-	// If at least one deliver event occurred,
-	// output the first produced Deliver event (with potential others chained to it using its Next field).
-	if firstDeliverEvent != nil {
-		eventsOut.PushBack(firstDeliverEvent)
 	}
 
 	// If the epoch is finished, transition to the next epoch.
