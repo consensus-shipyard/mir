@@ -401,7 +401,7 @@ func (n *Node) processAppEvents(eventsIn *events.EventList) (*events.EventList, 
 			if data, err := n.modules.App.Snapshot(); err != nil {
 				return nil, fmt.Errorf("app snapshot error: %w", err)
 			} else {
-				return (&events.EventList{}).PushBack(events.AppSnapshot(t.SeqNr(e.AppSnapshotRequest.Sn), data)), nil
+				eventsOut.PushBack(events.AppSnapshot(t.SeqNr(e.AppSnapshotRequest.Sn), data))
 			}
 		default:
 			return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
