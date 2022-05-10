@@ -60,42 +60,25 @@ type checkpointTracker struct {
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
-func newCheckpointTracker(ownID t.NodeID, sn t.SeqNr, logger logging.Logger) *checkpointTracker {
+func newCheckpointTracker(ownID t.NodeID, sn t.SeqNr, epoch t.EpochNr, logger logging.Logger) *checkpointTracker {
 	return &checkpointTracker{
 		Logger:          logger,
 		ownID:           ownID,
 		seqNr:           sn,
+		epoch:           epoch,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
-		// the epoch and membership fields will be set later by iss.startCheckpoint
+		// the membership field will be set later by iss.startCheckpoint
 		// the appSnapshot field will be set by ProcessAppSnapshot
 	}
-}
-
-// getCheckpointTracker looks up a checkpoint tracker associated with the given sequence number sn.
-// If no such checkpoint exists, getCheckpointTracker creates a new one (and adds it to the ISS protocol state).
-// Returns a pointer to the checkpoint tracker associated with sn.
-func (iss *ISS) getCheckpointTracker(sn t.SeqNr) *checkpointTracker {
-
-	// If no checkpoint tracker with sequence number sn exists, create a new one.
-	if _, ok := iss.checkpoints[sn]; !ok {
-		logger := logging.Decorate(iss.logger, "CT: ", "sn", sn)
-		iss.checkpoints[sn] = newCheckpointTracker(iss.ownID, sn, logger)
-	}
-
-	// Look up and return checkpoint tracker.
-	return iss.checkpoints[sn]
 }
 
 // Start initiates the checkpoint protocol among nodes in membership.
 // The checkpoint to be produced encompasses all currently delivered sequence numbers.
 // If Start is called during epoch transition,
-// it must be called with the new epoch number, but the old epoch's membership.
-func (ct *checkpointTracker) Start(epoch t.EpochNr, membership []t.NodeID) *events.EventList {
-
-	// Set the checkpoint's epoch.
-	ct.epoch = epoch
+// it must be called with the old epoch's membership.
+func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 
 	// Save the membership this instance of the checkpoint protocol will use.
 	// This is required in case where the membership changes before the checkpoint sub-protocol finishes.
@@ -105,7 +88,7 @@ func (ct *checkpointTracker) Start(epoch t.EpochNr, membership []t.NodeID) *even
 
 	// Request a snapshot of the application state.
 	// TODO: also get a snapshot of the shared state
-	return (&events.EventList{}).PushBack(events.AppSnapshotRequest(ct.seqNr))
+	return (&events.EventList{}).PushBack(events.AppSnapshotRequest(ct.epoch))
 }
 
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
@@ -114,7 +97,7 @@ func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventLi
 	ct.appSnapshot = snapshot
 
 	// Initiate computing the hash of the snapshot
-	hashEvent := events.HashRequest([][][]byte{[][]byte{snapshot}}, AppSnapshotHashOrigin(ct.seqNr))
+	hashEvent := events.HashRequest([][][]byte{[][]byte{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(hashEvent)
 }
@@ -126,7 +109,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 
 	// Request signature
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
-	sigEvent := events.SignRequest(sigData, CheckpointSignOrigin(ct.seqNr))
+	sigEvent := events.SignRequest(sigData, CheckpointSignOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(sigEvent)
 }
@@ -189,7 +172,7 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 		[][][]byte{sigData},
 		[][]byte{msg.Signature},
 		[]t.NodeID{source},
-		CheckpointSigVerOrigin(ct.seqNr),
+		CheckpointSigVerOrigin(ct.epoch),
 	)
 
 	return (&events.EventList{}).PushBack(verifySigEvent)

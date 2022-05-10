@@ -251,24 +251,22 @@ func StoreVerifiedRequest(reqRef *requestpb.RequestRef, data []byte, authenticat
 }
 
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
-// sn is the number of batches delivered to the application when taking the snapshot
-// (i.e. the sequence number of the first unprocessed batch).
+// epoch is the epoch number which initial state is captured in the snapshot.
 // The application itself need not be aware of sn, it is only by the protocol
 // to be able to identify the response of the application in form of an AppSnapshot event.
-func AppSnapshotRequest(sn t.SeqNr) *eventpb.Event {
+func AppSnapshotRequest(epoch t.EpochNr) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
-		Sn: sn.Pb(),
+		Epoch: epoch.Pb(),
 	}}}
 }
 
 // AppSnapshot returns an event representing the application making a snapshot of its state.
-// sn is the number of batches delivered to the application when taking the snapshot
-// (i.e. the sequence number of the first unprocessed batch)
+// epoch is the epoch number which initial state is captured in the snapshot,
 // and data is the serialized application state (the snapshot itself).
-func AppSnapshot(sn t.SeqNr, data []byte) *eventpb.Event {
+func AppSnapshot(epoch t.EpochNr, data []byte) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
-		Sn:   sn.Pb(),
-		Data: data,
+		Epoch: epoch.Pb(),
+		Data:  data,
 	}}}
 }
 
