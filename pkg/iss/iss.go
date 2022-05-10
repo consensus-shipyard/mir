@@ -777,7 +777,7 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 
 	// Message must be destined for the current epoch.
 	if t.EpochNr(message.Epoch) != iss.epoch.Nr {
-		return fmt.Errorf("invalid epoch: %d (current epoch is %d)", message.Instance, iss.epoch)
+		return fmt.Errorf("invalid epoch: %v (current epoch is %v)", message.Instance, iss.epoch)
 	}
 
 	// Message must refer to a valid SB instance.
