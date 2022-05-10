@@ -169,12 +169,12 @@ message StoreVerifiedRequest {
 }
 
 message AppSnapshotRequest {
-  uint64 sn = 1;
+  uint64 epoch = 1;
 }
 
 message AppSnapshot {
-  uint64 sn   = 1;
-  bytes  data = 2;
+  uint64 epoch = 1;
+  bytes  data  = 2;
 }
 
 //==================================================

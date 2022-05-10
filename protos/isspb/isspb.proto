@@ -67,23 +67,23 @@ message ISSEvent {
 
 message ISSHashOrigin {
   oneof type {
-    SBHashOrigin   sb              = 1;
-    uint64         log_entry_sn    = 2;
-    uint64         app_snapshot_sn = 3;
+    SBHashOrigin   sb                 = 1;
+    uint64         log_entry_sn       = 2;
+    uint64         app_snapshot_epoch = 3;
   }
 }
 
 message ISSSignOrigin {
   oneof type {
-    SBSignOrigin sb            = 1;
-    uint64       checkpoint_sn = 2;
+    SBSignOrigin sb               = 1;
+    uint64       checkpoint_epoch = 2;
   }
 }
 
 message ISSSigVerOrigin {
   oneof type {
-    SBSigVerOrigin sb            = 1;
-    uint64         checkpoint_sn = 2;
+    SBSigVerOrigin sb               = 1;
+    uint64         checkpoint_epoch = 2;
   }
 }
 

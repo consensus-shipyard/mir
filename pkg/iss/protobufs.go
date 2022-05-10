@@ -89,16 +89,16 @@ func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInst
 	}}})
 }
 
-func AppSnapshotHashOrigin(seqNr t.SeqNr) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotSn{AppSnapshotSn: seqNr.Pb()}})
+func AppSnapshotHashOrigin(epoch t.EpochNr) *eventpb.HashOrigin {
+	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotEpoch{AppSnapshotEpoch: epoch.Pb()}})
 }
 
-func CheckpointSignOrigin(seqNr t.SeqNr) *eventpb.SignOrigin {
-	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointSn{CheckpointSn: seqNr.Pb()}})
+func CheckpointSignOrigin(epoch t.EpochNr) *eventpb.SignOrigin {
+	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
 }
 
-func CheckpointSigVerOrigin(seqNr t.SeqNr) *eventpb.SigVerOrigin {
-	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointSn{CheckpointSn: seqNr.Pb()}})
+func CheckpointSigVerOrigin(epoch t.EpochNr) *eventpb.SigVerOrigin {
+	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
 }
 
 func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {

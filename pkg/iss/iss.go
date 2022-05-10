@@ -98,6 +98,9 @@ type epochInfo struct {
 
 	// Orderers associated with the epoch.
 	Orderers map[t.SBInstanceID]sbInstance
+
+	// Checkpoint sub-protocol state.
+	Checkpoint *checkpointTracker
 }
 
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
@@ -217,12 +220,6 @@ type ISS struct {
 	// As soon as a request has been received the corresponding entry is deleted from this map.
 	missingRequestIndex map[string]*missingRequestInfo
 
-	// Represents the state of all the instances of the checkpoint sub-protocol.
-	// Each instance is associated with a unique sequence number (the first one the checkpoint does *not* include).
-	// The entries in this map are garbage-collected when some checkpoint becomes stable,
-	// in which case all state associated with lower sequence numbers is deleted.
-	checkpoints map[t.SeqNr]*checkpointTracker
-
 	// Stores the stable checkpoint with the highest sequence number observed so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
@@ -267,7 +264,6 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 			config.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
-		checkpoints: make(map[t.SeqNr]*checkpointTracker),
 		lastStableCheckpoint: &isspb.StableCheckpoint{
 			Epoch: 0,
 			Sn:    0,
@@ -399,9 +395,9 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
-	case *isspb.ISSHashOrigin_AppSnapshotSn:
+	case *isspb.ISSHashOrigin_AppSnapshotEpoch:
 		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyAppSnapshotHashResult(result.Digests[0], t.SeqNr(origin.AppSnapshotSn))
+		return iss.applyAppSnapshotHashResult(result.Digests[0], t.EpochNr(origin.AppSnapshotEpoch))
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
 	}
@@ -426,8 +422,8 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceID(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
-	case *isspb.ISSSignOrigin_CheckpointSn:
-		return iss.applyCheckpointSignResult(result.Signature, t.SeqNr(origin.CheckpointSn))
+	case *isspb.ISSSignOrigin_CheckpointEpoch:
+		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch))
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
@@ -458,13 +454,13 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.
 			origin.Sb.Origin,
 			result.AllOk,
 		)))
-	case *isspb.ISSSigVerOrigin_CheckpointSn:
+	case *isspb.ISSSigVerOrigin_CheckpointEpoch:
 		// A checkpoint only has one signature and thus each slice of the result only contains one element.
 		return iss.applyCheckpointSigVerResult(
 			result.Valid[0],
 			result.Errors[0],
 			t.NodeID(result.NodeIds[0]),
-			t.SeqNr(origin.CheckpointSn),
+			t.EpochNr(origin.CheckpointEpoch),
 		)
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
@@ -513,9 +509,12 @@ func (iss *ISS) applyRequestReady(requestReady *eventpb.RequestReady) *events.Ev
 }
 
 // applyAppSnapshot applies the event of the application creating a state snapshot.
-// It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated sequence number).
+// It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyAppSnapshot(snapshot *eventpb.AppSnapshot) *events.EventList {
-	return iss.getCheckpointTracker(t.SeqNr(snapshot.Sn)).ProcessAppSnapshot(snapshot.Data)
+	if iss.epoch.Nr != t.EpochNr(snapshot.Epoch) {
+		return &events.EventList{}
+	}
+	return iss.epoch.Checkpoint.ProcessAppSnapshot(snapshot.Data)
 }
 
 // applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
@@ -541,20 +540,29 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 }
 
 // applyAppSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
-// It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated sequence number).
-func (iss *ISS) applyAppSnapshotHashResult(digest []byte, appSnapshotSN t.SeqNr) *events.EventList {
-	return iss.getCheckpointTracker(appSnapshotSN).ProcessAppSnapshotHash(digest)
+// It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
+func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
+	if iss.epoch.Nr != t.EpochNr(epoch) {
+		return &events.EventList{}
+	}
+	return iss.epoch.Checkpoint.ProcessAppSnapshotHash(digest)
 }
 
 // applyCheckpointSignResult applies the event of receiving the Checkpoint message signature.
-// It passes the signature to the appropriate CheckpointTracker (identified by the event's associated sequence number).
-func (iss *ISS) applyCheckpointSignResult(signature []byte, seqNr t.SeqNr) *events.EventList {
-	return iss.getCheckpointTracker(seqNr).ProcessCheckpointSignResult(signature)
+// It passes the signature to the appropriate CheckpointTracker (identified by the event's associated epoch number).
+func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *events.EventList {
+	if iss.epoch.Nr != t.EpochNr(epoch) {
+		return &events.EventList{}
+	}
+	return iss.epoch.Checkpoint.ProcessCheckpointSignResult(signature)
 }
 
-// It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated sequence number).
-func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, seqNr t.SeqNr) *events.EventList {
-	return iss.getCheckpointTracker(seqNr).ProcessSigVerified(valid, err, node)
+// It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated epoch number).
+func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, epoch t.EpochNr) *events.EventList {
+	if iss.epoch.Nr != t.EpochNr(epoch) {
+		return &events.EventList{}
+	}
+	return iss.epoch.Checkpoint.ProcessSigVerified(valid, err, node)
 }
 
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),
@@ -629,7 +637,10 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *
 
 // applyCheckpointMessage relays a Checkpoint message received over the network to the appropriate CheckpointTracker.
 func (iss *ISS) applyCheckpointMessage(chkpMsg *isspb.Checkpoint, source t.NodeID) *events.EventList {
-	return iss.getCheckpointTracker(t.SeqNr(chkpMsg.Sn)).applyMessage(chkpMsg, source)
+	if iss.epoch.Nr != t.EpochNr(chkpMsg.Epoch) {
+		return &events.EventList{}
+	}
+	return iss.epoch.Checkpoint.applyMessage(chkpMsg, source)
 }
 
 // applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
@@ -687,6 +698,8 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 	iss.epoch = epochInfo{
 		Nr:       newEpoch,
 		Orderers: make(map[t.SBInstanceID]sbInstance),
+		Checkpoint: newCheckpointTracker(iss.ownID, iss.nextDeliveredSN, newEpoch,
+			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch)),
 	}
 
 	// Compute the set of leaders for the new epoch.
@@ -891,7 +904,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// The checkpoint tracker might already exist if a corresponding message has been already received.
 		// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
 		// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
-		eventsOut.PushBackList(iss.getCheckpointTracker(iss.nextDeliveredSN).Start(iss.epoch.Nr, iss.config.Membership))
+		eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.config.Membership))
 
 		// Give the init signals to the newly instantiated orderers.
 		// TODO: Currently this probably sends the Init event to old orderers as well.
