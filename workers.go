@@ -37,6 +37,15 @@ type workChans struct {
 	// the events to their respective workItems buffers.
 	// External events are also funneled through this channel towards the workItems buffers.
 	workItemInput chan *events.EventList
+
+	// Events received during debugging through the Node.Step function are written to this channel
+	// and inserted in the event loop.
+	debugIn chan *events.EventList
+
+	// During debugging, Events that would normally be inserted in the workItems event buffer
+	// (and thus inserted in the event loop) are written to this channel instead if it is not nil.
+	// If this channel is nil, those Events are discarded.
+	debugOut chan *events.EventList
 }
 
 // Allocate and return a new workChans structure.
@@ -52,6 +61,9 @@ func newWorkChans() workChans {
 		reqStore: make(chan *events.EventList),
 
 		workItemInput: make(chan *events.EventList),
+
+		debugIn:  make(chan *events.EventList),
+		debugOut: make(chan *events.EventList),
 	}
 }
 

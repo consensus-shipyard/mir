@@ -47,7 +47,7 @@ func Defaults(m Modules) (*Modules, error) {
 
 	if m.ClientTracker == nil {
 		// TODO: Change this to the real default client tracker once implemented.
-		m.ClientTracker = &clients.DummyClientTracker{}
+		m.ClientTracker = clients.SigningTracker(nil)
 	}
 
 	if m.RequestStore == nil {
