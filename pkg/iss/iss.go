@@ -600,8 +600,11 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 
 		eventsOut.PushBack(events.WALTruncate(t.WALRetIndex(stableCheckpoint.Epoch)))
 
-		// TODO: Remove old SB instances
-
+		for epoch := range iss.epochs {
+			if epoch < t.EpochNr(stableCheckpoint.Epoch) {
+				delete(iss.epochs, epoch)
+			}
+		}
 	} else {
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
 	}
