@@ -8,6 +8,7 @@ package iss
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -44,7 +45,7 @@ type sbInstance interface {
 
 // applySBInstanceEvent applies one event produced by an orderer to the ISS state, potentially altering its state
 // and producing a (potentially empty) list of events to be applied to other modules.
-func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SBInstanceID) *events.EventList {
+func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SBInstanceNr) *events.EventList {
 	switch e := event.Type.(type) {
 	case *isspb.SBInstanceEvent_Deliver:
 		return iss.applySBInstDeliver(e.Deliver, instance)
@@ -53,11 +54,10 @@ func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SB
 	case *isspb.SBInstanceEvent_WaitForRequests:
 		return iss.applySBInstWaitForRequests(instance, e.WaitForRequests)
 	default:
-		if orderer, ok := iss.orderers[instance]; ok {
-			return orderer.ApplyEvent(event)
-		} else {
-			panic(fmt.Sprintf("invalid SB event instance id (event type %T): %d", event.Type, instance))
+		if int(instance) > len(iss.epoch.Orderers) {
+			panic(fmt.Sprintf("invalid SB event instance number (event type %T): %d", event.Type, instance))
 		}
+		return iss.epoch.Orderers[instance].ApplyEvent(event)
 	}
 }
 
@@ -65,7 +65,7 @@ func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SB
 // for a sequence number. It creates a corresponding commitLog entry and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
 // Operation continues on reception of the HashResult event.
-func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstanceID) *events.EventList {
+func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstanceNr) *events.EventList {
 
 	// Remove the delivered requests from their respective buckets.
 	iss.removeFromBuckets(deliver.Batch.Requests)
@@ -80,7 +80,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 		Batch:   deliver.Batch,
 		Digest:  nil,
 		Aborted: deliver.Aborted,
-		Suspect: iss.orderers[instance].Segment().Leader,
+		Suspect: iss.epoch.Orderers[instance].Segment().Leader,
 	}
 
 	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
@@ -100,10 +100,10 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 // with ID instanceID, constructs a batch containing those requests, and submits the batch to the orderer
 // via a BatchReady event.
 // If there are no requests in the corresponding buckets, applySBInstCutBatch still provides an empty batch immediately.
-func (iss *ISS) applySBInstCutBatch(instanceID t.SBInstanceID, maxBatchSize t.NumRequests) *events.EventList {
+func (iss *ISS) applySBInstCutBatch(instance t.SBInstanceNr, maxBatchSize t.NumRequests) *events.EventList {
 
 	// Look up the orderer that asks for a new batch.
-	orderer := iss.orderers[instanceID]
+	orderer := iss.epoch.Orderers[instance]
 
 	// Look up the relevant buckets, based on the orderer's segment.
 	buckets := iss.buckets.Select(orderer.Segment().BucketIDs)
@@ -128,13 +128,13 @@ func (iss *ISS) applySBInstCutBatch(instanceID t.SBInstanceID, maxBatchSize t.Nu
 // If the missing requests do not become available within a configured timeout (config.RequestNAckTimeout),
 // ISS will actively retry obtaining the requests (and their corresponding authentication data).
 func (iss *ISS) applySBInstWaitForRequests(
-	instanceID t.SBInstanceID,
+	instance t.SBInstanceNr,
 	waitForRequests *isspb.SBWaitForRequests,
 ) *events.EventList {
 
 	// Get reference of the proposal being verified.
 	ref := missingRequestInfoRef{
-		Orderer: instanceID,
+		Orderer: instance,
 		SBRef:   waitForRequests.Reference,
 	}
 
@@ -142,7 +142,7 @@ func (iss *ISS) applySBInstWaitForRequests(
 	missingReqs := &missingRequestInfo{
 		Ref:            ref,
 		Requests:       make(map[string]*requestpb.RequestRef, 0),
-		Orderer:        iss.orderers[instanceID],
+		Orderer:        iss.epoch.Orderers[instance],
 		TicksUntilNAck: iss.config.RequestNAckTimeout,
 	}
 

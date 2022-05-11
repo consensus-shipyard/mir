@@ -32,29 +32,29 @@ import (
 // Through its methods, the sbEventService controls which of these Node-level events an orderer can use and how.
 // It thus defines the interface for communication of the orderer with the outside.
 type sbEventService struct {
-	epoch      t.EpochNr
-	instanceID t.SBInstanceID
+	epoch    t.EpochNr
+	instance t.SBInstanceNr
 }
 
 // SendMessage creates an event for sending a message that will be processed
 // by the corresponding orderer instance at each of the destination.
 func (ec *sbEventService) SendMessage(message *isspb.SBInstanceMessage, destinations []t.NodeID) *eventpb.Event {
-	return events.SendMessage(SBMessage(ec.epoch, ec.instanceID, message), destinations)
+	return events.SendMessage(SBMessage(ec.epoch, ec.instance, message), destinations)
 }
 
 // WALAppend creates an event for appending an isspb.SBInstanceEvent to the WAL.
 // On recovery, this event will be fed back to the same orderer instance
 // (which, however, must be created during the recovery process).
 func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event {
-	return events.WALAppend(SBEvent(ec.epoch, ec.instanceID, event), t.WALRetIndex(ec.epoch))
+	return events.WALAppend(SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
 }
 
 func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
-	return events.HashRequest(data, SBHashOrigin(ec.epoch, ec.instanceID, origin))
+	return events.HashRequest(data, SBHashOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSignOrigin) *eventpb.Event {
-	return events.SignRequest(data, SBSignOrigin(ec.epoch, ec.instanceID, origin))
+	return events.SignRequest(data, SBSignOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) VerifyNodeSigs(
@@ -63,10 +63,10 @@ func (ec *sbEventService) VerifyNodeSigs(
 	nodeIDs []t.NodeID,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.Event {
-	return events.VerifyNodeSigs(data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instanceID, origin))
+	return events.VerifyNodeSigs(data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instance, origin))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).
 func (ec *sbEventService) SBEvent(event *isspb.SBInstanceEvent) *eventpb.Event {
-	return SBEvent(ec.epoch, ec.instanceID, event)
+	return SBEvent(ec.epoch, ec.instance, event)
 }
