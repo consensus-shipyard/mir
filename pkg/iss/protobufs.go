@@ -69,7 +69,7 @@ func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Ev
 	}})
 }
 
-func SBEvent(epoch t.EpochNr, instance t.SBInstanceID, event *isspb.SBInstanceEvent) *eventpb.Event {
+func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
 	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
@@ -81,7 +81,7 @@ func LogEntryHashOrigin(logEntrySN t.SeqNr) *eventpb.HashOrigin {
 	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_LogEntrySn{LogEntrySn: logEntrySN.Pb()}})
 }
 
-func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
+func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
 	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Sb{Sb: &isspb.SBHashOrigin{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
@@ -101,7 +101,7 @@ func CheckpointSigVerOrigin(epoch t.EpochNr) *eventpb.SigVerOrigin {
 	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
 }
 
-func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
+func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
 	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
@@ -111,7 +111,7 @@ func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceID, origin *isspb.SBInst
 
 func SBSigVerOrigin(
 	epoch t.EpochNr,
-	instance t.SBInstanceID,
+	instance t.SBInstanceNr,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.SigVerOrigin {
 	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_Sb{Sb: &isspb.SBSigVerOrigin{
@@ -227,7 +227,7 @@ func Message(msg *isspb.ISSMessage) *messagepb.Message {
 	return &messagepb.Message{Type: &messagepb.Message_Iss{Iss: msg}}
 }
 
-func SBMessage(epoch t.EpochNr, instance t.SBInstanceID, msg *isspb.SBInstanceMessage) *messagepb.Message {
+func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMessage) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_Sb{Sb: &isspb.SBMessage{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),

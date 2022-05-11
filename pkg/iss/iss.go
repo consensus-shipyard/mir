@@ -64,8 +64,8 @@ type missingRequestInfo struct {
 // The separate type is necessary, as it is used as a map key.
 type missingRequestInfoRef struct {
 
-	// ID of the orderer that is waiting for missing requests
-	Orderer t.SBInstanceID
+	// The orderer that is waiting for missing requests
+	Orderer t.SBInstanceNr
 
 	// Orderer's (i.e., SB instance's) internal reference to be passed back to the orderer
 	// when announcing that the missing requests have been received.
@@ -97,7 +97,7 @@ type epochInfo struct {
 	Nr t.EpochNr
 
 	// Orderers associated with the epoch.
-	Orderers map[t.SBInstanceID]sbInstance
+	Orderers []sbInstance
 
 	// Checkpoint sub-protocol state.
 	Checkpoint *checkpointTracker
@@ -160,23 +160,19 @@ type ISS struct {
 	// TODO: Make it possible to change this dynamically.
 	config *Config
 
-	// The current epoch number.
-	epoch epochInfo
+	// The current epoch instance.
+	epoch *epochInfo
 
-	// The next ID to assign to a newly created orderer.
-	// The orderers have monotonically increasing IDs that do *not* reset on epoch transitions.
-	nextOrdererID t.SBInstanceID
-
-	// Orderers (each of which is an SB instance) indexed by their IDs.
-	// Even orderers from older epochs than the current one might be included here.
-	orderers map[t.SBInstanceID]sbInstance
+	// Epoch instances.
+	epochs map[t.EpochNr]*epochInfo
 
 	// Index of orderers based on the buckets they are assigned.
 	// For each bucket ID, this map stores the orderer to which the bucket is assigned in the current epoch.
 	bucketOrderers map[int]sbInstance
 
 	// --------------------------------------------------------------------------------
-	// These fields are modified throughout an epoch
+	// These fields are modified throughout an epoch.
+	// TODO: Move them into `epochInfo`?
 	// --------------------------------------------------------------------------------
 
 	// Buffers representing a backlog of messages destined to future epochs.
@@ -248,9 +244,7 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 
 		// Fields modified only by initEpoch
 		config:         config,
-		epoch:          epochInfo{},
-		nextOrdererID:  0,
-		orderers:       make(map[t.SBInstanceID]sbInstance),
+		epochs:         make(map[t.EpochNr]*epochInfo),
 		bucketOrderers: nil,
 
 		// Fields modified throughout an epoch
@@ -347,8 +341,10 @@ func (iss *ISS) applyTick(tick *eventpb.Tick) *events.EventList {
 
 	// Relay tick to each orderer.
 	sbTick := SBTickEvent()
-	for _, orderer := range iss.orderers {
-		eventsOut.PushBackList(orderer.ApplyEvent(sbTick))
+	for _, epoch := range iss.epochs {
+		for _, orderer := range epoch.Orderers {
+			eventsOut.PushBackList(orderer.ApplyEvent(sbTick))
+		}
 	}
 
 	// Demand retransmission of requests if retransmission timer expired.
@@ -390,7 +386,7 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceID(origin.Sb.Instance)
+		instance := t.SBInstanceNr(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digests, origin.Sb.Origin)))
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
@@ -420,7 +416,7 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceID(origin.Sb.Instance)
+		instance := t.SBInstanceNr(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
 	case *isspb.ISSSignOrigin_CheckpointEpoch:
 		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch))
@@ -446,7 +442,7 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.
 		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceID(origin.Sb.Instance)
+		instance := t.SBInstanceNr(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBNodeSigsVerifiedEvent(
 			result.Valid,
 			result.Errors,
@@ -578,7 +574,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 
 	case epoch == iss.epoch.Nr:
 		// If the event is from the current epoch, apply it in relation to the corresponding orderer instance.
-		return iss.applySBInstanceEvent(event.Event, t.SBInstanceID(event.Instance))
+		return iss.applySBInstanceEvent(event.Event, t.SBInstanceNr(event.Instance))
 
 	default: // epoch < iss.epoch:
 		// If the event is from an old epoch, ignore it.
@@ -659,7 +655,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		// If the message is for the current epoch, check its validity and
 		// apply it to the corresponding orderer in form of an SBMessageReceived event.
 		if err := iss.validateSBMessage(message, from); err == nil {
-			return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceID(message.Instance))
+			return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceNr(message.Instance))
 		} else {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
 				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err)
@@ -695,12 +691,13 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 	iss.logger.Log(logging.LevelInfo, "New epoch", "epochNr", newEpoch)
 
 	// Set the new epoch number and re-initialize list of orderers.
-	iss.epoch = epochInfo{
-		Nr:       newEpoch,
-		Orderers: make(map[t.SBInstanceID]sbInstance),
+	epoch := &epochInfo{
+		Nr: newEpoch,
 		Checkpoint: newCheckpointTracker(iss.ownID, iss.nextDeliveredSN, newEpoch,
 			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch)),
 	}
+	iss.epochs[newEpoch] = epoch
+	iss.epoch = epoch
 
 	// Compute the set of leaders for the new epoch.
 	// Note that leader policy is stateful, choosing leaders deterministically based on the state of the system.
@@ -742,15 +739,11 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 			seg,
 			iss.buckets.Select(seg.BucketIDs).TotalRequests(),
 			newPBFTConfig(iss.config),
-			&sbEventService{epoch: newEpoch, instanceID: iss.nextOrdererID},
-			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", iss.nextOrdererID))
+			&sbEventService{epoch: newEpoch, instance: t.SBInstanceNr(i)},
+			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
 
-		// Add the orderer to both the global orderer index and to the epoch-specific list of orderers.
-		iss.orderers[iss.nextOrdererID] = sbInst
-		iss.epoch.Orderers[iss.nextOrdererID] = sbInst
-
-		// Increment the ID to give to the next orderer.
-		iss.nextOrdererID++
+		// Add the orderer to the list of orderers.
+		iss.epoch.Orderers = append(iss.epoch.Orderers, sbInst)
 
 		// Populate index of orderers based on the buckets they are assigned.
 		for _, bID := range seg.BucketIDs {
@@ -776,7 +769,7 @@ func (iss *ISS) epochFinished() bool {
 
 	// TODO: Instead of checking all sequence numbers every time,
 	//       remember the last sequence number of the epoch and compare it to iss.nextDeliveredSN
-	for _, orderer := range iss.orderers {
+	for _, orderer := range iss.epoch.Orderers {
 		for _, sn := range orderer.Segment().SeqNrs {
 			if iss.commitLog[sn] == nil {
 				return false
@@ -797,8 +790,8 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 	}
 
 	// Message must refer to a valid SB instance.
-	if _, ok := iss.orderers[t.SBInstanceID(message.Instance)]; !ok {
-		return fmt.Errorf("invalid SB instance ID: %d", message.Instance)
+	if int(message.Instance) > len(iss.epoch.Orderers) {
+		return fmt.Errorf("invalid SB instance number: %d", message.Instance)
 	}
 
 	// Message must be sent by a node in the current membership.
