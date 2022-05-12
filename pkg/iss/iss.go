@@ -1070,8 +1070,21 @@ func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 	return data
 }
 
+func maxFaulty(n int) int {
+	// assuming n > 3f:
+	//   return max f
+	return (n - 1) / 3
+}
+
 func strongQuorum(n int) int {
-	// assuming n = 3f + 1:
-	//     2 *  f    + 1
-	return 2*(n-1)/3 + 1
+	// assuming n > 3f:
+	//   return min q: 2q > n+f
+	f := maxFaulty(n)
+	return (n+f)/2 + 1
+}
+
+func weakQuorum(n int) int {
+	// assuming n > 3f:
+	//   return min q: q > f
+	return maxFaulty(n) + 1
 }
