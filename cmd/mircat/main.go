@@ -70,7 +70,7 @@ func main() {
 		// If any ISS events occur in the event log and the user selected the ISS event type,
 		// have the user select which of those should be included in the output.
 		if _, ok := args.selectedEvents["Iss"]; ok {
-			args.selectedIssEvents = checkboxes("Please select the iss events", allISSEvents)
+			args.selectedIssEvents = checkboxes("Please select the ISS events", allISSEvents)
 		}
 
 		// Print the command-line arguments representing the user's selection of events.
@@ -107,7 +107,10 @@ func parseArgs(args []string) (*arguments, error) {
 	offset := app.Flag("offset", "The first offset events will not be displayed.").Default("0").Int()
 	dbg := app.Flag("debug", "Start a Node in debug mode with the given event log.").Short('d').Bool()
 	id := app.Flag("own-id", "ID of the node to use for debugging.").String()
-	membership := app.Flag("node-id", "IDs of all nodes in the membership (debugging only).").Short('i').Strings()
+	membership := app.Flag(
+		"node-id",
+		"ID of one membership node, specified once for each node (debugging only).",
+	).Short('m').Strings()
 
 	_, err := app.Parse(args)
 	if err != nil {

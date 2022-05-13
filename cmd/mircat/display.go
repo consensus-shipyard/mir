@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/ttacon/chalk"
 	"google.golang.org/protobuf/encoding/protojson"
+	"io"
 	"os"
 	"strconv"
 )
@@ -26,7 +28,8 @@ func displayEvents(srcFile *os.File, events map[string]struct{}, issEvents map[s
 
 	index := uint64(0) // a counter set to track the log indices
 
-	for entry, err := reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
+	var entry *recordingpb.Entry
+	for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 		metadata := eventMetadata{
 			nodeID: t.NodeID(entry.NodeId),
 			time:   entry.Time,
@@ -52,7 +55,13 @@ func displayEvents(srcFile *os.File, events map[string]struct{}, issEvents map[s
 			index++
 		}
 	}
-	return nil
+
+	if err == io.EOF {
+		fmt.Println("End of trace.")
+		return nil
+	} else {
+		return fmt.Errorf("error reading event log: %w", err)
+	}
 }
 
 // Displays one event according to its type.

@@ -13,8 +13,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/protobuf/encoding/protojson"
+	"io"
 	"os"
 )
 
@@ -52,7 +54,8 @@ func debug(args *arguments) error {
 
 	// Process event log.
 	// Each entry can contain multiple events.
-	for entry, err := reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
+	var entry *recordingpb.Entry
+	for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 
 		// Create event metadata structure and fill in fields that are common for all events in the log entry.
 		// This structure is modified several times and used as a value parameter.
@@ -83,8 +86,12 @@ func debug(args *arguments) error {
 		}
 	}
 
-	fmt.Println("End of trace, done debugging.")
-	return nil
+	if err == io.EOF {
+		fmt.Println("End of trace, done debugging.")
+		return nil
+	} else {
+		return fmt.Errorf("error reading event log: %w", err)
+	}
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
