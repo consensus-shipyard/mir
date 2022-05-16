@@ -46,6 +46,9 @@ type RequestStore interface {
 	// If no data is stored under the given reference, the returned error will be non-nil.
 	GetRequest(reqRef *requestpb.RequestRef) ([]byte, error)
 
+	// RemoveRequest removes any request data associated with the passed request reference.
+	RemoveRequest(reqRef *requestpb.RequestRef)
+
 	// SetAuthenticated marks the referenced request as authenticated.
 	// A request being authenticated means that the local node believes that
 	// the request has indeed been sent by the client. This does not necessarily mean, however,
