@@ -9,13 +9,13 @@ package mir
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"sync"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -50,6 +50,11 @@ type Node struct {
 	// to which the state machine status needs to be written once the status is obtained.
 	// TODO: Implement obtaining and writing the status (Currently no one reads from this channel).
 	statusC chan chan *statuspb.NodeStatus
+
+	// If set to true, the node is in debug mode.
+	// Only events received through the Step method are applied.
+	// Events produced by the modules are, instead of being applied,
+	debugMode bool
 }
 
 // NewNode creates a new node with numeric ID id.
@@ -113,26 +118,42 @@ func (n *Node) Status(ctx context.Context) (*statuspb.NodeStatus, error) {
 	}
 }
 
-// Step inserts a new incoming message msg in the Node.
-// The source parameter specifies the numeric ID of the sender of the message.
-// The Node assumes the message to be authenticated and it is the caller's responsibility
-// to make sure that msg has indeed been sent by source,
-// for example by using an authenticated communication channel (e.g. TLS) with the source node.
-func (n *Node) Step(ctx context.Context, source t.NodeID, msg *messagepb.Message) error {
+// Debug runs the Node in debug mode.
+// If the node has been instantiated with a WAL, its contents will be loaded.
+// Then, the Node will ony process events submitted through the Step method.
+// All internally generated events will be ignored
+// and, if the eventsOut argument is not nil, written to eventsOut instead.
+// Note that if the caller supplies such a channel, the caller is expected to read from it.
+// Otherwise, the Node's execution might block while writing to the channel.
+func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) error {
+	// Enable debug mode
+	n.debugMode = true
 
-	// Pre-process the incoming message and return an error if pre-processing fails.
-	// TODO: Re-enable pre-processing.
-	// err := preProcess(msg)
-	// if err != nil {
-	//	return errors.WithMessage(err, "pre-processing message failed")
-	// }
+	// If a WAL implementation is available,
+	// load the contents of the WAL and enqueue it for processing.
+	if n.modules.WAL != nil {
+		if err := n.processWAL(); err != nil {
+			n.workErrNotifier.Fail(err)
+			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
+			return fmt.Errorf("could not process WAL: %w", err)
+		}
+	}
 
-	// Create a MessageReceived event
-	e := (&events.EventList{}).PushBack(events.MessageReceived(source, msg))
+	// Set up channel for outputting internal events
+	n.workChans.debugOut = eventsOut
+
+	// Start processing of events.
+	return n.process(ctx, nil)
+
+}
+
+// Step inserts an Event in the Node.
+// Useful for debugging.
+func (n *Node) Step(ctx context.Context, event *eventpb.Event) error {
 
 	// Enqueue event in a work channel to be handled by the processing thread.
 	select {
-	case n.workChans.workItemInput <- e:
+	case n.workChans.debugIn <- (&events.EventList{}).PushBack(event):
 		return nil
 	case <-n.workErrNotifier.ExitStatusC():
 		return n.workErrNotifier.Err()
@@ -313,14 +334,29 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		// Handle messages received over the network, as obtained by the Net module.
 
 		case receivedMessage := <-n.modules.Net.ReceiveChan():
-			if err := n.workItems.AddEvents((&events.EventList{}).
+			if n.debugMode {
+				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
+					"msg", receivedMessage)
+			} else if err := n.workItems.AddEvents((&events.EventList{}).
 				PushBack(events.MessageReceived(receivedMessage.Sender, receivedMessage.Msg))); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
 
-		// Add events produced by modules to the workItems buffers and handle logical time.
+		// Add events produced by modules and debugger to the workItems buffers and handle logical time.
 
 		case newEvents := <-n.workChans.workItemInput:
+			if n.debugMode {
+				if n.workChans.debugOut != nil {
+					n.workChans.debugOut <- newEvents
+				}
+			} else if err := n.workItems.AddEvents(newEvents); err != nil {
+				n.workErrNotifier.Fail(err)
+			}
+		case newEvents := <-n.workChans.debugIn:
+			if !n.debugMode {
+				n.Config.Logger.Log(logging.LevelWarn, "Received events through debug interface but not in debug mode.",
+					"numEvents", newEvents.Len())
+			}
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
