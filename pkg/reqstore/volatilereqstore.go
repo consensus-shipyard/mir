@@ -139,6 +139,14 @@ func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byt
 	}
 }
 
+// RemoveRequest removes any request data associated with the passed request reference.
+func (vrs *VolatileRequestStore) RemoveRequest(reqRef *requestpb.RequestRef) {
+	vrs.Lock()
+	defer vrs.Unlock()
+
+	delete(vrs.requests, requestKey(reqRef))
+}
+
 // SetAuthenticated marks the referenced request as authenticated.
 // A request being authenticated means that the local node believes that
 // the request has indeed been sent by the client. This does not necessarily mean, however,
