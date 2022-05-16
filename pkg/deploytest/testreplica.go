@@ -43,6 +43,9 @@ type TestReplica struct {
 	// Dummy test application the replica is running.
 	App *FakeApp
 
+	// Request store
+	ReqStore modules.RequestStore
+
 	// Name of the directory where the persisted state of this TestReplica will be stored,
 	// along with the logs produced by running the replica.
 	Dir string
@@ -129,6 +132,7 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 		&modules.Modules{
 			Net:           tr.Net,
 			App:           tr.App,
+			RequestStore:  tr.ReqStore,
 			WAL:           wal,
 			ClientTracker: clients.SigningTracker(logging.Decorate(tr.Config.Logger, "CT: ")),
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),

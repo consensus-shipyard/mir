@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/deploytest"
@@ -14,10 +17,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/protobuf/encoding/protojson"
-	"io"
-	"os"
 )
 
 // debug extracts events from the event log entries and submits them to a node instance
@@ -114,12 +116,15 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}
 
+	reqStore := reqstore.NewVolatileRequestStore()
+
 	// Instantiate and return a minimal Mir Node.
 	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, &modules.Modules{
-		Net:      &nullNet{},
-		Crypto:   &mirCrypto.DummyCrypto{DummySig: []byte{0}},
-		App:      &deploytest.FakeApp{},
-		Protocol: protocol,
+		Net:          &nullNet{},
+		Crypto:       &mirCrypto.DummyCrypto{DummySig: []byte{0}},
+		App:          &deploytest.FakeApp{ReqStore: reqStore},
+		RequestStore: reqStore,
+		Protocol:     protocol,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
