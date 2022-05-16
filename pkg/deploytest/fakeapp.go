@@ -10,11 +10,15 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
+
+	// Request store maintained by the FakeApp
+	ReqStore modules.RequestStore
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
@@ -22,7 +26,8 @@ type FakeApp struct {
 
 // Apply implements Apply.
 func (fa *FakeApp) Apply(batch *requestpb.Batch) error {
-	for range batch.Requests {
+	for _, req := range batch.Requests {
+		fa.ReqStore.RemoveRequest(req)
 		fa.RequestsProcessed++
 		fmt.Printf("Processed requests: %d\n", fa.RequestsProcessed)
 	}

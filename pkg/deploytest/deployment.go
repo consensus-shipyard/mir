@@ -10,10 +10,11 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/iss"
 
 	. "github.com/onsi/ginkgo"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -126,6 +128,9 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			)
 		}
 
+		// Request store
+		reqStore := reqstore.NewVolatileRequestStore()
+
 		// Create instance of TestReplica.
 		// The first TestReplica might get a special ISS configuration.
 		// This is useful if one replica should do something else than the others during the test (e.g., fail).
@@ -139,7 +144,8 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			Membership:      membership,
 			ClientIDs:       clientIDs,
 			Dir:             filepath.Join(testConfig.Directory, fmt.Sprintf("node%d", i)),
-			App:             &FakeApp{},
+			App:             &FakeApp{ReqStore: reqStore},
+			ReqStore:        reqStore,
 			Net:             transport,
 			NumFakeRequests: testConfig.NumFakeRequests,
 			ISSConfig:       issConfig,
