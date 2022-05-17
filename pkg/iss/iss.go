@@ -886,6 +886,11 @@ func (iss *ISS) processCommitted() *events.EventList {
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.",
 			"sn", iss.nextDeliveredSN, "nReq", len(iss.commitLog[iss.nextDeliveredSN].Batch.Requests))
 
+		// Remove just delivered batch from the temporary
+		// store of batches that were agreed upon out-of-order.
+		delete(iss.commitLog, iss.nextDeliveredSN)
+
+		// Increment the sequence number of the next batch to deliver.
 		iss.nextDeliveredSN++
 	}
 
