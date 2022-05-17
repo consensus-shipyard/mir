@@ -9,14 +9,14 @@ package mir_test
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/iss"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"io/ioutil"
 	"os"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
+	"github.com/filecoin-project/mir/pkg/iss"
+	t "github.com/filecoin-project/mir/pkg/types"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/filecoin-project/mir"
@@ -26,6 +26,12 @@ import (
 var (
 	tickInterval = 50 * time.Millisecond
 	testTimeout  = 10 * time.Second
+
+	// Map of all the directories accessed by the tests.
+	// All of those will be deleted after the tests complete.
+	// We are not deleting them on the fly, to make it possible for a test
+	// to access a directory created by a previous test.
+	tempDirs = make(map[string]struct{})
 )
 
 // TODO: Update Jason's comment.
@@ -45,12 +51,6 @@ var _ = Describe("Basic test", func() {
 
 		// When the deployment stops, the final node statuses will be written here.
 		finalStatuses []deploytest.NodeStatus
-
-		// Map of all the directories accessed by the tests.
-		// All of those will be deleted after the tests complete.
-		// We are not deleting them on the fly, to make it possible for a test
-		// to access a directory created by a previous test.
-		tempDirs = make(map[string]struct{})
 
 		ctx context.Context
 	)
@@ -113,7 +113,7 @@ var _ = Describe("Basic test", func() {
 	// After each test, check for errors and print them if any occurred.
 	AfterEach(func() {
 		// If the test failed
-		if CurrentGinkgoTestDescription().Failed {
+		if CurrentSpecReport().Failed() {
 
 			// Keep the generated data
 			retainedDir := fmt.Sprintf("failed-test-data/%s", currentTestConfig.Directory)
@@ -162,28 +162,28 @@ var _ = Describe("Basic test", func() {
 	slowProposeConfig := iss.DefaultConfig(membership)
 	slowProposeConfig.MaxProposeDelay = 40
 
-	table.DescribeTable("Simple tests", testFunc,
-		table.Entry("Does nothing with 1 node", &deploytest.TestConfig{
+	DescribeTable("Simple tests", testFunc,
+		Entry("Does nothing with 1 node", &deploytest.TestConfig{
 			NumReplicas: 1,
 			Transport:   "fake",
 			Directory:   "",
 			Duration:    4 * time.Second,
 		}),
-		table.Entry("Does nothing with 4 nodes", &deploytest.TestConfig{
+		Entry("Does nothing with 4 nodes", &deploytest.TestConfig{
 			NumReplicas:           4,
 			Transport:             "fake",
 			Directory:             "",
 			Duration:              20 * time.Second,
 			FirstReplicaISSConfig: slowProposeConfig,
 		}),
-		table.Entry("Submits 10 fake requests with 1 node", &deploytest.TestConfig{
+		Entry("Submits 10 fake requests with 1 node", &deploytest.TestConfig{
 			NumReplicas:     1,
 			Transport:       "fake",
 			NumFakeRequests: 10,
 			Directory:       "mirbft-deployment-test",
 			Duration:        4 * time.Second,
 		}),
-		table.Entry("Submits 10 fake requests with 1 node, loading WAL", &deploytest.TestConfig{
+		Entry("Submits 10 fake requests with 1 node, loading WAL", &deploytest.TestConfig{
 			NumReplicas:     1,
 			NumClients:      1,
 			Transport:       "fake",
@@ -191,7 +191,7 @@ var _ = Describe("Basic test", func() {
 			Directory:       "mirbft-deployment-test",
 			Duration:        4 * time.Second,
 		}),
-		table.Entry("Submits 100 fake requests with 4 nodes", &deploytest.TestConfig{
+		Entry("Submits 100 fake requests with 4 nodes", &deploytest.TestConfig{
 			NumReplicas:           4,
 			NumClients:            0,
 			Transport:             "fake",
@@ -200,7 +200,7 @@ var _ = Describe("Basic test", func() {
 			Duration:              4 * time.Second,
 			FirstReplicaISSConfig: slowProposeConfig,
 		}),
-		table.Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{
+		Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{
 			NumReplicas:     4,
 			NumClients:      1,
 			Transport:       "grpc",
@@ -208,7 +208,7 @@ var _ = Describe("Basic test", func() {
 			Directory:       "",
 			Duration:        4 * time.Second,
 		}),
-		table.Entry("Submits 10 requests with 1 node and actual networking", &deploytest.TestConfig{
+		Entry("Submits 10 requests with 1 node and actual networking", &deploytest.TestConfig{
 			NumReplicas:    1,
 			NumClients:     1,
 			Transport:      "grpc",
@@ -216,7 +216,7 @@ var _ = Describe("Basic test", func() {
 			Directory:      "",
 			Duration:       4 * time.Second,
 		}),
-		table.Entry("Submits 10 requests with 4 nodes and actual networking", &deploytest.TestConfig{
+		Entry("Submits 10 requests with 4 nodes and actual networking", &deploytest.TestConfig{
 			NumReplicas:    4,
 			NumClients:     1,
 			Transport:      "grpc",
@@ -226,15 +226,16 @@ var _ = Describe("Basic test", func() {
 		}),
 	)
 
-	// Remove all temporary data produced by the tests at the end.
-	AfterSuite(func() {
-		for dir := range tempDirs {
-			fmt.Printf("Removing temporary test directory: %v\n", dir)
-			if err := os.RemoveAll(dir); err != nil {
-				fmt.Printf("Could not remove directory: %v\n", err)
-			}
+})
+
+// Remove all temporary data produced by the tests at the end.
+var _ = AfterSuite(func() {
+	for dir := range tempDirs {
+		fmt.Printf("Removing temporary test directory: %v\n", dir)
+		if err := os.RemoveAll(dir); err != nil {
+			fmt.Printf("Could not remove directory: %v\n", err)
 		}
-	})
+	}
 })
 
 // If config.Directory is not empty, creates a directory with that path if it does not yet exist.
