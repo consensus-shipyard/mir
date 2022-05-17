@@ -11,6 +11,7 @@ import (
 	"crypto"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -194,12 +195,26 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 // Run launches the test deployment.
 // It starts all test replicas, the dummy client, and the fake message transport subsystem,
 // waits until the replicas stop, and returns the final statuses of all the replicas.
-func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []NodeStatus {
+func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) (finalStatuses []NodeStatus, heapObjects int64, heapAlloc int64) {
 
 	// Initialize helper variables.
-	finalStatuses := make([]NodeStatus, len(d.TestReplicas))
+	finalStatuses = make([]NodeStatus, len(d.TestReplicas))
 	var nodeWg sync.WaitGroup
 	var clientWg sync.WaitGroup
+
+	ctx2, cancel := context.WithCancel(context.Background())
+
+	var m1, m2 runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&m1)
+	go func() {
+		<-ctx.Done()
+		runtime.GC()
+		runtime.ReadMemStats(&m2)
+		heapObjects = int64(m2.HeapObjects - m1.HeapObjects)
+		heapAlloc = int64(m2.HeapAlloc - m1.HeapAlloc)
+		cancel()
+	}()
 
 	// Start the Mir nodes.
 	nodeWg.Add(len(d.TestReplicas))
@@ -211,7 +226,7 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 			defer nodeWg.Done()
 
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
-			finalStatuses[i] = testReplica.Run(ctx, tickInterval)
+			finalStatuses[i] = testReplica.Run(ctx2, tickInterval)
 			if err := finalStatuses[i].ExitErr; err != nil {
 				testReplica.Config.Logger.Log(logging.LevelError, "exit with error:", err)
 			} else {
@@ -232,20 +247,20 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 			defer GinkgoRecover()
 			defer clientWg.Done()
 
-			c.Connect(ctx, d.localRequestReceiverAddrs())
-			submitDummyRequests(ctx, c, d.testConfig.NumNetRequests)
+			c.Connect(ctx2, d.localRequestReceiverAddrs())
+			submitDummyRequests(ctx2, c, d.testConfig.NumNetRequests)
 			c.Disconnect()
 		}(client)
 	}
 
-	<-ctx.Done()
+	<-ctx2.Done()
 
 	// Wait for all replicas and clients to terminate
 	nodeWg.Wait()
 	clientWg.Wait()
 
 	fmt.Printf("All go routines shut down\n")
-	return finalStatuses
+	return
 }
 
 // localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
