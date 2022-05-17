@@ -21,6 +21,7 @@ import (
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/deploytest"
+	"github.com/filecoin-project/mir/pkg/logging"
 )
 
 var (
@@ -51,6 +52,9 @@ var _ = Describe("Basic test", func() {
 
 		// When the deployment stops, the final node statuses will be written here.
 		finalStatuses []deploytest.NodeStatus
+
+		heapObjects int64
+		heapAlloc   int64
 
 		ctx context.Context
 	)
@@ -90,7 +94,7 @@ var _ = Describe("Basic test", func() {
 		}
 
 		// Run deployment until it stops and returns final node statuses.
-		finalStatuses = deployment.Run(ctx, tickInterval)
+		finalStatuses, heapObjects, heapAlloc = deployment.Run(ctx, tickInterval)
 		fmt.Printf("Deployment run returned.")
 
 		// Check whether all the test replicas exited correctly.
@@ -226,6 +230,30 @@ var _ = Describe("Basic test", func() {
 		}),
 	)
 
+	// This Pending table will be skipped.
+	// Change to FDescribeTable to make it focused.
+	XDescribeTable("Memory usage benchmarks", Serial,
+		func(c *deploytest.TestConfig) {
+			testFunc(c)
+			AddReportEntry("Heap objects", heapObjects)
+			AddReportEntry("Heap allocated (KB)",
+				fmt.Sprintf("%.3f", float64(heapAlloc)/1024))
+		},
+		Entry("Runs for 10s with 4 nodes", &deploytest.TestConfig{
+			NumReplicas: 4,
+			NumClients:  1,
+			Transport:   "fake",
+			Duration:    10 * time.Second,
+			Logger:      logging.ConsoleErrorLogger,
+		}),
+		Entry("Runs for 100s with 4 nodes", &deploytest.TestConfig{
+			NumReplicas: 4,
+			NumClients:  1,
+			Transport:   "fake",
+			Duration:    100 * time.Second,
+			Logger:      logging.ConsoleErrorLogger,
+		}),
+	)
 })
 
 // Remove all temporary data produced by the tests at the end.
