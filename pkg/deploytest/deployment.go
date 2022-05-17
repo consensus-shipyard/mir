@@ -66,6 +66,9 @@ type TestConfig struct {
 
 	// If not nil, the TestReplica with ID 0 will use this ISS configuration instead of the default one.
 	FirstReplicaISSConfig *iss.Config
+
+	// Logger to use for producing diagnostic messages.
+	Logger logging.Logger
 }
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.
@@ -88,7 +91,12 @@ type Deployment struct {
 func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 
 	// Use a common logger for all clients and replicas.
-	logger := logging.Synchronize(logging.ConsoleDebugLogger)
+	var logger logging.Logger
+	if testConfig.Logger != nil {
+		logger = logging.Synchronize(testConfig.Logger)
+	} else {
+		logger = logging.Synchronize(logging.ConsoleDebugLogger)
+	}
 
 	// Create a simulated network transport to route messages between replicas.
 	fakeTransport := NewFakeTransport(testConfig.NumReplicas)
@@ -202,9 +210,13 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) []Node
 			defer GinkgoRecover()
 			defer nodeWg.Done()
 
-			fmt.Printf("Node %d: running\n", i)
+			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
 			finalStatuses[i] = testReplica.Run(ctx, tickInterval)
-			fmt.Printf("Node %d: exit with exitErr=%v\n", i, finalStatuses[i].ExitErr)
+			if err := finalStatuses[i].ExitErr; err != nil {
+				testReplica.Config.Logger.Log(logging.LevelError, "exit with error:", err)
+			} else {
+				testReplica.Config.Logger.Log(logging.LevelDebug, "exit")
+			}
 		}(i, testReplica)
 	}
 
