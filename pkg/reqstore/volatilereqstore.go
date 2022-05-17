@@ -8,6 +8,7 @@ package reqstore
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -17,6 +18,7 @@ import (
 // All data is stored in RAM and the Sync() method does nothing.
 // TODO: implement pruning of old data.
 type VolatileRequestStore struct {
+	sync.RWMutex
 
 	// Stores request entries, indexed by request reference.
 	// Each entry holds all information (data, authentication, authenticator) about the referenced request.
@@ -95,6 +97,8 @@ func NewVolatileRequestStore() *VolatileRequestStore {
 
 // PutRequest stores request the passed request data associated with the request reference.
 func (vrs *VolatileRequestStore) PutRequest(reqRef *requestpb.RequestRef, data []byte) error {
+	vrs.Lock()
+	defer vrs.Unlock()
 
 	// Look up entry for this request, creating a new one if necessary.
 	reqInfo := vrs.reqInfo(reqRef)
@@ -110,6 +114,8 @@ func (vrs *VolatileRequestStore) PutRequest(reqRef *requestpb.RequestRef, data [
 // GetRequest returns the stored request data associated with the passed request reference.
 // If no data is stored under the given reference, the returned error will be non-nil.
 func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byte, error) {
+	vrs.RLock()
+	defer vrs.RUnlock()
 
 	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; ok {
 		// If an entry for the referenced request is present.
@@ -139,6 +145,8 @@ func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byt
 // that the local node can convince other nodes about the request's authenticity
 // (e.g. if the local node received the request over an authenticated channel but the request is not signed).
 func (vrs *VolatileRequestStore) SetAuthenticated(reqRef *requestpb.RequestRef) error {
+	vrs.Lock()
+	defer vrs.Unlock()
 
 	// Look up entry for this request, creating a new one if necessary.
 	reqInfo := vrs.reqInfo(reqRef)
@@ -151,6 +159,8 @@ func (vrs *VolatileRequestStore) SetAuthenticated(reqRef *requestpb.RequestRef) 
 
 // IsAuthenticated returns true if the request is authenticated, false otherwise.
 func (vrs *VolatileRequestStore) IsAuthenticated(reqRef *requestpb.RequestRef) (bool, error) {
+	vrs.RLock()
+	defer vrs.RUnlock()
 
 	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; !ok {
 		// If an entry for the referenced request is present, return the authenticated flag.
@@ -165,6 +175,8 @@ func (vrs *VolatileRequestStore) IsAuthenticated(reqRef *requestpb.RequestRef) (
 // PutAuthenticator stores an authenticator associated with the referenced request.
 // If an authenticator is already stored under the same reference, it will be overwritten.
 func (vrs *VolatileRequestStore) PutAuthenticator(reqRef *requestpb.RequestRef, auth []byte) error {
+	vrs.Lock()
+	defer vrs.Unlock()
 
 	// Look up entry for this request, creating a new one if necessary.
 	reqInfo := vrs.reqInfo(reqRef)
@@ -181,6 +193,8 @@ func (vrs *VolatileRequestStore) PutAuthenticator(reqRef *requestpb.RequestRef, 
 // GetAuthenticator returns the stored authenticator associated with the passed request reference.
 // If no authenticator is stored under the given reference, the returned error will be non-nil.
 func (vrs *VolatileRequestStore) GetAuthenticator(reqRef *requestpb.RequestRef) ([]byte, error) {
+	vrs.RLock()
+	defer vrs.RUnlock()
 
 	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; !ok {
 		// If an entry for the referenced request is present.
@@ -207,6 +221,8 @@ func (vrs *VolatileRequestStore) GetAuthenticator(reqRef *requestpb.RequestRef) 
 // GetDigestsByID returns a list of request digests for which any information
 // (request data, authentication, or authenticator) is stored in the RequestStore.
 func (vrs *VolatileRequestStore) GetDigestsByID(clientId t.ClientID, reqNo t.ReqNo) ([][]byte, error) {
+	vrs.RLock()
+	defer vrs.RUnlock()
 
 	// Look up  index entry and allocate result structure.
 	indexEntry, ok := vrs.idIndex[idKey(clientId, reqNo)]
