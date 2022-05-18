@@ -89,7 +89,7 @@ func (n *Node) doUntilErr(ctx context.Context, work workFunc) {
 // eventProcessor defines the type of the function that processes a single input events.EventList,
 // producing a single output events.EventList.
 // There is one such function defined for each Module that is executed in a loop by a worker goroutine.
-type eventProcessor func(*events.EventList) (*events.EventList, error)
+type eventProcessor func(context.Context, *events.EventList) (*events.EventList, error)
 
 // processEvents reads a single list of input Events from a work channel, strips off all associated follow-up Events,
 // and processes the bare content of the list using the passed processing function.
@@ -123,7 +123,7 @@ func (n *Node) processEvents(
 	n.interceptEvents(eventsIn)
 
 	// Process events.
-	newEvents, err := processFunc(eventsIn)
+	newEvents, err := processFunc(ctx, eventsIn)
 	if err != nil {
 		return fmt.Errorf("could not process events: %w", err)
 	}
@@ -193,7 +193,7 @@ func (n *Node) doProtocolWork(ctx context.Context) (err error) {
 
 // TODO: Document the functions below.
 
-func (n *Node) processWALEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processWALEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 
 	// If no WAL implementation is present, do nothing and return immediately.
 	if n.modules.WAL == nil {
@@ -234,7 +234,7 @@ func (n *Node) processWALEvents(eventsIn *events.EventList) (*events.EventList, 
 	return eventsOut, nil
 }
 
-func (n *Node) processClientEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processClientEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
@@ -265,7 +265,7 @@ func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventL
 	return n.modules.ClientTracker.ApplyEvent(event), nil
 }
 
-func (n *Node) processHashEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processHashEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -302,7 +302,7 @@ func (n *Node) processHashEvents(eventsIn *events.EventList) (*events.EventList,
 	return eventsOut, nil
 }
 
-func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -376,7 +376,7 @@ func (n *Node) processCryptoEvents(eventsIn *events.EventList) (*events.EventLis
 	return eventsOut, nil
 }
 
-func (n *Node) processSendEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 
 	iter := eventsIn.Iterator()
@@ -401,7 +401,7 @@ func (n *Node) processSendEvents(eventsIn *events.EventList) (*events.EventList,
 	return eventsOut, nil
 }
 
-func (n *Node) processAppEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -433,7 +433,7 @@ func (n *Node) processAppEvents(eventsIn *events.EventList) (*events.EventList, 
 	return eventsOut, nil
 }
 
-func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -497,7 +497,7 @@ func (n *Node) processReqStoreEvents(eventsIn *events.EventList) (*events.EventL
 	return eventsOut, nil
 }
 
-func (n *Node) processProtocolEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (n *Node) processProtocolEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
