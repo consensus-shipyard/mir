@@ -269,7 +269,7 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		wg.Add(1)
 		go func(work workFunc) {
 			defer wg.Done()
-			n.doUntilErr(work)
+			n.doUntilErr(ctx, work)
 		}(work)
 	}
 
