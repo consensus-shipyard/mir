@@ -277,6 +277,27 @@ func AppRestoreState(snapshot []byte) *eventpb.Event {
 	}}}
 }
 
+func TimerDelay(event *eventpb.Event, delay t.TimeDuration) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_TimerDelay{TimerDelay: &eventpb.TimerDelay{
+		Event: event,
+		Delay: delay.Pb(),
+	}}}
+}
+
+func TimerRepeat(event *eventpb.Event, delay t.TimeDuration, retIndex t.TimerRetIndex) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
+		Event:          event,
+		Delay:          delay.Pb(),
+		RetentionIndex: retIndex.Pb(),
+	}}}
+}
+
+func TimerGarbageCollect(retIndex t.TimerRetIndex) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{
+		RetentionIndex: retIndex.Pb(),
+	}}}
+}
+
 // ============================================================
 // DUMMY EVENTS FOR TESTING PURPOSES ONLY.
 // ============================================================
