@@ -263,6 +263,7 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		n.doReqStoreWork,
 		n.doProtocolWork,
 		n.doCryptoWork,
+		n.doTimerWork,
 	} {
 		// Each function is executed by a separate thread.
 		// The wg is waited on before n.process() returns.
@@ -287,6 +288,7 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		clientEvents,
 		hashEvents,
 		cryptoEvents,
+		timerEvents,
 		netEvents,
 		appEvents,
 		reqStoreEvents,
@@ -321,6 +323,9 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		case cryptoEvents <- n.workItems.Crypto():
 			n.workItems.ClearCrypto()
 			cryptoEvents = nil
+		case timerEvents <- n.workItems.Timer():
+			n.workItems.ClearTimer()
+			timerEvents = nil
 		case netEvents <- n.workItems.Net():
 			n.workItems.ClearNet()
 			netEvents = nil
@@ -388,6 +393,9 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 		}
 		if cryptoEvents == nil && n.workItems.Crypto().Len() > 0 {
 			cryptoEvents = n.workChans.crypto
+		}
+		if timerEvents == nil && n.workItems.Timer().Len() > 0 {
+			timerEvents = n.workChans.timer
 		}
 		if netEvents == nil && n.workItems.Net().Len() > 0 {
 			netEvents = n.workChans.net

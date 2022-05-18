@@ -9,6 +9,7 @@ package types
 import (
 	"encoding/binary"
 	"strconv"
+	"time"
 )
 
 // ================================================================================
@@ -116,6 +117,16 @@ func (wri WALRetIndex) Pb() uint64 {
 
 // ================================================================================
 
+// TimerRetIndex represents the Timer retention index used for garbage-collecting "Repeat" invocations.
+type TimerRetIndex uint64
+
+// Pb converts a TimerRetIndex to its underlying native type.
+func (tri TimerRetIndex) Pb() uint64 {
+	return uint64(tri)
+}
+
+// ================================================================================
+
 // SBInstanceNr identifies the instance of Sequenced Broadcast (SB) within an epoch.
 type SBInstanceNr uint64
 
@@ -157,6 +168,16 @@ func (v PBFTViewNr) Pb() uint64 {
 // Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
 func (v PBFTViewNr) Bytes() []byte {
 	return uint64ToBytes(uint64(v))
+}
+
+// ================================================================================
+
+// TimeDuration represents an interval of real time
+type TimeDuration time.Duration
+
+// Pb converts a TimeDuration to a type used in a Protobuf message.
+func (td TimeDuration) Pb() uint64 {
+	return uint64(td)
 }
 
 // ================================================================================

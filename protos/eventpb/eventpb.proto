@@ -42,6 +42,9 @@ message Event {
     AppSnapshotRequest   app_snapshot_request    = 21;
     AppSnapshot          app_snapshot            = 22;
     AppRestoreState      app_restore_state       = 23;
+    TimerDelay           timer_delay             = 24;
+    TimerRepeat          timer_repeat            = 25;
+    TimerGarbageCollect  timer_garbage_collect   = 26;
 
     // Dummy events for testing purposes only.
     PersistDummyBatch persist_dummy_batch   = 101;
@@ -180,6 +183,21 @@ message AppSnapshot {
 
 message AppRestoreState {
   bytes  data  = 1;
+}
+
+message TimerDelay {
+  repeated Event  event = 1;
+  uint64          delay = 2;
+}
+
+message TimerRepeat {
+  repeated Event  event           = 1;
+  uint64          delay           = 2;
+  uint64          retention_index = 3;
+}
+
+message TimerGarbageCollect {
+  uint64 retention_index = 1;
 }
 
 //==================================================

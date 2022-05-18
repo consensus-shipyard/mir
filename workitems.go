@@ -26,6 +26,7 @@ type workItems struct {
 	reqStore *events.EventList
 	protocol *events.EventList
 	crypto   *events.EventList
+	timer    *events.EventList
 }
 
 // NewWorkItems allocates and returns a pointer to a new WorkItems object.
@@ -39,6 +40,7 @@ func newWorkItems() *workItems {
 		reqStore: &events.EventList{},
 		protocol: &events.EventList{},
 		crypto:   &events.EventList{},
+		timer:    &events.EventList{},
 	}
 }
 
@@ -108,6 +110,8 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			default:
 				return fmt.Errorf("unsupported WAL entry event type %T", walEntry)
 			}
+		case *eventpb.Event_TimerDelay, *eventpb.Event_TimerRepeat, *eventpb.Event_TimerGarbageCollect:
+			wi.timer.PushBack(event)
 
 		// TODO: Remove these eventually.
 		case *eventpb.Event_PersistDummyBatch:
@@ -157,6 +161,10 @@ func (wi *workItems) Crypto() *events.EventList {
 	return wi.crypto
 }
 
+func (wi *workItems) Timer() *events.EventList {
+	return wi.timer
+}
+
 // Methods for clearing the buffers.
 // Each of them returns the list of events that have been removed from workItems.
 
@@ -190,6 +198,10 @@ func (wi *workItems) ClearProtocol() *events.EventList {
 
 func (wi *workItems) ClearCrypto() *events.EventList {
 	return clearEventList(&wi.crypto)
+}
+
+func (wi *workItems) ClearTimer() *events.EventList {
+	return clearEventList(&wi.timer)
 }
 
 func clearEventList(listPtr **events.EventList) *events.EventList {
