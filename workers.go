@@ -11,12 +11,11 @@ package mir
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"runtime/debug"
 )
 
 // Input and output channels for the modules within the Node.
@@ -33,6 +32,7 @@ type workChans struct {
 	net      chan *events.EventList
 	app      chan *events.EventList
 	reqStore chan *events.EventList
+	timer    chan *events.EventList
 
 	// All modules write their output events in a common channel, from where the node processor reads and redistributes
 	// the events to their respective workItems buffers.
@@ -60,6 +60,7 @@ func newWorkChans() workChans {
 		net:      make(chan *events.EventList),
 		app:      make(chan *events.EventList),
 		reqStore: make(chan *events.EventList),
+		timer:    make(chan *events.EventList),
 
 		workItemInput: make(chan *events.EventList),
 
@@ -189,6 +190,16 @@ func (n *Node) doProtocolWork(ctx context.Context) (err error) {
 		}
 	}()
 	return n.processEvents(ctx, n.processProtocolEvents, n.workChans.protocol)
+}
+
+func (n *Node) doTimerWork(ctx context.Context) (err error) {
+
+	// Unlike other event processors that simply transform an event list to another event list,
+	// the processor for the timer module needs direct access to the workItemsInput channel,
+	// as the events it produces are (by definition) not available immediately.
+	return n.processEvents(ctx, func(ctx context.Context, events *events.EventList) (*events.EventList, error) {
+		return n.processTimerEvents(ctx, events, n.workChans.workItemInput)
+	}, n.workChans.timer)
 }
 
 // TODO: Document the functions below.
@@ -524,4 +535,45 @@ func (n *Node) safeApplyProtocolEvent(event *eventpb.Event) (result *events.Even
 	}()
 
 	return n.modules.Protocol.ApplyEvent(event), nil
+}
+
+// processTimerEvents processes the events destined to the timer module.
+// Unlike other event processors, processTimerEvents does not return a list of resulting events
+// based on the input event list, since those are (by definition) delayed.
+// The returned EventList is thus always empty.
+// Instead, processTimerEvents receives an additional channel (notifyChan)
+// where its outputs are written at the appropriate times.
+func (n *Node) processTimerEvents(
+	ctx context.Context,
+	eventsIn *events.EventList,
+	notifyChan chan<- *events.EventList,
+) (*events.EventList, error) {
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		switch e := event.Type.(type) {
+		case *eventpb.Event_TimerDelay:
+			n.modules.Timer.Delay(
+				ctx,
+				(&events.EventList{}).PushBack(e.TimerDelay.Event),
+				t.TimeDuration(e.TimerDelay.Delay),
+				notifyChan,
+			)
+		case *eventpb.Event_TimerRepeat:
+			n.modules.Timer.Repeat(
+				ctx,
+				(&events.EventList{}).PushBack(e.TimerRepeat.Event),
+				t.TimeDuration(e.TimerRepeat.Delay),
+				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
+				notifyChan,
+			)
+		case *eventpb.Event_TimerGarbageCollect:
+			n.modules.Timer.GarbageCollect(t.TimerRetIndex(e.TimerGarbageCollect.RetentionIndex))
+		default:
+			return nil, fmt.Errorf("unexpected type of Timer event: %T", event.Type)
+		}
+	}
+
+	return &events.EventList{}, nil
 }

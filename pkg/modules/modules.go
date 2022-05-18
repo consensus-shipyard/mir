@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/clients"
 	"github.com/filecoin-project/mir/pkg/reqstore"
+	"github.com/filecoin-project/mir/pkg/timer"
 )
 
 // The Modules structs groups the modules a Node consists of.
@@ -27,6 +28,7 @@ type Modules struct {
 	RequestStore  RequestStore     // Provides persistent storage for request data.
 	Protocol      Protocol         // Implements the logic of the distributed protocol.
 	Interceptor   EventInterceptor // Intercepts and logs all internal _Events_ for debugging purposes.
+	Timer         Timer            // Tracks real time (e.g. for timeouts) and injects events accordingly.
 }
 
 // Defaults takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object
@@ -62,6 +64,10 @@ func Defaults(m Modules) (*Modules, error) {
 	if m.Crypto == nil {
 		// TODO: Use default crypto once implemented and tested.
 		return nil, fmt.Errorf("no default crypto implementation")
+	}
+
+	if m.Timer == nil {
+		m.Timer = &timer.Timer{}
 	}
 
 	// The Interceptor can stay nil, in which case Events will simply not be intercepted.
