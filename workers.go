@@ -9,6 +9,7 @@ Refactored: 1
 package mir
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 
@@ -70,14 +71,14 @@ func newWorkChans() workChans {
 // A function type used for performing the work of a module.
 // It usually reads events from a work channel and writes the output to another work channel.
 // Any error that occurs while performing the work is returned.
-// When the exitC channel is closed the function should return ErrStopped
-type workFunc func(exitC <-chan struct{}) error
+// When ctx is canceled, the function should return ErrStopped
+type workFunc func(ctx context.Context) error
 
 // Calls the passed work function repeatedly in an infinite loop until the work function returns an non-nil error.
 // doUntilErr then sets the error in the Node's workErrNotifier and returns.
-func (n *Node) doUntilErr(work workFunc) {
+func (n *Node) doUntilErr(ctx context.Context, work workFunc) {
 	for {
-		err := work(n.workErrNotifier.ExitC())
+		err := work(ctx)
 		if err != nil {
 			n.workErrNotifier.Fail(err)
 			return
@@ -100,16 +101,16 @@ type eventProcessor func(*events.EventList) (*events.EventList, error)
 //
 // If exitC is closed, returns ErrStopped.
 func (n *Node) processEvents(
+	ctx context.Context,
 	processFunc eventProcessor,
 	eventSource <-chan *events.EventList,
-	exitC <-chan struct{},
 ) error {
 	var eventsIn *events.EventList
 
 	// Read input.
 	select {
 	case eventsIn = <-eventSource:
-	case <-exitC:
+	case <-ctx.Done():
 		return ErrStopped
 	}
 
@@ -139,7 +140,7 @@ func (n *Node) processEvents(
 	// Write output.
 	select {
 	case n.workChans.workItemInput <- out:
-	case <-exitC:
+	case <-ctx.Done():
 		return ErrStopped
 	}
 
@@ -150,35 +151,35 @@ func (n *Node) processEvents(
 // associating each Module's processing function with its corresponding work channel.
 // On top of that, the Protocol processing wrapper additionally sets the Node's exit status when done.
 
-func (n *Node) doWALWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processWALEvents, n.workChans.wal, exitC)
+func (n *Node) doWALWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processWALEvents, n.workChans.wal)
 }
 
-func (n *Node) doClientWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processClientEvents, n.workChans.clients, exitC)
+func (n *Node) doClientWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
 }
 
-func (n *Node) doHashWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processHashEvents, n.workChans.hash, exitC)
+func (n *Node) doHashWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processHashEvents, n.workChans.hash)
 }
 
-func (n *Node) doCryptoWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processCryptoEvents, n.workChans.crypto, exitC)
+func (n *Node) doCryptoWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processCryptoEvents, n.workChans.crypto)
 }
 
-func (n *Node) doSendingWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processSendEvents, n.workChans.net, exitC)
+func (n *Node) doSendingWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
 
-func (n *Node) doAppWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processAppEvents, n.workChans.app, exitC)
+func (n *Node) doAppWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processAppEvents, n.workChans.app)
 }
 
-func (n *Node) doReqStoreWork(exitC <-chan struct{}) error {
-	return n.processEvents(n.processReqStoreEvents, n.workChans.reqStore, exitC)
+func (n *Node) doReqStoreWork(ctx context.Context) error {
+	return n.processEvents(ctx, n.processReqStoreEvents, n.workChans.reqStore)
 }
 
-func (n *Node) doProtocolWork(exitC <-chan struct{}) (err error) {
+func (n *Node) doProtocolWork(ctx context.Context) (err error) {
 	// On returning, sets the exit status of the protocol state machine in the work error notifier.
 	defer func() {
 		if err != nil {
@@ -187,7 +188,7 @@ func (n *Node) doProtocolWork(exitC <-chan struct{}) (err error) {
 			// TODO: Clean up status-related code.
 		}
 	}()
-	return n.processEvents(n.processProtocolEvents, n.workChans.protocol, exitC)
+	return n.processEvents(ctx, n.processProtocolEvents, n.workChans.protocol)
 }
 
 // TODO: Document the functions below.
