@@ -16,8 +16,9 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"golang.org/x/exp/constraints"
 	"sort"
+
+	"golang.org/x/exp/constraints"
 
 	"google.golang.org/protobuf/proto"
 
@@ -203,6 +204,9 @@ type ISS struct {
 	// This field drives the in-order delivery of the log entries to the application.
 	nextDeliveredSN t.SeqNr
 
+	// The first sequence number to be delivered in the new epoch.
+	newEpochSN t.SeqNr
+
 	// This field holds information about the requests that the node is waiting to receive
 	// before accepting a proposal for that sequence number.
 	// Each proposal has a unique reference *within its SB instance*.
@@ -253,6 +257,7 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		commitLog:           make(map[t.SeqNr]*CommitLogEntry),
 		unhashedLogEntries:  make(map[t.SeqNr]*CommitLogEntry),
 		nextDeliveredSN:     0,
+		newEpochSN:          0,
 		missingRequests:     nil, // allocated in initEpoch()
 		missingRequestIndex: nil, // allocated in initEpoch()
 		messageBuffers: messagebuffer.NewBuffers(
@@ -736,6 +741,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 				iss.config.SegmentLength),
 			BucketIDs: leaderBuckets[leader],
 		}
+		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
 
 		// Instantiate a new PBFT orderer.
 		// TODO: When more protocols are implemented, make this configurable, so other orderer types can be chosen.
@@ -771,17 +777,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed, otherwise false.
 func (iss *ISS) epochFinished() bool {
-
-	// TODO: Instead of checking all sequence numbers every time,
-	//       remember the last sequence number of the epoch and compare it to iss.nextDeliveredSN
-	for _, orderer := range iss.epoch.Orderers {
-		for _, sn := range orderer.Segment().SeqNrs {
-			if iss.commitLog[sn] == nil {
-				return false
-			}
-		}
-	}
-	return true
+	return iss.nextDeliveredSN == iss.newEpochSN
 }
 
 // validateSBMessage checks whether an SBMessage is valid in the current epoch.
