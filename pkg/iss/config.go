@@ -8,6 +8,7 @@ package iss
 
 import (
 	"fmt"
+
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -160,7 +161,7 @@ func CheckConfig(c *Config) error {
 func DefaultConfig(membership []t.NodeID) *Config {
 	return &Config{
 		Membership:                   membership,
-		SegmentLength:                8,
+		SegmentLength:                4,
 		MaxBatchSize:                 4,
 		MaxProposeDelay:              16,
 		NumBuckets:                   len(membership),
