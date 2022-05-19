@@ -140,6 +140,7 @@ message SBInstanceEvent {
     isspbftpb.Commit           pbft_persist_commit             = 102;
     isspbftpb.SignedViewChange pbft_persist_signed_view_change = 103;
     isspbftpb.NewView          pbft_persist_new_view           = 104;
+    uint64                     pbft_propose_timeout            = 105;
   }
 }
 

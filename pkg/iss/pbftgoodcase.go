@@ -48,14 +48,33 @@ type pbftProposalState struct {
 	// If batchRequested is false, batchRequestedView must not be used.
 	batchRequestedView t.PBFTViewNr
 
-	// Counts the logical clock ticks since last proposal.
-	// Used to detect when config.MaxProposeDelay has elapsed.
-	ticksSinceProposal int
+	// the number of proposals for which the timeout has passed.
+	// If this number is higher than proposalsMade, a new batch can be proposed.
+	proposalTimeout int
 }
 
 // ============================================================
 // Event handling
 // ============================================================
+
+// applyProposeTimeout applies the event of the proposal timeout firing.
+// It updates the proposal state accordingly and triggers a new proposal if possible.
+func (pbft *pbftInstance) applyProposeTimeout(numProposals int) *events.EventList {
+
+	// If we are still waiting for this timeout
+	if numProposals > pbft.proposal.proposalTimeout {
+
+		// Save the number of proposals for which the timeout fired.
+		pbft.proposal.proposalTimeout = numProposals
+
+		// If this was the last bit missing, start a new proposal.
+		if pbft.canPropose() {
+			return pbft.requestNewBatch()
+		}
+	}
+
+	return &events.EventList{}
+}
 
 // requestNewBatch asks (by means of a CutBatch event) ISS to assemble a new request batch.
 // When the batch is ready, it must be passed to the orderer using the BatchReady event.
@@ -103,10 +122,9 @@ func (pbft *pbftInstance) applyBatchReady(batch *isspb.SBBatchReady) *events.Eve
 // and does not perform any checks in this regard.
 func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 
-	// Update proposal counter and reset proposal timer.
+	// Update proposal counter.
 	sn := pbft.segment.SeqNrs[pbft.proposal.proposalsMade]
 	pbft.proposal.proposalsMade++
-	pbft.proposal.ticksSinceProposal = 0
 
 	// Log debug message.
 	pbft.logger.Log(logging.LevelDebug, "Proposing.",
@@ -121,11 +139,17 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 		pbft.segment.Membership,
 	)
 
+	// Set up a new timer for the next proposal.
+	timerEvent := pbft.eventService.TimerDelay(
+		[]*isspb.SBInstanceEvent{PbftProposeTimeout(uint64(pbft.proposal.proposalsMade + 1))},
+		pbft.config.MaxProposeDelay,
+	)
+
 	// Create a WAL entry and an event to persist it.
 	persistEvent := pbft.eventService.WALAppend(PbftPersistPreprepare(preprepare))
 
 	// First the preprepare needs to be persisted to the WAL, and only then it can be sent to the network.
-	persistEvent.Next = []*eventpb.Event{msgSendEvent}
+	persistEvent.Next = []*eventpb.Event{msgSendEvent, timerEvent}
 	return (&events.EventList{}).PushBack(persistEvent)
 }
 

@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"time"
 )
 
 // The Config type defines all the ISS configuration parameters.
@@ -47,13 +48,13 @@ type Config struct {
 	// TODO: Consider making this orderer-specific.
 	MaxBatchSize t.NumRequests
 
-	// The maximum number of logical time ticks between two proposals of an orderer, where applicable.
+	// The maximum time duration between two proposals of an orderer, where applicable.
 	// For orderers that wait for a request batch to fill before proposing it (e.g. PBFT),
 	// this parameter caps the waiting time in order to bound latency.
-	// When MaxProposeDelay ticks have elapsed since the last proposal made by an orderer,
+	// When MaxProposeDelay has elapsed since the last proposal made by an orderer,
 	// the orderer proposes a new request batch, even if the batch is not full (or even completely empty).
 	// Must not be negative.
-	MaxProposeDelay int
+	MaxProposeDelay t.TimeDuration
 
 	// Total number of buckets used by ISS.
 	// In each epoch, these buckets are re-distributed evenly among the orderers.
@@ -163,7 +164,7 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		Membership:                   membership,
 		SegmentLength:                4,
 		MaxBatchSize:                 4,
-		MaxProposeDelay:              16,
+		MaxProposeDelay:              t.TimeDuration(time.Second),
 		NumBuckets:                   len(membership),
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,

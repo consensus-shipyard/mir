@@ -10,12 +10,12 @@ type PBFTConfig struct {
 	// Must not be empty.
 	Membership []t.NodeID
 
-	// The maximum number of logical time ticks between two proposals of new batches during normal operation.
+	// The maximum time duration between two proposals of new batches during normal operation.
 	// This parameter caps the waiting time in order to bound latency.
-	// When MaxProposeDelay ticks have elapsed since the last proposal,
+	// When MaxProposeDelay has elapsed since the last proposal,
 	// the protocol tries to propose a new request batch, even if the batch is not full (or even completely empty).
 	// Must not be negative.
-	MaxProposeDelay int
+	MaxProposeDelay t.TimeDuration
 
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
