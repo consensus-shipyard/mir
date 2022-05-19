@@ -67,6 +67,12 @@ func PbftReqWaitReference(sn t.SeqNr, view t.PBFTViewNr) *isspb.SBReqWaitReferen
 	}}}
 }
 
+func PbftProposeTimeout(numProposals uint64) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftProposeTimeout{
+		PbftProposeTimeout: numProposals,
+	}}
+}
+
 // ============================================================
 // SB Instance Messages
 // ============================================================

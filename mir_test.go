@@ -164,7 +164,7 @@ var _ = Describe("Basic test", func() {
 		membership[i] = t.NewNodeIDFromInt(i)
 	}
 	slowProposeConfig := iss.DefaultConfig(membership)
-	slowProposeConfig.MaxProposeDelay = 40
+	slowProposeConfig.MaxProposeDelay = t.TimeDuration(2 * time.Second)
 
 	DescribeTable("Simple tests", testFunc,
 		Entry("Does nothing with 1 node", &deploytest.TestConfig{
@@ -201,7 +201,7 @@ var _ = Describe("Basic test", func() {
 			Transport:             "fake",
 			NumFakeRequests:       100,
 			Directory:             "",
-			Duration:              4 * time.Second,
+			Duration:              8 * time.Second,
 			FirstReplicaISSConfig: slowProposeConfig,
 		}),
 		Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{

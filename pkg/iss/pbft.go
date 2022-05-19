@@ -122,7 +122,7 @@ func newPbftInstance(
 			numPendingRequests: numPendingRequests,
 			batchRequested:     false,
 			batchRequestedView: 0,
-			ticksSinceProposal: 0,
+			proposalTimeout:    0,
 		},
 		messageBuffers: messagebuffer.NewBuffers(
 			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
@@ -153,6 +153,8 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyInit()
 	case *isspb.SBInstanceEvent_Tick:
 		return pbft.applyTick()
+	case *isspb.SBInstanceEvent_PbftProposeTimeout:
+		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout))
 	case *isspb.SBInstanceEvent_PendingRequests:
 		return pbft.applyPendingRequests(t.NumRequests(e.PendingRequests.NumRequests))
 	case *isspb.SBInstanceEvent_BatchReady:
@@ -284,7 +286,7 @@ func (pbft *pbftInstance) canPropose() bool {
 		// Either the batch timeout must have passed, or there must be enough requests for a full batch.
 		// The value 0 for config.MaxBatchSize means no limit on batch size,
 		// i.e., a proposal cannot be triggered just by the number of pending requests.
-		(pbft.proposal.ticksSinceProposal >= pbft.config.MaxProposeDelay ||
+		(pbft.proposal.proposalTimeout > pbft.proposal.proposalsMade ||
 			(pbft.config.MaxBatchSize != 0 && pbft.proposal.numPendingRequests >= pbft.config.MaxBatchSize)) &&
 
 		// No proposals can be made while in view change.
@@ -299,24 +301,17 @@ func (pbft *pbftInstance) applyInit() *events.EventList {
 	// Initialize the first PBFT view
 	pbft.initView(0)
 
-	// Make a proposal if one can be made right away.
-	if pbft.canPropose() {
-		return pbft.requestNewBatch()
-	} else {
-		return &events.EventList{}
-	}
+	// Set up timer for the first proposal.
+	return (&events.EventList{}).PushBack(pbft.eventService.TimerDelay(
+		[]*isspb.SBInstanceEvent{PbftProposeTimeout(1)},
+		pbft.config.MaxProposeDelay,
+	))
 
 }
 
 // applyTick applies a single tick of the logical clock to the protocol state machine.
 func (pbft *pbftInstance) applyTick() *events.EventList {
 	eventsOut := &events.EventList{}
-
-	// Update the proposal timer value and start a new proposal if applicable (i.e. if this tick made the timer expire).
-	pbft.proposal.ticksSinceProposal++
-	if pbft.canPropose() {
-		eventsOut.PushBackList(pbft.requestNewBatch())
-	}
 
 	// Start view change if necessary
 	if !pbft.allCommitted() {
