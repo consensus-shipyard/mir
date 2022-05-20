@@ -169,6 +169,9 @@ type ISS struct {
 	// Epoch instances.
 	epochs map[t.EpochNr]*epochInfo
 
+	// Highest epoch numbers indicated in Checkpoint messages from each node.
+	nodeEpochMap map[t.NodeID]t.EpochNr
+
 	// Index of orderers based on the buckets they are assigned.
 	// For each bucket ID, this map stores the orderer to which the bucket is assigned in the current epoch.
 	bucketOrderers map[int]sbInstance
@@ -251,6 +254,7 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		// Fields modified only by initEpoch
 		config:         config,
 		epochs:         make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap:   make(map[t.NodeID]t.EpochNr),
 		bucketOrderers: nil,
 
 		// Fields modified throughout an epoch
@@ -644,8 +648,15 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *
 // applyCheckpointMessage relays a Checkpoint message received over the network to the appropriate CheckpointTracker.
 func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeID) *events.EventList {
 
+	// Remember the highest epoch number for each node to detect
+	// later if the remote node is delayed too much and requires
+	// assistance in order to catch up through state transfer.
 	epoch := t.EpochNr(message.Epoch)
-	switch  {
+	if iss.nodeEpochMap[source] < epoch {
+		iss.nodeEpochMap[source] = epoch
+	}
+
+	switch {
 	case epoch > iss.epoch.Nr:
 		// If the message is for a future epoch,
 		// it might have been sent by a node that already transitioned to a newer epoch,
