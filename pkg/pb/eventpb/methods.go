@@ -20,3 +20,11 @@ func (e *Event) FollowUp(next *Event) *Event {
 func (e *Event) FollowUps(next []*Event) {
 	e.Next = append(e.Next, next...)
 }
+
+// ShallowCopy returns a new Event that is a shallow copy this Event.
+func (e *Event) ShallowCopy() *Event {
+	return &Event{
+		Type: e.Type,
+		Next: e.Next,
+	}
+}
