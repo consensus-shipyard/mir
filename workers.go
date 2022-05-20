@@ -421,6 +421,10 @@ func (n *Node) processAppEvents(eventsIn *events.EventList) (*events.EventList, 
 			} else {
 				eventsOut.PushBack(events.AppSnapshot(t.EpochNr(e.AppSnapshotRequest.Epoch), data))
 			}
+		case *eventpb.Event_AppRestoreState:
+			if err := n.modules.App.RestoreState(e.AppRestoreState.Data); err != nil {
+				return nil, fmt.Errorf("app restore state error: %w", err)
+			}
 		default:
 			return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 		}
