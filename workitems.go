@@ -95,7 +95,7 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			}
 		case *eventpb.Event_WalAppend, *eventpb.Event_WalTruncate:
 			wi.wal.PushBack(event)
-		case *eventpb.Event_Deliver, *eventpb.Event_AppSnapshotRequest:
+		case *eventpb.Event_Deliver, *eventpb.Event_AppSnapshotRequest, *eventpb.Event_AppRestoreState:
 			wi.app.PushBack(event)
 		case *eventpb.Event_WalEntry:
 			switch walEntry := t.WalEntry.Event.Type.(type) {

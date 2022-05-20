@@ -270,6 +270,13 @@ func AppSnapshot(epoch t.EpochNr, data []byte) *eventpb.Event {
 	}}}
 }
 
+// AppRestoreState returns an event representing the protocol module asking the application for restoring its state from the snapshot.
+func AppRestoreState(snapshot []byte) *eventpb.Event {
+	return &eventpb.Event{Type: &eventpb.Event_AppRestoreState{AppRestoreState: &eventpb.AppRestoreState{
+		Data: snapshot,
+	}}}
+}
+
 // ============================================================
 // DUMMY EVENTS FOR TESTING PURPOSES ONLY.
 // ============================================================
