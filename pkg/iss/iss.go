@@ -609,8 +609,34 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			"replacingSn", iss.lastStableCheckpoint.Sn)
 		iss.lastStableCheckpoint = stableCheckpoint
 
+		// Send the new stable checkpoint to potentially
+		// delayed nodes. The set of nodes to send the new
+		// stable checkpoint to is determined based on the
+		// highest epoch number in the messages received from
+		// the node so far. If the highest epoch number we
+		// have heard from the node is more than one epoch
+		// behind then that node is likely to be left behind
+		// and needs the stable checkpoint in order to start
+		// catching up with state transfer.
+		var delayed []t.NodeID
+		for _, n := range iss.config.Membership {
+			if t.EpochNr(stableCheckpoint.Epoch) > iss.nodeEpochMap[n]+1 {
+				delayed = append(delayed, n)
+			}
+		}
+		m := StableCheckpointMessage(stableCheckpoint)
+		eventsOut.PushBack(events.SendMessage(m, delayed))
+
+		// Prune old entries from WAL. The entries to prune
+		// are determined according to the retention index
+		// which is derived from the epoch number the new
+		// stable checkpoint is associated with.
 		eventsOut.PushBack(events.WALTruncate(t.WALRetIndex(stableCheckpoint.Epoch)))
 
+		// Clean up the global ISS state from all the epoch
+		// instances that are associated with epoch numbers
+		// less than the epoch number of the new stable
+		// checkpoint associated with.
 		for epoch := range iss.epochs {
 			if epoch < t.EpochNr(stableCheckpoint.Epoch) {
 				delete(iss.epochs, epoch)
