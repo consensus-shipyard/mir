@@ -248,6 +248,10 @@ func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, appSnapshotHash, signature [
 	}}})
 }
 
+func StableCheckpointMessage(stableCheckpoint *isspb.StableCheckpoint) *messagepb.Message {
+	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: stableCheckpoint}})
+}
+
 func RetransmitRequestsMessage(requests []*requestpb.RequestRef) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_RetransmitRequests{
 		RetransmitRequests: &isspb.RetransmitRequests{

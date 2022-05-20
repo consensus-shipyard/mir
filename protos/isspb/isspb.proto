@@ -22,7 +22,8 @@ message ISSMessage {
   oneof type {
     SBMessage          sb                  = 1;
     Checkpoint         checkpoint          = 2;
-    RetransmitRequests retransmit_requests = 3;
+    StableCheckpoint   stable_checkpoint   = 3;
+    RetransmitRequests retransmit_requests = 4;
   }
 }
 
