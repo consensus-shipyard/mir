@@ -642,11 +642,28 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *
 }
 
 // applyCheckpointMessage relays a Checkpoint message received over the network to the appropriate CheckpointTracker.
-func (iss *ISS) applyCheckpointMessage(chkpMsg *isspb.Checkpoint, source t.NodeID) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(chkpMsg.Epoch) {
+func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeID) *events.EventList {
+
+	epoch := t.EpochNr(message.Epoch)
+	switch  {
+	case epoch > iss.epoch.Nr:
+		// If the message is for a future epoch,
+		// it might have been sent by a node that already transitioned to a newer epoch,
+		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
+		// In such case, save the message in a backlog (if there is buffer space) for later processing.
+		iss.messageBuffers[source].Store(message)
+
+		return &events.EventList{}
+
+	case epoch == iss.epoch.Nr:
+		// If the message is for the current epoch, check its validity and
+		// apply it to the corresponding checkpoint tracker instance.
+		return iss.epoch.Checkpoint.applyMessage(message, source)
+
+	default: // epoch < iss.epoch.Nr:
+		// Ignore old messages
 		return &events.EventList{}
 	}
-	return iss.epoch.Checkpoint.applyMessage(chkpMsg, source)
 }
 
 // applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
