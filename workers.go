@@ -11,11 +11,12 @@ package mir
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"runtime/debug"
 )
 
 // Input and output channels for the modules within the Node.
@@ -552,18 +553,22 @@ func (n *Node) processTimerEvents(
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
+		// Based on event type, invoke the appropriate Timer function.
+		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
+		// when they are later stripped off their follow-ups, as this happens potentially concurrently
+		// with the original event being processed by the interceptor.
 		switch e := event.Type.(type) {
 		case *eventpb.Event_TimerDelay:
 			n.modules.Timer.Delay(
 				ctx,
-				(&events.EventList{}).PushBack(e.TimerDelay.Event),
+				(&events.EventList{}).PushBack(e.TimerDelay.Event.ShallowCopy()),
 				t.TimeDuration(e.TimerDelay.Delay),
 				notifyChan,
 			)
 		case *eventpb.Event_TimerRepeat:
 			n.modules.Timer.Repeat(
 				ctx,
-				(&events.EventList{}).PushBack(e.TimerRepeat.Event),
+				(&events.EventList{}).PushBack(e.TimerRepeat.Event.ShallowCopy()),
 				t.TimeDuration(e.TimerRepeat.Delay),
 				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
 				notifyChan,
