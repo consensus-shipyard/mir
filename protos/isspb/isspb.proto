@@ -98,10 +98,10 @@ message PersistCheckpoint {
 }
 
 message StableCheckpoint {
-  uint64 epoch =             1;
-  uint64 sn    =             2;
-  bytes  app_snapshot_hash = 3;
-  map<string, bytes> cert  = 4;
+  uint64 epoch            = 1;
+  uint64 sn               = 2;
+  bytes  app_snapshot     = 3;
+  map<string, bytes> cert = 4;
 }
 
 // PersistStableCheckpoint needs to be a separate Event from StableCheckpoint, since both are ISSEvents,
