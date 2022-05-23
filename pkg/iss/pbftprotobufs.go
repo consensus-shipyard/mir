@@ -73,6 +73,21 @@ func PbftProposeTimeout(numProposals uint64) *isspb.SBInstanceEvent {
 	}}
 }
 
+func PbftViewChangeBatchTimeout(view t.PBFTViewNr, numCommitted int) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftViewChangeBatchTimeout{
+		PbftViewChangeBatchTimeout: &isspbftpb.VCBatchTimeout{
+			View:         view.Pb(),
+			NumCommitted: uint64(numCommitted),
+		},
+	}}
+}
+
+func PbftViewChangeSegmentTimeout(view t.PBFTViewNr) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftViewChangeSegTimeout{
+		PbftViewChangeSegTimeout: view.Pb(),
+	}}
+}
+
 // ============================================================
 // SB Instance Messages
 // ============================================================

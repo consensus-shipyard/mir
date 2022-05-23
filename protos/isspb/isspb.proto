@@ -141,6 +141,8 @@ message SBInstanceEvent {
     isspbftpb.SignedViewChange pbft_persist_signed_view_change = 103;
     isspbftpb.NewView          pbft_persist_new_view           = 104;
     uint64                     pbft_propose_timeout            = 105;
+    isspbftpb.VCBatchTimeout   pbft_view_change_batch_timeout  = 106;
+    uint64                     pbft_view_change_seg_timeout    = 107;
   }
 }
 
