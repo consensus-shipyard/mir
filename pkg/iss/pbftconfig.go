@@ -32,19 +32,19 @@ type PBFTConfig struct {
 	// Setting MaxBatchSize to zero signifies no limit on batch size.
 	MaxBatchSize t.NumRequests
 
-	// Per-batch view change timeout for view 0, in ticks.
+	// Per-batch view change timeout for view 0.
 	// If no batch is delivered by a PBFT instance within this timeout, the node triggers a view change.
 	// With each new view, the timeout doubles (without changing this value)
-	ViewChangeBatchTimeout int
+	ViewChangeBatchTimeout time.Duration
 
-	// View change timeout for view 0 for the whole segment, in ticks.
+	// View change timeout for view 0 for the whole segment.
 	// If not all batches of the associated segment are delivered by a PBFT instance within this timeout,
 	// the node triggers a view change.
 	// With each new view, the timeout doubles (without changing this value)
-	ViewChangeSegmentTimeout int
+	ViewChangeSegmentTimeout time.Duration
 
-	// Number of ticks between resending a ViewChange message.
+	// Time period between resending a ViewChange message.
 	// ViewChange messages need to be resent periodically to preserve liveness.
 	// Otherwise, the system could get stuck if a ViewChange message is dropped by the network.
-	ViewChangeResendPeriod int
+	ViewChangeResendPeriod time.Duration
 }

@@ -22,14 +22,52 @@ func copyPreprepareToNewView(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr
 // Event handling
 // ============================================================
 
+// applyViewChangeBatchTimeout applies the view change batch timeout event
+// triggered some time after a batch is committed.
+// If nothing has been committed since, triggers a view change.
+func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VCBatchTimeout) *events.EventList {
+
+	// If the view is still the same as when the timer was set up and if nothing has been committed since then
+	if t.PBFTViewNr(timeoutEvent.View) == pbft.view && int(timeoutEvent.NumCommitted) == pbft.numCommitted(pbft.view) {
+		// Start the view change sub-protocol.
+		pbft.logger.Log(logging.LevelWarn, "View change batch timer expired.",
+			"view", pbft.view, "numCommitted", timeoutEvent.NumCommitted)
+		return pbft.startViewChange()
+	} else {
+		// Do nothing otherwise.
+		return &events.EventList{}
+	}
+}
+
+// applyViewChangeSegmentTimeout applies the view change segment timeout event
+// triggered some time after a segment is initialized.
+// If not all slots have been committed, and the view has not advanced, triggers a view change.
+func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *events.EventList {
+
+	// TODO: All slots being committed is not sufficient to stop view changes.
+	//       An instance-local stable checkpoint must be created as well.
+
+	// If the view is still the same as when the timer was set up and there are still any uncommitted slots
+	if view == pbft.view && !pbft.allCommitted() {
+		// Start the view change sub-protocol.
+		pbft.logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", pbft.view)
+		return pbft.startViewChange()
+	} else {
+		// Do nothing otherwise.
+		return &events.EventList{}
+	}
+}
+
 // startViewChange initiates the view change subprotocol.
 // It is triggered on expiry of the batch timeout or the segment timeout.
 // It constructs the PBFT view change message and creates an event requesting signing it.
 func (pbft *pbftInstance) startViewChange() *events.EventList {
 
+	eventsOut := &events.EventList{}
+
 	// Enter the view change state and initialize a new view
 	pbft.inViewChange = true
-	pbft.initView(pbft.view + 1)
+	eventsOut.PushBackList(pbft.initView(pbft.view + 1))
 
 	// Compute the P set and Q set to be included in the ViewChange message.
 	pSet, qSet := pbft.getPSetQSet()
@@ -41,7 +79,7 @@ func (pbft *pbftInstance) startViewChange() *events.EventList {
 
 	// Request a signature for the newly created ViewChange message.
 	// Operation continues on reception of the SignResult event.
-	return (&events.EventList{}).PushBack(pbft.eventService.SignRequest(
+	return eventsOut.PushBack(pbft.eventService.SignRequest(
 		serializeViewChangeForSigning(viewChange),
 		viewChangeSignOrigin(viewChange),
 	))
@@ -60,33 +98,18 @@ func (pbft *pbftInstance) applyViewChangeSignResult(signature []byte, viewChange
 	// Assemble signature and viewChange to a SignedViewChange message.
 	signedViewChange := pbftSignedViewChangeMsg(viewChange, signature)
 
-	// Create persist event and attach sending (to the new leader) event as follow-up.
-	// Repeat this as until advancing to the next view.
-	return pbft.parrot.Repeat(pbft.config.ViewChangeResendPeriod,
-
-		// Produce the persist Event and the dependent send Event.
-		// Note that it is rather wasteful to persist the ViewChange in the WAL each time it is resent.
-		// In principle, it would be fully sufficient to persist it once
-		// and then only keep resending it as long as necessary.
-		// However, if we only make the first send Event depend on the persist Event,
-		// it might happen (if persisting is slow) that the (independent) resend Event
-		// will be processed before persisting the initial WALAppend Event,
-		// resulting in erroneously sending a ViewChange message without having persisted it first.
-		// TODO: Resolve the above problem. Find a way to only persist once and send multiple times.
-		//       Maybe using some logic in another module?
-		func() *events.EventList {
-			persistEvent := pbft.eventService.WALAppend(PbftPersistSignedViewChange(signedViewChange))
-			persistEvent.FollowUp(
-				pbft.eventService.SendMessage(PbftSignedViewChangeSBMessage(signedViewChange), []t.NodeID{primary}),
-			)
-			return (&events.EventList{}).PushBack(persistEvent)
-		},
-
-		// As long as the PBFT view is the view of the ViewChange message
-		func() bool {
-			return pbft.view == msgView
-		},
+	// Repeatedly send the ViewChange message. Repeat until this instance of PBFT is garbage-collected,
+	// i.e., from the point of view of the PBFT protocol, effectively forever.
+	repeatedSendEvent := pbft.eventService.TimerRepeat(
+		t.TimeDuration(pbft.config.ViewChangeResendPeriod),
+		pbft.eventService.SendMessage(
+			PbftSignedViewChangeSBMessage(signedViewChange),
+			[]t.NodeID{primary},
+		),
 	)
+	persistEvent := pbft.eventService.WALAppend(PbftPersistSignedViewChange(signedViewChange))
+	persistEvent.FollowUp(repeatedSendEvent)
+	return (&events.EventList{}).PushBack(persistEvent)
 }
 
 // applyMsgSignedViewChange applies a signed view change message.
@@ -404,10 +427,9 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 
 	// If all the checks passed, (TODO: make sure all the checks of the NewView message have been performed!)
 	// enter the new view.
-	pbft.initView(msgView)
+	eventsOut := pbft.initView(msgView)
 
 	// Apply all the Preprepares contained in the NewView
-	eventsOut := &events.EventList{}
 	primary := primaryNode(pbft.segment, msgView)
 	for _, preprepare := range newView.Preprepares {
 		eventsOut.PushBackList(pbft.applyMsgPreprepare(preprepare, primary))

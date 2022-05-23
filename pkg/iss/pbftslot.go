@@ -92,8 +92,15 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		// Mark slot as committed.
 		slot.Committed = true
 
-		// Reset batch timeout.
-		pbft.ticksLeftBatch = computeTimeout(pbft.config.ViewChangeBatchTimeout, pbft.view)
+		// Unless everything has already been committed, set a new batch timeout.
+		// The timeout event contains the current view and the number of committed slots.
+		// It will be ignored if any of those values change by the time the timer fires.
+		if !pbft.allCommitted() {
+			eventsOut.PushBack(pbft.eventService.TimerDelay(
+				t.TimeDuration(pbft.config.ViewChangeBatchTimeout),
+				pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(pbft.view, pbft.numCommitted(pbft.view))),
+			))
+		}
 
 		// Deliver batch.
 		eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
