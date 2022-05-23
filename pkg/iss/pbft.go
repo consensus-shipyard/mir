@@ -70,21 +70,6 @@ type pbftInstance struct {
 	// only when needed (when the node initiates a view change).
 	viewChangeStates map[t.PBFTViewNr]*pbftViewChangeState
 
-	// ticksLeftBatch indicates the number of ticks left until a view change is triggered.
-	// This counter is initialized to pre-configured values and decremented on each tick.
-	// When it reaches zero, the node starts a view change in this PBFT instance.
-	// It is reset to its pre-configured value each time a batch is committed and when a new view starts.
-	// Additionally, the reset value is doubled in each view. I.e., in view v, the reset value is multiplied by 2^v
-	ticksLeftBatch int
-
-	// ticksLeftSegment, like ticksLeftBatch, indicates the number of ticks left until a view change is triggered.
-	// The only difference to ticksLeftBatch is that ticksLeftSegment is not reset on batch delivery.
-	// It is intended to start with a greater initial value and serve as a timeout for the whole segment
-	// rather than for a batch.
-	ticksLeftSegment int
-
-	// The parrot is used for periodically sending messages as long as an associated condition is satisfied.
-	// This functionality is, for example, used for ViewChange messages that a node needs to keep sending
 	// to maintain liveness.
 	parrot parrot.Parrot
 }
@@ -135,8 +120,6 @@ func newPbftInstance(
 		view:             0,
 		inViewChange:     false,
 		viewChangeStates: make(map[t.PBFTViewNr]*pbftViewChangeState),
-		ticksLeftBatch:   config.ViewChangeBatchTimeout,
-		ticksLeftSegment: config.ViewChangeSegmentTimeout,
 	}
 }
 
@@ -155,6 +138,10 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyTick()
 	case *isspb.SBInstanceEvent_PbftProposeTimeout:
 		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout))
+	case *isspb.SBInstanceEvent_PbftViewChangeBatchTimeout:
+		return pbft.applyViewChangeBatchTimeout(e.PbftViewChangeBatchTimeout)
+	case *isspb.SBInstanceEvent_PbftViewChangeSegTimeout:
+		return pbft.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout))
 	case *isspb.SBInstanceEvent_PendingRequests:
 		return pbft.applyPendingRequests(t.NumRequests(e.PendingRequests.NumRequests))
 	case *isspb.SBInstanceEvent_BatchReady:
@@ -298,11 +285,13 @@ func (pbft *pbftInstance) canPropose() bool {
 // except for events read from the WAL at startup, which are expected to be applied even before the Init event.
 func (pbft *pbftInstance) applyInit() *events.EventList {
 
+	eventsOut := &events.EventList{}
+
 	// Initialize the first PBFT view
-	pbft.initView(0)
+	eventsOut.PushBackList(pbft.initView(0))
 
 	// Set up timer for the first proposal.
-	return (&events.EventList{}).PushBack(pbft.eventService.TimerDelay(
+	return eventsOut.PushBack(pbft.eventService.TimerDelay(
 		t.TimeDuration(pbft.config.MaxProposeDelay),
 		pbft.eventService.SBEvent(PbftProposeTimeout(1)),
 	))
@@ -311,32 +300,24 @@ func (pbft *pbftInstance) applyInit() *events.EventList {
 
 // applyTick applies a single tick of the logical clock to the protocol state machine.
 func (pbft *pbftInstance) applyTick() *events.EventList {
-	eventsOut := &events.EventList{}
+	return &events.EventList{}
+}
 
-	// Start view change if necessary
-	if !pbft.allCommitted() {
-		// TODO: All slots being committed is not sufficient to stop view changes.
-		//       An instance-local stable checkpoint must be created as well.
-
-		pbft.ticksLeftBatch--
-		pbft.ticksLeftSegment--
-		if pbft.ticksLeftBatch == 0 || pbft.ticksLeftSegment == 0 {
-			eventsOut.PushBackList(pbft.startViewChange())
+// numCommitted returns the number of slots that are already committed in the given view.
+func (pbft *pbftInstance) numCommitted(view t.PBFTViewNr) int {
+	numCommitted := 0
+	for _, slot := range pbft.slots[view] {
+		if slot.Committed {
+			numCommitted++
 		}
 	}
-
-	return eventsOut
+	return numCommitted
 }
 
 // allCommitted returns true if all slots of this pbftInstance in the current view are in the committed state
 // (i.e., have the committed flag set).
 func (pbft *pbftInstance) allCommitted() bool {
-	for _, slot := range pbft.slots[pbft.view] {
-		if !slot.Committed {
-			return false
-		}
-	}
-	return true
+	return pbft.numCommitted(pbft.view) == len(pbft.slots[pbft.view])
 }
 
 // applyPendingRequests processes a notification form ISS about the number of requests in buckets ready to be proposed.
@@ -354,7 +335,7 @@ func (pbft *pbftInstance) applyPendingRequests(numRequests t.NumRequests) *event
 	}
 }
 
-func (pbft *pbftInstance) initView(view t.PBFTViewNr) {
+func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 	// Sanity check
 	if view < pbft.view {
 		panic(fmt.Sprintf("Starting a view (%d) older than the current one (%d)", view, pbft.view))
@@ -364,7 +345,7 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) {
 	// View 0 is also started only once (the code makes sure that startView(0) is only called at initialization),
 	// it's just that the default value of the variable is already 0 - that's why it needs an exception.
 	if view != 0 && view == pbft.view {
-		return
+		return &events.EventList{}
 	}
 
 	pbft.logger.Log(logging.LevelInfo, "Initializing new view.", "view", view)
@@ -383,13 +364,20 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) {
 		}
 	}
 
-	// Reset view change timeouts
-	pbft.ticksLeftBatch = computeTimeout(pbft.config.ViewChangeBatchTimeout, view)
-	pbft.ticksLeftSegment = computeTimeout(pbft.config.ViewChangeSegmentTimeout, view)
+	// Set view change timeouts
+	timerEvents := &events.EventList{}
+	timerEvents.PushBack(pbft.eventService.TimerDelay(
+		computeTimeout(t.TimeDuration(pbft.config.ViewChangeBatchTimeout), view),
+		pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(view, pbft.numCommitted(view)))),
+	).PushBack(pbft.eventService.TimerDelay(
+		computeTimeout(t.TimeDuration(pbft.config.ViewChangeSegmentTimeout), view),
+		pbft.eventService.SBEvent(PbftViewChangeSegmentTimeout(view))),
+	)
 
-	// Finally, update the view number and clear the inViewChange flag.
 	pbft.view = view
 	pbft.inViewChange = false
+
+	return timerEvents
 }
 
 // ============================================================
@@ -411,7 +399,7 @@ func leaderIndex(seg *segment) int {
 
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
-func computeTimeout(timeout int, view t.PBFTViewNr) int {
+func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
 	for view > 0 {
 		timeout *= 2
 		view--

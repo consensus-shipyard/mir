@@ -89,9 +89,9 @@ type Config struct {
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
-	PBFTViewChangeBatchTimeout   int
-	PBFTViewChangeSegmentTimeout int
-	PBFTViewChangeResendPeriod   int
+	PBFTViewChangeBatchTimeout   time.Duration
+	PBFTViewChangeSegmentTimeout time.Duration
+	PBFTViewChangeResendPeriod   time.Duration
 }
 
 // CheckConfig checks whether the given configuration satisfies all necessary constraints.
@@ -160,17 +160,24 @@ func CheckConfig(c *Config) error {
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultConfig can serve as a starting point.
 func DefaultConfig(membership []t.NodeID) *Config {
+
+	// Define auxiliary variables for segment length and maximal propose delay.
+	// PBFT view change timeouts can then be computed relative to those.
+	// TODO: Adapt this if needed when PBFT configuration is specified separately.
+	maxProposeDelay := time.Second
+	segmentLength := 4
+
 	return &Config{
 		Membership:                   membership,
-		SegmentLength:                4,
+		SegmentLength:                segmentLength,
 		MaxBatchSize:                 4,
-		MaxProposeDelay:              time.Second,
+		MaxProposeDelay:              maxProposeDelay,
 		NumBuckets:                   len(membership),
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
-		PBFTViewChangeBatchTimeout:   64,
-		PBFTViewChangeSegmentTimeout: 256,
-		PBFTViewChangeResendPeriod:   4,
+		PBFTViewChangeBatchTimeout:   4 * maxProposeDelay,
+		PBFTViewChangeSegmentTimeout: 2 * time.Duration(segmentLength) * maxProposeDelay,
+		PBFTViewChangeResendPeriod:   maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 	}
 }
