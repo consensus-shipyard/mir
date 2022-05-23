@@ -118,14 +118,14 @@ func (n *Node) processEvents(
 
 	// Remove follow-up Events from the input EventList,
 	// in order to re-insert them in the processing loop after the input events have been processed.
-	followUps := eventsIn.StripFollowUps()
+	plainEvents, followUps := eventsIn.StripFollowUps()
 
 	// Intercept the (stripped of all follow-ups) events that are about to be processed.
 	// This is only for debugging / diagnostic purposes.
-	n.interceptEvents(eventsIn)
+	n.interceptEvents(plainEvents)
 
 	// Process events.
-	newEvents, err := processFunc(ctx, eventsIn)
+	newEvents, err := processFunc(ctx, plainEvents)
 	if err != nil {
 		return fmt.Errorf("could not process events: %w", err)
 	}
