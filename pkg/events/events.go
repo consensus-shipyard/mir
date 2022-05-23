@@ -14,9 +14,10 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Strip removes the follow-up events from event (stored under event.Next) and sets event.Next to nil.
-// The removed events are stored in a new EventList that Strip returns a pointer to.
-func Strip(event *eventpb.Event) *EventList {
+// Strip returns a new identical (shallow copy of the) event,
+// but with all follow-up events (stored under event.Next) removed.
+// The removed events are stored in a new EventList that Strip returns a pointer to as the second return value.
+func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 
 	// Create new EventList.
 	nextList := &EventList{}
@@ -26,11 +27,14 @@ func Strip(event *eventpb.Event) *EventList {
 		nextList.PushBack(e)
 	}
 
-	// Delete follow-up events from original event.
-	event.Next = nil
+	// Create a new event with follow-ups removed.
+	newEvent := eventpb.Event{
+		Type: event.Type,
+		Next: nil,
+	}
 
 	// Return new EventList.
-	return nextList
+	return &newEvent, nextList
 }
 
 // ============================================================

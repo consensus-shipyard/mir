@@ -85,22 +85,27 @@ func (el *EventList) Slice() []*eventpb.Event {
 	return events
 }
 
-// StripFollowUps removes all follow-up Events from the Events in the list and returns them.
-// Note that StripFollowUps modifies the events in the list by calling Strip on each event in the EventList.
-// After StripFollowUps returns, all events in the list will have no follow-ups.
-// StripFollowUps accumulates all those follow-up Events in a new EventList that it returns.
-func (el *EventList) StripFollowUps() *EventList {
+// StripFollowUps collects all follow-up Events of the Events in the list.
+// It returns two lists:
+// 1. An EventList containing the same events as this list, but with all follow-up events removed.
+// 2. An EventList containing only those follow-up events.
+func (el *EventList) StripFollowUps() (*EventList, *EventList) {
 	// Create list of follow-up Events.
 	followUps := EventList{}
+
+	// Create a new EventList for events with follow-ups removed.
+	plainEvents := EventList{}
 
 	// Populate list by follow-up events
 	iter := el.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		followUps.PushBackList(Strip(event))
+		plainEvent, strippedEvents := Strip(event)
+		plainEvents.PushBack(plainEvent)
+		followUps.PushBackList(strippedEvents)
 	}
 
 	// Return populated list of follow-up events.
-	return &followUps
+	return &plainEvents, &followUps
 }
 
 // Iterator returns a pointer to an EventListIterator object used to iterate over the events in this list,
