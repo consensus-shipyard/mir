@@ -164,7 +164,7 @@ var _ = Describe("Basic test", func() {
 		membership[i] = t.NewNodeIDFromInt(i)
 	}
 	slowProposeConfig := iss.DefaultConfig(membership)
-	slowProposeConfig.MaxProposeDelay = t.TimeDuration(2 * time.Second)
+	slowProposeConfig.MaxProposeDelay = 2 * time.Second
 
 	DescribeTable("Simple tests", testFunc,
 		Entry("Does nothing with 1 node", &deploytest.TestConfig{
