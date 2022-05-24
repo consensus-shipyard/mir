@@ -141,8 +141,8 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 
 	// Set up a new timer for the next proposal.
 	timerEvent := pbft.eventService.TimerDelay(
-		[]*isspb.SBInstanceEvent{PbftProposeTimeout(uint64(pbft.proposal.proposalsMade + 1))},
 		t.TimeDuration(pbft.config.MaxProposeDelay),
+		pbft.eventService.SBEvent(PbftProposeTimeout(uint64(pbft.proposal.proposalsMade+1))),
 	)
 
 	// Create a WAL entry and an event to persist it.
