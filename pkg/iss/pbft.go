@@ -303,8 +303,8 @@ func (pbft *pbftInstance) applyInit() *events.EventList {
 
 	// Set up timer for the first proposal.
 	return (&events.EventList{}).PushBack(pbft.eventService.TimerDelay(
-		[]*isspb.SBInstanceEvent{PbftProposeTimeout(1)},
 		t.TimeDuration(pbft.config.MaxProposeDelay),
+		pbft.eventService.SBEvent(PbftProposeTimeout(1)),
 	))
 
 }
