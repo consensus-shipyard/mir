@@ -54,7 +54,7 @@ type Config struct {
 	// When MaxProposeDelay has elapsed since the last proposal made by an orderer,
 	// the orderer proposes a new request batch, even if the batch is not full (or even completely empty).
 	// Must not be negative.
-	MaxProposeDelay t.TimeDuration
+	MaxProposeDelay time.Duration
 
 	// Total number of buckets used by ISS.
 	// In each epoch, these buckets are re-distributed evenly among the orderers.
@@ -127,7 +127,7 @@ func CheckConfig(c *Config) error {
 
 	// MaxProposeDelay must not be negative.
 	if c.MaxProposeDelay < 0 {
-		return fmt.Errorf("negative MaxProposeDelay: %d", c.MaxProposeDelay)
+		return fmt.Errorf("negative MaxProposeDelay: %v", c.MaxProposeDelay)
 	}
 
 	// There must be at least one bucket.
@@ -164,7 +164,7 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		Membership:                   membership,
 		SegmentLength:                4,
 		MaxBatchSize:                 4,
-		MaxProposeDelay:              t.TimeDuration(time.Second),
+		MaxProposeDelay:              time.Second,
 		NumBuckets:                   len(membership),
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,

@@ -1,6 +1,9 @@
 package iss
 
-import t "github.com/filecoin-project/mir/pkg/types"
+import (
+	t "github.com/filecoin-project/mir/pkg/types"
+	"time"
+)
 
 // PBFTConfig holds PBFT-specific configuration parameters used by a concrete instance of PBFT.
 // They are mostly inherited from the ISS configuration at the time of creating the PBFT instance.
@@ -15,7 +18,7 @@ type PBFTConfig struct {
 	// When MaxProposeDelay has elapsed since the last proposal,
 	// the protocol tries to propose a new request batch, even if the batch is not full (or even completely empty).
 	// Must not be negative.
-	MaxProposeDelay t.TimeDuration
+	MaxProposeDelay time.Duration
 
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
