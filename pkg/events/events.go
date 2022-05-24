@@ -277,16 +277,16 @@ func AppRestoreState(snapshot []byte) *eventpb.Event {
 	}}}
 }
 
-func TimerDelay(event *eventpb.Event, delay t.TimeDuration) *eventpb.Event {
+func TimerDelay(events []*eventpb.Event, delay t.TimeDuration) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_TimerDelay{TimerDelay: &eventpb.TimerDelay{
-		Event: event,
-		Delay: delay.Pb(),
+		Events: events,
+		Delay:  delay.Pb(),
 	}}}
 }
 
-func TimerRepeat(event *eventpb.Event, delay t.TimeDuration, retIndex t.TimerRetIndex) *eventpb.Event {
+func TimerRepeat(events []*eventpb.Event, delay t.TimeDuration, retIndex t.TimerRetIndex) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
-		Event:          event,
+		Events:         events,
 		Delay:          delay.Pb(),
 		RetentionIndex: retIndex.Pb(),
 	}}}

@@ -186,12 +186,12 @@ message AppRestoreState {
 }
 
 message TimerDelay {
-  repeated Event  event = 1;
-  uint64          delay = 2;
+  repeated Event  events = 1;
+  uint64          delay  = 2;
 }
 
 message TimerRepeat {
-  repeated Event  event           = 1;
+  repeated Event  events          = 1;
   uint64          delay           = 2;
   uint64          retention_index = 3;
 }

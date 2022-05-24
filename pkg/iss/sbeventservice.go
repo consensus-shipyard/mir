@@ -66,12 +66,20 @@ func (ec *sbEventService) VerifyNodeSigs(
 	return events.VerifyNodeSigs(data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instance, origin))
 }
 
-func (ec *sbEventService) TimerDelay(event *isspb.SBInstanceEvent, delay t.TimeDuration) *eventpb.Event {
-	return events.TimerDelay(SBEvent(ec.epoch, ec.instance, event), delay)
+func (ec *sbEventService) TimerDelay(evts []*isspb.SBInstanceEvent, delay t.TimeDuration) *eventpb.Event {
+	sbEvents := make([]*eventpb.Event, len(evts))
+	for i, event := range evts {
+		sbEvents[i] = SBEvent(ec.epoch, ec.instance, event)
+	}
+	return events.TimerDelay(sbEvents, delay)
 }
 
-func (ec *sbEventService) TimerRepeat(event *isspb.SBInstanceEvent, period t.TimeDuration) *eventpb.Event {
-	return events.TimerRepeat(SBEvent(ec.epoch, ec.instance, event), period, t.TimerRetIndex(ec.epoch))
+func (ec *sbEventService) TimerRepeat(evts []*isspb.SBInstanceEvent, period t.TimeDuration) *eventpb.Event {
+	sbEvents := make([]*eventpb.Event, len(evts))
+	for i, event := range evts {
+		sbEvents[i] = SBEvent(ec.epoch, ec.instance, event)
+	}
+	return events.TimerRepeat(sbEvents, period, t.TimerRetIndex(ec.epoch))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).

@@ -561,14 +561,14 @@ func (n *Node) processTimerEvents(
 		case *eventpb.Event_TimerDelay:
 			n.modules.Timer.Delay(
 				ctx,
-				(&events.EventList{}).PushBack(e.TimerDelay.Event.ShallowCopy()),
+				(&events.EventList{}).PushBackSlice(e.TimerDelay.Events),
 				t.TimeDuration(e.TimerDelay.Delay),
 				notifyChan,
 			)
 		case *eventpb.Event_TimerRepeat:
 			n.modules.Timer.Repeat(
 				ctx,
-				(&events.EventList{}).PushBack(e.TimerRepeat.Event.ShallowCopy()),
+				(&events.EventList{}).PushBackSlice(e.TimerRepeat.Events),
 				t.TimeDuration(e.TimerRepeat.Delay),
 				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
 				notifyChan,

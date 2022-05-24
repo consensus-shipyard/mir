@@ -38,6 +38,19 @@ func (el *EventList) PushBack(event *eventpb.Event) *EventList {
 	return el
 }
 
+// PushBackSlice appends all events in newEvents to the end of the current EventList.
+func (el *EventList) PushBackSlice(events []*eventpb.Event) *EventList {
+	if el.list == nil {
+		el.list = list.New()
+	}
+
+	for _, event := range events {
+		el.list.PushBack(event)
+	}
+
+	return el
+}
+
 // PushBackList appends all events in newEvents to the end of the current EventList.
 func (el *EventList) PushBackList(newEvents *EventList) *EventList {
 	if newEvents.list != nil {
