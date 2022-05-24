@@ -14,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
-	"github.com/filecoin-project/mir/pkg/parrot"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -69,9 +68,6 @@ type pbftInstance struct {
 	// The map itself is allocated on creation of the pbftInstance, but the entries are initialized lazily,
 	// only when needed (when the node initiates a view change).
 	viewChangeStates map[t.PBFTViewNr]*pbftViewChangeState
-
-	// to maintain liveness.
-	parrot parrot.Parrot
 }
 
 // newPbftInstance allocates and initializes a new instance of the PBFT orderer.
@@ -134,8 +130,6 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 
 	case *isspb.SBInstanceEvent_Init:
 		return pbft.applyInit()
-	case *isspb.SBInstanceEvent_Tick:
-		return pbft.applyTick()
 	case *isspb.SBInstanceEvent_PbftProposeTimeout:
 		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout))
 	case *isspb.SBInstanceEvent_PbftViewChangeBatchTimeout:
@@ -296,11 +290,6 @@ func (pbft *pbftInstance) applyInit() *events.EventList {
 		pbft.eventService.SBEvent(PbftProposeTimeout(1)),
 	))
 
-}
-
-// applyTick applies a single tick of the logical clock to the protocol state machine.
-func (pbft *pbftInstance) applyTick() *events.EventList {
-	return &events.EventList{}
 }
 
 // numCommitted returns the number of slots that are already committed in the given view.

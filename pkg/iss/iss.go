@@ -347,16 +347,8 @@ func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
 }
 
 // applyTick applies a single tick of the logical clock to the protocol state machine.
-func (iss *ISS) applyTick(tick *eventpb.Tick) *events.EventList {
+func (iss *ISS) applyTick(_ *eventpb.Tick) *events.EventList {
 	eventsOut := &events.EventList{}
-
-	// Relay tick to each orderer.
-	sbTick := SBTickEvent()
-	for _, epoch := range iss.epochs {
-		for _, orderer := range epoch.Orderers {
-			eventsOut.PushBackList(orderer.ApplyEvent(sbTick))
-		}
-	}
 
 	// Demand retransmission of requests if retransmission timer expired.
 	// TODO: iterate in a deterministic order!
