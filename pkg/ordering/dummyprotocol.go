@@ -66,8 +66,6 @@ func (dp *DummyProtocol) ApplyEvent(event *eventpb.Event) *events.EventList {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_PersistDummyBatch:
 		dp.logger.Log(logging.LevelDebug, "Loading dummy batch from WAL.")
-	case *eventpb.Event_Tick:
-		// Do nothing in the dummy SM.
 	case *eventpb.Event_RequestReady:
 		return dp.handleRequest(e.RequestReady.RequestRef)
 	case *eventpb.Event_MessageReceived:

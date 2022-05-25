@@ -142,10 +142,9 @@ func (iss *ISS) applySBInstWaitForRequests(
 
 	// Initialize a new missingRequestInfo entry that will contain a reference to all missing requests.
 	missingReqs := &missingRequestInfo{
-		Ref:            ref,
-		Requests:       make(map[string]*requestpb.RequestRef, 0),
-		Orderer:        iss.epoch.Orderers[instance],
-		TicksUntilNAck: iss.config.RequestNAckTimeout,
+		Ref:      ref,
+		Requests: make(map[string]*requestpb.RequestRef, 0),
+		Orderer:  iss.epoch.Orderers[instance],
 	}
 
 	// Check for the presence of each request in its corresponding bucket.

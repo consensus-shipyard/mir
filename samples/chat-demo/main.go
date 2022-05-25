@@ -18,13 +18,11 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"path"
 	"strconv"
 	"sync"
-	"time"
-
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -198,9 +196,7 @@ func main() {
 
 	// Start the node in a separate goroutine
 	go func() {
-		// Since the Node does not have any notion of real time,
-		// it needs to be supplied with logical time in form of a Ticker.
-		nodeErr = node.Run(ctx, time.NewTicker(100*time.Millisecond).C)
+		nodeErr = node.Run(ctx)
 		wg.Done()
 	}()
 

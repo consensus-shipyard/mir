@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"sync"
-	"time"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -143,7 +142,7 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 	n.workChans.debugOut = eventsOut
 
 	// Start processing of events.
-	return n.process(ctx, nil)
+	return n.process(ctx)
 
 }
 
@@ -191,11 +190,10 @@ func (n *Node) SubmitRequest(
 // This makes sure that the WAL events end up first in all the modules' processing queues.
 // Then it adds an Init event to the work items, giving the modules the possibility
 // to perform additional initialization based on the state recovered from the WAL.
-// Run then launches the processing of incoming messages, time ticks, and internal events.
-// The node stops when exitC is closed.
-// Logical time ticks need to be written to tickC by the calling code.
+// Run then launches the processing of incoming messages, and internal events.
+// The node stops when the ctx is canceled.
 // The function call is blocking and only returns when the node stops.
-func (n *Node) Run(ctx context.Context, tickC <-chan time.Time) error {
+func (n *Node) Run(ctx context.Context) error {
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
@@ -215,7 +213,7 @@ func (n *Node) Run(ctx context.Context, tickC <-chan time.Time) error {
 	}
 
 	// Start processing of events.
-	return n.process(ctx, tickC)
+	return n.process(ctx)
 }
 
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
@@ -242,9 +240,8 @@ func (n *Node) processWAL() error {
 
 // Performs all internal work of the node,
 // which mostly consists of routing events between the node's modules.
-// Stops and returns when exitC is closed.
-// Logical time ticks need to be written to tickC by the calling code.
-func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
+// Stops and returns when ctx is canceled.
+func (n *Node) process(ctx context.Context) error {
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
 	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
@@ -297,6 +294,40 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 
 	// This loop shovels events between the appropriate channels, until a stopping condition is satisfied.
 	for {
+
+		// If any events are pending in the workItems buffers,
+		// update the corresponding channel variables accordingly.
+		// This needs to happen before the select statement that dispatches the work,
+		// since, if there are any work items in the buffers before the first iteration,
+		// they must be made available to the dispatcher. Otherwise it might get stuck.
+
+		if protocolEvents == nil && n.workItems.Protocol().Len() > 0 {
+			protocolEvents = n.workChans.protocol
+		}
+		if walEvents == nil && n.workItems.WAL().Len() > 0 {
+			walEvents = n.workChans.wal
+		}
+		if clientEvents == nil && n.workItems.Client().Len() > 0 {
+			clientEvents = n.workChans.clients
+		}
+		if hashEvents == nil && n.workItems.Hash().Len() > 0 {
+			hashEvents = n.workChans.hash
+		}
+		if cryptoEvents == nil && n.workItems.Crypto().Len() > 0 {
+			cryptoEvents = n.workChans.crypto
+		}
+		if timerEvents == nil && n.workItems.Timer().Len() > 0 {
+			timerEvents = n.workChans.timer
+		}
+		if netEvents == nil && n.workItems.Net().Len() > 0 {
+			netEvents = n.workChans.net
+		}
+		if appEvents == nil && n.workItems.App().Len() > 0 {
+			appEvents = n.workChans.app
+		}
+		if reqStoreEvents == nil && n.workItems.ReqStore().Len() > 0 {
+			reqStoreEvents = n.workChans.reqStore
+		}
 
 		// Wait until any events are ready and write them to the appropriate location.
 		select {
@@ -365,46 +396,11 @@ func (n *Node) process(ctx context.Context, tickC <-chan time.Time) error {
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
-		case <-tickC:
-			if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Tick())); err != nil {
-				n.workErrNotifier.Fail(err)
-			}
 
 		// Handle termination of the node.
 
 		case <-n.workErrNotifier.ExitC():
 			return n.workErrNotifier.Err()
-		}
-
-		// If any events have been added to the work items,
-		// update the corresponding channel variables accordingly.
-
-		if protocolEvents == nil && n.workItems.Protocol().Len() > 0 {
-			protocolEvents = n.workChans.protocol
-		}
-		if walEvents == nil && n.workItems.WAL().Len() > 0 {
-			walEvents = n.workChans.wal
-		}
-		if clientEvents == nil && n.workItems.Client().Len() > 0 {
-			clientEvents = n.workChans.clients
-		}
-		if hashEvents == nil && n.workItems.Hash().Len() > 0 {
-			hashEvents = n.workChans.hash
-		}
-		if cryptoEvents == nil && n.workItems.Crypto().Len() > 0 {
-			cryptoEvents = n.workChans.crypto
-		}
-		if timerEvents == nil && n.workItems.Timer().Len() > 0 {
-			timerEvents = n.workChans.timer
-		}
-		if netEvents == nil && n.workItems.Net().Len() > 0 {
-			netEvents = n.workChans.net
-		}
-		if appEvents == nil && n.workItems.App().Len() > 0 {
-			appEvents = n.workChans.app
-		}
-		if reqStoreEvents == nil && n.workItems.ReqStore().Len() > 0 {
-			reqStoreEvents = n.workChans.reqStore
 		}
 	}
 }

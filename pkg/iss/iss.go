@@ -58,8 +58,7 @@ type missingRequestInfo struct {
 	// SB instance to be notified (via the RequestsReady event) when all missing requests have been received.
 	Orderer sbInstance
 
-	// Ticks until a retransmission of the missing requests is requested.
-	TicksUntilNAck int // TODO: implement NAcks
+	// TODO: implement NAcks after a timeout, using iss.demandRequestRetransmission(missingRequests)
 }
 
 // missingRequestInfoRef uniquely identifies a missingRequestInfo across all orderer instances
@@ -297,8 +296,6 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return iss.applyInit(e.Init)
-	case *eventpb.Event_Tick:
-		return iss.applyTick(e.Tick)
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
@@ -344,32 +341,6 @@ func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
 
 	// Trigger an Init event at all orderers.
 	return iss.initOrderers()
-}
-
-// applyTick applies a single tick of the logical clock to the protocol state machine.
-func (iss *ISS) applyTick(_ *eventpb.Tick) *events.EventList {
-	eventsOut := &events.EventList{}
-
-	// Demand retransmission of requests if retransmission timer expired.
-	// TODO: iterate in a deterministic order!
-	for _, missingRequests := range iss.missingRequests {
-		// For all sequence numbers for which requests are missing,
-
-		// Decrement the timer/counter.
-		missingRequests.TicksUntilNAck--
-
-		// If the timer expired (i.e. tick counter reached zero),
-		if missingRequests.TicksUntilNAck == 0 {
-
-			// Demand the retransmission of the missing requests.
-			eventsOut.PushBackList(iss.demandRequestRetransmission(missingRequests))
-
-			// Reset the timer/counter to wait until demanding the next retransmission.
-			missingRequests.TicksUntilNAck = iss.config.RequestNAckTimeout
-		}
-	}
-
-	return eventsOut
 }
 
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
@@ -943,7 +914,8 @@ func (iss *ISS) notifyOrderer(reqRef *requestpb.RequestRef) *events.EventList {
 //       (e.g. a client signature) or contacting multiple nodes to confirm the reception of this request,
 //       or even by asking the client directly to retransmit the request to this node.
 // TODO: Implement at least one of these options.
-func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events.EventList {
+// TODO: Remove the //nolint:unused comment when used again.
+func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events.EventList { //nolint:unused
 
 	// Create a slice of requests for which to demand retransmission.
 	// This is only necessary because they are stored in a map.

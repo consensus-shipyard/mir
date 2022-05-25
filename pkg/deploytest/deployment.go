@@ -195,7 +195,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 // Run launches the test deployment.
 // It starts all test replicas, the dummy client, and the fake message transport subsystem,
 // waits until the replicas stop, and returns the final statuses of all the replicas.
-func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) (finalStatuses []NodeStatus, heapObjects int64, heapAlloc int64) {
+func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapObjects int64, heapAlloc int64) {
 
 	// Initialize helper variables.
 	finalStatuses = make([]NodeStatus, len(d.TestReplicas))
@@ -226,7 +226,7 @@ func (d *Deployment) Run(ctx context.Context, tickInterval time.Duration) (final
 			defer nodeWg.Done()
 
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
-			finalStatuses[i] = testReplica.Run(ctx2, tickInterval)
+			finalStatuses[i] = testReplica.Run(ctx2)
 			if err := finalStatuses[i].ExitErr; err != nil {
 				testReplica.Config.Logger.Log(logging.LevelError, "exit with error:", err)
 			} else {

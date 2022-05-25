@@ -36,7 +36,6 @@ func init() {
 			return
 		}
 		fmt.Printf("Setting tick interval to be %v\n", dur)
-		tickInterval = dur
 	}
 
 	val = os.Getenv("MIR_TEST_STRESS_TEST_TIMEOUT")
@@ -47,7 +46,6 @@ func init() {
 			return
 		}
 		fmt.Printf("Setting test timeout to be %v\n", dur)
-		testTimeout = dur
 	}
 }
 
