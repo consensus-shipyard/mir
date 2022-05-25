@@ -24,6 +24,12 @@ type SigningClientTracker struct {
 }
 
 func SigningTracker(logger logging.Logger) *SigningClientTracker {
+
+	// Ignore all logging if no logger was specified.
+	if logger == nil {
+		logger = logging.NilLogger
+	}
+
 	return &SigningClientTracker{
 		logger:             logger,
 		unverifiedRequests: make(map[string]*requestpb.Request),
