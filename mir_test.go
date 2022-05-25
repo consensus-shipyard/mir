@@ -25,9 +25,6 @@ import (
 )
 
 var (
-	tickInterval = 50 * time.Millisecond
-	testTimeout  = 10 * time.Second
-
 	// Map of all the directories accessed by the tests.
 	// All of those will be deleted after the tests complete.
 	// We are not deleting them on the fly, to make it possible for a test
@@ -94,7 +91,7 @@ var _ = Describe("Basic test", func() {
 		}
 
 		// Run deployment until it stops and returns final node statuses.
-		finalStatuses, heapObjects, heapAlloc = deployment.Run(ctx, tickInterval)
+		finalStatuses, heapObjects, heapAlloc = deployment.Run(ctx)
 		fmt.Printf("Deployment run returned.")
 
 		// Check whether all the test replicas exited correctly.

@@ -5,14 +5,12 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/clients"
@@ -81,12 +79,7 @@ func (tr *TestReplica) EventLogFile() string {
 //   - The final status of the replica
 //   - The error that made the node terminate
 //   - The error that occurred while obtaining the final node status
-func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) NodeStatus {
-
-	// Create logical time for the test replica.
-	// (Note that this is not just for testing - production deployment also only uses this form of time.)
-	ticker := time.NewTicker(tickInterval)
-	defer ticker.Stop()
+func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 
 	// // Initialize the request store.
 	// reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
@@ -173,7 +166,7 @@ func (tr *TestReplica) Run(ctx context.Context, tickInterval time.Duration) Node
 	}
 
 	// Run the node until it stops and obtain the node's final status.
-	exitErr := node.Run(ctx, ticker.C)
+	exitErr := node.Run(ctx)
 	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
 
 	finalStatus, statusErr := node.Status(context.Background())

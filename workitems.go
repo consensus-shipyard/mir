@@ -54,9 +54,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 		case *eventpb.Event_Init:
 			wi.protocol.PushBack(event)
 			// TODO: Should the Init event also go elsewhere? Clients? All the modules?
-		case *eventpb.Event_Tick:
-			wi.protocol.PushBack(event)
-			// TODO: Should the Tick event also go elsewhere? Clients?
 		case *eventpb.Event_SendMessage:
 			wi.net.PushBack(event)
 		case *eventpb.Event_MessageReceived, *eventpb.Event_Iss, *eventpb.Event_RequestReady,

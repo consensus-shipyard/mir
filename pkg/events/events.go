@@ -47,11 +47,6 @@ func Init() *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
 }
 
-// Tick returns an event representing a tick - the event of one step of logical time having elapsed.
-func Tick() *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_Tick{Tick: &eventpb.Tick{}}}
-}
-
 // SendMessage returns an event of sending the message message to destinations.
 // destinations is a slice of replica IDs that will be translated to actual addresses later.
 func SendMessage(message *messagepb.Message, destinations []t.NodeID) *eventpb.Event {
