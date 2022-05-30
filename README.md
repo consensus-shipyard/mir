@@ -1,3 +1,4 @@
+[![Mir Test](https://github.com/filecoin-project/mir/actions/workflows/test.yml/badge.svg)](https://github.com/filecoin-project/mir/actions/workflows/test.yml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/filecoin-project/mir.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/filecoin-project/mir/alerts/)
 
 # Mir - The Distributed Protocol Implementation Framework
