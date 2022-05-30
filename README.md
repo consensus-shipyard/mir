@@ -1,3 +1,5 @@
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/filecoin-project/mir.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/filecoin-project/mir/alerts/)
+
 # Mir - The Distributed Protocol Implementation Framework
 
 Mir is a framework for implementing, debugging, and analyzing distributed protocols.
