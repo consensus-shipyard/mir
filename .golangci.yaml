@@ -1,0 +1,10 @@
+linters:
+  enable:
+    - gocyclo
+    - revive
+    - dupl
+    - unconvert
+    - goconst
+    - gosec
+    - gofmt
+    - misspell
