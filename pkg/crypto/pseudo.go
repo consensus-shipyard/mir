@@ -29,7 +29,7 @@ var (
 func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (*Crypto, error) {
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed))
+	randomness := prand.New(prand.NewSource(seed)) // lgtm[go/insecure-randomness]
 
 	// Generate node keys.
 	// All private keys except the own one will be discarded.
