@@ -500,7 +500,7 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 	logEntry.Digest = digest
 
 	// Insert the entry in the commitLog.
-	iss.commitLog[t.SeqNr(logEntry.Sn)] = logEntry
+	iss.commitLog[logEntry.Sn] = logEntry
 
 	// Deliver commitLog entries to the application in sequence number order.
 	// This is relevant in the case when the sequence number of the currently SB-delivered batch
@@ -512,7 +512,7 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 // applyAppSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
 // It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(epoch) {
+	if iss.epoch.Nr != epoch {
 		return &events.EventList{}
 	}
 	return iss.epoch.Checkpoint.ProcessAppSnapshotHash(digest)
@@ -521,7 +521,7 @@ func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *even
 // applyCheckpointSignResult applies the event of receiving the Checkpoint message signature.
 // It passes the signature to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(epoch) {
+	if iss.epoch.Nr != epoch {
 		return &events.EventList{}
 	}
 	return iss.epoch.Checkpoint.ProcessCheckpointSignResult(signature)
@@ -529,7 +529,7 @@ func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *ev
 
 // It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, epoch t.EpochNr) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(epoch) {
+	if iss.epoch.Nr != epoch {
 		return &events.EventList{}
 	}
 	return iss.epoch.Checkpoint.ProcessSigVerified(valid, err, node)
