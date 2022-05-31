@@ -29,7 +29,7 @@ var (
 func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (*Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec // lgtm[go/insecure-randomness]
+	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
 
 	// Generate node keys.
 	// All private keys except the own one will be discarded.
@@ -79,7 +79,7 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (*Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec // lgtm[go/insecure-randomness]
+	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
 
 	// Generate node keys.
 	// All node private keys are discarded.
