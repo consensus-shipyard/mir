@@ -24,14 +24,14 @@ This approach:
 
 ## Considered Options
 
-* **Active and passive modules.**
+* **Active and passive module types.**
   Generalize the concept of modules, such that:
   - Modules have a unified interface for processing events,
     where each module internally inspects the incoming events and decides on the appropriate action.
     The `Protocol` and some other modules already do have such a unified interface - use it for other modules as well.
   - Instead of dedicated slots for each type of module, use a variable number of generic modules of only 2 types:
     - `PassiveModule`:
-      A module that simply transforms input events to output events whenever invoked by Mir.
+      A module that simply defines the logic for transforming input events to output events whenever invoked by Mir.
       Never injects external events in the system.
       A passive module has the following interface (corresponding to some existing modules, like `Protocol`):
       ```go
@@ -47,11 +47,9 @@ This approach:
       }
       ```
     - `ActiveModule`:
-      Like the `PassiveModule`, the `ActiveModule` consumes input events. However,
-      unlike the `PassiveModule`, the `ActiveModule` does not synchronously return receive input
-      and return output in a function call.
-      Instead, the `ActiveModule` asynchronously reads input events from a channel
+      The `ActiveModule` asynchronously reads input events from a channel
       and writes produced events to an output channel.
+      
       In an `ActiveModule`, the produced events might or might not depend on the input events.
       This makes the `ActiveModule` suitable for injecting external events
       (e.g., reception of a message over the network) in the Node.
