@@ -46,7 +46,7 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	}
 
 	// Look up the own private key and create a Crypto module instance that would sign with this key.
-	var c *Crypto = nil
+	var c *Crypto
 	for i, id := range nodes {
 		if id == ownID {
 			if c, err = New(nodePrivKeys[i]); err != nil {
@@ -96,7 +96,7 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 	}
 
 	// Look up the own private key and create a Crypto module instance that would sign with this key.
-	var c *Crypto = nil
+	var c *Crypto
 	for i, id := range clients {
 		if id == ownID {
 			if c, err = New(clientPrivKeys[i]); err != nil {

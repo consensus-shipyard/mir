@@ -125,7 +125,7 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Declare variables keeping track of failed send attempts.
 	sendFailures := make([]t.NodeID, 0) // List of nodes to which sending the request failed.
-	var firstSndErr error = nil         // The error produced by the first sending failure.
+	var firstSndErr error               // The error produced by the first sending failure.
 
 	// Send the request to all nodes.
 	for nID, connection := range dc.connections {
