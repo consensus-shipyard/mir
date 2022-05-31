@@ -26,10 +26,10 @@ var (
 // Intended for testing purposes and assuming a static membership known to all nodes,
 // NodePseudo can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (*Crypto, error) {
+func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (*Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed)) // lgtm[go/insecure-randomness]
+	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec // lgtm[go/insecure-randomness]
 
 	// Generate node keys.
 	// All private keys except the own one will be discarded.
@@ -76,10 +76,10 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 
 // ClientPseudo behaves the same as NodePseudo, except that it returns a crypto module intended for use by the client.
 // The returned crypto module will use the private key associated with client ownID for signing.
-func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (*Crypto, error) {
+func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (*Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed))
+	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec // lgtm[go/insecure-randomness]
 
 	// Generate node keys.
 	// All node private keys are discarded.
