@@ -1,6 +1,6 @@
 # Generalize Modules
 
-* Status: proposed
+* Status: accepted
 * Deciders: @matejpavlovic, @sergefdrv, @dnkolegov
 * Date: 2022-05-31 (last update)
 
