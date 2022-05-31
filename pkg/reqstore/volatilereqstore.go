@@ -43,12 +43,12 @@ func requestKey(ref *requestpb.RequestRef) string {
 }
 
 // Returns the string representation of a request ID.
-func idKey(clientId t.ClientID, reqNo t.ReqNo) string {
-	return fmt.Sprintf("i-%v.%d", clientId, reqNo)
+func idKey(clientID t.ClientID, reqNo t.ReqNo) string {
+	return fmt.Sprintf("i-%v.%d", clientID, reqNo)
 }
 
 // Adds a digest to the request ID index.
-func (vrs *VolatileRequestStore) updateIdIndex(reqRef *requestpb.RequestRef) {
+func (vrs *VolatileRequestStore) updateIDIndex(reqRef *requestpb.RequestRef) {
 	// Compute string key.
 	key := idKey(t.ClientID(reqRef.ClientId), t.ReqNo(reqRef.ReqNo))
 
@@ -82,7 +82,7 @@ func (vrs *VolatileRequestStore) reqInfo(reqRef *requestpb.RequestRef) *requestI
 		vrs.requests[key] = reqInfo
 
 		// Add the digest of the newly allocated entry
-		vrs.updateIdIndex(reqRef)
+		vrs.updateIDIndex(reqRef)
 	}
 
 	return reqInfo

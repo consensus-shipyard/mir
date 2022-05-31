@@ -201,14 +201,14 @@ func pbftNewViewMsg(
 	view t.PBFTViewNr,
 	viewChangeSenders []t.NodeID,
 	viewChanges []*isspbftpb.SignedViewChange,
-	preprepare_seq_nrs []t.SeqNr,
+	preprepareSeqNrs []t.SeqNr,
 	preprepares []*isspbftpb.Preprepare,
 ) *isspbftpb.NewView {
 	return &isspbftpb.NewView{
 		View:              view.Pb(),
 		ViewChangeSenders: t.NodeIDSlicePb(viewChangeSenders),
 		SignedViewChanges: viewChanges,
-		PreprepareSeqNrs:  t.SeqNrSlicePb(preprepare_seq_nrs),
+		PreprepareSeqNrs:  t.SeqNrSlicePb(preprepareSeqNrs),
 		Preprepares:       preprepares,
 	}
 }

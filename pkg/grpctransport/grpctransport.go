@@ -38,7 +38,7 @@ type GrpcTransport struct {
 	UnimplementedGrpcTransportServer
 
 	// The numeric ID of the node that uses this networking module.
-	ownId t.NodeID
+	ownID t.NodeID
 
 	// Complete static membership of the system.
 	// Maps the numeric node ID of each node in the system to a string representation of its network address.
@@ -70,7 +70,7 @@ type GrpcTransport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewGrpcTransport(membership map[t.NodeID]string, ownId t.NodeID, l logging.Logger) *GrpcTransport {
+func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logger) *GrpcTransport {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
@@ -78,7 +78,7 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownId t.NodeID, l logging.
 	}
 
 	return &GrpcTransport{
-		ownId:            ownId,
+		ownID:            ownID,
 		incomingMessages: make(chan modules.ReceivedMessage),
 		membership:       membership,
 		connections:      make(map[t.NodeID]GrpcTransport_ListenClient),
@@ -89,7 +89,7 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownId t.NodeID, l logging.
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *GrpcTransport) Send(dest t.NodeID, msg *messagepb.Message) error {
-	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownId.Pb(), Msg: msg})
+	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 
 // ReceiveChan returns a channel to which the Net module writes all received messages and sender IDs
@@ -144,7 +144,7 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 func (gt *GrpcTransport) Start() error {
 
 	// Obtain own port number from membership.
-	_, ownPort, err := splitAddrPort(gt.membership[gt.ownId])
+	_, ownPort, err := splitAddrPort(gt.membership[gt.ownID])
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func (gt *GrpcTransport) Connect(ctx context.Context) {
 	lock := sync.Mutex{}
 
 	// For each node in the membership
-	for nodeId, nodeAddr := range gt.membership {
+	for nodeID, nodeAddr := range gt.membership {
 
 		// Launch a goroutine that connects to the node.
 		go func(id t.NodeID, addr string) {
@@ -232,7 +232,7 @@ func (gt *GrpcTransport) Connect(ctx context.Context) {
 				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
-		}(nodeId, nodeAddr)
+		}(nodeID, nodeAddr)
 	}
 
 	// Wait for connecting goroutines to finish.

@@ -396,11 +396,11 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 
 		switch e := event.Type.(type) {
 		case *eventpb.Event_SendMessage:
-			for _, destId := range e.SendMessage.Destinations {
-				if t.NodeID(destId) == n.ID {
+			for _, destID := range e.SendMessage.Destinations {
+				if t.NodeID(destID) == n.ID {
 					eventsOut.PushBack(events.MessageReceived(n.ID, e.SendMessage.Msg))
 				} else {
-					if err := n.modules.Net.Send(t.NodeID(destId), e.SendMessage.Msg); err != nil { // nolint
+					if err := n.modules.Net.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
 						// TODO: Handle sending errors (and remove "nolint" comment above).
 					}
 				}

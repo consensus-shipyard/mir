@@ -30,7 +30,7 @@ const (
 // TODO: Update the comments around crypto, hasher, and request signing.
 
 type DummyClient struct {
-	ownId       t.ClientID
+	ownID       t.ClientID
 	hasher      modules.Hasher
 	crypto      modules.Crypto
 	nextReqNo   t.ReqNo
@@ -38,7 +38,7 @@ type DummyClient struct {
 	logger      logging.Logger
 }
 
-func NewDummyClient(clientId t.ClientID, hasher modules.Hasher, crypto modules.Crypto, l logging.Logger) *DummyClient {
+func NewDummyClient(clientID t.ClientID, hasher modules.Hasher, crypto modules.Crypto, l logging.Logger) *DummyClient {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
@@ -46,7 +46,7 @@ func NewDummyClient(clientId t.ClientID, hasher modules.Hasher, crypto modules.C
 	}
 
 	return &DummyClient{
-		ownId:       clientId,
+		ownID:       clientID,
 		hasher:      hasher,
 		crypto:      crypto,
 		nextReqNo:   0,
@@ -69,7 +69,7 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 	lock := sync.Mutex{}
 
 	// For each node in the membership
-	for nodeId, nodeAddr := range membership {
+	for nodeID, nodeAddr := range membership {
 
 		// Launch a goroutine that connects to the node.
 		go func(id t.NodeID, addr string) {
@@ -88,7 +88,7 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 				dc.logger.Log(logging.LevelDebug, "Node connected.", "id", id, "addr", addr)
 			}
 
-		}(nodeId, nodeAddr)
+		}(nodeID, nodeAddr)
 	}
 
 	// Wait for connecting goroutines to finish.
@@ -104,7 +104,7 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Create new request message.
 	reqMsg := &requestpb.Request{
-		ClientId: dc.ownId.Pb(),
+		ClientId: dc.ownID.Pb(),
 		ReqNo:    dc.nextReqNo.Pb(),
 		Data:     data,
 	}
