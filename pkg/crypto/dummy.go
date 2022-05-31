@@ -9,6 +9,7 @@ package crypto
 import (
 	"bytes"
 	"fmt"
+
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -41,11 +42,11 @@ func (dc *DummyCrypto) DeleteNodeKey(nodeID t.NodeID) {
 // VerifyNodeSig returns nil (i.e. success) only if signature equals DummySig.
 // Both data and nodeID are ignored.
 func (dc *DummyCrypto) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID) error {
-	if bytes.Equal(signature, dc.DummySig) {
-		return nil
-	} else {
+	if !bytes.Equal(signature, dc.DummySig) {
 		return fmt.Errorf("dummy signature mismatch")
 	}
+
+	return nil
 }
 
 // RegisterClientKey does nothing, as no public keys are used.
@@ -60,9 +61,9 @@ func (dc *DummyCrypto) DeleteClientKey(clientID t.ClientID) {
 // VerifyClientSig returns nil (i.e. success) only if signature equals DummySig.
 // Both data and nodeID are ignored.
 func (dc *DummyCrypto) VerifyClientSig(data [][]byte, signature []byte, clientID t.ClientID) error {
-	if bytes.Equal(signature, dc.DummySig) {
-		return nil
-	} else {
+	if !bytes.Equal(signature, dc.DummySig) {
 		return fmt.Errorf("dummy signature mismatch")
 	}
+
+	return nil
 }

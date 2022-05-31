@@ -287,12 +287,11 @@ func splitAddrPort(addrString string) (string, int, error) {
 	addr := s[0]
 
 	// Convert the part after the colon to an integer.
-	if port, err := strconv.Atoi(s[1]); err != nil {
+	port, err := strconv.Atoi(s[1])
+	if err != nil {
 		return "", 0, fmt.Errorf("failed parsing port number: %v", err)
-	} else {
-
-		// If conversion succeeds, return parsed values.
-		return addr, port, nil
 	}
 
+	// If conversion succeeds, return parsed values.
+	return addr, port, nil
 }

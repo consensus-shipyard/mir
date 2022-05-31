@@ -168,10 +168,10 @@ func (iss *ISS) applySBInstWaitForRequests(
 		// If any requests are missing, register the missingRequestInfo and do not notify the orderer.
 		iss.missingRequests[ref] = missingReqs
 		return &events.EventList{}
-	} else {
-		// If all requests are already available, notify the orderer directly.
-		return missingReqs.Orderer.ApplyEvent(SBRequestsReady(ref.SBRef))
 	}
+
+	// If all requests are already available, notify the orderer directly.
+	return missingReqs.Orderer.ApplyEvent(SBRequestsReady(ref.SBRef))
 }
 
 // applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed

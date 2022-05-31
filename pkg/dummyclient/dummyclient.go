@@ -144,9 +144,9 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 	// Return an error summarizing the failed send attempts or nil if the request was successfully sent to all nodes.
 	if firstSndErr != nil {
 		return fmt.Errorf("failed sending request to nodes: %v first error: %w", sendFailures, firstSndErr)
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 // Disconnect closes all open connections to Mir nodes.

@@ -273,18 +273,19 @@ func createDeploymentDir(config *deploytest.TestConfig) error {
 		// If a directory is configured, use the configured one.
 		if err := os.MkdirAll(config.Directory, 0777); err != nil {
 			return err
-		} else {
-			return nil
 		}
-	} else {
-		// If no directory is configured, create a temporary directory in the OS-default location.
-		tmpDir, err := ioutil.TempDir("", "mir-deployment-test.")
-		fmt.Printf("Creating temp dir: %s\n", tmpDir)
-		if err != nil {
-			return err
-		} else {
-			config.Directory = tmpDir
-			return nil
-		}
+
+		return nil
 	}
+
+	// If no directory is configured, create a temporary directory in the OS-default location.
+	tmpDir, err := ioutil.TempDir("", "mir-deployment-test.")
+	fmt.Printf("Creating temp dir: %s\n", tmpDir)
+	if err != nil {
+		return err
+	}
+
+	config.Directory = tmpDir
+
+	return nil
 }

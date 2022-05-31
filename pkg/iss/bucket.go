@@ -9,6 +9,7 @@ package iss
 import (
 	"container/list"
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
@@ -89,12 +90,12 @@ func (b *requestBucket) Add(reqRef *requestpb.RequestRef) bool {
 	// signifies that the request has been added and removed, in which chase it must not be added again.
 	if _, ok := b.reqMap[key]; ok {
 		return false
-	} else {
-		// Add request to the bucket.
-		e := b.reqList.PushBack(reqRef)
-		b.reqMap[key] = e
-		return true
 	}
+
+	// Add request to the bucket.
+	e := b.reqList.PushBack(reqRef)
+	b.reqMap[key] = e
+	return true
 }
 
 // Remove removes a request from the bucket.

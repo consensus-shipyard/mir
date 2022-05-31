@@ -57,13 +57,13 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 
 	// Return error if own ID was not found in the given membership or Crypto module instantiation failed
 	if c == nil {
-		if err == nil {
-			// Own ID was not found and Crypto module instantiation was not even attempted.
-			return nil, fmt.Errorf("ownID (%v) not found among nodes", ownID)
-		} else {
+		if err != nil {
 			// Crypto module instantiation failed.
 			return nil, err
 		}
+
+		// Own ID was not found and Crypto module instantiation was not even attempted.
+		return nil, fmt.Errorf("ownID (%v) not found among nodes", ownID)
 	}
 
 	// Populate the Crypto module instance with the generated keys
@@ -107,13 +107,13 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 
 	// Return error if own ID was not found in the given membership or Crypto module instantiation failed
 	if c == nil {
-		if err == nil {
-			// Own ID was not found and Crypto module instantiation was not even attempted.
-			return nil, fmt.Errorf("ownID (%v) not found among clients", ownID)
-		} else {
+		if err != nil {
 			// Crypto module instantiation failed.
 			return nil, err
 		}
+
+		// Own ID was not found and Crypto module instantiation was not even attempted.
+		return nil, fmt.Errorf("ownID (%v) not found among clients", ownID)
 	}
 
 	// Populate the Crypto module instance with the generated keys

@@ -93,12 +93,12 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 			storeEvent := events.StoreVerifiedRequest(reqRef, req.Data, req.Authenticator)
 			storeEvent.Next = []*eventpb.Event{events.RequestReady(reqRef)}
 			return (&events.EventList{}).PushBack(storeEvent)
-		} else {
-			// If signature is not valid, ignore request
-			ct.logger.Log(logging.LevelWarn, "Ignoring invalid request",
-				"clID", reqRef.ClientId, "reqNo", reqRef.ReqNo, "err", e.RequestSigVerified.Error)
-			return &events.EventList{}
 		}
+
+		// If signature is not valid, ignore request
+		ct.logger.Log(logging.LevelWarn, "Ignoring invalid request",
+			"clID", reqRef.ClientId, "reqNo", reqRef.ReqNo, "err", e.RequestSigVerified.Error)
+		return &events.EventList{}
 	default:
 		panic(fmt.Sprintf("unknown event: %T", event.Type))
 	}

@@ -116,17 +116,17 @@ func (dp *DummyProtocol) handleRequest(ref *requestpb.RequestRef) *events.EventL
 		// First the dummy batch needs to be persisted to the WAL, and only then it can be committed and sent to others.
 		walEvent.Next = []*eventpb.Event{announceEvent, msgSendEvent}
 		return (&events.EventList{}).PushBack(walEvent)
-	} else {
-		// If I am not the leader (node 0 is always the leader in DummyProtocol),
-		// record the reception of the request.
-		dp.requestsReceived[reqStrKey(ref)] = ref
-
-		dp.logger.Log(logging.LevelDebug, "Non-leader received request.",
-			"clientId", ref.ClientId, "reqNo", ref.ReqNo)
-
-		// Announce all pending requests
-		return dp.announceRequests()
 	}
+
+	// If I am not the leader (node 0 is always the leader in DummyProtocol),
+	// record the reception of the request.
+	dp.requestsReceived[reqStrKey(ref)] = ref
+
+	dp.logger.Log(logging.LevelDebug, "Non-leader received request.",
+		"clientId", ref.ClientId, "reqNo", ref.ReqNo)
+
+	// Announce all pending requests
+	return dp.announceRequests()
 }
 
 // Handles an incoming protocol message.
