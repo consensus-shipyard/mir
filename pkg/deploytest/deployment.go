@@ -148,7 +148,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			issConfig = testConfig.FirstReplicaISSConfig
 		}
 		replicas[i] = &TestReplica{
-			Id:              t.NewNodeIDFromInt(i),
+			ID:              t.NewNodeIDFromInt(i),
 			Config:          config,
 			Membership:      membership,
 			ClientIDs:       clientIDs,
@@ -266,7 +266,7 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 // localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // The network address of each test replica is the loopback 127.0.0.1.
-func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID, logger logging.Logger) *grpctransport.GrpcTransport {
+func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *grpctransport.GrpcTransport {
 
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
@@ -277,7 +277,7 @@ func localGrpcTransport(nodeIds []t.NodeID, ownId t.NodeID, logger logging.Logge
 
 	return grpctransport.NewGrpcTransport(
 		membership,
-		ownId,
+		ownID,
 		logger,
 	)
 }
@@ -290,7 +290,7 @@ func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
 
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for i, tr := range d.TestReplicas {
-		addrs[tr.Id] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+i)
+		addrs[tr.ID] = fmt.Sprintf("127.0.0.1:%d", RequestListenPort+i)
 	}
 
 	return addrs

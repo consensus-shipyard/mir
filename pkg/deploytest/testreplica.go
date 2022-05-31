@@ -36,7 +36,7 @@ var (
 type TestReplica struct {
 
 	// ID of the replica as seen by the protocol.
-	Id t.NodeID
+	ID t.NodeID
 
 	// Dummy test application the replica is running.
 	App *FakeApp
@@ -101,7 +101,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 	file, err := os.Create(tr.EventLogFile())
 	Expect(err).NotTo(HaveOccurred())
 	defer file.Close()
-	interceptor := eventlog.NewRecorder(tr.Id, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
+	interceptor := eventlog.NewRecorder(tr.ID, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	defer func() {
 		err := interceptor.Stop()
 		Expect(err).NotTo(HaveOccurred())
@@ -112,15 +112,15 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.ISSConfig = iss.DefaultConfig(tr.Membership)
 	}
 
-	issProtocol, err := iss.New(tr.Id, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
+	issProtocol, err := iss.New(tr.ID, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
 	Expect(err).NotTo(HaveOccurred())
 
-	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ClientIDs, tr.Id, mirCrypto.DefaultPseudoSeed)
+	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ClientIDs, tr.ID, mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Create the mir node for this replica.
 	node, err := mir.NewNode(
-		tr.Id,
+		tr.ID,
 		tr.Config,
 		&modules.Modules{
 			Net:           tr.Net,
@@ -141,9 +141,9 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
-	p, err := strconv.Atoi(tr.Id.Pb())
+	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
-		panic(fmt.Errorf("could not convert node ID %s: %w", tr.Id, err))
+		panic(fmt.Errorf("could not convert node ID %s: %w", tr.ID, err))
 	}
 	err = requestReceiver.Start(RequestListenPort + p)
 	Expect(err).NotTo(HaveOccurred())

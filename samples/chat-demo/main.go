@@ -18,11 +18,12 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"path"
 	"strconv"
 	"sync"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -57,7 +58,7 @@ type parsedArgs struct {
 
 	// Numeric ID of this node.
 	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
-	OwnId t.NodeID
+	OwnID t.NodeID
 
 	// If set, print verbose output to stdout.
 	Verbose bool
@@ -120,7 +121,7 @@ func main() {
 	// At the time of writing this comment, restarts / crash-recovery is not yet implemented though.
 	// Nevertheless, running this code will create a directory with the WAL file in it.
 	// Those need to be manually removed.
-	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%v", args.OwnId))
+	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%v", args.OwnID))
 	wal, err := simplewal.Open(walPath)
 	if err != nil {
 		panic(err)
@@ -136,7 +137,7 @@ func main() {
 
 	// Initialize the networking module.
 	// Mir will use it for transporting nod-to-node messages.
-	net := grpctransport.NewGrpcTransport(nodeAddrs, args.OwnId, nil)
+	net := grpctransport.NewGrpcTransport(nodeAddrs, args.OwnID, nil)
 	if err := net.Start(); err != nil {
 		panic(err)
 	}
@@ -150,7 +151,7 @@ func main() {
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIds)
-	issProtocol, err := iss.New(args.OwnId, issConfig, logger)
+	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
 	if err != nil {
 		panic(fmt.Errorf("could not instantiate ISS protocol module: %w", err))
 	}
@@ -160,7 +161,7 @@ func main() {
 	// ================================================================================
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
-	node, err := mir.NewNode(args.OwnId, &mir.NodeConfig{Logger: logger}, &modules.Modules{
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, &modules.Modules{
 		Net:          net,
 		WAL:          wal,
 		RequestStore: reqStore,
@@ -204,7 +205,7 @@ func main() {
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
 	reqReceiver := requestreceiver.NewRequestReceiver(node, logger)
-	p, err := strconv.Atoi(string(args.OwnId))
+	p, err := strconv.Atoi(string(args.OwnID))
 	if err != nil {
 		panic(fmt.Errorf("could not convert node ID: %w", err))
 	}
@@ -223,7 +224,7 @@ func main() {
 	// We use a dummy Crypto module set up the same way as the Node's Crypto module,
 	// so the client's signatures are accepted.
 	client := dummyclient.NewDummyClient(
-		t.ClientID(args.OwnId),
+		t.ClientID(args.OwnID),
 		crypto.SHA256,
 		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 		logger,
@@ -288,14 +289,14 @@ func parseArgs(args []string) *parsedArgs {
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
 	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
-	ownId := app.Arg("id", "Numeric ID of this node").Required().String()
+	ownID := app.Arg("id", "Numeric ID of this node").Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)
 	}
 
 	return &parsedArgs{
-		OwnId:   t.NodeID(*ownId),
+		OwnID:   t.NodeID(*ownID),
 		Verbose: *verbose,
 	}
 }
