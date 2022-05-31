@@ -1,7 +1,6 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/filecoin-project/mir.svg)](https://pkg.go.dev/github.com/filecoin-project/mir)
 [![Mir Test](https://github.com/filecoin-project/mir/actions/workflows/test.yml/badge.svg)](https://github.com/filecoin-project/mir/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/filecoin-project/mir)](https://goreportcard.com/report/github.com/filecoin-project/mir)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/filecoin-project/mir.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/filecoin-project/mir/alerts/)
 
 # Mir - The Distributed Protocol Implementation Framework
 
