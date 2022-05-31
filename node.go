@@ -9,8 +9,9 @@ package mir
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/logging"
 	"sync"
+
+	"github.com/filecoin-project/mir/pkg/logging"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -241,7 +242,7 @@ func (n *Node) processWAL() error {
 // Performs all internal work of the node,
 // which mostly consists of routing events between the node's modules.
 // Stops and returns when ctx is canceled.
-func (n *Node) process(ctx context.Context) error {
+func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
 	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
