@@ -2,6 +2,7 @@ package iss
 
 import (
 	"bytes"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -192,7 +193,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 func (slot *pbftSlot) getPreprepare(digest []byte) *isspbftpb.Preprepare {
 	if slot.Preprepared && bytes.Equal(digest, slot.Digest) {
 		return slot.Preprepare
-	} else {
-		return nil
 	}
+
+	return nil
 }

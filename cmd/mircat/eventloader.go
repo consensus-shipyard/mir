@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
-	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"io"
 	"os"
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type eventMetadata struct {
@@ -79,16 +80,16 @@ func selected(event *eventpb.Event, selectedEvents map[string]struct{}, selected
 	if _, ok := selectedEvents[eventName(event)]; !ok {
 		// If the basic type of the event has not been selected, return false.
 		return false
-	} else {
-		// If the basic type of the event has been selected,
-		// check whether the sub-type has been selected as well for ISS events.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_Iss:
-			_, ok := selectedIssEvents[issEventName(e.Iss)]
-			return ok
-		default:
-			return true
-		}
+	}
+
+	// If the basic type of the event has been selected,
+	// check whether the sub-type has been selected as well for ISS events.
+	switch e := event.Type.(type) {
+	case *eventpb.Event_Iss:
+		_, ok := selectedIssEvents[issEventName(e.Iss)]
+		return ok
+	default:
+		return true
 	}
 }
 

@@ -96,12 +96,13 @@ func debug(args *arguments) error {
 		}
 	}
 
-	if err == io.EOF {
-		fmt.Println("End of trace, done debugging.")
-		return nil
-	} else {
+	if err != io.EOF {
 		return fmt.Errorf("error reading event log: %w", err)
 	}
+
+	fmt.Println("End of trace, done debugging.")
+
+	return nil
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
@@ -128,9 +129,9 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
-	} else {
-		return node, nil
 	}
+
+	return node, nil
 }
 
 // stopBeforeNext waits for two confirmations of the user, a confirmation being a new line on the standard input.

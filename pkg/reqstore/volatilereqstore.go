@@ -117,26 +117,21 @@ func (vrs *VolatileRequestStore) GetRequest(reqRef *requestpb.RequestRef) ([]byt
 	vrs.RLock()
 	defer vrs.RUnlock()
 
-	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; ok {
-		// If an entry for the referenced request is present.
-
-		if reqInfo.data != nil {
-			// And if the referenced entry contains request data.
-
-			// Return a copy of the data (not a pointer to the data itself)
-			data := make([]byte, len(reqInfo.data))
-			copy(data, reqInfo.data)
-			return data, nil
-		} else {
-			// If the entry exists, but contains no data, return an error.
-			return nil, fmt.Errorf(fmt.Sprintf("request (%v-%d.%x) not present",
-				reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
-		}
-	} else {
+	reqInfo, ok := vrs.requests[requestKey(reqRef)]
+	if !ok {
 		// If the entry does not exist, return an error.
 		return nil, fmt.Errorf(fmt.Sprintf("request (%v-%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
+	} else if reqInfo.data == nil {
+		// If the entry exists, but contains no data, return an error.
+		return nil, fmt.Errorf(fmt.Sprintf("request (%v-%d.%x) not present",
+			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
+
+	// Return a copy of the data (not a pointer to the data itself)
+	data := make([]byte, len(reqInfo.data))
+	copy(data, reqInfo.data)
+	return data, nil
 }
 
 // RemoveRequest removes any request data associated with the passed request reference.
@@ -170,14 +165,15 @@ func (vrs *VolatileRequestStore) IsAuthenticated(reqRef *requestpb.RequestRef) (
 	vrs.RLock()
 	defer vrs.RUnlock()
 
-	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; !ok {
-		// If an entry for the referenced request is present, return the authenticated flag.
-		return reqInfo.authenticated, nil
-	} else {
+	reqInfo, ok := vrs.requests[requestKey(reqRef)]
+	if !ok {
 		// If the entry does not exist, return an error.
 		return false, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
+
+	// If an entry for the referenced request is present, return the authenticated flag.
+	return reqInfo.authenticated, nil
 }
 
 // PutAuthenticator stores an authenticator associated with the referenced request.
@@ -204,36 +200,31 @@ func (vrs *VolatileRequestStore) GetAuthenticator(reqRef *requestpb.RequestRef) 
 	vrs.RLock()
 	defer vrs.RUnlock()
 
-	if reqInfo, ok := vrs.requests[requestKey(reqRef)]; !ok {
-		// If an entry for the referenced request is present.
-
-		if reqInfo.authenticator != nil {
-			// And if the referenced entry contains an authenticator.
-
-			// Return a copy of the authenticator (not a pointer to the data itself)
-			auth := make([]byte, len(reqInfo.authenticator))
-			copy(auth, reqInfo.authenticator)
-			return auth, nil
-		} else {
-			// If the entry exists, but contains no authenticator, return an error.
-			return nil, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
-				reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
-		}
-	} else {
+	reqInfo, ok := vrs.requests[requestKey(reqRef)]
+	if !ok {
 		// If the entry does not exist, return an error.
 		return nil, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
 			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
+	} else if reqInfo.authenticator == nil {
+		// If the entry exists, but contains no authenticator, return an error.
+		return nil, fmt.Errorf(fmt.Sprintf("request (%v.%d.%x) not present",
+			reqRef.ClientId, reqRef.ReqNo, reqRef.Digest))
 	}
+
+	// Return a copy of the authenticator (not a pointer to the data itself)
+	auth := make([]byte, len(reqInfo.authenticator))
+	copy(auth, reqInfo.authenticator)
+	return auth, nil
 }
 
 // GetDigestsByID returns a list of request digests for which any information
 // (request data, authentication, or authenticator) is stored in the RequestStore.
-func (vrs *VolatileRequestStore) GetDigestsByID(clientId t.ClientID, reqNo t.ReqNo) ([][]byte, error) {
+func (vrs *VolatileRequestStore) GetDigestsByID(clientID t.ClientID, reqNo t.ReqNo) ([][]byte, error) {
 	vrs.RLock()
 	defer vrs.RUnlock()
 
 	// Look up  index entry and allocate result structure.
-	indexEntry, ok := vrs.idIndex[idKey(clientId, reqNo)]
+	indexEntry, ok := vrs.idIndex[idKey(clientID, reqNo)]
 	digests := make([][]byte, 0)
 
 	if ok {

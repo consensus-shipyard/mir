@@ -3,11 +3,12 @@ package iss
 import (
 	"bytes"
 	"fmt"
+	"sort"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sort"
 )
 
 // Creates a new Preprepare message identical to the one given as argument,
@@ -33,10 +34,10 @@ func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VC
 		pbft.logger.Log(logging.LevelWarn, "View change batch timer expired.",
 			"view", pbft.view, "numCommitted", timeoutEvent.NumCommitted)
 		return pbft.startViewChange()
-	} else {
-		// Do nothing otherwise.
-		return &events.EventList{}
 	}
+
+	// Do nothing otherwise.
+	return &events.EventList{}
 }
 
 // applyViewChangeSegmentTimeout applies the view change segment timeout event
@@ -52,10 +53,10 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 		// Start the view change sub-protocol.
 		pbft.logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", pbft.view)
 		return pbft.startViewChange()
-	} else {
-		// Do nothing otherwise.
-		return &events.EventList{}
 	}
+
+	// Do nothing otherwise.
+	return &events.EventList{}
 }
 
 // startViewChange initiates the view change subprotocol.
@@ -209,11 +210,11 @@ func (pbft *pbftInstance) applyEmptyPreprepareHashResult(digests [][]byte, view 
 		pbft.logger.Log(logging.LevelDebug, "All Preprepares present, sending NewView.")
 		// If we have all preprepares, start view change.
 		return pbft.sendNewView(view, state)
-	} else {
-		pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
-		// If some Preprepares for re-proposing are still missing, fetch them from other nodes.
-		return state.askForMissingPreprepares(pbft.eventService)
 	}
+
+	pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
+	// If some Preprepares for re-proposing are still missing, fetch them from other nodes.
+	return state.askForMissingPreprepares(pbft.eventService)
 }
 
 func (pbft *pbftInstance) applyMsgPreprepareRequest(
@@ -227,12 +228,10 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 			pbft.eventService.SendMessage(PbftMissingPreprepareSBMessage(preprepare), []t.NodeID{from}),
 		)
 
-	} else {
-
-		// If the requested Preprepare message is not available, ignore the request.
-		return &events.EventList{}
-
 	}
+
+	// If the requested Preprepare message is not available, ignore the request.
+	return &events.EventList{}
 }
 
 func (pbft *pbftInstance) lookUpPreprepare(sn t.SeqNr, digest []byte) *isspbftpb.Preprepare {
@@ -309,9 +308,9 @@ func (pbft *pbftInstance) applyMissingPreprepareHashResult(
 	// If this was the last missing preprepare message, proceed to sending a NewView message.
 	if state.HasAllPreprepares() {
 		return pbft.sendNewView(view, state)
-	} else {
-		return &events.EventList{}
 	}
+
+	return &events.EventList{}
 }
 
 func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeState) *events.EventList {
@@ -455,13 +454,12 @@ func (pbft *pbftInstance) getViewChangeState(view t.PBFTViewNr) *pbftViewChangeS
 	if vcs, ok := pbft.viewChangeStates[view]; ok {
 		// If a view change state is already present, return it.
 		return vcs
-	} else {
-		// If no view change state is yet associated with this view, allocate a new one and return it.
-
-		pbft.viewChangeStates[view] = newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership)
-
-		return pbft.viewChangeStates[view]
 	}
+
+	// If no view change state is yet associated with this view, allocate a new one and return it.
+	pbft.viewChangeStates[view] = newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership)
+
+	return pbft.viewChangeStates[view]
 }
 
 // Returns the view change state with the highest view number that received enough view change messages
@@ -522,9 +520,9 @@ func reconstructPSet(entries []*isspbftpb.PSetEntry) (viewChangePSet, error) {
 		// There can be at most one entry per sequence number. Otherwise, the set is not valid.
 		if _, ok := pSet[t.SeqNr(entry.Sn)]; ok {
 			return nil, fmt.Errorf("invalid Pset: conflicting prepare entries")
-		} else {
-			pSet[t.SeqNr(entry.Sn)] = entry
 		}
+
+		pSet[t.SeqNr(entry.Sn)] = entry
 	}
 
 	return pSet, nil
@@ -685,21 +683,20 @@ func reproposal(
 
 		return []byte{}, nil
 
-	} else {
+	}
 
-		for _, pSet := range pSets {
-			if entry, ok := pSet[sn]; ok {
-				a2, prepreparedIDs := enoughPrepreparesA2(qSets, sn, entry.Digest, t.PBFTViewNr(entry.View), numNodes)
-				if noPrepareConflictsA1(pSets, sn, entry.Digest, t.PBFTViewNr(entry.View), numNodes) && a2 {
+	for _, pSet := range pSets {
+		if entry, ok := pSet[sn]; ok {
+			a2, prepreparedIDs := enoughPrepreparesA2(qSets, sn, entry.Digest, t.PBFTViewNr(entry.View), numNodes)
+			if noPrepareConflictsA1(pSets, sn, entry.Digest, t.PBFTViewNr(entry.View), numNodes) && a2 {
 
-					return entry.Digest, prepreparedIDs
+				return entry.Digest, prepreparedIDs
 
-				}
 			}
 		}
-		return nil, nil
-
 	}
+
+	return nil, nil
 }
 
 func noPrepareConflictsA1(

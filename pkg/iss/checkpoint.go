@@ -192,9 +192,9 @@ func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t
 	// If, after having applied this message, the checkpoint became stable, produce the necessary events.
 	if ct.stable() {
 		return ct.announceStable()
-	} else {
-		return &events.EventList{}
 	}
+
+	return &events.EventList{}
 }
 
 func (ct *checkpointTracker) stable() bool {

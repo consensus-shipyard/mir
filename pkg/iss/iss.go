@@ -734,14 +734,13 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 	case epoch == iss.epoch.Nr:
 		// If the message is for the current epoch, check its validity and
 		// apply it to the corresponding orderer in form of an SBMessageReceived event.
-		if err := iss.validateSBMessage(message, from); err == nil {
-			return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceNr(message.Instance))
-		} else {
+		if err := iss.validateSBMessage(message, from); err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
 				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err)
 			return &events.EventList{}
 		}
 
+		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceNr(message.Instance))
 	default: // epoch < iss.epoch:
 		// Ignore old messages
 		// TODO: In case old SB instances from previous epoch still need to linger around,

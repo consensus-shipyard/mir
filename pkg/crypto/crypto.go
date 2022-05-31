@@ -44,18 +44,18 @@ type Crypto struct {
 func New(privKey []byte) (*Crypto, error) {
 
 	// Deserialize the passed private key.
-	if key, err := privKeyFromBytes(privKey); err == nil {
-		// If deserialization succeeds, return the pointer to a new initialized instance of Crypto.
-		return &Crypto{
-			privKey:    key,
-			nodeKeys:   make(map[t.NodeID]interface{}),
-			clientKeys: make(map[t.ClientID]interface{}),
-		}, nil
-	} else {
+	key, err := privKeyFromBytes(privKey)
+	if err != nil {
 		// Report error if deserialization of the private key fails.
 		return nil, fmt.Errorf("error parsing private key: %w", err)
 	}
 
+	// If deserialization succeeds, return the pointer to a new initialized instance of Crypto.
+	return &Crypto{
+		privKey:    key,
+		nodeKeys:   make(map[t.NodeID]interface{}),
+		clientKeys: make(map[t.ClientID]interface{}),
+	}, nil
 }
 
 // Sign signs the provided data and returns the resulting signature.
@@ -79,14 +79,16 @@ func (c *Crypto) Sign(data [][]byte) ([]byte, error) {
 func (c *Crypto) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 
 	// Deserialize passed public key
-	if key, err := pubKeyFromBytes(pubKey); err == nil {
-		// If deserialization succeeds, save public key under the given node ID.
-		c.nodeKeys[nodeID] = key
-		return nil
-	} else {
+	key, err := pubKeyFromBytes(pubKey)
+	if err != nil {
 		// If deserialization fails, report error.
 		return fmt.Errorf("error parsing node public key: %w", err)
 	}
+
+	// If deserialization succeeds, save public key under the given node ID.
+	c.nodeKeys[nodeID] = key
+
+	return nil
 }
 
 // RegisterClientKey associates a public key with a numeric client ID.
@@ -96,14 +98,16 @@ func (c *Crypto) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 func (c *Crypto) RegisterClientKey(pubKey []byte, clientID t.ClientID) error {
 
 	// Deserialize passed public key
-	if key, err := pubKeyFromBytes(pubKey); err == nil {
-		// If deserialization succeeds, save public key under the given client ID.
-		c.clientKeys[clientID] = key
-		return nil
-	} else {
+	key, err := pubKeyFromBytes(pubKey)
+	if err != nil {
 		// If deserialization fails, report error.
 		return fmt.Errorf("error parsing client public key: %w", err)
 	}
+
+	// If deserialization succeeds, save public key under the given client ID.
+	c.clientKeys[clientID] = key
+
+	return nil
 }
 
 // DeleteNodeKey removes the public key associated with nodeID from the internal state.
@@ -330,10 +334,10 @@ func PrivKeyFromFile(file string) ([]byte, error) {
 		if key, err := privKeyFromPEMBlock(block); err == nil {
 			// When a block with a private key is found, return it.
 			return SerializePrivKey(key)
-		} else {
-			// Otherwise, try next block.
-			block, rest = pem.Decode(rest)
 		}
+
+		// Otherwise, try next block.
+		block, rest = pem.Decode(rest)
 	}
 
 	return nil, fmt.Errorf("no valid key PEM block found")

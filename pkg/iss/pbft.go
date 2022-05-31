@@ -11,6 +11,7 @@ package iss
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -318,10 +319,9 @@ func (pbft *pbftInstance) applyPendingRequests(numRequests t.NumRequests) *event
 	if pbft.canPropose() {
 		// Start a new proposal if applicable (i.e. if the number of pending requests reached config.MaxBatchSize).
 		return pbft.requestNewBatch()
-	} else {
-		// Do nothing otherwise.
-		return &events.EventList{}
 	}
+
+	return &events.EventList{}
 }
 
 func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {

@@ -428,11 +428,11 @@ func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (
 				return nil, fmt.Errorf("app batch delivery error: %w", err)
 			}
 		case *eventpb.Event_AppSnapshotRequest:
-			if data, err := n.modules.App.Snapshot(); err != nil {
+			data, err := n.modules.App.Snapshot()
+			if err != nil {
 				return nil, fmt.Errorf("app snapshot error: %w", err)
-			} else {
-				eventsOut.PushBack(events.AppSnapshot(t.EpochNr(e.AppSnapshotRequest.Epoch), data))
 			}
+			eventsOut.PushBack(events.AppSnapshot(t.EpochNr(e.AppSnapshotRequest.Epoch), data))
 		case *eventpb.Event_AppRestoreState:
 			if err := n.modules.App.RestoreState(e.AppRestoreState.Data); err != nil {
 				return nil, fmt.Errorf("app restore state error: %w", err)

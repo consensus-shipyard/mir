@@ -4,14 +4,15 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"strconv"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/ttacon/chalk"
 	"google.golang.org/protobuf/encoding/protojson"
-	"io"
-	"strconv"
 )
 
 // extracts events from eventlog entries and
@@ -56,12 +57,13 @@ func displayEvents(args *arguments) error {
 		}
 	}
 
-	if err == io.EOF {
-		fmt.Println("End of trace.")
-		return nil
-	} else {
+	if err != io.EOF {
 		return fmt.Errorf("error reading event log: %w", err)
 	}
+
+	fmt.Println("End of trace.")
+
+	return nil
 }
 
 // Displays one event according to its type.
