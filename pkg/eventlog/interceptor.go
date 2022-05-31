@@ -15,13 +15,14 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"io"
-	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -58,7 +59,7 @@ func RetainRequestDataOpt() RecorderOpt {
 type compressionLevelOpt int
 
 // DefaultCompressionLevel is used for event capture when not overridden.
-// In emperical tests, best speed was only a few tenths of a percent
+// In empirical tests, best speed was only a few tenths of a percent
 // worse than best compression, but your results may vary.
 const DefaultCompressionLevel = gzip.BestSpeed
 

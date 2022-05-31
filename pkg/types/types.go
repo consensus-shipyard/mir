@@ -76,7 +76,7 @@ func (sn SeqNr) Bytes() []byte {
 }
 
 // SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
-// to a slice of abstractly typed sequence nubmers.
+// to a slice of abstractly typed sequence numbers.
 func SeqNrSlice(sns []uint64) []SeqNr {
 	seqNrs := make([]SeqNr, len(sns))
 	for i, nid := range sns {
