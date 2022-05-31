@@ -56,7 +56,10 @@ This approach:
       This makes the `ActiveModule` suitable for injecting external events
       (e.g., reception of a message over the network) in the Node.
       To prevent the module from flooding the Node with too many external events,
-      the node might ask it to temporarily back off and function essentially as a `PassiveModule`.
+      the node might, at any time, stop processing the `ActiveModule`s output events
+      for an arbitrarily long time period.
+      This is expected to happen when internal node buffers become full of unprocessed events
+      and the node needs to wait until they free up.
       ```go
       type ActiveModule interface {
 
@@ -66,22 +69,17 @@ This approach:
         // Before Run is called, ActiveModule guarantees not to read or write,
         // respectively, from eventsIn and to eventsOut.
         // Run must return after ctx is canceled.
-        Run(ctx context.Context, eventsIn <-chan *events.EventList, eventsOut chan<- *events.EventList) error
-
-        // BackOff asks the module to back off, i.e., to not produce new events
-        // except in immediate reaction to input events, until ctx is canceled.
-        // After BackOff is called and before ctx is canceled,
-        // the module will only produce a bounded number of output events and only in reaction to processing input events.
-        // In other words, if BackOff has been called, ctx has not been canceled, and the input channel is not written to,
-        // the module will eventually stop producing output events.
         //
-        // This function is necessary for guaranteeing that the internal Node event buffers do not grow indefinitely.
-        // This could potentially happen when external events are injected into the system through active modules
-        // faster than the system can process them.
-        // In such a case, the Node asks all active modules to back off
-        // until enough events in the internal buffers have been processed.
-        BackOff(ctx context.Context)
-        
+        // Note that the node does not guarantee to always read events from eventsOut.
+        // The node might decide at any moment to stop reading from eventsOut for an arbitrary amount of time
+	    // (e.g. if the Node's internal event buffers become full and the Node needs to wait until they free up).
+        //
+        // The implementation of Run is required to always read from eventsIn.
+        // I.e., when an event is written to eventsIn, Run must eventually read it, regardless of the module's state
+        // or any external factors
+        // (e.g., the processing of events must not depend on some other goroutine reading from eventsOut).
+        Run(ctx context.Context, eventsIn <-chan *events.EventList, eventsOut chan<- *events.EventList) error
+		
         // Status returns the current state of the module.
         // If Run has been called and has not returned when calling Status,
         // there is no guarantee about which input events are taken into account
