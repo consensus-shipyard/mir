@@ -5,12 +5,13 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
+	. "github.com/onsi/gomega"    //nolint:revive
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/clients"

@@ -17,7 +17,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss"
 
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
