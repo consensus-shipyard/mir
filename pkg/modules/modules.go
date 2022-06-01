@@ -10,25 +10,31 @@ SPDX-License-Identifier: Apache-2.0
 package modules
 
 import (
-	"crypto"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/clients"
+	"github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/timer"
 )
 
 // The Modules structs groups the modules a Node consists of.
 type Modules struct {
-	Net           Net              // Sends messages produced by Mir through the network.
-	Hasher        Hasher           // Computes hashes of requests and other data.
-	Crypto        Crypto           // Performs cryptographic operations (except for computing hashes)
-	App           App              // Implements user application logic. The user is expected to provide this module.
-	WAL           WAL              // Implements a persistent write-ahead log for the case of crashes and restarts.
-	ClientTracker ClientTracker    // Keeps the state related to clients and validates submitted requests.
-	RequestStore  RequestStore     // Provides persistent storage for request data.
-	Protocol      Protocol         // Implements the logic of the distributed protocol.
-	Interceptor   EventInterceptor // Intercepts and logs all internal _Events_ for debugging purposes.
-	Timer         Timer            // Tracks real time (e.g. for timeouts) and injects events accordingly.
+	Hasher        PassiveModule // Computes hashes of requests and other data.
+	Crypto        PassiveModule // Performs cryptographic operations (except for computing hashes)
+	App           PassiveModule // Implements user application logic. The user is expected to provide this module.
+	WAL           PassiveModule // Implements a persistent write-ahead log for the case of crashes and restarts.
+	ClientTracker PassiveModule // Keeps the state related to clients and validates submitted requests.
+	RequestStore  PassiveModule // Provides persistent storage for request data.
+	Protocol      PassiveModule // Implements the logic of the distributed protocol.
+
+	Net   ActiveModule // Sends messages produced by Mir through the network.
+	Timer ActiveModule // Tracks real time (e.g. for timeouts) and injects events accordingly.
+
+	PassiveModules map[string]PassiveModule
+	ActiveModules  map[string]ActiveModule
+
+	Interceptor eventlog.Interceptor // Intercepts and logs all internal _Events_ for debugging purposes.
 }
 
 // Defaults takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object
@@ -40,7 +46,7 @@ func Defaults(m Modules) (*Modules, error) {
 	}
 
 	if m.Hasher == nil {
-		m.Hasher = crypto.SHA256
+		m.Hasher = &crypto.SHA256Hasher{}
 	}
 
 	if m.App == nil {

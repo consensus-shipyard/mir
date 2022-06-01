@@ -10,11 +10,16 @@ SPDX-License-Identifier: Apache-2.0
 package deploytest
 
 import (
+	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/activemodule"
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"strconv"
 	"sync"
 
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -36,35 +41,104 @@ type FakeLink struct {
 	Source        t.NodeID
 }
 
+func (fl *FakeLink) Run(
+	ctx context.Context,
+	eventsIn <-chan *events.EventList,
+	eventsOut chan<- *events.EventList,
+	interceptor eventlog.Interceptor,
+) error {
+
+	// Start shoveling received messages to output channel.
+	// This could be done much nicer by refactoring the whole FakeTransport implementation,
+	// but it is not worth the time for now.
+	// TODO: Consider refactoring the FakeTransport implementation.
+	go func() {
+		for {
+			select {
+			// Try reading an incoming message.
+			case receivedMsg := <-fl.ReceiveChan():
+				select {
+				// Try writing the incoming message to the module output channel.
+				case eventsOut <- receivedMsg:
+				case <-ctx.Done():
+				}
+			case <-ctx.Done():
+			}
+		}
+	}()
+
+	return activemodule.RunActiveModule(ctx, eventsIn, eventsOut, interceptor, fl.processEventList)
+}
+
+func (fl *FakeLink) processEventList(
+	ctx context.Context,
+	eventList *events.EventList,
+	notifyChan chan<- *events.EventList,
+) error {
+	iter := eventList.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		switch e := event.Type.(type) {
+		case *eventpb.Event_SendMessage:
+			for _, destID := range e.SendMessage.Destinations {
+				if t.NodeID(destID) == fl.Source {
+					// Send message to myself bypassing the network.
+					receivedEvent := events.MessageReceived(e.SendMessage.Msg.Module, fl.Source, e.SendMessage.Msg)
+					go func() {
+						select {
+						case notifyChan <- (&events.EventList{}).PushBack(receivedEvent):
+						case <-ctx.Done():
+						}
+					}()
+				} else {
+					// Send message to another node.
+					if err := fl.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
+						// TODO: Handle sending errors (and remove "nolint" comment above).
+					}
+				}
+			}
+		default:
+			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
+		}
+	}
+
+	return nil
+}
+
+func (fl *FakeLink) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
 	fl.FakeTransport.Send(fl.Source, dest, msg)
 	return nil
 }
 
-func (fl *FakeLink) ReceiveChan() <-chan modules.ReceivedMessage {
+func (fl *FakeLink) ReceiveChan() <-chan *events.EventList {
 	return fl.FakeTransport.NodeSinks[unsafeIDtoi(fl.Source)]
 }
 
 type FakeTransport struct {
 	// Buffers is source x dest
-	Buffers   [][]chan *messagepb.Message
-	NodeSinks []chan modules.ReceivedMessage
+	Buffers   [][]chan *events.EventList
+	NodeSinks []chan *events.EventList
 	WaitGroup sync.WaitGroup
 	DoneC     chan struct{}
 }
 
 func NewFakeTransport(nodes int) *FakeTransport {
-	buffers := make([][]chan *messagepb.Message, nodes)
-	nodeSinks := make([]chan modules.ReceivedMessage, nodes)
+	buffers := make([][]chan *events.EventList, nodes)
+	nodeSinks := make([]chan *events.EventList, nodes)
 	for i := 0; i < nodes; i++ {
-		buffers[i] = make([]chan *messagepb.Message, nodes)
+		buffers[i] = make([]chan *events.EventList, nodes)
 		for j := 0; j < nodes; j++ {
 			if i == j {
 				continue
 			}
-			buffers[i][j] = make(chan *messagepb.Message, 10000)
+			buffers[i][j] = make(chan *events.EventList, 10000)
 		}
-		nodeSinks[i] = make(chan modules.ReceivedMessage)
+		nodeSinks[i] = make(chan *events.EventList)
 	}
 
 	return &FakeTransport{
@@ -76,7 +150,9 @@ func NewFakeTransport(nodes int) *FakeTransport {
 
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
-	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- msg:
+	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- (&events.EventList{}).PushBack(
+		events.MessageReceived(msg.Module, source, msg),
+	):
 	default:
 		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)
 	}
@@ -89,7 +165,7 @@ func (ft *FakeTransport) Link(source t.NodeID) *FakeLink {
 	}
 }
 
-func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan modules.ReceivedMessage {
+func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[unsafeIDtoi(dest)]
 }
 
@@ -101,7 +177,7 @@ func (ft *FakeTransport) Start() {
 			}
 
 			ft.WaitGroup.Add(1)
-			go func(i, j int, buffer chan *messagepb.Message) {
+			go func(i, j int, buffer chan *events.EventList) {
 				// fmt.Printf("Starting drain thread from %d to %d\n", i, j)
 				defer ft.WaitGroup.Done()
 				for {
@@ -109,10 +185,7 @@ func (ft *FakeTransport) Start() {
 					case msg := <-buffer:
 						// fmt.Printf("Sending message from %d to %d\n", i, j)
 						select {
-						case ft.NodeSinks[j] <- modules.ReceivedMessage{
-							Sender: t.NewNodeIDFromInt(i),
-							Msg:    msg,
-						}:
+						case ft.NodeSinks[j] <- msg:
 						case <-ft.DoneC:
 							return
 						}

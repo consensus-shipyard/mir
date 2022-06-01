@@ -9,6 +9,11 @@ package grpctransport
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/activemodule"
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"net"
 	"strconv"
 	"strings"
@@ -19,7 +24,6 @@ import (
 	"google.golang.org/grpc/peer"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -45,9 +49,9 @@ type GrpcTransport struct {
 	// The address format "IPAddress:port"
 	membership map[t.NodeID]string // nodeId -> "IPAddress:port"
 
-	// Channel to which all incoming messages are written.
-	// This channel is also returned by the ReceiveChan() method.
-	incomingMessages chan modules.ReceivedMessage
+	// Channel to which MessageReceived events are written.
+	// This field is set when the GrpcTransport starts as a modules.ActiveModule.
+	eventsOut chan<- *events.EventList
 
 	// For each node ID, stores a gRPC message sink, calling the Send() method of which sends a message to that node.
 	connections map[t.NodeID]GrpcTransport_ListenClient
@@ -60,6 +64,11 @@ type GrpcTransport struct {
 
 	// Logger use for all logging events of this GrpcTransport
 	logger logging.Logger
+
+	// When the GrpcTransport is started as a modules.ActiveModule and the eventsOut field is set,
+	// this channel is closed.
+	// It is used as a mechanism for preventing writing to the output channel before it has been set.
+	moduleRunning chan struct{}
 }
 
 // NewGrpcTransport returns a pointer to a new initialized GrpcTransport networking module.
@@ -78,24 +87,74 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.
 	}
 
 	return &GrpcTransport{
-		ownID:            ownID,
-		incomingMessages: make(chan modules.ReceivedMessage),
-		membership:       membership,
-		connections:      make(map[t.NodeID]GrpcTransport_ListenClient),
-		logger:           l,
+		ownID:         ownID,
+		membership:    membership,
+		connections:   make(map[t.NodeID]GrpcTransport_ListenClient),
+		logger:        l,
+		moduleRunning: make(chan struct{}),
 	}
+}
+
+func (gt *GrpcTransport) Run(
+	ctx context.Context,
+	eventsIn <-chan *events.EventList,
+	eventsOut chan<- *events.EventList,
+	interceptor eventlog.Interceptor,
+) error {
+	// Set output channel for received messages and enable writing to it.
+	gt.eventsOut = eventsOut
+	close(gt.moduleRunning)
+
+	// Process incoming events.
+	return activemodule.RunActiveModule(ctx, eventsIn, eventsOut, interceptor, gt.processEventList)
+}
+
+func (gt *GrpcTransport) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (gt *GrpcTransport) processEventList(
+	ctx context.Context,
+	eventList *events.EventList,
+	notifyChan chan<- *events.EventList,
+) error {
+	iter := eventList.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		switch e := event.Type.(type) {
+		case *eventpb.Event_SendMessage:
+			for _, destID := range e.SendMessage.Destinations {
+				if t.NodeID(destID) == gt.ownID {
+					// Send message to myself bypassing the network.
+					// The sending must be done in its own goroutine in case writing to notifyChan blocks.
+					// (Processing of input events must be non-blocking.)
+					receivedEvent := events.MessageReceived(e.SendMessage.Msg.Module, gt.ownID, e.SendMessage.Msg)
+					go func() {
+						select {
+						case notifyChan <- (&events.EventList{}).PushBack(receivedEvent):
+						case <-ctx.Done():
+						}
+					}()
+				} else {
+					// Send message to another node.
+					if err := gt.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
+						// TODO: Handle sending errors (and remove "nolint" comment above).
+					}
+				}
+			}
+		default:
+			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
+		}
+	}
+
+	return nil
 }
 
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *GrpcTransport) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
-}
-
-// ReceiveChan returns a channel to which the Net module writes all received messages and sender IDs
-// (Both the message itself and the sender ID are part of the ReceivedMessage struct.)
-func (gt *GrpcTransport) ReceiveChan() <-chan modules.ReceivedMessage {
-	return gt.incomingMessages
 }
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
@@ -120,7 +179,9 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 	// For each message received
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
 		select {
-		case gt.incomingMessages <- modules.ReceivedMessage{Sender: t.NodeID(grpcMsg.Sender), Msg: grpcMsg.Msg}:
+		case gt.eventsOut <- (&events.EventList{}).PushBack(
+			events.MessageReceived(grpcMsg.Msg.Module, t.NodeID(grpcMsg.Sender), grpcMsg.Msg),
+		):
 			// Write the message to the channel. This channel will be read by the user of the module.
 
 		case <-srv.Context().Done():

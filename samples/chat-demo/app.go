@@ -13,6 +13,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	t "github.com/filecoin-project/mir/pkg/types"
 
 	"google.golang.org/protobuf/proto"
 
@@ -35,6 +39,38 @@ type ChatApp struct {
 	reqStore modules.RequestStore
 }
 
+func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+	switch e := event.Type.(type) {
+	case *eventpb.Event_Deliver:
+		if err := chat.ApplyBatch(e.Deliver.Batch); err != nil {
+			return nil, fmt.Errorf("app batch delivery error: %w", err)
+		}
+	case *eventpb.Event_AppSnapshotRequest:
+		data, err := chat.Snapshot()
+		if err != nil {
+			return nil, fmt.Errorf("app snapshot error: %w", err)
+		}
+		return (&events.EventList{}).PushBack(events.AppSnapshot(
+			e.AppSnapshotRequest.Module,
+			t.EpochNr(e.AppSnapshotRequest.Epoch),
+			data,
+		)), nil
+	case *eventpb.Event_AppRestoreState:
+		if err := chat.RestoreState(e.AppRestoreState.Data); err != nil {
+			return nil, fmt.Errorf("app restore state error: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
+	}
+
+	return &events.EventList{}, nil
+}
+
+func (chat *ChatApp) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
 func NewChatApp(reqStore modules.RequestStore) *ChatApp {
@@ -44,11 +80,11 @@ func NewChatApp(reqStore modules.RequestStore) *ChatApp {
 	}
 }
 
-// Apply applies a batch of requests to the state of the application.
+// ApplyBatch applies a batch of requests to the state of the application.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
-func (chat *ChatApp) Apply(batch *requestpb.Batch) error {
+func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
 
 	// For each request in the batch
 	for _, reqRef := range batch.Requests {

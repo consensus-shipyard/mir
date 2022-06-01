@@ -220,18 +220,16 @@ func (n *Node) Run(ctx context.Context) error {
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
 func (n *Node) processWAL() error {
 
-	// Create empty EventList to hold all the WAL events.
-	walEvents := &events.EventList{}
+	var storedEvents *events.EventList
+	var err error
 
 	// Add all events from the WAL to the new EventList.
-	if err := n.modules.WAL.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
-		walEvents.PushBack(events.WALEntry(event.Destination, event, retIdx))
-	}); err != nil {
+	if storedEvents, err = n.modules.WAL.ApplyEvent(events.WALLoadAll("wal")); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
 
 	// Enqueue all events to the workItems buffers.
-	if err := n.workItems.AddEvents(walEvents); err != nil {
+	if err = n.workItems.AddEvents(storedEvents); err != nil {
 		return fmt.Errorf("could not enqueue WAL events for processing: %w", err)
 	}
 
@@ -256,12 +254,10 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		n.doWALWork,
 		n.doClientWork,
 		n.doHashWork, // TODO (Jason), spawn more of these
-		n.doSendingWork,
 		n.doAppWork,
 		n.doReqStoreWork,
 		n.doProtocolWork,
 		n.doCryptoWork,
-		n.doTimerWork,
 	} {
 		// Each function is executed by a separate thread.
 		// The wg is waited on before n.process() returns.
@@ -271,6 +267,22 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			n.doUntilErr(ctx, work)
 		}(work)
 	}
+
+	// Start timer module.
+	go func() {
+		err := n.modules.Timer.Run(ctx, n.workChans.timer, n.workChans.workItemInput, n.modules.Interceptor)
+		if err != nil {
+			n.workErrNotifier.Fail(err)
+		}
+	}()
+
+	// Start networking module.
+	go func() {
+		err := n.modules.Net.Run(ctx, n.workChans.net, n.workChans.workItemInput, n.modules.Interceptor)
+		if err != nil {
+			n.workErrNotifier.Fail(err)
+		}
+	}()
 
 	// This map holds the respective channels into which events consumed by the respective modules are written.
 	// There is one channel per module that is set to nil by default, making any writes to it block,
@@ -373,17 +385,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		case reqStoreEvents <- n.workItems.ReqStore():
 			n.workItems.ClearReqStore()
 			reqStoreEvents = nil
-
-		// Handle messages received over the network, as obtained by the Net module.
-
-		case receivedMessage := <-n.modules.Net.ReceiveChan():
-			if n.debugMode {
-				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
-					"msg", receivedMessage)
-			} else if err := n.workItems.AddEvents((&events.EventList{}).
-				PushBack(events.MessageReceived("iss", receivedMessage.Sender, receivedMessage.Msg))); err != nil {
-				n.workErrNotifier.Fail(err)
-			}
 
 		// Add events produced by modules and debugger to the workItems buffers and handle logical time.
 

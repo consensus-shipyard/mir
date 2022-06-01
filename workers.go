@@ -16,7 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Input and output channels for the modules within the Node.
@@ -169,10 +168,6 @@ func (n *Node) doCryptoWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processCryptoEvents, n.workChans.crypto)
 }
 
-func (n *Node) doSendingWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
-}
-
 func (n *Node) doAppWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processAppEvents, n.workChans.app)
 }
@@ -193,16 +188,6 @@ func (n *Node) doProtocolWork(ctx context.Context) (err error) {
 	return n.processEvents(ctx, n.processProtocolEvents, n.workChans.protocol)
 }
 
-func (n *Node) doTimerWork(ctx context.Context) (err error) {
-
-	// Unlike other event processors that simply transform an event list to another event list,
-	// the processor for the timer module needs direct access to the workItemsInput channel,
-	// as the events it produces are (by definition) not available immediately.
-	return n.processEvents(ctx, func(ctx context.Context, events *events.EventList) (*events.EventList, error) {
-		return n.processTimerEvents(ctx, events, n.workChans.workItemInput)
-	}, n.workChans.timer)
-}
-
 // TODO: Document the functions below.
 
 func (n *Node) processWALEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
@@ -216,31 +201,11 @@ func (n *Node) processWALEvents(_ context.Context, eventsIn *events.EventList) (
 	iter := eventsIn.Iterator()
 
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Perform the necessary action based on event type.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_WalAppend:
-			if err := n.modules.WAL.Append(e.WalAppend.Event, t.WALRetIndex(e.WalAppend.RetentionIndex)); err != nil {
-				return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",
-					e.WalAppend.RetentionIndex, err)
-			}
-		case *eventpb.Event_WalTruncate:
-			if err := n.modules.WAL.Truncate(t.WALRetIndex(e.WalTruncate.RetentionIndex)); err != nil {
-				return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
-					e.WalTruncate.RetentionIndex, err)
-			}
-		case *eventpb.Event_PersistDummyBatch:
-			if err := n.modules.WAL.Append(event, 0); err != nil {
-				return nil, fmt.Errorf("could not persist dummy batch: %w", err)
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
+		results, err := n.modules.WAL.ApplyEvent(event)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	// Then we sync the WAL
-	if err := n.modules.WAL.Sync(); err != nil {
-		return nil, fmt.Errorf("failed to sync WAL: %w", err)
+		eventsOut.PushBackList(results)
 	}
 
 	return eventsOut, nil
@@ -274,41 +239,19 @@ func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventL
 		}
 	}()
 
-	return n.modules.ClientTracker.ApplyEvent(event), nil
+	return n.modules.ClientTracker.ApplyEvent(event)
 }
 
 func (n *Node) processHashEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_HashRequest:
-			// HashRequest is the only event understood by the hasher module.
-
-			// Create a slice for the resulting digests containing one element for each data item to be hashed.
-			digests := make([][]byte, len(e.HashRequest.Data))
-
-			// Hash each data item contained in the event
-			for i, data := range e.HashRequest.Data {
-
-				// One data item consists of potentially multiple byte slices.
-				// Add each of them to the hash function.
-				h := n.modules.Hasher.New()
-				for _, d := range data.Data {
-					h.Write(d)
-				}
-
-				// Save resulting digest in the result slice
-				digests[i] = h.Sum(nil)
-			}
-
-			// Return all computed digests in one common event.
-			eventsOut.PushBack(events.HashResult(e.HashRequest.Origin.Module, digests, e.HashRequest.Origin))
-		default:
-			// Complain about all other incoming event types.
-			return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
+		results, err := n.modules.Hasher.ApplyEvent(event)
+		if err != nil {
+			return nil, err
 		}
+		eventsOut.PushBackList(results)
+
 	}
 
 	return eventsOut, nil
@@ -318,97 +261,11 @@ func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_VerifyRequestSig:
-			// Verify client request signature.
-			// The signature is only computed (and verified) over the digest of a request.
-			// The other fields can safely be ignored.
-
-			// Convenience variable
-			reqRef := e.VerifyRequestSig.RequestRef
-
-			// Verify signature.
-			err := n.modules.Crypto.VerifyClientSig(
-				[][]byte{reqRef.Digest},
-				e.VerifyRequestSig.Signature,
-				t.ClientID(reqRef.ClientId))
-
-			// Create result event, depending on verification outcome.
-			if err == nil {
-				eventsOut.PushBack(events.RequestSigVerified("clientTracker", reqRef, true, ""))
-			} else {
-				eventsOut.PushBack(events.RequestSigVerified("clientTracker", reqRef, false, err.Error()))
-			}
-		case *eventpb.Event_SignRequest:
-			// Compute a signature over the provided data and produce a SignResult event.
-
-			if signature, err := n.modules.Crypto.Sign(e.SignRequest.Data); err == nil {
-				eventsOut.PushBack(events.SignResult(e.SignRequest.Origin.Module, signature, e.SignRequest.Origin))
-			} else {
-				return nil, err
-			}
-		case *eventpb.Event_VerifyNodeSigs:
-			// Verify a batch of node signatures
-
-			// Convenience variables
-			verifyEvent := e.VerifyNodeSigs
-			results := make([]bool, len(verifyEvent.Data))
-			errors := make([]string, len(verifyEvent.Data))
-			allOK := true
-
-			// Verify each signature.
-			for i, data := range verifyEvent.Data {
-				err := n.modules.Crypto.VerifyNodeSig(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
-				if err == nil {
-					results[i] = true
-					errors[i] = ""
-				} else {
-					results[i] = false
-					errors[i] = err.Error()
-					allOK = false
-				}
-			}
-
-			// Return result event
-			eventsOut.PushBack(events.NodeSigsVerified(
-				verifyEvent.Origin.Module,
-				results,
-				errors,
-				t.NodeIDSlice(verifyEvent.NodeIds),
-				verifyEvent.Origin,
-				allOK,
-			))
-
-		default:
-			// Complain about all other incoming event types.
-			return nil, fmt.Errorf("unexpected type of Crypto event: %T", event.Type)
+		results, err := n.modules.Crypto.ApplyEvent(event)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if t.NodeID(destID) == n.ID {
-					eventsOut.PushBack(events.MessageReceived(e.SendMessage.Msg.Module, n.ID, e.SendMessage.Msg))
-				} else {
-					if err := n.modules.Net.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
-					}
-				}
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of Net event: %T", event.Type)
-		}
+		eventsOut.PushBackList(results)
 	}
 
 	return eventsOut, nil
@@ -418,33 +275,11 @@ func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_AnnounceDummyBatch:
-			if err := n.modules.App.Apply(e.AnnounceDummyBatch.Batch); err != nil {
-				return nil, fmt.Errorf("app error: %w", err)
-			}
-		case *eventpb.Event_Deliver:
-			if err := n.modules.App.Apply(e.Deliver.Batch); err != nil {
-				return nil, fmt.Errorf("app batch delivery error: %w", err)
-			}
-		case *eventpb.Event_AppSnapshotRequest:
-			data, err := n.modules.App.Snapshot()
-			if err != nil {
-				return nil, fmt.Errorf("app snapshot error: %w", err)
-			}
-			eventsOut.PushBack(events.AppSnapshot(
-				e.AppSnapshotRequest.Module,
-				t.EpochNr(e.AppSnapshotRequest.Epoch),
-				data,
-			))
-		case *eventpb.Event_AppRestoreState:
-			if err := n.modules.App.RestoreState(e.AppRestoreState.Data); err != nil {
-				return nil, fmt.Errorf("app restore state error: %w", err)
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
+		results, err := n.modules.App.ApplyEvent(event)
+		if err != nil {
+			return nil, err
 		}
+		eventsOut.PushBackList(results)
 	}
 
 	return eventsOut, nil
@@ -454,61 +289,11 @@ func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventLi
 	eventsOut := &events.EventList{}
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Process event based on its type.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_StoreVerifiedRequest:
-			storeEvent := e.StoreVerifiedRequest
-
-			// Store request data.
-			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store request (c%vr%d) data: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-			// Mark request as authenticated.
-			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark request (c%vr%d) as authenticated: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-			// Store request authenticator.
-			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, storeEvent.Authenticator); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator (c%vr%d) of request: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-		case *eventpb.Event_StoreDummyRequest:
-			storeEvent := e.StoreDummyRequest // Helper variable for convenience
-
-			// Store request data.
-			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store dummy request data: %w", err)
-			}
-
-			// Mark request as authenticated.
-			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark dummy request as authenticated: %w", err)
-			}
-
-			// Associate a dummy authenticator with the request
-			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, []byte{0}); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator of dummy request: %w", err)
-			}
-
-			eventsOut.PushBack(events.RequestReady("iss", storeEvent.RequestRef))
+		results, err := n.modules.RequestStore.ApplyEvent(event)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	// Then sync the request store, ensuring that all updates to its state are persisted.
-	if err := n.modules.RequestStore.Sync(); err != nil {
-		return nil, fmt.Errorf("could not sync request store, unsafe to continue: %w", err)
+		eventsOut.PushBackList(results)
 	}
 
 	return eventsOut, nil
@@ -540,50 +325,5 @@ func (n *Node) safeApplyProtocolEvent(event *eventpb.Event) (result *events.Even
 		}
 	}()
 
-	return n.modules.Protocol.ApplyEvent(event), nil
-}
-
-// processTimerEvents processes the events destined to the timer module.
-// Unlike other event processors, processTimerEvents does not return a list of resulting events
-// based on the input event list, since those are (by definition) delayed.
-// The returned EventList is thus always empty.
-// Instead, processTimerEvents receives an additional channel (notifyChan)
-// where its outputs are written at the appropriate times.
-func (n *Node) processTimerEvents(
-	ctx context.Context,
-	eventsIn *events.EventList,
-	notifyChan chan<- *events.EventList,
-) (*events.EventList, error) {
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Based on event type, invoke the appropriate Timer function.
-		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
-		// when they are later stripped off their follow-ups, as this happens potentially concurrently
-		// with the original event being processed by the interceptor.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_TimerDelay:
-			n.modules.Timer.Delay(
-				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerDelay.Events),
-				t.TimeDuration(e.TimerDelay.Delay),
-				notifyChan,
-			)
-		case *eventpb.Event_TimerRepeat:
-			n.modules.Timer.Repeat(
-				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerRepeat.Events),
-				t.TimeDuration(e.TimerRepeat.Delay),
-				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
-				notifyChan,
-			)
-		case *eventpb.Event_TimerGarbageCollect:
-			n.modules.Timer.GarbageCollect(t.TimerRetIndex(e.TimerGarbageCollect.RetentionIndex))
-		default:
-			return nil, fmt.Errorf("unexpected type of Timer event: %T", event.Type)
-		}
-	}
-
-	return &events.EventList{}, nil
+	return n.modules.Protocol.ApplyEvent(event)
 }

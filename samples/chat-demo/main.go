@@ -153,7 +153,7 @@ func main() {
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.
 		// TODO: Remove this line once a default crypto implementation is provided by Mir.
-		Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
+		Crypto: mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 	})
 
 	// Exit immediately if Node could not be created.

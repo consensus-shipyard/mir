@@ -8,6 +8,9 @@ package reqstore
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -28,6 +31,76 @@ type VolatileRequestStore struct {
 	// The set of request digests is itself represented as a string map,
 	// where the key is the digest's string representation and the value is the digest as a byte slice.
 	idIndex map[string]map[string][]byte
+}
+
+func (vrs *VolatileRequestStore) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+	// Process event based on its type.
+	switch e := event.Type.(type) {
+	case *eventpb.Event_StoreVerifiedRequest:
+		storeEvent := e.StoreVerifiedRequest
+
+		// Store request data.
+		if err := vrs.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
+			return nil, fmt.Errorf("cannot store request (c%vr%d) data: %w",
+				storeEvent.RequestRef.ClientId,
+				storeEvent.RequestRef.ReqNo,
+				err)
+		}
+
+		// Mark request as authenticated.
+		if err := vrs.SetAuthenticated(storeEvent.RequestRef); err != nil {
+			return nil, fmt.Errorf("cannot mark request (c%vr%d) as authenticated: %w",
+				storeEvent.RequestRef.ClientId,
+				storeEvent.RequestRef.ReqNo,
+				err)
+		}
+
+		// Store request authenticator.
+		if err := vrs.PutAuthenticator(storeEvent.RequestRef, storeEvent.Authenticator); err != nil {
+			return nil, fmt.Errorf("cannot store authenticator (c%vr%d) of request: %w",
+				storeEvent.RequestRef.ClientId,
+				storeEvent.RequestRef.ReqNo,
+				err)
+		}
+
+		return &events.EventList{}, nil
+	case *eventpb.Event_StoreDummyRequest:
+		storeEvent := e.StoreDummyRequest // Helper variable for convenience
+
+		// Store request data.
+		if err := vrs.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
+			return nil, fmt.Errorf("cannot store dummy request data: %w", err)
+		}
+
+		// Mark request as authenticated.
+		if err := vrs.SetAuthenticated(storeEvent.RequestRef); err != nil {
+			return nil, fmt.Errorf("cannot mark dummy request as authenticated: %w", err)
+		}
+
+		// Associate a dummy authenticator with the request
+		if err := vrs.PutAuthenticator(storeEvent.RequestRef, []byte{0}); err != nil {
+			return nil, fmt.Errorf("cannot store authenticator of dummy request: %w", err)
+		}
+
+		// Then sync the request store, ensuring that all updates to its state are persisted.
+		if err := vrs.Sync(); err != nil {
+			return nil, fmt.Errorf("could not sync request store, unsafe to continue: %w", err)
+		}
+
+		// TODO: 1) The syncing is unnecessary for the volatile version of the request store.
+		//          Only keeping it here to not fortet to use it in the persistent version.
+		//       2) When batch event processing is implemented, move the syncing after processing the whole event batch.
+
+		return (&events.EventList{}).PushBack(events.RequestReady("iss", storeEvent.RequestRef)), nil
+	default:
+		return nil, fmt.Errorf("unknown request store event type: %T", event.Type)
+	}
+
+}
+
+func (vrs *VolatileRequestStore) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // Holds the data stored by a single entry of the VolatileRequestStore.

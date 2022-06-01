@@ -84,7 +84,7 @@ func BufferSizeOpt(size int) RecorderOpt {
 }
 
 // Recorder is intended to be used as an imlementation of the
-// mir.EventInterceptor interface.  It receives state events,
+// mir.Interceptor interface.  It receives state events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
 	nodeID            t.NodeID

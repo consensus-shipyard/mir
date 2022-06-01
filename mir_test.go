@@ -223,7 +223,7 @@ var _ = Describe("Basic test", func() {
 			Transport:      "grpc",
 			NumNetRequests: 10,
 			Directory:      "",
-			Duration:       4 * time.Second,
+			Duration:       8 * time.Second,
 		}),
 	)
 

@@ -43,7 +43,7 @@ type TestReplica struct {
 	App *FakeApp
 
 	// Request store
-	ReqStore modules.RequestStore
+	ReqStore modules.PassiveModule
 
 	// Name of the directory where the persisted state of this TestReplica will be stored,
 	// along with the logs produced by running the replica.
@@ -59,7 +59,7 @@ type TestReplica struct {
 	ClientIDs []t.ClientID
 
 	// Network transport subsystem.
-	Net modules.Net
+	Net modules.ActiveModule
 
 	// Number of simulated requests inserted in the test replica by a hypothetical client.
 	NumFakeRequests int
@@ -135,7 +135,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 			// // Use dummy crypto module that only produces signatures
 			// // consisting of a single zero byte and treats those signatures as valid.
 			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
-			Crypto: cryptoModule,
+			Crypto: mirCrypto.New(cryptoModule),
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())
