@@ -2,7 +2,7 @@
 
 * Status: proposed
 * Deciders: @matejpavlovic, @sergefdrv, @dnkolegov
-* Date: 2022-05-31 (last update)
+* Date: 2022-06-01 (last update)
 
 This is a natural adaptation to changes proposed in [ADR-0003 - Generalize modules](0003-generalize-modules.md)
 
@@ -57,7 +57,27 @@ statically "hard-coding" this information in Mir.
   The exact interface of `ActiveModule` and `PassiveModule` (replaced by `// ...`) in the snippet above is described in
   [ADR-0003 - Generalize modules](0003-generalize-modules.md).
 
-  Second, add a `Destination` field to events.
+  Second, add a `Destination` field to events, extending the `Event` Protobuf definition as follows
+  ```protobuf
+  // Event represents a state event to be injected into the state machine
+  message Event {
+    oneof type {
+      // ...
+    }
+  
+    // Identifier of the module this Event should be routed to.
+    string Destination = 200;
+
+    // A list of follow-up events to process after this event has been processed.
+    // This field is used if events need to be processed in a particular order.
+    // For example, a message sending event must only be processed
+    // after the corresponding entry has been persisted in the write-ahead log (WAL).
+    // In this case, the WAL append event would be this event
+    // and the next field would contain the message sending event.
+    repeated Event next = 100;
+  }
+  
+  ```
   This field will hold the name of the module (key in the above map)
   that informs the dispatching code where to route the event.
 
