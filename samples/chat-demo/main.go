@@ -19,7 +19,6 @@ import (
 	"crypto"
 	"fmt"
 	"os"
-	"path"
 	"strconv"
 	"sync"
 
@@ -34,7 +33,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/simplewal"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -115,26 +113,6 @@ func main() {
 	// Create and initialize various modules used by mir.
 	// ================================================================================
 
-	// Initialize the write-ahead log.
-	// This is where the Mir library will continuously persist its state
-	// for the case of restarts / crash-recovery events.
-	// At the time of writing this comment, restarts / crash-recovery is not yet implemented though.
-	// Nevertheless, running this code will create a directory with the WAL file in it.
-	// Those need to be manually removed.
-	walPath := path.Join("chat-demo-wal", fmt.Sprintf("%v", args.OwnID))
-	wal, err := simplewal.Open(walPath)
-	if err != nil {
-		panic(err)
-	}
-	if err := os.MkdirAll(walPath, 0700); err != nil {
-		panic(err)
-	}
-	defer func() {
-		if err := wal.Close(); err != nil {
-			fmt.Println("Could not close write-ahead log.")
-		}
-	}()
-
 	// Initialize the networking module.
 	// Mir will use it for transporting nod-to-node messages.
 	net := grpctransport.NewGrpcTransport(nodeAddrs, args.OwnID, nil)
@@ -163,7 +141,6 @@ func main() {
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
 	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, &modules.Modules{
 		Net:          net,
-		WAL:          wal,
 		RequestStore: reqStore,
 		Protocol:     issProtocol,
 
