@@ -21,7 +21,7 @@ statically "hard-coding" this information in Mir.
 ## Considered Options
 
 * **Module naming.**
-  Associate each module with a string name. Instead of the current static approach of instantiating modules
+  First, associate each module with a string name. Instead of the current static approach of instantiating modules
   ```go
   Modules{
     App:      newAppModule()
@@ -31,20 +31,33 @@ statically "hard-coding" this information in Mir.
   ```
   instantiate the modules as follows
   ```go
-  Modules{
+
+  type Module interface {
+    ImplementsModule()
+  }
   
-    PassiveModules: map[string]*PassiveModule{
-      "app":      newAppModule()
-      "protocol": newProtocolModule()
-    }
+  type PassiveModule interface {
+    Module
+    // ...
+  }
   
-    ActiveModules: map[string]*PassiveModule{
-      "net": newNetModule()
-    }
+  type ActiveModule interface {
+    Module
+    // ...
+  }
   
+  type Modules map[string]Module
+
+  var modules = map[string]Module{
+    "app":      newAppModule()
+    "protocol": newProtocolModule()
+    "net":      newNetModule()
   }
   ```
-  Add a `Destination` field to events.
+  The exact interface of `ActiveModule` and `PassiveModule` (replaced by `// ...`) in the snippet above is described in
+  [ADR-0003 - Generalize modules](0003-generalize-modules.md).
+
+  Second, add a `Destination` field to events.
   This field will hold the name of the module (key in the above map)
   that informs the dispatching code where to route the event.
 
