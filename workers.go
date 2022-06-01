@@ -304,7 +304,7 @@ func (n *Node) processHashEvents(_ context.Context, eventsIn *events.EventList) 
 			}
 
 			// Return all computed digests in one common event.
-			eventsOut.PushBack(events.HashResult(digests, e.HashRequest.Origin))
+			eventsOut.PushBack(events.HashResult(e.HashRequest.Origin.Module, digests, e.HashRequest.Origin))
 		default:
 			// Complain about all other incoming event types.
 			return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
@@ -336,15 +336,15 @@ func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList
 
 			// Create result event, depending on verification outcome.
 			if err == nil {
-				eventsOut.PushBack(events.RequestSigVerified(reqRef, true, ""))
+				eventsOut.PushBack(events.RequestSigVerified("clientTracker", reqRef, true, ""))
 			} else {
-				eventsOut.PushBack(events.RequestSigVerified(reqRef, false, err.Error()))
+				eventsOut.PushBack(events.RequestSigVerified("clientTracker", reqRef, false, err.Error()))
 			}
 		case *eventpb.Event_SignRequest:
 			// Compute a signature over the provided data and produce a SignResult event.
 
 			if signature, err := n.modules.Crypto.Sign(e.SignRequest.Data); err == nil {
-				eventsOut.PushBack(events.SignResult(signature, e.SignRequest.Origin))
+				eventsOut.PushBack(events.SignResult(e.SignRequest.Origin.Module, signature, e.SignRequest.Origin))
 			} else {
 				return nil, err
 			}
@@ -372,6 +372,7 @@ func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList
 
 			// Return result event
 			eventsOut.PushBack(events.NodeSigsVerified(
+				verifyEvent.Origin.Module,
 				results,
 				errors,
 				t.NodeIDSlice(verifyEvent.NodeIds),
@@ -398,7 +399,7 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 		case *eventpb.Event_SendMessage:
 			for _, destID := range e.SendMessage.Destinations {
 				if t.NodeID(destID) == n.ID {
-					eventsOut.PushBack(events.MessageReceived(n.ID, e.SendMessage.Msg))
+					eventsOut.PushBack(events.MessageReceived(e.SendMessage.Msg.Module, n.ID, e.SendMessage.Msg))
 				} else {
 					if err := n.modules.Net.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
 						// TODO: Handle sending errors (and remove "nolint" comment above).
@@ -432,7 +433,11 @@ func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (
 			if err != nil {
 				return nil, fmt.Errorf("app snapshot error: %w", err)
 			}
-			eventsOut.PushBack(events.AppSnapshot(t.EpochNr(e.AppSnapshotRequest.Epoch), data))
+			eventsOut.PushBack(events.AppSnapshot(
+				e.AppSnapshotRequest.Module,
+				t.EpochNr(e.AppSnapshotRequest.Epoch),
+				data,
+			))
 		case *eventpb.Event_AppRestoreState:
 			if err := n.modules.App.RestoreState(e.AppRestoreState.Data); err != nil {
 				return nil, fmt.Errorf("app restore state error: %w", err)
@@ -497,7 +502,7 @@ func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventLi
 				return nil, fmt.Errorf("cannot store authenticator of dummy request: %w", err)
 			}
 
-			eventsOut.PushBack(events.RequestReady(storeEvent.RequestRef))
+			eventsOut.PushBack(events.RequestReady("iss", storeEvent.RequestRef))
 		}
 	}
 

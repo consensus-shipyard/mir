@@ -14,8 +14,9 @@ import "isspb/isspb.proto";
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
 message Message {
+  string module = 1;
   oneof type {
-    isspb.ISSMessage iss = 1;
+    isspb.ISSMessage iss = 2;
 
 
     DummyPreprepare dummy_preprepare = 100;

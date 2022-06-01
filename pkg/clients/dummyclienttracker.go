@@ -28,8 +28,9 @@ func (ct *DummyClientTracker) ApplyEvent(event *eventpb.Event) *events.EventList
 
 		req := e.Request
 		return (&events.EventList{}).PushBack(events.HashRequest(
+			"hasher",
 			[][][]byte{serializing.RequestForHash(req)},
-			&eventpb.HashOrigin{Type: &eventpb.HashOrigin_Request{Request: req}},
+			&eventpb.HashOrigin{Module: "clientTracker", Type: &eventpb.HashOrigin_Request{Request: req}},
 		))
 
 	case *eventpb.Event_HashResult:
@@ -48,7 +49,7 @@ func (ct *DummyClientTracker) ApplyEvent(event *eventpb.Event) *events.EventList
 			ReqNo:    req.ReqNo,
 			Digest:   digest,
 		}
-		return (&events.EventList{}).PushBack(events.StoreDummyRequest(reqRef, req.Data))
+		return (&events.EventList{}).PushBack(events.StoreDummyRequest("reqStore", reqRef, req.Data))
 
 	default:
 		panic(fmt.Sprintf("unknown event: %T", event.Type))

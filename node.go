@@ -176,7 +176,7 @@ func (n *Node) SubmitRequest(
 	// Enqueue the generated events in a work channel to be handled by the processing thread.
 	select {
 	case n.workChans.workItemInput <- (&events.EventList{}).PushBack(
-		events.ClientRequest(clientID, reqNo, data, authenticator),
+		events.ClientRequest("clientTracker", clientID, reqNo, data, authenticator),
 	):
 		return nil
 	case <-ctx.Done():
@@ -207,7 +207,7 @@ func (n *Node) Run(ctx context.Context) error {
 	}
 
 	// Submit the Init event to the modules.
-	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init())); err != nil {
+	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init("iss"))); err != nil {
 		n.workErrNotifier.Fail(err)
 		n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
 		return fmt.Errorf("failed to add init event: %w", err)
@@ -225,7 +225,7 @@ func (n *Node) processWAL() error {
 
 	// Add all events from the WAL to the new EventList.
 	if err := n.modules.WAL.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
-		walEvents.PushBack(events.WALEntry(event, retIdx))
+		walEvents.PushBack(events.WALEntry(event.Destination, event, retIdx))
 	}); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
@@ -272,8 +272,8 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		}(work)
 	}
 
-	// These variables hold the respective channels into which events consumed by the respective modules are written.
-	// Those variables are set to nil by default, making any writes to them block,
+	// This map holds the respective channels into which events consumed by the respective modules are written.
+	// There is one channel per module that is set to nil by default, making any writes to it block,
 	// preventing them from being selected in the big select statement below.
 	// When there are outstanding events to be written in a workChan,
 	// the workChan is saved in the corresponding channel variable, making it available to the select statement.
@@ -281,6 +281,12 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// the variable is set to nil again until new events are ready.
 	// This complicated construction is necessary to prevent writing empty event lists to the workChans
 	// when no events are pending.
+	moduleInputs := make(map[string]chan<- *events.EventList)
+	for moduleName := range n.modules.ActiveModules {
+		if _, ok := moduleInputs[moduleName]; ok {
+			n.workErrNotifier.Fail(fmt.Errorf("duplicate module name: %s", moduleName))
+		}
+	}
 	var (
 		walEvents,
 		clientEvents,
@@ -375,7 +381,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
 					"msg", receivedMessage)
 			} else if err := n.workItems.AddEvents((&events.EventList{}).
-				PushBack(events.MessageReceived(receivedMessage.Sender, receivedMessage.Msg))); err != nil {
+				PushBack(events.MessageReceived("iss", receivedMessage.Sender, receivedMessage.Msg))); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
 

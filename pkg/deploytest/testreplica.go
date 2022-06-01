@@ -128,7 +128,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 			App:           tr.App,
 			RequestStore:  tr.ReqStore,
 			WAL:           wal,
-			ClientTracker: clients.SigningTracker(logging.Decorate(tr.Config.Logger, "CT: ")),
+			ClientTracker: clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 			Protocol:    issProtocol,
 			Interceptor: interceptor,

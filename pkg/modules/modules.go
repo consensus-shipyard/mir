@@ -49,7 +49,8 @@ func Defaults(m Modules) (*Modules, error) {
 
 	if m.ClientTracker == nil {
 		// TODO: Change this to the real default client tracker once implemented.
-		m.ClientTracker = clients.SigningTracker(nil)
+		//       Also, make the "iss" default protocol module more explicit.
+		m.ClientTracker = clients.SigningTracker("iss", nil)
 	}
 
 	if m.RequestStore == nil {

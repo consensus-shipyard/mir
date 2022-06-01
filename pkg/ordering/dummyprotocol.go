@@ -100,13 +100,13 @@ func (dp *DummyProtocol) handleRequest(ref *requestpb.RequestRef) *events.EventL
 		batch := &requestpb.Batch{Requests: []*requestpb.RequestRef{ref}}
 
 		// Create event for persisting the request (wrapped in a batch) in the WAL.
-		walEvent := events.PersistDummyBatch(sn, batch)
+		walEvent := events.PersistDummyBatch("wal", sn, batch)
 
 		// Create event for committing the request (wrapped in a batch).
-		announceEvent := events.AnnounceDummyBatch(sn, batch)
+		announceEvent := events.AnnounceDummyBatch("app", sn, batch)
 
 		// Create message sending event for forwarding this single-request batch to other replicas.
-		msgSendEvent := events.SendMessage(&messagepb.Message{Type: &messagepb.Message_DummyPreprepare{
+		msgSendEvent := events.SendMessage("net", &messagepb.Message{Type: &messagepb.Message_DummyPreprepare{
 			DummyPreprepare: &messagepb.DummyPreprepare{
 				Sn:    sn.Pb(),
 				Batch: batch,
@@ -173,7 +173,7 @@ func (dp *DummyProtocol) announceRequests() *events.EventList {
 
 		// If the batch in the oldest preprepare can be announced,
 		// announce it and forget about it (including the received requests).
-		eventsOut.PushBack(events.AnnounceDummyBatch(t.SeqNr(preprepare.Sn), preprepare.Batch))
+		eventsOut.PushBack(events.AnnounceDummyBatch("app", t.SeqNr(preprepare.Sn), preprepare.Batch))
 		for _, reqRef := range preprepare.Batch.Requests {
 			delete(dp.requestsReceived, reqStrKey(reqRef))
 		}
