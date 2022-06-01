@@ -1,6 +1,6 @@
 # Generalize Event Dispatching
 
-* Status: proposed
+* Status: accepted
 * Deciders: @matejpavlovic, @sergefdrv, @dnkolegov
 * Date: 2022-06-01 (last update)
 
