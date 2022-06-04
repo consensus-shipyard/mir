@@ -10,8 +10,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
-	"strings"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -142,23 +140,26 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 // listening on the port determined by the membership and own ID.
 // Before ths method is called, no other GrpcTransports can connect to this one.
 func (gt *GrpcTransport) Start() error {
-
+	hp, ok := gt.membership[gt.ownID]
+	if !ok {
+		return fmt.Errorf("%s is not in membership", gt.ownID)
+	}
 	// Obtain own port number from membership.
-	_, ownPort, err := splitAddrPort(gt.membership[gt.ownID])
+	_, ownPort, err := net.SplitHostPort(hp)
 	if err != nil {
 		return err
 	}
 
-	gt.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for connections on port %d", ownPort))
+	gt.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for connections on port %s", ownPort))
 
 	// Create a gRPC server and assign it the logic of this module.
 	gt.grpcServer = grpc.NewServer()
 	RegisterGrpcTransportServer(gt.grpcServer, gt)
 
 	// Start listening on the network
-	conn, err := net.Listen("tcp", ":"+strconv.Itoa(ownPort))
+	conn, err := net.Listen("tcp", ":"+ownPort)
 	if err != nil {
-		return fmt.Errorf("failed to listen for connections on port %d: %w", ownPort, err)
+		return fmt.Errorf("failed to listen for connections on port %s: %w", ownPort, err)
 	}
 
 	// Start the gRPC server in a separate goroutine.
@@ -272,26 +273,4 @@ func (gt *GrpcTransport) connectToNode(ctx context.Context, addrString string) (
 
 	// Return the message sink connected to the node.
 	return msgSink, nil
-}
-
-// Parses an address string with the format "IPAddress:port" into a string address and an integer port number.
-func splitAddrPort(addrString string) (string, int, error) {
-
-	// Split string at the colon character into two.
-	s := strings.Split(strings.TrimSpace(addrString), ":")
-	if len(s) != 2 {
-		return "", 0, fmt.Errorf("address string must contain exactly one colon character (:)")
-	}
-
-	// The address is the part before the colon
-	addr := s[0]
-
-	// Convert the part after the colon to an integer.
-	port, err := strconv.Atoi(s[1])
-	if err != nil {
-		return "", 0, fmt.Errorf("failed parsing port number: %v", err)
-	}
-
-	// If conversion succeeds, return parsed values.
-	return addr, port, nil
 }
