@@ -11,86 +11,29 @@ package mir
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"runtime/debug"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 )
 
-// Input and output channels for the modules within the Node.
-// the Node.process() method reads and writes events
-// to and from these channels to rout them between the Node's modules.
-type workChans struct {
+// Input channels for the modules within the Node.
+// the Node.process() method writes events
+// to these channels to route them to the corresponding Node's modules.
+type workChans map[t.ModuleID]chan *events.EventList
 
-	// There is one channel per module to feed events into the module.
-	clients  chan *events.EventList
-	protocol chan *events.EventList
-	wal      chan *events.EventList
-	hash     chan *events.EventList
-	crypto   chan *events.EventList
-	net      chan *events.EventList
-	app      chan *events.EventList
-	reqStore chan *events.EventList
-	timer    chan *events.EventList
+// NewWorkChans allocates and returns a pointer to a new workChas object.
+// The returned workChans contain a channel for each module in modules.
+func newWorkChans(modules modules.Modules) workChans {
+	wc := make(map[t.ModuleID]chan *events.EventList)
 
-	// All modules write their output events in a common channel, from where the node processor reads and redistributes
-	// the events to their respective workItems buffers.
-	// External events are also funneled through this channel towards the workItems buffers.
-	workItemInput chan *events.EventList
-
-	// Events received during debugging through the Node.Step function are written to this channel
-	// and inserted in the event loop.
-	debugIn chan *events.EventList
-
-	// During debugging, Events that would normally be inserted in the workItems event buffer
-	// (and thus inserted in the event loop) are written to this channel instead if it is not nil.
-	// If this channel is nil, those Events are discarded.
-	debugOut chan *events.EventList
-}
-
-// Allocate and return a new workChans structure.
-func newWorkChans() workChans {
-	return workChans{
-		clients:  make(chan *events.EventList),
-		protocol: make(chan *events.EventList),
-		wal:      make(chan *events.EventList),
-		hash:     make(chan *events.EventList),
-		crypto:   make(chan *events.EventList),
-		net:      make(chan *events.EventList),
-		app:      make(chan *events.EventList),
-		reqStore: make(chan *events.EventList),
-		timer:    make(chan *events.EventList),
-
-		workItemInput: make(chan *events.EventList),
-
-		debugIn:  make(chan *events.EventList),
-		debugOut: make(chan *events.EventList),
+	for moduleID := range modules {
+		wc[moduleID] = make(chan *events.EventList)
 	}
+
+	return wc
 }
-
-// A function type used for performing the work of a module.
-// It usually reads events from a work channel and writes the output to another work channel.
-// Any error that occurs while performing the work is returned.
-// When ctx is canceled, the function should return ErrStopped
-type workFunc func(ctx context.Context) error
-
-// Calls the passed work function repeatedly in an infinite loop until the work function returns an non-nil error.
-// doUntilErr then sets the error in the Node's workErrNotifier and returns.
-func (n *Node) doUntilErr(ctx context.Context, work workFunc) {
-	for {
-		err := work(ctx)
-		if err != nil {
-			n.workErrNotifier.Fail(err)
-			return
-		}
-	}
-}
-
-// eventProcessor defines the type of the function that processes a single input events.EventList,
-// producing a single output events.EventList.
-// There is one such function defined for each Module that is executed in a loop by a worker goroutine.
-type eventProcessor func(context.Context, *events.EventList) (*events.EventList, error)
 
 // processEvents reads a single list of input Events from a work channel, strips off all associated follow-up Events,
 // and processes the bare content of the list using the passed processing function.
@@ -103,7 +46,7 @@ type eventProcessor func(context.Context, *events.EventList) (*events.EventList,
 // If exitC is closed, returns ErrStopped.
 func (n *Node) processEvents(
 	ctx context.Context,
-	processFunc eventProcessor,
+	module modules.PassiveModule,
 	eventSource <-chan *events.EventList,
 ) error {
 	var eventsIn *events.EventList
@@ -112,7 +55,9 @@ func (n *Node) processEvents(
 	select {
 	case eventsIn = <-eventSource:
 	case <-ctx.Done():
-		return ErrStopped
+		return nil
+	case <-n.workErrNotifier.ExitC():
+		return nil
 	}
 
 	// Remove follow-up Events from the input EventList,
@@ -124,9 +69,9 @@ func (n *Node) processEvents(
 	n.interceptEvents(plainEvents)
 
 	// Process events.
-	newEvents, err := processFunc(ctx, plainEvents)
+	newEvents, err := safelyApplyEvents(module, plainEvents)
 	if err != nil {
-		return fmt.Errorf("could not process events: %w", err)
+		return err
 	}
 
 	// Merge the pending follow-up Events with the newly generated Events.
@@ -140,190 +85,29 @@ func (n *Node) processEvents(
 
 	// Write output.
 	select {
-	case n.workChans.workItemInput <- out:
+	case n.moduleOutput <- out:
 	case <-ctx.Done():
-		return ErrStopped
+		return nil
+	case <-n.workErrNotifier.ExitC():
+		return nil
 	}
 
 	return nil
 }
 
-// Module-specific wrappers for Node.ProcessEvents,
-// associating each Module's processing function with its corresponding work channel.
-// On top of that, the Protocol processing wrapper additionally sets the Node's exit status when done.
-
-func (n *Node) doWALWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processWALEvents, n.workChans.wal)
-}
-
-func (n *Node) doClientWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
-}
-
-func (n *Node) doHashWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processHashEvents, n.workChans.hash)
-}
-
-func (n *Node) doCryptoWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processCryptoEvents, n.workChans.crypto)
-}
-
-func (n *Node) doAppWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processAppEvents, n.workChans.app)
-}
-
-func (n *Node) doReqStoreWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processReqStoreEvents, n.workChans.reqStore)
-}
-
-func (n *Node) doProtocolWork(ctx context.Context) (err error) {
-	// On returning, sets the exit status of the protocol state machine in the work error notifier.
-	defer func() {
-		if err != nil {
-			s, err := n.modules.Protocol.Status()
-			n.workErrNotifier.SetExitStatus(&statuspb.NodeStatus{Protocol: s}, err)
-			// TODO: Clean up status-related code.
-		}
-	}()
-	return n.processEvents(ctx, n.processProtocolEvents, n.workChans.protocol)
-}
-
-// TODO: Document the functions below.
-
-func (n *Node) processWALEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-
-	// If no WAL implementation is present, do nothing and return immediately.
-	if n.modules.WAL == nil {
-		return &events.EventList{}, nil
-	}
-
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		results, err := n.modules.WAL.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(results)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processClientEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		newEvents, err := n.safeApplyClientEvent(event)
-		if err != nil {
-			return nil, fmt.Errorf("err applying client event: %w", err)
-		}
-		eventsOut.PushBackList(newEvents)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventList, err error) {
-
+func safelyApplyEvents(
+	module modules.PassiveModule,
+	events *events.EventList,
+) (result *events.EventList, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("panic in client tracker: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
+				err = fmt.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
 			} else {
-				err = fmt.Errorf("panic in client tracker: %v\nStack trace:\n%s", r, string(debug.Stack()))
+				err = fmt.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
 			}
 		}
 	}()
 
-	return n.modules.ClientTracker.ApplyEvent(event)
-}
-
-func (n *Node) processHashEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		results, err := n.modules.Hasher.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(results)
-
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		results, err := n.modules.Crypto.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(results)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		results, err := n.modules.App.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(results)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		results, err := n.modules.RequestStore.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(results)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processProtocolEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		newEvents, err := n.safeApplyProtocolEvent(event)
-		if err != nil {
-			return nil, fmt.Errorf("error applying protocol event: %w", err)
-		}
-		eventsOut.PushBackList(newEvents)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) safeApplyProtocolEvent(event *eventpb.Event) (result *events.EventList, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("panic in protocol state machine: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
-			} else {
-				err = fmt.Errorf("panic in protocol state machine: %v\nStack trace:\n%s", r, string(debug.Stack()))
-			}
-		}
-	}()
-
-	return n.modules.Protocol.ApplyEvent(event)
+	return module.ApplyEvents(events)
 }

@@ -18,6 +18,7 @@ package simplewal
 import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -29,6 +30,8 @@ import (
 )
 
 type WAL struct {
+	modules.Module
+
 	mutex sync.Mutex
 	log   *wal.Log
 
@@ -41,6 +44,22 @@ type WAL struct {
 	// Otherwise it could be completely ephemeral.
 	// TODO: Implement persisting and loading the retentionIndex
 	retentionIndex t.WALRetIndex
+}
+
+func (w *WAL) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := w.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
@@ -63,7 +82,7 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 		// Add all events from the WAL to the new EventList.
 		if err := w.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
-			storedEvents.PushBack(events.WALEntry(event.Destination, event, retIdx))
+			storedEvents.PushBack(event)
 		}); err != nil {
 			return nil, fmt.Errorf("could not load WAL events: %w", err)
 		}

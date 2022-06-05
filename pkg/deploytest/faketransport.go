@@ -15,6 +15,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/activemodule"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"strconv"
@@ -37,6 +38,8 @@ func unsafeIDtoi(in interface{}) (out int) {
 }
 
 type FakeLink struct {
+	modules.Module
+
 	FakeTransport *FakeTransport
 	Source        t.NodeID
 }

@@ -8,6 +8,7 @@ import (
 )
 
 type ActiveModule interface {
+	Module
 
 	// Run performs the module's processing.
 	// It usually reads events from eventsIn, processes them, and writes new events to eventsOut.

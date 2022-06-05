@@ -3,17 +3,37 @@ package crypto
 import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type Crypto struct {
+	modules.Module
 	impl Impl
 }
 
 func New(impl Impl) *Crypto {
 	return &Crypto{impl: impl}
+}
+
+func (c *Crypto) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	// TODO: Parallelize this.
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := c.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

@@ -104,6 +104,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 	defer file.Close()
 	interceptor := eventlog.NewRecorder(tr.ID, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	defer func() {
+		fmt.Println("Stopping interceptor.")
 		err := interceptor.Stop()
 		Expect(err).NotTo(HaveOccurred())
 	}()
@@ -124,19 +125,18 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.ID,
 		tr.Config,
 		&modules.Modules{
-			Net:           tr.Net,
-			App:           tr.App,
-			RequestStore:  tr.ReqStore,
-			WAL:           wal,
-			ClientTracker: clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
-			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
-			Protocol:    issProtocol,
-			Interceptor: interceptor,
+			"net":           tr.Net,
+			"app":           tr.App,
+			"reqestStore":   tr.ReqStore,
+			"wal":           wal,
+			"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
+			"iss":           issProtocol,
 			// // Use dummy crypto module that only produces signatures
 			// // consisting of a single zero byte and treats those signatures as valid.
-			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
-			Crypto: mirCrypto.New(cryptoModule),
+			// "crypto": &mirCrypto.DummyCrypto{DummySig: []byte{0}},
+			"crypto": mirCrypto.New(cryptoModule),
 		},
+		interceptor,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -168,15 +168,18 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 
 	// Run the node until it stops and obtain the node's final status.
 	exitErr := node.Run(ctx)
-	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
+	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!", "exitErr", exitErr)
 
 	finalStatus, statusErr := node.Status(context.Background())
 
 	// Stop the request receiver.
+	tr.Config.Logger.Log(logging.LevelDebug, "Stopping request receiver.")
 	requestReceiver.Stop()
 	Expect(requestReceiver.ServerError()).NotTo(HaveOccurred())
+	tr.Config.Logger.Log(logging.LevelDebug, "Request receiver stopped.")
 
 	// Wait for the local request submission thread.
+	tr.Config.Logger.Log(logging.LevelDebug, "Waiting for request submission to stop.")
 	wg.Wait()
 	tr.Config.Logger.Log(logging.LevelInfo, "Fake request submission done.")
 

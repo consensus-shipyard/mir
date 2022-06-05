@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/activemodule"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"net"
@@ -40,6 +41,7 @@ const (
 // A message to a node is sent as request to that node's gRPC server.
 type GrpcTransport struct {
 	UnimplementedGrpcTransportServer
+	modules.Module
 
 	// The numeric ID of the node that uses this networking module.
 	ownID t.NodeID
@@ -163,6 +165,9 @@ func (gt *GrpcTransport) Send(dest t.NodeID, msg *messagepb.Message) error {
 // This function is called by the gRPC system on every new connection
 // from another node's Net module's gRPC client.
 func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
+
+	// Wait until the module is running and the gt.eventOut variable contains the output channel.
+	<-gt.moduleRunning
 
 	// Print address of incoming connection.
 	p, ok := peer.FromContext(srv.Context())

@@ -4,11 +4,32 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 )
 
-type SHA256Hasher struct{}
+type SHA256Hasher struct {
+	modules.Module
+}
+
+func (hasher *SHA256Hasher) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	// TODO: Parallelize this.
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := hasher.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
 
 func (hasher *SHA256Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {

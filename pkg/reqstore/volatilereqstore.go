@@ -9,6 +9,7 @@ package reqstore
 import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"sync"
@@ -21,6 +22,7 @@ import (
 // All data is stored in RAM and the Sync() method does nothing.
 // TODO: implement pruning of old data.
 type VolatileRequestStore struct {
+	modules.Module
 	sync.RWMutex
 
 	// Stores request entries, indexed by request reference.
@@ -31,6 +33,22 @@ type VolatileRequestStore struct {
 	// The set of request digests is itself represented as a string map,
 	// where the key is the digest's string representation and the value is the digest as a byte slice.
 	idIndex map[string]map[string][]byte
+}
+
+func (vrs *VolatileRequestStore) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := vrs.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 func (vrs *VolatileRequestStore) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

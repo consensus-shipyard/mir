@@ -20,12 +20,29 @@ import (
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
+	modules.PassiveModule
 
 	// Request store maintained by the FakeApp
 	ReqStore modules.RequestStore
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
+}
+
+func (fa *FakeApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := fa.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

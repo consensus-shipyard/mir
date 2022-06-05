@@ -8,6 +8,7 @@ package clients
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -18,6 +19,8 @@ import (
 )
 
 type SigningClientTracker struct {
+	modules.Module
+
 	logger logging.Logger
 
 	unverifiedRequests map[string]*requestpb.Request
@@ -37,6 +40,22 @@ func SigningTracker(protocolModuleName string, logger logging.Logger) *SigningCl
 		unverifiedRequests: make(map[string]*requestpb.Request),
 		protocolModuleName: protocolModuleName,
 	}
+}
+
+func (ct *SigningClientTracker) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := ct.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 // ApplyEvent processes an event incoming to the SigningClientTracker module
@@ -94,7 +113,7 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) (*events.EventL
 			// store the verified request in the request store and, submit a reference to it to the protocol.
 			// It is important to first persist the request and only then submit it to the protocol,
 			// in case the node crashes in between.
-			storeEvent := events.StoreVerifiedRequest("crypto", reqRef, req.Data, req.Authenticator)
+			storeEvent := events.StoreVerifiedRequest("requestStore", reqRef, req.Data, req.Authenticator)
 			storeEvent.Next = []*eventpb.Event{events.RequestReady(ct.protocolModuleName, reqRef)}
 			return (&events.EventList{}).PushBack(storeEvent), nil
 		}

@@ -204,8 +204,10 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 
 	ctx2, cancel := context.WithCancel(context.Background())
 
+	fmt.Println("Setting up mem stats.")
 	var m1, m2 runtime.MemStats
 	runtime.GC()
+	fmt.Println("GC finished.")
 	runtime.ReadMemStats(&m1)
 	go func() {
 		<-ctx.Done()
@@ -215,6 +217,7 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 		heapAlloc = int64(m2.HeapAlloc - m1.HeapAlloc)
 		cancel()
 	}()
+	fmt.Println("Mem stats set up.")
 
 	// Start the Mir nodes.
 	nodeWg.Add(len(d.TestReplicas))
@@ -236,6 +239,7 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 	}
 
 	// Start the message transport subsystem
+	fmt.Println("Starting fake transport.")
 	d.FakeTransport.Start()
 	defer d.FakeTransport.Stop()
 
@@ -259,7 +263,7 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 	nodeWg.Wait()
 	clientWg.Wait()
 
-	fmt.Printf("All go routines shut down\n")
+	fmt.Printf("All goroutines shut down\n")
 	return
 }
 

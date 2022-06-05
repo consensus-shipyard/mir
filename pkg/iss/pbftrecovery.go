@@ -16,3 +16,35 @@ func (pbft *pbftInstance) applyPbftPersistPreprepare(_ *isspbftpb.Preprepare) *e
 	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: Preprepare (unimplemented)")
 	return &events.EventList{}
 }
+
+// applyPbftPersistPreprepare processes a preprepare message loaded from the WAL.
+func (pbft *pbftInstance) applyPbftPersistPrepare(_ *isspbftpb.Prepare) *events.EventList {
+
+	// TODO: Implement this.
+	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: Prepare (unimplemented)")
+	return &events.EventList{}
+}
+
+// applyPbftPersistPreprepare processes a preprepare message loaded from the WAL.
+func (pbft *pbftInstance) applyPbftPersistCommit(_ *isspbftpb.Commit) *events.EventList {
+
+	// TODO: Implement this.
+	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: Commit (unimplemented)")
+	return &events.EventList{}
+}
+
+// applyPbftPersistPreprepare processes a preprepare message loaded from the WAL.
+func (pbft *pbftInstance) applyPbftPersistSignedViewChange(_ *isspbftpb.SignedViewChange) *events.EventList {
+
+	// TODO: Implement this.
+	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: SignedViewChange (unimplemented)")
+	return &events.EventList{}
+}
+
+// applyPbftPersistPreprepare processes a preprepare message loaded from the WAL.
+func (pbft *pbftInstance) applyPbftPersistNewView(_ *isspbftpb.NewView) *events.EventList {
+
+	// TODO: Implement this.
+	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: NewView (unimplemented)")
+	return &events.EventList{}
+}

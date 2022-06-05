@@ -91,6 +91,7 @@ var _ = Describe("Basic test", func() {
 		}
 
 		// Run deployment until it stops and returns final node statuses.
+		fmt.Printf("Running deployment.\n")
 		finalStatuses, heapObjects, heapAlloc = deployment.Run(ctx)
 		fmt.Printf("Deployment run returned.")
 
@@ -198,7 +199,7 @@ var _ = Describe("Basic test", func() {
 			Transport:             "fake",
 			NumFakeRequests:       100,
 			Directory:             "",
-			Duration:              8 * time.Second,
+			Duration:              10 * time.Second,
 			FirstReplicaISSConfig: slowProposeConfig,
 		}),
 		Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{
@@ -207,7 +208,7 @@ var _ = Describe("Basic test", func() {
 			Transport:       "grpc",
 			NumFakeRequests: 10,
 			Directory:       "",
-			Duration:        4 * time.Second,
+			Duration:        8 * time.Second,
 		}),
 		Entry("Submits 10 requests with 1 node and actual networking", &deploytest.TestConfig{
 			NumReplicas:    1,

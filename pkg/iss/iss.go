@@ -16,6 +16,7 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"sort"
 
 	"golang.org/x/exp/constraints"
@@ -152,6 +153,7 @@ type CommitLogEntry struct {
 // The type should not be instantiated directly, but only properly initialized values
 // returned from the New() function should be used.
 type ISS struct {
+	modules.Module
 
 	// --------------------------------------------------------------------------------
 	// These fields should only be set at initialization and remain static
@@ -306,6 +308,23 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 // Protocol Interface implementation
 // ============================================================
 
+// ApplyEvents receives a list of events, processes them sequentially, and returns a list of resulting events.
+func (iss *ISS) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := iss.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
+
 // ApplyEvent receives one event and applies it to the ISS protocol state machine, potentially altering its state
 // and producing a (potentially empty) list of more events to be applied to other modules.
 func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
@@ -331,9 +350,17 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return iss.applySBEvent(issEvent.Sb), nil
 		case *isspb.ISSEvent_StableCheckpoint:
 			return iss.applyStableCheckpoint(issEvent.StableCheckpoint), nil
+
+		// TODO: Implement WAL loading handlers.
+		case *isspb.ISSEvent_PersistCheckpoint:
+			return &events.EventList{}, nil // No handler defined yet.
+		case *isspb.ISSEvent_PersistStableCheckpoint:
+			return &events.EventList{}, nil // No handler defined yet.
+
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
+
 	case *eventpb.Event_MessageReceived:
 		return iss.applyMessageReceived(e.MessageReceived), nil
 	default:
@@ -560,6 +587,16 @@ func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeI
 // if that event belongs to the current epoch.
 // TODO: Update this comment when the TODO below is addressed.
 func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
+
+	// Ignore persist events (their handling is not yet implemented).
+	switch event.Event.Type.(type) {
+	case *isspb.SBInstanceEvent_PbftPersistPreprepare,
+		*isspb.SBInstanceEvent_PbftPersistPrepare,
+		*isspb.SBInstanceEvent_PbftPersistCommit,
+		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
+		*isspb.SBInstanceEvent_PbftPersistNewView:
+		return &events.EventList{}
+	}
 
 	switch epoch := t.EpochNr(event.Epoch); {
 	case epoch > iss.epoch.Nr:

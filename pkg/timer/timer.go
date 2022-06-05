@@ -6,6 +6,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/activemodule"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -15,6 +16,8 @@ import (
 // The Timer module abstracts the passage of real time.
 // It is used for implementing timeouts and periodic repetition.
 type Timer struct {
+	modules.Module
+
 	retIndex t.TimerRetIndex
 }
 
