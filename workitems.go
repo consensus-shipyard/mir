@@ -10,6 +10,8 @@ package mir
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -27,10 +29,19 @@ type workItems struct {
 	protocol *events.EventList
 	crypto   *events.EventList
 	timer    *events.EventList
+
+	generic map[t.ModuleID]*events.EventList
 }
 
 // NewWorkItems allocates and returns a pointer to a new WorkItems object.
-func newWorkItems() *workItems {
+func newWorkItems(modules *modules.Modules) *workItems {
+
+	generic := make(map[t.ModuleID]*events.EventList)
+
+	for moduleID := range modules.GenericModules {
+		generic[moduleID] = &events.EventList{}
+	}
+
 	return &workItems{
 		wal:      &events.EventList{},
 		net:      &events.EventList{},
@@ -41,6 +52,8 @@ func newWorkItems() *workItems {
 		protocol: &events.EventList{},
 		crypto:   &events.EventList{},
 		timer:    &events.EventList{},
+
+		generic: generic,
 	}
 }
 
@@ -50,6 +63,13 @@ func newWorkItems() *workItems {
 func (wi *workItems) AddEvents(events *events.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		// If the event has a target generic module, add it to the corresponding buffer and go to next event.
+		if buffer, ok := wi.generic[t.ModuleID(event.DestModule)]; ok {
+			buffer.PushBack(event)
+			continue
+		}
+
 		switch t := event.Type.(type) {
 		case *eventpb.Event_Init:
 			wi.protocol.PushBack(event)

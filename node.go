@@ -78,10 +78,10 @@ func NewNode(
 		ID:     id,
 		Config: config,
 
-		workChans: newWorkChans(),
+		workChans: newWorkChans(modulesWithDefaults),
 		modules:   modulesWithDefaults,
 
-		workItems:       newWorkItems(),
+		workItems:       newWorkItems(modulesWithDefaults),
 		workErrNotifier: newWorkErrNotifier(),
 
 		statusC: make(chan chan *statuspb.NodeStatus),
@@ -273,6 +273,8 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		}(work)
 	}
 
+	n.startModules(ctx, &wg)
+
 	// This loop shovels events between the appropriate channels, until a stopping condition is satisfied.
 	var returnErr error = nil
 	for returnErr == nil {
@@ -443,6 +445,32 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			returnErr = n.workErrNotifier.Err()
 		})
 
+		// For each generic event buffer in workItems that contains events to be submitted to its corresponding module,
+		// create a selectCase for writing those events to the module's work channel.
+
+		for moduleID, buffer := range n.workItems.generic {
+			if buffer.Len() > 0 {
+
+				// Create case for writing in the work channel.
+				selectCases = append(selectCases, reflect.SelectCase{
+					Dir:  reflect.SelectSend,
+					Chan: reflect.ValueOf(n.workChans.genericWorkChans[moduleID]),
+					Send: reflect.ValueOf(buffer),
+				})
+
+				// Create a copy of moduleID to use in the reaction function.
+				// If we used moduleID directly in the function definition, it would correspond to the loop variable
+				// and have the same value for all cases after the loop finishes iterating.
+				var mID = moduleID
+
+				// React to writing to a work channel by emptying the corresponding event buffer
+				// (i.e., removing events just written to the channel from the buffer).
+				selectReactions = append(selectReactions, func(_ reflect.Value) {
+					n.workItems.generic[mID] = &events.EventList{}
+				})
+			}
+		}
+
 		// Choose one case from above and execute the corresponding reaction.
 
 		chosenCase, receivedValue, _ := reflect.Select(selectCases)
@@ -451,6 +479,37 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	}
 
 	return returnErr
+}
+
+func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
+
+	// The modules mostly read events from their respective channels in n.workChans,
+	// process them correspondingly, and write the results (also represented as events) in the appropriate channels.
+	// Each worker function reads a single work item (EventList), processes it and writes its results.
+	// The looping behavior is implemented in doUntilErr.
+	for moduleID, module := range n.modules.GenericModules {
+		switch m := module.(type) {
+		case modules.PassiveModule:
+			wg.Add(1)
+			go func(mID t.ModuleID, workChan chan *events.EventList) {
+				defer wg.Done()
+
+				var continueProcessing bool = true
+				var err error
+
+				for continueProcessing {
+					err, continueProcessing = n.processEventsPassive(ctx, m, workChan)
+					if err != nil {
+						n.workErrNotifier.Fail(fmt.Errorf("could not process PassiveModule (%v) events: %w", mID, err))
+						return
+					}
+				}
+
+			}(moduleID, n.workChans.genericWorkChans[moduleID])
+		default:
+			n.workErrNotifier.Fail(fmt.Errorf("unknown module type: %T", m))
+		}
+	}
 }
 
 // If the interceptor module is present, passes events to it. Otherwise, does nothing.
