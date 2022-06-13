@@ -29,7 +29,6 @@ type workChans struct {
 	clients  chan *events.EventList
 	protocol chan *events.EventList
 	wal      chan *events.EventList
-	hash     chan *events.EventList
 	crypto   chan *events.EventList
 	net      chan *events.EventList
 	app      chan *events.EventList
@@ -65,7 +64,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 		clients:  make(chan *events.EventList),
 		protocol: make(chan *events.EventList),
 		wal:      make(chan *events.EventList),
-		hash:     make(chan *events.EventList),
 		crypto:   make(chan *events.EventList),
 		net:      make(chan *events.EventList),
 		app:      make(chan *events.EventList),
@@ -258,10 +256,6 @@ func (n *Node) doClientWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
 }
 
-func (n *Node) doHashWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processHashEvents, n.workChans.hash)
-}
-
 func (n *Node) doCryptoWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processCryptoEvents, n.workChans.crypto)
 }
@@ -372,43 +366,6 @@ func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventL
 	}()
 
 	return n.modules.ClientTracker.ApplyEvent(event), nil
-}
-
-func (n *Node) processHashEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_HashRequest:
-			// HashRequest is the only event understood by the hasher module.
-
-			// Create a slice for the resulting digests containing one element for each data item to be hashed.
-			digests := make([][]byte, len(e.HashRequest.Data))
-
-			// Hash each data item contained in the event
-			for i, data := range e.HashRequest.Data {
-
-				// One data item consists of potentially multiple byte slices.
-				// Add each of them to the hash function.
-				h := n.modules.Hasher.New()
-				for _, d := range data.Data {
-					h.Write(d)
-				}
-
-				// Save resulting digest in the result slice
-				digests[i] = h.Sum(nil)
-			}
-
-			// Return all computed digests in one common event.
-			eventsOut.PushBack(events.HashResult(digests, e.HashRequest.Origin))
-		default:
-			// Complain about all other incoming event types.
-			return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
-		}
-	}
-
-	return eventsOut, nil
 }
 
 func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {

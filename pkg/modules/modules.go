@@ -21,7 +21,6 @@ type Module interface {
 // The Modules structs groups the modules a Node consists of.
 type Modules struct {
 	Net           Net              // Sends messages produced by Mir through the network.
-	Hasher        Hasher           // Computes hashes of requests and other data.
 	Crypto        Crypto           // Performs cryptographic operations (except for computing hashes)
 	App           App              // Implements user application logic. The user is expected to provide this module.
 	WAL           WAL              // Implements a persistent write-ahead log for the case of crashes and restarts.

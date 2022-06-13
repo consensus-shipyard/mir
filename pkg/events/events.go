@@ -82,7 +82,7 @@ func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte, authenticato
 // For each object to be hashed the data argument contains a slice of byte slices representing it (thus [][][]byte).
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // HashResult produced by the hashing module.
-func HashRequest(data [][][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
+func HashRequest(destModule t.ModuleID, data [][][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
 
 	// First, construct a slice of HashData objects
 	hashData := make([]*commonpb.HashData, len(data))
@@ -90,18 +90,21 @@ func HashRequest(data [][][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
 		hashData[i] = &commonpb.HashData{Data: d}
 	}
 
-	return &eventpb.Event{Type: &eventpb.Event_HashRequest{HashRequest: &eventpb.HashRequest{
-		Data:   hashData,
-		Origin: origin,
-	}}}
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_HashRequest{HashRequest: &eventpb.HashRequest{
+			Data:   hashData,
+			Origin: origin,
+		}},
+	}
 }
 
 // HashResult returns an event representing the computation of hashes by the hashing module.
 // It contains the computed digests and the HashOrigin,
 // an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained digest.
-func HashResult(digests [][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_HashResult{HashResult: &eventpb.HashResult{
+func HashResult(destModule t.ModuleID, digests [][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_HashResult{HashResult: &eventpb.HashResult{
 		Digests: digests,
 		Origin:  origin,
 	}}}

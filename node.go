@@ -258,7 +258,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	for _, work := range []workFunc{
 		n.doWALWork,
 		n.doClientWork,
-		n.doHashWork, // TODO (Jason), spawn more of these
 		n.doSendingWork,
 		n.doAppWork,
 		n.doReqStoreWork,
@@ -315,16 +314,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			})
 			selectReactions = append(selectReactions, func(_ reflect.Value) {
 				n.workItems.ClearClient()
-			})
-		}
-		if n.workItems.Hash().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.hash),
-				Send: reflect.ValueOf(n.workItems.Hash()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearHash()
 			})
 		}
 		if n.workItems.Crypto().Len() > 0 {

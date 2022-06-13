@@ -22,7 +22,6 @@ import (
 type workItems struct {
 	wal      *events.EventList
 	net      *events.EventList
-	hash     *events.EventList
 	client   *events.EventList
 	app      *events.EventList
 	reqStore *events.EventList
@@ -45,7 +44,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 	return &workItems{
 		wal:      &events.EventList{},
 		net:      &events.EventList{},
-		hash:     &events.EventList{},
 		client:   &events.EventList{},
 		app:      &events.EventList{},
 		reqStore: &events.EventList{},
@@ -85,8 +83,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			wi.reqStore.PushBack(event)
 		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest, *eventpb.Event_VerifyNodeSigs:
 			wi.crypto.PushBack(event)
-		case *eventpb.Event_HashRequest:
-			wi.hash.PushBack(event)
 		case *eventpb.Event_HashResult:
 			// For hash results, their origin determines the destination.
 			switch t.HashResult.Origin.Type.(type) {
@@ -154,10 +150,6 @@ func (wi *workItems) Net() *events.EventList {
 	return wi.net
 }
 
-func (wi *workItems) Hash() *events.EventList {
-	return wi.hash
-}
-
 func (wi *workItems) Client() *events.EventList {
 	return wi.client
 }
@@ -191,10 +183,6 @@ func (wi *workItems) ClearWAL() *events.EventList {
 
 func (wi *workItems) ClearNet() *events.EventList {
 	return clearEventList(&wi.net)
-}
-
-func (wi *workItems) ClearHash() *events.EventList {
-	return clearEventList(&wi.hash)
 }
 
 func (wi *workItems) ClearClient() *events.EventList {
