@@ -180,7 +180,7 @@ func (n *Node) SubmitRequest(
 	// Enqueue the generated events in a work channel to be handled by the processing thread.
 	select {
 	case n.workChans.workItemInput <- (&events.EventList{}).PushBack(
-		events.ClientRequest(clientID, reqNo, data, authenticator),
+		events.ClientRequest("clientTracker", clientID, reqNo, data, authenticator),
 	):
 		return nil
 	case <-ctx.Done():
@@ -259,7 +259,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// Each workFunc reads a single work item, processes it and writes its results.
 	// The looping behavior is implemented in doUntilErr.
 	for _, work := range []workFunc{
-		n.doClientWork,
 		n.doSendingWork,
 		n.doReqStoreWork,
 		n.doProtocolWork,
@@ -294,16 +293,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			})
 			selectReactions = append(selectReactions, func(_ reflect.Value) {
 				n.workItems.ClearProtocol()
-			})
-		}
-		if n.workItems.Client().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.clients),
-				Send: reflect.ValueOf(n.workItems.Client()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearClient()
 			})
 		}
 		if n.workItems.Timer().Len() > 0 {

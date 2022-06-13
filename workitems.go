@@ -21,7 +21,6 @@ import (
 // It contains a separate list for each type of event.
 type workItems struct {
 	net      *events.EventList
-	client   *events.EventList
 	reqStore *events.EventList
 	protocol *events.EventList
 	timer    *events.EventList
@@ -40,7 +39,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 
 	return &workItems{
 		net:      &events.EventList{},
-		client:   &events.EventList{},
 		reqStore: &events.EventList{},
 		protocol: &events.EventList{},
 		timer:    &events.EventList{},
@@ -71,17 +69,11 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 		case *eventpb.Event_MessageReceived, *eventpb.Event_Iss, *eventpb.Event_RequestReady,
 			*eventpb.Event_AppSnapshot:
 			wi.protocol.PushBack(event)
-		case *eventpb.Event_Request, *eventpb.Event_RequestSigVerified:
-			wi.client.PushBack(event)
 		case *eventpb.Event_StoreVerifiedRequest:
 			wi.reqStore.PushBack(event)
 		case *eventpb.Event_HashResult:
 			// For hash results, their origin determines the destination.
 			switch t.HashResult.Origin.Type.(type) {
-			case *eventpb.HashOrigin_Request:
-				// If the origin is a request received directly from a client,
-				// it is the client tracker that created the request and the result goes back to it.
-				wi.client.PushBack(event)
 			case *eventpb.HashOrigin_Iss:
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
@@ -130,10 +122,6 @@ func (wi *workItems) Net() *events.EventList {
 	return wi.net
 }
 
-func (wi *workItems) Client() *events.EventList {
-	return wi.client
-}
-
 func (wi *workItems) ReqStore() *events.EventList {
 	return wi.reqStore
 }
@@ -151,10 +139,6 @@ func (wi *workItems) Timer() *events.EventList {
 
 func (wi *workItems) ClearNet() *events.EventList {
 	return clearEventList(&wi.net)
-}
-
-func (wi *workItems) ClearClient() *events.EventList {
-	return clearEventList(&wi.client)
 }
 
 func (wi *workItems) ClearReqStore() *events.EventList {
