@@ -54,7 +54,7 @@ func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceH
 }
 
 func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSignOrigin) *eventpb.Event {
-	return events.SignRequest(data, SBSignOrigin(ec.epoch, ec.instance, origin))
+	return events.SignRequest("crypto", data, SBSignOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) VerifyNodeSigs(
@@ -63,7 +63,7 @@ func (ec *sbEventService) VerifyNodeSigs(
 	nodeIDs []t.NodeID,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.Event {
-	return events.VerifyNodeSigs(data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instance, origin))
+	return events.VerifyNodeSigs("crypto", data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) TimerDelay(delay t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {

@@ -261,7 +261,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		n.doSendingWork,
 		n.doReqStoreWork,
 		n.doProtocolWork,
-		n.doCryptoWork,
 		n.doTimerWork,
 	} {
 		// Each function is executed by a separate thread.
@@ -313,16 +312,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			})
 			selectReactions = append(selectReactions, func(_ reflect.Value) {
 				n.workItems.ClearClient()
-			})
-		}
-		if n.workItems.Crypto().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.crypto),
-				Send: reflect.ValueOf(n.workItems.Crypto()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearCrypto()
 			})
 		}
 		if n.workItems.Timer().Len() > 0 {

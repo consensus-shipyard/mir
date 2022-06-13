@@ -109,7 +109,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 
 	// Request signature
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
-	sigEvent := events.SignRequest(sigData, CheckpointSignOrigin(ct.epoch))
+	sigEvent := events.SignRequest("crypto", sigData, CheckpointSignOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(sigEvent)
 }
@@ -169,6 +169,7 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.appSnapshotHash)
 	verifySigEvent := events.VerifyNodeSigs(
+		"crypto",
 		[][][]byte{sigData},
 		[][]byte{msg.Signature},
 		[]t.NodeID{source},

@@ -29,7 +29,6 @@ type workChans struct {
 	clients  chan *events.EventList
 	protocol chan *events.EventList
 	wal      chan *events.EventList
-	crypto   chan *events.EventList
 	net      chan *events.EventList
 	reqStore chan *events.EventList
 	timer    chan *events.EventList
@@ -63,7 +62,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 		clients:  make(chan *events.EventList),
 		protocol: make(chan *events.EventList),
 		wal:      make(chan *events.EventList),
-		crypto:   make(chan *events.EventList),
 		net:      make(chan *events.EventList),
 		reqStore: make(chan *events.EventList),
 		timer:    make(chan *events.EventList),
@@ -254,10 +252,6 @@ func (n *Node) doClientWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
 }
 
-func (n *Node) doCryptoWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processCryptoEvents, n.workChans.crypto)
-}
-
 func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
@@ -360,80 +354,6 @@ func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventL
 	}()
 
 	return n.modules.ClientTracker.ApplyEvent(event), nil
-}
-
-func (n *Node) processCryptoEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_VerifyRequestSig:
-			// Verify client request signature.
-			// The signature is only computed (and verified) over the digest of a request.
-			// The other fields can safely be ignored.
-
-			// Convenience variable
-			reqRef := e.VerifyRequestSig.RequestRef
-
-			// Verify signature.
-			err := n.modules.Crypto.VerifyClientSig(
-				[][]byte{reqRef.Digest},
-				e.VerifyRequestSig.Signature,
-				t.ClientID(reqRef.ClientId))
-
-			// Create result event, depending on verification outcome.
-			if err == nil {
-				eventsOut.PushBack(events.RequestSigVerified(reqRef, true, ""))
-			} else {
-				eventsOut.PushBack(events.RequestSigVerified(reqRef, false, err.Error()))
-			}
-		case *eventpb.Event_SignRequest:
-			// Compute a signature over the provided data and produce a SignResult event.
-
-			if signature, err := n.modules.Crypto.Sign(e.SignRequest.Data); err == nil {
-				eventsOut.PushBack(events.SignResult(signature, e.SignRequest.Origin))
-			} else {
-				return nil, err
-			}
-		case *eventpb.Event_VerifyNodeSigs:
-			// Verify a batch of node signatures
-
-			// Convenience variables
-			verifyEvent := e.VerifyNodeSigs
-			results := make([]bool, len(verifyEvent.Data))
-			errors := make([]string, len(verifyEvent.Data))
-			allOK := true
-
-			// Verify each signature.
-			for i, data := range verifyEvent.Data {
-				err := n.modules.Crypto.VerifyNodeSig(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
-				if err == nil {
-					results[i] = true
-					errors[i] = ""
-				} else {
-					results[i] = false
-					errors[i] = err.Error()
-					allOK = false
-				}
-			}
-
-			// Return result event
-			eventsOut.PushBack(events.NodeSigsVerified(
-				results,
-				errors,
-				t.NodeIDSlice(verifyEvent.NodeIds),
-				verifyEvent.Origin,
-				allOK,
-			))
-
-		default:
-			// Complain about all other incoming event types.
-			return nil, fmt.Errorf("unexpected type of Crypto event: %T", event.Type)
-		}
-	}
-
-	return eventsOut, nil
 }
 
 func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {

@@ -25,7 +25,6 @@ type workItems struct {
 	client   *events.EventList
 	reqStore *events.EventList
 	protocol *events.EventList
-	crypto   *events.EventList
 	timer    *events.EventList
 
 	generic map[t.ModuleID]*events.EventList
@@ -46,7 +45,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 		client:   &events.EventList{},
 		reqStore: &events.EventList{},
 		protocol: &events.EventList{},
-		crypto:   &events.EventList{},
 		timer:    &events.EventList{},
 
 		generic: generic,
@@ -79,8 +77,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			wi.client.PushBack(event)
 		case *eventpb.Event_StoreVerifiedRequest:
 			wi.reqStore.PushBack(event)
-		case *eventpb.Event_VerifyRequestSig, *eventpb.Event_SignRequest, *eventpb.Event_VerifyNodeSigs:
-			wi.crypto.PushBack(event)
 		case *eventpb.Event_HashResult:
 			// For hash results, their origin determines the destination.
 			switch t.HashResult.Origin.Type.(type) {
@@ -156,10 +152,6 @@ func (wi *workItems) Protocol() *events.EventList {
 	return wi.protocol
 }
 
-func (wi *workItems) Crypto() *events.EventList {
-	return wi.crypto
-}
-
 func (wi *workItems) Timer() *events.EventList {
 	return wi.timer
 }
@@ -185,10 +177,6 @@ func (wi *workItems) ClearReqStore() *events.EventList {
 
 func (wi *workItems) ClearProtocol() *events.EventList {
 	return clearEventList(&wi.protocol)
-}
-
-func (wi *workItems) ClearCrypto() *events.EventList {
-	return clearEventList(&wi.crypto)
 }
 
 func (wi *workItems) ClearTimer() *events.EventList {
