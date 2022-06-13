@@ -20,12 +20,11 @@ type Module interface {
 
 // The Modules structs groups the modules a Node consists of.
 type Modules struct {
-	Net           Net              // Sends messages produced by Mir through the network.
-	ClientTracker ClientTracker    // Keeps the state related to clients and validates submitted requests.
-	RequestStore  RequestStore     // Provides persistent storage for request data.
-	Protocol      Protocol         // Implements the logic of the distributed protocol.
-	Interceptor   EventInterceptor // Intercepts and logs all internal _Events_ for debugging purposes.
-	Timer         Timer            // Tracks real time (e.g. for timeouts) and injects events accordingly.
+	Net          Net              // Sends messages produced by Mir through the network.
+	RequestStore RequestStore     // Provides persistent storage for request data.
+	Protocol     Protocol         // Implements the logic of the distributed protocol.
+	Interceptor  EventInterceptor // Intercepts and logs all internal _Events_ for debugging purposes.
+	Timer        Timer            // Tracks real time (e.g. for timeouts) and injects events accordingly.
 
 	GenericModules map[t.ModuleID]Module
 }

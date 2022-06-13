@@ -69,8 +69,14 @@ func MessageReceived(from t.NodeID, message *messagepb.Message) *eventpb.Event {
 }
 
 // ClientRequest returns an event representing the reception of a request from a client.
-func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte, authenticator []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_Request{Request: &requestpb.Request{
+func ClientRequest(
+	destModule t.ModuleID,
+	clientID t.ClientID,
+	reqNo t.ReqNo,
+	data []byte,
+	authenticator []byte,
+) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Request{Request: &requestpb.Request{
 		ClientId:      clientID.Pb(),
 		ReqNo:         reqNo.Pb(),
 		Data:          data,
@@ -194,10 +200,13 @@ func NodeSigsVerified(
 
 // RequestReady returns an event signifying that a new request is ready to be inserted into the protocol state machine.
 // This normally occurs when the request has been received, persisted, authenticated, and an authenticator is available.
-func RequestReady(requestRef *requestpb.RequestRef) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_RequestReady{RequestReady: &eventpb.RequestReady{
-		RequestRef: requestRef,
-	}}}
+func RequestReady(destModule t.ModuleID, requestRef *requestpb.RequestRef) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_RequestReady{RequestReady: &eventpb.RequestReady{
+			RequestRef: requestRef,
+		}},
+	}
 }
 
 // WALAppend returns an event of appending a new entry to the WAL.
@@ -272,12 +281,20 @@ func RequestSigVerified(destModule t.ModuleID, reqRef *requestpb.RequestRef, val
 
 // StoreVerifiedRequest returns an event representing an event the ClientTracker emits
 // to request storing a request, including its payload and authenticator, in the request store.
-func StoreVerifiedRequest(reqRef *requestpb.RequestRef, data []byte, authenticator []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_StoreVerifiedRequest{StoreVerifiedRequest: &eventpb.StoreVerifiedRequest{
-		RequestRef:    reqRef,
-		Data:          data,
-		Authenticator: authenticator,
-	}}}
+func StoreVerifiedRequest(
+	destModule t.ModuleID,
+	reqRef *requestpb.RequestRef,
+	data []byte,
+	authenticator []byte,
+) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_StoreVerifiedRequest{StoreVerifiedRequest: &eventpb.StoreVerifiedRequest{
+			RequestRef:    reqRef,
+			Data:          data,
+			Authenticator: authenticator,
+		}},
+	}
 }
 
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.

@@ -26,7 +26,6 @@ import (
 type workChans struct {
 
 	// There is one channel per module to feed events into the module.
-	clients  chan *events.EventList
 	protocol chan *events.EventList
 	net      chan *events.EventList
 	reqStore chan *events.EventList
@@ -58,7 +57,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 	}
 
 	return workChans{
-		clients:  make(chan *events.EventList),
 		protocol: make(chan *events.EventList),
 		net:      make(chan *events.EventList),
 		reqStore: make(chan *events.EventList),
@@ -242,10 +240,6 @@ func safelyApplyEvents(
 // associating each Module's processing function with its corresponding work channel.
 // On top of that, the Protocol processing wrapper additionally sets the Node's exit status when done.
 
-func (n *Node) doClientWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
-}
-
 func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
@@ -277,37 +271,6 @@ func (n *Node) doTimerWork(ctx context.Context) (err error) {
 }
 
 // TODO: Document the functions below.
-
-func (n *Node) processClientEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		newEvents, err := n.safeApplyClientEvent(event)
-		if err != nil {
-			return nil, fmt.Errorf("err applying client event: %w", err)
-		}
-		eventsOut.PushBackList(newEvents)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) safeApplyClientEvent(event *eventpb.Event) (result *events.EventList, err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("panic in client tracker: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
-			} else {
-				err = fmt.Errorf("panic in client tracker: %v\nStack trace:\n%s", r, string(debug.Stack()))
-			}
-		}
-	}()
-
-	return n.modules.ClientTracker.ApplyEvent(event), nil
-}
 
 func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 	eventsOut := &events.EventList{}
@@ -386,7 +349,7 @@ func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventLi
 				return nil, fmt.Errorf("cannot store authenticator of dummy request: %w", err)
 			}
 
-			eventsOut.PushBack(events.RequestReady(storeEvent.RequestRef))
+			eventsOut.PushBack(events.RequestReady("iss", storeEvent.RequestRef))
 		}
 	}
 

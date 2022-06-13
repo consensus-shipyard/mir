@@ -19,11 +19,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		panic("no default Net implementation")
 	}
 
-	if m.ClientTracker == nil {
-		// TODO: Change this to the real default client tracker once implemented.
-		m.ClientTracker = clients.SigningTracker(nil)
-	}
-
 	if m.RequestStore == nil {
 		m.RequestStore = reqstore.NewVolatileRequestStore()
 	}
@@ -62,6 +57,10 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 	if m.GenericModules["crypto"] == nil {
 		// TODO: Use default crypto once implemented and tested.
 		return nil, fmt.Errorf("no default crypto implementation")
+	}
+
+	if m.GenericModules["clientTracker"] == nil {
+		m.GenericModules["clientTracker"] = clients.SigningTracker("iss", nil)
 	}
 
 	// The WAL can stay nil, in which case no write-ahead log will be written

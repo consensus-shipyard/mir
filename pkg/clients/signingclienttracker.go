@@ -8,6 +8,8 @@ package clients
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -18,12 +20,16 @@ import (
 )
 
 type SigningClientTracker struct {
+	modules.Module
+
 	logger logging.Logger
 
 	unverifiedRequests map[string]*requestpb.Request
+
+	protocolModuleID t.ModuleID
 }
 
-func SigningTracker(logger logging.Logger) *SigningClientTracker {
+func SigningTracker(protocolModuleID t.ModuleID, logger logging.Logger) *SigningClientTracker {
 
 	// Ignore all logging if no logger was specified.
 	if logger == nil {
@@ -33,12 +39,29 @@ func SigningTracker(logger logging.Logger) *SigningClientTracker {
 	return &SigningClientTracker{
 		logger:             logger,
 		unverifiedRequests: make(map[string]*requestpb.Request),
+		protocolModuleID:   protocolModuleID,
 	}
+}
+
+func (ct *SigningClientTracker) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := ct.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
 }
 
 // ApplyEvent processes an event incoming to the SigningClientTracker module
 // and produces a (potentially empty) list of new events to be processed by the node.
-func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventList {
+func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 
 	case *eventpb.Event_Request:
@@ -48,8 +71,8 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 		return (&events.EventList{}).PushBack(events.HashRequest(
 			"hasher",
 			[][][]byte{serializing.RequestForHash(req)},
-			&eventpb.HashOrigin{Type: &eventpb.HashOrigin_Request{Request: req}},
-		))
+			&eventpb.HashOrigin{Module: "clientTracker", Type: &eventpb.HashOrigin_Request{Request: req}},
+		)), nil
 
 	case *eventpb.Event_HashResult:
 		// Digest for a client request.
@@ -75,7 +98,7 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 		// Output a request authentication event.
 		// This client tracker implementation assumes that client signatures are used for authenticating requests
 		// and uses the VerifyRequestSig event (submitted to the Crypto module) to verify the signature.
-		return (&events.EventList{}).PushBack(events.VerifyRequestSig("crypto", reqRef, req.Authenticator))
+		return (&events.EventList{}).PushBack(events.VerifyRequestSig("crypto", reqRef, req.Authenticator)), nil
 
 	case *eventpb.Event_RequestSigVerified:
 
@@ -91,22 +114,22 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 			// store the verified request in the request store and, submit a reference to it to the protocol.
 			// It is important to first persist the request and only then submit it to the protocol,
 			// in case the node crashes in between.
-			storeEvent := events.StoreVerifiedRequest(reqRef, req.Data, req.Authenticator)
-			storeEvent.Next = []*eventpb.Event{events.RequestReady(reqRef)}
-			return (&events.EventList{}).PushBack(storeEvent)
+			storeEvent := events.StoreVerifiedRequest("requestStore", reqRef, req.Data, req.Authenticator)
+			storeEvent.Next = []*eventpb.Event{events.RequestReady(ct.protocolModuleID, reqRef)}
+			return (&events.EventList{}).PushBack(storeEvent), nil
 		}
 
 		// If signature is not valid, ignore request
 		ct.logger.Log(logging.LevelWarn, "Ignoring invalid request",
 			"clID", reqRef.ClientId, "reqNo", reqRef.ReqNo, "err", e.RequestSigVerified.Error)
-		return &events.EventList{}
+		return &events.EventList{}, nil
 	default:
-		panic(fmt.Sprintf("unknown event: %T", event.Type))
+		return nil, fmt.Errorf("unknown signing client tracker event type: %T", event.Type)
 	}
 }
 
 // TODO: Implement and document.
-func (ct *SigningClientTracker) Status() (s *statuspb.ClientTrackerStatus, err error) {
+func (ct *SigningClientTracker) Status() (s *statuspb.ProtocolStatus, err error) {
 	return nil, nil
 }
 
