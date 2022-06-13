@@ -50,7 +50,7 @@ func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event
 }
 
 func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
-	return events.HashRequest(data, SBHashOrigin(ec.epoch, ec.instance, origin))
+	return events.HashRequest("hasher", data, SBHashOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSignOrigin) *eventpb.Event {

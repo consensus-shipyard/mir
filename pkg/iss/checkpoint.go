@@ -97,7 +97,7 @@ func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventLi
 	ct.appSnapshot = snapshot
 
 	// Initiate computing the hash of the snapshot
-	hashEvent := events.HashRequest([][][]byte{{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
+	hashEvent := events.HashRequest("hasher", [][][]byte{{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(hashEvent)
 }

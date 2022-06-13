@@ -28,6 +28,7 @@ func (ct *DummyClientTracker) ApplyEvent(event *eventpb.Event) *events.EventList
 
 		req := e.Request
 		return (&events.EventList{}).PushBack(events.HashRequest(
+			"hasher",
 			[][][]byte{serializing.RequestForHash(req)},
 			&eventpb.HashOrigin{Type: &eventpb.HashOrigin_Request{Request: req}},
 		))

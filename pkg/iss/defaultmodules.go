@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/clients"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/timer"
@@ -16,10 +17,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 	if m.Net == nil {
 		// TODO: Change this when a Net implementation exists.
 		panic("no default Net implementation")
-	}
-
-	if m.Hasher == nil {
-		m.Hasher = crypto.SHA256
 	}
 
 	if m.App == nil {
@@ -61,6 +58,13 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		for moduleID, module := range gm {
 			m.GenericModules[moduleID] = module
 		}
+	} else {
+		m.GenericModules = make(map[t.ModuleID]modules.Module)
+	}
+
+	// If no hasher module has been specified, use default SHA256 hasher.
+	if m.GenericModules["hasher"] == nil {
+		m.GenericModules["hasher"] = mirCrypto.NewHasher(crypto.SHA256)
 	}
 
 	return &m, nil
