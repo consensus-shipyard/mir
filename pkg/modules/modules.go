@@ -15,7 +15,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/clients"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/timer"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
+
+// Module generalizes the ActiveModule and PassiveModule types.
+type Module interface {
+	ImplementsModule()
+}
 
 // The Modules structs groups the modules a Node consists of.
 type Modules struct {
@@ -29,6 +35,8 @@ type Modules struct {
 	Protocol      Protocol         // Implements the logic of the distributed protocol.
 	Interceptor   EventInterceptor // Intercepts and logs all internal _Events_ for debugging purposes.
 	Timer         Timer            // Tracks real time (e.g. for timeouts) and injects events accordingly.
+
+	GenericModules map[t.ModuleID]Module
 }
 
 // Defaults takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object
