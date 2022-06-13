@@ -125,7 +125,6 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.Config,
 		&modules.Modules{
 			Net:           tr.Net,
-			App:           tr.App,
 			RequestStore:  tr.ReqStore,
 			WAL:           wal,
 			ClientTracker: clients.SigningTracker(logging.Decorate(tr.Config.Logger, "CT: ")),
@@ -136,6 +135,10 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 			// // consisting of a single zero byte and treats those signatures as valid.
 			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
 			Crypto: cryptoModule,
+
+			GenericModules: map[t.ModuleID]modules.Module{
+				"app": tr.App,
+			},
 		},
 	)
 	Expect(err).NotTo(HaveOccurred())

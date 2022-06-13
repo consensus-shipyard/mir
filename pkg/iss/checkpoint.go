@@ -88,7 +88,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 
 	// Request a snapshot of the application state.
 	// TODO: also get a snapshot of the shared state
-	return (&events.EventList{}).PushBack(events.AppSnapshotRequest(ct.epoch))
+	return (&events.EventList{}).PushBack(events.AppSnapshotRequest("app", "iss", ct.epoch))
 }
 
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
