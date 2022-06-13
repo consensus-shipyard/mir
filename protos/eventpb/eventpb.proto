@@ -59,6 +59,8 @@ message Event {
   // In this case, the WAL append event would be this event
   // and the next field would contain the message sending event.
   repeated Event next = 100;
+
+  string dest_module = 200;
 }
 
 message Init {}
@@ -76,9 +78,10 @@ message HashResult {
 }
 
 message HashOrigin {
+  string module = 1;
   oneof type {
-    requestpb.Request   request  = 1;
-    isspb.ISSHashOrigin iss      = 2;
+    requestpb.Request   request  = 2;
+    isspb.ISSHashOrigin iss      = 3;
   }
 }
 
@@ -93,6 +96,7 @@ message SignResult {
 }
 
 message SignOrigin {
+  string module = 1;
   oneof type {
     isspb.ISSSignOrigin iss = 2;
   }
@@ -118,8 +122,9 @@ message NodeSigsVerified {
 }
 
 message SigVerOrigin {
+  string module = 1;
   oneof type {
-    isspb.ISSSigVerOrigin iss = 1;
+    isspb.ISSSigVerOrigin iss = 2;
   }
 }
 
@@ -173,7 +178,8 @@ message StoreVerifiedRequest {
 }
 
 message AppSnapshotRequest {
-  uint64 epoch = 1;
+  string module = 1;
+  uint64 epoch  = 2;
 }
 
 message AppSnapshot {
