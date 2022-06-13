@@ -20,13 +20,13 @@ var (
 	DefaultPseudoSeed int64 = 12345
 )
 
-// NodePseudo returns a Crypto module to be used by a Node, generating new keys in a pseudo-random manner.
+// NodePseudo returns a CryptoImpl module to be used by a Node, generating new keys in a pseudo-random manner.
 // It is initialized and populated deterministically, based on a given configuration and a random seed.
 // NodePseudo is not secure.
 // Intended for testing purposes and assuming a static membership known to all nodes,
 // NodePseudo can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (*Crypto, error) { //nolint:dupl
+func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (Impl, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
 	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
@@ -45,28 +45,28 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 		return nil, err
 	}
 
-	// Look up the own private key and create a Crypto module instance that would sign with this key.
-	var c *Crypto
+	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
+	var c Impl
 	for i, id := range nodes {
 		if id == ownID {
-			if c, err = New(nodePrivKeys[i]); err != nil {
+			if c, err = NewDefaultImpl(nodePrivKeys[i]); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// Return error if own ID was not found in the given membership or Crypto module instantiation failed
+	// Return error if own ID was not found in the given membership or CryptoImpl module instantiation failed
 	if c == nil {
 		if err != nil {
-			// Crypto module instantiation failed.
+			// CryptoImpl module instantiation failed.
 			return nil, err
 		}
 
-		// Own ID was not found and Crypto module instantiation was not even attempted.
+		// Own ID was not found and CryptoImpl module instantiation was not even attempted.
 		return nil, fmt.Errorf("ownID (%v) not found among nodes", ownID)
 	}
 
-	// Populate the Crypto module instance with the generated keys
+	// Populate the CryptoImpl module instance with the generated keys
 	if err := registerPubKeys(c, nodes, nodePubKeys, clients, clientPubKeys); err != nil {
 		return nil, err
 	}
@@ -74,9 +74,9 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	return c, nil
 }
 
-// ClientPseudo behaves the same as NodePseudo, except that it returns a crypto module intended for use by the client.
-// The returned crypto module will use the private key associated with client ownID for signing.
-func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (*Crypto, error) { //nolint:dupl
+// ClientPseudo behaves the same as NodePseudo, except that it returns a CryptoImpl module intended for use by the client.
+// The returned CryptoImpl module will use the private key associated with client ownID for signing.
+func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (Impl, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
 	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
@@ -95,28 +95,28 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 		return nil, err
 	}
 
-	// Look up the own private key and create a Crypto module instance that would sign with this key.
-	var c *Crypto
+	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
+	var c Impl
 	for i, id := range clients {
 		if id == ownID {
-			if c, err = New(clientPrivKeys[i]); err != nil {
+			if c, err = NewDefaultImpl(clientPrivKeys[i]); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	// Return error if own ID was not found in the given membership or Crypto module instantiation failed
+	// Return error if own ID was not found in the given membership or CryptoImpl module instantiation failed
 	if c == nil {
 		if err != nil {
-			// Crypto module instantiation failed.
+			// CryptoImpl module instantiation failed.
 			return nil, err
 		}
 
-		// Own ID was not found and Crypto module instantiation was not even attempted.
+		// Own ID was not found and CryptoImpl module instantiation was not even attempted.
 		return nil, fmt.Errorf("ownID (%v) not found among clients", ownID)
 	}
 
-	// Populate the Crypto module instance with the generated keys
+	// Populate the CryptoImpl module instance with the generated keys
 	if err := registerPubKeys(c, nodes, nodePubKeys, clients, clientPubKeys); err != nil {
 		return nil, err
 	}
@@ -143,27 +143,27 @@ func generateKeys(numKeys int, randomness io.Reader) (privKeys [][]byte, pubKeys
 	return
 }
 
-// regusterPubKeys populates a Crypto module c with the given nodePubKeys and clientPubKeys.
+// regusterPubKeys populates a CryptoImpl module c with the given nodePubKeys and clientPubKeys.
 // Each entry in nodes will be associated with the corresponding entry in nodePubKeys
 // by calling c.RegisterNodeKey(nodePubKeys[i], nodes[i]) for 0 <= i < len(nodes).
 // nodes and nodePubKeys must have the same length.
 // The analogous happens for client keys, using c.RegisterClientKey.
 func registerPubKeys(
-	c *Crypto,
+	c Impl,
 	nodes []t.NodeID,
 	nodePubKeys [][]byte,
 	clients []t.ClientID,
 	clientPubKeys [][]byte,
 ) error {
 
-	// Populate Crypto module with node keys.
+	// Populate CryptoImpl module with node keys.
 	for keyIdx, nodeID := range nodes {
 		if err := c.RegisterNodeKey(nodePubKeys[keyIdx], nodeID); err != nil {
 			return err
 		}
 	}
 
-	// Populate Crypto module with client keys.
+	// Populate CryptoImpl module with client keys.
 	for keyIdx, clientID := range clients {
 		if err := c.RegisterClientKey(clientPubKeys[keyIdx], clientID); err != nil {
 			return err

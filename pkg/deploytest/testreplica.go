@@ -131,13 +131,10 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 			Protocol:    issProtocol,
 			Interceptor: interceptor,
-			// // Use dummy crypto module that only produces signatures
-			// // consisting of a single zero byte and treats those signatures as valid.
-			// Crypto: &mirCrypto.DummyCrypto{DummySig: []byte{0}},
-			Crypto: cryptoModule,
 
 			GenericModules: map[t.ModuleID]modules.Module{
-				"app": tr.App,
+				"app":    tr.App,
+				"crypto": mirCrypto.New(cryptoModule),
 			},
 		},
 	)

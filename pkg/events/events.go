@@ -113,19 +113,22 @@ func HashResult(destModule t.ModuleID, digests [][]byte, origin *eventpb.HashOri
 // SignRequest returns an event representing a request to the crypto module for computing the signature over data.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // SignResult produced by the crypto module.
-func SignRequest(data [][]byte, origin *eventpb.SignOrigin) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_SignRequest{SignRequest: &eventpb.SignRequest{
-		Data:   data,
-		Origin: origin,
-	}}}
+func SignRequest(destModule t.ModuleID, data [][]byte, origin *eventpb.SignOrigin) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_SignRequest{SignRequest: &eventpb.SignRequest{
+			Data:   data,
+			Origin: origin,
+		}},
+	}
 }
 
 // SignResult returns an event representing the computation of a signature by the crypto module.
 // It contains the computed signature and the SignOrigin,
 // an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained signature.
-func SignResult(signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_SignResult{SignResult: &eventpb.SignResult{
+func SignResult(destModule t.ModuleID, signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_SignResult{SignResult: &eventpb.SignResult{
 		Signature: signature,
 		Origin:    origin,
 	}}}
@@ -137,6 +140,7 @@ func SignResult(signature []byte, origin *eventpb.SignOrigin) *eventpb.Event {
 // NodeSigsVerified event produced by the crypto module.
 // For each signed message, the data argument contains a slice of byte slices (thus [][][]byte)
 func VerifyNodeSigs(
+	destModule t.ModuleID,
 	data [][][]byte,
 	signatures [][]byte,
 	nodeIDs []t.NodeID,
@@ -150,12 +154,15 @@ func VerifyNodeSigs(
 	}
 
 	// Then return the actual Event.
-	return &eventpb.Event{Type: &eventpb.Event_VerifyNodeSigs{VerifyNodeSigs: &eventpb.VerifyNodeSigs{
-		Data:       sigVerData,
-		Signatures: signatures,
-		NodeIds:    t.NodeIDSlicePb(nodeIDs),
-		Origin:     origin,
-	}}}
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_VerifyNodeSigs{VerifyNodeSigs: &eventpb.VerifyNodeSigs{
+			Data:       sigVerData,
+			Signatures: signatures,
+			NodeIds:    t.NodeIDSlicePb(nodeIDs),
+			Origin:     origin,
+		}},
+	}
 }
 
 // NodeSigsVerified returns an event representing the result of the verification
@@ -166,19 +173,23 @@ func VerifyNodeSigs(
 // i.e., information about what to do with the results of the signature verification.
 // The allOK argument must be set to true if the valid argument only contains true values.
 func NodeSigsVerified(
+	destModule t.ModuleID,
 	valid []bool,
 	errors []string,
 	nodeIDs []t.NodeID,
 	origin *eventpb.SigVerOrigin,
 	allOk bool,
 ) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_NodeSigsVerified{NodeSigsVerified: &eventpb.NodeSigsVerified{
-		Valid:   valid,
-		Errors:  errors,
-		NodeIds: t.NodeIDSlicePb(nodeIDs),
-		Origin:  origin,
-		AllOk:   allOk,
-	}}}
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_NodeSigsVerified{NodeSigsVerified: &eventpb.NodeSigsVerified{
+			Valid:   valid,
+			Errors:  errors,
+			NodeIds: t.NodeIDSlicePb(nodeIDs),
+			Origin:  origin,
+			AllOk:   allOk,
+		}},
+	}
 }
 
 // RequestReady returns an event signifying that a new request is ready to be inserted into the protocol state machine.
@@ -225,21 +236,27 @@ func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb
 
 // VerifyRequestSig returns an event of a client tracker requesting the verification of a client request signature.
 // This event is routed to the Crypto module that issues a RequestSigVerified event in response.
-func VerifyRequestSig(reqRef *requestpb.RequestRef, signature []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_VerifyRequestSig{VerifyRequestSig: &eventpb.VerifyRequestSig{
-		RequestRef: reqRef,
-		Signature:  signature,
-	}}}
+func VerifyRequestSig(destModule t.ModuleID, reqRef *requestpb.RequestRef, signature []byte) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_VerifyRequestSig{VerifyRequestSig: &eventpb.VerifyRequestSig{
+			RequestRef: reqRef,
+			Signature:  signature,
+		}},
+	}
 }
 
 // RequestSigVerified represents the result of a client signature verification by the Crypto module.
 // It is routed to the client tracker that initially issued a VerifyRequestSig event.
-func RequestSigVerified(reqRef *requestpb.RequestRef, valid bool, error string) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_RequestSigVerified{RequestSigVerified: &eventpb.RequestSigVerified{
-		RequestRef: reqRef,
-		Valid:      valid,
-		Error:      error,
-	}}}
+func RequestSigVerified(destModule t.ModuleID, reqRef *requestpb.RequestRef, valid bool, error string) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_RequestSigVerified{RequestSigVerified: &eventpb.RequestSigVerified{
+			RequestRef: reqRef,
+			Valid:      valid,
+			Error:      error,
+		}},
+	}
 }
 
 // StoreVerifiedRequest returns an event representing an event the ClientTracker emits

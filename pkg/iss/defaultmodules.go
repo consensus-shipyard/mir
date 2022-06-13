@@ -33,11 +33,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		return nil, fmt.Errorf("no default protocol implementation")
 	}
 
-	if m.Crypto == nil {
-		// TODO: Use default crypto once implemented and tested.
-		return nil, fmt.Errorf("no default crypto implementation")
-	}
-
 	if m.Timer == nil {
 		m.Timer = &timer.Timer{}
 	}
@@ -65,6 +60,11 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	if m.GenericModules["app"] == nil {
 		return nil, fmt.Errorf("no default app implementation")
+	}
+
+	if m.GenericModules["crypto"] == nil {
+		// TODO: Use default crypto once implemented and tested.
+		return nil, fmt.Errorf("no default crypto implementation")
 	}
 
 	return &m, nil

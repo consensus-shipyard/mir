@@ -75,7 +75,7 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) *events.EventLi
 		// Output a request authentication event.
 		// This client tracker implementation assumes that client signatures are used for authenticating requests
 		// and uses the VerifyRequestSig event (submitted to the Crypto module) to verify the signature.
-		return (&events.EventList{}).PushBack(events.VerifyRequestSig(reqRef, req.Authenticator))
+		return (&events.EventList{}).PushBack(events.VerifyRequestSig("crypto", reqRef, req.Authenticator))
 
 	case *eventpb.Event_RequestSigVerified:
 
