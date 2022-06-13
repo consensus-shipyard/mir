@@ -17,7 +17,10 @@ package simplewal
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"sync"
 
@@ -27,6 +30,8 @@ import (
 )
 
 type WAL struct {
+	modules.Module
+
 	mutex sync.Mutex
 	log   *wal.Log
 
@@ -39,6 +44,70 @@ type WAL struct {
 	// Otherwise it could be completely ephemeral.
 	// TODO: Implement persisting and loading the retentionIndex
 	retentionIndex t.WALRetIndex
+}
+
+func (w *WAL) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := w.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
+
+func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+
+	// Perform the necessary action based on event type.
+	switch e := event.Type.(type) {
+	case *eventpb.Event_WalAppend:
+		if err := w.Append(e.WalAppend.Event, t.WALRetIndex(e.WalAppend.RetentionIndex)); err != nil {
+			return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",
+				e.WalAppend.RetentionIndex, err)
+		}
+	case *eventpb.Event_WalTruncate:
+		if err := w.Truncate(t.WALRetIndex(e.WalTruncate.RetentionIndex)); err != nil {
+			return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
+				e.WalTruncate.RetentionIndex, err)
+		}
+	case *eventpb.Event_WalLoadAll:
+
+		storedEvents := &events.EventList{}
+
+		// Add all events from the WAL to the new EventList.
+		if err := w.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
+			storedEvents.PushBack(event)
+		}); err != nil {
+			return nil, fmt.Errorf("could not load WAL events: %w", err)
+		}
+
+		return storedEvents, nil
+
+	case *eventpb.Event_PersistDummyBatch:
+		if err := w.Append(event, 0); err != nil {
+			return nil, fmt.Errorf("could not persist dummy batch: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
+	}
+
+	// Then sync the WAL to disk.
+	if err := w.Sync(); err != nil {
+		return nil, fmt.Errorf("failed to sync WAL: %w", err)
+	}
+
+	return &events.EventList{}, nil
+}
+
+func (w *WAL) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func Open(path string) (*WAL, error) {

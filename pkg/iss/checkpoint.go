@@ -122,7 +122,7 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 
 	// Write Checkpoint to WAL
 	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash, signature)
-	walEvent := events.WALAppend(persistEvent, t.WALRetIndex(ct.epoch))
+	walEvent := events.WALAppend("wal", persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	// TODO: Implement checkpoint message retransmission.
@@ -219,7 +219,7 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 	}
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.
-	persistEvent := events.WALAppend(PersistStableCheckpointEvent(stableCheckpoint), t.WALRetIndex(ct.epoch))
+	persistEvent := events.WALAppend("wal", PersistStableCheckpointEvent(stableCheckpoint), t.WALRetIndex(ct.epoch))
 	persistEvent.FollowUp(StableCheckpointEvent(stableCheckpoint))
 	return (&events.EventList{}).PushBack(persistEvent)
 }

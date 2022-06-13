@@ -134,7 +134,8 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
-	if n.modules.WAL != nil {
+	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
+	if n.modules.GenericModules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
 			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
@@ -201,7 +202,7 @@ func (n *Node) Run(ctx context.Context) error {
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
-	if n.modules.WAL != nil {
+	if n.modules.GenericModules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
 			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
@@ -223,23 +224,25 @@ func (n *Node) Run(ctx context.Context) error {
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
 func (n *Node) processWAL() error {
 
-	// Create empty EventList to hold all the WAL events.
-	walEvents := &events.EventList{}
+	var storedEvents *events.EventList
+	var err error
 
 	// Add all events from the WAL to the new EventList.
-	if err := n.modules.WAL.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
-		walEvents.PushBack(events.WALEntry(event, retIdx))
-	}); err != nil {
+	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
+	if storedEvents, err = n.modules.GenericModules["wal"].(modules.PassiveModule).ApplyEvents(
+		(&events.EventList{}).PushBack(events.WALLoadAll("wal")),
+	); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
 
 	// Enqueue all events to the workItems buffers.
-	if err := n.workItems.AddEvents(walEvents); err != nil {
+	if err = n.workItems.AddEvents(storedEvents); err != nil {
 		return fmt.Errorf("could not enqueue WAL events for processing: %w", err)
 	}
 
 	// If we made it all the way here, no error occurred.
 	return nil
+
 }
 
 // Performs all internal work of the node,
@@ -256,7 +259,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// Each workFunc reads a single work item, processes it and writes its results.
 	// The looping behavior is implemented in doUntilErr.
 	for _, work := range []workFunc{
-		n.doWALWork,
 		n.doClientWork,
 		n.doSendingWork,
 		n.doReqStoreWork,
@@ -292,16 +294,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			})
 			selectReactions = append(selectReactions, func(_ reflect.Value) {
 				n.workItems.ClearProtocol()
-			})
-		}
-		if n.workItems.WAL().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.wal),
-				Send: reflect.ValueOf(n.workItems.WAL()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearWAL()
 			})
 		}
 		if n.workItems.Client().Len() > 0 {

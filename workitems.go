@@ -20,7 +20,6 @@ import (
 // WorkItems is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each type of event.
 type workItems struct {
-	wal      *events.EventList
 	net      *events.EventList
 	client   *events.EventList
 	reqStore *events.EventList
@@ -40,7 +39,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 	}
 
 	return &workItems{
-		wal:      &events.EventList{},
 		net:      &events.EventList{},
 		client:   &events.EventList{},
 		reqStore: &events.EventList{},
@@ -102,8 +100,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 				// The ISS origin goes to the Protocol module (ISS is a protocol implementation).
 				wi.protocol.PushBack(event)
 			}
-		case *eventpb.Event_WalAppend, *eventpb.Event_WalTruncate:
-			wi.wal.PushBack(event)
 		case *eventpb.Event_WalEntry:
 			switch walEntry := t.WalEntry.Event.Type.(type) {
 			case *eventpb.Event_Iss:
@@ -119,8 +115,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			wi.timer.PushBack(event)
 
 		// TODO: Remove these eventually.
-		case *eventpb.Event_PersistDummyBatch:
-			wi.wal.PushBack(event)
 		case *eventpb.Event_StoreDummyRequest:
 			wi.reqStore.PushBack(event)
 		default:
@@ -131,10 +125,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 }
 
 // Getters.
-
-func (wi *workItems) WAL() *events.EventList {
-	return wi.wal
-}
 
 func (wi *workItems) Net() *events.EventList {
 	return wi.net
@@ -158,10 +148,6 @@ func (wi *workItems) Timer() *events.EventList {
 
 // Methods for clearing the buffers.
 // Each of them returns the list of events that have been removed from workItems.
-
-func (wi *workItems) ClearWAL() *events.EventList {
-	return clearEventList(&wi.wal)
-}
 
 func (wi *workItems) ClearNet() *events.EventList {
 	return clearEventList(&wi.net)

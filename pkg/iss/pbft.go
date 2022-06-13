@@ -153,6 +153,12 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyPbftPersistPreprepare(e.PbftPersistPreprepare)
 	case *isspb.SBInstanceEvent_MessageReceived:
 		return pbft.applyMessageReceived(e.MessageReceived.Msg, t.NodeID(e.MessageReceived.From))
+	case *isspb.SBInstanceEvent_PbftPersistPrepare,
+		*isspb.SBInstanceEvent_PbftPersistCommit,
+		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
+		*isspb.SBInstanceEvent_PbftPersistNewView:
+		// TODO: Ignoring WAL loading for the moment.
+		return &events.EventList{}
 	default:
 		// Panic if message type is not known.
 		panic(fmt.Sprintf("unknown PBFT SB instance event type: %T", event.Type))

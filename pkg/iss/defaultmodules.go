@@ -39,9 +39,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	// The Interceptor can stay nil, in which case Events will simply not be intercepted.
 
-	// The WAL can stay nil, in which case no write-ahead log will be written
-	// and the node will not be able to restart.
-
 	// Copy assigned generic modules
 	if m.GenericModules != nil {
 		gm := m.GenericModules
@@ -66,6 +63,9 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		// TODO: Use default crypto once implemented and tested.
 		return nil, fmt.Errorf("no default crypto implementation")
 	}
+
+	// The WAL can stay nil, in which case no write-ahead log will be written
+	// and the node will not be able to restart.
 
 	return &m, nil
 }

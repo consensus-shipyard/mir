@@ -28,7 +28,6 @@ type workChans struct {
 	// There is one channel per module to feed events into the module.
 	clients  chan *events.EventList
 	protocol chan *events.EventList
-	wal      chan *events.EventList
 	net      chan *events.EventList
 	reqStore chan *events.EventList
 	timer    chan *events.EventList
@@ -61,7 +60,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 	return workChans{
 		clients:  make(chan *events.EventList),
 		protocol: make(chan *events.EventList),
-		wal:      make(chan *events.EventList),
 		net:      make(chan *events.EventList),
 		reqStore: make(chan *events.EventList),
 		timer:    make(chan *events.EventList),
@@ -244,10 +242,6 @@ func safelyApplyEvents(
 // associating each Module's processing function with its corresponding work channel.
 // On top of that, the Protocol processing wrapper additionally sets the Node's exit status when done.
 
-func (n *Node) doWALWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processWALEvents, n.workChans.wal)
-}
-
 func (n *Node) doClientWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processClientEvents, n.workChans.clients)
 }
@@ -283,47 +277,6 @@ func (n *Node) doTimerWork(ctx context.Context) (err error) {
 }
 
 // TODO: Document the functions below.
-
-func (n *Node) processWALEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-
-	// If no WAL implementation is present, do nothing and return immediately.
-	if n.modules.WAL == nil {
-		return &events.EventList{}, nil
-	}
-
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Perform the necessary action based on event type.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_WalAppend:
-			if err := n.modules.WAL.Append(e.WalAppend.Event, t.WALRetIndex(e.WalAppend.RetentionIndex)); err != nil {
-				return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",
-					e.WalAppend.RetentionIndex, err)
-			}
-		case *eventpb.Event_WalTruncate:
-			if err := n.modules.WAL.Truncate(t.WALRetIndex(e.WalTruncate.RetentionIndex)); err != nil {
-				return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
-					e.WalTruncate.RetentionIndex, err)
-			}
-		case *eventpb.Event_PersistDummyBatch:
-			if err := n.modules.WAL.Append(event, 0); err != nil {
-				return nil, fmt.Errorf("could not persist dummy batch: %w", err)
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
-		}
-	}
-
-	// Then we sync the WAL
-	if err := n.modules.WAL.Sync(); err != nil {
-		return nil, fmt.Errorf("failed to sync WAL: %w", err)
-	}
-
-	return eventsOut, nil
-}
 
 func (n *Node) processClientEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
 

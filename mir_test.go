@@ -198,7 +198,7 @@ var _ = Describe("Basic test", func() {
 			Transport:             "fake",
 			NumFakeRequests:       100,
 			Directory:             "",
-			Duration:              8 * time.Second,
+			Duration:              10 * time.Second,
 			FirstReplicaISSConfig: slowProposeConfig,
 		}),
 		Entry("Submits 10 fake requests with 4 nodes and actual networking", &deploytest.TestConfig{

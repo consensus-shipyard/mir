@@ -202,8 +202,8 @@ func RequestReady(requestRef *requestpb.RequestRef) *eventpb.Event {
 
 // WALAppend returns an event of appending a new entry to the WAL.
 // This event is produced by the protocol state machine for persisting its state.
-func WALAppend(event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_WalAppend{WalAppend: &eventpb.WALAppend{
+func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_WalAppend{WalAppend: &eventpb.WALAppend{
 		Event:          event,
 		RetentionIndex: retentionIndex.Pb(),
 	}}}
@@ -212,10 +212,21 @@ func WALAppend(event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Even
 // WALTruncate returns and event on removing all entries from the WAL
 // that have been appended with a retentionIndex smaller than the
 // specified one.
-func WALTruncate(retentionIndex t.WALRetIndex) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_WalTruncate{WalTruncate: &eventpb.WALTruncate{
-		RetentionIndex: retentionIndex.Pb(),
-	}}}
+func WALTruncate(destModule t.ModuleID, retentionIndex t.WALRetIndex) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_WalTruncate{WalTruncate: &eventpb.WALTruncate{
+			RetentionIndex: retentionIndex.Pb(),
+		}},
+	}
+}
+
+// WALLoadAll returns and event instructing the WAL to load and emit all stored events.
+func WALLoadAll(destModule t.ModuleID) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type:       &eventpb.Event_WalLoadAll{WalLoadAll: &eventpb.WALLoadAll{}},
+	}
 }
 
 // WALEntry returns an event of reading an entry from the WAL.

@@ -46,7 +46,7 @@ func (ec *sbEventService) SendMessage(message *isspb.SBInstanceMessage, destinat
 // On recovery, this event will be fed back to the same orderer instance
 // (which, however, must be created during the recovery process).
 func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event {
-	return events.WALAppend(SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
+	return events.WALAppend("wal", SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
 }
 
 func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
