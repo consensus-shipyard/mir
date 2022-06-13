@@ -312,6 +312,9 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
 			return iss.applySBEvent(issEvent.Sb)
 		case *isspb.ISSEvent_StableCheckpoint:
 			return iss.applyStableCheckpoint(issEvent.StableCheckpoint)
+		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
+			// TODO: Ignoring WAL loading for the moment.
+			return &events.EventList{}
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
@@ -540,6 +543,17 @@ func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeI
 // TODO: Update this comment when the TODO below is addressed.
 func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 
+	// Ignore persist events (their handling is not yet implemented).
+	// TODO: Deal with this when proper handlers are implemented.
+	switch event.Event.Type.(type) {
+	case *isspb.SBInstanceEvent_PbftPersistPreprepare,
+		*isspb.SBInstanceEvent_PbftPersistPrepare,
+		*isspb.SBInstanceEvent_PbftPersistCommit,
+		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
+		*isspb.SBInstanceEvent_PbftPersistNewView:
+		return &events.EventList{}
+	}
+
 	switch epoch := t.EpochNr(event.Epoch); {
 	case epoch > iss.epoch.Nr:
 		// Events coming from future epochs should never occur (as, unlike messages, events are all generated locally.)
@@ -594,7 +608,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		// are determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		eventsOut.PushBack(events.WALTruncate(t.WALRetIndex(stableCheckpoint.Epoch)))
+		eventsOut.PushBack(events.WALTruncate("wal", t.WALRetIndex(stableCheckpoint.Epoch)))
 
 		// Clean up the global ISS state from all the epoch
 		// instances that are associated with epoch numbers
