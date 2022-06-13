@@ -64,9 +64,9 @@ func New(privKey []byte) (*Crypto, error) {
 func (c *Crypto) Sign(data [][]byte) ([]byte, error) {
 	switch key := c.privKey.(type) {
 	case *rsa.PrivateKey:
-		return key.Sign(crand.Reader, hash(data), cstd.SHA256)
+		return key.Sign(crand.Reader, digest(data), cstd.SHA256)
 	case *ecdsa.PrivateKey:
-		return signEcdsa(key, hash(data))
+		return signEcdsa(key, digest(data))
 	default:
 		return nil, fmt.Errorf("unsupported private key type: %T", key)
 	}
@@ -158,9 +158,9 @@ func (c *Crypto) VerifyClientSig(data [][]byte, signature []byte, clientID t.Cli
 func (c *Crypto) verifySig(data [][]byte, signature []byte, pubKey interface{}) error {
 	switch key := pubKey.(type) {
 	case *ecdsa.PublicKey:
-		return verifyEcdsaSignature(key, hash(data), signature)
+		return verifyEcdsaSignature(key, digest(data), signature)
 	case *rsa.PublicKey:
-		return rsa.VerifyPKCS1v15(key, cstd.SHA256, hash(data), signature)
+		return rsa.VerifyPKCS1v15(key, cstd.SHA256, digest(data), signature)
 	default:
 		return fmt.Errorf("unsupported public key type: %T", key)
 	}
@@ -193,8 +193,8 @@ func GenerateKeyPair(randomness io.Reader) (priv []byte, pub []byte, err error) 
 	return
 }
 
-// hash computes the SHA256 of the concatenation of all byte slices in data.
-func hash(data [][]byte) []byte {
+// digest computes the SHA256 of the concatenation of all byte slices in data.
+func digest(data [][]byte) []byte {
 	h := sha256.New()
 	for _, d := range data {
 		h.Write(d)
