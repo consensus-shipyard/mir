@@ -9,6 +9,7 @@ package mir
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/iss"
 	"reflect"
 	"sync"
 
@@ -68,7 +69,8 @@ func NewNode(
 ) (*Node, error) {
 
 	// Create default modules for those not specified by the user.
-	modulesWithDefaults, err := modules.Defaults(*m)
+	// TODO: This counts on ISS being the default module set for Mir. Generalize.
+	modulesWithDefaults, err := iss.DefaultModules(*m)
 	if err != nil {
 		return nil, err
 	}
