@@ -9,6 +9,7 @@ package mir
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -272,105 +273,125 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		}(work)
 	}
 
-	// These variables hold the respective channels into which events consumed by the respective modules are written.
-	// Those variables are set to nil by default, making any writes to them block,
-	// preventing them from being selected in the big select statement below.
-	// When there are outstanding events to be written in a workChan,
-	// the workChan is saved in the corresponding channel variable, making it available to the select statement.
-	// When writing to the workChan (saved in one of these variables) is selected and the events written,
-	// the variable is set to nil again until new events are ready.
-	// This complicated construction is necessary to prevent writing empty event lists to the workChans
-	// when no events are pending.
-	var (
-		walEvents,
-		clientEvents,
-		hashEvents,
-		cryptoEvents,
-		timerEvents,
-		netEvents,
-		appEvents,
-		reqStoreEvents,
-		protocolEvents chan<- *events.EventList
-	)
-
 	// This loop shovels events between the appropriate channels, until a stopping condition is satisfied.
-	for {
+	var returnErr error = nil
+	for returnErr == nil {
 
-		// If any events are pending in the workItems buffers,
-		// update the corresponding channel variables accordingly.
-		// This needs to happen before the select statement that dispatches the work,
-		// since, if there are any work items in the buffers before the first iteration,
-		// they must be made available to the dispatcher. Otherwise it might get stuck.
+		// Initialize slices of select cases and the corresponding reactions to each case being selected.
+		selectCases := make([]reflect.SelectCase, 0)
+		selectReactions := make([]func(receivedVal reflect.Value), 0)
 
-		if protocolEvents == nil && n.workItems.Protocol().Len() > 0 {
-			protocolEvents = n.workChans.protocol
+		// For each event buffer in workItems that contains events to be submitted to its corresponding module,
+		// create a selectCase for writing those events to the module's work channel.
+		if n.workItems.Protocol().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.protocol),
+				Send: reflect.ValueOf(n.workItems.Protocol()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearProtocol()
+			})
 		}
-		if walEvents == nil && n.workItems.WAL().Len() > 0 {
-			walEvents = n.workChans.wal
+		if n.workItems.WAL().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.wal),
+				Send: reflect.ValueOf(n.workItems.WAL()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearWAL()
+			})
 		}
-		if clientEvents == nil && n.workItems.Client().Len() > 0 {
-			clientEvents = n.workChans.clients
+		if n.workItems.Client().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.clients),
+				Send: reflect.ValueOf(n.workItems.Client()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearClient()
+			})
 		}
-		if hashEvents == nil && n.workItems.Hash().Len() > 0 {
-			hashEvents = n.workChans.hash
+		if n.workItems.Hash().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.hash),
+				Send: reflect.ValueOf(n.workItems.Hash()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearHash()
+			})
 		}
-		if cryptoEvents == nil && n.workItems.Crypto().Len() > 0 {
-			cryptoEvents = n.workChans.crypto
+		if n.workItems.Crypto().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.crypto),
+				Send: reflect.ValueOf(n.workItems.Crypto()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearCrypto()
+			})
 		}
-		if timerEvents == nil && n.workItems.Timer().Len() > 0 {
-			timerEvents = n.workChans.timer
+		if n.workItems.Timer().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.timer),
+				Send: reflect.ValueOf(n.workItems.Timer()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearTimer()
+			})
 		}
-		if netEvents == nil && n.workItems.Net().Len() > 0 {
-			netEvents = n.workChans.net
+		if n.workItems.Net().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.net),
+				Send: reflect.ValueOf(n.workItems.Net()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearNet()
+			})
 		}
-		if appEvents == nil && n.workItems.App().Len() > 0 {
-			appEvents = n.workChans.app
+		if n.workItems.App().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.app),
+				Send: reflect.ValueOf(n.workItems.App()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearApp()
+			})
 		}
-		if reqStoreEvents == nil && n.workItems.ReqStore().Len() > 0 {
-			reqStoreEvents = n.workChans.reqStore
+		if n.workItems.ReqStore().Len() > 0 {
+			selectCases = append(selectCases, reflect.SelectCase{
+				Dir:  reflect.SelectSend,
+				Chan: reflect.ValueOf(n.workChans.reqStore),
+				Send: reflect.ValueOf(n.workItems.ReqStore()),
+			})
+			selectReactions = append(selectReactions, func(_ reflect.Value) {
+				n.workItems.ClearReqStore()
+			})
 		}
 
-		// Wait until any events are ready and write them to the appropriate location.
-		select {
-		case <-ctx.Done():
+		// If the context has been canceled, set the corresponding stopping value at the Node's WorkErrorNotifier,
+		// making the processing stop when the WorkErrorNotifier's channel is selected the next time.
+		selectCases = append(selectCases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ctx.Done()),
+		})
+		selectReactions = append(selectReactions, func(_ reflect.Value) {
 			n.workErrNotifier.Fail(ErrStopped)
-
-		// Write pending events to module input channels.
-		// This is also the only place events are (potentially) intercepted.
-		// Since only a single goroutine executes this loop, the exact sequence of the intercepted events
-		// can be replayed later.
-
-		case protocolEvents <- n.workItems.Protocol():
-			n.workItems.ClearProtocol()
-			protocolEvents = nil
-		case walEvents <- n.workItems.WAL():
-			n.workItems.ClearWAL()
-			walEvents = nil
-		case clientEvents <- n.workItems.Client():
-			n.workItems.ClearClient()
-			clientEvents = nil
-		case hashEvents <- n.workItems.Hash():
-			n.workItems.ClearHash()
-			hashEvents = nil
-		case cryptoEvents <- n.workItems.Crypto():
-			n.workItems.ClearCrypto()
-			cryptoEvents = nil
-		case timerEvents <- n.workItems.Timer():
-			n.workItems.ClearTimer()
-			timerEvents = nil
-		case netEvents <- n.workItems.Net():
-			n.workItems.ClearNet()
-			netEvents = nil
-		case appEvents <- n.workItems.App():
-			n.workItems.ClearApp()
-			appEvents = nil
-		case reqStoreEvents <- n.workItems.ReqStore():
-			n.workItems.ClearReqStore()
-			reqStoreEvents = nil
+		})
 
 		// Handle messages received over the network, as obtained by the Net module.
 
-		case receivedMessage := <-n.modules.Net.ReceiveChan():
+		selectCases = append(selectCases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(n.modules.Net.ReceiveChan()),
+		})
+		selectReactions = append(selectReactions, func(msg reflect.Value) {
+			receivedMessage := msg.Interface().(modules.ReceivedMessage)
 			if n.debugMode {
 				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
 					"msg", receivedMessage)
@@ -378,10 +399,16 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				PushBack(events.MessageReceived(receivedMessage.Sender, receivedMessage.Msg))); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
+		})
 
 		// Add events produced by modules and debugger to the workItems buffers and handle logical time.
 
-		case newEvents := <-n.workChans.workItemInput:
+		selectCases = append(selectCases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(n.workChans.workItemInput),
+		})
+		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
+			newEvents := newEventsVal.Interface().(*events.EventList)
 			if n.debugMode {
 				if n.workChans.debugOut != nil {
 					n.workChans.debugOut <- newEvents
@@ -389,7 +416,14 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			} else if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
-		case newEvents := <-n.workChans.debugIn:
+		})
+		selectCases = append(selectCases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(n.workChans.debugIn),
+		})
+		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
+			newEvents := newEventsVal.Interface().(*events.EventList)
+
 			if !n.debugMode {
 				n.Config.Logger.Log(logging.LevelWarn, "Received events through debug interface but not in debug mode.",
 					"numEvents", newEvents.Len())
@@ -397,13 +431,26 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
+		})
 
-		// Handle termination of the node.
+		// If an error occurred, stop processing.
 
-		case <-n.workErrNotifier.ExitC():
-			return n.workErrNotifier.Err()
-		}
+		selectCases = append(selectCases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(n.workErrNotifier.ExitC()),
+		})
+		selectReactions = append(selectReactions, func(_ reflect.Value) {
+			returnErr = n.workErrNotifier.Err()
+		})
+
+		// Choose one case from above and execute the corresponding reaction.
+
+		chosenCase, receivedValue, _ := reflect.Select(selectCases)
+		selectReactions[chosenCase](receivedValue)
+
 	}
+
+	return returnErr
 }
 
 // If the interceptor module is present, passes events to it. Otherwise, does nothing.
