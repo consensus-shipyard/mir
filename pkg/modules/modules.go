@@ -22,7 +22,6 @@ type Module interface {
 type Modules struct {
 	Net           Net              // Sends messages produced by Mir through the network.
 	Crypto        Crypto           // Performs cryptographic operations (except for computing hashes)
-	App           App              // Implements user application logic. The user is expected to provide this module.
 	WAL           WAL              // Implements a persistent write-ahead log for the case of crashes and restarts.
 	ClientTracker ClientTracker    // Keeps the state related to clients and validates submitted requests.
 	RequestStore  RequestStore     // Provides persistent storage for request data.

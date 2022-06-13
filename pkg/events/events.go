@@ -216,8 +216,8 @@ func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.WALRetIndex) *even
 }
 
 // Deliver returns an event of delivering a request batch to the application in sequence number order.
-func Deliver(sn t.SeqNr, batch *requestpb.Batch) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_Deliver{Deliver: &eventpb.Deliver{
+func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Deliver{Deliver: &eventpb.Deliver{
 		Sn:    sn.Pb(),
 		Batch: batch,
 	}}}
@@ -256,27 +256,37 @@ func StoreVerifiedRequest(reqRef *requestpb.RequestRef, data []byte, authenticat
 // epoch is the epoch number which initial state is captured in the snapshot.
 // The application itself need not be aware of sn, it is only by the protocol
 // to be able to identify the response of the application in form of an AppSnapshot event.
-func AppSnapshotRequest(epoch t.EpochNr) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
-		Epoch: epoch.Pb(),
-	}}}
+func AppSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID, epoch t.EpochNr) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
+			Module: srcModule.Pb(),
+			Epoch:  epoch.Pb(),
+		}},
+	}
 }
 
 // AppSnapshot returns an event representing the application making a snapshot of its state.
 // epoch is the epoch number which initial state is captured in the snapshot,
 // and data is the serialized application state (the snapshot itself).
-func AppSnapshot(epoch t.EpochNr, data []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
-		Epoch: epoch.Pb(),
-		Data:  data,
-	}}}
+func AppSnapshot(destModule t.ModuleID, epoch t.EpochNr, data []byte) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
+			Epoch: epoch.Pb(),
+			Data:  data,
+		}},
+	}
 }
 
 // AppRestoreState returns an event representing the protocol module asking the application for restoring its state from the snapshot.
-func AppRestoreState(snapshot []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_AppRestoreState{AppRestoreState: &eventpb.AppRestoreState{
-		Data: snapshot,
-	}}}
+func AppRestoreState(destModule t.ModuleID, snapshot []byte) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_AppRestoreState{AppRestoreState: &eventpb.AppRestoreState{
+			Data: snapshot,
+		}},
+	}
 }
 
 func TimerDelay(events []*eventpb.Event, delay t.TimeDuration) *eventpb.Event {

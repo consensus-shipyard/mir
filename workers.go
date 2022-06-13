@@ -31,7 +31,6 @@ type workChans struct {
 	wal      chan *events.EventList
 	crypto   chan *events.EventList
 	net      chan *events.EventList
-	app      chan *events.EventList
 	reqStore chan *events.EventList
 	timer    chan *events.EventList
 
@@ -66,7 +65,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 		wal:      make(chan *events.EventList),
 		crypto:   make(chan *events.EventList),
 		net:      make(chan *events.EventList),
-		app:      make(chan *events.EventList),
 		reqStore: make(chan *events.EventList),
 		timer:    make(chan *events.EventList),
 
@@ -264,10 +262,6 @@ func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
 
-func (n *Node) doAppWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processAppEvents, n.workChans.app)
-}
-
 func (n *Node) doReqStoreWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processReqStoreEvents, n.workChans.reqStore)
 }
@@ -461,38 +455,6 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 			}
 		default:
 			return nil, fmt.Errorf("unexpected type of Net event: %T", event.Type)
-		}
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processAppEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_AnnounceDummyBatch:
-			if err := n.modules.App.Apply(e.AnnounceDummyBatch.Batch); err != nil {
-				return nil, fmt.Errorf("app error: %w", err)
-			}
-		case *eventpb.Event_Deliver:
-			if err := n.modules.App.Apply(e.Deliver.Batch); err != nil {
-				return nil, fmt.Errorf("app batch delivery error: %w", err)
-			}
-		case *eventpb.Event_AppSnapshotRequest:
-			data, err := n.modules.App.Snapshot()
-			if err != nil {
-				return nil, fmt.Errorf("app snapshot error: %w", err)
-			}
-			eventsOut.PushBack(events.AppSnapshot(t.EpochNr(e.AppSnapshotRequest.Epoch), data))
-		case *eventpb.Event_AppRestoreState:
-			if err := n.modules.App.RestoreState(e.AppRestoreState.Data); err != nil {
-				return nil, fmt.Errorf("app restore state error: %w", err)
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 		}
 	}
 

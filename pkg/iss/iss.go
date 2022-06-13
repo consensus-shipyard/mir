@@ -705,7 +705,7 @@ func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(m.AppSnapshot))
+	eventsOut.PushBack(events.AppRestoreState("app", m.AppSnapshot))
 
 	// Activate SB instances of the new epoch which will deliver
 	// batches after the application module has restored the state
@@ -946,7 +946,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// TODO: Once system configuration requests are introduced, apply them here.
 
 		// Create a new Deliver event.
-		eventsOut.PushBack(events.Deliver(iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
+		eventsOut.PushBack(events.Deliver("app", iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
 
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.",

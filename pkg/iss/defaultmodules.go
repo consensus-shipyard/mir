@@ -19,10 +19,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		panic("no default Net implementation")
 	}
 
-	if m.App == nil {
-		return nil, fmt.Errorf("no default App implementation")
-	}
-
 	if m.ClientTracker == nil {
 		// TODO: Change this to the real default client tracker once implemented.
 		m.ClientTracker = clients.SigningTracker(nil)
@@ -65,6 +61,10 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 	// If no hasher module has been specified, use default SHA256 hasher.
 	if m.GenericModules["hasher"] == nil {
 		m.GenericModules["hasher"] = mirCrypto.NewHasher(crypto.SHA256)
+	}
+
+	if m.GenericModules["app"] == nil {
+		return nil, fmt.Errorf("no default app implementation")
 	}
 
 	return &m, nil

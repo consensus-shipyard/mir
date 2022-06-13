@@ -23,7 +23,6 @@ type workItems struct {
 	wal      *events.EventList
 	net      *events.EventList
 	client   *events.EventList
-	app      *events.EventList
 	reqStore *events.EventList
 	protocol *events.EventList
 	crypto   *events.EventList
@@ -45,7 +44,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 		wal:      &events.EventList{},
 		net:      &events.EventList{},
 		client:   &events.EventList{},
-		app:      &events.EventList{},
 		reqStore: &events.EventList{},
 		protocol: &events.EventList{},
 		crypto:   &events.EventList{},
@@ -110,8 +108,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			}
 		case *eventpb.Event_WalAppend, *eventpb.Event_WalTruncate:
 			wi.wal.PushBack(event)
-		case *eventpb.Event_Deliver, *eventpb.Event_AppSnapshotRequest, *eventpb.Event_AppRestoreState:
-			wi.app.PushBack(event)
 		case *eventpb.Event_WalEntry:
 			switch walEntry := t.WalEntry.Event.Type.(type) {
 			case *eventpb.Event_Iss:
@@ -129,8 +125,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 		// TODO: Remove these eventually.
 		case *eventpb.Event_PersistDummyBatch:
 			wi.wal.PushBack(event)
-		case *eventpb.Event_AnnounceDummyBatch:
-			wi.app.PushBack(event)
 		case *eventpb.Event_StoreDummyRequest:
 			wi.reqStore.PushBack(event)
 		default:
@@ -152,10 +146,6 @@ func (wi *workItems) Net() *events.EventList {
 
 func (wi *workItems) Client() *events.EventList {
 	return wi.client
-}
-
-func (wi *workItems) App() *events.EventList {
-	return wi.app
 }
 
 func (wi *workItems) ReqStore() *events.EventList {
@@ -187,10 +177,6 @@ func (wi *workItems) ClearNet() *events.EventList {
 
 func (wi *workItems) ClearClient() *events.EventList {
 	return clearEventList(&wi.client)
-}
-
-func (wi *workItems) ClearApp() *events.EventList {
-	return clearEventList(&wi.app)
 }
 
 func (wi *workItems) ClearReqStore() *events.EventList {

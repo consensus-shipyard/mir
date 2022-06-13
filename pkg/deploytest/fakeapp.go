@@ -9,6 +9,10 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -16,6 +20,7 @@ import (
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
+	modules.PassiveModule
 
 	// Request store maintained by the FakeApp
 	ReqStore modules.RequestStore
@@ -24,8 +29,56 @@ type FakeApp struct {
 	RequestsProcessed uint64
 }
 
+func (fa *FakeApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := fa.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
+
+func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+	switch e := event.Type.(type) {
+	case *eventpb.Event_Deliver:
+		if err := fa.ApplyBatch(e.Deliver.Batch); err != nil {
+			return nil, fmt.Errorf("app batch delivery error: %w", err)
+		}
+	case *eventpb.Event_AppSnapshotRequest:
+		data, err := fa.Snapshot()
+		if err != nil {
+			return nil, fmt.Errorf("app snapshot error: %w", err)
+		}
+		return (&events.EventList{}).PushBack(events.AppSnapshot(
+			t.ModuleID(e.AppSnapshotRequest.Module),
+			t.EpochNr(e.AppSnapshotRequest.Epoch),
+			data,
+		)), nil
+	case *eventpb.Event_AppRestoreState:
+		if err := fa.RestoreState(e.AppRestoreState.Data); err != nil {
+			return nil, fmt.Errorf("app restore state error: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
+	}
+
+	return &events.EventList{}, nil
+}
+
+func (fa *FakeApp) Status() (s *statuspb.ProtocolStatus, err error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // Apply implements Apply.
-func (fa *FakeApp) Apply(batch *requestpb.Batch) error {
+func (fa *FakeApp) ApplyBatch(batch *requestpb.Batch) error {
 	for _, req := range batch.Requests {
 		fa.ReqStore.RemoveRequest(req)
 		fa.RequestsProcessed++
