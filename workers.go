@@ -159,9 +159,9 @@ func (n *Node) processEvents(
 // The second return value being true indicates that processing can continue
 // and processEventsPassive should be called again.
 // If the second return is false, processing should be terminated and processEventsPassive should not be called again.
-func (n *Node) processEventsPassive(
+func (n *Node) processModuleEvents(
 	ctx context.Context,
-	module modules.PassiveModule,
+	module modules.Module,
 	eventSource <-chan *events.EventList,
 ) (error, bool) {
 	var eventsIn *events.EventList
@@ -182,29 +182,49 @@ func (n *Node) processEventsPassive(
 	// Remove follow-up Events from the input EventList,
 	// in order to re-insert them in the processing loop after the input events have been processed.
 	plainEvents, followUps := eventsIn.StripFollowUps()
+	eventsOut := followUps // Follow-up events go directly to the output after the plainEvents are processed.
 
 	// Intercept the (stripped of all follow-ups) events that are about to be processed.
 	// This is only for debugging / diagnostic purposes.
 	n.interceptEvents(plainEvents)
 
 	// Process events.
-	newEvents, err := safelyApplyEvents(module, plainEvents)
-	if err != nil {
-		return err, false
-	}
+	switch m := module.(type) {
 
-	// Merge the pending follow-up Events with the newly generated Events.
-	out := followUps.PushBackList(newEvents)
+	case modules.PassiveModule:
+		// For a passive module, synchronously apply all events and
+		// add potential resulting events to the output EventList.
+
+		if newEvents, err := safelyApplyEvents(m, plainEvents); err != nil {
+			return err, false
+		} else {
+			// Add newly generated Events to the output.
+			eventsOut.PushBackList(newEvents)
+		}
+
+	case modules.ActiveModule:
+		// For an active module, only submit the events to the module and let it output the result asynchronously.
+		// Note that, unlike with a PassiveModule, an ActiveModule's ApplyEvents method is not invoked "safely",
+		// i.e., a potential panic is not caught.
+		// This is because an ActiveModule is expected to run its own goroutines.
+
+		if err := m.ApplyEvents(ctx, plainEvents); err != nil {
+			return err, false
+		}
+
+	default:
+		return fmt.Errorf("unknown module type: %T", m), false
+	}
 
 	// Return if no output was generated.
 	// This is only an optimization to prevent the processor loop from handling empty EventLists.
-	if out.Len() == 0 {
+	if eventsOut.Len() == 0 {
 		return nil, true
 	}
 
 	// Write output.
 	select {
-	case n.workChans.workItemInput <- out:
+	case n.workChans.workItemInput <- eventsOut:
 	case <-ctx.Done():
 		return nil, false
 	case <-n.workErrNotifier.ExitC():
