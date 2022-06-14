@@ -8,14 +8,15 @@ package dummyclient
 
 import (
 	"context"
+	"crypto"
 	"fmt"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/serializing"
@@ -31,14 +32,19 @@ const (
 
 type DummyClient struct {
 	ownID       t.ClientID
-	hasher      modules.Hasher
-	crypto      modules.Crypto
+	hasher      crypto.Hash
+	crypto      mirCrypto.Impl
 	nextReqNo   t.ReqNo
 	connections map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
 	logger      logging.Logger
 }
 
-func NewDummyClient(clientID t.ClientID, hasher modules.Hasher, crypto modules.Crypto, l logging.Logger) *DummyClient {
+func NewDummyClient(
+	clientID t.ClientID,
+	hasher crypto.Hash,
+	crypto mirCrypto.Impl,
+	l logging.Logger,
+) *DummyClient {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {

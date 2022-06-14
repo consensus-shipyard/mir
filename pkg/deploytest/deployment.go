@@ -169,7 +169,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		// for the "fake" requests submitted directly by the TestReplicas.
 
 		// Create client-specific Crypto module
-		cryptoModule, err := mirCrypto.ClientPseudo(membership, clientIDs, t.NewClientIDFromInt(i), mirCrypto.DefaultPseudoSeed)
+		cryptoImpl, err := mirCrypto.ClientPseudo(membership, clientIDs, t.NewClientIDFromInt(i), mirCrypto.DefaultPseudoSeed)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +178,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		netClients = append(netClients, dummyclient.NewDummyClient(
 			t.NewClientIDFromInt(i),
 			crypto.SHA256,
-			cryptoModule,
+			cryptoImpl,
 			logger,
 		))
 	}

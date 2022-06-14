@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	FakeClientHasher modules.Hasher = crypto.SHA256
+	FakeClientHasher = crypto.SHA256
 )
 
 // TestReplica represents one replica (that uses one instance of the mir.Node) in the test system.
@@ -215,7 +215,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 
 	// Instantiate a Crypto module for signing the requests.
 	// The ID of the fake client is always 0.
-	cryptoModule, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, t.NewClientIDFromInt(0), mirCrypto.DefaultPseudoSeed)
+	cryptoImpl, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, t.NewClientIDFromInt(0), mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
 	for i := 0; i < tr.NumFakeRequests; i++ {
@@ -237,7 +237,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 			// Sign (the hash of) the request, adding the signature to the request message.
 			h := FakeClientHasher.New()
 			h.Write(bytes.Join(serializing.RequestForHash(reqMsg), nil))
-			reqMsg.Authenticator, err = cryptoModule.Sign([][]byte{h.Sum(nil)})
+			reqMsg.Authenticator, err = cryptoImpl.Sign([][]byte{h.Sum(nil)})
 			Expect(err).NotTo(HaveOccurred())
 
 			// Submit the signed request to the local Node.
