@@ -88,7 +88,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 
 	// Request a snapshot of the application state.
 	// TODO: also get a snapshot of the shared state
-	return (&events.EventList{}).PushBack(events.AppSnapshotRequest("app", "iss", ct.epoch))
+	return (&events.EventList{}).PushBack(events.AppSnapshotRequest(AppModuleName, OwnModuleName, ct.epoch))
 }
 
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
@@ -97,7 +97,7 @@ func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventLi
 	ct.appSnapshot = snapshot
 
 	// Initiate computing the hash of the snapshot
-	hashEvent := events.HashRequest("hasher", [][][]byte{{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
+	hashEvent := events.HashRequest(HasherModuleName, [][][]byte{{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(hashEvent)
 }
@@ -109,7 +109,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 
 	// Request signature
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
-	sigEvent := events.SignRequest("crypto", sigData, CheckpointSignOrigin(ct.epoch))
+	sigEvent := events.SignRequest(CryptoModuleName, sigData, CheckpointSignOrigin(ct.epoch))
 
 	return (&events.EventList{}).PushBack(sigEvent)
 }
@@ -122,12 +122,12 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 
 	// Write Checkpoint to WAL
 	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.appSnapshot, ct.appSnapshotHash, signature)
-	walEvent := events.WALAppend("wal", persistEvent, t.WALRetIndex(ct.epoch))
+	walEvent := events.WALAppend(WALModuleName, persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	// TODO: Implement checkpoint message retransmission.
 	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash, signature)
-	walEvent.FollowUp(events.SendMessage("net", m, ct.membership))
+	walEvent.FollowUp(events.SendMessage(NetModuleName, m, ct.membership))
 
 	// Apply pending Checkpoint messages
 	for s, m := range ct.pendingMessages {
@@ -169,7 +169,7 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.appSnapshotHash)
 	verifySigEvent := events.VerifyNodeSigs(
-		"crypto",
+		CryptoModuleName,
 		[][][]byte{sigData},
 		[][]byte{msg.Signature},
 		[]t.NodeID{source},
@@ -219,7 +219,11 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 	}
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.
-	persistEvent := events.WALAppend("wal", PersistStableCheckpointEvent(stableCheckpoint), t.WALRetIndex(ct.epoch))
+	persistEvent := events.WALAppend(
+		WALModuleName,
+		PersistStableCheckpointEvent(stableCheckpoint),
+		t.WALRetIndex(ct.epoch),
+	)
 	persistEvent.FollowUp(StableCheckpointEvent(stableCheckpoint))
 	return (&events.EventList{}).PushBack(persistEvent)
 }

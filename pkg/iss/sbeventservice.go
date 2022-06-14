@@ -39,22 +39,22 @@ type sbEventService struct {
 // SendMessage creates an event for sending a message that will be processed
 // by the corresponding orderer instance at each of the destination.
 func (ec *sbEventService) SendMessage(message *isspb.SBInstanceMessage, destinations []t.NodeID) *eventpb.Event {
-	return events.SendMessage("net", SBMessage(ec.epoch, ec.instance, message), destinations)
+	return events.SendMessage(NetModuleName, SBMessage(ec.epoch, ec.instance, message), destinations)
 }
 
 // WALAppend creates an event for appending an isspb.SBInstanceEvent to the WAL.
 // On recovery, this event will be fed back to the same orderer instance
 // (which, however, must be created during the recovery process).
 func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event {
-	return events.WALAppend("wal", SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
+	return events.WALAppend(WALModuleName, SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
 }
 
 func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
-	return events.HashRequest("hasher", data, SBHashOrigin(ec.epoch, ec.instance, origin))
+	return events.HashRequest(HasherModuleName, data, SBHashOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) SignRequest(data [][]byte, origin *isspb.SBInstanceSignOrigin) *eventpb.Event {
-	return events.SignRequest("crypto", data, SBSignOrigin(ec.epoch, ec.instance, origin))
+	return events.SignRequest(CryptoModuleName, data, SBSignOrigin(ec.epoch, ec.instance, origin))
 }
 
 func (ec *sbEventService) VerifyNodeSigs(
@@ -63,15 +63,21 @@ func (ec *sbEventService) VerifyNodeSigs(
 	nodeIDs []t.NodeID,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.Event {
-	return events.VerifyNodeSigs("crypto", data, signatures, nodeIDs, SBSigVerOrigin(ec.epoch, ec.instance, origin))
+	return events.VerifyNodeSigs(
+		CryptoModuleName,
+		data,
+		signatures,
+		nodeIDs,
+		SBSigVerOrigin(ec.epoch, ec.instance, origin),
+	)
 }
 
 func (ec *sbEventService) TimerDelay(delay t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {
-	return events.TimerDelay("timer", evts, delay)
+	return events.TimerDelay(TimerModuleName, evts, delay)
 }
 
 func (ec *sbEventService) TimerRepeat(period t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {
-	return events.TimerRepeat("timer", evts, period, t.TimerRetIndex(ec.epoch))
+	return events.TimerRepeat(TimerModuleName, evts, period, t.TimerRetIndex(ec.epoch))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).

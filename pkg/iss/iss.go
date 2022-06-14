@@ -42,7 +42,13 @@ import (
 // Names of modules this protocol depends on.
 // The corresponding modules are expected by ISS to be stored under these keys by the Node.
 var (
-	OwnModuleName t.ModuleID = "iss"
+	OwnModuleName    t.ModuleID = "iss"
+	NetModuleName    t.ModuleID = "net"
+	AppModuleName    t.ModuleID = "app"
+	WALModuleName    t.ModuleID = "wal"
+	HasherModuleName t.ModuleID = "hasher"
+	CryptoModuleName t.ModuleID = "crypto"
+	TimerModuleName  t.ModuleID = "timer"
 )
 
 // ============================================================
@@ -637,13 +643,13 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			}
 		}
 		m := StableCheckpointMessage(stableCheckpoint)
-		eventsOut.PushBack(events.SendMessage("net", m, delayed))
+		eventsOut.PushBack(events.SendMessage(NetModuleName, m, delayed))
 
 		// Prune old entries from WAL. The entries to prune
 		// are determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		eventsOut.PushBack(events.WALTruncate("wal", t.WALRetIndex(stableCheckpoint.Epoch)))
+		eventsOut.PushBack(events.WALTruncate(WALModuleName, t.WALRetIndex(stableCheckpoint.Epoch)))
 
 		// Clean up the global ISS state from all the epoch
 		// instances that are associated with epoch numbers
@@ -754,7 +760,7 @@ func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState("app", m.AppSnapshot))
+	eventsOut.PushBack(events.AppRestoreState(AppModuleName, m.AppSnapshot))
 
 	// Activate SB instances of the new epoch which will deliver
 	// batches after the application module has restored the state
@@ -975,8 +981,7 @@ func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events
 
 	// Send a message to the leader that made the proposal for which requests are still missing.
 	return (&events.EventList{}).PushBack(events.SendMessage(
-		"net",
-		RetransmitRequestsMessage(requests), []t.NodeID{reqInfo.Orderer.Segment().Leader},
+		NetModuleName, RetransmitRequestsMessage(requests), []t.NodeID{reqInfo.Orderer.Segment().Leader},
 	))
 }
 
@@ -996,7 +1001,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// TODO: Once system configuration requests are introduced, apply them here.
 
 		// Create a new Deliver event.
-		eventsOut.PushBack(events.Deliver("app", iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
+		eventsOut.PushBack(events.Deliver(AppModuleName, iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
 
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.",
