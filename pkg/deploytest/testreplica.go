@@ -126,7 +126,6 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		&modules.Modules{
 			Net: tr.Net,
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
-			Interceptor: interceptor,
 
 			GenericModules: map[t.ModuleID]modules.Module{
 				"app":           tr.App,
@@ -137,6 +136,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 				"iss":           issProtocol,
 			},
 		},
+		interceptor,
 	)
 	Expect(err).NotTo(HaveOccurred())
 
