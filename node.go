@@ -9,6 +9,7 @@ package mir
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"reflect"
 	"sync"
@@ -32,6 +33,11 @@ type Node struct {
 	// Implementations of networking, hashing, request store, WAL, etc.
 	// The state machine is also a module of the node.
 	modules *modules.Modules
+
+	// Interceptor of processed events.
+	// If not nil, every event is passed to the interceptor (by calling its Intercept method)
+	// just before being processed.
+	interceptor eventlog.Interceptor
 
 	// A buffer for storing outstanding events that need to be processed by the node.
 	// It contains a separate sub-buffer for each type of event.
@@ -66,6 +72,7 @@ func NewNode(
 	id t.NodeID,
 	config *NodeConfig,
 	m *modules.Modules,
+	interceptor eventlog.Interceptor,
 ) (*Node, error) {
 
 	// Create default modules for those not specified by the user.
@@ -80,8 +87,9 @@ func NewNode(
 		ID:     id,
 		Config: config,
 
-		workChans: newWorkChans(modulesWithDefaults),
-		modules:   modulesWithDefaults,
+		workChans:   newWorkChans(modulesWithDefaults),
+		modules:     modulesWithDefaults,
+		interceptor: interceptor,
 
 		workItems:       newWorkItems(modulesWithDefaults),
 		workErrNotifier: newWorkErrNotifier(),
@@ -447,8 +455,8 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 // as those will be intercepted separately when processed.
 // Make sure to call the Strip method of the EventList before passing it to interceptEvents.
 func (n *Node) interceptEvents(events *events.EventList) {
-	if n.modules.Interceptor != nil {
-		if err := n.modules.Interceptor.Intercept(events); err != nil {
+	if n.interceptor != nil {
+		if err := n.interceptor.Intercept(events); err != nil {
 			n.workErrNotifier.Fail(err)
 		}
 	}
