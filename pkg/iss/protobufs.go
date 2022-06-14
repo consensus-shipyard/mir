@@ -30,51 +30,63 @@ import (
 // ------------------------------------------------------------
 // ISS Events
 
-func Event(event *isspb.ISSEvent) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_Iss{Iss: event}}
+func Event(destModule t.ModuleID, event *isspb.ISSEvent) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Iss{Iss: event}}
 }
 
 func HashOrigin(origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{Type: &eventpb.HashOrigin_Iss{Iss: origin}}
+	return &eventpb.HashOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
 func SignOrigin(origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{Type: &eventpb.SignOrigin_Iss{Iss: origin}}
+	return &eventpb.SignOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
 }
 
 func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
+	return &eventpb.SigVerOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
 }
 
 func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature []byte) *eventpb.Event {
-	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
-		Sn:              sn.Pb(),
-		AppSnapshot:     appSnapshot,
-		AppSnapshotHash: appSnapshotHash,
-		Signature:       signature,
-	}}})
+	return Event(
+		OwnModuleName,
+		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
+			Sn:              sn.Pb(),
+			AppSnapshot:     appSnapshot,
+			AppSnapshotHash: appSnapshotHash,
+			Signature:       signature,
+		}}},
+	)
 }
 
 func PersistStableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
-	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
-		PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
-			StableCheckpoint: stableCheckpoint,
-		},
-	}})
+	return Event(
+		OwnModuleName,
+		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
+			PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
+				StableCheckpoint: stableCheckpoint,
+			},
+		}},
+	)
 }
 
 func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
-	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_StableCheckpoint{
-		StableCheckpoint: stableCheckpoint,
-	}})
+	return Event(
+		OwnModuleName,
+		&isspb.ISSEvent{Type: &isspb.ISSEvent_StableCheckpoint{
+			StableCheckpoint: stableCheckpoint,
+		}},
+	)
 }
 
 func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
-	return Event(&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
-		Epoch:    epoch.Pb(),
-		Instance: instance.Pb(),
-		Event:    event,
-	}}})
+	return Event(
+		OwnModuleName,
+		&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
+			Epoch:    epoch.Pb(),
+			Instance: instance.Pb(),
+			Event:    event,
+		}}},
+	)
 }
 
 func LogEntryHashOrigin(logEntrySN t.SeqNr) *eventpb.HashOrigin {

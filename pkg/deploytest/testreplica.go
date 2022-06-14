@@ -126,7 +126,6 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		&modules.Modules{
 			Net: tr.Net,
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
-			Protocol:    issProtocol,
 			Interceptor: interceptor,
 
 			GenericModules: map[t.ModuleID]modules.Module{
@@ -135,6 +134,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 				"wal":           wal,
 				"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
 				"requestStore":  tr.ReqStore,
+				"iss":           issProtocol,
 			},
 		},
 	)
