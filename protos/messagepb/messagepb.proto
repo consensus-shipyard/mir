@@ -8,7 +8,6 @@ syntax = "proto3";
 
 package messagepb;
 
-import "requestpb/requestpb.proto";
 import "isspb/isspb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
@@ -17,13 +16,5 @@ message Message {
   string dest_module = 1;
   oneof type {
     isspb.ISSMessage iss = 2;
-
-
-    DummyPreprepare dummy_preprepare = 100;
   }
-}
-
-message DummyPreprepare {
-  uint64 sn = 1;
-  requestpb.Batch batch = 2;
 }

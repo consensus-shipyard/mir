@@ -247,7 +247,6 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 				t.ReqNo(reqMsg.ReqNo),
 				reqMsg.Data,
 				reqMsg.Authenticator,
-				// []byte{0}, // Fake signature. Relies on the Nodes using DummyCrypto{DummySig: []byte{0}}
 			); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,
