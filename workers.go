@@ -28,7 +28,6 @@ type workChans struct {
 	// There is one channel per module to feed events into the module.
 	protocol chan *events.EventList
 	net      chan *events.EventList
-	reqStore chan *events.EventList
 	timer    chan *events.EventList
 
 	// All modules write their output events in a common channel, from where the node processor reads and redistributes
@@ -59,7 +58,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 	return workChans{
 		protocol: make(chan *events.EventList),
 		net:      make(chan *events.EventList),
-		reqStore: make(chan *events.EventList),
 		timer:    make(chan *events.EventList),
 
 		workItemInput: make(chan *events.EventList),
@@ -244,10 +242,6 @@ func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
 
-func (n *Node) doReqStoreWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processReqStoreEvents, n.workChans.reqStore)
-}
-
 func (n *Node) doProtocolWork(ctx context.Context) (err error) {
 	// On returning, sets the exit status of the protocol state machine in the work error notifier.
 	defer func() {
@@ -292,70 +286,6 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 		default:
 			return nil, fmt.Errorf("unexpected type of Net event: %T", event.Type)
 		}
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) processReqStoreEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Process event based on its type.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_StoreVerifiedRequest:
-			storeEvent := e.StoreVerifiedRequest
-
-			// Store request data.
-			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store request (c%vr%d) data: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-			// Mark request as authenticated.
-			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark request (c%vr%d) as authenticated: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-			// Store request authenticator.
-			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, storeEvent.Authenticator); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator (c%vr%d) of request: %w",
-					storeEvent.RequestRef.ClientId,
-					storeEvent.RequestRef.ReqNo,
-					err)
-			}
-
-		case *eventpb.Event_StoreDummyRequest:
-			storeEvent := e.StoreDummyRequest // Helper variable for convenience
-
-			// Store request data.
-			if err := n.modules.RequestStore.PutRequest(storeEvent.RequestRef, storeEvent.Data); err != nil {
-				return nil, fmt.Errorf("cannot store dummy request data: %w", err)
-			}
-
-			// Mark request as authenticated.
-			if err := n.modules.RequestStore.SetAuthenticated(storeEvent.RequestRef); err != nil {
-				return nil, fmt.Errorf("cannot mark dummy request as authenticated: %w", err)
-			}
-
-			// Associate a dummy authenticator with the request
-			if err := n.modules.RequestStore.PutAuthenticator(storeEvent.RequestRef, []byte{0}); err != nil {
-				return nil, fmt.Errorf("cannot store authenticator of dummy request: %w", err)
-			}
-
-			eventsOut.PushBack(events.RequestReady("iss", storeEvent.RequestRef))
-		}
-	}
-
-	// Then sync the request store, ensuring that all updates to its state are persisted.
-	if err := n.modules.RequestStore.Sync(); err != nil {
-		return nil, fmt.Errorf("could not sync request store, unsafe to continue: %w", err)
 	}
 
 	return eventsOut, nil
