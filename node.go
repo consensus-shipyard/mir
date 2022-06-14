@@ -284,7 +284,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	n.startModules(ctx, &wg)
 
 	// This loop shovels events between the appropriate channels, until a stopping condition is satisfied.
-	var returnErr error = nil
+	var returnErr error
 	for returnErr == nil {
 
 		// Initialize slices of select cases and the corresponding reactions to each case being selected.
@@ -395,7 +395,7 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 			var err error
 
 			for continueProcessing {
-				err, continueProcessing = n.processModuleEvents(ctx, m, workChan)
+				continueProcessing, err = n.processModuleEvents(ctx, m, workChan)
 				if err != nil {
 					n.workErrNotifier.Fail(fmt.Errorf("could not process PassiveModule (%v) events: %w", mID, err))
 					return
