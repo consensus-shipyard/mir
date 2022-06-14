@@ -371,28 +371,3 @@ func TimerGarbageCollect(destModule t.ModuleID, retIndex t.TimerRetIndex) *event
 		}},
 	}
 }
-
-// ============================================================
-// DUMMY EVENTS FOR TESTING PURPOSES ONLY.
-// ============================================================
-
-func PersistDummyBatch(sn t.SeqNr, batch *requestpb.Batch) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_PersistDummyBatch{PersistDummyBatch: &eventpb.PersistDummyBatch{
-		Sn:    sn.Pb(),
-		Batch: batch,
-	}}}
-}
-
-func AnnounceDummyBatch(sn t.SeqNr, batch *requestpb.Batch) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_AnnounceDummyBatch{AnnounceDummyBatch: &eventpb.AnnounceDummyBatch{
-		Sn:    sn.Pb(),
-		Batch: batch,
-	}}}
-}
-
-func StoreDummyRequest(reqRef *requestpb.RequestRef, data []byte) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_StoreDummyRequest{StoreDummyRequest: &eventpb.StoreDummyRequest{
-		RequestRef: reqRef,
-		Data:       data,
-	}}}
-}

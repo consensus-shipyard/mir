@@ -178,7 +178,6 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		netClients = append(netClients, dummyclient.NewDummyClient(
 			t.NewClientIDFromInt(i),
 			crypto.SHA256,
-			//			&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 			cryptoModule,
 			logger,
 		))

@@ -89,10 +89,6 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 		return storedEvents, nil
 
-	case *eventpb.Event_PersistDummyBatch:
-		if err := w.Append(event, 0); err != nil {
-			return nil, fmt.Errorf("could not persist dummy batch: %w", err)
-		}
 	default:
 		return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
 	}
