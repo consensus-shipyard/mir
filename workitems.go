@@ -1,11 +1,3 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-
-Refactored: 1
-*/
-
 package mir
 
 import (
@@ -20,8 +12,7 @@ import (
 // WorkItems is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each type of event.
 type workItems struct {
-	net   *events.EventList
-	timer *events.EventList
+	net *events.EventList
 
 	generic map[t.ModuleID]*events.EventList
 }
@@ -36,8 +27,7 @@ func newWorkItems(modules *modules.Modules) *workItems {
 	}
 
 	return &workItems{
-		net:   &events.EventList{},
-		timer: &events.EventList{},
+		net: &events.EventList{},
 
 		generic: generic,
 	}
@@ -59,8 +49,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 		switch t := event.Type.(type) {
 		case *eventpb.Event_SendMessage:
 			wi.net.PushBack(event)
-		case *eventpb.Event_TimerDelay, *eventpb.Event_TimerRepeat, *eventpb.Event_TimerGarbageCollect:
-			wi.timer.PushBack(event)
 		default:
 			return fmt.Errorf("cannot add event of unknown type %T", t)
 		}
@@ -74,19 +62,11 @@ func (wi *workItems) Net() *events.EventList {
 	return wi.net
 }
 
-func (wi *workItems) Timer() *events.EventList {
-	return wi.timer
-}
-
 // Methods for clearing the buffers.
 // Each of them returns the list of events that have been removed from workItems.
 
 func (wi *workItems) ClearNet() *events.EventList {
 	return clearEventList(&wi.net)
-}
-
-func (wi *workItems) ClearTimer() *events.EventList {
-	return clearEventList(&wi.timer)
 }
 
 func clearEventList(listPtr **events.EventList) *events.EventList {

@@ -337,25 +337,36 @@ func AppRestoreState(destModule t.ModuleID, snapshot []byte) *eventpb.Event {
 	}
 }
 
-func TimerDelay(events []*eventpb.Event, delay t.TimeDuration) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_TimerDelay{TimerDelay: &eventpb.TimerDelay{
+func TimerDelay(destModule t.ModuleID, events []*eventpb.Event, delay t.TimeDuration) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_TimerDelay{TimerDelay: &eventpb.TimerDelay{
 		Events: events,
 		Delay:  delay.Pb(),
 	}}}
 }
 
-func TimerRepeat(events []*eventpb.Event, delay t.TimeDuration, retIndex t.TimerRetIndex) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
-		Events:         events,
-		Delay:          delay.Pb(),
-		RetentionIndex: retIndex.Pb(),
-	}}}
+func TimerRepeat(
+	destModule t.ModuleID,
+	events []*eventpb.Event,
+	delay t.TimeDuration,
+	retIndex t.TimerRetIndex,
+) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
+			Events:         events,
+			Delay:          delay.Pb(),
+			RetentionIndex: retIndex.Pb(),
+		}},
+	}
 }
 
-func TimerGarbageCollect(retIndex t.TimerRetIndex) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{
-		RetentionIndex: retIndex.Pb(),
-	}}}
+func TimerGarbageCollect(destModule t.ModuleID, retIndex t.TimerRetIndex) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{
+			RetentionIndex: retIndex.Pb(),
+		}},
+	}
 }
 
 // ============================================================

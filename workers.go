@@ -25,8 +25,7 @@ import (
 type workChans struct {
 
 	// There is one channel per module to feed events into the module.
-	net   chan *events.EventList
-	timer chan *events.EventList
+	net chan *events.EventList
 
 	// All modules write their output events in a common channel, from where the node processor reads and redistributes
 	// the events to their respective workItems buffers.
@@ -54,8 +53,7 @@ func newWorkChans(modules *modules.Modules) workChans {
 	}
 
 	return workChans{
-		net:   make(chan *events.EventList),
-		timer: make(chan *events.EventList),
+		net: make(chan *events.EventList),
 
 		workItemInput: make(chan *events.EventList),
 
@@ -259,16 +257,6 @@ func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
 
-func (n *Node) doTimerWork(ctx context.Context) (err error) {
-
-	// Unlike other event processors that simply transform an event list to another event list,
-	// the processor for the timer module needs direct access to the workItemsInput channel,
-	// as the events it produces are (by definition) not available immediately.
-	return n.processEvents(ctx, func(ctx context.Context, events *events.EventList) (*events.EventList, error) {
-		return n.processTimerEvents(ctx, events, n.workChans.workItemInput)
-	}, n.workChans.timer)
-}
-
 // TODO: Document the functions below.
 
 func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
@@ -294,49 +282,4 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 	}
 
 	return eventsOut, nil
-}
-
-// processTimerEvents processes the events destined to the timer module.
-// Unlike other event processors, processTimerEvents does not return a list of resulting events
-// based on the input event list, since those are (by definition) delayed.
-// The returned EventList is thus always empty.
-// Instead, processTimerEvents receives an additional channel (notifyChan)
-// where its outputs are written at the appropriate times.
-func (n *Node) processTimerEvents(
-	ctx context.Context,
-	eventsIn *events.EventList,
-	notifyChan chan<- *events.EventList,
-) (*events.EventList, error) {
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// Based on event type, invoke the appropriate Timer function.
-		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
-		// when they are later stripped off their follow-ups, as this happens potentially concurrently
-		// with the original event being processed by the interceptor.
-		switch e := event.Type.(type) {
-		case *eventpb.Event_TimerDelay:
-			n.modules.Timer.Delay(
-				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerDelay.Events),
-				t.TimeDuration(e.TimerDelay.Delay),
-				notifyChan,
-			)
-		case *eventpb.Event_TimerRepeat:
-			n.modules.Timer.Repeat(
-				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerRepeat.Events),
-				t.TimeDuration(e.TimerRepeat.Delay),
-				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
-				notifyChan,
-			)
-		case *eventpb.Event_TimerGarbageCollect:
-			n.modules.Timer.GarbageCollect(t.TimerRetIndex(e.TimerGarbageCollect.RetentionIndex))
-		default:
-			return nil, fmt.Errorf("unexpected type of Timer event: %T", event.Type)
-		}
-	}
-
-	return &events.EventList{}, nil
 }
