@@ -268,7 +268,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// The looping behavior is implemented in doUntilErr.
 	for _, work := range []workFunc{
 		n.doSendingWork,
-		n.doTimerWork,
 	} {
 		// Each function is executed by a separate thread.
 		// The wg is waited on before n.process() returns.
@@ -291,16 +290,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 		// For each event buffer in workItems that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
-		if n.workItems.Timer().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.timer),
-				Send: reflect.ValueOf(n.workItems.Timer()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearTimer()
-			})
-		}
 		if n.workItems.Net().Len() > 0 {
 			selectCases = append(selectCases, reflect.SelectCase{
 				Dir:  reflect.SelectSend,

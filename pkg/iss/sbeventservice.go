@@ -67,11 +67,11 @@ func (ec *sbEventService) VerifyNodeSigs(
 }
 
 func (ec *sbEventService) TimerDelay(delay t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {
-	return events.TimerDelay(evts, delay)
+	return events.TimerDelay("timer", evts, delay)
 }
 
 func (ec *sbEventService) TimerRepeat(period t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {
-	return events.TimerRepeat(evts, period, t.TimerRetIndex(ec.epoch))
+	return events.TimerRepeat("timer", evts, period, t.TimerRetIndex(ec.epoch))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).

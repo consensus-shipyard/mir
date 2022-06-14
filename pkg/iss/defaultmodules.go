@@ -19,10 +19,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		panic("no default Net implementation")
 	}
 
-	if m.Timer == nil {
-		m.Timer = &timer.Timer{}
-	}
-
 	// The Interceptor can stay nil, in which case Events will simply not be intercepted.
 
 	// Copy assigned generic modules
@@ -60,6 +56,10 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	if m.GenericModules["iss"] == nil {
 		return nil, fmt.Errorf("ISS protocol must be specified explicitly")
+	}
+
+	if m.GenericModules["timer"] == nil {
+		m.GenericModules["timer"] = timer.New()
 	}
 
 	// The WAL can stay nil, in which case no write-ahead log will be written
