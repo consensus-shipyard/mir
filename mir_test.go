@@ -229,7 +229,7 @@ var _ = Describe("Basic test", func() {
 
 	// This Pending table will be skipped.
 	// Change to FDescribeTable to make it focused.
-	XDescribeTable("Memory usage benchmarks", Serial,
+	DescribeTable("Memory usage benchmarks", Serial,
 		func(c *deploytest.TestConfig) {
 			testFunc(c)
 			AddReportEntry("Heap objects", heapObjects)

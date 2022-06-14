@@ -92,7 +92,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 	// The hash is required for state transfer.
 	// Only after the hash is computed, the log entry can be stored in the log (and potentially delivered to the App).
 	return (&events.EventList{}).PushBack(events.HashRequest(
-		"hasher",
+		HasherModuleName,
 		[][][]byte{serializeLogEntryForHashing(unhashedEntry)},
 		LogEntryHashOrigin(unhashedEntry.Sn),
 	))
