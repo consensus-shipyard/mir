@@ -13,49 +13,47 @@ import (
 
 // DefaultModules takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object
 // with default ISS modules inserted in fields where no module has been specified.
-func DefaultModules(m modules.Modules) (*modules.Modules, error) {
-	// Copy assigned generic modules
-	if m.GenericModules != nil {
-		gm := m.GenericModules
-		m.GenericModules = make(map[t.ModuleID]modules.Module)
-		for moduleID, module := range gm {
-			m.GenericModules[moduleID] = module
-		}
-	} else {
-		m.GenericModules = make(map[t.ModuleID]modules.Module)
+func DefaultModules(orig modules.Modules) (modules.Modules, error) {
+
+	// Create a new instance of Modules
+	m := make(map[t.ModuleID]modules.Module)
+
+	// Copy originally assigned modules
+	for moduleID, module := range orig {
+		m[moduleID] = module
 	}
 
 	// If no hasher module has been specified, use default SHA256 hasher.
-	if m.GenericModules["hasher"] == nil {
-		m.GenericModules["hasher"] = mirCrypto.NewHasher(crypto.SHA256)
+	if m["hasher"] == nil {
+		m["hasher"] = mirCrypto.NewHasher(crypto.SHA256)
 	}
 
-	if m.GenericModules["app"] == nil {
+	if m["app"] == nil {
 		return nil, fmt.Errorf("no default app implementation")
 	}
 
-	if m.GenericModules["crypto"] == nil {
+	if m["crypto"] == nil {
 		// TODO: Use default crypto once implemented and tested.
 		return nil, fmt.Errorf("no default crypto implementation")
 	}
 
-	if m.GenericModules["clientTracker"] == nil {
-		m.GenericModules["clientTracker"] = clients.SigningTracker("iss", nil)
+	if m["clientTracker"] == nil {
+		m["clientTracker"] = clients.SigningTracker("iss", nil)
 	}
 
-	if m.GenericModules["requestStore"] == nil {
-		m.GenericModules["requestStore"] = reqstore.NewVolatileRequestStore()
+	if m["requestStore"] == nil {
+		m["requestStore"] = reqstore.NewVolatileRequestStore()
 	}
 
-	if m.GenericModules["iss"] == nil {
+	if m["iss"] == nil {
 		return nil, fmt.Errorf("ISS protocol must be specified explicitly")
 	}
 
-	if m.GenericModules["timer"] == nil {
-		m.GenericModules["timer"] = timer.New()
+	if m["timer"] == nil {
+		m["timer"] = timer.New()
 	}
 
-	if m.GenericModules["net"] == nil {
+	if m["net"] == nil {
 		// TODO: Change this when a Net implementation exists.
 		return nil, fmt.Errorf("no default Net implementation")
 	}
@@ -63,5 +61,5 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 	// The WAL can stay nil, in which case no write-ahead log will be written
 	// and the node will not be able to restart.
 
-	return &m, nil
+	return m, nil
 }

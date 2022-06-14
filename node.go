@@ -30,9 +30,24 @@ type Node struct {
 	ID     t.NodeID    // Protocol-level node ID
 	Config *NodeConfig // Node-level (protocol-independent) configuration, like buffer sizes, logging, ...
 
+	// Incoming events to be processed by the node.
+	// E.g., all modules' output events are written in this channel,
+	// from where the Node processor reads and redistributes the events to their respective workItems buffers.
+	// External events are also funneled through this channel towards the workItems buffers.
+	eventsIn chan *events.EventList
+
+	// Events received during debugging through the Node.Step function are written to this channel
+	// and inserted in the event loop.
+	debugIn chan *events.EventList
+
+	// During debugging, Events that would normally be inserted in the workItems event buffer
+	// (and thus inserted in the event loop) are written to this channel instead if it is not nil.
+	// If this channel is nil, those Events are discarded.
+	debugOut chan *events.EventList
+
 	// Implementations of networking, hashing, request store, WAL, etc.
 	// The state machine is also a module of the node.
-	modules *modules.Modules
+	modules modules.Modules
 
 	// Interceptor of processed events.
 	// If not nil, every event is passed to the interceptor (by calling its Intercept method)
@@ -41,7 +56,7 @@ type Node struct {
 
 	// A buffer for storing outstanding events that need to be processed by the node.
 	// It contains a separate sub-buffer for each type of event.
-	workItems *workItems
+	workItems workItems
 
 	// Channels for routing work items between modules.
 	// Whenever workItems contains events, those events will be written (by the process() method)
@@ -71,13 +86,13 @@ type Node struct {
 func NewNode(
 	id t.NodeID,
 	config *NodeConfig,
-	m *modules.Modules,
+	m modules.Modules,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
 
 	// Create default modules for those not specified by the user.
 	// TODO: This counts on ISS being the default module set for Mir. Generalize.
-	modulesWithDefaults, err := iss.DefaultModules(*m)
+	modulesWithDefaults, err := iss.DefaultModules(m)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +101,10 @@ func NewNode(
 	return &Node{
 		ID:     id,
 		Config: config,
+
+		eventsIn: make(chan *events.EventList),
+		debugIn:  make(chan *events.EventList),
+		debugOut: make(chan *events.EventList),
 
 		workChans:   newWorkChans(modulesWithDefaults),
 		modules:     modulesWithDefaults,
@@ -143,7 +162,7 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
 	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
-	if n.modules.GenericModules["wal"] != nil {
+	if n.modules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
 			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
@@ -152,7 +171,7 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 	}
 
 	// Set up channel for outputting internal events
-	n.workChans.debugOut = eventsOut
+	n.debugOut = eventsOut
 
 	// Start processing of events.
 	return n.process(ctx)
@@ -165,7 +184,7 @@ func (n *Node) Step(ctx context.Context, event *eventpb.Event) error {
 
 	// Enqueue event in a work channel to be handled by the processing thread.
 	select {
-	case n.workChans.debugIn <- (&events.EventList{}).PushBack(event):
+	case n.debugIn <- (&events.EventList{}).PushBack(event):
 		return nil
 	case <-n.workErrNotifier.ExitStatusC():
 		return n.workErrNotifier.Err()
@@ -187,7 +206,7 @@ func (n *Node) SubmitRequest(
 
 	// Enqueue the generated events in a work channel to be handled by the processing thread.
 	select {
-	case n.workChans.workItemInput <- (&events.EventList{}).PushBack(
+	case n.eventsIn <- (&events.EventList{}).PushBack(
 		events.ClientRequest("clientTracker", clientID, reqNo, data, authenticator),
 	):
 		return nil
@@ -210,7 +229,7 @@ func (n *Node) Run(ctx context.Context) error {
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
-	if n.modules.GenericModules["wal"] != nil {
+	if n.modules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
 			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
@@ -237,7 +256,7 @@ func (n *Node) processWAL() error {
 
 	// Add all events from the WAL to the new EventList.
 	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
-	if storedEvents, err = n.modules.GenericModules["wal"].(modules.PassiveModule).ApplyEvents(
+	if storedEvents, err = n.modules["wal"].(modules.PassiveModule).ApplyEvents(
 		(&events.EventList{}).PushBack(events.WALLoadAll("wal")),
 	); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
@@ -261,21 +280,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	var wg sync.WaitGroup // Synchronizes all the worker functions
 	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
 
-	// Start all worker functions in separate threads.
-	// Those functions mostly read events from their respective channels in n.workChans,
-	// process them correspondingly, and write the results (also represented as events) in the appropriate channels.
-	// Each workFunc reads a single work item, processes it and writes its results.
-	// The looping behavior is implemented in doUntilErr.
-	for _, work := range []workFunc{} {
-		// Each function is executed by a separate thread.
-		// The wg is waited on before n.process() returns.
-		wg.Add(1)
-		go func(work workFunc) {
-			defer wg.Done()
-			n.doUntilErr(ctx, work)
-		}(work)
-	}
-
+	// Start processing module events.
 	n.startModules(ctx, &wg)
 
 	// This loop shovels events between the appropriate channels, until a stopping condition is satisfied.
@@ -300,13 +305,13 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 		selectCases = append(selectCases, reflect.SelectCase{
 			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(n.workChans.workItemInput),
+			Chan: reflect.ValueOf(n.eventsIn),
 		})
 		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
 			newEvents := newEventsVal.Interface().(*events.EventList)
 			if n.debugMode {
-				if n.workChans.debugOut != nil {
-					n.workChans.debugOut <- newEvents
+				if n.debugOut != nil {
+					n.debugOut <- newEvents
 				}
 			} else if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
@@ -314,7 +319,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		})
 		selectCases = append(selectCases, reflect.SelectCase{
 			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(n.workChans.debugIn),
+			Chan: reflect.ValueOf(n.debugIn),
 		})
 		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
 			newEvents := newEventsVal.Interface().(*events.EventList)
@@ -341,13 +346,13 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		// For each generic event buffer in workItems that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
 
-		for moduleID, buffer := range n.workItems.generic {
+		for moduleID, buffer := range n.workItems {
 			if buffer.Len() > 0 {
 
 				// Create case for writing in the work channel.
 				selectCases = append(selectCases, reflect.SelectCase{
 					Dir:  reflect.SelectSend,
-					Chan: reflect.ValueOf(n.workChans.genericWorkChans[moduleID]),
+					Chan: reflect.ValueOf(n.workChans[moduleID]),
 					Send: reflect.ValueOf(buffer),
 				})
 
@@ -359,7 +364,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
-					n.workItems.generic[mID] = &events.EventList{}
+					n.workItems[mID] = &events.EventList{}
 				})
 			}
 		}
@@ -379,7 +384,7 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 
 	// The modules mostly read events from their respective channels in n.workChans,
 	// process them correspondingly, and write the results (also represented as events) in the appropriate channels.
-	for moduleID, module := range n.modules.GenericModules {
+	for moduleID, module := range n.modules {
 
 		// For each module, we start a worker function reads a single work item (EventList) and processes it.
 		wg.Add(1)
@@ -397,7 +402,7 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 				}
 			}
 
-		}(moduleID, module, n.workChans.genericWorkChans[moduleID])
+		}(moduleID, module, n.workChans[moduleID])
 
 		// Depending on the module type (and the way output events are communicated back to the node),
 		// start a goroutine importing the modules' output events
@@ -427,7 +432,7 @@ func (n *Node) importEvents(ctx context.Context, eventsIn <-chan *events.EventLi
 		case newEvents, ok := <-eventsIn:
 			if ok {
 				select {
-				case n.workChans.workItemInput <- newEvents:
+				case n.eventsIn <- newEvents:
 				case <-ctx.Done():
 					return
 				case <-n.workErrNotifier.ExitC():
