@@ -16,6 +16,7 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"sort"
 
 	"golang.org/x/exp/constraints"
@@ -32,6 +33,16 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
+)
+
+// ============================================================
+// Global package variables
+// ============================================================
+
+// Names of modules this protocol depends on.
+// The corresponding modules are expected by ISS to be stored under these keys by the Node.
+var (
+	OwnModuleName t.ModuleID = "iss"
 )
 
 // ============================================================
@@ -136,6 +147,7 @@ type CommitLogEntry struct {
 // The type should not be instantiated directly, but only properly initialized values
 // returned from the New() function should be used.
 type ISS struct {
+	modules.Module
 
 	// --------------------------------------------------------------------------------
 	// These fields should only be set at initialization and remain static
@@ -290,12 +302,32 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 // Protocol Interface implementation
 // ============================================================
 
+// ApplyEvents receives a list of events, processes them sequentially, and returns a list of resulting events.
+func (iss *ISS) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := iss.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
+
 // ApplyEvent receives one event and applies it to the ISS protocol state machine, potentially altering its state
 // and producing a (potentially empty) list of more events to be applied to other modules.
-func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
+func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+
+	// TODO: Make event handlers return error as a second argument, instead of hard-coding nil here.
+
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		return iss.applyInit(e.Init)
+		return iss.applyInit(e.Init), nil
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
@@ -303,25 +335,26 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) *events.EventList {
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_RequestReady:
-		return iss.applyRequestReady(e.RequestReady)
+		return iss.applyRequestReady(e.RequestReady), nil
 	case *eventpb.Event_AppSnapshot:
-		return iss.applyAppSnapshot(e.AppSnapshot)
+		return iss.applyAppSnapshot(e.AppSnapshot), nil
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
-			return iss.applySBEvent(issEvent.Sb)
+			return iss.applySBEvent(issEvent.Sb), nil
 		case *isspb.ISSEvent_StableCheckpoint:
-			return iss.applyStableCheckpoint(issEvent.StableCheckpoint)
+			return iss.applyStableCheckpoint(issEvent.StableCheckpoint), nil
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
-			return &events.EventList{}
+			return &events.EventList{}, nil
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
+
 	case *eventpb.Event_MessageReceived:
-		return iss.applyMessageReceived(e.MessageReceived)
+		return iss.applyMessageReceived(e.MessageReceived), nil
 	default:
-		panic(fmt.Sprintf("unknown protocol (ISS) event type: %T", event.Type))
+		return nil, fmt.Errorf("unknown protocol (ISS) event type: %T", event.Type)
 	}
 }
 
@@ -349,10 +382,12 @@ func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
 // A HashResult event means that a hash requested by this module has been computed by the Hasher module
 // and is now ready to be processed.
-func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
+func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, error) {
 	// We know already that the hash origin is the HashOrigin is of type ISS, since ISS produces no other types
 	// and all HashResults with a different origin would not have been routed here.
 	issOrigin := result.Origin.Type.(*eventpb.HashOrigin_Iss).Iss
+
+	// TODO: Make event handlers return error as a second argument, instead of hard-coding nil here.
 
 	// Further inspect the origin of the initial hash request and decide what to do with it.
 	switch origin := issOrigin.Type.(type) {
@@ -367,10 +402,10 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digests, origin.Sb.Origin)))
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
-		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
+		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn)), nil
 	case *isspb.ISSHashOrigin_AppSnapshotEpoch:
 		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyAppSnapshotHashResult(result.Digests[0], t.EpochNr(origin.AppSnapshotEpoch))
+		return iss.applyAppSnapshotHashResult(result.Digests[0], t.EpochNr(origin.AppSnapshotEpoch)), nil
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
 	}
@@ -379,7 +414,7 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) *events.EventList {
 // applySignResult applies the SignResult event to the state of the ISS protocol state machine.
 // A SignResult event means that a signature requested by this module has been computed by the Crypto module
 // and is now ready to be processed.
-func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
+func (iss *ISS) applySignResult(result *eventpb.SignResult) (*events.EventList, error) {
 	// We know already that the SignOrigin is of type ISS, since ISS produces no other types
 	// and all SignResults with a different origin would not have been routed here.
 	issOrigin := result.Origin.Type.(*eventpb.SignOrigin_Iss).Iss
@@ -396,7 +431,7 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 		instance := t.SBInstanceNr(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
 	case *isspb.ISSSignOrigin_CheckpointEpoch:
-		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch))
+		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch)), nil
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
@@ -405,7 +440,7 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) *events.EventList {
 // applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
 // Such an event means that a signature verification requested by this module has been completed by the Crypto module
 // and is now ready to be processed.
-func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.EventList {
+func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events.EventList, error) {
 	// We know already that the SigVerOrigin is of type ISS, since ISS produces no other types
 	// and all NodeSigVerified events with a different origin would not have been routed here.
 	issOrigin := result.Origin.Type.(*eventpb.SigVerOrigin_Iss).Iss
@@ -434,7 +469,7 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.
 			result.Errors[0],
 			t.NodeID(result.NodeIds[0]),
 			t.EpochNr(origin.CheckpointEpoch),
-		)
+		), nil
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}

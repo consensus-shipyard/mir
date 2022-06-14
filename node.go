@@ -211,7 +211,7 @@ func (n *Node) Run(ctx context.Context) error {
 	}
 
 	// Submit the Init event to the modules.
-	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init())); err != nil {
+	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init("iss"))); err != nil {
 		n.workErrNotifier.Fail(err)
 		n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
 		return fmt.Errorf("failed to add init event: %w", err)
@@ -260,7 +260,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// The looping behavior is implemented in doUntilErr.
 	for _, work := range []workFunc{
 		n.doSendingWork,
-		n.doProtocolWork,
 		n.doTimerWork,
 	} {
 		// Each function is executed by a separate thread.
@@ -284,16 +283,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 		// For each event buffer in workItems that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
-		if n.workItems.Protocol().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.protocol),
-				Send: reflect.ValueOf(n.workItems.Protocol()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearProtocol()
-			})
-		}
 		if n.workItems.Timer().Len() > 0 {
 			selectCases = append(selectCases, reflect.SelectCase{
 				Dir:  reflect.SelectSend,
@@ -337,7 +326,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
 					"msg", receivedMessage)
 			} else if err := n.workItems.AddEvents((&events.EventList{}).
-				PushBack(events.MessageReceived(receivedMessage.Sender, receivedMessage.Msg))); err != nil {
+				PushBack(events.MessageReceived("iss", receivedMessage.Sender, receivedMessage.Msg))); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
 		})
@@ -417,6 +406,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 	}
 
+	n.workErrNotifier.SetExitStatus(nil, nil) // TODO: change this when statuses are implemented.
 	return returnErr
 }
 

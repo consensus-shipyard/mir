@@ -43,8 +43,8 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 
 // Init returns an event instructing a module to initialize.
 // This event is the first to be applied to a module after applying all events from the WAL.
-func Init() *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
+func Init(destModule t.ModuleID) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
 }
 
 // SendMessage returns an event of sending the message message to destinations.
@@ -61,11 +61,14 @@ func SendMessage(message *messagepb.Message, destinations []t.NodeID) *eventpb.E
 
 // MessageReceived returns an event representing the reception of a message from another node.
 // The from parameter is the ID of the node the message was received from.
-func MessageReceived(from t.NodeID, message *messagepb.Message) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_MessageReceived{MessageReceived: &eventpb.MessageReceived{
-		From: from.Pb(),
-		Msg:  message,
-	}}}
+func MessageReceived(destModule t.ModuleID, from t.NodeID, message *messagepb.Message) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_MessageReceived{MessageReceived: &eventpb.MessageReceived{
+			From: from.Pb(),
+			Msg:  message,
+		}},
+	}
 }
 
 // ClientRequest returns an event representing the reception of a request from a client.

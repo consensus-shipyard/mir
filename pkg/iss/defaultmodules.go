@@ -19,11 +19,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		panic("no default Net implementation")
 	}
 
-	if m.Protocol == nil {
-		// TODO: Use default protocol once implemented.
-		return nil, fmt.Errorf("no default protocol implementation")
-	}
-
 	if m.Timer == nil {
 		m.Timer = &timer.Timer{}
 	}
@@ -61,6 +56,10 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	if m.GenericModules["requestStore"] == nil {
 		m.GenericModules["requestStore"] = reqstore.NewVolatileRequestStore()
+	}
+
+	if m.GenericModules["iss"] == nil {
+		return nil, fmt.Errorf("ISS protocol must be specified explicitly")
 	}
 
 	// The WAL can stay nil, in which case no write-ahead log will be written

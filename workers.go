@@ -16,7 +16,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -26,9 +25,8 @@ import (
 type workChans struct {
 
 	// There is one channel per module to feed events into the module.
-	protocol chan *events.EventList
-	net      chan *events.EventList
-	timer    chan *events.EventList
+	net   chan *events.EventList
+	timer chan *events.EventList
 
 	// All modules write their output events in a common channel, from where the node processor reads and redistributes
 	// the events to their respective workItems buffers.
@@ -56,9 +54,8 @@ func newWorkChans(modules *modules.Modules) workChans {
 	}
 
 	return workChans{
-		protocol: make(chan *events.EventList),
-		net:      make(chan *events.EventList),
-		timer:    make(chan *events.EventList),
+		net:   make(chan *events.EventList),
+		timer: make(chan *events.EventList),
 
 		workItemInput: make(chan *events.EventList),
 
@@ -242,18 +239,6 @@ func (n *Node) doSendingWork(ctx context.Context) error {
 	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
 }
 
-func (n *Node) doProtocolWork(ctx context.Context) (err error) {
-	// On returning, sets the exit status of the protocol state machine in the work error notifier.
-	defer func() {
-		if err != nil {
-			s, err := n.modules.Protocol.Status()
-			n.workErrNotifier.SetExitStatus(&statuspb.NodeStatus{Protocol: s}, err)
-			// TODO: Clean up status-related code.
-		}
-	}()
-	return n.processEvents(ctx, n.processProtocolEvents, n.workChans.protocol)
-}
-
 func (n *Node) doTimerWork(ctx context.Context) (err error) {
 
 	// Unlike other event processors that simply transform an event list to another event list,
@@ -276,7 +261,7 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 		case *eventpb.Event_SendMessage:
 			for _, destID := range e.SendMessage.Destinations {
 				if t.NodeID(destID) == n.ID {
-					eventsOut.PushBack(events.MessageReceived(n.ID, e.SendMessage.Msg))
+					eventsOut.PushBack(events.MessageReceived("iss", n.ID, e.SendMessage.Msg))
 				} else {
 					if err := n.modules.Net.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
 						// TODO: Handle sending errors (and remove "nolint" comment above).
@@ -289,35 +274,6 @@ func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) 
 	}
 
 	return eventsOut, nil
-}
-
-func (n *Node) processProtocolEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		newEvents, err := n.safeApplyProtocolEvent(event)
-		if err != nil {
-			return nil, fmt.Errorf("error applying protocol event: %w", err)
-		}
-		eventsOut.PushBackList(newEvents)
-	}
-
-	return eventsOut, nil
-}
-
-func (n *Node) safeApplyProtocolEvent(event *eventpb.Event) (result *events.EventList, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("panic in protocol state machine: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
-			} else {
-				err = fmt.Errorf("panic in protocol state machine: %v\nStack trace:\n%s", r, string(debug.Stack()))
-			}
-		}
-	}()
-
-	return n.modules.Protocol.ApplyEvent(event), nil
 }
 
 // processTimerEvents processes the events destined to the timer module.
