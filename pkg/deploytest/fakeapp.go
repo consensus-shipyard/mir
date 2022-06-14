@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -23,7 +24,7 @@ type FakeApp struct {
 	modules.PassiveModule
 
 	// Request store maintained by the FakeApp
-	ReqStore modules.RequestStore
+	ReqStore *reqstore.VolatileRequestStore
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
