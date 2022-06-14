@@ -123,18 +123,14 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 	node, err := mir.NewNode(
 		tr.ID,
 		tr.Config,
-		&modules.Modules{
-			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
-
-			GenericModules: map[t.ModuleID]modules.Module{
-				"app":           tr.App,
-				"crypto":        mirCrypto.New(cryptoModule),
-				"wal":           wal,
-				"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
-				"requestStore":  tr.ReqStore,
-				"iss":           issProtocol,
-				"net":           tr.Net,
-			},
+		map[t.ModuleID]modules.Module{
+			"app":           tr.App,
+			"crypto":        mirCrypto.New(cryptoModule),
+			"wal":           wal,
+			"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
+			"requestStore":  tr.ReqStore,
+			"iss":           issProtocol,
+			"net":           tr.Net,
 		},
 		interceptor,
 	)
