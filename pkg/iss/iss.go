@@ -637,7 +637,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			}
 		}
 		m := StableCheckpointMessage(stableCheckpoint)
-		eventsOut.PushBack(events.SendMessage(m, delayed))
+		eventsOut.PushBack(events.SendMessage("net", m, delayed))
 
 		// Prune old entries from WAL. The entries to prune
 		// are determined according to the retention index
@@ -975,6 +975,7 @@ func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events
 
 	// Send a message to the leader that made the proposal for which requests are still missing.
 	return (&events.EventList{}).PushBack(events.SendMessage(
+		"net",
 		RetransmitRequestsMessage(requests), []t.NodeID{reqInfo.Orderer.Segment().Leader},
 	))
 }

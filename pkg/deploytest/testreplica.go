@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,7 +18,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/clients"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -59,7 +59,7 @@ type TestReplica struct {
 	ClientIDs []t.ClientID
 
 	// Network transport subsystem.
-	Net modules.Net
+	Net modules.ActiveModule
 
 	// Number of simulated requests inserted in the test replica by a hypothetical client.
 	NumFakeRequests int
@@ -124,7 +124,6 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.ID,
 		tr.Config,
 		&modules.Modules{
-			Net: tr.Net,
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 
 			GenericModules: map[t.ModuleID]modules.Module{
@@ -134,6 +133,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 				"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
 				"requestStore":  tr.ReqStore,
 				"iss":           issProtocol,
+				"net":           tr.Net,
 			},
 		},
 		interceptor,

@@ -266,9 +266,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// process them correspondingly, and write the results (also represented as events) in the appropriate channels.
 	// Each workFunc reads a single work item, processes it and writes its results.
 	// The looping behavior is implemented in doUntilErr.
-	for _, work := range []workFunc{
-		n.doSendingWork,
-	} {
+	for _, work := range []workFunc{} {
 		// Each function is executed by a separate thread.
 		// The wg is waited on before n.process() returns.
 		wg.Add(1)
@@ -288,19 +286,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		selectCases := make([]reflect.SelectCase, 0)
 		selectReactions := make([]func(receivedVal reflect.Value), 0)
 
-		// For each event buffer in workItems that contains events to be submitted to its corresponding module,
-		// create a selectCase for writing those events to the module's work channel.
-		if n.workItems.Net().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.net),
-				Send: reflect.ValueOf(n.workItems.Net()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearNet()
-			})
-		}
-
 		// If the context has been canceled, set the corresponding stopping value at the Node's WorkErrorNotifier,
 		// making the processing stop when the WorkErrorNotifier's channel is selected the next time.
 		selectCases = append(selectCases, reflect.SelectCase{
@@ -309,23 +294,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		})
 		selectReactions = append(selectReactions, func(_ reflect.Value) {
 			n.workErrNotifier.Fail(ErrStopped)
-		})
-
-		// Handle messages received over the network, as obtained by the Net module.
-
-		selectCases = append(selectCases, reflect.SelectCase{
-			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(n.modules.Net.ReceiveChan()),
-		})
-		selectReactions = append(selectReactions, func(msg reflect.Value) {
-			receivedMessage := msg.Interface().(modules.ReceivedMessage)
-			if n.debugMode {
-				n.Config.Logger.Log(logging.LevelWarn, "Ignoring incoming message in debug mode.",
-					"msg", receivedMessage)
-			} else if err := n.workItems.AddEvents((&events.EventList{}).
-				PushBack(events.MessageReceived("iss", receivedMessage.Sender, receivedMessage.Msg))); err != nil {
-				n.workErrNotifier.Fail(err)
-			}
 		})
 
 		// Add events produced by modules and debugger to the workItems buffers and handle logical time.

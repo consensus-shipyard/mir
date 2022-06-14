@@ -106,7 +106,7 @@ func (dp *DummyProtocol) handleRequest(ref *requestpb.RequestRef) *events.EventL
 		announceEvent := events.AnnounceDummyBatch(sn, batch)
 
 		// Create message sending event for forwarding this single-request batch to other replicas.
-		msgSendEvent := events.SendMessage(&messagepb.Message{Type: &messagepb.Message_DummyPreprepare{
+		msgSendEvent := events.SendMessage("net", &messagepb.Message{Type: &messagepb.Message_DummyPreprepare{
 			DummyPreprepare: &messagepb.DummyPreprepare{
 				Sn:    sn.Pb(),
 				Batch: batch,

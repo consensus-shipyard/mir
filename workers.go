@@ -15,7 +15,6 @@ import (
 	"runtime/debug"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -23,9 +22,6 @@ import (
 // the Node.process() method reads and writes events
 // to and from these channels to rout them between the Node's modules.
 type workChans struct {
-
-	// There is one channel per module to feed events into the module.
-	net chan *events.EventList
 
 	// All modules write their output events in a common channel, from where the node processor reads and redistributes
 	// the events to their respective workItems buffers.
@@ -53,8 +49,6 @@ func newWorkChans(modules *modules.Modules) workChans {
 	}
 
 	return workChans{
-		net: make(chan *events.EventList),
-
 		workItemInput: make(chan *events.EventList),
 
 		debugIn:  make(chan *events.EventList),
@@ -247,39 +241,4 @@ func safelyApplyEvents(
 	}()
 
 	return module.ApplyEvents(events)
-}
-
-// Module-specific wrappers for Node.ProcessEvents,
-// associating each Module's processing function with its corresponding work channel.
-// On top of that, the Protocol processing wrapper additionally sets the Node's exit status when done.
-
-func (n *Node) doSendingWork(ctx context.Context) error {
-	return n.processEvents(ctx, n.processSendEvents, n.workChans.net)
-}
-
-// TODO: Document the functions below.
-
-func (n *Node) processSendEvents(_ context.Context, eventsIn *events.EventList) (*events.EventList, error) {
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if t.NodeID(destID) == n.ID {
-					eventsOut.PushBack(events.MessageReceived("iss", n.ID, e.SendMessage.Msg))
-				} else {
-					if err := n.modules.Net.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
-					}
-				}
-			}
-		default:
-			return nil, fmt.Errorf("unexpected type of Net event: %T", event.Type)
-		}
-	}
-
-	return eventsOut, nil
 }

@@ -49,14 +49,17 @@ func Init(destModule t.ModuleID) *eventpb.Event {
 
 // SendMessage returns an event of sending the message message to destinations.
 // destinations is a slice of replica IDs that will be translated to actual addresses later.
-func SendMessage(message *messagepb.Message, destinations []t.NodeID) *eventpb.Event {
+func SendMessage(destModule t.ModuleID, message *messagepb.Message, destinations []t.NodeID) *eventpb.Event {
 
 	// TODO: This conversion can potentially be very inefficient!
 
-	return &eventpb.Event{Type: &eventpb.Event_SendMessage{SendMessage: &eventpb.SendMessage{
-		Destinations: t.NodeIDSlicePb(destinations),
-		Msg:          message,
-	}}}
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_SendMessage{SendMessage: &eventpb.SendMessage{
+			Destinations: t.NodeIDSlicePb(destinations),
+			Msg:          message,
+		}},
+	}
 }
 
 // MessageReceived returns an event representing the reception of a message from another node.
