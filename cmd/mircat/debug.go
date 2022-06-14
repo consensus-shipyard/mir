@@ -120,13 +120,13 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 	reqStore := reqstore.NewVolatileRequestStore()
 
 	// Instantiate and return a minimal Mir Node.
-	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, &modules.Modules{
-		Net:          &nullNet{},
-		Crypto:       &mirCrypto.DummyCrypto{DummySig: []byte{0}},
-		App:          &deploytest.FakeApp{ReqStore: reqStore},
-		RequestStore: reqStore,
-		Protocol:     protocol,
-	})
+	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
+		"net":      modules.NullActive{},
+		"crypto":   mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
+		"app":      &deploytest.FakeApp{ReqStore: reqStore},
+		"reqStore": reqStore,
+		"iss":      protocol,
+	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
 	}

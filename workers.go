@@ -34,16 +34,18 @@ func newWorkChans(modules modules.Modules) workChans {
 // If the Node is configured to use an Interceptor, after having removed all follow-up Events,
 // processEventsPassive passes the list of input Events to the Interceptor.
 //
-// If any error occurs, it is returned as the first parameter.
-// If context is canceled, processEventsPassive might return a nil error with or without performing event processing.
-// The second return value being true indicates that processing can continue
+// If the first return value is false,
+// processing should be terminated and processEventsPassive should not be called again.
+// The first return value being true indicates that processing can continue
 // and processEventsPassive should be called again.
-// If the second return is false, processing should be terminated and processEventsPassive should not be called again.
+//
+// If any error occurs, it is returned as the second parameter.
+// If context is canceled, processEventsPassive might return a nil error with or without performing event processing.
 func (n *Node) processModuleEvents(
 	ctx context.Context,
 	module modules.Module,
 	eventSource <-chan *events.EventList,
-) (error, bool) {
+) (bool, error) {
 	var eventsIn *events.EventList
 	var inputOpen bool
 
@@ -51,12 +53,12 @@ func (n *Node) processModuleEvents(
 	select {
 	case eventsIn, inputOpen = <-eventSource:
 		if !inputOpen {
-			return nil, false
+			return false, nil
 		}
 	case <-ctx.Done():
-		return nil, false
+		return false, nil
 	case <-n.workErrNotifier.ExitC():
-		return nil, false
+		return false, nil
 	}
 
 	// Remove follow-up Events from the input EventList,
@@ -75,12 +77,14 @@ func (n *Node) processModuleEvents(
 		// For a passive module, synchronously apply all events and
 		// add potential resulting events to the output EventList.
 
-		if newEvents, err := safelyApplyEvents(m, plainEvents); err != nil {
-			return err, false
-		} else {
-			// Add newly generated Events to the output.
-			eventsOut.PushBackList(newEvents)
+		var newEvents *events.EventList
+		var err error
+		if newEvents, err = safelyApplyEvents(m, plainEvents); err != nil {
+			return false, err
 		}
+
+		// Add newly generated Events to the output.
+		eventsOut.PushBackList(newEvents)
 
 	case modules.ActiveModule:
 		// For an active module, only submit the events to the module and let it output the result asynchronously.
@@ -89,29 +93,29 @@ func (n *Node) processModuleEvents(
 		// This is because an ActiveModule is expected to run its own goroutines.
 
 		if err := m.ApplyEvents(ctx, plainEvents); err != nil {
-			return err, false
+			return false, err
 		}
 
 	default:
-		return fmt.Errorf("unknown module type: %T", m), false
+		return false, fmt.Errorf("unknown module type: %T", m)
 	}
 
 	// Return if no output was generated.
 	// This is only an optimization to prevent the processor loop from handling empty EventLists.
 	if eventsOut.Len() == 0 {
-		return nil, true
+		return true, nil
 	}
 
 	// Write output.
 	select {
 	case n.eventsIn <- eventsOut:
 	case <-ctx.Done():
-		return nil, false
+		return false, nil
 	case <-n.workErrNotifier.ExitC():
-		return nil, false
+		return false, nil
 	}
 
-	return nil, true
+	return true, nil
 }
 
 func safelyApplyEvents(
