@@ -422,29 +422,65 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 
 	// The modules mostly read events from their respective channels in n.workChans,
 	// process them correspondingly, and write the results (also represented as events) in the appropriate channels.
-	// Each worker function reads a single work item (EventList), processes it and writes its results.
-	// The looping behavior is implemented in doUntilErr.
 	for moduleID, module := range n.modules.GenericModules {
+
+		// For each module, we start a worker function reads a single work item (EventList) and processes it.
+		wg.Add(1)
+		go func(mID t.ModuleID, m modules.Module, workChan chan *events.EventList) {
+			defer wg.Done()
+
+			var continueProcessing = true
+			var err error
+
+			for continueProcessing {
+				err, continueProcessing = n.processModuleEvents(ctx, m, workChan)
+				if err != nil {
+					n.workErrNotifier.Fail(fmt.Errorf("could not process PassiveModule (%v) events: %w", mID, err))
+					return
+				}
+			}
+
+		}(moduleID, module, n.workChans.genericWorkChans[moduleID])
+
+		// Depending on the module type (and the way output events are communicated back to the node),
+		// start a goroutine importing the modules' output events
 		switch m := module.(type) {
 		case modules.PassiveModule:
+			// Nothing else to be done for a PassiveModule
+		case modules.ActiveModule:
+			// Start a goroutine to import the ActiveModule's output events to workItemInput.
 			wg.Add(1)
-			go func(mID t.ModuleID, workChan chan *events.EventList) {
+			go func() {
 				defer wg.Done()
-
-				var continueProcessing bool = true
-				var err error
-
-				for continueProcessing {
-					err, continueProcessing = n.processEventsPassive(ctx, m, workChan)
-					if err != nil {
-						n.workErrNotifier.Fail(fmt.Errorf("could not process PassiveModule (%v) events: %w", mID, err))
-						return
-					}
-				}
-
-			}(moduleID, n.workChans.genericWorkChans[moduleID])
+				n.importEvents(ctx, m.EventsOut())
+			}()
 		default:
 			n.workErrNotifier.Fail(fmt.Errorf("unknown module type: %T", m))
+		}
+	}
+}
+
+// importEvents reads events from eventsIn and writes them to the Node's workItemInput until
+// - eventsIn is closed or
+// - ctx is canceled or
+// - an error occurred in the Node and was announced through the Node's workErrorNotifier.
+func (n *Node) importEvents(ctx context.Context, eventsIn <-chan *events.EventList) {
+	for {
+		select {
+		case newEvents, ok := <-eventsIn:
+			if ok {
+				select {
+				case n.workChans.workItemInput <- newEvents:
+				case <-ctx.Done():
+					return
+				case <-n.workErrNotifier.ExitC():
+					return
+				}
+			}
+		case <-ctx.Done():
+			return
+		case <-n.workErrNotifier.ExitC():
+			return
 		}
 	}
 }
