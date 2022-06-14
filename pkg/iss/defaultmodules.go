@@ -58,8 +58,11 @@ func DefaultModules(orig modules.Modules) (modules.Modules, error) {
 		return nil, fmt.Errorf("no default Net implementation")
 	}
 
-	// The WAL can stay nil, in which case no write-ahead log will be written
+	// If the WAL is not specified, no write-ahead log will be written
 	// and the node will not be able to restart.
+	if m["wal"] == nil {
+		m["wal"] = modules.NullPassive{}
+	}
 
 	return m, nil
 }
