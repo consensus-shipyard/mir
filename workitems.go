@@ -21,7 +21,6 @@ import (
 // It contains a separate list for each type of event.
 type workItems struct {
 	net      *events.EventList
-	reqStore *events.EventList
 	protocol *events.EventList
 	timer    *events.EventList
 
@@ -39,7 +38,6 @@ func newWorkItems(modules *modules.Modules) *workItems {
 
 	return &workItems{
 		net:      &events.EventList{},
-		reqStore: &events.EventList{},
 		protocol: &events.EventList{},
 		timer:    &events.EventList{},
 
@@ -69,8 +67,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 		case *eventpb.Event_MessageReceived, *eventpb.Event_Iss, *eventpb.Event_RequestReady,
 			*eventpb.Event_AppSnapshot:
 			wi.protocol.PushBack(event)
-		case *eventpb.Event_StoreVerifiedRequest:
-			wi.reqStore.PushBack(event)
 		case *eventpb.Event_HashResult:
 			// For hash results, their origin determines the destination.
 			switch t.HashResult.Origin.Type.(type) {
@@ -105,10 +101,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 			}
 		case *eventpb.Event_TimerDelay, *eventpb.Event_TimerRepeat, *eventpb.Event_TimerGarbageCollect:
 			wi.timer.PushBack(event)
-
-		// TODO: Remove these eventually.
-		case *eventpb.Event_StoreDummyRequest:
-			wi.reqStore.PushBack(event)
 		default:
 			return fmt.Errorf("cannot add event of unknown type %T", t)
 		}
@@ -120,10 +112,6 @@ func (wi *workItems) AddEvents(events *events.EventList) error {
 
 func (wi *workItems) Net() *events.EventList {
 	return wi.net
-}
-
-func (wi *workItems) ReqStore() *events.EventList {
-	return wi.reqStore
 }
 
 func (wi *workItems) Protocol() *events.EventList {
@@ -139,10 +127,6 @@ func (wi *workItems) Timer() *events.EventList {
 
 func (wi *workItems) ClearNet() *events.EventList {
 	return clearEventList(&wi.net)
-}
-
-func (wi *workItems) ClearReqStore() *events.EventList {
-	return clearEventList(&wi.reqStore)
 }
 
 func (wi *workItems) ClearProtocol() *events.EventList {

@@ -260,7 +260,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// The looping behavior is implemented in doUntilErr.
 	for _, work := range []workFunc{
 		n.doSendingWork,
-		n.doReqStoreWork,
 		n.doProtocolWork,
 		n.doTimerWork,
 	} {
@@ -313,16 +312,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			})
 			selectReactions = append(selectReactions, func(_ reflect.Value) {
 				n.workItems.ClearNet()
-			})
-		}
-		if n.workItems.ReqStore().Len() > 0 {
-			selectCases = append(selectCases, reflect.SelectCase{
-				Dir:  reflect.SelectSend,
-				Chan: reflect.ValueOf(n.workChans.reqStore),
-				Send: reflect.ValueOf(n.workItems.ReqStore()),
-			})
-			selectReactions = append(selectReactions, func(_ reflect.Value) {
-				n.workItems.ClearReqStore()
 			})
 		}
 

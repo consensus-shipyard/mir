@@ -19,10 +19,6 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 		panic("no default Net implementation")
 	}
 
-	if m.RequestStore == nil {
-		m.RequestStore = reqstore.NewVolatileRequestStore()
-	}
-
 	if m.Protocol == nil {
 		// TODO: Use default protocol once implemented.
 		return nil, fmt.Errorf("no default protocol implementation")
@@ -61,6 +57,10 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	if m.GenericModules["clientTracker"] == nil {
 		m.GenericModules["clientTracker"] = clients.SigningTracker("iss", nil)
+	}
+
+	if m.GenericModules["requestStore"] == nil {
+		m.GenericModules["requestStore"] = reqstore.NewVolatileRequestStore()
 	}
 
 	// The WAL can stay nil, in which case no write-ahead log will be written

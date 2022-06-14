@@ -43,7 +43,7 @@ type TestReplica struct {
 	App *FakeApp
 
 	// Request store
-	ReqStore modules.RequestStore
+	ReqStore modules.PassiveModule
 
 	// Name of the directory where the persisted state of this TestReplica will be stored,
 	// along with the logs produced by running the replica.
@@ -124,8 +124,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.ID,
 		tr.Config,
 		&modules.Modules{
-			Net:          tr.Net,
-			RequestStore: tr.ReqStore,
+			Net: tr.Net,
 			// Protocol:    ordering.NewDummyProtocol(tr.Config.Logger, tr.Membership, tr.Id),
 			Protocol:    issProtocol,
 			Interceptor: interceptor,
@@ -135,6 +134,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 				"crypto":        mirCrypto.New(cryptoModule),
 				"wal":           wal,
 				"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
+				"requestStore":  tr.ReqStore,
 			},
 		},
 	)
