@@ -13,10 +13,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/statuspb"
+	"github.com/filecoin-project/mir/pkg/reqstore"
+	t "github.com/filecoin-project/mir/pkg/types"
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
@@ -25,6 +30,7 @@ import (
 // An initialized instance of this struct needs to be passed to the mir.NewNode() method of all nodes
 // for the system to run the chat demo app.
 type ChatApp struct {
+	modules.Module
 
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
@@ -32,23 +38,66 @@ type ChatApp struct {
 
 	// The request store module (also passed to the Mir library at startup)
 	// is used for accessing the request payloads containing the chat message data.
-	reqStore modules.RequestStore
+	reqStore *reqstore.VolatileRequestStore
 }
 
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
-func NewChatApp(reqStore modules.RequestStore) *ChatApp {
+func NewChatApp(reqStore *reqstore.VolatileRequestStore) *ChatApp {
 	return &ChatApp{
 		messages: make([]string, 0),
 		reqStore: reqStore,
 	}
 }
 
-// Apply applies a batch of requests to the state of the application.
+func (chat *ChatApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+
+	eventsOut := &events.EventList{}
+
+	iter := eventsIn.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		evts, err := chat.ApplyEvent(event)
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(evts)
+	}
+
+	return eventsOut, nil
+}
+
+func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+	switch e := event.Type.(type) {
+	case *eventpb.Event_Deliver:
+		if err := chat.ApplyBatch(e.Deliver.Batch); err != nil {
+			return nil, fmt.Errorf("app batch delivery error: %w", err)
+		}
+	case *eventpb.Event_AppSnapshotRequest:
+		data, err := chat.Snapshot()
+		if err != nil {
+			return nil, fmt.Errorf("app snapshot error: %w", err)
+		}
+		return (&events.EventList{}).PushBack(events.AppSnapshot(
+			t.ModuleID(e.AppSnapshotRequest.Module),
+			t.EpochNr(e.AppSnapshotRequest.Epoch),
+			data,
+		)), nil
+	case *eventpb.Event_AppRestoreState:
+		if err := chat.RestoreState(e.AppRestoreState.Data); err != nil {
+			return nil, fmt.Errorf("app restore state error: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
+	}
+
+	return &events.EventList{}, nil
+}
+
+// ApplyBatch applies a batch of requests to the state of the application.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
-func (chat *ChatApp) Apply(batch *requestpb.Batch) error {
+func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
 
 	// For each request in the batch
 	for _, reqRef := range batch.Requests {
@@ -104,4 +153,10 @@ func (chat *ChatApp) RestoreState(snapshot []byte) error {
 	}
 
 	return nil
+}
+
+// Status returns a representation of the ChatApp's internal state for the purpose of debugging.
+// Currently it is not used by Mir and thus does not need to be implemented.
+func (chat *ChatApp) Status() (s *statuspb.ProtocolStatus, err error) {
+	panic("not implemented")
 }
