@@ -14,13 +14,6 @@ import (
 // DefaultModules takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object
 // with default ISS modules inserted in fields where no module has been specified.
 func DefaultModules(m modules.Modules) (*modules.Modules, error) {
-	if m.Net == nil {
-		// TODO: Change this when a Net implementation exists.
-		panic("no default Net implementation")
-	}
-
-	// The Interceptor can stay nil, in which case Events will simply not be intercepted.
-
 	// Copy assigned generic modules
 	if m.GenericModules != nil {
 		gm := m.GenericModules
@@ -60,6 +53,11 @@ func DefaultModules(m modules.Modules) (*modules.Modules, error) {
 
 	if m.GenericModules["timer"] == nil {
 		m.GenericModules["timer"] = timer.New()
+	}
+
+	if m.GenericModules["net"] == nil {
+		// TODO: Change this when a Net implementation exists.
+		return nil, fmt.Errorf("no default Net implementation")
 	}
 
 	// The WAL can stay nil, in which case no write-ahead log will be written

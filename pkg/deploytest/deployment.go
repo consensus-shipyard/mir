@@ -125,7 +125,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		}
 
 		// Create network transport module
-		var transport modules.Net
+		var transport modules.ActiveModule
 		switch testConfig.Transport {
 		case "fake":
 			transport = fakeTransport.Link(t.NewNodeIDFromInt(i))

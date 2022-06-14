@@ -39,7 +39,7 @@ type sbEventService struct {
 // SendMessage creates an event for sending a message that will be processed
 // by the corresponding orderer instance at each of the destination.
 func (ec *sbEventService) SendMessage(message *isspb.SBInstanceMessage, destinations []t.NodeID) *eventpb.Event {
-	return events.SendMessage(SBMessage(ec.epoch, ec.instance, message), destinations)
+	return events.SendMessage("net", SBMessage(ec.epoch, ec.instance, message), destinations)
 }
 
 // WALAppend creates an event for appending an isspb.SBInstanceEvent to the WAL.

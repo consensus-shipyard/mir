@@ -240,7 +240,7 @@ func SBNodeSigsVerifiedEvent(
 // ============================================================
 
 func Message(msg *isspb.ISSMessage) *messagepb.Message {
-	return &messagepb.Message{Type: &messagepb.Message_Iss{Iss: msg}}
+	return &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{Iss: msg}}
 }
 
 func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMessage) *messagepb.Message {
