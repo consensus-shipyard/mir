@@ -252,7 +252,23 @@ func (d *Deployment) Run(ctx context.Context) (finalStatuses []NodeStatus, heapO
 		}(client)
 	}
 
-	<-ctx2.Done()
+	// Wait for one of:
+	// - The garbage collection is done.
+	//   Normally this happens before the nodes finish, as they only receive the stop signal when the GC finished.
+	// - The nodes finished before the GC.
+	//   This happens on error and prevents the system from waiting until normal scheduled shutdown.
+	select {
+	case <-ctx2.Done():
+	case <-func() chan struct{} {
+		ch := make(chan struct{})
+		go func() {
+			nodeWg.Wait()
+			close(ch)
+		}()
+		return ch
+	}():
+
+	}
 
 	// Wait for all replicas and clients to terminate
 	nodeWg.Wait()
