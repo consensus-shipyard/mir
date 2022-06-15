@@ -16,7 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 
@@ -142,13 +141,5 @@ func (chat *ChatApp) RestoreState(snapshot []byte) error {
 	return nil
 }
 
-// Status returns a representation of the ChatApp's internal state for the purpose of debugging.
-// Currently it is not used by Mir and thus does not need to be implemented.
-func (chat *ChatApp) Status() (s *statuspb.ProtocolStatus, err error) {
-	panic("not implemented")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (chat *ChatApp) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (chat *ChatApp) ImplementsModule() {}

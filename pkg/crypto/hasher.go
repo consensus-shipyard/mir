@@ -5,7 +5,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"hash"
 )
@@ -60,12 +59,5 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 	}
 }
 
-func (hasher *Hasher) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (hasher *Hasher) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (hasher *Hasher) ImplementsModule() {}

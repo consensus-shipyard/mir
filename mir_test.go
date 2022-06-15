@@ -47,8 +47,8 @@ var _ = Describe("Basic test", func() {
 		// The deployment used by the test.
 		deployment *deploytest.Deployment
 
-		// When the deployment stops, the final node statuses will be written here.
-		finalStatuses []deploytest.NodeStatus
+		// When the deployment stops, the errors returned by the nodes will be written here.
+		nodeErrors []error
 
 		heapObjects int64
 		heapAlloc   int64
@@ -58,7 +58,7 @@ var _ = Describe("Basic test", func() {
 
 	// Before each run, clear the test state variables.
 	BeforeEach(func() {
-		finalStatuses = nil
+		nodeErrors = nil
 		ctx = context.Background()
 	})
 
@@ -90,17 +90,16 @@ var _ = Describe("Basic test", func() {
 			}()
 		}
 
-		// Run deployment until it stops and returns final node statuses.
-		finalStatuses, heapObjects, heapAlloc = deployment.Run(ctx)
+		// Run deployment until it stops and returns final node errors.
+		nodeErrors, heapObjects, heapAlloc = deployment.Run(ctx)
 		fmt.Printf("Deployment run returned.")
 
 		// Check whether all the test replicas exited correctly.
-		Expect(finalStatuses).NotTo(BeNil())
-		for _, status := range finalStatuses {
-			if status.ExitErr != mir.ErrStopped {
-				Expect(status.ExitErr).NotTo(HaveOccurred())
+		Expect(nodeErrors).NotTo(BeNil())
+		for _, err := range nodeErrors {
+			if err != mir.ErrStopped {
+				Expect(err).NotTo(HaveOccurred())
 			}
-			Expect(status.StatusErr).NotTo(HaveOccurred())
 		}
 
 		// Check if all requests were delivered.
@@ -127,28 +126,17 @@ var _ = Describe("Basic test", func() {
 			}
 
 			// Print final status of the system.
-			fmt.Printf("\n\nPrinting status because of failed test in %s\n",
-				CurrentGinkgoTestDescription().TestText)
+			fmt.Printf("\n\nPrinting errors because of failed test in %s\n", CurrentSpecReport().FullText())
 
-			for nodeIndex, nodeStatus := range finalStatuses {
+			for nodeIndex, err := range nodeErrors {
 				fmt.Printf("\nStatus for node %d\n", nodeIndex)
 
 				// ErrStopped indicates normal termination.
 				// If another error is detected, print it.
-				if nodeStatus.ExitErr == mir.ErrStopped {
+				if err == mir.ErrStopped {
 					fmt.Printf("\nStopped normally\n")
 				} else {
-					fmt.Printf("\nStopped with error: %+v\n", nodeStatus.ExitErr)
-				}
-
-				// Print node status if available.
-				if nodeStatus.StatusErr != nil {
-					// If node status could not be obtained, print the associated error.
-					fmt.Printf("Could not obtain final status of node %d: %v", nodeIndex, nodeStatus.StatusErr)
-				} else {
-					// Otherwise, print the status.
-					// TODO: print the status in a readable form.
-					fmt.Printf("%v\n", nodeStatus.Status)
+					fmt.Printf("\nStopped with error: %+v\n", err)
 				}
 			}
 		}

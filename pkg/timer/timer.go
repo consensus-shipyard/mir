@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"time"
 )
@@ -24,15 +23,8 @@ func New() *Timer {
 	}
 }
 
-func (tm *Timer) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (tm *Timer) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (tm *Timer) ImplementsModule() {}
 
 func (tm *Timer) EventsOut() <-chan *events.EventList {
 	return tm.eventsOut

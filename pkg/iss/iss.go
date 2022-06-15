@@ -30,7 +30,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -351,18 +350,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	}
 }
 
-// Status returns a protobuf representation of the current protocol state that can be later printed (TODO: Say how).
-// This functionality is meant mostly for debugging and is *not* meant to provide an interface for
-// serializing and deserializing the whole protocol state.
-func (iss *ISS) Status() (s *statuspb.ProtocolStatus, err error) {
-	// TODO: Implement this.
-	return nil, nil
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (iss *ISS) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (iss *ISS) ImplementsModule() {}
 
 // ============================================================
 // Event application

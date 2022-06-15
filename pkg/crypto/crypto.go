@@ -7,7 +7,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -97,12 +96,5 @@ func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	}
 }
 
-func (c *Crypto) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (c *Crypto) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (c *Crypto) ImplementsModule() {}

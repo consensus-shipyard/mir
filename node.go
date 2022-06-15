@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -68,12 +67,6 @@ type Node struct {
 	// Used to synchronize the exit of the node's worker go routines.
 	workErrNotifier *workErrNotifier
 
-	// Channel for receiving status requests.
-	// A status request is itself represented as a channel,
-	// to which the state machine status needs to be written once the status is obtained.
-	// TODO: Implement obtaining and writing the status (Currently no one reads from this channel).
-	statusC chan chan *statuspb.NodeStatus
-
 	// If set to true, the node is in debug mode.
 	// Only events received through the Step method are applied.
 	// Events produced by the modules are, instead of being applied,
@@ -112,40 +105,7 @@ func NewNode(
 
 		workItems:       newWorkItems(modulesWithDefaults),
 		workErrNotifier: newWorkErrNotifier(),
-
-		statusC: make(chan chan *statuspb.NodeStatus),
 	}, nil
-}
-
-// Status returns a static snapshot in time of the internal state of the Node.
-// TODO: Currently a call to Status blocks until the node is stopped, as obtaining status is not yet implemented.
-//       Also change the return type to be a protobuf object that contains a field for each module
-//       with module-specific contents.
-func (n *Node) Status(ctx context.Context) (*statuspb.NodeStatus, error) {
-
-	// Submit status request for processing by the process() function.
-	// A status request is represented as a channel (statusC)
-	// to which the state machine status needs to be written once the status is obtained.
-	// Return an error if the node shuts down before the request is read or if the context ends.
-	statusC := make(chan *statuspb.NodeStatus, 1)
-	select {
-	case n.statusC <- statusC:
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-n.workErrNotifier.ExitStatusC():
-		return n.workErrNotifier.ExitStatus()
-	}
-
-	// Read the obtained status and return it.
-	// Return an error if the node shuts down before the request is read or if the context ends.
-	select {
-	case s := <-statusC:
-		return s, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-n.workErrNotifier.ExitStatusC():
-		return n.workErrNotifier.ExitStatus()
-	}
 }
 
 // Debug runs the Node in debug mode.
@@ -165,7 +125,6 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 	if n.modules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
-			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
 			return fmt.Errorf("could not process WAL: %w", err)
 		}
 	}
@@ -232,7 +191,6 @@ func (n *Node) Run(ctx context.Context) error {
 	if n.modules["wal"] != nil {
 		if err := n.processWAL(); err != nil {
 			n.workErrNotifier.Fail(err)
-			n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
 			return fmt.Errorf("could not process WAL: %w", err)
 		}
 	}
@@ -240,7 +198,6 @@ func (n *Node) Run(ctx context.Context) error {
 	// Submit the Init event to the modules.
 	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init("iss"))); err != nil {
 		n.workErrNotifier.Fail(err)
-		n.workErrNotifier.SetExitStatus(nil, fmt.Errorf("node not started"))
 		return fmt.Errorf("failed to add init event: %w", err)
 	}
 

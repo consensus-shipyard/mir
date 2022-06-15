@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 
@@ -60,15 +59,8 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	return &events.EventList{}, nil
 }
 
-func (fa *FakeApp) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (fa *FakeApp) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (fa *FakeApp) ImplementsModule() {}
 
 // Apply implements Apply.
 func (fa *FakeApp) ApplyBatch(batch *requestpb.Batch) error {

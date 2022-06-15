@@ -15,7 +15,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 )
 
@@ -114,15 +113,8 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) (*events.EventL
 	}
 }
 
-// TODO: Implement and document.
-func (ct *SigningClientTracker) Status() (s *statuspb.ProtocolStatus, err error) {
-	return nil, nil
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (ct *SigningClientTracker) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (ct *SigningClientTracker) ImplementsModule() {}
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(reqRef *requestpb.RequestRef) string {
