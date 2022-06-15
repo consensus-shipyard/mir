@@ -3,7 +3,6 @@ package modules
 import (
 	"context"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 )
 
 type ActiveModule interface {
@@ -41,11 +40,4 @@ type ActiveModule interface {
 	// (e.g. if the Node's internal event buffers become full and the Node needs to wait until they free up).
 	// Even then, calls to ApplyEvents must be non-blocking.
 	EventsOut() <-chan *events.EventList
-
-	// Status returns the current state of the module.
-	// If Run has been called and has not returned when calling Status,
-	// there is no guarantee about which input events are taken into account
-	// when creating the snapshot of the returned state.
-	// Mostly for debugging purposes.
-	Status() (s *statuspb.ProtocolStatus, err error)
 }
