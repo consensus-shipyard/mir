@@ -79,7 +79,7 @@ func (n *Node) processModuleEvents(
 
 		var newEvents *events.EventList
 		var err error
-		if newEvents, err = safelyApplyEvents(m, plainEvents); err != nil {
+		if newEvents, err = safelyApplyEventsPassive(m, plainEvents); err != nil {
 			return false, err
 		}
 
@@ -88,11 +88,8 @@ func (n *Node) processModuleEvents(
 
 	case modules.ActiveModule:
 		// For an active module, only submit the events to the module and let it output the result asynchronously.
-		// Note that, unlike with a PassiveModule, an ActiveModule's ApplyEvents method is not invoked "safely",
-		// i.e., a potential panic is not caught.
-		// This is because an ActiveModule is expected to run its own goroutines.
 
-		if err := m.ApplyEvents(ctx, plainEvents); err != nil {
+		if err := safelyApplyEventsActive(ctx, m, plainEvents); err != nil {
 			return false, err
 		}
 
@@ -118,7 +115,7 @@ func (n *Node) processModuleEvents(
 	return true, nil
 }
 
-func safelyApplyEvents(
+func safelyApplyEventsPassive(
 	module modules.PassiveModule,
 	events *events.EventList,
 ) (result *events.EventList, err error) {
@@ -133,4 +130,18 @@ func safelyApplyEvents(
 	}()
 
 	return module.ApplyEvents(events)
+}
+
+func safelyApplyEventsActive(ctx context.Context, module modules.ActiveModule, events *events.EventList) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if rErr, ok := r.(error); ok {
+				err = fmt.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
+			} else {
+				err = fmt.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
+			}
+		}
+	}()
+
+	return module.ApplyEvents(ctx, events)
 }
