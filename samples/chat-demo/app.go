@@ -51,19 +51,7 @@ func NewChatApp(reqStore *reqstore.VolatileRequestStore) *ChatApp {
 }
 
 func (chat *ChatApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := chat.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, chat.ApplyEvent)
 }
 
 func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

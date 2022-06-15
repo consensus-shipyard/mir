@@ -27,21 +27,7 @@ func NewHasher(hashImpl HashImpl) *Hasher {
 }
 
 func (hasher *Hasher) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	// TODO: Parallelize this.
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := hasher.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsConcurrently(eventsIn, hasher.ApplyEvent)
 }
 
 func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

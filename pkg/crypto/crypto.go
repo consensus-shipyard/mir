@@ -21,21 +21,7 @@ func New(impl Impl) *Crypto {
 }
 
 func (c *Crypto) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	// TODO: Parallelize this.
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := c.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
 func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

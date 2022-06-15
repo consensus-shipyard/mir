@@ -31,19 +31,7 @@ type FakeApp struct {
 }
 
 func (fa *FakeApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := fa.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, fa.ApplyEvent)
 }
 
 func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

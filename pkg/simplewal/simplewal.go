@@ -47,19 +47,7 @@ type WAL struct {
 }
 
 func (w *WAL) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := w.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, w.ApplyEvent)
 }
 
 func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {

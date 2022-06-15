@@ -36,19 +36,7 @@ type VolatileRequestStore struct {
 }
 
 func (vrs *VolatileRequestStore) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := vrs.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, vrs.ApplyEvent)
 }
 
 func (vrs *VolatileRequestStore) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
