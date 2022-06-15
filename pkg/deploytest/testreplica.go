@@ -22,7 +22,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	"github.com/filecoin-project/mir/pkg/simplewal"
@@ -76,11 +75,8 @@ func (tr *TestReplica) EventLogFile() string {
 // Run initializes all the required modules and starts the test replica.
 // The function blocks until the replica stops.
 // The replica stops when stopC is closed.
-// Run returns, in this order
-//   - The final status of the replica
-//   - The error that made the node terminate
-//   - The error that occurred while obtaining the final node status
-func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
+// Run returns the error returned by the run of the underlying Mir node.
+func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// // Initialize the request store.
 	// reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
@@ -162,11 +158,9 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		transport.Connect(ctx)
 	}
 
-	// Run the node until it stops and obtain the node's final status.
+	// Run the node until it stops.
 	exitErr := node.Run(ctx)
 	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
-
-	finalStatus, statusErr := node.Status(context.Background())
 
 	// Stop the request receiver.
 	requestReceiver.Stop()
@@ -185,25 +179,7 @@ func (tr *TestReplica) Run(ctx context.Context) NodeStatus {
 		tr.Config.Logger.Log(logging.LevelDebug, "gRPC transport stopped.")
 	}
 
-	// Return the final node status.
-	return NodeStatus{
-		Status:    finalStatus,
-		StatusErr: statusErr,
-		ExitErr:   exitErr,
-	}
-}
-
-// NodeStatus represents the final status of a test replica.
-type NodeStatus struct {
-
-	// Status as returned by mir.Node.Status()
-	Status *statuspb.NodeStatus
-
-	// Potential error returned by mir.Node.Status() in case of obtaining of the status failed.
-	StatusErr error
-
-	// Reason the node terminated, as returned by mir.Node.Run()
-	ExitErr error
+	return exitErr
 }
 
 // Submits n fake requests to node.

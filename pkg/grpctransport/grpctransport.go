@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"net"
 	"sync"
 
@@ -86,15 +85,8 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.
 	}
 }
 
-func (gt *GrpcTransport) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (gt *GrpcTransport) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (gt *GrpcTransport) ImplementsModule() {}
 
 func (gt *GrpcTransport) EventsOut() <-chan *events.EventList {
 	return gt.incomingMessages

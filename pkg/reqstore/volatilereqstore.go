@@ -11,7 +11,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -75,15 +74,8 @@ func (vrs *VolatileRequestStore) ApplyEvent(event *eventpb.Event) (*events.Event
 
 }
 
-func (vrs *VolatileRequestStore) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (vrs *VolatileRequestStore) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (vrs *VolatileRequestStore) ImplementsModule() {}
 
 // Holds the data stored by a single entry of the VolatileRequestStore.
 type requestInfo struct {

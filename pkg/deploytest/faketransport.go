@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"strconv"
 	"sync"
 
@@ -78,15 +77,8 @@ func (fl *FakeLink) ApplyEvents(
 	return nil
 }
 
-func (fl *FakeLink) Status() (s *statuspb.ProtocolStatus, err error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (fl *FakeLink) ImplementsModule() {
-	panic("ImplementsModule must not be called")
-}
+func (fl *FakeLink) ImplementsModule() {}
 
 func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
 	fl.FakeTransport.Send(fl.Source, dest, msg)
