@@ -15,8 +15,6 @@ type HashImpl interface {
 }
 
 type Hasher struct {
-	modules.Module
-
 	hashImpl HashImpl
 }
 
@@ -65,4 +63,9 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 func (hasher *Hasher) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (hasher *Hasher) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }

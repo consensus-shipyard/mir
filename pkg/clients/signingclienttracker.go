@@ -20,8 +20,6 @@ import (
 )
 
 type SigningClientTracker struct {
-	modules.Module
-
 	logger logging.Logger
 
 	unverifiedRequests map[string]*requestpb.Request
@@ -119,6 +117,11 @@ func (ct *SigningClientTracker) ApplyEvent(event *eventpb.Event) (*events.EventL
 // TODO: Implement and document.
 func (ct *SigningClientTracker) Status() (s *statuspb.ProtocolStatus, err error) {
 	return nil, nil
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (ct *SigningClientTracker) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.

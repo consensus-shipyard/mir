@@ -13,7 +13,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	"strconv"
@@ -36,8 +35,6 @@ func unsafeIDtoi(in interface{}) (out int) {
 }
 
 type FakeLink struct {
-	modules.Module
-
 	FakeTransport *FakeTransport
 	Source        t.NodeID
 }
@@ -84,6 +81,11 @@ func (fl *FakeLink) ApplyEvents(
 func (fl *FakeLink) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (fl *FakeLink) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {

@@ -12,7 +12,6 @@ import (
 )
 
 type Crypto struct {
-	modules.Module
 	impl Impl
 }
 
@@ -101,4 +100,9 @@ func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 func (c *Crypto) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (c *Crypto) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }

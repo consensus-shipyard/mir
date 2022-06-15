@@ -30,8 +30,6 @@ import (
 )
 
 type WAL struct {
-	modules.Module
-
 	mutex sync.Mutex
 	log   *wal.Log
 
@@ -92,6 +90,11 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 func (w *WAL) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (w *WAL) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 func Open(path string) (*WAL, error) {

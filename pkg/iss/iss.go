@@ -153,7 +153,6 @@ type CommitLogEntry struct {
 // The type should not be instantiated directly, but only properly initialized values
 // returned from the New() function should be used.
 type ISS struct {
-	modules.Module
 
 	// --------------------------------------------------------------------------------
 	// These fields should only be set at initialization and remain static
@@ -358,6 +357,11 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 func (iss *ISS) Status() (s *statuspb.ProtocolStatus, err error) {
 	// TODO: Implement this.
 	return nil, nil
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (iss *ISS) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 // ============================================================

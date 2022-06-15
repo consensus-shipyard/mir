@@ -20,7 +20,6 @@ import (
 	"google.golang.org/grpc/peer"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -36,7 +35,6 @@ const (
 // one instance of a gRPC client per node.
 // A message to a node is sent as request to that node's gRPC server.
 type GrpcTransport struct {
-	modules.Module
 	UnimplementedGrpcTransportServer
 
 	// The numeric ID of the node that uses this networking module.
@@ -91,6 +89,11 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.
 func (gt *GrpcTransport) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (gt *GrpcTransport) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 func (gt *GrpcTransport) EventsOut() <-chan *events.EventList {

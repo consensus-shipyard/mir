@@ -30,7 +30,6 @@ import (
 // An initialized instance of this struct needs to be passed to the mir.NewNode() method of all nodes
 // for the system to run the chat demo app.
 type ChatApp struct {
-	modules.Module
 
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
@@ -147,4 +146,9 @@ func (chat *ChatApp) RestoreState(snapshot []byte) error {
 // Currently it is not used by Mir and thus does not need to be implemented.
 func (chat *ChatApp) Status() (s *statuspb.ProtocolStatus, err error) {
 	panic("not implemented")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (chat *ChatApp) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
