@@ -21,7 +21,6 @@ import (
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
-	modules.PassiveModule
 
 	// Request store maintained by the FakeApp
 	ReqStore *reqstore.VolatileRequestStore
@@ -64,6 +63,11 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 func (fa *FakeApp) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (fa *FakeApp) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 // Apply implements Apply.

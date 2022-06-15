@@ -22,7 +22,6 @@ import (
 // All data is stored in RAM and the Sync() method does nothing.
 // TODO: implement pruning of old data.
 type VolatileRequestStore struct {
-	modules.Module
 	sync.RWMutex
 
 	// Stores request entries, indexed by request reference.
@@ -79,6 +78,11 @@ func (vrs *VolatileRequestStore) ApplyEvent(event *eventpb.Event) (*events.Event
 func (vrs *VolatileRequestStore) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (vrs *VolatileRequestStore) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 // Holds the data stored by a single entry of the VolatileRequestStore.

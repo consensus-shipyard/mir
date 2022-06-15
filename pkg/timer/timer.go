@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/statuspb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -14,7 +13,6 @@ import (
 // The Timer module abstracts the passage of real time.
 // It is used for implementing timeouts and periodic repetition.
 type Timer struct {
-	modules.Module
 	eventsOut chan *events.EventList
 
 	retIndex t.TimerRetIndex
@@ -29,6 +27,11 @@ func New() *Timer {
 func (tm *Timer) Status() (s *statuspb.ProtocolStatus, err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (tm *Timer) ImplementsModule() {
+	panic("ImplementsModule must not be called")
 }
 
 func (tm *Timer) EventsOut() <-chan *events.EventList {
