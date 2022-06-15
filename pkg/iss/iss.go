@@ -310,19 +310,7 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 
 // ApplyEvents receives a list of events, processes them sequentially, and returns a list of resulting events.
 func (iss *ISS) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := iss.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, iss.ApplyEvent)
 }
 
 // ApplyEvent receives one event and applies it to the ISS protocol state machine, potentially altering its state

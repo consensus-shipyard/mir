@@ -44,19 +44,7 @@ func SigningTracker(protocolModuleID t.ModuleID, logger logging.Logger) *Signing
 }
 
 func (ct *SigningClientTracker) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-
-	eventsOut := &events.EventList{}
-
-	iter := eventsIn.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		evts, err := ct.ApplyEvent(event)
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(evts)
-	}
-
-	return eventsOut, nil
+	return modules.ApplyEventsSequentially(eventsIn, ct.ApplyEvent)
 }
 
 // ApplyEvent processes an event incoming to the SigningClientTracker module
