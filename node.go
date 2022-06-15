@@ -379,23 +379,31 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-// importEvents reads events from eventsIn and writes them to the Node's workItemInput until
+// importEvents reads events from eventsIn and writes them to the Node's central input channel (n.eventsIn) until
 // - eventsIn is closed or
 // - ctx is canceled or
 // - an error occurred in the Node and was announced through the Node's workErrorNotifier.
 func (n *Node) importEvents(ctx context.Context, eventsIn <-chan *events.EventList) {
 	for {
+
+		// First, try to read events from the input.
 		select {
 		case newEvents, ok := <-eventsIn:
-			if ok {
-				select {
-				case n.eventsIn <- newEvents:
-				case <-ctx.Done():
-					return
-				case <-n.workErrNotifier.ExitC():
-					return
-				}
+
+			// Return if input channel has been closed
+			if !ok {
+				return
 			}
+
+			// If input events have been read, try to write them to the Node's central input channel.
+			select {
+			case n.eventsIn <- newEvents:
+			case <-ctx.Done():
+				return
+			case <-n.workErrNotifier.ExitC():
+				return
+			}
+
 		case <-ctx.Done():
 			return
 		case <-n.workErrNotifier.ExitC():
