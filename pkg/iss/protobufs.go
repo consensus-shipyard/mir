@@ -35,20 +35,20 @@ func Event(destModule t.ModuleID, event *isspb.ISSEvent) *eventpb.Event {
 }
 
 func HashOrigin(origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
+	return &eventpb.HashOrigin{Module: issModuleName.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
 func SignOrigin(origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
+	return &eventpb.SignOrigin{Module: issModuleName.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
 }
 
 func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{Module: OwnModuleName.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
+	return &eventpb.SigVerOrigin{Module: issModuleName.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
 }
 
 func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature []byte) *eventpb.Event {
 	return Event(
-		OwnModuleName,
+		issModuleName,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
 			Sn:              sn.Pb(),
 			AppSnapshot:     appSnapshot,
@@ -60,7 +60,7 @@ func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature 
 
 func PersistStableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
 	return Event(
-		OwnModuleName,
+		issModuleName,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
 			PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
 				StableCheckpoint: stableCheckpoint,
@@ -71,7 +71,7 @@ func PersistStableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eve
 
 func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
 	return Event(
-		OwnModuleName,
+		issModuleName,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_StableCheckpoint{
 			StableCheckpoint: stableCheckpoint,
 		}},
@@ -80,7 +80,7 @@ func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Ev
 
 func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
 	return Event(
-		OwnModuleName,
+		issModuleName,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
 			Epoch:    epoch.Pb(),
 			Instance: instance.Pb(),
