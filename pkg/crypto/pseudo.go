@@ -46,7 +46,7 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	}
 
 	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
-	var c Impl
+	var c *DefaultImpl
 	for i, id := range nodes {
 		if id == ownID {
 			if c, err = NewDefaultImpl(nodePrivKeys[i]); err != nil {
@@ -96,7 +96,7 @@ func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed
 	}
 
 	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
-	var c Impl
+	var c *DefaultImpl
 	for i, id := range clients {
 		if id == ownID {
 			if c, err = NewDefaultImpl(clientPrivKeys[i]); err != nil {
@@ -149,7 +149,7 @@ func generateKeys(numKeys int, randomness io.Reader) (privKeys [][]byte, pubKeys
 // nodes and nodePubKeys must have the same length.
 // The analogous happens for client keys, using c.RegisterClientKey.
 func registerPubKeys(
-	c Impl,
+	c *DefaultImpl,
 	nodes []t.NodeID,
 	nodePubKeys [][]byte,
 	clients []t.ClientID,

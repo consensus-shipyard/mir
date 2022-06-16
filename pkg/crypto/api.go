@@ -25,26 +25,6 @@ type Impl interface {
 	// Storing and using the private key is completely implementation-dependent.
 	Sign(data [][]byte) ([]byte, error)
 
-	// RegisterNodeKey associates a public key with a numeric node ID.
-	// The representation of the key is implementation-dependent.
-	// Calls to VerifyNodeSig will fail until RegisterNodeKey is successfully called with the corresponding node ID.
-	// Returns nil on success, a non-nil error on failure.
-	RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error
-
-	// RegisterClientKey associates a public key with a numeric client ID.
-	// The representation of the key is implementation-dependent.
-	// Calls to VerifyClientSig will fail until RegisterClientKey is successfully called with the corresponding client ID.
-	// Returns nil on success, a non-nil error on failure.
-	RegisterClientKey(pubKey []byte, clientID t.ClientID) error
-
-	// DeleteNodeKey removes the public key associated with nodeID from the module's state.
-	// Any subsequent call to VerifyNodeSig(..., nodeID) will fail.
-	DeleteNodeKey(nodeID t.NodeID)
-
-	// DeleteClientKey removes the public key associated with clientID from the module's state.
-	// Any subsequent call to VerifyClientSig(..., clientID) will fail.
-	DeleteClientKey(clientID t.ClientID)
-
 	// VerifyNodeSig verifies a signature produced by the node with numeric ID nodeID over data.
 	// Returns nil on success (i.e., if the given signature is valid) and a non-nil error otherwise.
 	// Note that RegisterNodeKey must be used to register the node's public key before calling VerifyNodeSig,
