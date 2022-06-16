@@ -29,8 +29,9 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 
 	// Create a new event with follow-ups removed.
 	newEvent := eventpb.Event{
-		Type: event.Type,
-		Next: nil,
+		Type:       event.Type,
+		DestModule: event.DestModule,
+		Next:       nil,
 	}
 
 	// Return new EventList.
