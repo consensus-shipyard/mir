@@ -9,6 +9,7 @@ syntax = "proto3";
 package messagepb;
 
 import "isspb/isspb.proto";
+import "bcbpb/bcbpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
@@ -16,5 +17,6 @@ message Message {
   string dest_module = 1;
   oneof type {
     isspb.ISSMessage iss = 2;
+    bcbpb.Message    bcb = 3;
   }
 }

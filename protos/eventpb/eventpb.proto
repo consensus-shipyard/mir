@@ -13,6 +13,7 @@ import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
 import "google/protobuf/wrappers.proto";
+import "bcbpb/bcbpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -47,6 +48,7 @@ message Event {
     TimerDelay           timer_delay             = 25;
     TimerRepeat          timer_repeat            = 26;
     TimerGarbageCollect  timer_garbage_collect   = 27;
+    bcbpb.Event          bcb                     = 28;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -76,6 +78,10 @@ message ContextStoreOrigin {
   uint64 itemID = 1;
 }
 
+message DslOrigin {
+  uint64 contextID = 1;
+}
+
 message HashRequest {
   repeated commonpb.HashData data   = 1;
   HashOrigin                 origin = 2;
@@ -92,6 +98,7 @@ message HashOrigin {
     ContextStoreOrigin  context_store = 2;
     requestpb.Request   request       = 3;
     isspb.ISSHashOrigin iss           = 4;
+    DslOrigin           dsl           = 5;
   }
 }
 
@@ -110,6 +117,7 @@ message SignOrigin {
   oneof type {
     ContextStoreOrigin  context_store = 2;
     isspb.ISSSignOrigin iss           = 3;
+    DslOrigin           dsl           = 4;
   }
 }
 
@@ -137,6 +145,7 @@ message SigVerOrigin {
   oneof type {
     ContextStoreOrigin    context_store = 2;
     isspb.ISSSigVerOrigin iss           = 3;
+    DslOrigin             dsl           = 4;
   }
 }
 
