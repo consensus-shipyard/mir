@@ -7,8 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package requestreceiver
 
 import (
-	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
 	"net"
 	"strconv"
 	"sync"
@@ -84,13 +84,13 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 			"clId", req.ClientId, "reqNo", req.ReqNo, "authLen", len(req.Authenticator))
 
 		// Submit the request to the Node.
-		if srErr := rr.node.SubmitRequest(
-			context.Background(),
+		if srErr := rr.node.InjectEvents(srv.Context(), (&events.EventList{}).PushBack(events.ClientRequest(
+			"clientTracker",
 			t.ClientID(req.ClientId),
 			t.ReqNo(req.ReqNo),
 			req.Data,
 			req.Authenticator,
-		); srErr != nil {
+		))); srErr != nil {
 
 			// If submitting fails, stop receiving further request (and close connection).
 			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%v-%d): %v. Closing connection.",

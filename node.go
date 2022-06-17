@@ -14,11 +14,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/filecoin-project/mir/pkg/logging"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -34,10 +31,6 @@ type Node struct {
 	// from where the Node processor reads and redistributes the events to their respective workItems buffers.
 	// External events are also funneled through this channel towards the workItems buffers.
 	eventsIn chan *events.EventList
-
-	// Events received during debugging through the Node.Step function are written to this channel
-	// and inserted in the event loop.
-	debugIn chan *events.EventList
 
 	// During debugging, Events that would normally be inserted in the workItems event buffer
 	// (and thus inserted in the event loop) are written to this channel instead if it is not nil.
@@ -96,7 +89,6 @@ func NewNode(
 		Config: config,
 
 		eventsIn: make(chan *events.EventList),
-		debugIn:  make(chan *events.EventList),
 		debugOut: make(chan *events.EventList),
 
 		workChans:   newWorkChans(modulesWithDefaults),
@@ -137,42 +129,17 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 
 }
 
-// Step inserts an Event in the Node.
-// Useful for debugging.
-func (n *Node) Step(ctx context.Context, event *eventpb.Event) error {
+// InjectEvents inserts a list of Events in the Node.
+func (n *Node) InjectEvents(ctx context.Context, events *events.EventList) error {
 
 	// Enqueue event in a work channel to be handled by the processing thread.
 	select {
-	case n.debugIn <- (&events.EventList{}).PushBack(event):
+	case n.eventsIn <- events:
 		return nil
 	case <-n.workErrNotifier.ExitStatusC():
 		return n.workErrNotifier.Err()
 	case <-ctx.Done():
 		return ctx.Err()
-	}
-}
-
-// SubmitRequest submits a new client request to the Node.
-// clientID and reqNo uniquely identify the request.
-// data constitutes the (opaque) payload of the request.
-// SubmitRequest is safe to be called concurrently by multiple threads.
-func (n *Node) SubmitRequest(
-	ctx context.Context,
-	clientID t.ClientID,
-	reqNo t.ReqNo,
-	data []byte,
-	authenticator []byte) error {
-
-	// Enqueue the generated events in a work channel to be handled by the processing thread.
-	select {
-	case n.eventsIn <- (&events.EventList{}).PushBack(
-		events.ClientRequest("clientTracker", clientID, reqNo, data, authenticator),
-	):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-n.workErrNotifier.ExitC():
-		return n.workErrNotifier.Err()
 	}
 }
 
@@ -266,21 +233,6 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		})
 		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
 			newEvents := newEventsVal.Interface().(*events.EventList)
-			if err := n.workItems.AddEvents(newEvents); err != nil {
-				n.workErrNotifier.Fail(err)
-			}
-		})
-		selectCases = append(selectCases, reflect.SelectCase{
-			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(n.debugIn),
-		})
-		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
-			newEvents := newEventsVal.Interface().(*events.EventList)
-
-			if !n.debugMode {
-				n.Config.Logger.Log(logging.LevelWarn, "Received events through debug interface but not in debug mode.",
-					"numEvents", newEvents.Len())
-			}
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}

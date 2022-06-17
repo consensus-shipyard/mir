@@ -87,7 +87,7 @@ func debug(args *arguments) error {
 			}
 
 			// Submit the event to the debugger node.
-			if err := node.Step(ctx, event); err != nil {
+			if err := node.InjectEvents(ctx, (&events.EventList{}).PushBack(event)); err != nil {
 				return fmt.Errorf("node step failed: %w", err)
 			}
 
