@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"os"
 	"path/filepath"
@@ -217,13 +218,13 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 			Expect(err).NotTo(HaveOccurred())
 
 			// Submit the signed request to the local Node.
-			if err := node.SubmitRequest(
-				context.Background(),
+			if err := node.InjectEvents(ctx, (&events.EventList{}).PushBack(events.ClientRequest(
+				"clientTracker",
 				t.ClientID(reqMsg.ClientId),
 				t.ReqNo(reqMsg.ReqNo),
 				reqMsg.Data,
 				reqMsg.Authenticator,
-			); err != nil {
+			))); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,
 				// so just returning for now, we should address later
