@@ -21,6 +21,13 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Retain event logs of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: event-log-go-1.18
+          path: failed-test-data
   tests-go-latest:
     runs-on: ubuntu-latest
     steps:
@@ -35,6 +42,13 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Retain event logs of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: event-log-go-latest
+          path: failed-test-data
   golangci:
     name: lint
     runs-on: ubuntu-latest
