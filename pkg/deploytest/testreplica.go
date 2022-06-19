@@ -2,7 +2,6 @@ package deploytest
 
 import (
 	"context"
-	"crypto"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/grpctransport"
@@ -26,10 +25,6 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-var (
-	FakeClientHasher = crypto.SHA256
-)
-
 // TestReplica represents one replica (that uses one instance of the mir.Node) in the test system.
 type TestReplica struct {
 
@@ -48,9 +43,6 @@ type TestReplica struct {
 
 	// List of replica IDs constituting the (static) membership.
 	Membership []t.NodeID
-
-	// List of IDs of all clients the replica will accept requests from.
-	ClientIDs []t.ClientID
 
 	// Network transport subsystem.
 	Net modules.ActiveModule
@@ -99,7 +91,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	issProtocol, err := iss.New(tr.ID, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
 	Expect(err).NotTo(HaveOccurred())
 
-	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ClientIDs, tr.ID, mirCrypto.DefaultPseudoSeed)
+	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ID, mirCrypto.DefaultPseudoSeed)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Create the mir node for this replica.

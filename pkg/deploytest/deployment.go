@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo/v2" //nolint:revive
 
 	"github.com/filecoin-project/mir"
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -107,13 +106,6 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		membership[i] = t.NewNodeIDFromInt(i)
 	}
 
-	// Compute a list of all client IDs.
-	// It consists of all dummy client IDs, plus the "fake" client associated with replicas submitting requests directly
-	clientIDs := []t.ClientID{t.NewClientIDFromInt(0)} // "Fake" client has always ID "0", others start from "1".
-	for i := 1; i <= testConfig.NumClients; i++ {
-		clientIDs = append(clientIDs, t.NewClientIDFromInt(i))
-	}
-
 	// Create all TestReplicas for this deployment.
 	replicas := make([]*TestReplica, testConfig.NumReplicas)
 	for i := range replicas {
@@ -147,7 +139,6 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			ID:              t.NewNodeIDFromInt(i),
 			Config:          config,
 			Membership:      membership,
-			ClientIDs:       clientIDs,
 			Dir:             filepath.Join(testConfig.Directory, fmt.Sprintf("node%d", i)),
 			App:             &FakeApp{},
 			Net:             transport,
@@ -163,17 +154,10 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 		// We start counting at 1 (and not 0), since client ID 0 is reserved
 		// for the "fake" requests submitted directly by the TestReplicas.
 
-		// Create client-specific Crypto module
-		cryptoImpl, err := mirCrypto.ClientPseudo(membership, clientIDs, t.NewClientIDFromInt(i), mirCrypto.DefaultPseudoSeed)
-		if err != nil {
-			return nil, err
-		}
-
 		// Create new DummyClient
 		netClients = append(netClients, dummyclient.NewDummyClient(
 			t.NewClientIDFromInt(i),
 			crypto.SHA256,
-			cryptoImpl,
 			logger,
 		))
 	}

@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	"sync"
 
@@ -32,7 +31,6 @@ const (
 type DummyClient struct {
 	ownID       t.ClientID
 	hasher      crypto.Hash
-	crypto      mirCrypto.Impl
 	nextReqNo   t.ReqNo
 	connections map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
 	logger      logging.Logger
@@ -41,7 +39,6 @@ type DummyClient struct {
 func NewDummyClient(
 	clientID t.ClientID,
 	hasher crypto.Hash,
-	crypto mirCrypto.Impl,
 	l logging.Logger,
 ) *DummyClient {
 
@@ -53,7 +50,6 @@ func NewDummyClient(
 	return &DummyClient{
 		ownID:       clientID,
 		hasher:      hasher,
-		crypto:      crypto,
 		nextReqNo:   0,
 		connections: make(map[t.NodeID]requestreceiver.RequestReceiver_ListenClient),
 		logger:      l,

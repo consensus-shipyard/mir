@@ -17,7 +17,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -117,15 +116,12 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}
 
-	reqStore := reqstore.NewVolatileRequestStore()
-
 	// Instantiate and return a minimal Mir Node.
 	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
-		"net":      modules.NullActive{},
-		"crypto":   mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-		"app":      &deploytest.FakeApp{ReqStore: reqStore},
-		"reqStore": reqStore,
-		"iss":      protocol,
+		"net":    modules.NullActive{},
+		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
+		"app":    &deploytest.FakeApp{},
+		"iss":    protocol,
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
