@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/iss"
@@ -112,17 +113,21 @@ var _ = Describe("Basic test", func() {
 
 	// After each test, check for errors and print them if any occurred.
 	AfterEach(func() {
-		// If the test failed
+
+		// If the test failed, keep the generated data
 		if CurrentSpecReport().Failed() {
 
-			// Keep the generated data
-			retainedDir := fmt.Sprintf("failed-test-data/%s", currentTestConfig.Directory)
-			fmt.Printf("Test failed. Moving deployment data to: %s\n", retainedDir)
-			if err := os.MkdirAll(retainedDir, 0777); err != nil {
-				fmt.Printf("Failed to create directlry: %s\n", retainedDir)
+			// Create the directory for failed test if it does not exist yet.
+			failedTestDir := "failed-test-data"
+			if err := os.MkdirAll(failedTestDir, 0777); err != nil {
+				fmt.Printf("Failed to create directlry: %s\n", failedTestDir)
 			}
+
+			// Save the test data.
+			retainedDir := fmt.Sprintf("%s/%s/", failedTestDir, filepath.Base(currentTestConfig.Directory))
+			fmt.Printf("Test failed. Moving deployment data to: %s\n", retainedDir)
 			if err := os.Rename(currentTestConfig.Directory, retainedDir); err != nil {
-				fmt.Printf("Failed renaming directory %s to %s\n", currentTestConfig.Directory, retainedDir)
+				fmt.Printf("Failed renaming directory %s to %s: %v\n", currentTestConfig.Directory, retainedDir, err)
 			}
 
 			// Print final status of the system.
