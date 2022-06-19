@@ -141,8 +141,6 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyPendingRequests(t.NumRequests(e.PendingRequests.NumRequests))
 	case *isspb.SBInstanceEvent_BatchReady:
 		return pbft.applyBatchReady(e.BatchReady)
-	case *isspb.SBInstanceEvent_RequestsReady:
-		return pbft.applyRequestsReady(e.RequestsReady)
 	case *isspb.SBInstanceEvent_HashResult:
 		return pbft.applyHashResult(e.HashResult)
 	case *isspb.SBInstanceEvent_SignResult:

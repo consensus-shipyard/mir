@@ -24,29 +24,6 @@ func (c *Crypto) ApplyEvents(eventsIn *events.EventList) (*events.EventList, err
 
 func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-	case *eventpb.Event_VerifyRequestSig:
-		// Verify client request signature.
-		// The signature is only computed (and verified) over the digest of a request.
-		// The other fields can safely be ignored.
-
-		// Convenience variable
-		reqRef := e.VerifyRequestSig.RequestRef
-
-		// Verify signature.
-		err := c.impl.VerifyClientSig(
-			[][]byte{reqRef.Digest},
-			e.VerifyRequestSig.Signature,
-			t.ClientID(reqRef.ClientId))
-
-		// Create result event, depending on verification outcome.
-		if err != nil {
-			return (&events.EventList{}).PushBack(
-				events.RequestSigVerified("clientTracker", reqRef, false, err.Error()),
-			), nil
-		}
-		return (&events.EventList{}).PushBack(
-			events.RequestSigVerified("clientTracker", reqRef, true, ""),
-		), nil
 	case *eventpb.Event_SignRequest:
 		// Compute a signature over the provided data and produce a SignResult event.
 

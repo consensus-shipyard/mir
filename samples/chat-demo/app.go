@@ -16,7 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 
 	"google.golang.org/protobuf/proto"
@@ -33,18 +32,13 @@ type ChatApp struct {
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
 	messages []string
-
-	// The request store module (also passed to the Mir library at startup)
-	// is used for accessing the request payloads containing the chat message data.
-	reqStore *reqstore.VolatileRequestStore
 }
 
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
-func NewChatApp(reqStore *reqstore.VolatileRequestStore) *ChatApp {
+func NewChatApp() *ChatApp {
 	return &ChatApp{
 		messages: make([]string, 0),
-		reqStore: reqStore,
 	}
 }
 
@@ -86,14 +80,10 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
 
 	// For each request in the batch
-	for _, reqRef := range batch.Requests {
+	for _, req := range batch.Requests {
 
-		// Extract request data from the request store and construct a printable chat message.
-		reqData, err := chat.reqStore.GetRequest(reqRef)
-		if err != nil {
-			return err
-		}
-		chatMessage := fmt.Sprintf("Client %v: %s", reqRef.ClientId, string(reqData))
+		// Print content of chat message.
+		chatMessage := fmt.Sprintf("Client %v: %s", req.Req.ClientId, string(req.Req.Data))
 
 		// Append the received chat message to the chat history.
 		chat.messages = append(chat.messages, chatMessage)

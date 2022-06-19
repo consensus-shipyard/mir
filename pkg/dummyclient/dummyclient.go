@@ -11,15 +11,14 @@ import (
 	"crypto"
 	"fmt"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/events"
 	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -109,25 +108,8 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Create new request message.
-	reqMsg := &requestpb.Request{
-		ClientId: dc.ownID.Pb(),
-		ReqNo:    dc.nextReqNo.Pb(),
-		Data:     data,
-	}
+	reqMsg := events.ClientRequest(dc.ownID, dc.nextReqNo, data)
 	dc.nextReqNo++
-
-	// Compute request hash (for signing).
-	h := dc.hasher.New()
-	for _, data := range serializing.RequestForHash(reqMsg) {
-		h.Write(data)
-	}
-
-	// Sign (the hash of) the request, adding the signature to the request object itself.
-	if signature, err := dc.crypto.Sign([][]byte{h.Sum(nil)}); err == nil {
-		reqMsg.Authenticator = signature
-	} else {
-		return err
-	}
 
 	// Declare variables keeping track of failed send attempts.
 	sendFailures := make([]t.NodeID, 0) // List of nodes to which sending the request failed.

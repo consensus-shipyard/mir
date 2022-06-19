@@ -101,6 +101,12 @@ func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInst
 	}}})
 }
 
+func RequestHashOrigin(requests []*requestpb.Request) *eventpb.HashOrigin {
+	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Requests{Requests: &isspb.RequestHashOrigin{
+		Requests: requests,
+	}}})
+}
+
 func AppSnapshotHashOrigin(epoch t.EpochNr) *eventpb.HashOrigin {
 	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotEpoch{AppSnapshotEpoch: epoch.Pb()}})
 }
@@ -188,21 +194,6 @@ func SBResurrectBatchEvent(batch *requestpb.Batch) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_ResurrectBatch{ResurrectBatch: batch}}
 }
 
-func SBWaitForRequestsEvent(reference *isspb.SBReqWaitReference, requests []*requestpb.RequestRef) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_WaitForRequests{
-		WaitForRequests: &isspb.SBWaitForRequests{
-			Reference: reference,
-			Requests:  requests,
-		},
-	}}
-}
-
-func SBRequestsReady(ref *isspb.SBReqWaitReference) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_RequestsReady{RequestsReady: &isspb.SBRequestsReady{
-		Ref: ref,
-	}}}
-}
-
 func SBHashResultEvent(digests [][]byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_HashResult{HashResult: &isspb.SBHashResult{
 		Digests: digests,
@@ -262,12 +253,4 @@ func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, appSnapshotHash, signature [
 
 func StableCheckpointMessage(stableCheckpoint *isspb.StableCheckpoint) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: stableCheckpoint}})
-}
-
-func RetransmitRequestsMessage(requests []*requestpb.RequestRef) *messagepb.Message {
-	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_RetransmitRequests{
-		RetransmitRequests: &isspb.RetransmitRequests{
-			Requests: requests,
-		},
-	}})
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type RequestReceiver struct {
@@ -80,16 +79,12 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 	// For each received request
 	for req, err = srv.Recv(); err == nil; req, err = srv.Recv() {
 
-		rr.logger.Log(logging.LevelInfo, "Received request",
-			"clId", req.ClientId, "reqNo", req.ReqNo, "authLen", len(req.Authenticator))
+		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.ReqNo)
 
 		// Submit the request to the Node.
-		if srErr := rr.node.InjectEvents(srv.Context(), (&events.EventList{}).PushBack(events.ClientRequest(
-			"clientTracker",
-			t.ClientID(req.ClientId),
-			t.ReqNo(req.ReqNo),
-			req.Data,
-			req.Authenticator,
+		if srErr := rr.node.InjectEvents(srv.Context(), (&events.EventList{}).PushBack(events.NewClientRequests(
+			"iss",
+			[]*requestpb.Request{req},
 		))); srErr != nil {
 
 			// If submitting fails, stop receiving further request (and close connection).

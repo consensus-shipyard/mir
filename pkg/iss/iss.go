@@ -54,42 +54,6 @@ var (
 // Auxiliary types
 // ============================================================
 
-// The missingRequestInfo type represents information about the requests that the node is waiting to receive
-// before accepting a proposal for a sequence number.
-// A request counts as "received" by the node when the RequestReady event for that request is applied.
-// For example, with the PBFT orderer, after the PBFT implementation of some SB instance receives a preprepare message,
-// it will wait until ISS confirms that all requests referenced in the preprepare message have been received.
-type missingRequestInfo struct {
-
-	// A globally unique identifier of this struct. It consists of the orderer ID
-	// and the orderer's internal reference of the proposal for which requests are missing.
-	// When notifying the orderer about the received requests, this reference is passed back to the orderer,
-	// so it can pair the notification with the corresponding SBWaitForRequests Event.
-	Ref missingRequestInfoRef
-
-	// Set of all missing requests, represented as map of request references
-	// indexed by the string representation of those request reference.
-	Requests map[string]*requestpb.RequestRef
-
-	// SB instance to be notified (via the RequestsReady event) when all missing requests have been received.
-	Orderer sbInstance
-
-	// TODO: implement NAcks after a timeout, using iss.demandRequestRetransmission(missingRequests)
-}
-
-// missingRequestInfoRef uniquely identifies a missingRequestInfo across all orderer instances
-// (the contained Ref field is only guaranteed to be unique within one SB instance, but not globally).
-// The separate type is necessary, as it is used as a map key.
-type missingRequestInfoRef struct {
-
-	// The orderer that is waiting for missing requests
-	Orderer t.SBInstanceNr
-
-	// Orderer's (i.e., SB instance's) internal reference to be passed back to the orderer
-	// when announcing that the missing requests have been received.
-	SBRef *isspb.SBReqWaitReference
-}
-
 // The segment type represents an ISS segment.
 // It is use to parametrize an orderer (i.e. the SB instance).
 type segment struct {
@@ -225,21 +189,6 @@ type ISS struct {
 	// The first sequence number to be delivered in the new epoch.
 	newEpochSN t.SeqNr
 
-	// This field holds information about the requests that the node is waiting to receive
-	// before accepting a proposal for that sequence number.
-	// Each proposal has a unique reference *within its SB instance*.
-	// Thus, the map is indexed a tuple of SB instance ID and that instance's reference
-	// (packed in a missingRequestInfoRef struct).
-	// A request counts as "received" by the node when the RequestReady event for that request is applied.
-	// As soon as all requests for a proposal have been received, the corresponding entry is deleted from this map.
-	missingRequests map[missingRequestInfoRef]*missingRequestInfo
-
-	// For each request that is missing
-	// (i.e. for which the proposal has been received by some orderer, but the request itself has not yet arrived),
-	// this field holds a pointer to the object tracking missing requests for the whole proposal.
-	// As soon as a request has been received the corresponding entry is deleted from this map.
-	missingRequestIndex map[string]*missingRequestInfo
-
 	// Stores the stable checkpoint with the highest sequence number observed so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
@@ -273,12 +222,10 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		bucketOrderers: nil,
 
 		// Fields modified throughout an epoch
-		commitLog:           make(map[t.SeqNr]*CommitLogEntry),
-		unhashedLogEntries:  make(map[t.SeqNr]*CommitLogEntry),
-		nextDeliveredSN:     0,
-		newEpochSN:          0,
-		missingRequests:     nil, // allocated in initEpoch()
-		missingRequestIndex: nil, // allocated in initEpoch()
+		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
+		unhashedLogEntries: make(map[t.SeqNr]*CommitLogEntry),
+		nextDeliveredSN:    0,
+		newEpochSN:         0,
 		messageBuffers: messagebuffer.NewBuffers(
 			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
 			config.MsgBufCapacity,
@@ -326,8 +273,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
-	case *eventpb.Event_RequestReady:
-		return iss.applyRequestReady(e.RequestReady), nil
+	case *eventpb.Event_NewRequests:
+		return iss.applyNewRequests(e.NewRequests.Requests)
 	case *eventpb.Event_AppSnapshot:
 		return iss.applyAppSnapshot(e.AppSnapshot), nil
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
@@ -387,6 +334,8 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceNr(origin.Sb.Instance)
 		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digests, origin.Sb.Origin)))
+	case *isspb.ISSHashOrigin_Requests:
+		return iss.applyRequestHashResult(origin.Requests.Requests, result.Digests), nil
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn)), nil
@@ -462,28 +411,48 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 	}
 }
 
-// applyRequestReady applies the RequestReady event to the state of the ISS protocol state machine.
-// A RequestReady event means that a request is considered valid and authentic by the node and can be processed.
-func (iss *ISS) applyRequestReady(requestReady *eventpb.RequestReady) *events.EventList {
+// applyNewRequests applies the NewRequests event to the state of the ISS protocol state machine.
+// A NewRequests event means that the contained requests are considered valid and authentic by the node
+// and can be processed.
+func (iss *ISS) applyNewRequests(requests []*requestpb.Request) (*events.EventList, error) {
+	// Request received from a client. Have the digest computed.
+
+	requestData := make([][][]byte, len(requests))
+	for i, request := range requests {
+		requestData[i] = serializing.RequestForHash(request)
+	}
+
+	return (&events.EventList{}).PushBack(events.HashRequest(
+		"hasher",
+		requestData,
+		RequestHashOrigin(requests),
+	)), nil
+
+}
+
+func (iss *ISS) applyRequestHashResult(requests []*requestpb.Request, digests [][]byte) *events.EventList {
 	eventsOut := &events.EventList{}
 
-	// Get request reference.
-	ref := requestReady.RequestRef
+	for i, request := range requests {
+		eventsOut.PushBackList(iss.handleHashedRequest(events.HashedRequest(request, digests[i])))
+	}
+
+	return eventsOut
+}
+
+func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.EventList {
+	eventsOut := &events.EventList{}
 
 	// Get bucket to which the new request maps.
-	bucket := iss.buckets.RequestBucket(ref)
+	bucket := iss.buckets.RequestBucket(request)
 
 	// Add request to its bucket if it has not been added yet.
-	if !bucket.Add(ref) {
+	if !bucket.Add(request) {
 		// If the request already has been added, do nothing and return, as if the event did not exist.
 		// Returning here is important, because the rest of this function
 		// must only be executed once for a request in an epoch (to prevent request duplication).
 		return &events.EventList{}
 	}
-
-	// If necessary, notify the orderer responsible for this request to continue processing it.
-	// (This is necessary in case the request has been "missing", i.e., proposed but not yet received.)
-	eventsOut.PushBackList(iss.notifyOrderer(ref))
 
 	// Count number of requests in all the buckets assigned to the same instance as the bucket of the received request.
 	// These are all the requests pending to be proposed by the instance.
@@ -822,12 +791,6 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 	// Compute the assignment of buckets to orderers (each leader will correspond to one orderer).
 	leaderBuckets := iss.buckets.Distribute(leaders, newEpoch)
 
-	// Reset missing request tracking information.
-	// These fields could still contain some data if any preprepared batches were not committed on the "good path",
-	// e.g., committed using state transfer or not committed at all.
-	iss.missingRequests = make(map[missingRequestInfoRef]*missingRequestInfo)
-	iss.missingRequestIndex = make(map[string]*missingRequestInfo)
-
 	// Initialize index of orderers based on the buckets they are assigned.
 	// Given a bucket, this index helps locate the orderer to which the bucket is assigned.
 	iss.bucketOrderers = make(map[int]sbInstance)
@@ -908,62 +871,6 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 	}
 
 	return nil
-}
-
-// notifyOrderer checks whether a request is the last one missing from a proposal
-// and, if so, notifies the corresponding orderer.
-// If some orderer instance is waiting for a request (i.e., the request has been "missing" - proposed but not received),
-// notifyOrderer marks the request as not missing any more and (if no more requests are missing) notifies that orderer
-// to continue processing the corresponding proposal.
-func (iss *ISS) notifyOrderer(reqRef *requestpb.RequestRef) *events.EventList {
-
-	// Calculate the map key (string representation) of the request reference.
-	reqKey := reqStrKey(reqRef)
-
-	// If the request has been missing
-	if missingRequests := iss.missingRequestIndex[reqKey]; missingRequests != nil {
-
-		// Remove the request from the missing request index.
-		delete(missingRequests.Requests, reqKey)
-
-		// Remove the request from the list of missing requests of the corresponding proposal.
-		delete(iss.missingRequestIndex, reqKey)
-
-		// If this was the last missing request of the proposal
-		if len(missingRequests.Requests) == 0 {
-
-			// Remove the proposal from the set of proposals with missing requests
-			// and notify the corresponding orderer that no more requests from this proposal are missing.
-			delete(iss.missingRequests, missingRequests.Ref)
-			return missingRequests.Orderer.ApplyEvent(SBRequestsReady(missingRequests.Ref.SBRef))
-		}
-	}
-
-	// If the orderer need not be notified yet, do nothing.
-	return &events.EventList{}
-}
-
-// demandRequestRetransmission asks for the retransmission of missing requests.
-// The result of this call should ultimately be a RequestReady event occurring for each of the missing requests.
-// TODO: Explain that this can be done by asking the leader for a verifiable request authenticator
-//       (e.g. a client signature) or contacting multiple nodes to confirm the reception of this request,
-//       or even by asking the client directly to retransmit the request to this node.
-// TODO: Implement at least one of these options.
-// TODO: Remove the //nolint:unused comment when used again.
-func (iss *ISS) demandRequestRetransmission(reqInfo *missingRequestInfo) *events.EventList { //nolint:unused
-
-	// Create a slice of requests for which to demand retransmission.
-	// This is only necessary because they are stored in a map.
-	requests := make([]*requestpb.RequestRef, 0, len(reqInfo.Requests))
-	// TODO: iterate in a deterministic order!
-	for _, reqRef := range reqInfo.Requests {
-		requests = append(requests, reqRef)
-	}
-
-	// Send a message to the leader that made the proposal for which requests are still missing.
-	return (&events.EventList{}).PushBack(events.SendMessage(
-		netModuleName, RetransmitRequestsMessage(requests), []t.NodeID{reqInfo.Orderer.Segment().Leader},
-	))
 }
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
@@ -1051,7 +958,7 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 // This happens when a batch is committed.
 // TODO: Implement marking requests as "in flight"/proposed, so we don't accept proposals with duplicates.
 //       This could maybe be done on the WaitForRequests/RequestsReady path...
-func (iss *ISS) removeFromBuckets(requests []*requestpb.RequestRef) {
+func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
 
 	// Remove each request from its bucket.
 	for _, reqRef := range requests {
@@ -1109,8 +1016,8 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 }
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
-func reqStrKey(reqRef *requestpb.RequestRef) string {
-	return fmt.Sprintf("%v-%d.%v", reqRef.ClientId, reqRef.ReqNo, reqRef.Digest)
+func reqStrKey(reqRef *requestpb.HashedRequest) string {
+	return fmt.Sprintf("%v-%d.%v", reqRef.Req.ClientId, reqRef.Req.ReqNo, reqRef.Digest)
 }
 
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.

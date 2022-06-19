@@ -3,10 +3,8 @@ package iss
 import (
 	"crypto"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/clients"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -35,14 +33,6 @@ func DefaultModules(orig modules.Modules) (modules.Modules, error) {
 	if m["crypto"] == nil {
 		// TODO: Use default crypto once implemented and tested.
 		return nil, fmt.Errorf("no default crypto implementation")
-	}
-
-	if m["clientTracker"] == nil {
-		m["clientTracker"] = clients.SigningTracker("iss", nil)
-	}
-
-	if m["requestStore"] == nil {
-		m["requestStore"] = reqstore.NewVolatileRequestStore()
 	}
 
 	if m["iss"] == nil {
