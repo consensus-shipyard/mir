@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/reqstore"
 	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -20,9 +19,6 @@ import (
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
-
-	// Request store maintained by the FakeApp
-	ReqStore *reqstore.VolatileRequestStore
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
@@ -62,12 +58,11 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fa *FakeApp) ImplementsModule() {}
 
-// Apply implements Apply.
+// ApplyBatch applies a batch of requests
 func (fa *FakeApp) ApplyBatch(batch *requestpb.Batch) error {
 	for _, req := range batch.Requests {
-		fa.ReqStore.RemoveRequest(req)
 		fa.RequestsProcessed++
-		fmt.Printf("Processed requests: %d\n", fa.RequestsProcessed)
+		fmt.Printf("Received request: \"%s\". Processed requests: %d\n", string(req.Req.Data), fa.RequestsProcessed)
 	}
 	return nil
 }

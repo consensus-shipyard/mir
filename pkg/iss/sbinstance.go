@@ -51,8 +51,6 @@ func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SB
 		return iss.applySBInstDeliver(e.Deliver, instance)
 	case *isspb.SBInstanceEvent_CutBatch:
 		return iss.applySBInstCutBatch(instance, t.NumRequests(e.CutBatch.MaxSize))
-	case *isspb.SBInstanceEvent_WaitForRequests:
-		return iss.applySBInstWaitForRequests(instance, e.WaitForRequests)
 	case *isspb.SBInstanceEvent_ResurrectBatch:
 		return iss.applySBInstResurrectBatch(instance, e.ResurrectBatch)
 	default:
@@ -119,60 +117,6 @@ func (iss *ISS) applySBInstCutBatch(instance t.SBInstanceNr, maxBatchSize t.NumR
 
 	// Notify submit the new batch to the orderer.
 	return orderer.ApplyEvent(SBBatchReadyEvent(batch, requestsLeft))
-}
-
-// applySBInstWaitForRequests processes the WaitForRequests event triggered by an orderer.
-// This event is triggered when the orderer received a proposal and is verifying
-// whether all the requests contained in the proposal are available to the local node.
-// applySBInstWaitForRequests checks for the availability of those requests in the local buckets
-// and, if all requests are available, immediately notifies the orderer via a RequestsReady event.
-// Otherwise, it creates a missingRequestInfo entry referencing all the missing requests,
-// such that the orderer can be notified as soon as all missing requests become available.
-// If the missing requests do not become available within a configured timeout (config.RequestNAckTimeout),
-// ISS will actively retry obtaining the requests (and their corresponding authentication data).
-func (iss *ISS) applySBInstWaitForRequests(
-	instance t.SBInstanceNr,
-	waitForRequests *isspb.SBWaitForRequests,
-) *events.EventList {
-
-	// Get reference of the proposal being verified.
-	ref := missingRequestInfoRef{
-		Orderer: instance,
-		SBRef:   waitForRequests.Reference,
-	}
-
-	// Initialize a new missingRequestInfo entry that will contain a reference to all missing requests.
-	missingReqs := &missingRequestInfo{
-		Ref:      ref,
-		Requests: make(map[string]*requestpb.RequestRef, 0),
-		Orderer:  iss.epoch.Orderers[instance],
-	}
-
-	// Check for the presence of each request in its corresponding bucket.
-	for _, reqRef := range waitForRequests.Requests {
-
-		// If the request is not in the bucket it maps to, register it as missing.
-		if !iss.buckets.RequestBucket(reqRef).Contains(reqRef) {
-			reqKey := reqStrKey(reqRef)
-
-			// Associate missing request with this WaitForRequests event.
-			// Once this and all other request associated with this event are available, the orderer can be notified.
-			missingReqs.Requests[reqKey] = reqRef
-
-			// Create a global index entry for the missing request.
-			// This is used to locate this missingRequestInfo once the request is received.
-			iss.missingRequestIndex[reqKey] = missingReqs
-		}
-	}
-
-	if len(missingReqs.Requests) > 0 {
-		// If any requests are missing, register the missingRequestInfo and do not notify the orderer.
-		iss.missingRequests[ref] = missingReqs
-		return &events.EventList{}
-	}
-
-	// If all requests are already available, notify the orderer directly.
-	return missingReqs.Orderer.ApplyEvent(SBRequestsReady(ref.SBRef))
 }
 
 // applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed

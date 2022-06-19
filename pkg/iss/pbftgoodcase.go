@@ -193,33 +193,10 @@ func (pbft *pbftInstance) applyMsgPreprepare(preprepare *isspbftpb.Preprepare, f
 	// Save the received preprepare message.
 	slot.Preprepare = preprepare
 
-	// Wait for all the requests to be received in the local buckets.
-	// Operation continues on reception of the RequestsReady event.
-	return (&events.EventList{}).PushBack(pbft.eventService.SBEvent(SBWaitForRequestsEvent(
-		PbftReqWaitReference(sn, pbft.view),
-		preprepare.Batch.Requests,
-	)))
-}
-
-// applyRequestsReady processes the notification from ISS
-// that all requests in a received preprepare message are now available and authenticated.
-func (pbft *pbftInstance) applyRequestsReady(requestsReady *isspb.SBRequestsReady) *events.EventList {
-
-	// Extract the reference from the event.
-	// The type cast is safe (unless there is a bug in the implementation), since only the PBFT ReqWaitReference
-	// type is ever used by PBFT.
-	ref := requestsReady.Ref.Type.(*isspb.SBReqWaitReference_Pbft).Pbft
-
-	// Get the slot referenced by the RequestsReady Event.
-	// This reference has been created when creating the WaitForRequests Event,
-	// to which this RequestsReady Event is a response.
-	// That is also why we can be sure that the slot exists and do not need to check for a nil map.
-	slot := pbft.slots[t.PBFTViewNr(ref.View)][t.SeqNr(ref.Sn)]
-
 	// Request the computation of the hash of the Preprepare message.
 	return (&events.EventList{}).PushBack(pbft.eventService.HashRequest(
-		[][][]byte{serializePreprepareForHashing(slot.Preprepare)},
-		preprepareHashOrigin(slot.Preprepare)),
+		[][][]byte{serializePreprepareForHashing(preprepare)},
+		preprepareHashOrigin(preprepare)),
 	)
 }
 

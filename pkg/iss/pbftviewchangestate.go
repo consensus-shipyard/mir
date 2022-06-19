@@ -99,7 +99,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr) [][][
 			vcState.preprepares[sn] = pbftPreprepareMsg(
 				sn,
 				view,
-				&requestpb.Batch{Requests: []*requestpb.RequestRef{}},
+				&requestpb.Batch{Requests: []*requestpb.HashedRequest{}},
 				true,
 			)
 

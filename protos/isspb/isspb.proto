@@ -28,7 +28,7 @@ message ISSMessage {
 }
 
 message RetransmitRequests {
-  repeated requestpb.RequestRef requests = 1;
+  repeated requestpb.Request requests = 1;
 }
 
 message SBMessage {
@@ -71,10 +71,15 @@ message ISSEvent {
 
 message ISSHashOrigin {
   oneof type {
-    SBHashOrigin   sb                 = 1;
-    uint64         log_entry_sn       = 2;
-    uint64         app_snapshot_epoch = 3;
+    SBHashOrigin      sb                 = 1;
+    uint64            log_entry_sn       = 2;
+    uint64            app_snapshot_epoch = 3;
+    RequestHashOrigin requests           = 4;
   }
+}
+
+message RequestHashOrigin {
+  repeated requestpb.Request requests = 1;
 }
 
 message ISSSignOrigin {
@@ -127,8 +132,6 @@ message SBInstanceEvent {
     SBTick             tick               = 5;
     SBCutBatch         cut_batch          = 6;
     SBBatchReady       batch_ready        = 7;
-    SBWaitForRequests  wait_for_requests  = 8;
-    SBRequestsReady    requests_ready     = 9;
     SBHashRequest      hash_request       = 10;
     SBHashResult       hash_result        = 11;
     SBSignResult       sign_result        = 12;
@@ -155,21 +158,6 @@ message SBCutBatch {
 message SBBatchReady {
   requestpb.Batch batch = 1;
   uint64 pending_requests_left = 2;
-}
-
-message SBWaitForRequests {
-  SBReqWaitReference reference = 1;
-  repeated requestpb.RequestRef requests = 2;
-}
-
-message SBReqWaitReference {
-  oneof type {
-    isspbftpb.ReqWaitReference pbft = 1;
-  }
-}
-
-message SBRequestsReady {
-  SBReqWaitReference ref = 1;
 }
 
 message SBDeliver {

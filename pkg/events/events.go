@@ -76,19 +76,26 @@ func MessageReceived(destModule t.ModuleID, from t.NodeID, message *messagepb.Me
 }
 
 // ClientRequest returns an event representing the reception of a request from a client.
-func ClientRequest(
-	destModule t.ModuleID,
-	clientID t.ClientID,
-	reqNo t.ReqNo,
-	data []byte,
-	authenticator []byte,
-) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Request{Request: &requestpb.Request{
-		ClientId:      clientID.Pb(),
-		ReqNo:         reqNo.Pb(),
-		Data:          data,
-		Authenticator: authenticator,
-	}}}
+func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte) *requestpb.Request {
+	return &requestpb.Request{
+		ClientId: clientID.Pb(),
+		ReqNo:    reqNo.Pb(),
+		Data:     data,
+	}
+}
+
+func HashedRequest(request *requestpb.Request, digest []byte) *requestpb.HashedRequest {
+	return &requestpb.HashedRequest{
+		Req:    request,
+		Digest: digest,
+	}
+}
+
+// NewClientRequests returns an event representing the reception of new requests from clients.
+func NewClientRequests(destModule t.ModuleID, requests []*requestpb.Request) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_NewRequests{
+		NewRequests: &eventpb.NewRequests{Requests: requests},
+	}}
 }
 
 // HashRequest returns an event representing a request to the hashing module for computing hashes of data.
@@ -207,11 +214,11 @@ func NodeSigsVerified(
 
 // RequestReady returns an event signifying that a new request is ready to be inserted into the protocol state machine.
 // This normally occurs when the request has been received, persisted, authenticated, and an authenticator is available.
-func RequestReady(destModule t.ModuleID, requestRef *requestpb.RequestRef) *eventpb.Event {
+func RequestReady(destModule t.ModuleID, request *requestpb.Request) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_RequestReady{RequestReady: &eventpb.RequestReady{
-			RequestRef: requestRef,
+			Request: request,
 		}},
 	}
 }
@@ -259,49 +266,6 @@ func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb
 		Sn:    sn.Pb(),
 		Batch: batch,
 	}}}
-}
-
-// VerifyRequestSig returns an event of a client tracker requesting the verification of a client request signature.
-// This event is routed to the Crypto module that issues a RequestSigVerified event in response.
-func VerifyRequestSig(destModule t.ModuleID, reqRef *requestpb.RequestRef, signature []byte) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_VerifyRequestSig{VerifyRequestSig: &eventpb.VerifyRequestSig{
-			RequestRef: reqRef,
-			Signature:  signature,
-		}},
-	}
-}
-
-// RequestSigVerified represents the result of a client signature verification by the Crypto module.
-// It is routed to the client tracker that initially issued a VerifyRequestSig event.
-func RequestSigVerified(destModule t.ModuleID, reqRef *requestpb.RequestRef, valid bool, error string) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_RequestSigVerified{RequestSigVerified: &eventpb.RequestSigVerified{
-			RequestRef: reqRef,
-			Valid:      valid,
-			Error:      error,
-		}},
-	}
-}
-
-// StoreVerifiedRequest returns an event representing an event the ClientTracker emits
-// to request storing a request, including its payload and authenticator, in the request store.
-func StoreVerifiedRequest(
-	destModule t.ModuleID,
-	reqRef *requestpb.RequestRef,
-	data []byte,
-	authenticator []byte,
-) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_StoreVerifiedRequest{StoreVerifiedRequest: &eventpb.StoreVerifiedRequest{
-			RequestRef:    reqRef,
-			Data:          data,
-			Authenticator: authenticator,
-		}},
-	}
 }
 
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.

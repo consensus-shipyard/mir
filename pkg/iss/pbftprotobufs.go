@@ -60,13 +60,6 @@ func PbftPersistNewView(newView *isspbftpb.NewView) *isspb.SBInstanceEvent {
 
 // TODO: Generalize the Preprepare, Prepare, Commit, etc... persist events to one (PersistMessage)
 
-func PbftReqWaitReference(sn t.SeqNr, view t.PBFTViewNr) *isspb.SBReqWaitReference {
-	return &isspb.SBReqWaitReference{Type: &isspb.SBReqWaitReference_Pbft{Pbft: &isspbftpb.ReqWaitReference{
-		Sn:   sn.Pb(),
-		View: view.Pb(),
-	}}}
-}
-
 func PbftProposeTimeout(numProposals uint64) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftProposeTimeout{
 		PbftProposeTimeout: numProposals,

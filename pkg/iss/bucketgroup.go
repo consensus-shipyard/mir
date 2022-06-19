@@ -58,8 +58,8 @@ func (buckets bucketGroup) Select(bucketIDs []int) bucketGroup {
 // to evenly distribute requests among the buckets in the group.
 // Thus, the same request may map to some bucket in one group and to a different bucket in a different group,
 // even if the former bucket is part of the latter group.
-func (buckets bucketGroup) RequestBucket(reqRef *requestpb.RequestRef) *requestBucket {
-	bucketID := int(reqRef.ReqNo) % len(buckets) // If types change, this might need to be updated.
+func (buckets bucketGroup) RequestBucket(req *requestpb.HashedRequest) *requestBucket {
+	bucketID := int(req.Req.ReqNo) % len(buckets) // If types change, this might need to be updated.
 	return buckets.Get(bucketID)
 }
 
@@ -112,7 +112,7 @@ func (buckets bucketGroup) Distribute(leaders []t.NodeID, epoch t.EpochNr) map[t
 func (buckets bucketGroup) CutBatch(maxBatchSize t.NumRequests) *requestpb.Batch {
 
 	// Allocate a new request batch.
-	batch := &requestpb.Batch{Requests: make([]*requestpb.RequestRef, 0, maxBatchSize)}
+	batch := &requestpb.Batch{Requests: make([]*requestpb.HashedRequest, 0, maxBatchSize)}
 
 	// Count all requests in the bucket group.
 	totalRequests := buckets.TotalRequests()

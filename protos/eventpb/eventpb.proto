@@ -25,7 +25,7 @@ message Event {
     WALEntry             wal_entry               = 4;
     WALTruncate          wal_truncate            = 5;
     WALLoadAll           wal_load_all            = 6;
-    requestpb.Request    request                 = 7;
+    NewRequests          new_requests            = 7;
     HashRequest          hash_request            = 8;
     HashResult           hash_result             = 9;
     SignRequest          sign_request            = 10;
@@ -62,6 +62,10 @@ message Event {
 message Init {}
 
 message Tick {}
+
+message NewRequests {
+  repeated requestpb.Request requests = 1;
+}
 
 message ContextStoreOrigin {
   uint64 itemID = 1;
@@ -132,7 +136,7 @@ message SigVerOrigin {
 }
 
 message RequestReady {
-  requestpb.RequestRef request_ref = 1;
+  requestpb.Request request = 1;
 }
 
 message SendMessage {
@@ -167,20 +171,20 @@ message Deliver {
 }
 
 message VerifyRequestSig {
-  requestpb.RequestRef request_ref = 1;
-  bytes                signature   = 2;
+  requestpb.Request request   = 1;
+  bytes             signature = 2;
 }
 
 message RequestSigVerified {
-  requestpb.RequestRef request_ref = 1;
-  bool                 valid       = 2;
-  string               error       = 3;
+  requestpb.Request request = 1;
+  bool              valid   = 2;
+  string            error   = 3;
 }
 
 message StoreVerifiedRequest {
-  requestpb.RequestRef request_ref   = 1;
-  bytes                data          = 2;
-  bytes                authenticator = 3;
+  requestpb.Request request       = 1;
+  bytes             data          = 2;
+  bytes             authenticator = 3;
 }
 
 message AppSnapshotRequest {

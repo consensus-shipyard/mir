@@ -31,7 +31,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/reqstore"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -121,12 +120,6 @@ func main() {
 	}
 	net.Connect(context.Background())
 
-	// Create a new request store. Request payloads will be stored in it.
-	// Generally, the request store should be a persistent one,
-	// but for this dummy example we use a simple in-memory implementation,
-	// as restarts and crash-recovery (where persistence is necessary) are not yet implemented anyway.
-	reqStore := reqstore.NewVolatileRequestStore()
-
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIds)
 	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
@@ -140,15 +133,12 @@ func main() {
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
 	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
-		"net":          net,
-		"requestStore": reqStore,
-		"iss":          issProtocol,
+		"net": net,
+		"iss": issProtocol,
 
 		// This is the application logic Mir is going to deliver requests to.
-		// It requires to have access to the request store, as Mir only passes request references to it.
-		// It is the application's responsibility to get the necessary request data from the request store.
 		// For the implementation of the application, see app.go.
-		"app": NewChatApp(reqStore),
+		"app": NewChatApp(),
 
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.

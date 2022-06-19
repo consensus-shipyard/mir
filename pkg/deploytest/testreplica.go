@@ -1,7 +1,6 @@
 package deploytest
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"fmt"
@@ -16,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"    //nolint:revive
 
 	"github.com/filecoin-project/mir"
-	"github.com/filecoin-project/mir/pkg/clients"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/iss"
@@ -24,7 +22,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	"github.com/filecoin-project/mir/pkg/simplewal"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -41,9 +38,6 @@ type TestReplica struct {
 
 	// Dummy test application the replica is running.
 	App *FakeApp
-
-	// Request store
-	ReqStore modules.PassiveModule
 
 	// Name of the directory where the persisted state of this TestReplica will be stored,
 	// along with the logs produced by running the replica.
@@ -79,14 +73,6 @@ func (tr *TestReplica) EventLogFile() string {
 // Run returns the error returned by the run of the underlying Mir node.
 func (tr *TestReplica) Run(ctx context.Context) error {
 
-	// // Initialize the request store.
-	// reqStorePath := filepath.Join(tr.TmpDir, "reqstore")
-	// err := os.MkdirAll(reqStorePath, 0700)
-	// Expect(err).NotTo(HaveOccurred())
-	// reqStore, err := reqstore.Open(reqStorePath)
-	// Expect(err).NotTo(HaveOccurred())
-	// defer reqStore.Close()
-
 	// Initialize the write-ahead log.
 	walPath := filepath.Join(tr.Dir, "wal")
 	err := os.MkdirAll(walPath, 0700)
@@ -121,13 +107,11 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		tr.ID,
 		tr.Config,
 		map[t.ModuleID]modules.Module{
-			"app":           tr.App,
-			"crypto":        mirCrypto.New(cryptoModule),
-			"wal":           wal,
-			"clientTracker": clients.SigningTracker("iss", logging.Decorate(tr.Config.Logger, "CT: ")),
-			"requestStore":  tr.ReqStore,
-			"iss":           issProtocol,
-			"net":           tr.Net,
+			"app":    tr.App,
+			"crypto": mirCrypto.New(cryptoModule),
+			"wal":    wal,
+			"iss":    issProtocol,
+			"net":    tr.Net,
 		},
 		interceptor,
 	)
@@ -190,11 +174,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 	defer GinkgoRecover()
 	defer wg.Done()
 
-	// Instantiate a Crypto module for signing the requests.
 	// The ID of the fake client is always 0.
-	cryptoImpl, err := mirCrypto.ClientPseudo(tr.Membership, tr.ClientIDs, t.NewClientIDFromInt(0), mirCrypto.DefaultPseudoSeed)
-	Expect(err).NotTo(HaveOccurred())
-
 	for i := 0; i < tr.NumFakeRequests; i++ {
 		select {
 		case <-ctx.Done():
@@ -203,27 +183,13 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 		default:
 			// Otherwise, submit next request.
 
-			// Create new request message. This is only necessary for proper signing
-			// and the message will be "taken apart" just a few lines later, when submitting it to the Node.
-			reqMsg := &requestpb.Request{
-				ClientId: string(t.NewClientIDFromInt(0)),
-				ReqNo:    t.ReqNo(i).Pb(),
-				Data:     []byte(fmt.Sprintf("Request %d", i)),
-			}
-
-			// Sign (the hash of) the request, adding the signature to the request message.
-			h := FakeClientHasher.New()
-			h.Write(bytes.Join(serializing.RequestForHash(reqMsg), nil))
-			reqMsg.Authenticator, err = cryptoImpl.Sign([][]byte{h.Sum(nil)})
-			Expect(err).NotTo(HaveOccurred())
-
-			// Submit the signed request to the local Node.
-			if err := node.InjectEvents(ctx, (&events.EventList{}).PushBack(events.ClientRequest(
-				"clientTracker",
-				t.ClientID(reqMsg.ClientId),
-				t.ReqNo(reqMsg.ReqNo),
-				reqMsg.Data,
-				reqMsg.Authenticator,
+			if err := node.InjectEvents(ctx, (&events.EventList{}).PushBack(events.NewClientRequests(
+				"iss",
+				[]*requestpb.Request{events.ClientRequest(
+					t.NewClientIDFromInt(0),
+					t.ReqNo(i),
+					[]byte(fmt.Sprintf("Request %d", i)),
+				)},
 			))); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,

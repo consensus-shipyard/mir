@@ -31,7 +31,7 @@ type requestBucket struct {
 	// New requests are added to the "back" of this list, new batches are cut from the "front".
 	reqList list.List
 
-	// Map index of the list elements, index by (a string representation of) request references.
+	// Map index of the list elements, index by (a string representation of) requests.
 	// This is required for efficiently removing requests from the list.
 	// On removal, the list element corresponding to the request being removed
 	// is first looked up in the list (constant time) and then unlinked from the list (constant time)
@@ -46,7 +46,7 @@ type requestBucket struct {
 	// watermark can safely be deleted.
 	// TODO: Implement garbage collection. It might be helpful
 	//       to make the hash function only take client ID and request Nr as arguments,
-	//       instead of the whole request reference.
+	//       instead of the whole request.
 	reqMap map[string]*list.Element
 
 	// TODO: Make sure the system works well even if a malicious client tries to submit conflicting requests.
@@ -79,10 +79,10 @@ func (b *requestBucket) Len() int {
 // (except for the case of request resurrection, but this is done using the Resurrect() method).
 // Returns true if the request was not in the bucket and has just been added,
 // false if the request already has been added.
-func (b *requestBucket) Add(reqRef *requestpb.RequestRef) bool {
+func (b *requestBucket) Add(req *requestpb.HashedRequest) bool {
 
 	// Compute map key of request.
-	key := reqStrKey(reqRef)
+	key := reqStrKey(req)
 
 	// If request has already been added to the bucket, do not add it again.
 	// It is important to check for the presence of the entry in reqMap (using the second return value)
@@ -93,7 +93,7 @@ func (b *requestBucket) Add(reqRef *requestpb.RequestRef) bool {
 	}
 
 	// Add request to the bucket.
-	e := b.reqList.PushBack(reqRef)
+	e := b.reqList.PushBack(req)
 	b.reqMap[key] = e
 	return true
 }
@@ -101,10 +101,10 @@ func (b *requestBucket) Add(reqRef *requestpb.RequestRef) bool {
 // Remove removes a request from the bucket.
 // Note that even after removal, the request cannot be added again using the Add() method.
 // It can be, however, returned to the bucket during request resurrection, see Resurrect().
-func (b *requestBucket) Remove(reqRef *requestpb.RequestRef) {
+func (b *requestBucket) Remove(req *requestpb.HashedRequest) {
 
 	// Look up the corresponding element in the reqMap.
-	reqKey := reqStrKey(reqRef)
+	reqKey := reqStrKey(req)
 	element, ok := b.reqMap[reqKey]
 
 	if !ok {
@@ -125,17 +125,17 @@ func (b *requestBucket) Remove(reqRef *requestpb.RequestRef) {
 // Contains returns true if the given request is in the bucket, false otherwise.
 // Only requests that have been added but not removed count as contained in the bucket,
 // as well as resurrected requests that have not been removed since resurrection.
-func (b *requestBucket) Contains(reqRef *requestpb.RequestRef) bool {
+func (b *requestBucket) Contains(req *requestpb.HashedRequest) bool {
 	// We check against nil on purpose, as we are not interested in removed requests here.
-	return b.reqMap[reqStrKey(reqRef)] != nil
+	return b.reqMap[reqStrKey(req)] != nil
 }
 
 // RemoveFirst removes the first up to n requests from the bucket and appends them to the accumulator acc.
 // Returns the resulting slice obtained by appending the Requests to acc.
-func (b *requestBucket) RemoveFirst(n int, acc []*requestpb.RequestRef) []*requestpb.RequestRef {
+func (b *requestBucket) RemoveFirst(n int, acc []*requestpb.HashedRequest) []*requestpb.HashedRequest {
 
 	for ; b.Len() > 0 && n > 0; n-- {
-		acc = append(acc, b.reqList.Remove(b.reqList.Front()).(*requestpb.RequestRef))
+		acc = append(acc, b.reqList.Remove(b.reqList.Front()).(*requestpb.HashedRequest))
 	}
 
 	return acc
@@ -147,10 +147,10 @@ func (b *requestBucket) RemoveFirst(n int, acc []*requestpb.RequestRef) []*reque
 // but, for some reason, the batch is not committed in the same epoch.
 // In such a case, the requests contained in the batch need to be resurrected
 // (i.e., put back in their respective buckets) so they can be committed in a future epoch.
-func (b *requestBucket) Resurrect(reqRef *requestpb.RequestRef) {
+func (b *requestBucket) Resurrect(req *requestpb.HashedRequest) {
 
 	// Compute map key of request.
-	key := reqStrKey(reqRef)
+	key := reqStrKey(req)
 
 	// If request is not in the reqMap or request already is in the bucket, panic. This must never happen.
 	if element, ok := b.reqMap[key]; !ok || element == nil {
@@ -161,6 +161,6 @@ func (b *requestBucket) Resurrect(reqRef *requestpb.RequestRef) {
 	// Note that this differs from Add(), which adds the request to the back of the list.
 	// In this case, since the resurrected request already has been proposed,
 	// it should be the first one to be re-proposed again.
-	e := b.reqList.PushFront(reqRef)
+	e := b.reqList.PushFront(req)
 	b.reqMap[key] = e
 }
