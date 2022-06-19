@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	// DefaultPseudoSeed is an arbitrary number that the nodes can use as a seed when instantiating its Crypto module.
+	// DefaultPseudoSeed is an arbitrary number that the nodes can use as a seed when instantiating its MirModule module.
 	// This is not secure, but helps during testing, as it obviates the exchange of public keys among nodes.
 	DefaultPseudoSeed int64 = 12345
 )
@@ -26,7 +26,7 @@ var (
 // Intended for testing purposes and assuming a static membership known to all nodes,
 // NodePseudo can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int64) (Impl, error) { //nolint:dupl
+func NodePseudo(nodes []t.NodeID, ownID t.NodeID, seed int64) (Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
 	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
@@ -34,13 +34,6 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	// Generate node keys.
 	// All private keys except the own one will be discarded.
 	nodePrivKeys, nodePubKeys, err := generateKeys(len(nodes), randomness)
-	if err != nil {
-		return nil, err
-	}
-
-	// Generate client keys.
-	// All client private keys are discarded.
-	_, clientPubKeys, err := generateKeys(len(clients), randomness)
 	if err != nil {
 		return nil, err
 	}
@@ -67,57 +60,7 @@ func NodePseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.NodeID, seed int
 	}
 
 	// Populate the CryptoImpl module instance with the generated keys
-	if err := registerPubKeys(c, nodes, nodePubKeys, clients, clientPubKeys); err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
-// ClientPseudo behaves the same as NodePseudo, except that it returns a CryptoImpl module intended for use by the client.
-// The returned CryptoImpl module will use the private key associated with client ownID for signing.
-func ClientPseudo(nodes []t.NodeID, clients []t.ClientID, ownID t.ClientID, seed int64) (Impl, error) { //nolint:dupl
-
-	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
-
-	// Generate node keys.
-	// All node private keys are discarded.
-	_, nodePubKeys, err := generateKeys(len(nodes), randomness)
-	if err != nil {
-		return nil, err
-	}
-
-	// Generate client keys.
-	// All client private keys except the own one will be discarded.
-	clientPrivKeys, clientPubKeys, err := generateKeys(len(clients), randomness)
-	if err != nil {
-		return nil, err
-	}
-
-	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
-	var c *DefaultImpl
-	for i, id := range clients {
-		if id == ownID {
-			if c, err = NewDefaultImpl(clientPrivKeys[i]); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	// Return error if own ID was not found in the given membership or CryptoImpl module instantiation failed
-	if c == nil {
-		if err != nil {
-			// CryptoImpl module instantiation failed.
-			return nil, err
-		}
-
-		// Own ID was not found and CryptoImpl module instantiation was not even attempted.
-		return nil, fmt.Errorf("ownID (%v) not found among clients", ownID)
-	}
-
-	// Populate the CryptoImpl module instance with the generated keys
-	if err := registerPubKeys(c, nodes, nodePubKeys, clients, clientPubKeys); err != nil {
+	if err := registerPubKeys(c, nodes, nodePubKeys); err != nil {
 		return nil, err
 	}
 
@@ -143,29 +86,19 @@ func generateKeys(numKeys int, randomness io.Reader) (privKeys [][]byte, pubKeys
 	return
 }
 
-// regusterPubKeys populates a CryptoImpl module c with the given nodePubKeys and clientPubKeys.
+// regusterPubKeys populates a CryptoImpl module c with the given nodePubKeys.
 // Each entry in nodes will be associated with the corresponding entry in nodePubKeys
 // by calling c.RegisterNodeKey(nodePubKeys[i], nodes[i]) for 0 <= i < len(nodes).
 // nodes and nodePubKeys must have the same length.
-// The analogous happens for client keys, using c.RegisterClientKey.
 func registerPubKeys(
 	c *DefaultImpl,
 	nodes []t.NodeID,
 	nodePubKeys [][]byte,
-	clients []t.ClientID,
-	clientPubKeys [][]byte,
 ) error {
 
 	// Populate CryptoImpl module with node keys.
 	for keyIdx, nodeID := range nodes {
 		if err := c.RegisterNodeKey(nodePubKeys[keyIdx], nodeID); err != nil {
-			return err
-		}
-	}
-
-	// Populate CryptoImpl module with client keys.
-	for keyIdx, clientID := range clients {
-		if err := c.RegisterClientKey(clientPubKeys[keyIdx], clientID); err != nil {
 			return err
 		}
 	}

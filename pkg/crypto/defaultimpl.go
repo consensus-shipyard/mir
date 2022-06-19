@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-// Package crypto provides an implementation of the Crypto module.
+// Package crypto provides an implementation of the MirModule module.
 // It supports RSA and ECDSA signatures.
 package crypto
 
@@ -24,7 +24,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// DefaultImpl represents a generic implementation of the Crypto module that can be used at Node instantiation
+// DefaultImpl represents a generic implementation of the MirModule module that can be used at Node instantiation
 // (when calling mir.NewNode)
 type DefaultImpl struct {
 
@@ -33,12 +33,9 @@ type DefaultImpl struct {
 
 	// Node public keys used for verifying signatures.
 	nodeKeys map[t.NodeID]interface{}
-
-	// Client public keys used for verifying signatures.
-	clientKeys map[t.ClientID]interface{}
 }
 
-// NewDefaultImpl returns a new initialized instance of a Crypto implementation.
+// NewDefaultImpl returns a new initialized instance of a MirModule implementation.
 // privKey is the serialized representation of the private key that will be used for signing.
 // privKey must be the output of SerializePrivKey or GenerateKeyPair.
 func NewDefaultImpl(privKey []byte) (*DefaultImpl, error) {
@@ -50,17 +47,16 @@ func NewDefaultImpl(privKey []byte) (*DefaultImpl, error) {
 		return nil, fmt.Errorf("error parsing private key: %w", err)
 	}
 
-	// If deserialization succeeds, return the pointer to a new initialized instance of Crypto.
+	// If deserialization succeeds, return the pointer to a new initialized instance of MirModule.
 	return &DefaultImpl{
-		privKey:    key,
-		nodeKeys:   make(map[t.NodeID]interface{}),
-		clientKeys: make(map[t.ClientID]interface{}),
+		privKey:  key,
+		nodeKeys: make(map[t.NodeID]interface{}),
 	}, nil
 }
 
 // Sign signs the provided data and returns the resulting signature.
 // First, Sign computes a SHA256 hash of the concatenation of all the byte slices in data.
-// Then it signs the hash using the private key specified at creation of this Crypto object.
+// Then it signs the hash using the private key specified at creation of this MirModule object.
 func (c *DefaultImpl) Sign(data [][]byte) ([]byte, error) {
 	switch key := c.privKey.(type) {
 	case *rsa.PrivateKey:
@@ -74,7 +70,7 @@ func (c *DefaultImpl) Sign(data [][]byte) ([]byte, error) {
 
 // RegisterNodeKey associates a public key with a numeric node ID.
 // pubKey must be the output of SerializePubKey.
-// Calls to VerifyNodeSig will fail until RegisterNodeKey is successfully called with the corresponding node ID.
+// Calls to Verify will fail until RegisterNodeKey is successfully called with the corresponding node ID.
 // Returns nil on success, a non-nil error on failure.
 func (c *DefaultImpl) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 
@@ -91,44 +87,19 @@ func (c *DefaultImpl) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 	return nil
 }
 
-// RegisterClientKey associates a public key with a numeric client ID.
-// pubKey must be the output of SerializePubKey.
-// Calls to VerifyClientSig will fail until RegisterClientKey is successfully called with the corresponding client ID.
-// Returns nil on success, a non-nil error on failure.
-func (c *DefaultImpl) RegisterClientKey(pubKey []byte, clientID t.ClientID) error {
-
-	// Deserialize passed public key
-	key, err := pubKeyFromBytes(pubKey)
-	if err != nil {
-		// If deserialization fails, report error.
-		return fmt.Errorf("error parsing client public key: %w", err)
-	}
-
-	// If deserialization succeeds, save public key under the given client ID.
-	c.clientKeys[clientID] = key
-
-	return nil
-}
-
 // DeleteNodeKey removes the public key associated with nodeID from the internal state.
-// Any subsequent call to VerifyNodeSig(..., nodeID) will fail.
+// Any subsequent call to Verify(..., nodeID) will fail.
 func (c *DefaultImpl) DeleteNodeKey(nodeID t.NodeID) {
 	delete(c.nodeKeys, nodeID)
 }
 
-// DeleteClientKey removes the public key associated with clientID from the state.
-// Any subsequent call to VerifyClientSig(..., clientID) will fail.
-func (c *DefaultImpl) DeleteClientKey(clientID t.ClientID) {
-	delete(c.clientKeys, clientID)
-}
-
-// VerifyNodeSig verifies a signature produced by the node with numeric ID nodeID over data.
-// First, VerifyNodeSig computes a SHA256 hash of the concatenation of all the byte slices in data.
+// Verify verifies a signature produced by the node with numeric ID nodeID over data.
+// First, Verify computes a SHA256 hash of the concatenation of all the byte slices in data.
 // Then it verifies the signature over this hash using the public key registered under nodeID.
 // Returns nil on success (i.e., if the given signature is valid) and a non-nil error otherwise.
-// Note that RegisterNodeKey must be used to register the node's public key before calling VerifyNodeSig,
-// otherwise VerifyNodeSig will fail.
-func (c *DefaultImpl) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID) error {
+// Note that RegisterNodeKey must be used to register the node's public key before calling Verify,
+// otherwise Verify will fail.
+func (c *DefaultImpl) Verify(data [][]byte, signature []byte, nodeID t.NodeID) error {
 
 	pubKey, ok := c.nodeKeys[nodeID]
 	if !ok {
@@ -138,23 +109,8 @@ func (c *DefaultImpl) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.No
 	return c.verifySig(data, signature, pubKey)
 }
 
-// VerifyClientSig verifies a signature produced by the client with numeric ID clientID over data.
-// First, VerifyNodeSig computes a SHA256 hash of the concatenation of all the byte slices in data.
-// Then it verifies the signature over this hash using the public key registered under clientID.
-// Returns nil on success (i.e., if the given signature is valid) and a non-nil error otherwise.
-// Note that RegisterClientKey must be used to register the client's public key before calling VerifyClientSig,
-// otherwise VerifyClientSig will fail.
-func (c *DefaultImpl) VerifyClientSig(data [][]byte, signature []byte, clientID t.ClientID) error {
-	pubKey, ok := c.clientKeys[clientID]
-	if !ok {
-		return fmt.Errorf("no public key for client with ID %v", clientID)
-	}
-
-	return c.verifySig(data, signature, pubKey)
-}
-
 // verifySig performs the actual signature verification.
-// It is called by VerifyNodeSig and VerifyClientSig after looking up the appropriate verification key.
+// It is called by Verify after looking up the appropriate verification key.
 func (c *DefaultImpl) verifySig(data [][]byte, signature []byte, pubKey interface{}) error {
 	switch key := pubKey.(type) {
 	case *ecdsa.PublicKey:
@@ -239,7 +195,7 @@ func pubKeyFromBytes(raw []byte) (interface{}, error) {
 }
 
 // SerializePubKey serializes a public key into a byte slice.
-// The output of this function can be used with DefaultImpl.RegisterClientKey and DefaultImpl.RegisterNodeKey.
+// The output of this function can be used with DefaultImpl.RegisterNodeKey.
 // Currently, pointers to crypto/ecdsa.PublicKey and crypto/rsa.PublicKey are supported types of pubKey.
 func SerializePubKey(pubKey interface{}) (pubKeyBytes []byte, err error) {
 
@@ -272,7 +228,7 @@ func SerializePrivKey(privKey interface{}) (privKeyBytes []byte, err error) {
 
 // PubKeyFromFile extracts a public key from a PEM certificate file.
 // Returns a serialized form of the public key
-// that can be used directly with DefaultImpl.RegisterNodeKey or DefaultImpl.RegisterClientKey.
+// that can be used directly with DefaultImpl.RegisterNodeKey.
 func PubKeyFromFile(fileName string) ([]byte, error) {
 
 	// Read contents of the file.

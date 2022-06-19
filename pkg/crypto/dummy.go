@@ -15,7 +15,7 @@ import (
 
 // TODO: Write comments.
 
-// DummyCrypto represents a dummy Crypto module that
+// DummyCrypto represents a dummy MirModule module that
 // always produces the same dummy byte slice specified at instantiation as signature.
 // Verification of this dummy signature always succeeds.
 // This is intended as a stub for testing purposes.
@@ -39,28 +39,9 @@ func (dc *DummyCrypto) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 func (dc *DummyCrypto) DeleteNodeKey(nodeID t.NodeID) {
 }
 
-// VerifyNodeSig returns nil (i.e. success) only if signature equals DummySig.
+// Verify returns nil (i.e. success) only if signature equals DummySig.
 // Both data and nodeID are ignored.
-func (dc *DummyCrypto) VerifyNodeSig(data [][]byte, signature []byte, nodeID t.NodeID) error {
-	if !bytes.Equal(signature, dc.DummySig) {
-		return fmt.Errorf("dummy signature mismatch")
-	}
-
-	return nil
-}
-
-// RegisterClientKey does nothing, as no public keys are used.
-func (dc *DummyCrypto) RegisterClientKey(pubKey []byte, clientID t.ClientID) error {
-	return nil
-}
-
-// DeleteClientKey does nothing, as no public keys are used.
-func (dc *DummyCrypto) DeleteClientKey(clientID t.ClientID) {
-}
-
-// VerifyClientSig returns nil (i.e. success) only if signature equals DummySig.
-// Both data and nodeID are ignored.
-func (dc *DummyCrypto) VerifyClientSig(data [][]byte, signature []byte, clientID t.ClientID) error {
+func (dc *DummyCrypto) Verify(data [][]byte, signature []byte, nodeID t.NodeID) error {
 	if !bytes.Equal(signature, dc.DummySig) {
 		return fmt.Errorf("dummy signature mismatch")
 	}

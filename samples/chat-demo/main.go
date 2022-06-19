@@ -188,13 +188,12 @@ func main() {
 	// Create a DummyClient. In this example, the client's ID corresponds to the ID of the node it is collocated with,
 	// but in general this need not be the case.
 	// Also note that the client IDs are in a different namespace than Node IDs.
-	// The client also needs to be initialized with a Hasher and Crypto module in order to be able to sign requests.
-	// We use a dummy Crypto module set up the same way as the Node's Crypto module,
+	// The client also needs to be initialized with a Hasher and MirModule module in order to be able to sign requests.
+	// We use a dummy MirModule module set up the same way as the Node's MirModule module,
 	// so the client's signatures are accepted.
 	client := dummyclient.NewDummyClient(
 		t.ClientID(args.OwnID),
 		crypto.SHA256,
-		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 		logger,
 	)
 

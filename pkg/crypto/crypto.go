@@ -1,4 +1,4 @@
-// Package crypto provides an implementation of the Crypto module.
+// Package crypto provides an implementation of the MirModule module.
 // It supports RSA and ECDSA signatures.
 package crypto
 
@@ -10,24 +10,24 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-type Crypto struct {
-	impl Impl
+type MirModule struct {
+	crypto Crypto
 }
 
-func New(impl Impl) *Crypto {
-	return &Crypto{impl: impl}
+func New(crypto Crypto) *MirModule {
+	return &MirModule{crypto: crypto}
 }
 
-func (c *Crypto) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_SignRequest:
 		// Compute a signature over the provided data and produce a SignResult event.
 
-		signature, err := c.impl.Sign(e.SignRequest.Data)
+		signature, err := c.crypto.Sign(e.SignRequest.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,7 @@ func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 		// Verify each signature.
 		for i, data := range verifyEvent.Data {
-			err := c.impl.VerifyNodeSig(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
+			err := c.crypto.Verify(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
 			if err == nil {
 				results[i] = true
 				errors[i] = ""
@@ -69,9 +69,9 @@ func (c *Crypto) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of Crypto event: %T", event.Type)
+		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
 	}
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (c *Crypto) ImplementsModule() {}
+func (c *MirModule) ImplementsModule() {}
