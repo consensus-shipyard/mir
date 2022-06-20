@@ -961,8 +961,8 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
 
 	// Remove each request from its bucket.
-	for _, reqRef := range requests {
-		iss.buckets.RequestBucket(reqRef).Remove(reqRef)
+	for _, req := range requests {
+		iss.buckets.RequestBucket(req).Remove(req)
 	}
 }
 
@@ -1016,8 +1016,8 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 }
 
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
-func reqStrKey(reqRef *requestpb.HashedRequest) string {
-	return fmt.Sprintf("%v-%d.%v", reqRef.Req.ClientId, reqRef.Req.ReqNo, reqRef.Digest)
+func reqStrKey(req *requestpb.HashedRequest) string {
+	return fmt.Sprintf("%v-%d.%v", req.Req.ClientId, req.Req.ReqNo, req.Digest)
 }
 
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.
