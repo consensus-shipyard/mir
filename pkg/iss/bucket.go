@@ -100,6 +100,8 @@ func (b *requestBucket) Add(req *requestpb.HashedRequest) bool {
 
 // Remove removes a request from the bucket.
 // Note that even after removal, the request cannot be added again using the Add() method.
+// Moreover, removing a request from the bucket, even if the request is not present in the bucket,
+// also prevents the request from being added in the future using Add().
 // It can be, however, returned to the bucket during request resurrection, see Resurrect().
 func (b *requestBucket) Remove(req *requestpb.HashedRequest) {
 
@@ -109,7 +111,9 @@ func (b *requestBucket) Remove(req *requestpb.HashedRequest) {
 
 	if !ok {
 		// Request has never been added or has been garbage-collected.
-		b.logger.Log(logging.LevelWarn, "Request to remove not found.", "reqKey", reqKey)
+		// We still mark it as removed, so it cannot be added later using Add().
+		b.logger.Log(logging.LevelDebug, "Request to remove not in bucket.", "reqKey", reqKey)
+		b.reqMap[reqKey] = nil
 	} else if element == nil {
 		// Request has already been removed.
 		b.logger.Log(logging.LevelWarn, "Request to remove already removed.", "reqKey", reqKey)
