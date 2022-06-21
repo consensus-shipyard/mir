@@ -9,10 +9,11 @@ package grpctransport
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"net"
 	"sync"
+
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -225,10 +226,15 @@ func (gt *GrpcTransport) Stop() {
 
 	// Close connections to other nodes.
 	for id, connection := range gt.connections {
+		if connection == nil {
+			continue
+		}
 		gt.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
+
 		if err := connection.CloseSend(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 		}
+
 		gt.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
 	}
 
