@@ -7,12 +7,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/protoutil"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
 	"reflect"
 )
 
-// dslModuleImpl allows creating passive modules in a very natural declarative way.
 type dslModuleImpl struct {
 	moduleID          t.ModuleID
 	eventHandlers     map[reflect.Type][]func(ev *eventpb.Event) error
@@ -30,6 +28,7 @@ type Handle struct {
 
 type ContextID = cs.ItemID
 
+// Module allows creating passive modules in a very natural declarative way.
 type Module interface {
 	modules.PassiveModule
 
@@ -37,7 +36,7 @@ type Module interface {
 	GetDslHandle() Handle
 
 	// GetModuleID returns the identifier of the module.
-	// TODO: this method probably should be part of modules.Module.
+	// TODO: consider moving this method to modules.Module.
 	GetModuleID() t.ModuleID
 }
 
@@ -60,28 +59,17 @@ func (m *dslModuleImpl) GetModuleID() t.ModuleID {
 	return m.moduleID
 }
 
-// UponEvent registers an event handler for module m.
-// This event handler will be called every time an event of type Ev is received.
-// Type EvWrapper is the protoc-generated wrapper around Ev -- protobuf representation of the event.
-// Note that the type parameter Ev can be inferred automatically from handler.
-func UponEvent[EvWrapper, Ev any](m Module, handler func(ev *Ev) error) {
-	// This check verifies that EvWrapper is a wrapper around Ev generated for a oneof statement.
-	// It is only performed at the time of registration of the handler (which is supposedly at the very beginning
-	// of the program execution) and it makes sure that UnsafeUnwrapOneofWrapper[EvWrapper, Ev](evWrapper).
-	err := protoutil.VerifyOneofWrapper[EvWrapper, Ev]()
-	if err != nil {
-		panic(fmt.Errorf("invalid type parameters for the UponEvent function: %w", err))
-	}
+// RegisterEventHandler registers an event handler for module m.
+// This event handler will be called every time an event of type EvTp is received.
+// TODO: consider adding a protoc plugin that would augment EvTp with a function Unwrap(), which would return the
+// 		 unwrapped event. Then it will be possible to pass the unwrapped event to the handler.
+func RegisterEventHandler[EvTp events.EventType](m Module, handler func(ev *EvTp) error) {
+	evTpPtrType := reflect.PointerTo(reflectutil.TypeOf[EvTp]())
 
-	wrapperPtrType := reflect.PointerTo(reflectutil.TypeOf[EvWrapper]())
-
-	m.GetDslHandle().impl.eventHandlers[wrapperPtrType] = append(m.GetDslHandle().impl.eventHandlers[wrapperPtrType],
+	m.GetDslHandle().impl.eventHandlers[evTpPtrType] = append(m.GetDslHandle().impl.eventHandlers[evTpPtrType],
 		func(event *eventpb.Event) error {
-			evWrapperPtr := ((any)(event.Type)).(*EvWrapper)
-			// The safety of this call to protoutil.UnsafeUnwrapOneofWrapper is verified by a call to
-			// protoutil.VerifyOneofWrapper during the handler registration.
-			ev := protoutil.UnsafeUnwrapOneofWrapper[EvWrapper, Ev](evWrapperPtr)
-			return handler(ev)
+			evTpPtr := ((any)(event.Type)).(*EvTp)
+			return handler(evTpPtr)
 		})
 }
 
