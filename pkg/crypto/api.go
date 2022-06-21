@@ -19,15 +19,12 @@ type Crypto interface {
 
 	// Sign signs the provided data and returns the resulting signature.
 	// The data to be signed is the concatenation of all the passed byte slices.
-	// A signature produced by Sign is verifiable using Verify,
-	// if, respectively, RegisterNodeKey or RegisterClientKey has been invoked with the corresponding public key.
+	// A signature produced by Sign is verifiable using Verify.
 	// Note that the private key used to produce the signature cannot be set ("registered") through this interface.
 	// Storing and using the private key is completely implementation-dependent.
 	Sign(data [][]byte) ([]byte, error)
 
 	// Verify verifies a signature produced by the node with ID nodeID over data.
 	// Returns nil on success (i.e., if the given signature is valid) and a non-nil error otherwise.
-	// Note that RegisterNodeKey must be used to register the node's public key before calling Verify,
-	// otherwise Verify will fail.
 	Verify(data [][]byte, signature []byte, nodeID t.NodeID) error
 }
