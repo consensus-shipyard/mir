@@ -6,6 +6,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"sync"
 	"time"
 )
 
@@ -14,7 +15,8 @@ import (
 type Timer struct {
 	eventsOut chan *events.EventList
 
-	retIndex t.TimerRetIndex
+	retIndexMutex sync.RWMutex
+	retIndex      t.TimerRetIndex
 }
 
 func New() *Timer {
@@ -107,7 +109,7 @@ func (tm *Timer) Repeat(
 		defer ticker.Stop()
 
 		// Repeat as long as this repetition task has not been garbage-collected.
-		for retIndex >= tm.retIndex {
+		for retIndex >= tm.getRetIndex() {
 
 			// Try to write events to the output channel until the context is canceled.
 			select {
@@ -135,9 +137,18 @@ func (tm *Timer) Repeat(
 // smaller than retIndex.
 // If GarbageCollect already has been invoked with the same or higher retention index, the call has no effect.
 func (tm *Timer) GarbageCollect(retIndex t.TimerRetIndex) {
+	tm.retIndexMutex.Lock()
+	defer tm.retIndexMutex.Unlock()
 
 	// Retention index must be monotonically increasing over calls to GarbageCollect.
 	if retIndex > tm.retIndex {
 		tm.retIndex = retIndex
 	}
+}
+
+func (tm *Timer) getRetIndex() t.TimerRetIndex {
+	tm.retIndexMutex.RLock()
+	defer tm.retIndexMutex.RUnlock()
+
+	return tm.retIndex
 }

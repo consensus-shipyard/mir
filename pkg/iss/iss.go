@@ -586,6 +586,9 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		// stable checkpoint is associated with.
 		eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(stableCheckpoint.Epoch)))
 
+		// Prune old Timer tasks
+		eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(stableCheckpoint.Epoch)))
+
 		// Clean up the global ISS state from all the epoch
 		// instances that are associated with epoch numbers
 		// less than the epoch number of the new stable
