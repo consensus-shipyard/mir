@@ -331,6 +331,8 @@ func (pbft *pbftInstance) preprocessMessage(sn t.SeqNr, view t.PBFTViewNr, msg p
 		return nil
 	} else if view > pbft.view || pbft.inViewChange {
 		// If message is from a future view, buffer it.
+		pbft.logger.Log(logging.LevelDebug, "Buffering message.",
+			"sn", sn, "from", from, "msgView", view, "localView", pbft.view, "type", fmt.Sprintf("%T", msg))
 		pbft.messageBuffers[from].Store(msg)
 		return nil
 		// TODO: When view change is implemented, get the messages out of the buffer.
