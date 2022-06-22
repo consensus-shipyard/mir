@@ -63,8 +63,8 @@ type TestConfig struct {
 	// Duration after which the test deployment will be asked to shut down.
 	Duration time.Duration
 
-	// If not nil, the TestReplica with ID 0 will use this ISS configuration instead of the default one.
-	FirstReplicaISSConfig *iss.Config
+	// A set of replicas that are slow in proposing batches that is likely to trigger view change.
+	SlowProposeReplicas map[int]bool
 
 	// Logger to use for producing diagnostic messages.
 	Logger logging.Logger
@@ -128,13 +128,16 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			)
 		}
 
-		// Create instance of TestReplica.
-		// The first TestReplica might get a special ISS configuration.
-		// This is useful if one replica should do something else than the others during the test (e.g., fail).
-		var issConfig *iss.Config
-		if i == 0 {
-			issConfig = testConfig.FirstReplicaISSConfig
+		// ISS configuration
+		issConfig := iss.DefaultConfig(membership)
+		if testConfig.SlowProposeReplicas[i] {
+			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
+			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
+			// in the worst case, it will trigger view change by the segment timeout.
+			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
 		}
+
+		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{
 			ID:              t.NewNodeIDFromInt(i),
 			Config:          config,
