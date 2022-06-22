@@ -37,7 +37,7 @@ func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VC
 	}
 
 	// Do nothing otherwise.
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 // applyViewChangeSegmentTimeout applies the view change segment timeout event
@@ -56,7 +56,7 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 	}
 
 	// Do nothing otherwise.
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 // startViewChange initiates the view change subprotocol.
@@ -64,7 +64,7 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 // It constructs the PBFT view change message and creates an event requesting signing it.
 func (pbft *pbftInstance) startViewChange() *events.EventList {
 
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Enter the view change state and initialize a new view
 	pbft.inViewChange = true
@@ -110,14 +110,14 @@ func (pbft *pbftInstance) applyViewChangeSignResult(signature []byte, viewChange
 	)
 	persistEvent := pbft.eventService.WALAppend(PbftPersistSignedViewChange(signedViewChange))
 	persistEvent.FollowUp(repeatedSendEvent)
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }
 
 // applyMsgSignedViewChange applies a signed view change message.
 // The only thing it does is request verification of the signature.
 func (pbft *pbftInstance) applyMsgSignedViewChange(svc *isspbftpb.SignedViewChange, from t.NodeID) *events.EventList {
 	viewChange := svc.ViewChange
-	return (&events.EventList{}).PushBack(pbft.eventService.VerifyNodeSigs(
+	return events.ListOf(pbft.eventService.VerifyNodeSigs(
 		[][][]byte{serializeViewChangeForSigning(viewChange)},
 		[][]byte{svc.Signature},
 		[]t.NodeID{from},
@@ -139,7 +139,7 @@ func (pbft *pbftInstance) applyVerifiedViewChange(svc *isspbftpb.SignedViewChang
 			"vcView", vcView,
 			"localView", pbft.view,
 		)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Discard ViewChange message if this node is not the primary for the referenced view
@@ -150,7 +150,7 @@ func (pbft *pbftInstance) applyVerifiedViewChange(svc *isspbftpb.SignedViewChang
 			"vcView", vcView,
 			"primary", primary,
 		)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Look up the state associated with the view change sub-protocol.
@@ -159,7 +159,7 @@ func (pbft *pbftInstance) applyVerifiedViewChange(svc *isspbftpb.SignedViewChang
 	// If enough ViewChange messages had been received already, ignore the message just received.
 	if state.EnoughViewChanges() {
 		pbft.logger.Log(logging.LevelDebug, "Ignoring ViewChange message, have enough already", "from", from)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Update the view change state by the received ViewChange message.
@@ -175,7 +175,7 @@ func (pbft *pbftInstance) applyVerifiedViewChange(svc *isspbftpb.SignedViewChang
 		emptyPreprepareData := state.SetEmptyPreprepares(vcView)
 
 		// Request hashing of the new Preprepare messages
-		return (&events.EventList{}).PushBack(
+		return events.ListOf(
 			pbft.eventService.HashRequest(emptyPreprepareData, emptyPreprepareHashOrigin(vcView)),
 		)
 	}
@@ -183,7 +183,7 @@ func (pbft *pbftInstance) applyVerifiedViewChange(svc *isspbftpb.SignedViewChang
 	// TODO: Consider checking whether a quorum of valid view change messages has been almost received
 	//       and if yes, sending a ViewChange as well if it is the last one missing.
 
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 func (pbft *pbftInstance) applyEmptyPreprepareHashResult(digests [][]byte, view t.PBFTViewNr) *events.EventList {
@@ -194,7 +194,7 @@ func (pbft *pbftInstance) applyEmptyPreprepareHashResult(digests [][]byte, view 
 			"hashView", view,
 			"localView", pbft.view,
 		)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Look up the corresponding view change state.
@@ -224,14 +224,14 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 	if preprepare := pbft.lookUpPreprepare(t.SeqNr(preprepareRequest.Sn), preprepareRequest.Digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
-		return (&events.EventList{}).PushBack(
+		return events.ListOf(
 			pbft.eventService.SendMessage(PbftMissingPreprepareSBMessage(preprepare), []t.NodeID{from}),
 		)
 
 	}
 
 	// If the requested Preprepare message is not available, ignore the request.
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 func (pbft *pbftInstance) lookUpPreprepare(sn t.SeqNr, digest []byte) *isspbftpb.Preprepare {
@@ -268,7 +268,7 @@ func (pbft *pbftInstance) applyMsgMissingPreprepare(preprepare *isspbftpb.Prepre
 	// However, it might prevent some unnecessary hash computation if performed here as well.
 	state, view := pbft.latestPendingVCState()
 	if pp, ok := state.preprepares[t.SeqNr(preprepare.Sn)]; (ok && pp != nil) || view < pbft.view {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Request a hash of the received preprepare message.
@@ -276,7 +276,7 @@ func (pbft *pbftInstance) applyMsgMissingPreprepare(preprepare *isspbftpb.Prepre
 		[][][]byte{serializePreprepareForHashing(preprepare)},
 		missingPreprepareHashOrigin(preprepare),
 	)
-	return (&events.EventList{}).PushBack(hashRequest)
+	return events.ListOf(hashRequest)
 }
 
 func (pbft *pbftInstance) applyMissingPreprepareHashResult(
@@ -294,7 +294,7 @@ func (pbft *pbftInstance) applyMissingPreprepareHashResult(
 	// Ignore preprepare if received in the meantime or if view has already advanced.
 	// (Such a situation can occur if missing Preprepares arrive late.)
 	if pp, ok := state.preprepares[t.SeqNr(preprepare.Sn)]; (ok && pp != nil) || view < pbft.view {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Add the missing preprepare message if its digest matches, updating its view.
@@ -310,7 +310,7 @@ func (pbft *pbftInstance) applyMissingPreprepareHashResult(
 		return pbft.sendNewView(view, state)
 	}
 
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeState) *events.EventList {
@@ -339,14 +339,14 @@ func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChange
 	newView := pbftNewViewMsg(view, viewChangeSenders, signedViewChanges, preprepareSeqNrs, preprepares)
 	persistEvent := pbft.eventService.WALAppend(PbftPersistNewView(newView))
 	persistEvent.FollowUp(pbft.eventService.SendMessage(PbftNewViewSBMessage(newView), pbft.segment.Membership))
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }
 
 func (pbft *pbftInstance) applyMsgNewView(newView *isspbftpb.NewView, from t.NodeID) *events.EventList {
 
 	// Ignore message if the sender is not the primary of the view.
 	if from != primaryNode(pbft.segment, t.PBFTViewNr(newView.View)) {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Assemble request for checking signatures on the contained ViewChange messages.
@@ -358,7 +358,7 @@ func (pbft *pbftInstance) applyMsgNewView(newView *isspbftpb.NewView, from t.Nod
 	}
 
 	// Request checking of signatures on the contained ViewChange messages
-	return (&events.EventList{}).PushBack(pbft.eventService.VerifyNodeSigs(
+	return events.ListOf(pbft.eventService.VerifyNodeSigs(
 		viewChangeData,
 		signatures,
 		t.NodeIDSlice(newView.ViewChangeSenders),
@@ -374,7 +374,7 @@ func (pbft *pbftInstance) applyVerifiedNewView(newView *isspbftpb.NewView) *even
 	}
 
 	// Request hashes of the Preprepare messages.
-	return (&events.EventList{}).PushBack(pbft.eventService.HashRequest(dataToHash, newViewHashOrigin(newView)))
+	return events.ListOf(pbft.eventService.HashRequest(dataToHash, newViewHashOrigin(newView)))
 }
 
 func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *isspbftpb.NewView) *events.EventList {
@@ -384,7 +384,7 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 
 	// Ignore message if old.
 	if msgView < pbft.view {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Create a temporary view change state object
@@ -398,7 +398,7 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 
 	// If the obtained ViewChange messages are not sufficient to infer all re-proposals, ignore NewView message.
 	if !vcState.EnoughViewChanges() {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Verify if the re-proposed hashes match the obtained Preprepares.
@@ -421,7 +421,7 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 	// If the NewVeiw contains mismatching Preprepares, ignore the message.
 	if !prepreparesMatching {
 		pbft.logger.Log(logging.LevelWarn, "Hash mismatch in received NewView. Ignoring.", "view", newView.View)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// If all the checks passed, (TODO: make sure all the checks of the NewView message have been performed!)

@@ -58,7 +58,7 @@ func (fl *FakeLink) ApplyEvents(
 					eventsOut := fl.FakeTransport.NodeSinks[unsafeIDtoi(fl.Source)]
 					go func() {
 						select {
-						case eventsOut <- (&events.EventList{}).PushBack(receivedEvent):
+						case eventsOut <- events.ListOf(receivedEvent):
 						case <-ctx.Done():
 						}
 					}()
@@ -120,7 +120,7 @@ func NewFakeTransport(nodes int) *FakeTransport {
 
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
-	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- (&events.EventList{}).PushBack(
+	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- events.ListOf(
 		events.MessageReceived(t.ModuleID(msg.DestModule), source, msg),
 	):
 	default:

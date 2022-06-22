@@ -175,7 +175,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 		default:
 			// Otherwise, submit next request.
 
-			if err := node.InjectEvents(ctx, (&events.EventList{}).PushBack(events.NewClientRequests(
+			if err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
 				"iss",
 				[]*requestpb.Request{events.ClientRequest(
 					t.NewClientIDFromInt(0),

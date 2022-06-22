@@ -156,7 +156,7 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
 		*isspb.SBInstanceEvent_PbftPersistNewView:
 		// TODO: Ignoring WAL loading for the moment.
-		return &events.EventList{}
+		return events.EmptyList()
 	default:
 		// Panic if message type is not known.
 		panic(fmt.Sprintf("unknown PBFT SB instance event type: %T", event.Type))
@@ -284,7 +284,7 @@ func (pbft *pbftInstance) canPropose() bool {
 // except for events read from the WAL at startup, which are expected to be applied even before the Init event.
 func (pbft *pbftInstance) applyInit() *events.EventList {
 
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Initialize the first PBFT view
 	eventsOut.PushBackList(pbft.initView(0))
@@ -325,7 +325,7 @@ func (pbft *pbftInstance) applyPendingRequests(numRequests t.NumRequests) *event
 		return pbft.requestNewBatch()
 	}
 
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
@@ -338,7 +338,7 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 	// View 0 is also started only once (the code makes sure that startView(0) is only called at initialization),
 	// it's just that the default value of the variable is already 0 - that's why it needs an exception.
 	if view != 0 && view == pbft.view {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	pbft.logger.Log(logging.LevelInfo, "Initializing new view.", "view", view)
@@ -358,7 +358,7 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 	}
 
 	// Set view change timeouts
-	timerEvents := &events.EventList{}
+	timerEvents := events.EmptyList()
 	timerEvents.PushBack(pbft.eventService.TimerDelay(
 		computeTimeout(t.TimeDuration(pbft.config.ViewChangeBatchTimeout), view),
 		pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(view, pbft.numCommitted(view)))),

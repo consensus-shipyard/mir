@@ -82,7 +82,7 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.ReqNo)
 
 		// Submit the request to the Node.
-		if srErr := rr.node.InjectEvents(srv.Context(), (&events.EventList{}).PushBack(events.NewClientRequests(
+		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(events.NewClientRequests(
 			"iss",
 			[]*requestpb.Request{req},
 		))); srErr != nil {

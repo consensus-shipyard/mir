@@ -10,7 +10,7 @@ type NullPassive struct {
 }
 
 func (n NullPassive) ApplyEvents(_ *events.EventList) (*events.EventList, error) {
-	return &events.EventList{}, nil
+	return events.EmptyList(), nil
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.

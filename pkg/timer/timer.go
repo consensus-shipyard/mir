@@ -42,13 +42,13 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 		case *eventpb.Event_TimerDelay:
 			tm.Delay(
 				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerDelay.Events),
+				events.EmptyList().PushBackSlice(e.TimerDelay.Events),
 				t.TimeDuration(e.TimerDelay.Delay),
 			)
 		case *eventpb.Event_TimerRepeat:
 			tm.Repeat(
 				ctx,
-				(&events.EventList{}).PushBackSlice(e.TimerRepeat.Events),
+				events.EmptyList().PushBackSlice(e.TimerRepeat.Events),
 				t.TimeDuration(e.TimerRepeat.Delay),
 				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
 			)

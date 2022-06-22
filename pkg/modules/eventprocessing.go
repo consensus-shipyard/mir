@@ -16,7 +16,7 @@ func ApplyEventsSequentially(
 	applyEvent func(*eventpb.Event) (*events.EventList, error),
 ) (*events.EventList, error) {
 
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -76,7 +76,7 @@ func ApplyEventsConcurrently(
 
 	// The event processing results will be aggregated here.
 	var firstError error
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// For each input event, read the processing result from the common channels and aggregate it with the rest.
 	for i := 0; i < eventsIn.Len(); i++ {

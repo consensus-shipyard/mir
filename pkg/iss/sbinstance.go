@@ -89,7 +89,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 	// Create a HashRequest for the commit log entry with the newly delivered hash.
 	// The hash is required for state transfer.
 	// Only after the hash is computed, the log entry can be stored in the log (and potentially delivered to the App).
-	return (&events.EventList{}).PushBack(events.HashRequest(
+	return events.ListOf(events.HashRequest(
 		hasherModuleName,
 		[][][]byte{serializeLogEntryForHashing(unhashedEntry)},
 		LogEntryHashOrigin(unhashedEntry.Sn),
@@ -129,5 +129,5 @@ func (iss *ISS) applySBInstResurrectBatch(_ t.SBInstanceNr, batch *requestpb.Bat
 	}
 
 	// No further actions to be performed.
-	return &events.EventList{}
+	return events.EmptyList()
 }

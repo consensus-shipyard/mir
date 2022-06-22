@@ -114,7 +114,7 @@ func (gt *GrpcTransport) ApplyEvents(
 					)
 					go func() {
 						select {
-						case gt.incomingMessages <- (&events.EventList{}).PushBack(receivedEvent):
+						case gt.incomingMessages <- events.ListOf(receivedEvent):
 						case <-ctx.Done():
 						}
 					}()
@@ -162,7 +162,7 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 	// For each message received
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
 		select {
-		case gt.incomingMessages <- (&events.EventList{}).PushBack(
+		case gt.incomingMessages <- events.ListOf(
 			events.MessageReceived(t.ModuleID(grpcMsg.Msg.DestModule), t.NodeID(grpcMsg.Sender), grpcMsg.Msg),
 		):
 			// Write the message to the channel. This channel will be read by the user of the module.

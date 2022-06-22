@@ -79,7 +79,7 @@ func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr
 // If it can, advanceSlotState updates the state of the pbftSlot and returns a list of Events that result from it.
 // Requires the PBFT instance as an argument to use it to generate the proper events.
 func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// If the slot just became prepared, send (and persist) the Commit message.
 	if !slot.Prepared && slot.checkPrepared() {

@@ -14,5 +14,5 @@ func (pbft *pbftInstance) applyPbftPersistPreprepare(_ *isspbftpb.Preprepare) *e
 
 	// TODO: Implement this.
 	pbft.logger.Log(logging.LevelDebug, "Loading WAL event: Preprepare (unimplemented)")
-	return &events.EventList{}
+	return events.EmptyList()
 }

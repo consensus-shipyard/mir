@@ -285,7 +285,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return iss.applyStableCheckpoint(issEvent.StableCheckpoint), nil
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
-			return &events.EventList{}, nil
+			return events.EmptyList(), nil
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
@@ -422,7 +422,7 @@ func (iss *ISS) applyNewRequests(requests []*requestpb.Request) (*events.EventLi
 		requestData[i] = serializing.RequestForHash(request)
 	}
 
-	return (&events.EventList{}).PushBack(events.HashRequest(
+	return events.ListOf(events.HashRequest(
 		"hasher",
 		requestData,
 		RequestHashOrigin(requests),
@@ -431,7 +431,7 @@ func (iss *ISS) applyNewRequests(requests []*requestpb.Request) (*events.EventLi
 }
 
 func (iss *ISS) applyRequestHashResult(requests []*requestpb.Request, digests [][]byte) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	for i, request := range requests {
 		eventsOut.PushBackList(iss.handleHashedRequest(events.HashedRequest(request, digests[i])))
@@ -441,7 +441,7 @@ func (iss *ISS) applyRequestHashResult(requests []*requestpb.Request, digests []
 }
 
 func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Get bucket to which the new request maps.
 	bucket := iss.buckets.RequestBucket(request)
@@ -451,7 +451,7 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 		// If the request already has been added, do nothing and return, as if the event did not exist.
 		// Returning here is important, because the rest of this function
 		// must only be executed once for a request in an epoch (to prevent request duplication).
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Count number of requests in all the buckets assigned to the same instance as the bucket of the received request.
@@ -476,7 +476,7 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyAppSnapshot(snapshot *eventpb.AppSnapshot) *events.EventList {
 	if iss.epoch.Nr != t.EpochNr(snapshot.Epoch) {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 	return iss.epoch.Checkpoint.ProcessAppSnapshot(snapshot.Data)
 }
@@ -507,7 +507,7 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 // It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
 	if iss.epoch.Nr != epoch {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 	return iss.epoch.Checkpoint.ProcessAppSnapshotHash(digest)
 }
@@ -516,7 +516,7 @@ func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *even
 // It passes the signature to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *events.EventList {
 	if iss.epoch.Nr != epoch {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 	return iss.epoch.Checkpoint.ProcessCheckpointSignResult(signature)
 }
@@ -524,7 +524,7 @@ func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *ev
 // It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, epoch t.EpochNr) *events.EventList {
 	if iss.epoch.Nr != epoch {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 	return iss.epoch.Checkpoint.ProcessSigVerified(valid, err, node)
 }
@@ -542,7 +542,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 		*isspb.SBInstanceEvent_PbftPersistCommit,
 		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
 		*isspb.SBInstanceEvent_PbftPersistNewView:
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	switch epoch := t.EpochNr(event.Epoch); {
@@ -561,12 +561,12 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 		// TODO: Is this really correct? Is it possible that orderers from old epochs
 		//       (that have a reason to not yet be garbage-collected) still need to process events?
 		iss.logger.Log(logging.LevelDebug, "Ignoring old event.", "epoch", epoch)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 }
 
 func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
 		// If this is the most recent checkpoint observed, save it.
@@ -660,7 +660,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 		// In such case, save the message in a backlog (if there is buffer space) for later processing.
 		iss.messageBuffers[source].Store(message)
 
-		return &events.EventList{}
+		return events.EmptyList()
 
 	case epoch == iss.epoch.Nr:
 		// If the message is for the current epoch, check its validity and
@@ -669,7 +669,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 
 	default: // epoch < iss.epoch.Nr:
 		// Ignore old messages
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 }
 
@@ -677,14 +677,14 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 // received over the network. It verifies the message and decides
 // whether to install the state snapshot from the message.
 func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t.NodeID) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Check how far is the received stable checkpoint ahead of
 	// the local node's state.
 	if t.EpochNr(m.Epoch) <= iss.epoch.Nr+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", m.Epoch)
@@ -734,7 +734,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
 		// In such case, save the message in a backlog (if there is buffer space) for later processing.
 		iss.messageBuffers[from].Store(message)
-		return &events.EventList{}
+		return events.EmptyList()
 
 	case epoch == iss.epoch.Nr:
 		// If the message is for the current epoch, check its validity and
@@ -742,7 +742,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		if err := iss.validateSBMessage(message, from); err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
 				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err)
-			return &events.EventList{}
+			return events.EmptyList()
 		}
 
 		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceNr(message.Instance))
@@ -752,7 +752,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		//       they might need to receive messages... Instead of simply checking the message epoch
 		//       against the current epoch, we might need to remember which epochs have been already garbage-collected
 		//       and use that information to decide what to do with messages.
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 }
 
@@ -762,7 +762,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 func (iss *ISS) applyRetransmitRequestsMessage(req *isspb.RetransmitRequests, from t.NodeID) *events.EventList {
 	iss.logger.Log(logging.LevelWarn, "UNIMPLEMENTED: Ignoring request retransmission request.",
 		"from", from, "numReqs", len(req.Requests))
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 // ============================================================
@@ -833,7 +833,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
 func (iss *ISS) initOrderers() *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	sbInit := SBInitEvent()
 	for _, orderer := range iss.epoch.Orderers {
@@ -878,7 +878,7 @@ func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error
 // to create Deliver events for all the batches that can be delivered to the application.
 // processCommitted also triggers other internal Events like epoch transitions and state checkpointing.
 func (iss *ISS) processCommitted() *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// The iss.nextDeliveredSN variable always contains the lowest sequence number
 	// for which no batch has been delivered yet.
@@ -934,7 +934,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 // that have been buffered during past epochs.
 // This function is always called directly after initializing a new epoch, except for epoch 0.
 func (iss *ISS) applyBufferedMessages() *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Iterate over the all messages in all buffers, selecting those that can be applied.
 	for _, buffer := range iss.messageBuffers {
