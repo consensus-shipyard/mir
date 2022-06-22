@@ -90,6 +90,8 @@ type Config struct {
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
+	PBFTDoneResendPeriod         time.Duration
+	PBFTCatchUpDelay             time.Duration
 	PBFTViewChangeBatchTimeout   time.Duration
 	PBFTViewChangeSegmentTimeout time.Duration
 	PBFTViewChangeResendPeriod   time.Duration
@@ -177,6 +179,8 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
+		PBFTDoneResendPeriod:         maxProposeDelay,
+		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTViewChangeBatchTimeout:   4 * maxProposeDelay,
 		PBFTViewChangeSegmentTimeout: 2 * time.Duration(segmentLength) * maxProposeDelay,
 		PBFTViewChangeResendPeriod:   maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything

@@ -127,6 +127,29 @@ func PbftNewViewSBMessage(newView *isspbftpb.NewView) *isspb.SBInstanceMessage {
 	}}
 }
 
+func PbftDoneSBMessage(digests [][]byte) *isspb.SBInstanceMessage {
+	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftDone{
+		PbftDone: &isspbftpb.Done{
+			Digests: digests,
+		},
+	}}
+}
+
+func PbftCatchUpRequestSBMessage(sn t.SeqNr, digest []byte) *isspb.SBInstanceMessage {
+	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftCatchUpRequest{
+		PbftCatchUpRequest: &isspbftpb.CatchUpRequest{
+			Digest: digest,
+			Sn:     sn.Pb(),
+		},
+	}}
+}
+
+func PbftCatchUpResponseSBMessage(preprepare *isspbftpb.Preprepare) *isspb.SBInstanceMessage {
+	return &isspb.SBInstanceMessage{Type: &isspb.SBInstanceMessage_PbftCatchUpResponse{
+		PbftCatchUpResponse: preprepare,
+	}}
+}
+
 // ============================================================
 // PBFT Message
 // ============================================================
@@ -249,6 +272,12 @@ func newViewSigVerOrigin(newView *isspbftpb.NewView) *isspb.SBInstanceSigVerOrig
 func newViewHashOrigin(newView *isspbftpb.NewView) *isspb.SBInstanceHashOrigin {
 	return &isspb.SBInstanceHashOrigin{Type: &isspb.SBInstanceHashOrigin_PbftNewView{
 		PbftNewView: newView,
+	}}
+}
+
+func catchUpResponseHashOrigin(preprepare *isspbftpb.Preprepare) *isspb.SBInstanceHashOrigin {
+	return &isspb.SBInstanceHashOrigin{Type: &isspb.SBInstanceHashOrigin_PbftCatchUpResponse{
+		PbftCatchUpResponse: preprepare,
 	}}
 }
 

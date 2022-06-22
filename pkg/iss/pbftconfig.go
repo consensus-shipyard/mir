@@ -20,6 +20,14 @@ type PBFTConfig struct {
 	// Must not be negative.
 	MaxProposeDelay time.Duration
 
+	// When a node has committed all batches in a segment, it will periodically send the Done message
+	// in intervals of DoneResendPeriod.
+	DoneResendPeriod time.Duration
+
+	// After a node learns about a quorum of other nodes finishing a segment,
+	// it waits for CatchUpDelay before requesting missing committed batches from other nodes.
+	CatchUpDelay time.Duration
+
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
 	// Same as Config.MsgBufCapacity, but used only for one instance of PBFT.
