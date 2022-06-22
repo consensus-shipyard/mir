@@ -88,7 +88,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 
 	// Request a snapshot of the application state.
 	// TODO: also get a snapshot of the shared state
-	return (&events.EventList{}).PushBack(events.AppSnapshotRequest(appModuleName, issModuleName, ct.epoch))
+	return events.ListOf(events.AppSnapshotRequest(appModuleName, issModuleName, ct.epoch))
 }
 
 func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventList {
@@ -99,7 +99,7 @@ func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventLi
 	// Initiate computing the hash of the snapshot
 	hashEvent := events.HashRequest(hasherModuleName, [][][]byte{{snapshot}}, AppSnapshotHashOrigin(ct.epoch))
 
-	return (&events.EventList{}).PushBack(hashEvent)
+	return events.ListOf(hashEvent)
 }
 
 func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events.EventList {
@@ -111,7 +111,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
 	sigEvent := events.SignRequest(cryptoModuleName, sigData, CheckpointSignOrigin(ct.epoch))
 
-	return (&events.EventList{}).PushBack(sigEvent)
+	return events.ListOf(sigEvent)
 }
 
 func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *events.EventList {
@@ -136,25 +136,25 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	ct.pendingMessages = nil
 
 	// Return resulting WALEvent (with the SendMessage event appended).
-	return (&events.EventList{}).PushBack(walEvent)
+	return events.ListOf(walEvent)
 }
 
 func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID) *events.EventList {
 
 	// If checkpoint is already stable, ignore message.
 	if ct.stable() {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check snapshot hash
 	if ct.appSnapshotHash == nil {
 		// The message is received too early, put it aside
 		ct.pendingMessages[source] = msg
-		return &events.EventList{}
+		return events.EmptyList()
 	} else if !bytes.Equal(ct.appSnapshotHash, msg.AppSnapshotHash) {
 		// Snapshot hash mismatch
 		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching app snapshot hash.", "source", source)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// TODO: Only accept messages from nodes in membership.
@@ -162,7 +162,7 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 
 	// Ignore duplicate messages.
 	if _, ok := ct.signatures[source]; ok {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 	ct.signatures[source] = msg.Signature
 
@@ -176,7 +176,7 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 		CheckpointSigVerOrigin(ct.epoch),
 	)
 
-	return (&events.EventList{}).PushBack(verifySigEvent)
+	return events.ListOf(verifySigEvent)
 }
 
 func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t.NodeID) *events.EventList {
@@ -184,7 +184,7 @@ func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t
 	if !valid {
 		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", source, "error", err)
 		ct.signatures[source] = nil
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Note the reception of a valid Checkpoint message from node `source`.
@@ -195,7 +195,7 @@ func (ct *checkpointTracker) ProcessSigVerified(valid bool, err string, source t
 		return ct.announceStable()
 	}
 
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 func (ct *checkpointTracker) stable() bool {
@@ -225,5 +225,5 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 		t.WALRetIndex(ct.epoch),
 	)
 	persistEvent.FollowUp(StableCheckpointEvent(stableCheckpoint))
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }

@@ -40,7 +40,7 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		if err != nil {
 			return nil, fmt.Errorf("app snapshot error: %w", err)
 		}
-		return (&events.EventList{}).PushBack(events.AppSnapshot(
+		return events.ListOf(events.AppSnapshot(
 			t.ModuleID(e.AppSnapshotRequest.Module),
 			t.EpochNr(e.AppSnapshotRequest.Epoch),
 			data,
@@ -53,7 +53,7 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}
 
-	return &events.EventList{}, nil
+	return events.EmptyList(), nil
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.

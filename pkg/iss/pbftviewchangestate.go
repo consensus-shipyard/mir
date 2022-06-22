@@ -150,7 +150,7 @@ func (vcState *pbftViewChangeState) askForMissingPreprepares(eventService *sbEve
 
 	// TODO: Do this periodically, not just once. Messages might get lost!
 
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 	for sn, digest := range vcState.reproposals {
 		if len(digest) > 0 && vcState.preprepares[sn] == nil {
 			eventsOut.PushBack(eventService.SendMessage(

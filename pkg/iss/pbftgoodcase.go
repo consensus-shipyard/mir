@@ -73,7 +73,7 @@ func (pbft *pbftInstance) applyProposeTimeout(numProposals int) *events.EventLis
 		}
 	}
 
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 // requestNewBatch asks (by means of a CutBatch event) ISS to assemble a new request batch.
@@ -91,13 +91,13 @@ func (pbft *pbftInstance) requestNewBatch() *events.EventList {
 
 	// Emit the CutBatch event.
 	// Operation continues on reception of the BatchReady event.
-	return (&events.EventList{}).PushBack(pbft.eventService.SBEvent(SBCutBatchEvent(pbft.config.MaxBatchSize)))
+	return events.ListOf(pbft.eventService.SBEvent(SBCutBatchEvent(pbft.config.MaxBatchSize)))
 }
 
 // applyBatchReady processes a new batch ready to be proposed.
 // This event is triggered by ISS in response to the CutBatch event produced by this orderer.
 func (pbft *pbftInstance) applyBatchReady(batch *isspb.SBBatchReady) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Clear flag that was set in requestNewBatch(), so that new batches can be requested if necessary.
 	pbft.proposal.batchRequested = false
@@ -150,7 +150,7 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 
 	// First the preprepare needs to be persisted to the WAL, and only then it can be sent to the network.
 	persistEvent.Next = []*eventpb.Event{msgSendEvent, timerEvent}
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }
 
 // applyMsgPreprepare applies a received preprepare message.
@@ -165,7 +165,7 @@ func (pbft *pbftInstance) applyMsgPreprepare(preprepare *isspbftpb.Preprepare, f
 	slot := pbft.preprocessMessage(sn, t.PBFTViewNr(preprepare.View), preprepare, from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check that this is the first Preprepare message received.
@@ -174,7 +174,7 @@ func (pbft *pbftInstance) applyMsgPreprepare(preprepare *isspbftpb.Preprepare, f
 	if slot.Preprepare != nil {
 		pbft.logger.Log(logging.LevelDebug, "Ignoring Preprepare message. Already preprepared or prepreparing.",
 			"sn", sn, "from", from)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check whether the sender is the legitimate leader of the segment in the current view.
@@ -194,21 +194,21 @@ func (pbft *pbftInstance) applyMsgPreprepare(preprepare *isspbftpb.Preprepare, f
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.
-	return (&events.EventList{}).PushBack(pbft.eventService.HashRequest(
+	return events.ListOf(pbft.eventService.HashRequest(
 		[][][]byte{serializePreprepareForHashing(preprepare)},
 		preprepareHashOrigin(preprepare)),
 	)
 }
 
 func (pbft *pbftInstance) applyPreprepareHashResult(digest []byte, preprepare *isspbftpb.Preprepare) *events.EventList {
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Convenience variable.
 	sn := t.SeqNr(preprepare.Sn)
 
 	// Stop processing the Preprepare if view advanced in the meantime.
 	if t.PBFTViewNr(preprepare.View) < pbft.view {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Save the digest of the Preprepare message and mark the slot as preprepared.
@@ -241,7 +241,7 @@ func (pbft *pbftInstance) sendPrepare(prepare *isspbftpb.Prepare) *events.EventL
 	))
 
 	// Return a list with a single element - the persist event with the send event as a follow-up.
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }
 
 // applyMsgPrepare applies a received prepare message.
@@ -256,14 +256,14 @@ func (pbft *pbftInstance) applyMsgPrepare(prepare *isspbftpb.Prepare, from t.Nod
 	slot := pbft.preprocessMessage(sn, t.PBFTViewNr(prepare.View), prepare, from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check if a Prepare message has already been received from this node in the current view.
 	if _, ok := slot.Prepares[from]; ok {
 		pbft.logger.Log(logging.LevelDebug, "Ignoring Prepare message. Already received in this view.",
 			"sn", sn, "from", from, "view", pbft.view)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Save the received Prepare message and advance the slot state
@@ -286,7 +286,7 @@ func (pbft *pbftInstance) sendCommit(commit *isspbftpb.Commit) *events.EventList
 	))
 
 	// Return a list with a single element - the persist event with the send event as a follow-up.
-	return (&events.EventList{}).PushBack(persistEvent)
+	return events.ListOf(persistEvent)
 }
 
 // applyMsgCommit applies a received commit message.
@@ -301,14 +301,14 @@ func (pbft *pbftInstance) applyMsgCommit(commit *isspbftpb.Commit, from t.NodeID
 	slot := pbft.preprocessMessage(sn, t.PBFTViewNr(commit.View), commit, from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check if a Commit message has already been received from this node in the current view.
 	if _, ok := slot.Commits[from]; ok {
 		pbft.logger.Log(logging.LevelDebug, "Ignoring Commit message. Already received in this view.",
 			"sn", sn, "from", from, "view", pbft.view)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Save the received Commit message and advance the slot state

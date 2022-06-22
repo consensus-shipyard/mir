@@ -31,7 +31,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		if err != nil {
 			return nil, err
 		}
-		return (&events.EventList{}).PushBack(
+		return events.ListOf(
 			events.SignResult(t.ModuleID(e.SignRequest.Origin.Module), signature, e.SignRequest.Origin),
 		), nil
 
@@ -58,7 +58,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		}
 
 		// Return result event
-		return (&events.EventList{}).PushBack(events.NodeSigsVerified(
+		return events.ListOf(events.NodeSigsVerified(
 			t.ModuleID(verifyEvent.Origin.Module),
 			results,
 			errors,

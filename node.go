@@ -163,7 +163,7 @@ func (n *Node) Run(ctx context.Context) error {
 	}
 
 	// Submit the Init event to the modules.
-	if err := n.workItems.AddEvents((&events.EventList{}).PushBack(events.Init("iss"))); err != nil {
+	if err := n.workItems.AddEvents(events.ListOf(events.Init("iss"))); err != nil {
 		n.workErrNotifier.Fail(err)
 		return fmt.Errorf("failed to add init event: %w", err)
 	}
@@ -181,7 +181,7 @@ func (n *Node) processWAL() error {
 	// Add all events from the WAL to the new EventList.
 	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
 	if storedEvents, err = n.modules["wal"].(modules.PassiveModule).ApplyEvents(
-		(&events.EventList{}).PushBack(events.WALLoadAll("wal")),
+		events.ListOf(events.WALLoadAll("wal")),
 	); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
@@ -269,7 +269,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
-					n.workItems[mID] = &events.EventList{}
+					n.workItems[mID] = events.EmptyList()
 				})
 			}
 		}

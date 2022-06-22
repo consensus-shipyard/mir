@@ -50,7 +50,7 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 		}
 
 		// Return all computed digests in one common event.
-		return (&events.EventList{}).PushBack(
+		return events.ListOf(
 			events.HashResult(t.ModuleID(e.HashRequest.Origin.Module), digests, e.HashRequest.Origin),
 		), nil
 	default:

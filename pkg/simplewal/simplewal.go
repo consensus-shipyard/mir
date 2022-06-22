@@ -63,7 +63,7 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		}
 	case *eventpb.Event_WalLoadAll:
 
-		storedEvents := &events.EventList{}
+		storedEvents := events.EmptyList()
 
 		// Add all events from the WAL to the new EventList.
 		if err := w.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
@@ -83,7 +83,7 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return nil, fmt.Errorf("failed to sync WAL: %w", err)
 	}
 
-	return &events.EventList{}, nil
+	return events.EmptyList(), nil
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.

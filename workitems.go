@@ -18,7 +18,7 @@ func newWorkItems(modules modules.Modules) workItems {
 	wi := make(map[t.ModuleID]*events.EventList)
 
 	for moduleID := range modules {
-		wi[moduleID] = &events.EventList{}
+		wi[moduleID] = events.EmptyList()
 	}
 
 	return wi
