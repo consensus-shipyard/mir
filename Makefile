@@ -23,7 +23,7 @@ clean:
 
 .PHONY: test
 test:
-	go test -race
+	go test -race ./...
 
 .PHONY: lint
 lint:

@@ -3,19 +3,16 @@ package deploytest
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 
-	. "github.com/onsi/ginkgo/v2" //nolint:revive
-	. "github.com/onsi/gomega"    //nolint:revive
-
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -67,20 +64,26 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Initialize the write-ahead log.
 	walPath := filepath.Join(tr.Dir, "wal")
-	err := os.MkdirAll(walPath, 0700)
-	Expect(err).NotTo(HaveOccurred())
+	if err := os.MkdirAll(walPath, 0700); err != nil {
+		return fmt.Errorf("error creating WAL directory: %w", err)
+	}
 	wal, err := simplewal.Open(walPath)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error opening WAL: %w", err)
+	}
 	defer wal.Close()
 
 	// Initialize recording of events.
 	file, err := os.Create(tr.EventLogFile())
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error creating event log file: %w", err)
+	}
 	defer file.Close()
 	interceptor := eventlog.NewRecorder(tr.ID, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	defer func() {
-		err := interceptor.Stop()
-		Expect(err).NotTo(HaveOccurred())
+		if err := interceptor.Stop(); err != nil {
+			panic(err)
+		}
 	}()
 
 	// If no ISS Protocol configuration has been specified, use the default one.
@@ -89,10 +92,14 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 
 	issProtocol, err := iss.New(tr.ID, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error creating ISS protocol module: %w", err)
+	}
 
 	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ID, mirCrypto.DefaultPseudoSeed)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error creating crypto module: %w", err)
+	}
 
 	// Create the mir node for this replica.
 	node, err := mir.NewNode(
@@ -107,16 +114,20 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		},
 		interceptor,
 	)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error creating Mir node: %w", err)
+	}
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
-		panic(fmt.Errorf("could not convert node ID %s: %w", tr.ID, err))
+		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
 	}
 	err = requestReceiver.Start(RequestListenPort + p)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		return fmt.Errorf("error starting request receiver: %w", err)
+	}
 
 	// Initialize WaitGroup for the replica's request submission thread.
 	var wg sync.WaitGroup
@@ -131,7 +142,9 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	switch transport := tr.Net.(type) {
 	case *grpctransport.GrpcTransport:
 		err := transport.Start()
-		Expect(err).NotTo(HaveOccurred())
+		if err != nil {
+			return fmt.Errorf("error starting gRPC transport: %w", err)
+		}
 		transport.Connect(ctx)
 	}
 
@@ -141,7 +154,9 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Stop the request receiver.
 	requestReceiver.Stop()
-	Expect(requestReceiver.ServerError()).NotTo(HaveOccurred())
+	if err := requestReceiver.ServerError(); err != nil {
+		return fmt.Errorf("request receiver returned server error: %w", err)
+	}
 
 	// Wait for the local request submission thread.
 	wg.Wait()
@@ -163,7 +178,6 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 // Aborts when stopC is closed.
 // Decrements wg when done.
 func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, wg *sync.WaitGroup) {
-	defer GinkgoRecover()
 	defer wg.Done()
 
 	// The ID of the fake client is always 0.
