@@ -47,7 +47,9 @@ type EventType interface {
 		eventpb.Event_TimerDelay |
 		eventpb.Event_TimerRepeat |
 		eventpb.Event_TimerGarbageCollect |
-		eventpb.Event_Bcb
+		eventpb.Event_Bcb |
+		eventpb.Event_TestingString |
+		eventpb.Event_TestingUint
 }
 
 // Strip returns a new identical (shallow copy of the) event,
