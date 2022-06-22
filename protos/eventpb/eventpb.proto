@@ -12,6 +12,7 @@ import "commonpb/commonpb.proto";
 import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
+import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -46,6 +47,10 @@ message Event {
     TimerDelay           timer_delay             = 25;
     TimerRepeat          timer_repeat            = 26;
     TimerGarbageCollect  timer_garbage_collect   = 27;
+
+    // for unit-tests
+    google.protobuf.StringValue testingString = 301;
+    google.protobuf.UInt64Value testingUint   = 302;
   }
 
   // A list of follow-up events to process after this event has been processed.

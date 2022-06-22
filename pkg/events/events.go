@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Strip returns a new identical (shallow copy of the) event,
@@ -41,6 +42,24 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 // ============================================================
 // Event Constructors
 // ============================================================
+
+func TestingString(dest t.ModuleID, s string) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: dest.Pb(),
+		Type: &eventpb.Event_TestingString{
+			TestingString: wrapperspb.String(s),
+		},
+	}
+}
+
+func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: dest.Pb(),
+		Type: &eventpb.Event_TestingUint{
+			TestingUint: wrapperspb.UInt64(u),
+		},
+	}
+}
 
 // Init returns an event instructing a module to initialize.
 // This event is the first to be applied to a module after applying all events from the WAL.
