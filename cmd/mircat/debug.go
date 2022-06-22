@@ -99,7 +99,8 @@ func debug(args *arguments) error {
 		return fmt.Errorf("error reading event log: %w", err)
 	}
 
-	fmt.Println("End of trace, done debugging.")
+	fmt.Println("End of trace, done debugging. Press Enter to exit.")
+	bufio.NewScanner(os.Stdin).Scan()
 
 	return nil
 }
