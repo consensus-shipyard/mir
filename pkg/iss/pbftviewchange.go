@@ -234,33 +234,6 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 	return events.EmptyList()
 }
 
-func (pbft *pbftInstance) lookUpPreprepare(sn t.SeqNr, digest []byte) *isspbftpb.Preprepare {
-	// Traverse all views, starting in the current view.
-	for view := pbft.view; ; view-- {
-
-		// If the view exists (i.e. if this node ever entered the view)
-		if slots, ok := pbft.slots[view]; ok {
-
-			// If the given sequence number is part of the segment (might not be, in case of a corrupted message)
-			if slot, ok := slots[sn]; ok {
-
-				// If the slot contains a matching Preprepare
-				if preprepare := slot.getPreprepare(digest); preprepare != nil {
-
-					// Preprepare found, return it.
-					return preprepare
-				}
-			}
-		}
-
-		// This check cannot be replaced by a (view >= 0) condition in the loop header and must appear here.
-		// If the underlying type of t.PBFTViewNr is unsigned, view would underflow and we would loop forever.
-		if view == 0 {
-			return nil
-		}
-	}
-}
-
 func (pbft *pbftInstance) applyMsgMissingPreprepare(preprepare *isspbftpb.Preprepare, _ t.NodeID) *events.EventList {
 
 	// Ignore preprepare if received in the meantime or if view has already advanced.

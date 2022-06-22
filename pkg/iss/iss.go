@@ -544,7 +544,8 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	} else {
 		// If the event is from an old epoch, ignore it.
 		// This might potentially happen if the epoch advanced while the event has been waiting in some buffer.
-		iss.logger.Log(logging.LevelDebug, "Ignoring old event.", "epoch", epochNr)
+		iss.logger.Log(logging.LevelDebug, "Ignoring old event.",
+			"epoch", epochNr, "type", fmt.Sprintf("%T", event.Event.Type))
 		return events.EmptyList(), nil
 	}
 }
@@ -731,7 +732,8 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), epoch.Orderers[message.Instance])
 	} else {
 		// Ignore old messages
-		iss.logger.Log(logging.LevelDebug, "Ignoring message from old epoch.", "from", from, "epoch", epochNr)
+		iss.logger.Log(logging.LevelDebug, "Ignoring message from old epoch.",
+			"from", from, "epoch", epochNr, "type", fmt.Sprintf("%T", message.Msg.Type))
 		return events.EmptyList()
 	}
 }
