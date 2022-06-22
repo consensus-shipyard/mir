@@ -17,8 +17,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss"
 
-	. "github.com/onsi/ginkgo/v2" //nolint:revive
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/grpctransport"
@@ -72,7 +70,7 @@ type TestConfig struct {
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.
 type Deployment struct {
-	testConfig *TestConfig
+	TestConfig *TestConfig
 
 	// The fake transport layer is only used if the deployment is configured to use it
 	// by setting testConfig.Net to "fake".
@@ -87,27 +85,27 @@ type Deployment struct {
 }
 
 // NewDeployment returns a Deployment initialized according to the passed configuration.
-func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
+func NewDeployment(conf *TestConfig) (*Deployment, error) {
 
 	// Use a common logger for all clients and replicas.
 	var logger logging.Logger
-	if testConfig.Logger != nil {
-		logger = logging.Synchronize(testConfig.Logger)
+	if conf.Logger != nil {
+		logger = logging.Synchronize(conf.Logger)
 	} else {
 		logger = logging.Synchronize(logging.ConsoleDebugLogger)
 	}
 
 	// Create a simulated network transport to route messages between replicas.
-	fakeTransport := NewFakeTransport(testConfig.NumReplicas)
+	fakeTransport := NewFakeTransport(conf.NumReplicas)
 
 	// Create a dummy static membership with replica IDs from 0 to len(replicas) - 1
-	membership := make([]t.NodeID, testConfig.NumReplicas)
+	membership := make([]t.NodeID, conf.NumReplicas)
 	for i := 0; i < len(membership); i++ {
 		membership[i] = t.NewNodeIDFromInt(i)
 	}
 
 	// Create all TestReplicas for this deployment.
-	replicas := make([]*TestReplica, testConfig.NumReplicas)
+	replicas := make([]*TestReplica, conf.NumReplicas)
 	for i := range replicas {
 
 		// Configure the test replica's node.
@@ -117,7 +115,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 
 		// Create network transport module
 		var transport modules.ActiveModule
-		switch testConfig.Transport {
+		switch conf.Transport {
 		case "fake":
 			transport = fakeTransport.Link(t.NewNodeIDFromInt(i))
 		case "grpc":
@@ -130,7 +128,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 
 		// ISS configuration
 		issConfig := iss.DefaultConfig(membership)
-		if testConfig.SlowProposeReplicas[i] {
+		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
@@ -142,17 +140,17 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 			ID:              t.NewNodeIDFromInt(i),
 			Config:          config,
 			Membership:      membership,
-			Dir:             filepath.Join(testConfig.Directory, fmt.Sprintf("node%d", i)),
+			Dir:             filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			App:             &FakeApp{},
 			Net:             transport,
-			NumFakeRequests: testConfig.NumFakeRequests,
+			NumFakeRequests: conf.NumFakeRequests,
 			ISSConfig:       issConfig,
 		}
 	}
 
 	// Create dummy clients.
 	netClients := make([]*dummyclient.DummyClient, 0)
-	for i := 1; i <= testConfig.NumClients; i++ {
+	for i := 1; i <= conf.NumClients; i++ {
 		// The loop counter i is used as client ID.
 		// We start counting at 1 (and not 0), since client ID 0 is reserved
 		// for the "fake" requests submitted directly by the TestReplicas.
@@ -166,7 +164,7 @@ func NewDeployment(testConfig *TestConfig) (*Deployment, error) {
 	}
 
 	return &Deployment{
-		testConfig:    testConfig,
+		TestConfig:    conf,
 		FakeTransport: fakeTransport,
 		TestReplicas:  replicas,
 		Clients:       netClients,
@@ -203,13 +201,12 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 
 		// Start the replica in a separate goroutine.
 		go func(i int, testReplica *TestReplica) {
-			defer GinkgoRecover()
 			defer nodeWg.Done()
 
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
 			nodeErrors[i] = testReplica.Run(ctx2)
 			if err := nodeErrors[i]; err != nil {
-				testReplica.Config.Logger.Log(logging.LevelError, "exit with error:", err)
+				testReplica.Config.Logger.Log(logging.LevelError, "exit with error", "err", err)
 			} else {
 				testReplica.Config.Logger.Log(logging.LevelDebug, "exit")
 			}
@@ -225,11 +222,10 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 	clientWg.Add(len(d.Clients))
 	for _, client := range d.Clients {
 		go func(c *dummyclient.DummyClient) {
-			defer GinkgoRecover()
 			defer clientWg.Done()
 
 			c.Connect(ctx2, d.localRequestReceiverAddrs())
-			submitDummyRequests(ctx2, c, d.testConfig.NumNetRequests)
+			submitDummyRequests(ctx2, c, d.TestConfig.NumNetRequests)
 			c.Disconnect()
 		}(client)
 	}
