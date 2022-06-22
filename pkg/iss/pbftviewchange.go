@@ -28,8 +28,12 @@ func copyPreprepareToNewView(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr
 // If nothing has been committed since, triggers a view change.
 func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VCBatchTimeout) *events.EventList {
 
-	// If the view is still the same as when the timer was set up and if nothing has been committed since then
-	if t.PBFTViewNr(timeoutEvent.View) == pbft.view && int(timeoutEvent.NumCommitted) == pbft.numCommitted(pbft.view) {
+	// If the view is still the same as when the timer was set up,
+	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
+	if t.PBFTViewNr(timeoutEvent.View) == pbft.view &&
+		int(timeoutEvent.NumCommitted) == pbft.numCommitted(pbft.view) &&
+		!pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
+
 		// Start the view change sub-protocol.
 		pbft.logger.Log(logging.LevelWarn, "View change batch timer expired.",
 			"view", pbft.view, "numCommitted", timeoutEvent.NumCommitted)
@@ -48,8 +52,8 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 	// TODO: All slots being committed is not sufficient to stop view changes.
 	//       An instance-local stable checkpoint must be created as well.
 
-	// If the view is still the same as when the timer was set up and there are still any uncommitted slots
-	if view == pbft.view && !pbft.allCommitted() {
+	// If the view is still the same as when the timer was set up and the segment-level checkpoint is not yet stable
+	if view == pbft.view && !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
 		// Start the view change sub-protocol.
 		pbft.logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", pbft.view)
 		return pbft.startViewChange()

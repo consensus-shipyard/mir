@@ -50,6 +50,9 @@ type pbftInstance struct {
 	// Each slot tracks the state of the agreement protocol for one sequence number.
 	slots map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot
 
+	// Tracks the state of the segment-local checkpoint.
+	segmentCheckpoint *pbftSegmentChkp
+
 	// Logger for outputting debugging messages.
 	logger logging.Logger
 
@@ -95,10 +98,11 @@ func newPbftInstance(
 
 	// Set all the necessary fields of the new instance and return it.
 	return &pbftInstance{
-		ownID:   ownID,
-		segment: segment,
-		config:  config,
-		slots:   make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
+		ownID:             ownID,
+		segment:           segment,
+		config:            config,
+		slots:             make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
+		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:      0,
 			numPendingRequests: numPendingRequests,
@@ -174,6 +178,8 @@ func (pbft *pbftInstance) applyHashResult(result *isspb.SBHashResult) *events.Ev
 		return pbft.applyMissingPreprepareHashResult(result.Digests[0], origin.PbftMissingPreprepare)
 	case *isspb.SBInstanceHashOrigin_PbftNewView:
 		return pbft.applyNewViewHashResult(result.Digests, origin.PbftNewView)
+	case *isspb.SBInstanceHashOrigin_PbftCatchUpResponse:
+		return pbft.applyCatchUpResponseHashResult(result.Digests[0], origin.PbftCatchUpResponse)
 	default:
 		panic(fmt.Sprintf("unknown hash origin type: %T", origin))
 	}
@@ -231,6 +237,12 @@ func (pbft *pbftInstance) applyMessageReceived(message *isspb.SBInstanceMessage,
 		return pbft.applyMsgMissingPreprepare(msg.PbftMissingPreprepare, from)
 	case *isspb.SBInstanceMessage_PbftNewView:
 		return pbft.applyMsgNewView(msg.PbftNewView, from)
+	case *isspb.SBInstanceMessage_PbftDone:
+		return pbft.applyMsgDone(msg.PbftDone, from)
+	case *isspb.SBInstanceMessage_PbftCatchUpRequest:
+		return pbft.applyMsgCatchUpRequest(msg.PbftCatchUpRequest, from)
+	case *isspb.SBInstanceMessage_PbftCatchUpResponse:
+		return pbft.applyMsgCatchUpResponse(msg.PbftCatchUpResponse, from)
 	default:
 		panic(fmt.Sprintf("unknown ISS PBFT message type: %T", message.Type))
 	}

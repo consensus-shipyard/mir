@@ -1011,6 +1011,8 @@ func newPBFTConfig(issConfig *Config) *PBFTConfig {
 		MaxProposeDelay:          issConfig.MaxProposeDelay,
 		MsgBufCapacity:           issConfig.MsgBufCapacity,
 		MaxBatchSize:             issConfig.MaxBatchSize,
+		DoneResendPeriod:         issConfig.PBFTDoneResendPeriod,
+		CatchUpDelay:             issConfig.PBFTCatchUpDelay,
 		ViewChangeBatchTimeout:   issConfig.PBFTViewChangeBatchTimeout,
 		ViewChangeSegmentTimeout: issConfig.PBFTViewChangeSegmentTimeout,
 		ViewChangeResendPeriod:   issConfig.PBFTViewChangeResendPeriod,

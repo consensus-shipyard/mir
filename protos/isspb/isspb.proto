@@ -53,6 +53,9 @@ message SBInstanceMessage {
     isspbftpb.PreprepareRequest pbft_preprepare_request = 5;
     isspbftpb.Preprepare        pbft_missing_preprepare = 6;
     isspbftpb.NewView           pbft_new_view           = 7;
+    isspbftpb.Done              pbft_done               = 8;
+    isspbftpb.CatchUpRequest    pbft_catch_up_request   = 9;
+    isspbftpb.Preprepare        pbft_catch_up_response  = 10;
   }
 }
 
@@ -200,6 +203,7 @@ message SBInstanceHashOrigin {
     isspbftpb.Preprepare pbft_missing_preprepare = 2;
     isspbftpb.NewView    pbft_new_view           = 3;
     uint64               pbft_empty_preprepares  = 4;
+    isspbftpb.Preprepare pbft_catch_up_response  = 5;
   }
 }
 
