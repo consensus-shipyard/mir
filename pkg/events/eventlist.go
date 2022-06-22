@@ -19,6 +19,21 @@ type EventList struct {
 	list *list.List
 }
 
+// EmptyList returns an empty EventList.
+// TODO: consider passing EventList by value here and everywhere else.
+func EmptyList() *EventList {
+	return &EventList{}
+}
+
+// ListOf returns EventList containing the given elements.
+func ListOf(events ...*eventpb.Event) *EventList {
+	res := &EventList{}
+	for _, ev := range events {
+		res.PushBack(ev)
+	}
+	return res
+}
+
 // Len returns the number of events in the EventList.
 func (el *EventList) Len() int {
 	if el.list == nil {
@@ -71,6 +86,9 @@ func (el *EventList) PushBackList(newEvents *EventList) *EventList {
 // The returned slice only contains pointers to the events in this list, no deep copying is performed.
 // Any modifications performed on the events will affect the contents of both the EventList and the returned slice.
 func (el *EventList) Slice() []*eventpb.Event {
+	if el.list == nil {
+		return nil
+	}
 
 	// Create empty result slice.
 	events := make([]*eventpb.Event, 0, el.Len())
