@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/mathutil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strconv"
@@ -197,6 +198,210 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 				i++
 			}
 		})
+	}
+}
+
+type contextTestingModuleModuleConfig struct {
+	Self     types.ModuleID
+	Crypto   types.ModuleID
+	Hasher   types.ModuleID
+	Timer    types.ModuleID
+	Signed   types.ModuleID
+	Hashed   types.ModuleID
+	Verified types.ModuleID
+}
+
+func defaultContextTestingModuleConfig() *contextTestingModuleModuleConfig {
+	return &contextTestingModuleModuleConfig{
+		Self:     "testing",
+		Crypto:   "crypto",
+		Hasher:   "hasher",
+		Timer:    "timer",
+		Signed:   "signed",
+		Hashed:   "hashed",
+		Verified: "verified",
+	}
+}
+
+type testingStringContext struct {
+	s string
+}
+
+func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
+	m := NewModule(mc.Self)
+
+	UponTestingString(m, func(s string) error {
+		SignRequest(m, mc.Crypto, [][]byte{[]byte(s)}, &testingStringContext{s})
+		HashOneMessage(m, mc.Hasher, [][]byte{[]byte(s)}, &testingStringContext{s})
+		return nil
+	})
+
+	UponSignResult(m, func(signature []byte, context *testingStringContext) error {
+		EmitTestingString(m, mc.Signed, fmt.Sprintf("%s: %s", context.s, string(signature)))
+		return nil
+	})
+
+	UponHashResult(m, func(hashes [][]byte, context *testingStringContext) error {
+		if len(hashes) != 1 {
+			return fmt.Errorf("unexpected number of hashes: %v", hashes)
+		}
+		EmitTestingString(m, mc.Hashed, fmt.Sprintf("%s: %s", context.s, string(hashes[0])))
+		return nil
+	})
+
+	UponTestingUint(m, func(u uint64) error {
+		if u < 10 {
+			msg := [][]byte{[]byte("uint"), []byte(strconv.FormatUint(u, 10))}
+
+			var signatures [][]byte
+			var nodeIDs []types.NodeID
+			for i := uint64(0); i < u; i++ {
+				signatures = append(signatures, []byte(strconv.FormatUint(i, 10)))
+				nodeIDs = append(nodeIDs, types.NodeID(strconv.FormatUint(i, 10)))
+			}
+
+			// NB: avoid using primitive types as the context in the actual implementation, prefer named structs,
+			//     remember that the context type is used to match requests with responses.
+			VerifyNodeSigs(m, mc.Crypto, sliceutil.Repeat(msg, u), signatures, nodeIDs, &u)
+		}
+		return nil
+	})
+
+	UponOneNodeSigVerified(m, func(nodeID types.NodeID, err error, context *uint64) error {
+		if err == nil {
+			EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
+		}
+		return nil
+	})
+
+	UponNodeSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
+		if allOK {
+			EmitTestingUint(m, mc.Verified, *context)
+		}
+		return nil
+	})
+
+	return m
+}
+
+func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
+	testCases := map[string]func(mc *contextTestingModuleModuleConfig, m Module){
+		"empty": func(mc *contextTestingModuleModuleConfig, m Module) {},
+
+		"request response": func(mc *contextTestingModuleModuleConfig, m Module) {
+			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
+			assert.Nil(t, err)
+			assert.Equal(t, 2, eventsOut.Len())
+
+			iter := eventsOut.Iterator()
+			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
+			hashOrigin := iter.Next().Type.(*eventpb.Event_HashRequest).HashRequest.Origin
+
+			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+			assert.Nil(t, err)
+			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
+
+			eventsOut, err = m.ApplyEvents(events.ListOf(events.HashResult(mc.Self, [][]byte{[]byte("world")}, hashOrigin)))
+			assert.Nil(t, err)
+			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Hashed, "hello: world")}, eventsOut.Slice())
+		},
+
+		"response without request": func(mc *contextTestingModuleModuleConfig, m Module) {
+			assert.Panics(t, func() {
+				// Context with id 42 doesn't exist. The module should panic.
+				_, _ = m.ApplyEvents(events.ListOf(
+					events.SignResult(mc.Self, []byte{}, DslSignOrigin(mc.Self, ContextID(42)))))
+			})
+		},
+
+		"check context is disposed": func(mc *contextTestingModuleModuleConfig, m Module) {
+			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
+			assert.Nil(t, err)
+			assert.Equal(t, 2, eventsOut.Len())
+
+			iter := eventsOut.Iterator()
+			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
+			_ = iter.Next().Type.(*eventpb.Event_HashRequest).HashRequest.Origin
+
+			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+			assert.Nil(t, err)
+			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
+
+			assert.Panics(t, func() {
+				// This reply is sent for the second time.
+				//The context should already be disposed of and the module should panic.
+				_, _ = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+			})
+		},
+
+		"check multiple handlers for response": func(mc *contextTestingModuleModuleConfig, m Module) {
+			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingUint(mc.Self, 8)))
+			assert.Nil(t, err)
+			assert.Equal(t, 1, eventsOut.Len())
+
+			iter := eventsOut.Iterator()
+			sigVerEvent := iter.Next().Type.(*eventpb.Event_VerifyNodeSigs).VerifyNodeSigs
+			sigVerNodes := sigVerEvent.NodeIds
+			assert.Equal(t, 8, len(sigVerNodes))
+			sigVerOrigin := sigVerEvent.Origin
+
+			// send some undelated events to make sure the context is preserved and does not get overwritten
+			_, err = m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
+			assert.Nil(t, err)
+			_, err = m.ApplyEvents(events.ListOf(events.TestingUint(mc.Self, 3)))
+			assert.Nil(t, err)
+			_, err = m.ApplyEvents(events.ListOf(events.TestingUint(mc.Self, 16), events.TestingString(mc.Self, "foo")))
+			assert.Nil(t, err)
+
+			// construct a response for the signature verification request.
+			sigsVerifiedEvent := events.NodeSigsVerified(
+				/*destModule*/ mc.Self,
+				/*valid*/ sliceutil.Repeat(true, 8),
+				/*errors*/ sliceutil.Repeat("", 8),
+				/*nodeIDs*/ types.NodeIDSlice(sigVerNodes),
+				/*origin*/ sigVerOrigin,
+				/*allOk*/ true,
+			)
+
+			eventsOut, err = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
+			assert.Nil(t, err)
+
+			var expectedResponse []*eventpb.Event
+			for i := 0; i < 8; i++ {
+				expectedResponse = append(expectedResponse, events.TestingString(mc.Verified, fmt.Sprintf("8: %v verified", i)))
+			}
+			expectedResponse = append(expectedResponse, events.TestingUint(mc.Verified, 8))
+
+			assert.Equal(t, expectedResponse, eventsOut.Slice())
+
+			assert.Panics(t, func() {
+				// This reply is sent for the second time.
+				//The context should already be disposed of and the module should panic.
+				_, _ = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
+			})
+		},
+	}
+
+	for testName, tc := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			mc := defaultContextTestingModuleConfig()
+			m := newContextTestingModule(mc)
+			tc(mc, m)
+		})
+	}
+
+}
+
+// event wrappers (similar to the ones in pkg/events/events.go)
+
+func DslSignOrigin(module types.ModuleID, contextID ContextID) *eventpb.SignOrigin {
+	return &eventpb.SignOrigin{
+		Module: module.Pb(),
+		Type: &eventpb.SignOrigin_Dsl{
+			Dsl: &eventpb.DslOrigin{
+				ContextID: contextID.Pb(),
+			},
+		},
 	}
 }
 
