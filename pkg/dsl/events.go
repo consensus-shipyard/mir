@@ -146,11 +146,6 @@ func UponNodeSigsVerified[C any](
 			return nil
 		}
 
-		nodeIds := make([]t.NodeID, len(ev.NodeIds))
-		for i := range ev.NodeIds {
-			nodeIds[i] = t.NodeID(ev.NodeIds[i])
-		}
-
 		errs := make([]error, len(ev.Valid))
 		for i := range ev.Valid {
 			if ev.Valid[i] {
@@ -160,7 +155,7 @@ func UponNodeSigsVerified[C any](
 			}
 		}
 
-		return handler(nodeIds, errs, ev.AllOk, context)
+		return handler(t.NodeIDSlice(ev.NodeIds), errs, ev.AllOk, context)
 	})
 }
 

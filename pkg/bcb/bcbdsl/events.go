@@ -108,12 +108,6 @@ func UponFinalMessageReceived(
 		}
 
 		finalMsg := finalMsgWrapper.FinalMessage
-
-		var signers []t.NodeID
-		for _, node := range finalMsg.Signers {
-			signers = append(signers, t.NodeID(node))
-		}
-
-		return handler(from, finalMsg.Data, signers, finalMsg.Signatures)
+		return handler(from, finalMsg.Data, t.NodeIDSlice(finalMsg.Signers), finalMsg.Signatures)
 	})
 }
