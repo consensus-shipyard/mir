@@ -1,11 +1,11 @@
 package dsl
 
 import (
+	"errors"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/pkg/errors"
 )
 
 // Dsl functions for emitting events.
@@ -65,6 +65,7 @@ func VerifyNodeSigs[C any](
 
 // VerifyOneNodeSig emits a signature verification request event for one signature.
 // This is a wrapper around VerifyNodeSigs.
+// May be useful in combination with UponOneNodeSigVerified.
 func VerifyOneNodeSig[C any](
 	m Module,
 	destModule t.ModuleID,
@@ -92,6 +93,13 @@ func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, contex
 	}
 
 	EmitEvent(m, events.HashRequest(destModule, data, origin))
+}
+
+// HashOneMessage emits a request event to compute hash one message.
+// This is a wrapper around HashRequest.
+// May be useful in combination with UponOneHashResult.
+func HashOneMessage[C any](m Module, destModule t.ModuleID, data [][]byte, context *C) {
+	HashRequest(m, destModule, [][][]byte{data}, context)
 }
 
 // Dsl functions for processing events
@@ -122,7 +130,7 @@ func UponSignResult[C any](m Module, handler func(signature []byte, context *C) 
 // the same context type C.
 func UponNodeSigsVerified[C any](
 	m Module,
-	handler func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *C) error,
+	handler func(nodeIDs []t.NodeID, errs []error, allOK bool, context *C) error,
 ) {
 	RegisterEventHandler(m, func(evTp *eventpb.Event_NodeSigsVerified) error {
 		ev := evTp.NodeSigsVerified
@@ -138,26 +146,30 @@ func UponNodeSigsVerified[C any](
 			return nil
 		}
 
-		var nodeIds []t.NodeID
-		for _, id := range ev.NodeIds {
-			nodeIds = append(nodeIds, t.NodeID(id))
+		nodeIds := make([]t.NodeID, len(ev.NodeIds))
+		for i := range ev.NodeIds {
+			nodeIds[i] = t.NodeID(ev.NodeIds[i])
 		}
 
-		var errs []error
-		for _, err := range ev.Errors {
-			errs = append(errs, errors.New(err))
+		errs := make([]error, len(ev.Valid))
+		for i := range ev.Valid {
+			if ev.Valid[i] {
+				errs[i] = nil
+			} else {
+				errs[i] = errors.New(ev.Errors[i])
+			}
 		}
 
-		return handler(nodeIds, ev.Valid, errs, ev.AllOk, context)
+		return handler(nodeIds, errs, ev.AllOk, context)
 	})
 }
 
 // UponOneNodeSigVerified is a wrapper around UponNodeSigsVerified that invokes handler on each response in a batch
 // separately. May be useful in combination with VerifyOneNodeSig.
-func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, valid bool, err error, context *C) error) {
-	UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *C) error {
+func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, err error, context *C) error) {
+	UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *C) error {
 		for i := range nodeIDs {
-			err := handler(nodeIDs[i], valid[i], errs[i], context)
+			err := handler(nodeIDs[i], errs[i], context)
 			if err != nil {
 				return err
 			}
@@ -185,6 +197,21 @@ func UponHashResult[C any](m Module, handler func(hashes [][]byte, context *C) e
 		}
 
 		return handler(ev.Digests, context)
+	})
+}
+
+// UponOneHashResult is a wrapper around UponHashResult that invokes handler on each response in a batch separately.
+// May be useful in combination with HashOneMessage.
+func UponOneHashResult[C any](m Module, handler func(hash []byte, context *C) error) {
+	UponHashResult(m, func(hashes [][]byte, context *C) error {
+		for _, hash := range hashes {
+			err := handler(hash, context)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 
