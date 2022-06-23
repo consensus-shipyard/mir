@@ -22,10 +22,12 @@ type dslModuleImpl struct {
 	eventCleanupContextIDs map[ContextID]struct{}
 }
 
+// Handle is used to manage internal state of the dsl module.
 type Handle struct {
 	impl *dslModuleImpl
 }
 
+// ContextID is used to address the internal context store of the dsl module.
 type ContextID = cs.ItemID
 
 // Module allows creating passive modules in a very natural declarative way.
@@ -51,10 +53,12 @@ func NewModule(moduleID t.ModuleID) Module {
 	}
 }
 
+// DslHandle is used to manage internal state of the dsl module.
 func (m *dslModuleImpl) DslHandle() Handle {
 	return Handle{m}
 }
 
+// ModuleID returns the identifier of the module.
 func (m *dslModuleImpl) ModuleID() t.ModuleID {
 	return m.moduleID
 }
@@ -88,6 +92,8 @@ func (h Handle) StoreContext(context any) ContextID {
 }
 
 // CleanupContext schedules a disposal of context with the given id after the current batch of events is processed.
+// NB: the context cannot be disposed of immediately because there may be more event handlers for this event that may
+// need this context.
 func (h Handle) CleanupContext(id ContextID) {
 	h.impl.eventCleanupContextIDs[id] = struct{}{}
 }
@@ -101,6 +107,8 @@ func (h Handle) RecoverAndRetainContext(id cs.ItemID) any {
 
 // RecoverAndCleanupContext recovers the context with te given id and schedules a disposal of this context after the
 // current batch of events is processed.
+// NB: the context cannot be disposed of immediately because there may be more event handlers for this event that may
+// need this context.
 func (h Handle) RecoverAndCleanupContext(id ContextID) any {
 	res := h.RecoverAndRetainContext(id)
 	h.CleanupContext(id)
@@ -110,10 +118,13 @@ func (h Handle) RecoverAndCleanupContext(id ContextID) any {
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (m *dslModuleImpl) ImplementsModule() {}
 
+// EmitEvent adds the event to the queue of output events
 func EmitEvent(m Module, ev *eventpb.Event) {
 	m.DslHandle().impl.outputEvents.PushBack(ev)
 }
 
+// ApplyEvents applies a list of input events to the module, making it advance its state
+// and returns a (potentially empty) list of output events that the application of the input events results in.
 func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, error) {
 	// Run event handlers.
 	iter := evs.Iterator()
