@@ -14,8 +14,8 @@ func Origin(itemID ItemID) *eventpb.ContextStoreOrigin {
 func SignOrigin(moduleID t.ModuleID, itemID ItemID) *eventpb.SignOrigin {
 	return &eventpb.SignOrigin{
 		Module: moduleID.Pb(),
-		Type: &eventpb.SignOrigin_Contextstore{
-			Contextstore: Origin(itemID),
+		Type: &eventpb.SignOrigin_ContextStore{
+			ContextStore: Origin(itemID),
 		},
 	}
 }
@@ -24,8 +24,8 @@ func SignOrigin(moduleID t.ModuleID, itemID ItemID) *eventpb.SignOrigin {
 func SigVerOrigin(moduleID t.ModuleID, itemID ItemID) *eventpb.SigVerOrigin {
 	return &eventpb.SigVerOrigin{
 		Module: moduleID.Pb(),
-		Type: &eventpb.SigVerOrigin_Contextstore{
-			Contextstore: Origin(itemID),
+		Type: &eventpb.SigVerOrigin_ContextStore{
+			ContextStore: Origin(itemID),
 		},
 	}
 }
@@ -34,8 +34,8 @@ func SigVerOrigin(moduleID t.ModuleID, itemID ItemID) *eventpb.SigVerOrigin {
 func HashOrigin(moduleID t.ModuleID, itemID ItemID) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{
 		Module: moduleID.Pb(),
-		Type: &eventpb.HashOrigin_Contextstore{
-			Contextstore: Origin(itemID),
+		Type: &eventpb.HashOrigin_ContextStore{
+			ContextStore: Origin(itemID),
 		},
 	}
 }
