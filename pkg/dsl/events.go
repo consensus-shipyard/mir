@@ -17,10 +17,10 @@ func SendMessage(m Module, destModule t.ModuleID, msg *messagepb.Message, dest [
 }
 
 func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context C) {
-	contextID := m.GetDslHandle().StoreContext(context)
+	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &eventpb.SignOrigin{
-		Module: m.GetModuleID().Pb(),
+		Module: m.ModuleID().Pb(),
 		Type: &eventpb.SignOrigin_Dsl{
 			Dsl: &eventpb.DslOrigin{
 				ContextID: contextID.Pb(),
@@ -50,10 +50,10 @@ func VerifyNodeSigs[C any](
 	nodeIDs []t.NodeID,
 	context C,
 ) {
-	contextID := m.GetDslHandle().StoreContext(context)
+	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &eventpb.SigVerOrigin{
-		Module: m.GetModuleID().Pb(),
+		Module: m.ModuleID().Pb(),
 		Type: &eventpb.SigVerOrigin_Dsl{
 			Dsl: &eventpb.DslOrigin{
 				ContextID: contextID.Pb(),
@@ -65,10 +65,10 @@ func VerifyNodeSigs[C any](
 }
 
 func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, context C) {
-	contextID := m.GetDslHandle().StoreContext(context)
+	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &eventpb.HashOrigin{
-		Module: m.GetModuleID().Pb(),
+		Module: m.ModuleID().Pb(),
 		Type: &eventpb.HashOrigin_Dsl{
 			Dsl: &eventpb.DslOrigin{
 				ContextID: contextID.Pb(),
@@ -91,7 +91,7 @@ func UponSignResult[C any](m Module, handler func(signature []byte, context C) e
 			return nil
 		}
 
-		contextRaw := m.GetDslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
 		context, ok := contextRaw.(C)
 		if !ok {
 			return nil
@@ -113,7 +113,7 @@ func UponNodeSigsVerified[C any](
 			return nil
 		}
 
-		contextRaw := m.GetDslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
 		context, ok := contextRaw.(C)
 		if !ok {
 			return nil

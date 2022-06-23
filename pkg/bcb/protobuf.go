@@ -34,16 +34,11 @@ func EchoMessage(moduleID t.ModuleID, signature []byte) *messagepb.Message {
 }
 
 func FinalMessage(moduleID t.ModuleID, data []byte, signers []t.NodeID, signatures [][]byte) *messagepb.Message {
-	var signersPb []string
-	for _, signer := range signers {
-		signersPb = append(signersPb, signer.Pb())
-	}
-
 	return Message(moduleID, &bcbpb.Message{
 		Type: &bcbpb.Message_FinalMessage{
 			FinalMessage: &bcbpb.FinalMessage{
 				Data:       data,
-				Signers:    signersPb,
+				Signers:    t.NodeIDSlicePb(signers),
 				Signatures: signatures,
 			},
 		},
