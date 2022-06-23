@@ -89,9 +89,9 @@ message HashResult {
 message HashOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin  contextStore = 2;
-    requestpb.Request   request      = 3;
-    isspb.ISSHashOrigin iss          = 4;
+    ContextStoreOrigin  context_store = 2;
+    requestpb.Request   request       = 3;
+    isspb.ISSHashOrigin iss           = 4;
   }
 }
 
@@ -108,8 +108,8 @@ message SignResult {
 message SignOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin  contextStore = 2;
-    isspb.ISSSignOrigin iss          = 3;
+    ContextStoreOrigin  context_store = 2;
+    isspb.ISSSignOrigin iss           = 3;
   }
 }
 
@@ -135,8 +135,8 @@ message NodeSigsVerified {
 message SigVerOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin    contextStore = 2;
-    isspb.ISSSigVerOrigin iss          = 3;
+    ContextStoreOrigin    context_store = 2;
+    isspb.ISSSigVerOrigin iss           = 3;
   }
 }
 
