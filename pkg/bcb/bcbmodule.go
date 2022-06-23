@@ -118,8 +118,8 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		return nil
 	})
 
-	dsl.UponOneNodeSigVerified(m, func(nodeID t.NodeID, valid bool, err error, context *verifyEchoContext) error {
-		if valid && err == nil {
+	dsl.UponOneNodeSigVerified(m, func(nodeID t.NodeID, err error, context *verifyEchoContext) error {
+		if err == nil {
 			state.echoSigs[nodeID] = context.signature
 		}
 		return nil
@@ -147,8 +147,8 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		return nil
 	})
 
-	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *verifyFinalContext) error {
-		if !state.delivered {
+	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *verifyFinalContext) error {
+		if allOK && !state.delivered {
 			state.delivered = true
 			bcbdsl.Deliver(m, mc.Consumer, context.data)
 		}
