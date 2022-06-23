@@ -20,7 +20,11 @@ func SendMessage(m Module, destModule t.ModuleID, msg *messagepb.Message, dest [
 
 // SignRequest emits a request event to sign the given message.
 // The response should be processed using UponSignResult with the same context type C.
-func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context C) {
+// C can be an arbitrary type and does not have to be serializable.
+// NB: The context is passed by reference in order to prevent the programmer from making a bug where they pass the
+//     context by value when they send a request, but accept it by reference in the handler (or vice versa). This would
+//     make the handler not match the response event.
+func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &eventpb.SignOrigin{
@@ -36,13 +40,14 @@ func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context 
 
 // VerifyNodeSigs emits a signature verification request event for a batch of signatures.
 // The response should be processed using UponNodeSigsVerified with the same context type C.
+// C can be an arbitrary type and does not have to be serializable.
 func VerifyNodeSigs[C any](
 	m Module,
 	destModule t.ModuleID,
 	data [][][]byte,
 	signatures [][]byte,
 	nodeIDs []t.NodeID,
-	context C,
+	context *C,
 ) {
 	contextID := m.DslHandle().StoreContext(context)
 
@@ -66,14 +71,15 @@ func VerifyOneNodeSig[C any](
 	data [][]byte,
 	signature []byte,
 	nodeID t.NodeID,
-	context C,
+	context *C,
 ) {
 	VerifyNodeSigs(m, destModule, [][][]byte{data}, [][]byte{signature}, []t.NodeID{nodeID}, context)
 }
 
 // HashRequest emits a request event to compute hashes of a batch of messages.
 // The response should be processed using UponHashResult with the same context type C.
-func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, context C) {
+// C can be an arbitrary type and does not have to be serializable.
+func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &eventpb.HashOrigin{
@@ -93,7 +99,7 @@ func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, contex
 
 // UponSignResult invokes handler when the module receives a response to a request made by SignRequest with the same
 // context type C.
-func UponSignResult[C any](m Module, handler func(signature []byte, context C) error) {
+func UponSignResult[C any](m Module, handler func(signature []byte, context *C) error) {
 	RegisterEventHandler(m, func(evTp *eventpb.Event_SignResult) error {
 		res := evTp.SignResult
 
@@ -103,7 +109,7 @@ func UponSignResult[C any](m Module, handler func(signature []byte, context C) e
 		}
 
 		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
-		context, ok := contextRaw.(C)
+		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil
 		}
@@ -116,7 +122,7 @@ func UponSignResult[C any](m Module, handler func(signature []byte, context C) e
 // the same context type C.
 func UponNodeSigsVerified[C any](
 	m Module,
-	handler func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context C) error,
+	handler func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *C) error,
 ) {
 	RegisterEventHandler(m, func(evTp *eventpb.Event_NodeSigsVerified) error {
 		ev := evTp.NodeSigsVerified
@@ -127,7 +133,7 @@ func UponNodeSigsVerified[C any](
 		}
 
 		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
-		context, ok := contextRaw.(C)
+		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil
 		}
@@ -148,8 +154,8 @@ func UponNodeSigsVerified[C any](
 
 // UponOneNodeSigVerified is a wrapper around UponNodeSigsVerified that invokes handler on each response in a batch
 // separately. May be useful in combination with VerifyOneNodeSig.
-func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, valid bool, err error, context C) error) {
-	UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context C) error {
+func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, valid bool, err error, context *C) error) {
+	UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *C) error {
 		for i := range nodeIDs {
 			err := handler(nodeIDs[i], valid[i], errs[i], context)
 			if err != nil {
@@ -163,7 +169,7 @@ func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, valid
 
 // UponHashResult invokes handler when the module receives a response to a request made by HashRequest with the same
 // context type C.
-func UponHashResult[C any](m Module, handler func(hashes [][]byte, context C) error) {
+func UponHashResult[C any](m Module, handler func(hashes [][]byte, context *C) error) {
 	RegisterEventHandler(m, func(evTp *eventpb.Event_HashResult) error {
 		ev := evTp.HashResult
 
@@ -173,7 +179,7 @@ func UponHashResult[C any](m Module, handler func(hashes [][]byte, context C) er
 		}
 
 		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
-		context, ok := contextRaw.(C)
+		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil
 		}

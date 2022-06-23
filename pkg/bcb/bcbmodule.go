@@ -94,12 +94,12 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		if from == params.Leader && !state.sentEcho {
 			// σ := sign(self, bcb||self||ECHO||m);
 			sigMsg := [][]byte{params.InstanceUID, []byte("ECHO"), data}
-			dsl.SignRequest(m, mc.Crypto, sigMsg, signStartMessageContext{})
+			dsl.SignRequest(m, mc.Crypto, sigMsg, &signStartMessageContext{})
 		}
 		return nil
 	})
 
-	dsl.UponSignResult(m, func(signature []byte, context signStartMessageContext) error {
+	dsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
 		if !state.sentEcho {
 			state.sentEcho = true
 			dsl.SendMessage(m, mc.Net, EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
@@ -113,12 +113,12 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		if nodeID == params.Leader && !state.receivedEcho[from] && state.request != nil {
 			state.receivedEcho[from] = true
 			sigMsg := [][]byte{params.InstanceUID, []byte("ECHO"), state.request}
-			dsl.VerifyOneNodeSig(m, mc.Crypto, sigMsg, signature, from, verifyEchoContext{signature})
+			dsl.VerifyOneNodeSig(m, mc.Crypto, sigMsg, signature, from, &verifyEchoContext{signature})
 		}
 		return nil
 	})
 
-	dsl.UponOneNodeSigVerified(m, func(nodeID t.NodeID, valid bool, err error, context verifyEchoContext) error {
+	dsl.UponOneNodeSigVerified(m, func(nodeID t.NodeID, valid bool, err error, context *verifyEchoContext) error {
 		if valid && err == nil {
 			state.echoSigs[nodeID] = context.signature
 		}
@@ -142,12 +142,12 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		// if #({p ∈ Π | Σ[p] != ⊥ ∧ verifysig(p, bcb||p||ECHO||m, Σ[p])}) > (N+f)/2 and delivered = FALSE do
 		if len(signers) == len(signatures) && len(signers) > (params.GetN()+params.GetF())/2 && !state.delivered {
 			sigMsgs := sliceutil.Repeat([][]byte{params.InstanceUID, []byte("ECHO"), data}, len(signers))
-			dsl.VerifyNodeSigs(m, mc.Crypto, sigMsgs, signatures, signers, verifyFinalContext{data})
+			dsl.VerifyNodeSigs(m, mc.Crypto, sigMsgs, signatures, signers, &verifyFinalContext{data})
 		}
 		return nil
 	})
 
-	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context verifyFinalContext) error {
+	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, valid []bool, errs []error, allOK bool, context *verifyFinalContext) error {
 		if !state.delivered {
 			state.delivered = true
 			bcbdsl.Deliver(m, mc.Consumer, context.data)
