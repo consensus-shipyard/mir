@@ -9,6 +9,7 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -72,11 +73,16 @@ func (fa *FakeApp) Snapshot() ([]byte, error) {
 }
 
 func (fa *FakeApp) RestoreState(snapshot []byte) error {
-	return fmt.Errorf("we don't support state transfer in this test (yet)")
+	fa.RequestsProcessed = uint64FromBytes(snapshot)
+	return nil
 }
 
 func uint64ToBytes(value uint64) []byte {
 	byteValue := make([]byte, 8)
 	binary.LittleEndian.PutUint64(byteValue, value)
 	return byteValue
+}
+
+func uint64FromBytes(bytes []byte) uint64 {
+	return binary.LittleEndian.Uint64(bytes)
 }
