@@ -135,7 +135,7 @@ func (pbft *pbftInstance) sendDoneMessages() *events.EventList {
 	})
 
 	// Periodically send a Done message with the digests to all other nodes.
-	return (&events.EventList{}).PushBack(pbft.eventService.TimerRepeat(
+	return events.ListOf(pbft.eventService.TimerRepeat(
 		t.TimeDuration(pbft.config.DoneResendPeriod),
 		pbft.eventService.SendMessage(PbftDoneSBMessage(digests), pbft.segment.Membership),
 	))
@@ -153,7 +153,7 @@ func (pbft *pbftInstance) applyMsgDone(doneMsg *isspbftpb.Done, from t.NodeID) *
 	// If more Done messages still need to be received or retransmission has already been requested, do nothing.
 	doneNodes := pbft.segmentCheckpoint.DoneNodes()
 	if doneNodes == nil || pbft.segmentCheckpoint.catchingUp {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// If this was the last Done message required for a quorum, set up a timer to ask for the missing committed batches.
@@ -162,7 +162,7 @@ func (pbft *pbftInstance) applyMsgDone(doneMsg *isspbftpb.Done, from t.NodeID) *
 	// Thus, we pack a TimerRepeat Event (that triggers the first "repetition" immediately) inside a TimerDelay.
 	// We also set the catchingUp flag to prevent this code from executing more than once per PBFT instance.
 	pbft.segmentCheckpoint.catchingUp = true
-	return (&events.EventList{}).PushBack(pbft.eventService.TimerDelay(
+	return events.ListOf(pbft.eventService.TimerDelay(
 		t.TimeDuration(pbft.config.CatchUpDelay),
 		pbft.eventService.TimerRepeat(
 			t.TimeDuration(pbft.config.CatchUpDelay),
@@ -207,13 +207,11 @@ func (pbft *pbftInstance) applyMsgCatchUpRequest(
 	if preprepare := pbft.lookUpPreprepare(t.SeqNr(catchUpReq.Sn), catchUpReq.Digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
-		return (&events.EventList{}).PushBack(
-			pbft.eventService.SendMessage(PbftCatchUpResponseSBMessage(preprepare), []t.NodeID{from}),
-		)
+		return events.ListOf(pbft.eventService.SendMessage(PbftCatchUpResponseSBMessage(preprepare), []t.NodeID{from}))
 	}
 
 	// If the requested Preprepare message is not available, ignore the request.
-	return &events.EventList{}
+	return events.EmptyList()
 }
 
 // applyMsgCatchUpResponse applies a retransmitted missing committed batch.
@@ -225,7 +223,7 @@ func (pbft *pbftInstance) applyMsgCatchUpResponse(preprepare *isspbftpb.Preprepa
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
 	// However, it might prevent some unnecessary hash computation if performed here as well.
 	if pbft.slots[pbft.view][t.SeqNr(preprepare.Sn)].Committed {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Request a hash of the received preprepare message.
@@ -233,7 +231,7 @@ func (pbft *pbftInstance) applyMsgCatchUpResponse(preprepare *isspbftpb.Preprepa
 		[][][]byte{serializePreprepareForHashing(preprepare)},
 		catchUpResponseHashOrigin(preprepare),
 	)
-	return (&events.EventList{}).PushBack(hashRequest)
+	return events.ListOf(hashRequest)
 }
 
 // applyCatchUpResponseHashResult processes a missing committed batch when its hash becomes available.
@@ -243,7 +241,7 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 	preprepare *isspbftpb.Preprepare,
 ) *events.EventList {
 
-	eventsOut := &events.EventList{}
+	eventsOut := events.EmptyList()
 
 	// Convenience variables
 	sn := t.SeqNr(preprepare.Sn)
@@ -251,20 +249,20 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 
 	// Ignore preprepare if slot is already committed.
 	if pbft.slots[pbft.view][t.SeqNr(preprepare.Sn)].Committed {
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check whether the received batch was actually requested (a faulty node might have sent it on its own).
 	digests := pbft.segmentCheckpoint.Digests()
 	if digests == nil {
 		pbft.logger.Log(logging.LevelWarn, "Ignoring unsolicited CatchUpResponse.", "sn", sn)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	// Check whether the digest of the received message matches the requested one.
 	if !bytes.Equal(digests[sn], digest) {
 		pbft.logger.Log(logging.LevelWarn, "Ignoring CatchUpResponse with invalid digest.", "sn", sn)
-		return &events.EventList{}
+		return events.EmptyList()
 	}
 
 	pbft.logger.Log(logging.LevelDebug, "Catching up with segment-level checkpoint.", "sn", sn)
