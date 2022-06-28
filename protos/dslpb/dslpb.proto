@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package dslpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/dslpb";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Origin {
+  uint64 contextID = 1;
+}
