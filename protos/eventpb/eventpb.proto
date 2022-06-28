@@ -17,6 +17,7 @@ import "bcbpb/bcbpb.proto";
 import "mir/plugin.proto";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
+import "mempoolpb/mempoolpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -54,6 +55,7 @@ message Event {
     TimerRepeat          timer_repeat            = 26;
     TimerGarbageCollect  timer_garbage_collect   = 27;
     bcbpb.Event          bcb                     = 28;
+    mempoolpb.Event      mempool                 = 29;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;

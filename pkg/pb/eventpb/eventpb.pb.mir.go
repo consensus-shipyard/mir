@@ -3,6 +3,7 @@ package eventpb
 import (
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
+	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -123,6 +124,10 @@ func (p *Event_TimerGarbageCollect) Unwrap() *TimerGarbageCollect {
 
 func (p *Event_Bcb) Unwrap() *bcbpb.Event {
 	return p.Bcb
+}
+
+func (p *Event_Mempool) Unwrap() *mempoolpb.Event {
+	return p.Mempool
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {
