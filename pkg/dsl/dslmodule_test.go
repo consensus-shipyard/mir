@@ -398,9 +398,7 @@ func DslSignOrigin(module types.ModuleID, contextID ContextID) *eventpb.SignOrig
 	return &eventpb.SignOrigin{
 		Module: module.Pb(),
 		Type: &eventpb.SignOrigin_Dsl{
-			Dsl: &eventpb.DslOrigin{
-				ContextID: contextID.Pb(),
-			},
+			Dsl: Origin(contextID),
 		},
 	}
 }

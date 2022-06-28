@@ -1,13 +1,14 @@
 package contextstore
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Origin returns a ContextStoreOrigin protobuf containing the given id.
-func Origin(itemID ItemID) *eventpb.ContextStoreOrigin {
-	return &eventpb.ContextStoreOrigin{ItemID: itemID.Pb()}
+// Origin returns a contextstorepb.Origin protobuf containing the given id.
+func Origin(itemID ItemID) *contextstorepb.Origin {
+	return &contextstorepb.Origin{ItemID: itemID.Pb()}
 }
 
 // SignOrigin returns a SignOrigin protobuf containing moduleID and contextstore.Origin(itemID).
