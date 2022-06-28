@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package mempoolpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/mempoolpb";
+
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "mir/plugin.proto";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Event {
+  oneof Type {
+    option (mir.event_type) = true;
+    RequestBatch         request_batch         = 1;
+    NewBatch             new_batch             = 2;
+    RequestTransactions  request_transactions  = 3;
+    TransactionsResponse transactions_response = 4;
+  }
+}
+
+message RequestBatch {
+  RequestBatchOrigin origin = 1;
+}
+
+message NewBatch {
+  repeated bytes     txs    = 1;
+  RequestBatchOrigin origin = 2;
+}
+
+message RequestTransactions {
+  repeated bytes            tx_ids = 1;
+  RequestTransactionsOrigin origin = 2;
+}
+
+message TransactionsResponse {
+  repeated bool             present = 1;
+  repeated bytes            txs     = 2;
+  RequestTransactionsOrigin origin  = 3;
+}
+
+// TODO: add events related to garbage collection.
+
+message RequestBatchOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message RequestTransactionsOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
