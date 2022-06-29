@@ -224,6 +224,7 @@ func (pbft *pbftInstance) applyMsgCatchUpRequest(
 	if preprepare := pbft.lookUpPreprepare(t.SeqNr(catchUpReq.Sn), catchUpReq.Digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
+		// No need for periodic re-transmission. The requester will re-transmit the request if needed.
 		return events.ListOf(pbft.eventService.SendMessage(PbftCatchUpResponseSBMessage(preprepare), []t.NodeID{from}))
 	}
 

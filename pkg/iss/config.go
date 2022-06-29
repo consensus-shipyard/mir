@@ -95,6 +95,9 @@ type Config struct {
 	// and, if so, sends them the latest state.
 	CatchUpTimerPeriod time.Duration
 
+	// Time interval for repeated retransmission of checkpoint messages.
+	CheckpointResendPeriod time.Duration
+
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
 	PBFTDoneResendPeriod         time.Duration
@@ -194,6 +197,7 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		CatchUpTimerPeriod:           maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTDoneResendPeriod:         maxProposeDelay,
 		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
+		CheckpointResendPeriod:       maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTViewChangeBatchTimeout:   4 * maxProposeDelay,
 		PBFTViewChangeSegmentTimeout: 2 * time.Duration(segmentLength) * maxProposeDelay,
 		PBFTViewChangeResendPeriod:   maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything

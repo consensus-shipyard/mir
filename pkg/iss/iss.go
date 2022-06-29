@@ -784,8 +784,13 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 	epoch := &epochInfo{
 		Nr:         newEpoch,
 		Membership: iss.config.Membership, // TODO: Make a proper copy once reconfiguration is supported.
-		Checkpoint: newCheckpointTracker(iss.ownID, iss.nextDeliveredSN, newEpoch,
-			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch)),
+		Checkpoint: newCheckpointTracker(
+			iss.ownID,
+			iss.nextDeliveredSN,
+			newEpoch,
+			t.TimeDuration(iss.config.CheckpointResendPeriod),
+			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch),
+		),
 	}
 	iss.epochs[newEpoch] = epoch
 	iss.epoch = epoch
