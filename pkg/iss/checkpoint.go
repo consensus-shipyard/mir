@@ -13,6 +13,7 @@ package iss
 
 import (
 	"bytes"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -57,15 +58,25 @@ type checkpointTracker struct {
 
 	// Set of Checkpoint messages that were received ahead of time.
 	pendingMessages map[t.NodeID]*isspb.Checkpoint
+
+	// Time interval for repeated retransmission of checkpoint messages.
+	resendPeriod t.TimeDuration
 }
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
-func newCheckpointTracker(ownID t.NodeID, sn t.SeqNr, epoch t.EpochNr, logger logging.Logger) *checkpointTracker {
+func newCheckpointTracker(
+	ownID t.NodeID,
+	sn t.SeqNr,
+	epoch t.EpochNr,
+	resendPeriod t.TimeDuration,
+	logger logging.Logger,
+) *checkpointTracker {
 	return &checkpointTracker{
 		Logger:          logger,
 		ownID:           ownID,
 		seqNr:           sn,
 		epoch:           epoch,
+		resendPeriod:    resendPeriod,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
@@ -125,9 +136,13 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	walEvent := events.WALAppend(walModuleName, persistEvent, t.WALRetIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	// TODO: Implement checkpoint message retransmission.
 	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.appSnapshotHash, signature)
-	walEvent.FollowUp(events.SendMessage(netModuleName, m, ct.membership))
+	walEvent.FollowUp(events.TimerRepeat(
+		"timer",
+		[]*eventpb.Event{events.SendMessage(netModuleName, m, ct.membership)},
+		ct.resendPeriod,
+		t.TimerRetIndex(ct.epoch)),
+	)
 
 	// Apply pending Checkpoint messages
 	for s, m := range ct.pendingMessages {

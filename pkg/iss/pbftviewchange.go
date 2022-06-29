@@ -216,8 +216,8 @@ func (pbft *pbftInstance) applyEmptyPreprepareHashResult(digests [][]byte, view 
 		return pbft.sendNewView(view, state)
 	}
 
-	pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
 	// If some Preprepares for re-proposing are still missing, fetch them from other nodes.
+	pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
 	return state.askForMissingPreprepares(pbft.eventService)
 }
 
@@ -228,6 +228,9 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 	if preprepare := pbft.lookUpPreprepare(t.SeqNr(preprepareRequest.Sn), preprepareRequest.Digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
+		// No need for periodic re-transmission.
+		// In the worst case, dropping of these messages may result in another view change,
+		// but will not compromise correctness.
 		return events.ListOf(
 			pbft.eventService.SendMessage(PbftMissingPreprepareSBMessage(preprepare), []t.NodeID{from}),
 		)
@@ -313,6 +316,8 @@ func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChange
 	})
 
 	// Construct, persist and send the NewView message.
+	// No need for periodic re-transmission.
+	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	newView := pbftNewViewMsg(view, viewChangeSenders, signedViewChanges, preprepareSeqNrs, preprepares)
 	persistEvent := pbft.eventService.WALAppend(PbftPersistNewView(newView))
 	persistEvent.FollowUp(pbft.eventService.SendMessage(PbftNewViewSBMessage(newView), pbft.segment.Membership))
