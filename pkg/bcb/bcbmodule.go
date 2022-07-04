@@ -78,6 +78,11 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		echoSigs:     make(map[t.NodeID][]byte),
 	}
 
+	dsl.UponInit(m, func() error {
+		// no initialization required
+		return nil
+	})
+
 	// upon event <bcb, Broadcast | m> do    // only process s
 	bcbdsl.UponRequest(m, func(data []byte) error {
 		if nodeID != params.Leader {

@@ -105,6 +105,13 @@ func HashOneMessage[C any](m Module, destModule t.ModuleID, data [][]byte, conte
 // Dsl functions for processing events
 // TODO: consider generating this code automatically using a protoc plugin.
 
+// UponInit invokes handler when the module is initialized.
+func UponInit(m Module, handler func() error) {
+	RegisterEventHandler(m, func(ev *eventpb.Event_Init) error {
+		return handler()
+	})
+}
+
 // UponSignResult invokes handler when the module receives a response to a request made by SignRequest with the same
 // context type C.
 func UponSignResult[C any](m Module, handler func(signature []byte, context *C) error) {

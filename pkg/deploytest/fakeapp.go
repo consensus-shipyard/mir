@@ -31,6 +31,8 @@ func (fa *FakeApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, e
 
 func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
 	case *eventpb.Event_Deliver:
 		if err := fa.ApplyBatch(e.Deliver.Batch); err != nil {
 			return nil, fmt.Errorf("app batch delivery error: %w", err)

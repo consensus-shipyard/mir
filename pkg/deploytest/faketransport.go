@@ -46,6 +46,8 @@ func (fl *FakeLink) ApplyEvents(
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		switch e := event.Type.(type) {
+		case *eventpb.Event_Init:
+			// no actions on init
 		case *eventpb.Event_SendMessage:
 			for _, destID := range e.SendMessage.Destinations {
 				if t.NodeID(destID) == fl.Source {
