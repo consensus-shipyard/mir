@@ -34,6 +34,10 @@ type pbftSegmentChkp struct {
 	// digests will contain the Preprepare digests for all sequence numbers in the segment.
 	digests map[t.SeqNr][]byte
 
+	// Set to true when sending the Done message.
+	// This happens when the node locally commits all slots of the segment.
+	done bool
+
 	// Once enough Done messages have been received,
 	// DoneNodes will contain IDs of nodes from which matching Done messages were received.
 	doneNodes []t.NodeID
@@ -51,6 +55,12 @@ func newPbftSegmentChkp() *pbftSegmentChkp {
 	}
 }
 
+// SetDone marks the local checkpoint as done. It must be called after all slots of the segment have been committed.
+// This is a necessary condition for the checkpoint to be considered stable.
+func (chkp *pbftSegmentChkp) SetDone() {
+	chkp.done = true
+}
+
 // Digests returns, for each sequence number of the associated segment, the digest of the committed batch
 // (more precisely, the digest of the corresponding Preprepare message).
 // If the information is not yet available (not enough Done messages have been received), Digests returns nil.
@@ -65,10 +75,17 @@ func (chkp *pbftSegmentChkp) DoneNodes() []t.NodeID {
 }
 
 // Stable returns true if the instance-level checkpoint is stable,
-// i.e., if a strong quorum of matching Done messages has been received.
+// i.e., if all slots have been committed and a strong quorum of matching Done messages has been received.
 // This ensures that at least a weak quorum of correct nodes has a local checkpoint
 // and thus evey correct node will be able to catch up.
 func (chkp *pbftSegmentChkp) Stable(numNodes int) bool {
+
+	// If not all slots are committed (i.e. no checkpoint is present locally), the checkpoint is not considered stable.
+	if !chkp.done {
+		return false
+	}
+
+	// Return true if a strong quorum of nodes sent the same Done message.
 	for _, nodeIDs := range chkp.doneMsgIndex {
 		if len(nodeIDs) >= strongQuorum(numNodes) {
 			return true
@@ -275,6 +292,7 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 	// send a Done message to all other nodes.
 	// This is required for liveness, see comments for pbftSegmentChkp.
 	if pbft.allCommitted() {
+		pbft.segmentCheckpoint.SetDone()
 		eventsOut.PushBackList(pbft.sendDoneMessages())
 	}
 

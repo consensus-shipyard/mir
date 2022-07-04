@@ -93,22 +93,25 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		// Mark slot as committed.
 		slot.Committed = true
 
-		// Set a new batch timeout.
+		// Set a new batch timeout (unless the segment is finished with a stable checkpoint).
 		// Note that we set a new batch timeout even if everything has already been committed.
 		// In such a case, we expect a quorum of other nodes to also commit everything and send a Done message
 		// before the timeout fires.
 		// The timeout event contains the current view and the number of committed slots.
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all batches.
-		eventsOut.PushBack(pbft.eventService.TimerDelay(
-			t.TimeDuration(pbft.config.ViewChangeBatchTimeout),
-			pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(pbft.view, pbft.numCommitted(pbft.view))),
-		))
+		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
+			eventsOut.PushBack(pbft.eventService.TimerDelay(
+				t.TimeDuration(pbft.config.ViewChangeBatchTimeout),
+				pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(pbft.view, pbft.numCommitted(pbft.view))),
+			))
+		}
 
 		// If all batches have been committed (i.e. this is the last batch to commit),
 		// send a Done message to all other nodes.
 		// This is required for liveness, see comments for pbftSegmentChkp.
 		if pbft.allCommitted() {
+			pbft.segmentCheckpoint.SetDone()
 			eventsOut.PushBackList(pbft.sendDoneMessages())
 		}
 
