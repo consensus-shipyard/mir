@@ -51,6 +51,8 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	// Perform the necessary action based on event type.
 	switch e := event.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
 	case *eventpb.Event_WalAppend:
 		if err := w.Append(e.WalAppend.Event, t.WALRetIndex(e.WalAppend.RetentionIndex)); err != nil {
 			return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",

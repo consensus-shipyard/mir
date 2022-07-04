@@ -24,6 +24,9 @@ func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, 
 
 func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
+		return events.EmptyList(), nil
 	case *eventpb.Event_SignRequest:
 		// Compute a signature over the provided data and produce a SignResult event.
 

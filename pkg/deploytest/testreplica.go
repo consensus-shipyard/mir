@@ -102,16 +102,21 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 
 	// Create the mir node for this replica.
+	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
+		"app":    tr.App,
+		"crypto": mirCrypto.New(cryptoModule),
+		"wal":    wal,
+		"iss":    issProtocol,
+		"net":    tr.Net,
+	})
+	if err != nil {
+		return fmt.Errorf("error initializing the Mir modules: %w", err)
+	}
+
 	node, err := mir.NewNode(
 		tr.ID,
 		tr.Config,
-		map[t.ModuleID]modules.Module{
-			"app":    tr.App,
-			"crypto": mirCrypto.New(cryptoModule),
-			"wal":    wal,
-			"iss":    issProtocol,
-			"net":    tr.Net,
-		},
+		modulesWithDefaults,
 		interceptor,
 	)
 	if err != nil {

@@ -39,6 +39,8 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 		// when they are later stripped off their follow-ups, as this happens potentially concurrently
 		// with the original event being processed by the interceptor.
 		switch e := event.Type.(type) {
+		case *eventpb.Event_Init:
+			// no actions on init
 		case *eventpb.Event_TimerDelay:
 			tm.Delay(
 				ctx,
