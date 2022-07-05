@@ -69,6 +69,7 @@ message ISSEvent {
     StableCheckpoint        stable_checkpoint         = 2;
     PersistStableCheckpoint persist_stable_checkpoint = 3;
     SBEvent                 sb                        = 4;
+    PushCheckpoint          push_checkpoint           = 5;
   }
 }
 
@@ -118,6 +119,9 @@ message StableCheckpoint {
 // the latter serves as a notification to the ISS protocol when a stable checkpoint has been persisted.
 message PersistStableCheckpoint {
   StableCheckpoint stable_checkpoint = 1;
+}
+
+message PushCheckpoint {
 }
 
 message SBEvent {

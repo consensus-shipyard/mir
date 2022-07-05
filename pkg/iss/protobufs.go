@@ -78,6 +78,12 @@ func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Ev
 	)
 }
 
+func PushCheckpoint() *eventpb.Event {
+	return Event(issModuleName, &isspb.ISSEvent{Type: &isspb.ISSEvent_PushCheckpoint{
+		PushCheckpoint: &isspb.PushCheckpoint{},
+	}})
+}
+
 func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
 	return Event(
 		issModuleName,

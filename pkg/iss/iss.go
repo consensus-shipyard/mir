@@ -273,6 +273,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
 			return events.EmptyList(), nil
+		case *isspb.ISSEvent_PushCheckpoint:
+			return iss.applyPushCheckpoint()
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
@@ -296,8 +298,15 @@ func (iss *ISS) ImplementsModule() {}
 // after all the events stored in the WAL have been applied and before any other event has been applied.
 func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
 
+	// Start state catchup timer.
+	eventsOut := events.ListOf(events.TimerDelay(
+		timerModuleName,
+		[]*eventpb.Event{PushCheckpoint()},
+		t.TimeDuration(iss.config.CatchUpTimerPeriod),
+	))
+
 	// Trigger an Init event at all orderers.
-	return iss.initOrderers()
+	return eventsOut.PushBackList(iss.initOrderers())
 }
 
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
@@ -562,40 +571,22 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			"replacingSn", iss.lastStableCheckpoint.Sn)
 		iss.lastStableCheckpoint = stableCheckpoint
 
-		// Send the new stable checkpoint to potentially
-		// delayed nodes. The set of nodes to send the new
-		// stable checkpoint to is determined based on the
-		// highest epoch number in the messages received from
-		// the node so far. If the highest epoch number we
-		// have heard from the node is more than one epoch
-		// behind then that node is likely to be left behind
-		// and needs the stable checkpoint in order to start
-		// catching up with state transfer.
-		var delayed []t.NodeID
-		for _, n := range iss.config.Membership {
-			if t.EpochNr(stableCheckpoint.Epoch) > iss.nodeEpochMap[n]+1 {
-				delayed = append(delayed, n)
-			}
-		}
-		m := StableCheckpointMessage(stableCheckpoint)
-		eventsOut.PushBack(events.SendMessage(netModuleName, m, delayed))
-
-		// Prune old entries from WAL. The entries to prune
-		// are determined according to the retention index
+		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
+		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(stableCheckpoint.Epoch)))
+		pruneIndex := int(stableCheckpoint.Epoch) - iss.config.RetainedEpochs
+		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
-		// Prune old Timer tasks
-		eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(stableCheckpoint.Epoch)))
+			// Prune WAL and Timer
+			eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(pruneIndex)))
+			eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(pruneIndex)))
 
-		// Clean up the global ISS state from all the epoch
-		// instances that are associated with epoch numbers
-		// less than the epoch number of the new stable
-		// checkpoint associated with.
-		for epoch := range iss.epochs {
-			if epoch < t.EpochNr(stableCheckpoint.Epoch) {
-				delete(iss.epochs, epoch)
+			// Prune epoch state.
+			for epoch := range iss.epochs {
+				if epoch < t.EpochNr(pruneIndex) {
+					delete(iss.epochs, epoch)
+				}
 			}
 		}
 	} else {
@@ -603,6 +594,36 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 	}
 
 	return eventsOut
+}
+
+func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
+
+	// Schedule the next timer event.
+	// The Repeat function of the Timer is not used here,
+	// because this periodic event cannot be explicitly garbage-collected.
+	eventsOut := events.ListOf(events.TimerDelay(
+		timerModuleName,
+		[]*eventpb.Event{PushCheckpoint()},
+		t.TimeDuration(iss.config.CatchUpTimerPeriod),
+	))
+
+	// Send the latest stable checkpoint to potentially
+	// delayed nodes. The set of nodes to send the latest
+	// stable checkpoint to is determined based on the
+	// highest epoch number in the messages received from
+	// the node so far. If the highest epoch number we
+	// have heard from the node is more than config.RetainedEpochs
+	// behind, then that node is likely to be left behind
+	// and needs the stable checkpoint in order to start
+	// catching up with state transfer.
+	var delayed []t.NodeID
+	for _, n := range iss.config.Membership {
+		if t.EpochNr(iss.lastStableCheckpoint.Epoch) > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
+			delayed = append(delayed, n)
+		}
+	}
+	m := StableCheckpointMessage(iss.lastStableCheckpoint)
+	return eventsOut.PushBack(events.SendMessage(netModuleName, m, delayed)), nil
 }
 
 // applyMessageReceived applies a message received over the network.
