@@ -224,9 +224,11 @@ func createDeploymentDir(tb testing.TB, conf *deploytest.TestConfig) {
 	tb.Helper()
 
 	if conf.Directory != "" {
+		conf.Directory = filepath.Join(os.TempDir(), conf.Directory)
 		tb.Logf("Using deployment dir: %s\n", conf.Directory)
 		err := os.MkdirAll(conf.Directory, 0777)
 		require.NoError(tb, err)
+		tb.Cleanup(func() { os.RemoveAll(conf.Directory) })
 	} else {
 		// If no directory is configured, create a temporary directory in the OS-default location.
 		conf.Directory = tb.TempDir()
