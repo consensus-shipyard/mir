@@ -88,6 +88,13 @@ type Config struct {
 	// Must not be negative.
 	MsgBufCapacity int
 
+	// Number of most recent epochs that are older than the latest stable checkpoint.
+	RetainedEpochs int
+
+	// Every CatchUpTimerPeriod, a node checks whether other nodes have fallen behind
+	// and, if so, sends them the latest state.
+	CatchUpTimerPeriod time.Duration
+
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
 	PBFTDoneResendPeriod         time.Duration
@@ -153,6 +160,10 @@ func CheckConfig(c *Config) error {
 		return fmt.Errorf("negative MsgBufCapacity: %d", c.MsgBufCapacity)
 	}
 
+	if c.CatchUpTimerPeriod <= 0 {
+		return fmt.Errorf("non-positive CatchUpTimerPeriod: %d", c.CatchUpTimerPeriod)
+	}
+
 	// If all checks passed, return nil error.
 	return nil
 }
@@ -179,6 +190,8 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
+		RetainedEpochs:               2,
+		CatchUpTimerPeriod:           maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTDoneResendPeriod:         maxProposeDelay,
 		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTViewChangeBatchTimeout:   4 * maxProposeDelay,
