@@ -253,14 +253,6 @@ func (pbft *pbftInstance) Segment() *segment {
 	return pbft.segment
 }
 
-// Status returns a protobuf representation of the current state of the orderer that can be later printed.
-// This functionality is meant mostly for debugging and is *not* meant to provide an interface for
-// serializing and deserializing the whole protocol state.
-func (pbft *pbftInstance) Status() *isspb.SBStatus {
-	// TODO: Return actual status here, not just a stub.
-	return &isspb.SBStatus{Leader: pbft.segment.Leader.Pb()}
-}
-
 // ============================================================
 // General protocol logic (other specific parts in separate files)
 // ============================================================

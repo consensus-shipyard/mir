@@ -30,11 +30,6 @@ type sbInstance interface {
 
 	// Segment returns the segment assigned to this SB instance.
 	Segment() *segment
-
-	// Status returns a protobuf representation of the current state of the SB instance's implementation.
-	// This functionality is meant mostly for debugging and is *not* meant to provide an interface for
-	// serializing and deserializing the whole protocol state.
-	Status() *isspb.SBStatus
 }
 
 // ============================================================

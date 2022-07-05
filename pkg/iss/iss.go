@@ -253,7 +253,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		return iss.applyInit(e.Init), nil
+		return iss.applyInit(), nil
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
@@ -296,7 +296,7 @@ func (iss *ISS) ImplementsModule() {}
 // applyInit initializes the ISS protocol.
 // This event is only expected to be applied once at startup,
 // after all the events stored in the WAL have been applied and before any other event has been applied.
-func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
+func (iss *ISS) applyInit() *events.EventList {
 
 	// Start state catchup timer.
 	eventsOut := events.ListOf(events.TimerDelay(
@@ -685,7 +685,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 // applyStableCheckpointMessage applies a StableCheckpoint message
 // received over the network. It verifies the message and decides
 // whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t.NodeID) *events.EventList {
+func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, _ t.NodeID) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// Check how far is the received stable checkpoint ahead of
@@ -950,7 +950,7 @@ func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
 
 // bufferedMessageFilter decides, given a message, whether it is appropriate to apply the message, discard it,
 // or keep it in the buffer, returning the appropriate value of type messagebuffer.Applicable.
-func (iss *ISS) bufferedMessageFilter(source t.NodeID, message proto.Message) messagebuffer.Applicable {
+func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) messagebuffer.Applicable {
 	switch msg := message.(type) {
 	case *isspb.SBMessage:
 		// For SB messages, filter based on the epoch number of the message.
