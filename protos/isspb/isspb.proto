@@ -248,19 +248,3 @@ message SBInstanceSigVerOrigin {
     isspbftpb.NewView          pbft_new_view           = 2;
   }
 }
-
-// ============================================================
-// Status
-// ============================================================
-
-message Status {
-  uint64 epoch = 1;
-  repeated SBStatus orderers = 2;
-  // TODO: Represent whole status here.
-}
-
-message SBStatus {
-  string leader = 1;
-  // TODO: Represent whole status here, e.g., the segment etc.
-  //       Put common SB-related fields here and add a field for subprotocol-specific status.
-}

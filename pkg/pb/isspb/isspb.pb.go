@@ -2615,108 +2615,6 @@ func (*SBInstanceSigVerOrigin_PbftSignedViewChange) isSBInstanceSigVerOrigin_Typ
 
 func (*SBInstanceSigVerOrigin_PbftNewView) isSBInstanceSigVerOrigin_Type() {}
 
-type Status struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Epoch    uint64      `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Orderers []*SBStatus `protobuf:"bytes,2,rep,name=orderers,proto3" json:"orderers,omitempty"` // TODO: Represent whole status here.
-}
-
-func (x *Status) Reset() {
-	*x = Status{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[33]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Status) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Status) ProtoMessage() {}
-
-func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[33]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Status.ProtoReflect.Descriptor instead.
-func (*Status) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *Status) GetEpoch() uint64 {
-	if x != nil {
-		return x.Epoch
-	}
-	return 0
-}
-
-func (x *Status) GetOrderers() []*SBStatus {
-	if x != nil {
-		return x.Orderers
-	}
-	return nil
-}
-
-type SBStatus struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Leader string `protobuf:"bytes,1,opt,name=leader,proto3" json:"leader,omitempty"`
-}
-
-func (x *SBStatus) Reset() {
-	*x = SBStatus{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[34]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBStatus) ProtoMessage() {}
-
-func (x *SBStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[34]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBStatus.ProtoReflect.Descriptor instead.
-func (*SBStatus) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *SBStatus) GetLeader() string {
-	if x != nil {
-		return x.Leader
-	}
-	return ""
-}
-
 var File_isspb_isspb_proto protoreflect.FileDescriptor
 
 var file_isspb_isspb_proto_rawDesc = []byte{
@@ -3096,18 +2994,11 @@ var file_isspb_isspb_proto_rawDesc = []byte{
 	0x5f, 0x6e, 0x65, 0x77, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x12, 0x2e, 0x69, 0x73, 0x73, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x4e, 0x65, 0x77, 0x56,
 	0x69, 0x65, 0x77, 0x48, 0x00, 0x52, 0x0b, 0x70, 0x62, 0x66, 0x74, 0x4e, 0x65, 0x77, 0x56, 0x69,
-	0x65, 0x77, 0x42, 0x06, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x4b, 0x0a, 0x06, 0x53, 0x74,
-	0x61, 0x74, 0x75, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x70, 0x6f, 0x63, 0x68, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x04, 0x52, 0x05, 0x65, 0x70, 0x6f, 0x63, 0x68, 0x12, 0x2b, 0x0a, 0x08, 0x6f, 0x72,
-	0x64, 0x65, 0x72, 0x65, 0x72, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x69,
-	0x73, 0x73, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x08, 0x6f,
-	0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x73, 0x22, 0x22, 0x0a, 0x08, 0x53, 0x42, 0x53, 0x74, 0x61,
-	0x74, 0x75, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x42, 0x2e, 0x5a, 0x2c, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f,
-	0x69, 0x6e, 0x2d, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70,
-	0x6b, 0x67, 0x2f, 0x70, 0x62, 0x2f, 0x69, 0x73, 0x73, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x65, 0x77, 0x42, 0x06, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x42, 0x2e, 0x5a, 0x2c, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f, 0x69,
+	0x6e, 0x2d, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70, 0x6b,
+	0x67, 0x2f, 0x70, 0x62, 0x2f, 0x69, 0x73, 0x73, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -3122,7 +3013,7 @@ func file_isspb_isspb_proto_rawDescGZIP() []byte {
 	return file_isspb_isspb_proto_rawDescData
 }
 
-var file_isspb_isspb_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_isspb_isspb_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_isspb_isspb_proto_goTypes = []interface{}{
 	(*ISSMessage)(nil),                  // 0: isspb.ISSMessage
 	(*RetransmitRequests)(nil),          // 1: isspb.RetransmitRequests
@@ -3157,40 +3048,38 @@ var file_isspb_isspb_proto_goTypes = []interface{}{
 	(*SBNodeSigsVerified)(nil),          // 30: isspb.SBNodeSigsVerified
 	(*SBSigVerOrigin)(nil),              // 31: isspb.SBSigVerOrigin
 	(*SBInstanceSigVerOrigin)(nil),      // 32: isspb.SBInstanceSigVerOrigin
-	(*Status)(nil),                      // 33: isspb.Status
-	(*SBStatus)(nil),                    // 34: isspb.SBStatus
-	nil,                                 // 35: isspb.StableCheckpoint.CertEntry
-	(*requestpb.Request)(nil),           // 36: requestpb.Request
-	(*isspbftpb.Preprepare)(nil),        // 37: isspbftpb.Preprepare
-	(*isspbftpb.Prepare)(nil),           // 38: isspbftpb.Prepare
-	(*isspbftpb.Commit)(nil),            // 39: isspbftpb.Commit
-	(*isspbftpb.SignedViewChange)(nil),  // 40: isspbftpb.SignedViewChange
-	(*isspbftpb.PreprepareRequest)(nil), // 41: isspbftpb.PreprepareRequest
-	(*isspbftpb.NewView)(nil),           // 42: isspbftpb.NewView
-	(*isspbftpb.Done)(nil),              // 43: isspbftpb.Done
-	(*isspbftpb.CatchUpRequest)(nil),    // 44: isspbftpb.CatchUpRequest
-	(*requestpb.Batch)(nil),             // 45: requestpb.Batch
-	(*isspbftpb.VCBatchTimeout)(nil),    // 46: isspbftpb.VCBatchTimeout
-	(*commonpb.HashData)(nil),           // 47: commonpb.HashData
-	(*isspbftpb.ViewChange)(nil),        // 48: isspbftpb.ViewChange
+	nil,                                 // 33: isspb.StableCheckpoint.CertEntry
+	(*requestpb.Request)(nil),           // 34: requestpb.Request
+	(*isspbftpb.Preprepare)(nil),        // 35: isspbftpb.Preprepare
+	(*isspbftpb.Prepare)(nil),           // 36: isspbftpb.Prepare
+	(*isspbftpb.Commit)(nil),            // 37: isspbftpb.Commit
+	(*isspbftpb.SignedViewChange)(nil),  // 38: isspbftpb.SignedViewChange
+	(*isspbftpb.PreprepareRequest)(nil), // 39: isspbftpb.PreprepareRequest
+	(*isspbftpb.NewView)(nil),           // 40: isspbftpb.NewView
+	(*isspbftpb.Done)(nil),              // 41: isspbftpb.Done
+	(*isspbftpb.CatchUpRequest)(nil),    // 42: isspbftpb.CatchUpRequest
+	(*requestpb.Batch)(nil),             // 43: requestpb.Batch
+	(*isspbftpb.VCBatchTimeout)(nil),    // 44: isspbftpb.VCBatchTimeout
+	(*commonpb.HashData)(nil),           // 45: commonpb.HashData
+	(*isspbftpb.ViewChange)(nil),        // 46: isspbftpb.ViewChange
 }
 var file_isspb_isspb_proto_depIdxs = []int32{
 	2,  // 0: isspb.ISSMessage.sb:type_name -> isspb.SBMessage
 	3,  // 1: isspb.ISSMessage.checkpoint:type_name -> isspb.Checkpoint
 	11, // 2: isspb.ISSMessage.stable_checkpoint:type_name -> isspb.StableCheckpoint
 	1,  // 3: isspb.ISSMessage.retransmit_requests:type_name -> isspb.RetransmitRequests
-	36, // 4: isspb.RetransmitRequests.requests:type_name -> requestpb.Request
+	34, // 4: isspb.RetransmitRequests.requests:type_name -> requestpb.Request
 	4,  // 5: isspb.SBMessage.msg:type_name -> isspb.SBInstanceMessage
-	37, // 6: isspb.SBInstanceMessage.pbft_preprepare:type_name -> isspbftpb.Preprepare
-	38, // 7: isspb.SBInstanceMessage.pbft_prepare:type_name -> isspbftpb.Prepare
-	39, // 8: isspb.SBInstanceMessage.pbft_commit:type_name -> isspbftpb.Commit
-	40, // 9: isspb.SBInstanceMessage.pbft_signed_view_change:type_name -> isspbftpb.SignedViewChange
-	41, // 10: isspb.SBInstanceMessage.pbft_preprepare_request:type_name -> isspbftpb.PreprepareRequest
-	37, // 11: isspb.SBInstanceMessage.pbft_missing_preprepare:type_name -> isspbftpb.Preprepare
-	42, // 12: isspb.SBInstanceMessage.pbft_new_view:type_name -> isspbftpb.NewView
-	43, // 13: isspb.SBInstanceMessage.pbft_done:type_name -> isspbftpb.Done
-	44, // 14: isspb.SBInstanceMessage.pbft_catch_up_request:type_name -> isspbftpb.CatchUpRequest
-	37, // 15: isspb.SBInstanceMessage.pbft_catch_up_response:type_name -> isspbftpb.Preprepare
+	35, // 6: isspb.SBInstanceMessage.pbft_preprepare:type_name -> isspbftpb.Preprepare
+	36, // 7: isspb.SBInstanceMessage.pbft_prepare:type_name -> isspbftpb.Prepare
+	37, // 8: isspb.SBInstanceMessage.pbft_commit:type_name -> isspbftpb.Commit
+	38, // 9: isspb.SBInstanceMessage.pbft_signed_view_change:type_name -> isspbftpb.SignedViewChange
+	39, // 10: isspb.SBInstanceMessage.pbft_preprepare_request:type_name -> isspbftpb.PreprepareRequest
+	35, // 11: isspb.SBInstanceMessage.pbft_missing_preprepare:type_name -> isspbftpb.Preprepare
+	40, // 12: isspb.SBInstanceMessage.pbft_new_view:type_name -> isspbftpb.NewView
+	41, // 13: isspb.SBInstanceMessage.pbft_done:type_name -> isspbftpb.Done
+	42, // 14: isspb.SBInstanceMessage.pbft_catch_up_request:type_name -> isspbftpb.CatchUpRequest
+	35, // 15: isspb.SBInstanceMessage.pbft_catch_up_response:type_name -> isspbftpb.Preprepare
 	10, // 16: isspb.ISSEvent.persist_checkpoint:type_name -> isspb.PersistCheckpoint
 	11, // 17: isspb.ISSEvent.stable_checkpoint:type_name -> isspb.StableCheckpoint
 	12, // 18: isspb.ISSEvent.persist_stable_checkpoint:type_name -> isspb.PersistStableCheckpoint
@@ -3198,10 +3087,10 @@ var file_isspb_isspb_proto_depIdxs = []int32{
 	13, // 20: isspb.ISSEvent.push_checkpoint:type_name -> isspb.PushCheckpoint
 	25, // 21: isspb.ISSHashOrigin.sb:type_name -> isspb.SBHashOrigin
 	7,  // 22: isspb.ISSHashOrigin.requests:type_name -> isspb.RequestHashOrigin
-	36, // 23: isspb.RequestHashOrigin.requests:type_name -> requestpb.Request
+	34, // 23: isspb.RequestHashOrigin.requests:type_name -> requestpb.Request
 	28, // 24: isspb.ISSSignOrigin.sb:type_name -> isspb.SBSignOrigin
 	31, // 25: isspb.ISSSigVerOrigin.sb:type_name -> isspb.SBSigVerOrigin
-	35, // 26: isspb.StableCheckpoint.cert:type_name -> isspb.StableCheckpoint.CertEntry
+	33, // 26: isspb.StableCheckpoint.cert:type_name -> isspb.StableCheckpoint.CertEntry
 	11, // 27: isspb.PersistStableCheckpoint.stable_checkpoint:type_name -> isspb.StableCheckpoint
 	15, // 28: isspb.SBEvent.event:type_name -> isspb.SBInstanceEvent
 	16, // 29: isspb.SBInstanceEvent.init:type_name -> isspb.SBInit
@@ -3215,37 +3104,36 @@ var file_isspb_isspb_proto_depIdxs = []int32{
 	24, // 37: isspb.SBInstanceEvent.hash_result:type_name -> isspb.SBHashResult
 	27, // 38: isspb.SBInstanceEvent.sign_result:type_name -> isspb.SBSignResult
 	30, // 39: isspb.SBInstanceEvent.node_sigs_verified:type_name -> isspb.SBNodeSigsVerified
-	45, // 40: isspb.SBInstanceEvent.resurrect_batch:type_name -> requestpb.Batch
-	37, // 41: isspb.SBInstanceEvent.pbft_persist_preprepare:type_name -> isspbftpb.Preprepare
-	38, // 42: isspb.SBInstanceEvent.pbft_persist_prepare:type_name -> isspbftpb.Prepare
-	39, // 43: isspb.SBInstanceEvent.pbft_persist_commit:type_name -> isspbftpb.Commit
-	40, // 44: isspb.SBInstanceEvent.pbft_persist_signed_view_change:type_name -> isspbftpb.SignedViewChange
-	42, // 45: isspb.SBInstanceEvent.pbft_persist_new_view:type_name -> isspbftpb.NewView
-	46, // 46: isspb.SBInstanceEvent.pbft_view_change_batch_timeout:type_name -> isspbftpb.VCBatchTimeout
-	45, // 47: isspb.SBBatchReady.batch:type_name -> requestpb.Batch
-	45, // 48: isspb.SBDeliver.batch:type_name -> requestpb.Batch
+	43, // 40: isspb.SBInstanceEvent.resurrect_batch:type_name -> requestpb.Batch
+	35, // 41: isspb.SBInstanceEvent.pbft_persist_preprepare:type_name -> isspbftpb.Preprepare
+	36, // 42: isspb.SBInstanceEvent.pbft_persist_prepare:type_name -> isspbftpb.Prepare
+	37, // 43: isspb.SBInstanceEvent.pbft_persist_commit:type_name -> isspbftpb.Commit
+	38, // 44: isspb.SBInstanceEvent.pbft_persist_signed_view_change:type_name -> isspbftpb.SignedViewChange
+	40, // 45: isspb.SBInstanceEvent.pbft_persist_new_view:type_name -> isspbftpb.NewView
+	44, // 46: isspb.SBInstanceEvent.pbft_view_change_batch_timeout:type_name -> isspbftpb.VCBatchTimeout
+	43, // 47: isspb.SBBatchReady.batch:type_name -> requestpb.Batch
+	43, // 48: isspb.SBDeliver.batch:type_name -> requestpb.Batch
 	4,  // 49: isspb.SBMessageReceived.msg:type_name -> isspb.SBInstanceMessage
-	47, // 50: isspb.SBHashRequest.data:type_name -> commonpb.HashData
+	45, // 50: isspb.SBHashRequest.data:type_name -> commonpb.HashData
 	25, // 51: isspb.SBHashRequest.origin:type_name -> isspb.SBHashOrigin
 	26, // 52: isspb.SBHashResult.origin:type_name -> isspb.SBInstanceHashOrigin
 	26, // 53: isspb.SBHashOrigin.origin:type_name -> isspb.SBInstanceHashOrigin
-	37, // 54: isspb.SBInstanceHashOrigin.pbft_preprepare:type_name -> isspbftpb.Preprepare
-	37, // 55: isspb.SBInstanceHashOrigin.pbft_missing_preprepare:type_name -> isspbftpb.Preprepare
-	42, // 56: isspb.SBInstanceHashOrigin.pbft_new_view:type_name -> isspbftpb.NewView
-	37, // 57: isspb.SBInstanceHashOrigin.pbft_catch_up_response:type_name -> isspbftpb.Preprepare
+	35, // 54: isspb.SBInstanceHashOrigin.pbft_preprepare:type_name -> isspbftpb.Preprepare
+	35, // 55: isspb.SBInstanceHashOrigin.pbft_missing_preprepare:type_name -> isspbftpb.Preprepare
+	40, // 56: isspb.SBInstanceHashOrigin.pbft_new_view:type_name -> isspbftpb.NewView
+	35, // 57: isspb.SBInstanceHashOrigin.pbft_catch_up_response:type_name -> isspbftpb.Preprepare
 	29, // 58: isspb.SBSignResult.origin:type_name -> isspb.SBInstanceSignOrigin
 	29, // 59: isspb.SBSignOrigin.origin:type_name -> isspb.SBInstanceSignOrigin
-	48, // 60: isspb.SBInstanceSignOrigin.pbft_view_change:type_name -> isspbftpb.ViewChange
+	46, // 60: isspb.SBInstanceSignOrigin.pbft_view_change:type_name -> isspbftpb.ViewChange
 	32, // 61: isspb.SBNodeSigsVerified.origin:type_name -> isspb.SBInstanceSigVerOrigin
 	32, // 62: isspb.SBSigVerOrigin.origin:type_name -> isspb.SBInstanceSigVerOrigin
-	40, // 63: isspb.SBInstanceSigVerOrigin.pbft_signed_view_change:type_name -> isspbftpb.SignedViewChange
-	42, // 64: isspb.SBInstanceSigVerOrigin.pbft_new_view:type_name -> isspbftpb.NewView
-	34, // 65: isspb.Status.orderers:type_name -> isspb.SBStatus
-	66, // [66:66] is the sub-list for method output_type
-	66, // [66:66] is the sub-list for method input_type
-	66, // [66:66] is the sub-list for extension type_name
-	66, // [66:66] is the sub-list for extension extendee
-	0,  // [0:66] is the sub-list for field type_name
+	38, // 63: isspb.SBInstanceSigVerOrigin.pbft_signed_view_change:type_name -> isspbftpb.SignedViewChange
+	40, // 64: isspb.SBInstanceSigVerOrigin.pbft_new_view:type_name -> isspbftpb.NewView
+	65, // [65:65] is the sub-list for method output_type
+	65, // [65:65] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_isspb_isspb_proto_init() }
@@ -3650,30 +3538,6 @@ func file_isspb_isspb_proto_init() {
 				return nil
 			}
 		}
-		file_isspb_isspb_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Status); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_isspb_isspb_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBStatus); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_isspb_isspb_proto_msgTypes[0].OneofWrappers = []interface{}{
 		(*ISSMessage_Sb)(nil),
@@ -3756,7 +3620,7 @@ func file_isspb_isspb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_isspb_isspb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
