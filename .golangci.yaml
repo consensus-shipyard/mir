@@ -8,3 +8,8 @@ linters:
     - gosec
     - gofmt
     - misspell
+
+issues:
+  exclude-rules:
+    - path: .*\.pb\.mir\.go
+      linters: [revive]
