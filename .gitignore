@@ -13,3 +13,6 @@ mir-deployment-test
 
 # Ignore sample artifacts
 chat-demo-wal
+
+# Ignore the protoc plugin binary
+protoc-plugin/protoc-gen-mir

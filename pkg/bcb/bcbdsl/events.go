@@ -44,23 +44,25 @@ func Deliver(m dsl.Module, dest t.ModuleID, data []byte) {
 
 // Module-specific dsl functions for processing events.
 
-func UponRequest(m dsl.Module, handler func(data []byte) error) {
-	dsl.RegisterEventHandler(m, func(ev *eventpb.Event_Bcb) error {
-		requestEvWrapper, ok := ev.Bcb.Type.(*bcbpb.Event_Request)
+func UponEvent[EvWrapper bcbpb.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func(ev *Ev) error) {
+	dsl.UponEvent[*eventpb.Event_Bcb](m, func(ev *bcbpb.Event) error {
+		evWrapper, ok := ev.Type.(EvWrapper)
 		if !ok {
 			return nil
 		}
-		return handler(requestEvWrapper.Request.Data)
+		return handler(evWrapper.Unwrap())
+	})
+}
+
+func UponRequest(m dsl.Module, handler func(data []byte) error) {
+	UponEvent[*bcbpb.Event_Request](m, func(ev *bcbpb.Request) error {
+		return handler(ev.Data)
 	})
 }
 
 func UponDeliver(m dsl.Module, handler func(data []byte) error) {
-	dsl.RegisterEventHandler(m, func(ev *eventpb.Event_Bcb) error {
-		deliverEvWrapper, ok := ev.Bcb.Type.(*bcbpb.Event_Deliver)
-		if !ok {
-			return nil
-		}
-		return handler(deliverEvWrapper.Deliver.Data)
+	UponEvent[*bcbpb.Event_Deliver](m, func(ev *bcbpb.Deliver) error {
+		return handler(ev.Data)
 	})
 }
 
