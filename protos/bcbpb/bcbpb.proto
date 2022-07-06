@@ -4,6 +4,8 @@ package bcbpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/bcbpb";
 
+import "mir/plugin.proto";
+
 // ============================================================
 // Messages
 // ============================================================
@@ -18,6 +20,7 @@ message Deliver {
 
 message Event {
   oneof type {
+    option (mir.event_type) = true;
     Request request = 1;
     Deliver deliver = 2;
   }

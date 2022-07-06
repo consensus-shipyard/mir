@@ -6,14 +6,17 @@ SPDX-License-Identifier: Apache-2.0
 
 package protos
 
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative commonpb/commonpb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative messagepb/messagepb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative requestpb/requestpb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative eventpb/eventpb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative recordingpb/recordingpb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative isspb/isspb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative bcbpb/bcbpb.proto
-//go:generate protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative isspbftpb/isspbftpb.proto
+//go:generate go build -o ../protoc-plugin/protoc-gen-mir ../protoc-plugin
+//go:generate -command protoc-events protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative --plugin=../protoc-plugin/protoc-gen-mir --mir_out=../pkg/pb --mir_opt=paths=source_relative
+//go:generate protoc-events mir/plugin.proto
+//go:generate protoc-events commonpb/commonpb.proto
+//go:generate protoc-events messagepb/messagepb.proto
+//go:generate protoc-events requestpb/requestpb.proto
+//go:generate protoc-events eventpb/eventpb.proto
+//go:generate protoc-events recordingpb/recordingpb.proto
+//go:generate protoc-events isspb/isspb.proto
+//go:generate protoc-events bcbpb/bcbpb.proto
+//go:generate protoc-events isspbftpb/isspbftpb.proto
 
 //go:generate protoc --proto_path=. --go_out=:../pkg/ --go_opt=paths=source_relative simplewal/simplewal.proto
 //go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto

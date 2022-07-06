@@ -15,43 +15,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// EventType represents a set of types assignable to the Type field of eventpb.Event.
-// Copied from pkg/pb/eventpb/eventpb.pb.go.
-// See https://github.com/golang/protobuf/issues/261 to know why there is no nicer way to do this.
-// TODO: consider replacing with a protoc plugin that would export such an interface.
-type EventType interface {
-	eventpb.Event_Init |
-		eventpb.Event_Tick |
-		eventpb.Event_WalAppend |
-		eventpb.Event_WalEntry |
-		eventpb.Event_WalTruncate |
-		eventpb.Event_WalLoadAll |
-		eventpb.Event_NewRequests |
-		eventpb.Event_HashRequest |
-		eventpb.Event_HashResult |
-		eventpb.Event_SignRequest |
-		eventpb.Event_SignResult |
-		eventpb.Event_VerifyNodeSigs |
-		eventpb.Event_NodeSigsVerified |
-		eventpb.Event_RequestReady |
-		eventpb.Event_SendMessage |
-		eventpb.Event_MessageReceived |
-		eventpb.Event_Deliver |
-		eventpb.Event_Iss |
-		eventpb.Event_VerifyRequestSig |
-		eventpb.Event_RequestSigVerified |
-		eventpb.Event_StoreVerifiedRequest |
-		eventpb.Event_AppSnapshotRequest |
-		eventpb.Event_AppSnapshot |
-		eventpb.Event_AppRestoreState |
-		eventpb.Event_TimerDelay |
-		eventpb.Event_TimerRepeat |
-		eventpb.Event_TimerGarbageCollect |
-		eventpb.Event_Bcb |
-		eventpb.Event_TestingString |
-		eventpb.Event_TestingUint
-}
-
 // Strip returns a new identical (shallow copy of the) event,
 // but with all follow-up events (stored under event.Next) removed.
 // The removed events are stored in a new EventList that Strip returns a pointer to as the second return value.
