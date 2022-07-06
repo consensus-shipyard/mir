@@ -298,15 +298,8 @@ func (iss *ISS) ImplementsModule() {}
 // after all the events stored in the WAL have been applied and before any other event has been applied.
 func (iss *ISS) applyInit() *events.EventList {
 
-	// Start state catchup timer.
-	eventsOut := events.ListOf(events.TimerDelay(
-		timerModuleName,
-		[]*eventpb.Event{PushCheckpoint()},
-		t.TimeDuration(iss.config.CatchUpTimerPeriod),
-	))
-
 	// Trigger an Init event at all orderers.
-	return eventsOut.PushBackList(iss.initOrderers())
+	return iss.initOrderers()
 }
 
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
@@ -588,6 +581,22 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 					delete(iss.epochs, epoch)
 				}
 			}
+
+			// Start state catch-up.
+			// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
+			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that cauthg up
+			// before the re-transmission is garbage-collected.
+			eventsOut.PushBack(events.TimerRepeat(
+				timerModuleName,
+				[]*eventpb.Event{PushCheckpoint()},
+				t.TimeDuration(iss.config.CatchUpTimerPeriod),
+
+				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
+				// Using pruneIndex makes sure that the re-transmission is stopped
+				// on every stable checkpoint (when another one is started).
+				t.TimerRetIndex(pruneIndex),
+			))
+
 		}
 	} else {
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
@@ -597,15 +606,6 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 }
 
 func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
-
-	// Schedule the next timer event.
-	// The Repeat function of the Timer is not used here,
-	// because this periodic event cannot be explicitly garbage-collected.
-	eventsOut := events.ListOf(events.TimerDelay(
-		timerModuleName,
-		[]*eventpb.Event{PushCheckpoint()},
-		t.TimeDuration(iss.config.CatchUpTimerPeriod),
-	))
 
 	// Send the latest stable checkpoint to potentially
 	// delayed nodes. The set of nodes to send the latest
@@ -623,7 +623,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 		}
 	}
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
-	return eventsOut.PushBack(events.SendMessage(netModuleName, m, delayed)), nil
+	return events.ListOf(events.SendMessage(netModuleName, m, delayed)), nil
 }
 
 // applyMessageReceived applies a message received over the network.
