@@ -190,7 +190,7 @@ func DefaultConfig(membership []t.NodeID) *Config {
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
-		RetainedEpochs:               2,
+		RetainedEpochs:               1,
 		CatchUpTimerPeriod:           maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		PBFTDoneResendPeriod:         maxProposeDelay,
 		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
