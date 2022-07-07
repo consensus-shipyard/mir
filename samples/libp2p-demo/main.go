@@ -22,7 +22,6 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/libp2p/go-libp2p"
 	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -202,7 +201,7 @@ func main() {
 	if err := net.Start(ctx); err != nil {
 		panic(fmt.Errorf("libp2p starting: %v", err))
 	}
-	time.Sleep(5 * time.Second)
+
 	if err := net.Connect(ctx); err != nil {
 		panic(fmt.Errorf("libp2p connecting: %v", err))
 	}

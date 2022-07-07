@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -67,49 +68,66 @@ func (t *Transport) Start(ctx context.Context) error {
 }
 
 func (t *Transport) Connect(ctx context.Context) error {
-	for nodeID, nodeAddr := range t.membership {
+	wg := sync.WaitGroup{}
 
+	for nodeID, nodeAddr := range t.membership {
 		if nodeID == t.ownID {
 			continue
 		}
-
 		if strings.Compare(nodeID.Pb(), t.ownID.Pb()) == -1 {
 			continue
 		}
 
-		t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connecting to %s\n", t.ownID.Pb(), nodeID.Pb()))
+		wg.Add(1)
+		go func(nodeID types.NodeID, nodeAddr string) {
+			defer wg.Done()
 
-		maddr, err := multiaddr.NewMultiaddr(nodeAddr)
-		if err != nil {
-			return err
-		}
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connecting to %s\n", t.ownID.Pb(), nodeID.Pb()))
 
-		// Extract the peer ID from the multiaddr.
-		info, err := peer.AddrInfoFromP2pAddr(maddr)
-		if err != nil {
-			return err
-		}
+			maddr, err := multiaddr.NewMultiaddr(nodeAddr)
+			if err != nil {
+				t.logger.Log(logging.LevelError,
+					fmt.Sprintf("failed to parse %v for node %v: %v", nodeAddr, nodeID, err))
+			}
 
-		t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+			// Extract the peer ID from the multiaddr.
+			info, err := peer.AddrInfoFromP2pAddr(maddr)
+			if err != nil {
+				t.logger.Log(logging.LevelError,
+					fmt.Sprintf("failed to parse addr %v for node %v: %v", maddr, nodeID, err))
+			}
 
-		stream, err := t.host.NewStream(ctx, info.ID, TransportProtocolID)
-		if err != nil {
-			return fmt.Errorf("failed to open stream to peer %v: %w", info.ID, err)
-		}
+			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 
-		t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s opened a stream to %s\n", t.ownID.Pb(), nodeID.Pb()))
+			var stream network.Stream
 
-		rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+			next := time.NewTicker(700 * time.Millisecond)
+			defer next.Stop()
 
-		t.streamsMx.Lock()
-		_, found := t.streams[nodeID]
-		if !found {
-			t.streams[nodeID] = rw
-		}
-		t.streamsMx.Unlock()
+			connected := false
+			attempt := 0
+			for !connected {
+				select {
+				case <-next.C:
+					stream, err = t.host.NewStream(ctx, info.ID, TransportProtocolID)
+					if err != nil {
+						t.logger.Log(logging.LevelError,
+							fmt.Sprintf("attempt %d to open stream to peer %v: %v", attempt, info.ID, err))
+						attempt++
+						continue
+					}
 
-		go t.receiver(t.streams[nodeID])
+					t.logger.Log(logging.LevelInfo, fmt.Sprintf("%s opened a stream to %s\n", t.ownID.Pb(), nodeID.Pb()))
+					t.addStream(nodeID, stream)
+					connected = true
+
+					go t.receiver(t.streams[nodeID])
+				}
+			}
+		}(nodeID, nodeAddr)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -148,8 +166,6 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 		return err
 	}
 
-	t.logger.Log(logging.LevelDebug, "sent a message to", "node", dest)
-
 	return err
 }
 
@@ -186,16 +202,22 @@ func (t *Transport) receiver(rw *bufio.ReadWriter) {
 
 func (t *Transport) streamHandler(stream network.Stream) {
 	t.logger.Log(logging.LevelDebug, "stream handler started")
-	nodeID := t.getIDByPeerID(stream.Conn().RemotePeer().String())
+	defer t.logger.Log(logging.LevelDebug, "stream handler stopped")
 
-	t.streamsMx.Lock()
-	_, found := t.streams[nodeID]
-	if !found {
-		rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-		t.streams[nodeID] = rw
-	}
-	t.streamsMx.Unlock()
+	nodeID := t.getIDByPeerID(stream.Conn().RemotePeer().String())
+	t.addStream(nodeID, stream)
 	go t.receiver(t.streams[nodeID])
+}
+
+func (t *Transport) addStream(nodeID types.NodeID, stream network.Stream) {
+	t.streamsMx.Lock()
+	defer t.streamsMx.Unlock()
+
+	_, found := t.streams[nodeID]
+	if found {
+		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
+	}
+	t.streams[nodeID] = bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 }
 
 func (t *Transport) ApplyEvents(
