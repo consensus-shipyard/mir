@@ -2,6 +2,7 @@ package libp2ptransport
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
-	cborutil "github.com/filecoin-project/go-cbor-util"
 	"github.com/filecoin-project/mir/pkg/events"
 	grpc "github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -120,7 +120,7 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 		Msg:    msg,
 	}
 
-	bytes, err := proto.Marshal(&payload)
+	bs, err := proto.Marshal(&payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
@@ -130,7 +130,17 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 		return fmt.Errorf("failed to get stream for node %v", dest)
 	}
 
-	err = cborutil.WriteCborRPC(rw, &TransportMessage{bytes})
+	mb := TransportMessage{
+		bs,
+	}
+
+	buf := new(bytes.Buffer)
+	err = mb.MarshalCBOR(buf)
+	if err != nil {
+		return err
+	}
+
+	_, err = rw.Write(buf.Bytes())
 	if err == nil {
 		rw.Flush()
 	}
@@ -146,8 +156,6 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 func (t *Transport) getIDByPeerID(peerID string) types.NodeID {
 	for k, v := range t.membership {
 		if strings.Contains(v, peerID) {
-			fmt.Println(v)
-			fmt.Println(peerID)
 			return k
 		}
 	}
@@ -157,7 +165,8 @@ func (t *Transport) getIDByPeerID(peerID string) types.NodeID {
 func (t *Transport) receiver(rw *bufio.ReadWriter) {
 	for {
 		var req TransportMessage
-		if err := cborutil.ReadCborRPC(bufio.NewReader(rw), &req); err != nil {
+		err := req.UnmarshalCBOR(rw)
+		if err != nil {
 			t.logger.Log(logging.LevelError, "failed to read Mir transport request", "err", err)
 			return
 		}
