@@ -198,7 +198,7 @@ func main() {
 	// Mir will use it for transporting node-to-node messages.
 
 	net := libp2ptransport.New(h, nodeAddrs, args.OwnID, logger)
-	if err := net.Start(ctx); err != nil {
+	if err := net.Start(); err != nil {
 		panic(fmt.Errorf("libp2p starting: %v", err))
 	}
 
@@ -323,6 +323,9 @@ func main() {
 
 	// stop the request receiver,
 	reqReceiver.Stop()
+
+	// stop the libp2p transport,
+	net.Stop()
 
 	// stop the server,
 	if args.Verbose {

@@ -239,6 +239,9 @@ func main() {
 	// stop the request receiver,
 	reqReceiver.Stop()
 
+	// stop the gRPC transport,
+	net.Stop()
+
 	// stop the server,
 	if args.Verbose {
 		fmt.Println("Stopping server.")

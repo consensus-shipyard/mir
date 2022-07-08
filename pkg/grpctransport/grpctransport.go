@@ -233,6 +233,7 @@ func (gt *GrpcTransport) Stop() {
 
 		if err := connection.CloseSend(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
+			continue
 		}
 
 		gt.logger.Log(logging.LevelDebug, "Closed connection", "to", id)

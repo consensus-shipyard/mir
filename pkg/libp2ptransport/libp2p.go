@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,30 +23,31 @@ import (
 	"github.com/filecoin-project/mir/pkg/types"
 )
 
-const TransportProtocolID = "/mir/0.0.1"
+const (
+	ID = "/mir/0.0.1"
+)
 
 type TransportMessage struct {
 	Payload []byte
 }
 
 type Transport struct {
-	host             host.Host
-	ownID            types.NodeID
-	membership       map[types.NodeID]string
-	incomingMessages chan *events.EventList
-	streamsMx        sync.Mutex
-	streams          map[types.NodeID]*bufio.ReadWriter
-	logger           logging.Logger
+	host              host.Host
+	ownID             types.NodeID
+	membership        map[types.NodeID]string
+	incomingMessages  chan *events.EventList
+	outboundStreamsMx sync.Mutex
+	outboundStreams   map[types.NodeID]network.Stream
+	logger            logging.Logger
 }
 
 func New(h host.Host, membership map[types.NodeID]string, ownID types.NodeID, logger logging.Logger) *Transport {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
-
 	return &Transport{
 		incomingMessages: make(chan *events.EventList),
-		streams:          make(map[types.NodeID]*bufio.ReadWriter),
+		outboundStreams:  make(map[types.NodeID]network.Stream),
 		logger:           logger,
 		membership:       membership,
 		ownID:            ownID,
@@ -61,10 +61,27 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 	return t.incomingMessages
 }
 
-func (t *Transport) Start(ctx context.Context) error {
-	t.logger.Log(logging.LevelDebug, "starting on", "addr", t.host.Addrs())
-	t.host.SetStreamHandler(TransportProtocolID, t.streamHandler)
+func (t *Transport) Start() error {
+	t.logger.Log(logging.LevelDebug, "node transport starting on", "addr", t.host.Addrs())
+	t.host.SetStreamHandler(ID, t.mirHandler)
 	return nil
+}
+
+func (t *Transport) Stop() {
+	t.outboundStreamsMx.Lock()
+	defer t.outboundStreamsMx.Unlock()
+
+	for id, s := range t.outboundStreams {
+		if s == nil {
+			continue
+		}
+		t.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
+		if err := s.Close(); err != nil {
+			t.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
+			continue
+		}
+		t.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
+	}
 }
 
 func (t *Transport) Connect(ctx context.Context) error {
@@ -72,9 +89,6 @@ func (t *Transport) Connect(ctx context.Context) error {
 
 	for nodeID, nodeAddr := range t.membership {
 		if nodeID == t.ownID {
-			continue
-		}
-		if strings.Compare(nodeID.Pb(), t.ownID.Pb()) == -1 {
 			continue
 		}
 
@@ -99,8 +113,6 @@ func (t *Transport) Connect(ctx context.Context) error {
 
 			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 
-			var stream network.Stream
-
 			next := time.NewTicker(700 * time.Millisecond)
 			defer next.Stop()
 
@@ -109,19 +121,17 @@ func (t *Transport) Connect(ctx context.Context) error {
 			for !connected {
 				select {
 				case <-next.C:
-					stream, err = t.host.NewStream(ctx, info.ID, TransportProtocolID)
+					s, err := t.host.NewStream(ctx, info.ID, ID)
 					if err != nil {
 						t.logger.Log(logging.LevelError,
-							fmt.Sprintf("attempt %d to open stream to peer %v: %v", attempt, info.ID, err))
+							fmt.Sprintf("attempt %d to connect to peer %v: %v", attempt, info.ID, err))
 						attempt++
 						continue
 					}
 
-					t.logger.Log(logging.LevelInfo, fmt.Sprintf("%s opened a stream to %s\n", t.ownID.Pb(), nodeID.Pb()))
-					t.addStream(nodeID, stream)
+					t.logger.Log(logging.LevelInfo, fmt.Sprintf("%s connected to %s\n", t.ownID.Pb(), nodeID.Pb()))
+					t.addOutboundStream(nodeID, s)
 					connected = true
-
-					go t.receiver(t.streams[nodeID])
 				}
 			}
 		}(nodeID, nodeAddr)
@@ -143,10 +153,14 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	rw, ok := t.streams[dest]
+	t.outboundStreamsMx.Lock()
+	s, ok := t.outboundStreams[dest]
+	t.outboundStreamsMx.Unlock()
 	if !ok {
 		return fmt.Errorf("failed to get stream for node %v", dest)
 	}
+
+	w := bufio.NewWriter(bufio.NewWriter(s))
 
 	mb := TransportMessage{
 		bs,
@@ -158,9 +172,9 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 		return err
 	}
 
-	_, err = rw.Write(buf.Bytes())
+	_, err = w.Write(buf.Bytes())
 	if err == nil {
-		rw.Flush()
+		w.Flush()
 	}
 	if err != nil {
 		return err
@@ -169,13 +183,29 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 	return err
 }
 
-func (t *Transport) getIDByPeerID(peerID string) types.NodeID {
-	for k, v := range t.membership {
-		if strings.Contains(v, peerID) {
-			return k
+func (t *Transport) mirHandler(s network.Stream) {
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s started", s.ID()))
+	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s stopped", s.ID()))
+
+	for {
+		var req TransportMessage
+		err := req.UnmarshalCBOR(s)
+		if err != nil {
+			t.logger.Log(logging.LevelError, "failed to read mir transport request", "err", err)
+			return
 		}
+
+		var grpcMsg grpc.GrpcMessage
+
+		if err := proto.Unmarshal(req.Payload, &grpcMsg); err != nil {
+			t.logger.Log(logging.LevelError, "failed to unmarshall mir transport request", "err", err)
+			return
+		}
+
+		t.incomingMessages <- events.ListOf(
+			events.MessageReceived(types.ModuleID(grpcMsg.Msg.DestModule), types.NodeID(grpcMsg.Sender), grpcMsg.Msg),
+		)
 	}
-	panic("ID was not found by peer ID")
 }
 
 func (t *Transport) receiver(rw *bufio.ReadWriter) {
@@ -200,24 +230,15 @@ func (t *Transport) receiver(rw *bufio.ReadWriter) {
 	}
 }
 
-func (t *Transport) streamHandler(stream network.Stream) {
-	t.logger.Log(logging.LevelDebug, "stream handler started")
-	defer t.logger.Log(logging.LevelDebug, "stream handler stopped")
+func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
+	t.outboundStreamsMx.Lock()
+	defer t.outboundStreamsMx.Unlock()
 
-	nodeID := t.getIDByPeerID(stream.Conn().RemotePeer().String())
-	t.addStream(nodeID, stream)
-	go t.receiver(t.streams[nodeID])
-}
-
-func (t *Transport) addStream(nodeID types.NodeID, stream network.Stream) {
-	t.streamsMx.Lock()
-	defer t.streamsMx.Unlock()
-
-	_, found := t.streams[nodeID]
+	_, found := t.outboundStreams[nodeID]
 	if found {
 		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
 	}
-	t.streams[nodeID] = bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	t.outboundStreams[nodeID] = s
 }
 
 func (t *Transport) ApplyEvents(
@@ -226,7 +247,6 @@ func (t *Transport) ApplyEvents(
 ) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
 		switch e := event.Type.(type) {
 		case *eventpb.Event_SendMessage:
 			for _, destID := range e.SendMessage.Destinations {
@@ -257,6 +277,5 @@ func (t *Transport) ApplyEvents(
 			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
 		}
 	}
-
 	return nil
 }
