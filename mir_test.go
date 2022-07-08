@@ -109,7 +109,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:      1,
 				Transport:       "libp2p",
 				NumFakeRequests: 10,
-				Duration:        4 * time.Second,
+				Duration:        10 * time.Second,
 			}},
 		9: {"Submit 10 requests with 1 node and libp2p networking",
 			&deploytest.TestConfig{
@@ -117,7 +117,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:     1,
 				Transport:      "libp2p",
 				NumNetRequests: 10,
-				Duration:       4 * time.Second,
+				Duration:       10 * time.Second,
 			}},
 		10: {"Submit 10 requests with 4 nodes and libp2p networking",
 			&deploytest.TestConfig{
@@ -125,7 +125,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:     1,
 				Transport:      "libp2p",
 				NumNetRequests: 10,
-				Duration:       4 * time.Second,
+				Duration:       10 * time.Second,
 			}},
 	}
 
