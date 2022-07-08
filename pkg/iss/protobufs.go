@@ -125,6 +125,12 @@ func CheckpointSigVerOrigin(epoch t.EpochNr) *eventpb.SigVerOrigin {
 	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
 }
 
+func StableCheckpointSigVerOrigin(stableCheckpoint *isspb.StableCheckpoint) *eventpb.SigVerOrigin {
+	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_StableCheckpoint{
+		StableCheckpoint: stableCheckpoint,
+	}})
+}
+
 func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
 	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
 		Epoch:    epoch.Pb(),
