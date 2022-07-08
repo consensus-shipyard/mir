@@ -96,7 +96,7 @@ func (t *Transport) Connect(ctx context.Context) error {
 		go func(nodeID types.NodeID, nodeAddr string) {
 			defer wg.Done()
 
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connecting to %s\n", t.ownID.Pb(), nodeID.Pb()))
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connecting to %s", t.ownID.Pb(), nodeID.Pb()))
 
 			maddr, err := multiaddr.NewMultiaddr(nodeAddr)
 			if err != nil {

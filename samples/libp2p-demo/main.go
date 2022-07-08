@@ -18,16 +18,10 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	mrand "math/rand"
 	"os"
 	"strconv"
 	"sync"
 
-	"github.com/libp2p/go-libp2p"
-	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -39,6 +33,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
+	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
@@ -67,74 +62,6 @@ type parsedArgs struct {
 	Verbose bool
 }
 
-func newHost(id int) host.Host {
-	rand := mrand.New(mrand.NewSource(int64(id)))
-
-	priv, _, err := libp2pcrypto.GenerateKeyPairWithReader(libp2pcrypto.Ed25519, -1, rand)
-	if err != nil {
-		panic(err)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	sourceMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", nodeBasePort+id))
-	if err != nil {
-		panic(err)
-	}
-
-	h, err := libp2p.New(
-		// Use the keypair we generated
-		libp2p.Identity(priv),
-		// Multiple listen addresses
-		libp2p.DefaultTransports,
-		libp2p.ListenAddrs(sourceMultiAddr),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	return h
-}
-
-func newHostID(id int) multiaddr.Multiaddr {
-	rand := mrand.New(mrand.NewSource(int64(id)))
-
-	priv, _, err := libp2pcrypto.GenerateKeyPairWithReader(libp2pcrypto.Ed25519, -1, rand)
-	if err != nil {
-		panic(err)
-	}
-
-	sourceMultiAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", nodeBasePort+id))
-	if err != nil {
-		panic(err)
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	peerID, err := peer.IDFromPrivateKey(priv)
-	if err != nil {
-		panic(err)
-	}
-
-	peerInfo := peer.AddrInfo{
-		ID:    peerID,
-		Addrs: []multiaddr.Multiaddr{sourceMultiAddr},
-	}
-	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
-	if err != nil {
-		panic(err)
-	}
-
-	if len(addrs) != 1 {
-		panic(fmt.Errorf("wrong number of addresses %d", len(addrs)))
-	}
-
-	return addrs[0]
-}
-
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -157,7 +84,7 @@ func main() {
 
 	fmt.Println("Initializing...")
 
-	h := newHost(id)
+	h := libp2ptools.NewDummyHost(id, nodeBasePort)
 
 	// ================================================================================
 	// Generate system membership info: addresses, ports, etc...
@@ -177,7 +104,7 @@ func main() {
 	// Change this or make this configurable do deploy different nodes on different physical machines.
 	nodeAddrs := make(map[t.NodeID]string)
 	for i := range nodeIds {
-		nodeAddrs[t.NewNodeIDFromInt(i)] = newHostID(i).String()
+		nodeAddrs[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyHostID(i, nodeBasePort).String()
 	}
 
 	// Generate addresses and ports for client request receivers.

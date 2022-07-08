@@ -79,7 +79,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:            10 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		5: {"Submit 10 fake requests with 4 nodes and actual networking",
+		5: {"Submit 10 fake requests with 4 nodes and gRPC networking",
 			&deploytest.TestConfig{
 				NumReplicas:     4,
 				NumClients:      1,
@@ -87,7 +87,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumFakeRequests: 10,
 				Duration:        4 * time.Second,
 			}},
-		6: {"Submit 10 requests with 1 node and actual networking",
+		6: {"Submit 10 requests with 1 node and gRPC networking",
 			&deploytest.TestConfig{
 				NumReplicas:    1,
 				NumClients:     1,
@@ -95,11 +95,35 @@ func testIntegrationWithISS(t *testing.T) {
 				NumNetRequests: 10,
 				Duration:       4 * time.Second,
 			}},
-		7: {"Submit 10 requests with 4 nodes and actual networking",
+		7: {"Submit 10 requests with 4 nodes and gRPC networking",
 			&deploytest.TestConfig{
 				NumReplicas:    4,
 				NumClients:     1,
 				Transport:      "grpc",
+				NumNetRequests: 10,
+				Duration:       4 * time.Second,
+			}},
+		8: {"Submit 10 fake requests with 4 nodes and libp2p networking",
+			&deploytest.TestConfig{
+				NumReplicas:     4,
+				NumClients:      1,
+				Transport:       "libp2p",
+				NumFakeRequests: 10,
+				Duration:        4 * time.Second,
+			}},
+		9: {"Submit 10 requests with 1 node and libp2p networking",
+			&deploytest.TestConfig{
+				NumReplicas:    1,
+				NumClients:     1,
+				Transport:      "libp2p",
+				NumNetRequests: 10,
+				Duration:       4 * time.Second,
+			}},
+		10: {"Submit 10 requests with 4 nodes and libp2p networking",
+			&deploytest.TestConfig{
+				NumReplicas:    4,
+				NumClients:     1,
+				Transport:      "libp2p",
 				NumNetRequests: 10,
 				Duration:       4 * time.Second,
 			}},
@@ -222,6 +246,9 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *deploytest.TestConfig) (he
 // and sets conf.Directory to that path.
 func createDeploymentDir(tb testing.TB, conf *deploytest.TestConfig) {
 	tb.Helper()
+	if conf == nil {
+		return
+	}
 
 	if conf.Directory != "" {
 		conf.Directory = filepath.Join(os.TempDir(), conf.Directory)

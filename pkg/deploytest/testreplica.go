@@ -14,6 +14,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
+	"github.com/filecoin-project/mir/pkg/libp2ptransport"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -144,6 +145,12 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		err := transport.Start()
 		if err != nil {
 			return fmt.Errorf("error starting gRPC transport: %w", err)
+		}
+		transport.Connect(ctx)
+	case *libp2ptransport.Transport:
+		err := transport.Start()
+		if err != nil {
+			return fmt.Errorf("error starting libp2p transport: %w", err)
 		}
 		transport.Connect(ctx)
 	}
