@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -127,9 +126,8 @@ func (t *Transport) Connect(ctx context.Context) {
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	timeout := 700 * time.Millisecond
+	timeout := 500 * time.Millisecond
 	for {
-		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond) // nolint
 		sctx, cancel := context.WithTimeout(ctx, timeout)
 		s, err := t.host.NewStream(sctx, p, ID)
 		cancel()

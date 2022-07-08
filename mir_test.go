@@ -125,7 +125,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:     1,
 				Transport:      "libp2p",
 				NumNetRequests: 10,
-				Duration:       100 * time.Second,
+				Duration:       10 * time.Second,
 			}},
 	}
 
