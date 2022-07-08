@@ -16,7 +16,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	grpc "github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -28,6 +27,7 @@ const (
 )
 
 type TransportMessage struct {
+	Sender  string
 	Payload []byte
 }
 
@@ -142,13 +142,8 @@ func (t *Transport) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
-	payload := grpc.GrpcMessage{
-		Sender: t.ownID.Pb(),
-		Msg:    msg,
-	}
-
-	bs, err := proto.Marshal(&payload)
+func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
+	outBytes, err := proto.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
@@ -162,12 +157,13 @@ func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 
 	w := bufio.NewWriter(bufio.NewWriter(s))
 
-	mb := TransportMessage{
-		bs,
+	msg := TransportMessage{
+		t.ownID.Pb(),
+		outBytes,
 	}
 
 	buf := new(bytes.Buffer)
-	err = mb.MarshalCBOR(buf)
+	err = msg.MarshalCBOR(buf)
 	if err != nil {
 		return err
 	}
@@ -188,44 +184,22 @@ func (t *Transport) mirHandler(s network.Stream) {
 	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s stopped", s.ID()))
 
 	for {
-		var req TransportMessage
-		err := req.UnmarshalCBOR(s)
+		var msg TransportMessage
+		err := msg.UnmarshalCBOR(s)
 		if err != nil {
 			t.logger.Log(logging.LevelError, "failed to read mir transport request", "err", err)
 			return
 		}
 
-		var grpcMsg grpc.GrpcMessage
+		var payload messagepb.Message
 
-		if err := proto.Unmarshal(req.Payload, &grpcMsg); err != nil {
+		if err := proto.Unmarshal(msg.Payload, &payload); err != nil {
 			t.logger.Log(logging.LevelError, "failed to unmarshall mir transport request", "err", err)
 			return
 		}
 
 		t.incomingMessages <- events.ListOf(
-			events.MessageReceived(types.ModuleID(grpcMsg.Msg.DestModule), types.NodeID(grpcMsg.Sender), grpcMsg.Msg),
-		)
-	}
-}
-
-func (t *Transport) receiver(rw *bufio.ReadWriter) {
-	for {
-		var req TransportMessage
-		err := req.UnmarshalCBOR(rw)
-		if err != nil {
-			t.logger.Log(logging.LevelError, "failed to read Mir transport request", "err", err)
-			return
-		}
-
-		var grpcMsg grpc.GrpcMessage
-
-		if err := proto.Unmarshal(req.Payload, &grpcMsg); err != nil {
-			t.logger.Log(logging.LevelError, "failed to unmarshall Mir transport request", "err", err)
-			return
-		}
-
-		t.incomingMessages <- events.ListOf(
-			events.MessageReceived(types.ModuleID(grpcMsg.Msg.DestModule), types.NodeID(grpcMsg.Sender), grpcMsg.Msg),
+			events.MessageReceived(types.ModuleID(payload.DestModule), types.NodeID(msg.Sender), &payload),
 		)
 	}
 }
