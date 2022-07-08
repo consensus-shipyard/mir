@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -84,7 +85,7 @@ func (t *Transport) Stop() {
 	}
 }
 
-func (t *Transport) Connect(ctx context.Context) error {
+func (t *Transport) Connect(ctx context.Context) {
 	wg := sync.WaitGroup{}
 
 	for nodeID, nodeAddr := range t.membership {
@@ -113,33 +114,36 @@ func (t *Transport) Connect(ctx context.Context) error {
 
 			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 
-			next := time.NewTicker(700 * time.Millisecond)
-			defer next.Stop()
-
-			connected := false
-			attempt := 0
-			for !connected {
-				select {
-				case <-next.C:
-					s, err := t.host.NewStream(ctx, info.ID, ID)
-					if err != nil {
-						t.logger.Log(logging.LevelError,
-							fmt.Sprintf("attempt %d to connect to peer %v: %v", attempt, info.ID, err))
-						attempt++
-						continue
-					}
-
-					t.logger.Log(logging.LevelInfo, fmt.Sprintf("%s connected to %s\n", t.ownID.Pb(), nodeID.Pb()))
-					t.addOutboundStream(nodeID, s)
-					connected = true
-				}
+			s, err := t.openStream(ctx, info.ID)
+			if err != nil {
+				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
+				return
 			}
+			t.addOutboundStream(nodeID, s)
 		}(nodeID, nodeAddr)
 	}
 
 	wg.Wait()
+}
 
-	return nil
+func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
+	timeout := 700 * time.Millisecond
+	for {
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond) // nolint
+		sctx, cancel := context.WithTimeout(ctx, timeout)
+		s, err := t.host.NewStream(sctx, p, ID)
+		cancel()
+		if err != nil {
+			t.logger.Log(logging.LevelError, err.Error())
+			select {
+			case <-time.After(timeout):
+				continue
+			case <-ctx.Done():
+				return nil, fmt.Errorf("context closed")
+			}
+		}
+		return s, nil
+	}
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {

@@ -9,9 +9,7 @@ import (
 func main() {
 	if err := gen.WriteTupleEncodersToFile("./cbor_gen.go", "libp2ptransport",
 		libp2ptransport.TransportMessage{},
-
 	); err != nil {
 		panic(err)
 	}
 }
-

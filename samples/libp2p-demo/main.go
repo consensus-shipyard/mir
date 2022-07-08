@@ -128,10 +128,7 @@ func main() {
 	if err := net.Start(); err != nil {
 		panic(fmt.Errorf("libp2p starting: %v", err))
 	}
-
-	if err := net.Connect(ctx); err != nil {
-		panic(fmt.Errorf("libp2p connecting: %v", err))
-	}
+	net.Connect(ctx)
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIds)

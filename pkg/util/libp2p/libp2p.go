@@ -13,7 +13,7 @@ import (
 
 // NewDummyHost creates an insecure libp2p host for test and demonstration purposes.
 func NewDummyHost(id, basePort int) host.Host {
-	rand := mrand.New(mrand.NewSource(int64(id)))
+	rand := mrand.New(mrand.NewSource(int64(id))) // nolint
 
 	priv, _, err := libp2pcrypto.GenerateKeyPairWithReader(libp2pcrypto.Ed25519, -1, rand)
 	if err != nil {
@@ -44,7 +44,7 @@ func NewDummyHost(id, basePort int) host.Host {
 
 // NewDummyHostID regenerates a libp2p host address for test and demonstration purposes.
 func NewDummyHostID(id, basePort int) multiaddr.Multiaddr {
-	rand := mrand.New(mrand.NewSource(int64(id)))
+	rand := mrand.New(mrand.NewSource(int64(id))) // nolint
 
 	priv, _, err := libp2pcrypto.GenerateKeyPairWithReader(libp2pcrypto.Ed25519, -1, rand)
 	if err != nil {

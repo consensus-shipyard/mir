@@ -76,7 +76,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:          0,
 				Transport:           "fake",
 				NumFakeRequests:     100,
-				Duration:            10 * time.Second,
+				Duration:            15 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 		5: {"Submit 10 fake requests with 4 nodes and gRPC networking",
