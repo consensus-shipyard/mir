@@ -95,8 +95,9 @@ message ISSSignOrigin {
 
 message ISSSigVerOrigin {
   oneof type {
-    SBSigVerOrigin sb               = 1;
-    uint64         checkpoint_epoch = 2;
+    SBSigVerOrigin   sb                = 1;
+    uint64           checkpoint_epoch  = 2;
+    StableCheckpoint stable_checkpoint = 3;
   }
 }
 
