@@ -119,6 +119,7 @@ func (t *Transport) Connect(ctx context.Context) {
 				return
 			}
 			t.addOutboundStream(nodeID, s)
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connected to %s", t.ownID.Pb(), nodeID.Pb()))
 		}(nodeID, nodeAddr)
 	}
 
