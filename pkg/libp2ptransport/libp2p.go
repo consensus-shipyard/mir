@@ -127,7 +127,7 @@ func (t *Transport) Connect(ctx context.Context) {
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	timeout := 100 * time.Millisecond
+	timeout := 300 * time.Millisecond
 	for {
 		sctx, cancel := context.WithTimeout(ctx, timeout)
 		s, err := t.host.NewStream(sctx, p, ID)
