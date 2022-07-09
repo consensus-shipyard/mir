@@ -134,6 +134,8 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 	preprepare := pbftPreprepareMsg(sn, pbft.view, batch, false)
 
 	// Create a Preprepare message send Event.
+	// No need for periodic re-transmission.
+	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	msgSendEvent := pbft.eventService.SendMessage(
 		PbftPreprepareSBMessage(preprepare),
 		pbft.segment.Membership,
@@ -234,7 +236,9 @@ func (pbft *pbftInstance) sendPrepare(prepare *isspbftpb.Prepare) *events.EventL
 	// Create persist event.
 	persistEvent := pbft.eventService.WALAppend(PbftPersistPrepare(prepare))
 
-	// Append send event as a follow-up
+	// Append send event as a follow-up.
+	// No need for periodic re-transmission.
+	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	persistEvent.FollowUp(pbft.eventService.SendMessage(
 		PbftPrepareSBMessage(prepare),
 		pbft.segment.Membership,
@@ -279,7 +283,9 @@ func (pbft *pbftInstance) sendCommit(commit *isspbftpb.Commit) *events.EventList
 	// Create persist event.
 	persistEvent := pbft.eventService.WALAppend(PbftPersistCommit(commit))
 
-	// Append send event as a follow-up
+	// Append send event as a follow-up.
+	// No need for periodic re-transmission.
+	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	persistEvent.FollowUp(pbft.eventService.SendMessage(
 		PbftCommitSBMessage(commit),
 		pbft.segment.Membership,
@@ -331,6 +337,8 @@ func (pbft *pbftInstance) preprocessMessage(sn t.SeqNr, view t.PBFTViewNr, msg p
 		return nil
 	} else if view > pbft.view || pbft.inViewChange {
 		// If message is from a future view, buffer it.
+		pbft.logger.Log(logging.LevelDebug, "Buffering message.",
+			"sn", sn, "from", from, "msgView", view, "localView", pbft.view, "type", fmt.Sprintf("%T", msg))
 		pbft.messageBuffers[from].Store(msg)
 		return nil
 		// TODO: When view change is implemented, get the messages out of the buffer.

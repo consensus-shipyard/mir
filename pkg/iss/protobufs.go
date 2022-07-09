@@ -78,6 +78,12 @@ func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Ev
 	)
 }
 
+func PushCheckpoint() *eventpb.Event {
+	return Event(issModuleName, &isspb.ISSEvent{Type: &isspb.ISSEvent_PushCheckpoint{
+		PushCheckpoint: &isspb.PushCheckpoint{},
+	}})
+}
+
 func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
 	return Event(
 		issModuleName,
@@ -144,10 +150,6 @@ func SBSigVerOrigin(
 
 func SBInitEvent() *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Init{Init: &isspb.SBInit{}}}
-}
-
-func SBTickEvent() *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Tick{Tick: &isspb.SBTick{}}}
 }
 
 func SBDeliverEvent(sn t.SeqNr, batch *requestpb.Batch, aborted bool) *isspb.SBInstanceEvent {

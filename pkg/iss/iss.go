@@ -72,19 +72,6 @@ type segment struct {
 	BucketIDs []int
 }
 
-// epochInfo holds epoch-specific information that becomes irrelevant on advancing to the next epoch.
-type epochInfo struct {
-
-	// Epoch number.
-	Nr t.EpochNr
-
-	// Orderers associated with the epoch.
-	Orderers []sbInstance
-
-	// Checkpoint sub-protocol state.
-	Checkpoint *checkpointTracker
-}
-
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
 // Whenever an orderer delivers a batch (or a special abort value),
 // it is inserted to the commit log in form of a commitLogEntry.
@@ -266,7 +253,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		return iss.applyInit(e.Init), nil
+		return iss.applyInit(), nil
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
@@ -280,12 +267,14 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
-			return iss.applySBEvent(issEvent.Sb), nil
+			return iss.applySBEvent(issEvent.Sb)
 		case *isspb.ISSEvent_StableCheckpoint:
 			return iss.applyStableCheckpoint(issEvent.StableCheckpoint), nil
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
 			return events.EmptyList(), nil
+		case *isspb.ISSEvent_PushCheckpoint:
+			return iss.applyPushCheckpoint()
 		default:
 			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
 		}
@@ -307,7 +296,7 @@ func (iss *ISS) ImplementsModule() {}
 // applyInit initializes the ISS protocol.
 // This event is only expected to be applied once at startup,
 // after all the events stored in the WAL have been applied and before any other event has been applied.
-func (iss *ISS) applyInit(init *eventpb.Init) *events.EventList {
+func (iss *ISS) applyInit() *events.EventList {
 
 	// Trigger an Init event at all orderers.
 	return iss.initOrderers()
@@ -532,7 +521,7 @@ func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeI
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),
 // if that event belongs to the current epoch.
 // TODO: Update this comment when the TODO below is addressed.
-func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
+func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 
 	// Ignore persist events (their handling is not yet implemented).
 	// TODO: Deal with this when proper handlers are implemented.
@@ -542,26 +531,24 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) *events.EventList {
 		*isspb.SBInstanceEvent_PbftPersistCommit,
 		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
 		*isspb.SBInstanceEvent_PbftPersistNewView:
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	}
 
-	switch epoch := t.EpochNr(event.Epoch); {
-	case epoch > iss.epoch.Nr:
+	epochNr := t.EpochNr(event.Epoch)
+	if epochNr > iss.epoch.Nr {
 		// Events coming from future epochs should never occur (as, unlike messages, events are all generated locally.)
-		panic(fmt.Sprintf("trying to handle ISS event (type %T, instance %d) from future epoch: %d",
-			event.Event.Type, event.Instance, event.Epoch))
-
-	case epoch == iss.epoch.Nr:
-		// If the event is from the current epoch, apply it in relation to the corresponding orderer instance.
-		return iss.applySBInstanceEvent(event.Event, t.SBInstanceNr(event.Instance))
-
-	default: // epoch < iss.epoch:
+		return nil, fmt.Errorf("ISS event (type %T, instance %d) from future epoch: %d",
+			event.Event.Type, event.Instance, event.Epoch)
+	} else if epoch, ok := iss.epochs[epochNr]; ok {
+		// If the event is from a known epoch, apply it in relation to the corresponding orderer instance.
+		// Since the event is locally generated, we do not need to check whether the orderer exists in the epoch.
+		return iss.applySBInstanceEvent(event.Event, epoch.Orderers[event.Instance]), nil
+	} else {
 		// If the event is from an old epoch, ignore it.
 		// This might potentially happen if the epoch advanced while the event has been waiting in some buffer.
-		// TODO: Is this really correct? Is it possible that orderers from old epochs
-		//       (that have a reason to not yet be garbage-collected) still need to process events?
-		iss.logger.Log(logging.LevelDebug, "Ignoring old event.", "epoch", epoch)
-		return events.EmptyList()
+		iss.logger.Log(logging.LevelDebug, "Ignoring old event.",
+			"epoch", epochNr, "type", fmt.Sprintf("%T", event.Event.Type))
+		return events.EmptyList(), nil
 	}
 }
 
@@ -577,44 +564,66 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			"replacingSn", iss.lastStableCheckpoint.Sn)
 		iss.lastStableCheckpoint = stableCheckpoint
 
-		// Send the new stable checkpoint to potentially
-		// delayed nodes. The set of nodes to send the new
-		// stable checkpoint to is determined based on the
-		// highest epoch number in the messages received from
-		// the node so far. If the highest epoch number we
-		// have heard from the node is more than one epoch
-		// behind then that node is likely to be left behind
-		// and needs the stable checkpoint in order to start
-		// catching up with state transfer.
-		var delayed []t.NodeID
-		for _, n := range iss.config.Membership {
-			if t.EpochNr(stableCheckpoint.Epoch) > iss.nodeEpochMap[n]+1 {
-				delayed = append(delayed, n)
-			}
-		}
-		m := StableCheckpointMessage(stableCheckpoint)
-		eventsOut.PushBack(events.SendMessage(netModuleName, m, delayed))
-
-		// Prune old entries from WAL. The entries to prune
-		// are determined according to the retention index
+		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
+		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(stableCheckpoint.Epoch)))
+		pruneIndex := int(stableCheckpoint.Epoch) - iss.config.RetainedEpochs
+		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
-		// Clean up the global ISS state from all the epoch
-		// instances that are associated with epoch numbers
-		// less than the epoch number of the new stable
-		// checkpoint associated with.
-		for epoch := range iss.epochs {
-			if epoch < t.EpochNr(stableCheckpoint.Epoch) {
-				delete(iss.epochs, epoch)
+			// Prune WAL and Timer
+			eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(pruneIndex)))
+			eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(pruneIndex)))
+
+			// Prune epoch state.
+			for epoch := range iss.epochs {
+				if epoch < t.EpochNr(pruneIndex) {
+					delete(iss.epochs, epoch)
+				}
 			}
+
+			// Start state catch-up.
+			// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
+			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that cauthg up
+			// before the re-transmission is garbage-collected.
+			eventsOut.PushBack(events.TimerRepeat(
+				timerModuleName,
+				[]*eventpb.Event{PushCheckpoint()},
+				t.TimeDuration(iss.config.CatchUpTimerPeriod),
+
+				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
+				// Using pruneIndex makes sure that the re-transmission is stopped
+				// on every stable checkpoint (when another one is started).
+				t.TimerRetIndex(pruneIndex),
+			))
+
 		}
 	} else {
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
 	}
 
 	return eventsOut
+}
+
+func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
+
+	// Send the latest stable checkpoint to potentially
+	// delayed nodes. The set of nodes to send the latest
+	// stable checkpoint to is determined based on the
+	// highest epoch number in the messages received from
+	// the node so far. If the highest epoch number we
+	// have heard from the node is more than config.RetainedEpochs
+	// behind, then that node is likely to be left behind
+	// and needs the stable checkpoint in order to start
+	// catching up with state transfer.
+	var delayed []t.NodeID
+	for _, n := range iss.config.Membership {
+		if t.EpochNr(iss.lastStableCheckpoint.Epoch) > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
+			delayed = append(delayed, n)
+		}
+	}
+	m := StableCheckpointMessage(iss.lastStableCheckpoint)
+	return events.ListOf(events.SendMessage(netModuleName, m, delayed)), nil
 }
 
 // applyMessageReceived applies a message received over the network.
@@ -676,7 +685,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 // applyStableCheckpointMessage applies a StableCheckpoint message
 // received over the network. It verifies the message and decides
 // whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t.NodeID) *events.EventList {
+func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, _ t.NodeID) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// Check how far is the received stable checkpoint ahead of
@@ -727,31 +736,28 @@ func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, source t
 // applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
 func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.EventList {
 
-	switch epoch := t.EpochNr(message.Epoch); {
-	case epoch > iss.epoch.Nr:
+	epochNr := t.EpochNr(message.Epoch)
+	if epochNr > iss.epoch.Nr {
 		// If the message is for a future epoch,
 		// it might have been sent by a node that already transitioned to a newer epoch,
 		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
 		// In such case, save the message in a backlog (if there is buffer space) for later processing.
 		iss.messageBuffers[from].Store(message)
 		return events.EmptyList()
-
-	case epoch == iss.epoch.Nr:
+	} else if epoch, ok := iss.epochs[epochNr]; ok {
 		// If the message is for the current epoch, check its validity and
 		// apply it to the corresponding orderer in form of an SBMessageReceived event.
-		if err := iss.validateSBMessage(message, from); err != nil {
+		if err := epoch.validateSBMessage(message, from); err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
 				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err)
 			return events.EmptyList()
 		}
 
-		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), t.SBInstanceNr(message.Instance))
-	default: // epoch < iss.epoch:
+		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), epoch.Orderers[message.Instance])
+	} else {
 		// Ignore old messages
-		// TODO: In case old SB instances from previous epoch still need to linger around,
-		//       they might need to receive messages... Instead of simply checking the message epoch
-		//       against the current epoch, we might need to remember which epochs have been already garbage-collected
-		//       and use that information to decide what to do with messages.
+		iss.logger.Log(logging.LevelDebug, "Ignoring message from old epoch.",
+			"from", from, "epoch", epochNr, "type", fmt.Sprintf("%T", message.Msg.Type))
 		return events.EmptyList()
 	}
 }
@@ -776,9 +782,15 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 
 	// Set the new epoch number and re-initialize list of orderers.
 	epoch := &epochInfo{
-		Nr: newEpoch,
-		Checkpoint: newCheckpointTracker(iss.ownID, iss.nextDeliveredSN, newEpoch,
-			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch)),
+		Nr:         newEpoch,
+		Membership: iss.config.Membership, // TODO: Make a proper copy once reconfiguration is supported.
+		Checkpoint: newCheckpointTracker(
+			iss.ownID,
+			iss.nextDeliveredSN,
+			newEpoch,
+			t.TimeDuration(iss.config.CheckpointResendPeriod),
+			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch),
+		),
 	}
 	iss.epochs[newEpoch] = epoch
 	iss.epoch = epoch
@@ -846,31 +858,6 @@ func (iss *ISS) initOrderers() *events.EventList {
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed, otherwise false.
 func (iss *ISS) epochFinished() bool {
 	return iss.nextDeliveredSN == iss.newEpochSN
-}
-
-// validateSBMessage checks whether an SBMessage is valid in the current epoch.
-// Returns nil if validation succeeds.
-// If validation fails, returns the reason for which the message is considered invalid.
-func (iss *ISS) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error {
-
-	// Message must be destined for the current epoch.
-	if t.EpochNr(message.Epoch) != iss.epoch.Nr {
-		return fmt.Errorf("invalid epoch: %v (current epoch is %v)", message.Instance, iss.epoch)
-	}
-
-	// Message must refer to a valid SB instance.
-	if int(message.Instance) > len(iss.epoch.Orderers) {
-		return fmt.Errorf("invalid SB instance number: %d", message.Instance)
-	}
-
-	// Message must be sent by a node in the current membership.
-	// TODO: This lookup is extremely inefficient, computing the membership set on each message validation.
-	//       Cache the output of membershipSet() throughout the epoch.
-	if _, ok := membershipSet(iss.config.Membership)[from]; !ok {
-		return fmt.Errorf("sender of SB message not in the membership: %v", from)
-	}
-
-	return nil
 }
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
@@ -968,7 +955,7 @@ func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
 
 // bufferedMessageFilter decides, given a message, whether it is appropriate to apply the message, discard it,
 // or keep it in the buffer, returning the appropriate value of type messagebuffer.Applicable.
-func (iss *ISS) bufferedMessageFilter(source t.NodeID, message proto.Message) messagebuffer.Applicable {
+func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) messagebuffer.Applicable {
 	switch msg := message.(type) {
 	case *isspb.SBMessage:
 		// For SB messages, filter based on the epoch number of the message.
@@ -1050,6 +1037,8 @@ func newPBFTConfig(issConfig *Config) *PBFTConfig {
 		MaxProposeDelay:          issConfig.MaxProposeDelay,
 		MsgBufCapacity:           issConfig.MsgBufCapacity,
 		MaxBatchSize:             issConfig.MaxBatchSize,
+		DoneResendPeriod:         issConfig.PBFTDoneResendPeriod,
+		CatchUpDelay:             issConfig.PBFTCatchUpDelay,
 		ViewChangeBatchTimeout:   issConfig.PBFTViewChangeBatchTimeout,
 		ViewChangeSegmentTimeout: issConfig.PBFTViewChangeSegmentTimeout,
 		ViewChangeResendPeriod:   issConfig.PBFTViewChangeResendPeriod,

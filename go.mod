@@ -24,6 +24,8 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
+require github.com/golang/mock v1.6.0
+
 require (
 	github.com/filecoin-project/go-cbor-util v0.0.1
 	github.com/ipfs/go-cid v0.2.0

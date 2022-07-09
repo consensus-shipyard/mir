@@ -53,6 +53,9 @@ message SBInstanceMessage {
     isspbftpb.PreprepareRequest pbft_preprepare_request = 5;
     isspbftpb.Preprepare        pbft_missing_preprepare = 6;
     isspbftpb.NewView           pbft_new_view           = 7;
+    isspbftpb.Done              pbft_done               = 8;
+    isspbftpb.CatchUpRequest    pbft_catch_up_request   = 9;
+    isspbftpb.Preprepare        pbft_catch_up_response  = 10;
   }
 }
 
@@ -66,6 +69,7 @@ message ISSEvent {
     StableCheckpoint        stable_checkpoint         = 2;
     PersistStableCheckpoint persist_stable_checkpoint = 3;
     SBEvent                 sb                        = 4;
+    PushCheckpoint          push_checkpoint           = 5;
   }
 }
 
@@ -115,6 +119,9 @@ message StableCheckpoint {
 // the latter serves as a notification to the ISS protocol when a stable checkpoint has been persisted.
 message PersistStableCheckpoint {
   StableCheckpoint stable_checkpoint = 1;
+}
+
+message PushCheckpoint {
 }
 
 message SBEvent {
@@ -200,6 +207,7 @@ message SBInstanceHashOrigin {
     isspbftpb.Preprepare pbft_missing_preprepare = 2;
     isspbftpb.NewView    pbft_new_view           = 3;
     uint64               pbft_empty_preprepares  = 4;
+    isspbftpb.Preprepare pbft_catch_up_response  = 5;
   }
 }
 
@@ -239,20 +247,4 @@ message SBInstanceSigVerOrigin {
     isspbftpb.SignedViewChange pbft_signed_view_change = 1;
     isspbftpb.NewView          pbft_new_view           = 2;
   }
-}
-
-// ============================================================
-// Status
-// ============================================================
-
-message Status {
-  uint64 epoch = 1;
-  repeated SBStatus orderers = 2;
-  // TODO: Represent whole status here.
-}
-
-message SBStatus {
-  string leader = 1;
-  // TODO: Represent whole status here, e.g., the segment etc.
-  //       Put common SB-related fields here and add a field for subprotocol-specific status.
 }

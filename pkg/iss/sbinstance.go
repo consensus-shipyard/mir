@@ -7,8 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -32,11 +30,6 @@ type sbInstance interface {
 
 	// Segment returns the segment assigned to this SB instance.
 	Segment() *segment
-
-	// Status returns a protobuf representation of the current state of the SB instance's implementation.
-	// This functionality is meant mostly for debugging and is *not* meant to provide an interface for
-	// serializing and deserializing the whole protocol state.
-	Status() *isspb.SBStatus
 }
 
 // ============================================================
@@ -45,19 +38,19 @@ type sbInstance interface {
 
 // applySBInstanceEvent applies one event produced by an orderer to the ISS state, potentially altering its state
 // and producing a (potentially empty) list of events to be applied to other modules.
-func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SBInstanceNr) *events.EventList {
+func (iss *ISS) applySBInstanceEvent(
+	event *isspb.SBInstanceEvent,
+	instance sbInstance,
+) *events.EventList {
 	switch e := event.Type.(type) {
 	case *isspb.SBInstanceEvent_Deliver:
-		return iss.applySBInstDeliver(e.Deliver, instance)
+		return iss.applySBInstDeliver(instance, e.Deliver)
 	case *isspb.SBInstanceEvent_CutBatch:
 		return iss.applySBInstCutBatch(instance, t.NumRequests(e.CutBatch.MaxSize))
 	case *isspb.SBInstanceEvent_ResurrectBatch:
-		return iss.applySBInstResurrectBatch(instance, e.ResurrectBatch)
+		return iss.applySBInstResurrectBatch(e.ResurrectBatch)
 	default:
-		if int(instance) > len(iss.epoch.Orderers) {
-			panic(fmt.Sprintf("invalid SB event instance number (event type %T): %d", event.Type, instance))
-		}
-		return iss.epoch.Orderers[instance].ApplyEvent(event)
+		return instance.ApplyEvent(event)
 	}
 }
 
@@ -65,7 +58,7 @@ func (iss *ISS) applySBInstanceEvent(event *isspb.SBInstanceEvent, instance t.SB
 // for a sequence number. It creates a corresponding commitLog entry and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
 // Operation continues on reception of the HashResult event.
-func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstanceNr) *events.EventList {
+func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver) *events.EventList {
 
 	// Remove the delivered requests from their respective buckets.
 	iss.removeFromBuckets(deliver.Batch.Requests)
@@ -80,7 +73,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 		Batch:   deliver.Batch,
 		Digest:  nil,
 		Aborted: deliver.Aborted,
-		Suspect: iss.epoch.Orderers[instance].Segment().Leader,
+		Suspect: instance.Segment().Leader,
 	}
 
 	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
@@ -101,13 +94,10 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver, instance t.SBInstan
 // with ID instanceID, constructs a batch containing those requests, and submits the batch to the orderer
 // via a BatchReady event.
 // If there are no requests in the corresponding buckets, applySBInstCutBatch still provides an empty batch immediately.
-func (iss *ISS) applySBInstCutBatch(instance t.SBInstanceNr, maxBatchSize t.NumRequests) *events.EventList {
-
-	// Look up the orderer that asks for a new batch.
-	orderer := iss.epoch.Orderers[instance]
+func (iss *ISS) applySBInstCutBatch(instance sbInstance, maxBatchSize t.NumRequests) *events.EventList {
 
 	// Look up the relevant buckets, based on the orderer's segment.
-	buckets := iss.buckets.Select(orderer.Segment().BucketIDs)
+	buckets := iss.buckets.Select(instance.Segment().BucketIDs)
 
 	// Create a new batch, removing its requests from their buckets.
 	batch := buckets.CutBatch(maxBatchSize)
@@ -116,12 +106,12 @@ func (iss *ISS) applySBInstCutBatch(instance t.SBInstanceNr, maxBatchSize t.NumR
 	requestsLeft := buckets.TotalRequests()
 
 	// Notify submit the new batch to the orderer.
-	return orderer.ApplyEvent(SBBatchReadyEvent(batch, requestsLeft))
+	return instance.ApplyEvent(SBBatchReadyEvent(batch, requestsLeft))
 }
 
 // applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed
 // or committed. Through the ResurrectBatch event, an orderer "returns" a batch it was unable to order.
-func (iss *ISS) applySBInstResurrectBatch(_ t.SBInstanceNr, batch *requestpb.Batch) *events.EventList {
+func (iss *ISS) applySBInstResurrectBatch(batch *requestpb.Batch) *events.EventList {
 
 	// Put each request in its corresponding bucket.
 	for _, reqRef := range batch.Requests {

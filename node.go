@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"reflect"
 	"sync"
 
@@ -75,14 +74,6 @@ func NewNode(
 	m modules.Modules,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
-
-	// Create default modules for those not specified by the user.
-	// TODO: This counts on ISS being the default module set for Mir. Generalize.
-	modulesWithDefaults, err := iss.DefaultModules(m)
-	if err != nil {
-		return nil, err
-	}
-
 	// Return a new Node.
 	return &Node{
 		ID:     id,
@@ -91,11 +82,11 @@ func NewNode(
 		eventsIn: make(chan *events.EventList),
 		debugOut: make(chan *events.EventList),
 
-		workChans:   newWorkChans(modulesWithDefaults),
-		modules:     modulesWithDefaults,
+		workChans:   newWorkChans(m),
+		modules:     m,
 		interceptor: interceptor,
 
-		workItems:       newWorkItems(modulesWithDefaults),
+		workItems:       newWorkItems(m),
 		workErrNotifier: newWorkErrNotifier(),
 	}, nil
 }
@@ -163,7 +154,7 @@ func (n *Node) Run(ctx context.Context) error {
 	}
 
 	// Submit the Init event to the modules.
-	if err := n.workItems.AddEvents(events.ListOf(events.Init("iss"))); err != nil {
+	if err := n.workItems.AddEvents(createInitEvents(n.modules)); err != nil {
 		n.workErrNotifier.Fail(err)
 		return fmt.Errorf("failed to add init event: %w", err)
 	}
@@ -392,4 +383,12 @@ func (n *Node) interceptEvents(events *events.EventList) {
 			n.workErrNotifier.Fail(err)
 		}
 	}
+}
+
+func createInitEvents(m modules.Modules) *events.EventList {
+	initEvents := events.EmptyList()
+	for moduleID := range m {
+		initEvents.PushBack(events.Init(moduleID))
+	}
+	return initEvents
 }

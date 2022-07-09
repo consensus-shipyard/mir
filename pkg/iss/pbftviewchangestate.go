@@ -146,9 +146,15 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *pbftInstance, view
 	}
 }
 
+// askForMissingPreprepares requests the Preprepare messages that are part of a new view.
+// The new primary might have received a prepare certificate from other nodes in the ViewChange messages they sent
+// and thus the new primary has to re-propose the corresponding batch by including the corresponding Preprepare message
+// the NewView message. However, the new primary might not have all the corresponding Preprepare messages,
+// in which case it calls this function.
+// Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
+// If they are dropped, the new primary will simply never send a NewView message
+// and will be succeeded by another primary after another view change.
 func (vcState *pbftViewChangeState) askForMissingPreprepares(eventService *sbEventService) *events.EventList {
-
-	// TODO: Do this periodically, not just once. Messages might get lost!
 
 	eventsOut := events.EmptyList()
 	for sn, digest := range vcState.reproposals {

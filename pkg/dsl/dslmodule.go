@@ -63,17 +63,14 @@ func (m *dslModuleImpl) ModuleID() t.ModuleID {
 	return m.moduleID
 }
 
-// RegisterEventHandler registers an event handler for module m.
-// This event handler will be called every time an event of type EvTp is received.
-// TODO: consider adding a protoc plugin that would augment EvTp with a function Unwrap(), which would return the
-//       unwrapped event. Then it will be possible to pass the unwrapped event to the handler.
-func RegisterEventHandler[EvTp events.EventType](m Module, handler func(ev *EvTp) error) {
-	evTpPtrType := reflect.PointerTo(reflectutil.TypeOf[EvTp]())
+// UponEvent registers an event handler for module m.
+// This event handler will be called every time an event of type EvWrapper is received.
+func UponEvent[EvWrapper eventpb.Event_TypeWrapper[Ev], Ev any](m Module, handler func(ev *Ev) error) {
+	evWrapperType := reflectutil.TypeOf[EvWrapper]()
 
-	m.DslHandle().impl.eventHandlers[evTpPtrType] = append(m.DslHandle().impl.eventHandlers[evTpPtrType],
-		func(event *eventpb.Event) error {
-			evTpPtr := ((any)(event.Type)).(*EvTp)
-			return handler(evTpPtr)
+	m.DslHandle().impl.eventHandlers[evWrapperType] = append(m.DslHandle().impl.eventHandlers[evWrapperType],
+		func(evWrapper *eventpb.Event) error {
+			return handler(evWrapper.Type.(EvWrapper).Unwrap())
 		})
 }
 

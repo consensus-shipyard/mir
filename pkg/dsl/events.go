@@ -105,13 +105,18 @@ func HashOneMessage[C any](m Module, destModule t.ModuleID, data [][]byte, conte
 // Dsl functions for processing events
 // TODO: consider generating this code automatically using a protoc plugin.
 
+// UponInit invokes handler when the module is initialized.
+func UponInit(m Module, handler func() error) {
+	UponEvent[*eventpb.Event_Init](m, func(ev *eventpb.Init) error {
+		return handler()
+	})
+}
+
 // UponSignResult invokes handler when the module receives a response to a request made by SignRequest with the same
 // context type C.
 func UponSignResult[C any](m Module, handler func(signature []byte, context *C) error) {
-	RegisterEventHandler(m, func(evTp *eventpb.Event_SignResult) error {
-		res := evTp.SignResult
-
-		dslOriginWrapper, ok := res.Origin.Type.(*eventpb.SignOrigin_Dsl)
+	UponEvent[*eventpb.Event_SignResult](m, func(ev *eventpb.SignResult) error {
+		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.SignOrigin_Dsl)
 		if !ok {
 			return nil
 		}
@@ -122,7 +127,7 @@ func UponSignResult[C any](m Module, handler func(signature []byte, context *C) 
 			return nil
 		}
 
-		return handler(res.Signature, context)
+		return handler(ev.Signature, context)
 	})
 }
 
@@ -132,9 +137,7 @@ func UponNodeSigsVerified[C any](
 	m Module,
 	handler func(nodeIDs []t.NodeID, errs []error, allOK bool, context *C) error,
 ) {
-	RegisterEventHandler(m, func(evTp *eventpb.Event_NodeSigsVerified) error {
-		ev := evTp.NodeSigsVerified
-
+	UponEvent[*eventpb.Event_NodeSigsVerified](m, func(ev *eventpb.NodeSigsVerified) error {
 		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.SigVerOrigin_Dsl)
 		if !ok {
 			return nil
@@ -177,9 +180,7 @@ func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, err e
 // UponHashResult invokes handler when the module receives a response to a request made by HashRequest with the same
 // context type C.
 func UponHashResult[C any](m Module, handler func(hashes [][]byte, context *C) error) {
-	RegisterEventHandler(m, func(evTp *eventpb.Event_HashResult) error {
-		ev := evTp.HashResult
-
+	UponEvent[*eventpb.Event_HashResult](m, func(ev *eventpb.HashResult) error {
 		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.HashOrigin_Dsl)
 		if !ok {
 			return nil
@@ -212,8 +213,7 @@ func UponOneHashResult[C any](m Module, handler func(hash []byte, context *C) er
 
 // UponMessageReceived invokes handler when the module receives a message over the network.
 func UponMessageReceived(m Module, handler func(from t.NodeID, msg *messagepb.Message) error) {
-	RegisterEventHandler(m, func(evTp *eventpb.Event_MessageReceived) error {
-		ev := evTp.MessageReceived
+	UponEvent[*eventpb.Event_MessageReceived](m, func(ev *eventpb.MessageReceived) error {
 		return handler(t.NodeID(ev.From), ev.Msg)
 	})
 }

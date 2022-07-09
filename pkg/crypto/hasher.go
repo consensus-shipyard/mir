@@ -29,6 +29,9 @@ func (hasher *Hasher) ApplyEvents(eventsIn *events.EventList) (*events.EventList
 
 func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
+		return events.EmptyList(), nil
 	case *eventpb.Event_HashRequest:
 		// HashRequest is the only event understood by the hasher module.
 

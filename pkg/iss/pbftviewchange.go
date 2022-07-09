@@ -28,8 +28,12 @@ func copyPreprepareToNewView(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr
 // If nothing has been committed since, triggers a view change.
 func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VCBatchTimeout) *events.EventList {
 
-	// If the view is still the same as when the timer was set up and if nothing has been committed since then
-	if t.PBFTViewNr(timeoutEvent.View) == pbft.view && int(timeoutEvent.NumCommitted) == pbft.numCommitted(pbft.view) {
+	// If the view is still the same as when the timer was set up,
+	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
+	if t.PBFTViewNr(timeoutEvent.View) == pbft.view &&
+		int(timeoutEvent.NumCommitted) == pbft.numCommitted(pbft.view) &&
+		!pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
+
 		// Start the view change sub-protocol.
 		pbft.logger.Log(logging.LevelWarn, "View change batch timer expired.",
 			"view", pbft.view, "numCommitted", timeoutEvent.NumCommitted)
@@ -48,8 +52,8 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 	// TODO: All slots being committed is not sufficient to stop view changes.
 	//       An instance-local stable checkpoint must be created as well.
 
-	// If the view is still the same as when the timer was set up and there are still any uncommitted slots
-	if view == pbft.view && !pbft.allCommitted() {
+	// If the view is still the same as when the timer was set up and the segment-level checkpoint is not yet stable
+	if view == pbft.view && !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
 		// Start the view change sub-protocol.
 		pbft.logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", pbft.view)
 		return pbft.startViewChange()
@@ -212,8 +216,8 @@ func (pbft *pbftInstance) applyEmptyPreprepareHashResult(digests [][]byte, view 
 		return pbft.sendNewView(view, state)
 	}
 
-	pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
 	// If some Preprepares for re-proposing are still missing, fetch them from other nodes.
+	pbft.logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
 	return state.askForMissingPreprepares(pbft.eventService)
 }
 
@@ -224,6 +228,9 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 	if preprepare := pbft.lookUpPreprepare(t.SeqNr(preprepareRequest.Sn), preprepareRequest.Digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
+		// No need for periodic re-transmission.
+		// In the worst case, dropping of these messages may result in another view change,
+		// but will not compromise correctness.
 		return events.ListOf(
 			pbft.eventService.SendMessage(PbftMissingPreprepareSBMessage(preprepare), []t.NodeID{from}),
 		)
@@ -232,33 +239,6 @@ func (pbft *pbftInstance) applyMsgPreprepareRequest(
 
 	// If the requested Preprepare message is not available, ignore the request.
 	return events.EmptyList()
-}
-
-func (pbft *pbftInstance) lookUpPreprepare(sn t.SeqNr, digest []byte) *isspbftpb.Preprepare {
-	// Traverse all views, starting in the current view.
-	for view := pbft.view; ; view-- {
-
-		// If the view exists (i.e. if this node ever entered the view)
-		if slots, ok := pbft.slots[view]; ok {
-
-			// If the given sequence number is part of the segment (might not be, in case of a corrupted message)
-			if slot, ok := slots[sn]; ok {
-
-				// If the slot contains a matching Preprepare
-				if preprepare := slot.getPreprepare(digest); preprepare != nil {
-
-					// Preprepare found, return it.
-					return preprepare
-				}
-			}
-		}
-
-		// This check cannot be replaced by a (view >= 0) condition in the loop header and must appear here.
-		// If the underlying type of t.PBFTViewNr is unsigned, view would underflow and we would loop forever.
-		if view == 0 {
-			return nil
-		}
-	}
 }
 
 func (pbft *pbftInstance) applyMsgMissingPreprepare(preprepare *isspbftpb.Preprepare, _ t.NodeID) *events.EventList {
@@ -336,6 +316,8 @@ func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChange
 	})
 
 	// Construct, persist and send the NewView message.
+	// No need for periodic re-transmission.
+	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	newView := pbftNewViewMsg(view, viewChangeSenders, signedViewChanges, preprepareSeqNrs, preprepares)
 	persistEvent := pbft.eventService.WALAppend(PbftPersistNewView(newView))
 	persistEvent.FollowUp(pbft.eventService.SendMessage(PbftNewViewSBMessage(newView), pbft.segment.Membership))

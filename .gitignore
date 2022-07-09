@@ -17,3 +17,6 @@ chat-demo-wal
 
 # Ignore logs
 *.log
+
+# Ignore the protoc plugin binary
+protoc-plugin/protoc-gen-mir

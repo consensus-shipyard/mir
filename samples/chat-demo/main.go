@@ -132,7 +132,7 @@ func main() {
 	// ================================================================================
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
+	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net": net,
 		"iss": issProtocol,
 
@@ -144,8 +144,12 @@ func main() {
 		// consisting of a single zero byte and treats those signatures as valid.
 		// TODO: Remove this line once a default crypto implementation is provided by Mir.
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-	},
-		nil)
+	})
+	if err != nil {
+		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
+	}
+
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil)
 
 	// Exit immediately if Node could not be created.
 	if err != nil {

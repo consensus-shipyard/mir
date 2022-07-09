@@ -59,6 +59,10 @@ Follow-up _Events_ can be arbitrarily nested to express more complex dependency 
 
 ## _Modules_
 
+---
+> **The modules section is outdated and will be updated soon to reflect the new generalized module architecture according to [ADR-0003](https://github.com/filecoin-project/mir/blob/main/docs/architecture-decision-records/0003-generalize-modules.md) and [ADR-0004](https://github.com/filecoin-project/mir/blob/main/docs/architecture-decision-records/0004-generalize-event-dispatching.md).**
+---
+
 Modules are components of the system, each responsible for a part of the library's implementation.
 Each module is defined in the [`modules`](/pkg/modules) package by the tasks it has to perform.
 The interface of each module is task-specific.

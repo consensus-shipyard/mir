@@ -46,7 +46,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Transport:   "fake",
 				Duration:    4 * time.Second,
 			}},
-		1: {"Do nothing with 4 nodes",
+		1: {"Do nothing with 4 nodes, one of them slow",
 			&deploytest.TestConfig{
 				NumReplicas:         4,
 				Transport:           "fake",
@@ -70,7 +70,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Directory:       "mirbft-deployment-test",
 				Duration:        4 * time.Second,
 			}},
-		4: {"Submit 100 fake requests with 4 nodes",
+		4: {"Submit 100 fake requests with 4 nodes, one of them slow",
 			&deploytest.TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,

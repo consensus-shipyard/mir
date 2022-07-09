@@ -118,12 +118,17 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 	}
 
 	// Instantiate and return a minimal Mir Node.
-	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
+	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":    modules.NullActive{},
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 		"app":    &deploytest.FakeApp{},
 		"iss":    protocol,
-	}, nil)
+	})
+	if err != nil {
+		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
+	}
+
+	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
 	}

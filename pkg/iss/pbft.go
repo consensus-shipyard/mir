@@ -11,11 +11,11 @@ package iss
 
 import (
 	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -49,6 +49,9 @@ type pbftInstance struct {
 	// For each view, slots contains one pbftSlot per sequence number this orderer is responsible for.
 	// Each slot tracks the state of the agreement protocol for one sequence number.
 	slots map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot
+
+	// Tracks the state of the segment-local checkpoint.
+	segmentCheckpoint *pbftSegmentChkp
 
 	// Logger for outputting debugging messages.
 	logger logging.Logger
@@ -95,10 +98,11 @@ func newPbftInstance(
 
 	// Set all the necessary fields of the new instance and return it.
 	return &pbftInstance{
-		ownID:   ownID,
-		segment: segment,
-		config:  config,
-		slots:   make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
+		ownID:             ownID,
+		segment:           segment,
+		config:            config,
+		slots:             make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
+		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:      0,
 			numPendingRequests: numPendingRequests,
@@ -174,6 +178,8 @@ func (pbft *pbftInstance) applyHashResult(result *isspb.SBHashResult) *events.Ev
 		return pbft.applyMissingPreprepareHashResult(result.Digests[0], origin.PbftMissingPreprepare)
 	case *isspb.SBInstanceHashOrigin_PbftNewView:
 		return pbft.applyNewViewHashResult(result.Digests, origin.PbftNewView)
+	case *isspb.SBInstanceHashOrigin_PbftCatchUpResponse:
+		return pbft.applyCatchUpResponseHashResult(result.Digests[0], origin.PbftCatchUpResponse)
 	default:
 		panic(fmt.Sprintf("unknown hash origin type: %T", origin))
 	}
@@ -231,6 +237,12 @@ func (pbft *pbftInstance) applyMessageReceived(message *isspb.SBInstanceMessage,
 		return pbft.applyMsgMissingPreprepare(msg.PbftMissingPreprepare, from)
 	case *isspb.SBInstanceMessage_PbftNewView:
 		return pbft.applyMsgNewView(msg.PbftNewView, from)
+	case *isspb.SBInstanceMessage_PbftDone:
+		return pbft.applyMsgDone(msg.PbftDone, from)
+	case *isspb.SBInstanceMessage_PbftCatchUpRequest:
+		return pbft.applyMsgCatchUpRequest(msg.PbftCatchUpRequest, from)
+	case *isspb.SBInstanceMessage_PbftCatchUpResponse:
+		return pbft.applyMsgCatchUpResponse(msg.PbftCatchUpResponse, from)
 	default:
 		panic(fmt.Sprintf("unknown ISS PBFT message type: %T", message.Type))
 	}
@@ -239,14 +251,6 @@ func (pbft *pbftInstance) applyMessageReceived(message *isspb.SBInstanceMessage,
 // Segment returns the segment associated with this orderer.
 func (pbft *pbftInstance) Segment() *segment {
 	return pbft.segment
-}
-
-// Status returns a protobuf representation of the current state of the orderer that can be later printed.
-// This functionality is meant mostly for debugging and is *not* meant to provide an interface for
-// serializing and deserializing the whole protocol state.
-func (pbft *pbftInstance) Status() *isspb.SBStatus {
-	// TODO: Return actual status here, not just a stub.
-	return &isspb.SBStatus{Leader: pbft.segment.Leader.Pb()}
 }
 
 // ============================================================
@@ -371,6 +375,33 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 	pbft.inViewChange = false
 
 	return timerEvents
+}
+
+func (pbft *pbftInstance) lookUpPreprepare(sn t.SeqNr, digest []byte) *isspbftpb.Preprepare {
+	// Traverse all views, starting in the current view.
+	for view := pbft.view; ; view-- {
+
+		// If the view exists (i.e. if this node ever entered the view)
+		if slots, ok := pbft.slots[view]; ok {
+
+			// If the given sequence number is part of the segment (might not be, in case of a corrupted message)
+			if slot, ok := slots[sn]; ok {
+
+				// If the slot contains a matching Preprepare
+				if preprepare := slot.getPreprepare(digest); preprepare != nil {
+
+					// Preprepare found, return it.
+					return preprepare
+				}
+			}
+		}
+
+		// This check cannot be replaced by a (view >= 0) condition in the loop header and must appear here.
+		// If the underlying type of t.PBFTViewNr is unsigned, view would underflow and we would loop forever.
+		if view == 0 {
+			return nil
+		}
+	}
 }
 
 // ============================================================
