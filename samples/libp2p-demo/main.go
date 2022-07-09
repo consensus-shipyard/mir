@@ -25,7 +25,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
-	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
+	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/libp2ptransport"
@@ -142,7 +142,7 @@ func main() {
 	// ================================================================================
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, map[t.ModuleID]modules.Module{
+	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net": net,
 		"iss": issProtocol,
 
@@ -153,9 +153,13 @@ func main() {
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.
 		// TODO: Remove this line once a default crypto implementation is provided by Mir.
-		"crypto": mircrypto.New(&mircrypto.DummyCrypto{DummySig: []byte{0}}),
-	},
-		nil)
+		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
+	})
+	if err != nil {
+		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
+	}
+
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil)
 
 	// Exit immediately if Node could not be created.
 	if err != nil {

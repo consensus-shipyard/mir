@@ -49,6 +49,8 @@ func (chat *ChatApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList,
 
 func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
 	case *eventpb.Event_Deliver:
 		if err := chat.ApplyBatch(e.Deliver.Batch); err != nil {
 			return nil, fmt.Errorf("app batch delivery error: %w", err)

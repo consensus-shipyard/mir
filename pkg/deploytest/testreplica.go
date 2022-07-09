@@ -3,12 +3,10 @@ package deploytest
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -156,7 +154,6 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		transport.Connect(ctx)
 	case *libp2ptransport.Transport:
 		err := transport.Start()
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 		if err != nil {
 			return fmt.Errorf("error starting libp2p transport: %w", err)
 		}

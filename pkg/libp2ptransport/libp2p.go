@@ -224,7 +224,10 @@ func (t *Transport) ApplyEvents(
 ) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
+
 		switch e := event.Type.(type) {
+		case *eventpb.Event_Init:
+			// no actions on init
 		case *eventpb.Event_SendMessage:
 			for _, destID := range e.SendMessage.Destinations {
 				if types.NodeID(destID) == t.ownID {
@@ -254,5 +257,6 @@ func (t *Transport) ApplyEvents(
 			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
 		}
 	}
+
 	return nil
 }
