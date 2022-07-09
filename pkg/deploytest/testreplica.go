@@ -158,7 +158,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error starting libp2p transport: %w", err)
 		}
-		time.Sleep(4 * time.Second) // to minimize opening streams attempts
+		time.Sleep(6 * time.Second) // to minimize opening streams attempts
 		transport.Connect(ctx)
 	}
 
