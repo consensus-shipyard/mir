@@ -3,10 +3,12 @@ package deploytest
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -149,6 +151,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		transport.Connect(ctx)
 	case *libp2ptransport.Transport:
 		err := transport.Start()
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 		if err != nil {
 			return fmt.Errorf("error starting libp2p transport: %w", err)
 		}
@@ -176,6 +179,10 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		tr.Config.Logger.Log(logging.LevelDebug, "Stopping gRPC transport.")
 		transport.Stop()
 		tr.Config.Logger.Log(logging.LevelDebug, "gRPC transport stopped.")
+	case *libp2ptransport.Transport:
+		tr.Config.Logger.Log(logging.LevelDebug, "Stopping libp2p transport.")
+		transport.Stop()
+		tr.Config.Logger.Log(logging.LevelDebug, "libp2p transport stopped.")
 	}
 
 	return exitErr

@@ -62,8 +62,8 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 }
 
 func (t *Transport) Start() error {
-	t.logger.Log(logging.LevelDebug, "node transport starting on", "addr", t.host.Addrs())
 	t.host.SetStreamHandler(ID, t.mirHandler)
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler started on %v", t.ownID, t.host.Addrs()))
 	return nil
 }
 
@@ -86,17 +86,17 @@ func (t *Transport) Stop() {
 
 func (t *Transport) Connect(ctx context.Context) {
 	wg := sync.WaitGroup{}
+	wg.Add(len(t.membership) - 1)
 
 	for nodeID, nodeAddr := range t.membership {
 		if nodeID == t.ownID {
 			continue
 		}
 
-		wg.Add(1)
 		go func(nodeID types.NodeID, nodeAddr string) {
 			defer wg.Done()
 
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connecting to %s", t.ownID.Pb(), nodeID.Pb()))
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
 
 			maddr, err := multiaddr.NewMultiaddr(nodeAddr)
 			if err != nil {
@@ -119,7 +119,7 @@ func (t *Transport) Connect(ctx context.Context) {
 				return
 			}
 			t.addOutboundStream(nodeID, s)
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("%s is connected to %s", t.ownID.Pb(), nodeID.Pb()))
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 		}(nodeID, nodeAddr)
 	}
 
@@ -127,13 +127,13 @@ func (t *Transport) Connect(ctx context.Context) {
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	timeout := 500 * time.Millisecond
+	timeout := 100 * time.Millisecond
 	for {
 		sctx, cancel := context.WithTimeout(ctx, timeout)
 		s, err := t.host.NewStream(sctx, p, ID)
 		cancel()
 		if err != nil {
-			t.logger.Log(logging.LevelError, err.Error())
+			t.logger.Log(logging.LevelError, "opening stream", "err", err.Error())
 			select {
 			case <-time.After(timeout):
 				continue

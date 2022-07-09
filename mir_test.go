@@ -134,8 +134,6 @@ func testIntegrationWithISS(t *testing.T) {
 		// The directory will be automatically removed when the outer test function exits.
 		createDeploymentDir(t, test.Config)
 
-		t.Logf("---Test #%03d (%s) started---", i, test.Desc)
-
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			runIntegrationWithISSConfig(t, test.Config)
 
