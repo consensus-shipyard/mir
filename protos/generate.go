@@ -21,6 +21,7 @@ package protos
 //go:generate protoc-events dslpb/dslpb.proto
 //go:generate protoc-events mempoolpb/mempoolpb.proto
 //go:generate protoc-events availabilitypb/availabilitypb.proto
+//go:generate protoc-events availabilitypb/mscpb/mscpb.proto
 
 //go:generate protoc --proto_path=. --go_out=:../pkg/ --go_opt=paths=source_relative simplewal/simplewal.proto
 //go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto

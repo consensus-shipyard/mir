@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package availabilitypb.mscpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Message {
+  oneof type {
+    RequestSigMessage   request_sig   = 1;
+    SigMessage          sig           = 2;
+    RequestBatchMessage request_batch = 3;
+    ProvideBatchMessage provide_batch = 4;
+  }
+}
+
+message RequestSigMessage {
+  repeated bytes txs    = 1;
+  uint64         req_id = 2;
+}
+
+message SigMessage {
+  bytes  signature  = 1;
+  uint64 req_id     = 2;
+}
+
+message RequestBatchMessage {
+  string batch_id = 1;
+  uint64 req_id   = 2;
+}
+
+message ProvideBatchMessage {
+  repeated bytes txs     = 1;
+  uint64         req_id  = 2;
+}
+
+// TODO: implement pulling of missing txs.
+//message RequestMissingTxsMessage {
+//  uint64         req_id = 1;
+//  repeated bytes tx_ids = 2;
+//}
+//
+//message ProvideMissingTxsMessage {
+//  uint64         req_id = 1;
+//  repeated bytes txs    = 2;
+//}
+
+// ============================================================
+// Data structures
+// ============================================================
+
+message Cert {
+  string          batch_id   = 1;
+  // TODO: can be encoded as n bits
+  repeated string signers    = 2;
+  repeated bytes  signatures = 3;
+}
