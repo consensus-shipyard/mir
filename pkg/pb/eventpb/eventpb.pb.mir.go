@@ -1,6 +1,7 @@
 package eventpb
 
 import (
+	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
@@ -128,6 +129,10 @@ func (p *Event_Bcb) Unwrap() *bcbpb.Event {
 
 func (p *Event_Mempool) Unwrap() *mempoolpb.Event {
 	return p.Mempool
+}
+
+func (p *Event_Availability) Unwrap() *availabilitypb.Event {
+	return p.Availability
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {
