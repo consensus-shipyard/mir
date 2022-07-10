@@ -22,3 +22,19 @@ func (p *Event_RequestTransactions) Unwrap() *RequestTransactions {
 func (p *Event_TransactionsResponse) Unwrap() *TransactionsResponse {
 	return p.TransactionsResponse
 }
+
+func (p *Event_RequestTransactionIds) Unwrap() *RequestTransactionIDs {
+	return p.RequestTransactionIds
+}
+
+func (p *Event_TransactionIdsResponse) Unwrap() *TransactionIDsResponse {
+	return p.TransactionIdsResponse
+}
+
+func (p *Event_RequestBatchId) Unwrap() *RequestBatchID {
+	return p.RequestBatchId
+}
+
+func (p *Event_BatchIdResponse) Unwrap() *BatchIDResponse {
+	return p.BatchIdResponse
+}

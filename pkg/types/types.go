@@ -48,6 +48,76 @@ func NodeIDSlicePb(nids []NodeID) []string {
 
 // ================================================================================
 
+// TxID is a unique identifier of a transaction.
+type TxID string
+
+// Pb converts a TxID to its underlying native type.
+func (id TxID) Pb() string {
+	return string(id)
+}
+
+// Bytes serializes the object to a sequence of bytes.
+func (id TxID) Bytes() []byte {
+	return []byte(id)
+}
+
+// TxIDSlice converts a slice of TxIDs represented directly as their underlying native type
+// to a slice of abstractly typed transaction IDs.
+func TxIDSlice(ids []string) []TxID {
+	txIDs := make([]TxID, len(ids))
+	for i, nid := range ids {
+		txIDs[i] = TxID(nid)
+	}
+	return txIDs
+}
+
+// TxIDSlicePb converts a slice of TxIDs to a slice of the native type underlying TxID.
+// This is required for serialization using Protocol Buffers.
+func TxIDSlicePb(ids []TxID) []string {
+	pbSlice := make([]string, len(ids))
+	for i, nid := range ids {
+		pbSlice[i] = nid.Pb()
+	}
+	return pbSlice
+}
+
+// ================================================================================
+
+// BatchID is a unique identifier of a batch.
+type BatchID string
+
+// Pb converts a BatchID to its underlying native type.
+func (id BatchID) Pb() string {
+	return string(id)
+}
+
+// Bytes serializes the object to a sequence of bytes.
+func (id BatchID) Bytes() []byte {
+	return []byte(id)
+}
+
+// BatchIDSlice converts a slice of BatchIDs represented directly as their underlying native type
+// to a slice of abstractly typed batch IDs.
+func BatchIDSlice(ids []string) []BatchID {
+	batchIDs := make([]BatchID, len(ids))
+	for i, nid := range ids {
+		batchIDs[i] = BatchID(nid)
+	}
+	return batchIDs
+}
+
+// BatchIDSlicePb converts a slice of BatchIDs to a slice of the native type underlying BatchID.
+// This is required for serialization using Protocol Buffers.
+func BatchIDSlicePb(ids []BatchID) []string {
+	pbSlice := make([]string, len(ids))
+	for i, nid := range ids {
+		pbSlice[i] = nid.Pb()
+	}
+	return pbSlice
+}
+
+// ================================================================================
+
 // ClientID represents the numeric ID of a client.
 type ClientID string
 
