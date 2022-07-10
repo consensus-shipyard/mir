@@ -9,16 +9,20 @@ import "dslpb/dslpb.proto";
 import "mir/plugin.proto";
 
 // ============================================================
-// Messages
+// Events
 // ============================================================
 
 message Event {
   oneof Type {
     option (mir.event_type) = true;
-    RequestBatch         request_batch         = 1;
-    NewBatch             new_batch             = 2;
-    RequestTransactions  request_transactions  = 3;
-    TransactionsResponse transactions_response = 4;
+    RequestBatch           request_batch            = 1;
+    NewBatch               new_batch                = 2;
+    RequestTransactions    request_transactions     = 3;
+    TransactionsResponse   transactions_response    = 4;
+    RequestTransactionIDs  request_transaction_ids  = 5;
+    TransactionIDsResponse transaction_ids_response = 6;
+    RequestBatchID         request_batch_id         = 7;
+    BatchIDResponse        batch_id_response        = 8;
   }
 }
 
@@ -27,12 +31,13 @@ message RequestBatch {
 }
 
 message NewBatch {
-  repeated bytes     txs    = 1;
-  RequestBatchOrigin origin = 2;
+  repeated string    tx_ids = 1;
+  repeated bytes     txs    = 2;
+  RequestBatchOrigin origin = 3;
 }
 
 message RequestTransactions {
-  repeated bytes            tx_ids = 1;
+  repeated string           tx_ids = 1;
   RequestTransactionsOrigin origin = 2;
 }
 
@@ -42,7 +47,31 @@ message TransactionsResponse {
   RequestTransactionsOrigin origin  = 3;
 }
 
+message RequestTransactionIDs {
+  repeated bytes              txs    = 1;
+  RequestTransactionIDsOrigin origin = 2;
+}
+
+message TransactionIDsResponse {
+  repeated string             tx_ids = 1;
+  RequestTransactionIDsOrigin origin = 2;
+}
+
+message RequestBatchID {
+  repeated string       tx_ids = 1;
+  RequestBatchIDOrigin origin = 2;
+}
+
+message BatchIDResponse {
+  string               batch_id = 1;
+  RequestBatchIDOrigin origin   = 2;
+}
+
 // TODO: add events related to garbage collection.
+
+// ============================================================
+// Data structures
+// ============================================================
 
 message RequestBatchOrigin {
   string module = 1;
@@ -53,6 +82,22 @@ message RequestBatchOrigin {
 }
 
 message RequestTransactionsOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message RequestTransactionIDsOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message RequestBatchIDOrigin {
   string module = 1;
   oneof Type {
     contextstorepb.Origin context_store = 2;
