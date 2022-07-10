@@ -6,7 +6,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Event creates an eventpb.Event out of an mppb.Event.
+// Event creates an eventpb.Event out of an mempoolpb.Event.
 func Event(dest t.ModuleID, ev *mppb.Event) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: dest.Pb(),

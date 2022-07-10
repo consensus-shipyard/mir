@@ -8,6 +8,7 @@ package types
 
 import (
 	"encoding/binary"
+	"github.com/pkg/errors"
 	"strconv"
 	"time"
 )
@@ -114,6 +115,26 @@ func BatchIDSlicePb(ids []BatchID) []string {
 		pbSlice[i] = nid.Pb()
 	}
 	return pbSlice
+}
+
+// ================================================================================
+
+// ErrorPb converts a error to its representation in protocol buffers.
+func ErrorPb(err error) (ok bool, errStr string) {
+	ok = err == nil
+	if ok {
+		errStr = ""
+	} else {
+		errStr = err.Error()
+	}
+	return
+}
+
+func ErrorFromPb(ok bool, errStr string) error {
+	if ok {
+		return nil
+	}
+	return errors.New(errStr)
 }
 
 // ================================================================================
