@@ -10,9 +10,13 @@ cmd/mircat/mircat
 
 # Ignore test artifacts
 mir-deployment-test
+failed-test-data
 
 # Ignore sample artifacts
 chat-demo-wal
+
+# Ignore logs
+*.log
 
 # Ignore the protoc plugin binary
 protoc-plugin/protoc-gen-mir

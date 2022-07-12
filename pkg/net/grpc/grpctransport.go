@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package grpctransport
+package grpc
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	"net"
 	"sync"
 
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	mirnet "github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -29,12 +29,14 @@ const (
 	maxMessageSize = 1073741824
 )
 
-// GrpcTransport represents a networking module that is based on gRPC.
+var _ mirnet.Transport = &Transport{}
+
+// Transport represents a networking module that is based on gRPC.
 // Each node's networking module contains one gRPC server, to which other nodes' modules connect.
 // The type of gRPC connection is multi-request-single-response, where each module contains
 // one instance of a gRPC client per node.
 // A message to a node is sent as request to that node's gRPC server.
-type GrpcTransport struct {
+type Transport struct {
 	UnimplementedGrpcTransportServer
 
 	// The numeric ID of the node that uses this networking module.
@@ -62,7 +64,7 @@ type GrpcTransport struct {
 	logger logging.Logger
 }
 
-// NewGrpcTransport returns a pointer to a new initialized GrpcTransport networking module.
+// NewTransport returns a pointer to a new initialized GrpcTransport networking module.
 // The membership parameter must represent the complete static membership of the system.
 // It maps the numeric node ID of each node in the system to
 // a string representation of its network address with the format "IPAddress:port".
@@ -70,14 +72,14 @@ type GrpcTransport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logger) *GrpcTransport {
+func NewTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logger) *Transport {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
 		l = logging.ConsoleErrorLogger
 	}
 
-	return &GrpcTransport{
+	return &Transport{
 		ownID:            ownID,
 		incomingMessages: make(chan *events.EventList),
 		membership:       membership,
@@ -87,13 +89,13 @@ func NewGrpcTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (gt *GrpcTransport) ImplementsModule() {}
+func (gt *Transport) ImplementsModule() {}
 
-func (gt *GrpcTransport) EventsOut() <-chan *events.EventList {
+func (gt *Transport) EventsOut() <-chan *events.EventList {
 	return gt.incomingMessages
 }
 
-func (gt *GrpcTransport) ApplyEvents(
+func (gt *Transport) ApplyEvents(
 	ctx context.Context,
 	eventList *events.EventList,
 ) error {
@@ -138,7 +140,7 @@ func (gt *GrpcTransport) ApplyEvents(
 
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *GrpcTransport) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 
@@ -147,7 +149,7 @@ func (gt *GrpcTransport) Send(dest t.NodeID, msg *messagepb.Message) error {
 // and writes them to a channel that the user can access through ReceiveChan().
 // This function is called by the gRPC system on every new connection
 // from another node's Net module's gRPC client.
-func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
+func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 
 	// Print address of incoming connection.
 	p, ok := peer.FromContext(srv.Context())
@@ -187,7 +189,7 @@ func (gt *GrpcTransport) Listen(srv GrpcTransport_ListenServer) error {
 // Start starts the networking module by initializing and starting the internal gRPC server,
 // listening on the port determined by the membership and own ID.
 // Before ths method is called, no other GrpcTransports can connect to this one.
-func (gt *GrpcTransport) Start() error {
+func (gt *Transport) Start() error {
 	hp, ok := gt.membership[gt.ownID]
 	if !ok {
 		return fmt.Errorf("%s is not in membership", gt.ownID)
@@ -224,7 +226,9 @@ func (gt *GrpcTransport) Start() error {
 // (preventing further incoming connections).
 // After Stop() returns, the error returned by the gRPC server's Serve() call
 // can be obtained through the ServerError() method.
-func (gt *GrpcTransport) Stop() {
+func (gt *Transport) Stop() {
+	gt.logger.Log(logging.LevelDebug, "Stopping gRPC transport.")
+	defer gt.logger.Log(logging.LevelDebug, "gRPC transport stopped.")
 
 	// Close connections to other nodes.
 	for id, connection := range gt.connections {
@@ -235,6 +239,7 @@ func (gt *GrpcTransport) Stop() {
 
 		if err := connection.CloseSend(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
+			continue
 		}
 
 		gt.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
@@ -248,7 +253,7 @@ func (gt *GrpcTransport) Stop() {
 
 // ServerError returns the error returned by the gRPC server's Serve() call.
 // ServerError() must not be called before the GrpcTransport is stopped and its Stop() method has returned.
-func (gt *GrpcTransport) ServerError() error {
+func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
@@ -256,7 +261,7 @@ func (gt *GrpcTransport) ServerError() error {
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
-func (gt *GrpcTransport) Connect(ctx context.Context) {
+func (gt *Transport) Connect(ctx context.Context) {
 
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
@@ -294,7 +299,7 @@ func (gt *GrpcTransport) Connect(ctx context.Context) {
 }
 
 // Establishes a connection to a single node at address addrString.
-func (gt *GrpcTransport) connectToNode(ctx context.Context, addrString string) (GrpcTransport_ListenClient, error) {
+func (gt *Transport) connectToNode(ctx context.Context, addrString string) (GrpcTransport_ListenClient, error) {
 
 	gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 

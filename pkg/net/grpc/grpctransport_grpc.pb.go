@@ -4,13 +4,14 @@
 // - protoc             v3.21.1
 // source: grpctransport/grpctransport.proto
 
-package grpctransport
+package grpc
 
 import (
-	context "context"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	"context"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
