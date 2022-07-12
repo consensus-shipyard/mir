@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 
@@ -20,11 +19,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net/grpc"
-	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
-	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
@@ -76,11 +71,6 @@ type TestConfig struct {
 type Deployment struct {
 	TestConfig *TestConfig
 
-	// The fake transport layer is only used if the deployment is configured to use it
-	// by setting testConfig.Net to "fake".
-	// Otherwise, the fake transport might be created, but will not be used.
-	FakeTransport *FakeTransport
-
 	// The replicas of the deployment.
 	TestReplicas []*TestReplica
 
@@ -103,45 +93,35 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 		logger = logging.Synchronize(logging.ConsoleDebugLogger)
 	}
 
-	// Create a simulated network transport to route messages between replicas.
-	fakeTransport := NewFakeTransport(conf.NumReplicas)
-
 	// Create a dummy static membership with replica IDs from 0 to len(replicas) - 1
-	membership := make([]t.NodeID, conf.NumReplicas)
-	for i := 0; i < len(membership); i++ {
-		membership[i] = t.NewNodeIDFromInt(i)
+	nodeIDs := make([]t.NodeID, conf.NumReplicas)
+	for i := 0; i < len(nodeIDs); i++ {
+		nodeIDs[i] = t.NewNodeIDFromInt(i)
+	}
+
+	// Create a simulated network transport to route messages between replicas.
+	var transportLayer LocalTransportLayer
+	switch conf.Transport {
+	case "fake":
+		transportLayer = NewFakeTransport(nodeIDs)
+	case "grpc":
+		transportLayer = NewLocalGrpcTransport(nodeIDs, logger)
+	case "libp2p":
+		transportLayer = NewLocalLibp2pTransport(nodeIDs, logger)
 	}
 
 	// Create all TestReplicas for this deployment.
 	replicas := make([]*TestReplica, conf.NumReplicas)
 	for i := range replicas {
+		nodeID := t.NewNodeIDFromInt(i)
 
 		// Configure the test replica's node.
 		config := &mir.NodeConfig{
 			Logger: logging.Decorate(logger, fmt.Sprintf("Node %d: ", i)),
 		}
 
-		// Create network transport module
-		var transport modules.ActiveModule
-		switch conf.Transport {
-		case "fake":
-			transport = fakeTransport.Link(t.NewNodeIDFromInt(i))
-		case "grpc":
-			transport = localGrpcTransport(
-				membership,
-				t.NewNodeIDFromInt(i),
-				logging.Decorate(config.Logger, "gRPC: "),
-			)
-		case "libp2p":
-			transport = localLibp2pTransport(
-				membership,
-				t.NewNodeIDFromInt(i),
-				logging.Decorate(config.Logger, "libp2p: "),
-			)
-		}
-
 		// ISS configuration
-		issConfig := iss.DefaultConfig(membership)
+		issConfig := iss.DefaultConfig(nodeIDs)
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
@@ -151,12 +131,12 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 
 		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{
-			ID:              t.NewNodeIDFromInt(i),
+			ID:              nodeID,
 			Config:          config,
-			Membership:      membership,
+			Membership:      nodeIDs,
 			Dir:             filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			App:             &FakeApp{},
-			Net:             transport,
+			Transport:       transportLayer.Link(nodeID),
 			NumFakeRequests: conf.NumFakeRequests,
 			ISSConfig:       issConfig,
 		}
@@ -178,10 +158,9 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 	}
 
 	return &Deployment{
-		TestConfig:    conf,
-		FakeTransport: fakeTransport,
-		TestReplicas:  replicas,
-		Clients:       netClients,
+		TestConfig:   conf,
+		TestReplicas: replicas,
+		Clients:      netClients,
 	}, nil
 }
 
@@ -228,10 +207,6 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 		}(i, testReplica)
 	}
 
-	// Start the message transport subsystem
-	d.FakeTransport.Start()
-	defer d.FakeTransport.Stop()
-
 	// Connect the deployment's DummyClients to all replicas and have them submit their requests in separate goroutines.
 	// Each dummy client connects to the replicas, submits the prescribed number of requests and disconnects.
 	clientWg.Add(len(d.Clients))
@@ -267,51 +242,6 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 
 	fmt.Printf("All go routines shut down\n")
 	return
-}
-
-// localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
-// It is assumed that node ID strings must be parseable to decimal numbers.
-// The network address of each test replica is the loopback 127.0.0.1.
-func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *grpc.Transport {
-
-	// Compute network addresses and ports for all test replicas.
-	// Each test replica is on the local machine - 127.0.0.1
-	membership := make(map[t.NodeID]string, len(nodeIds))
-	for i := range nodeIds {
-		membership[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+i)
-	}
-
-	return grpc.NewTransport(
-		membership,
-		ownID,
-		logger,
-	)
-}
-
-// localLibp2pTransport creates an instance of libp2p based on the numeric IDs of test replicas.
-// It is assumed that node ID strings must be parseable to decimal numbers.
-// The network address of each test replica is the loopback 127.0.0.1.
-func localLibp2pTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *libp2p.Transport {
-	// Compute network addresses and ports for all test replicas.
-	// Each test replica is on the local machine - 127.0.0.1
-	membership := make(map[t.NodeID]string, len(nodeIds))
-	for i := range nodeIds {
-		membership[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyHostID(i, BaseListenPort).String()
-	}
-
-	id, err := strconv.Atoi(string(ownID))
-	if err != nil {
-		panic(err)
-	}
-
-	h := libp2ptools.NewDummyHost(id, BaseListenPort)
-
-	return libp2p.NewTransport(
-		h,
-		membership,
-		ownID,
-		logger,
-	)
 }
 
 // localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns

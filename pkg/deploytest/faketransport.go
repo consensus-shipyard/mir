@@ -13,29 +13,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"strconv"
-	"sync"
-
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"sync"
 )
-
-// unsafeIDtoi calls strconv.Atoi, but doesn't check an error.
-// It must be used in trusted deployment only.
-func unsafeIDtoi(in interface{}) (out int) {
-	switch id := in.(type) {
-	case t.NodeID:
-		out, _ = strconv.Atoi(string(id))
-	case t.ClientID:
-		out, _ = strconv.Atoi(string(id))
-	}
-	return
-}
 
 type FakeLink struct {
 	FakeTransport *FakeTransport
 	Source        t.NodeID
+	DoneC         chan struct{}
 }
 
 func (fl *FakeLink) ApplyEvents(
@@ -57,7 +45,7 @@ func (fl *FakeLink) ApplyEvents(
 						fl.Source,
 						e.SendMessage.Msg,
 					)
-					eventsOut := fl.FakeTransport.NodeSinks[unsafeIDtoi(fl.Source)]
+					eventsOut := fl.FakeTransport.NodeSinks[fl.Source]
 					go func() {
 						select {
 						case eventsOut <- events.ListOf(receivedEvent):
@@ -88,41 +76,39 @@ func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
 }
 
 func (fl *FakeLink) EventsOut() <-chan *events.EventList {
-	return fl.FakeTransport.NodeSinks[unsafeIDtoi(fl.Source)]
+	return fl.FakeTransport.NodeSinks[fl.Source]
 }
 
 type FakeTransport struct {
 	// Buffers is source x dest
-	Buffers   [][]chan *events.EventList
-	NodeSinks []chan *events.EventList
+	Buffers   map[t.NodeID]map[t.NodeID]chan *events.EventList
+	NodeSinks map[t.NodeID]chan *events.EventList
 	WaitGroup sync.WaitGroup
-	DoneC     chan struct{}
 }
 
-func NewFakeTransport(nodes int) *FakeTransport {
-	buffers := make([][]chan *events.EventList, nodes)
-	nodeSinks := make([]chan *events.EventList, nodes)
-	for i := 0; i < nodes; i++ {
-		buffers[i] = make([]chan *events.EventList, nodes)
-		for j := 0; j < nodes; j++ {
-			if i == j {
+func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
+	buffers := make(map[t.NodeID]map[t.NodeID]chan *events.EventList)
+	nodeSinks := make(map[t.NodeID]chan *events.EventList)
+	for _, sourceID := range nodeIDs {
+		buffers[sourceID] = make(map[t.NodeID]chan *events.EventList)
+		for _, destID := range nodeIDs {
+			if sourceID == destID {
 				continue
 			}
-			buffers[i][j] = make(chan *events.EventList, 10000)
+			buffers[sourceID][destID] = make(chan *events.EventList, 10000)
 		}
-		nodeSinks[i] = make(chan *events.EventList)
+		nodeSinks[sourceID] = make(chan *events.EventList)
 	}
 
 	return &FakeTransport{
 		Buffers:   buffers,
 		NodeSinks: nodeSinks,
-		DoneC:     make(chan struct{}),
 	}
 }
 
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
-	case ft.Buffers[unsafeIDtoi(source)][unsafeIDtoi(dest)] <- events.ListOf(
+	case ft.Buffers[source][dest] <- events.ListOf(
 		events.MessageReceived(t.ModuleID(msg.DestModule), source, msg),
 	):
 	default:
@@ -130,47 +116,51 @@ func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	}
 }
 
-func (ft *FakeTransport) Link(source t.NodeID) *FakeLink {
+func (ft *FakeTransport) Link(source t.NodeID) net.Transport {
 	return &FakeLink{
 		Source:        source,
 		FakeTransport: ft,
+		DoneC:         make(chan struct{}),
 	}
 }
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
-	return ft.NodeSinks[unsafeIDtoi(dest)]
+	return ft.NodeSinks[dest]
 }
 
-func (ft *FakeTransport) Start() {
-	for i, sourceBuffers := range ft.Buffers {
-		for j, buffer := range sourceBuffers {
-			if i == j {
-				continue
-			}
+func (fl *FakeLink) Start() error {
+	return nil
+}
 
-			ft.WaitGroup.Add(1)
-			go func(i, j int, buffer chan *events.EventList) {
-				// fmt.Printf("Starting drain thread from %d to %d\n", i, j)
-				defer ft.WaitGroup.Done()
-				for {
+func (fl *FakeLink) Connect(ctx context.Context) {
+	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
+
+	for destID, buffer := range sourceBuffers {
+		if fl.Source == destID {
+			continue
+		}
+
+		go func(destID t.NodeID, buffer chan *events.EventList) {
+			for {
+				select {
+				case msg := <-buffer:
 					select {
-					case msg := <-buffer:
-						// fmt.Printf("Sending message from %d to %d\n", i, j)
-						select {
-						case ft.NodeSinks[j] <- msg:
-						case <-ft.DoneC:
-							return
-						}
-					case <-ft.DoneC:
+					case fl.FakeTransport.NodeSinks[destID] <- msg:
+					case <-ctx.Done():
+						return
+					case <-fl.DoneC:
 						return
 					}
+				case <-ctx.Done():
+					return
+				case <-fl.DoneC:
+					return
 				}
-			}(i, j, buffer)
-		}
+			}
+		}(destID, buffer)
 	}
 }
 
-func (ft *FakeTransport) Stop() {
-	close(ft.DoneC)
-	ft.WaitGroup.Wait()
+func (fl *FakeLink) Stop() {
+	close(fl.DoneC)
 }

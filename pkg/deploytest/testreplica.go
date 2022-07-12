@@ -3,6 +3,7 @@ package deploytest
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -15,8 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net/grpc"
-	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/simplewal"
@@ -43,7 +42,7 @@ type TestReplica struct {
 	Membership []t.NodeID
 
 	// Network transport subsystem.
-	Net modules.ActiveModule
+	Transport net.Transport
 
 	// Number of simulated requests inserted in the test replica by a hypothetical client.
 	NumFakeRequests int
@@ -108,7 +107,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		"crypto": mirCrypto.New(cryptoModule),
 		"wal":    wal,
 		"iss":    issProtocol,
-		"net":    tr.Net,
+		"net":    tr.Transport,
 	})
 	if err != nil {
 		return fmt.Errorf("error initializing the Mir modules: %w", err)
@@ -143,22 +142,12 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// The client submits a predefined number of requests and then stops.
 	go tr.submitFakeRequests(ctx, node, &wg)
 
-	// ATTENTION! This is hacky!
-	// If the test replica used the GRPC transport, initialize the Net module.
-	switch transport := tr.Net.(type) {
-	case *grpc.Transport:
-		err := transport.Start()
-		if err != nil {
-			return fmt.Errorf("error starting gRPC transport: %w", err)
-		}
-		transport.Connect(ctx)
-	case *libp2p.Transport:
-		err := transport.Start()
-		if err != nil {
-			return fmt.Errorf("error starting libp2p transport: %w", err)
-		}
-		transport.Connect(ctx)
+	err = tr.Transport.Start()
+	if err != nil {
+		return fmt.Errorf("error starting the network link: %w", err)
 	}
+	tr.Transport.Connect(ctx)
+	defer tr.Transport.Stop()
 
 	// Run the node until it stops.
 	exitErr := node.Run(ctx)
@@ -173,15 +162,6 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// Wait for the local request submission thread.
 	wg.Wait()
 	tr.Config.Logger.Log(logging.LevelInfo, "Fake request submission done.")
-
-	// ATTENTION! This is hacky!
-	// If the test replica used the GRPC transport, stop the Net module.
-	switch transport := tr.Net.(type) {
-	case *grpc.Transport:
-		transport.Stop()
-	case *libp2p.Transport:
-		transport.Stop()
-	}
 
 	return exitErr
 }
