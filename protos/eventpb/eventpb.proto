@@ -15,6 +15,10 @@ import "isspb/isspb.proto";
 import "google/protobuf/wrappers.proto";
 import "bcbpb/bcbpb.proto";
 import "mir/plugin.proto";
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "mempoolpb/mempoolpb.proto";
+import "availabilitypb/availabilitypb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -52,6 +56,8 @@ message Event {
     TimerRepeat          timer_repeat            = 26;
     TimerGarbageCollect  timer_garbage_collect   = 27;
     bcbpb.Event          bcb                     = 28;
+    mempoolpb.Event      mempool                 = 29;
+    availabilitypb.Event availability            = 30;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -77,14 +83,6 @@ message NewRequests {
   repeated requestpb.Request requests = 1;
 }
 
-message ContextStoreOrigin {
-  uint64 itemID = 1;
-}
-
-message DslOrigin {
-  uint64 contextID = 1;
-}
-
 message HashRequest {
   repeated commonpb.HashData data   = 1;
   HashOrigin                 origin = 2;
@@ -98,10 +96,10 @@ message HashResult {
 message HashOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin  context_store = 2;
-    requestpb.Request   request       = 3;
-    isspb.ISSHashOrigin iss           = 4;
-    DslOrigin           dsl           = 5;
+    contextstorepb.Origin context_store = 2;
+    requestpb.Request     request       = 3;
+    isspb.ISSHashOrigin   iss           = 4;
+    dslpb.Origin          dsl           = 5;
   }
 }
 
@@ -118,9 +116,9 @@ message SignResult {
 message SignOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin  context_store = 2;
-    isspb.ISSSignOrigin iss           = 3;
-    DslOrigin           dsl           = 4;
+    contextstorepb.Origin context_store = 2;
+    isspb.ISSSignOrigin   iss           = 3;
+    dslpb.Origin          dsl           = 4;
   }
 }
 
@@ -146,9 +144,9 @@ message NodeSigsVerified {
 message SigVerOrigin {
   string module = 1;
   oneof type {
-    ContextStoreOrigin    context_store = 2;
+    contextstorepb.Origin context_store = 2;
     isspb.ISSSigVerOrigin iss           = 3;
-    DslOrigin             dsl           = 4;
+    dslpb.Origin          dsl           = 4;
   }
 }
 

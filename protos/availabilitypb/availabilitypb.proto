@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package availabilitypb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb";
+
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "availabilitypb/mscpb/mscpb.proto";
+import "mir/plugin.proto";
+
+// ============================================================
+// Events
+// ============================================================
+
+message Event {
+  oneof Type {
+    option (mir.event_type) = true;
+
+    RequestCert request_cert = 1;
+    NewCert      new_cert    = 2;
+
+    VerifyCert   verify_cert   = 3;
+    CertVerified cert_verified = 4;
+
+    RequestTransactions request_transactions = 5;
+    ProvideTransactions provide_transactions = 6;
+  }
+}
+
+// RequestCert is used by the consensus layer to request an availability certificate for a batch of transactions
+// from the availability layer.
+message RequestCert {
+  RequestCertOrigin origin = 1;
+}
+
+// NewCert is a response to a RequestCert event.
+message NewCert {
+  Cert              cert   = 1;
+  RequestCertOrigin origin = 2;
+}
+
+// VerifyCert can be used to verify validity of an availability certificate.
+message VerifyCert {
+  Cert cert               = 1;
+  VerifyCertOrigin origin = 2;
+}
+
+// CertVerified is a response to a VerifyCert event.
+message CertVerified {
+  bool             valid  = 1;
+  string           err    = 2;
+  VerifyCertOrigin origin = 3;
+}
+
+// RequestTransactions allows reconstructing a batch of transactions by a corresponding availability certificate.
+// It is possible that some of the transactions are not stored locally on the node. In this case, the availability
+// layer will pull these transactions from other nodes.
+message RequestTransactions {
+  Cert                      cert   = 1;
+  RequestTransactionsOrigin origin = 2;
+}
+
+// ProvideTransactions is a response to a RequestTransactions event.
+message ProvideTransactions {
+  repeated bytes            txs    = 1;
+  RequestTransactionsOrigin origin = 2;
+}
+
+// TODO: add events related to garbage collection.
+
+// ============================================================
+// Data structures
+// ============================================================
+
+message RequestCertOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message RequestTransactionsOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message VerifyCertOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message Cert {
+  oneof Type {
+    availabilitypb.mscpb.Cert msc = 1;
+  }
+}

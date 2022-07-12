@@ -3,10 +3,18 @@ package dsl
 import (
 	"errors"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/dslpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
+
+// Origin creates a dslpb.Origin protobuf.
+func Origin(contextID ContextID) *dslpb.Origin {
+	return &dslpb.Origin{
+		ContextID: contextID.Pb(),
+	}
+}
 
 // Dsl functions for emitting events.
 // TODO: add missing event types.
@@ -30,7 +38,7 @@ func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context 
 	origin := &eventpb.SignOrigin{
 		Module: m.ModuleID().Pb(),
 		Type: &eventpb.SignOrigin_Dsl{
-			Dsl: &eventpb.DslOrigin{
+			Dsl: &dslpb.Origin{
 				ContextID: contextID.Pb(),
 			},
 		},
@@ -54,7 +62,7 @@ func VerifyNodeSigs[C any](
 	origin := &eventpb.SigVerOrigin{
 		Module: m.ModuleID().Pb(),
 		Type: &eventpb.SigVerOrigin_Dsl{
-			Dsl: &eventpb.DslOrigin{
+			Dsl: &dslpb.Origin{
 				ContextID: contextID.Pb(),
 			},
 		},
@@ -86,7 +94,7 @@ func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, contex
 	origin := &eventpb.HashOrigin{
 		Module: m.ModuleID().Pb(),
 		Type: &eventpb.HashOrigin_Dsl{
-			Dsl: &eventpb.DslOrigin{
+			Dsl: &dslpb.Origin{
 				ContextID: contextID.Pb(),
 			},
 		},
@@ -116,12 +124,12 @@ func UponInit(m Module, handler func() error) {
 // context type C.
 func UponSignResult[C any](m Module, handler func(signature []byte, context *C) error) {
 	UponEvent[*eventpb.Event_SignResult](m, func(ev *eventpb.SignResult) error {
-		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.SignOrigin_Dsl)
+		originWrapper, ok := ev.Origin.Type.(*eventpb.SignOrigin_Dsl)
 		if !ok {
 			return nil
 		}
 
-		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(originWrapper.Dsl.ContextID))
 		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil
@@ -138,12 +146,12 @@ func UponNodeSigsVerified[C any](
 	handler func(nodeIDs []t.NodeID, errs []error, allOK bool, context *C) error,
 ) {
 	UponEvent[*eventpb.Event_NodeSigsVerified](m, func(ev *eventpb.NodeSigsVerified) error {
-		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.SigVerOrigin_Dsl)
+		originWrapper, ok := ev.Origin.Type.(*eventpb.SigVerOrigin_Dsl)
 		if !ok {
 			return nil
 		}
 
-		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(originWrapper.Dsl.ContextID))
 		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil
@@ -181,12 +189,12 @@ func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, err e
 // context type C.
 func UponHashResult[C any](m Module, handler func(hashes [][]byte, context *C) error) {
 	UponEvent[*eventpb.Event_HashResult](m, func(ev *eventpb.HashResult) error {
-		dslOriginWrapper, ok := ev.Origin.Type.(*eventpb.HashOrigin_Dsl)
+		originWrapper, ok := ev.Origin.Type.(*eventpb.HashOrigin_Dsl)
 		if !ok {
 			return nil
 		}
 
-		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(dslOriginWrapper.Dsl.ContextID))
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(originWrapper.Dsl.ContextID))
 		context, ok := contextRaw.(*C)
 		if !ok {
 			return nil

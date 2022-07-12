@@ -395,6 +395,8 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 			t.NodeID(result.NodeIds[0]),
 			t.EpochNr(origin.CheckpointEpoch),
 		), nil
+	case *isspb.ISSSigVerOrigin_StableCheckpoint:
+		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint), nil
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
@@ -682,21 +684,54 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 	}
 }
 
-// applyStableCheckpointMessage applies a StableCheckpoint message
-// received over the network. It verifies the message and decides
-// whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, _ t.NodeID) *events.EventList {
+// applyStableCheckpointMessage processes a received StableCheckpoint message
+// by creating a request for verifying the signatures in the included checkpoint certificate.
+// The actual processing then happens in applyStableCheckpointSigVerResult.
+func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.NodeID) *events.EventList {
+
+	// Extract signatures and the signing node IDs from the received message.
+	// TODO: Using underlying protobuf type for node ID explicitly here (nodeID string).
+	//       Modify the code to only use the abstract type.
+	nodeIDs := make([]t.NodeID, 0)
+	signatures := make([][]byte, 0)
+	iterateSorted(chkp.Cert, func(nodeID string, signature []byte) bool {
+		nodeIDs = append(nodeIDs, t.NodeID(nodeID))
+		signatures = append(signatures, signature)
+		return true
+	})
+
+	// Request verification of signatures in the checkpoint certificate
+	return events.ListOf(events.VerifyNodeSigs(
+		"crypto",
+		[][][]byte{serializing.CheckpointForSig(t.EpochNr(chkp.Epoch), t.SeqNr(chkp.Sn), chkp.AppSnapshot)},
+		signatures,
+		nodeIDs,
+		StableCheckpointSigVerOrigin(chkp),
+	))
+}
+
+// applyStableCheckpointSigVerResult applies a StableCheckpoint message
+// the signature of which signature has been verified.
+// It checks the message and decides whether to install the state snapshot from the message.
+func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb.StableCheckpoint) *events.EventList {
 	eventsOut := events.EmptyList()
+
+	// Ignore checkpoint with in valid or insufficiently many signatures.
+	// TODO: Make sure this code still works when reconfiguration is implemented.
+	if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.config.Membership)) {
+		iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
+		return eventsOut
+	}
 
 	// Check how far is the received stable checkpoint ahead of
 	// the local node's state.
-	if t.EpochNr(m.Epoch) <= iss.epoch.Nr+1 {
+	if t.EpochNr(chkp.Epoch) <= iss.epoch.Nr+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
 		return events.EmptyList()
 	}
 
-	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", m.Epoch)
+	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkp.Epoch)
 
 	// Clean up global ISS state that belongs to the current epoch
 	// instance that local replica got stuck with.
@@ -704,22 +739,22 @@ func (iss *ISS) applyStableCheckpointMessage(m *isspb.StableCheckpoint, _ t.Node
 	iss.epoch = nil
 	iss.commitLog = make(map[t.SeqNr]*CommitLogEntry)
 	iss.unhashedLogEntries = make(map[t.SeqNr]*CommitLogEntry)
-	iss.nextDeliveredSN = t.SeqNr(m.Sn)
+	iss.nextDeliveredSN = t.SeqNr(chkp.Sn)
 	iss.newEpochSN = iss.nextDeliveredSN
 
 	// Initialize a new ISS epoch instance for the new stable
 	// checkpoint to continue participating in the protocol
 	// starting with that epoch after installing the state
 	// snapshot from the new stable checkpoint.
-	iss.initEpoch(t.EpochNr(m.Epoch))
+	iss.initEpoch(t.EpochNr(chkp.Epoch))
 
 	// Update the last stable checkpoint stored in the global ISS structure.
-	iss.lastStableCheckpoint = m
+	iss.lastStableCheckpoint = chkp
 
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(appModuleName, m.AppSnapshot))
+	eventsOut.PushBack(events.AppRestoreState(appModuleName, chkp.AppSnapshot))
 
 	// Activate SB instances of the new epoch which will deliver
 	// batches after the application module has restored the state

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package contextstorepb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/contextstorepb";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Origin {
+  uint64 itemID = 1;
+}
