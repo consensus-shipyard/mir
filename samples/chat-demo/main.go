@@ -42,13 +42,13 @@ import (
 const (
 
 	// Base port number for the nodes to listen to messages from each other.
-	// Each node will listen on a port computed by adding its numeric ID to nodeBasePort.
+	// The nodes will listen on ports starting from nodeBasePort through nodeBasePort+3.
 	// Note that protocol messages and requests are following two completely distinct paths to avoid interference
 	// of clients with node-to-node communication.
 	nodeBasePort = 10000
 
 	// Base port number for the node request receivers to listen to messages from clients.
-	// Each request receiver will listen on a port computed by adding its node's numeric ID to reqReceiverBasePort.
+	// Request receivers will listen on port reqReceiverBasePort through reqReceiverBasePort+3.
 	// Note that protocol messages and requests are following two completely distinct paths to avoid interference
 	// of clients with node-to-node communication.
 	reqReceiverBasePort = 20000
@@ -57,7 +57,7 @@ const (
 // parsedArgs represents parsed command-line parameters passed to the program.
 type parsedArgs struct {
 
-	// Numeric ID of this node.
+	// ID of this node.
 	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
 	OwnID t.NodeID
 
@@ -290,7 +290,7 @@ func parseArgs(args []string) *parsedArgs {
 	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
 	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
-	ownID := app.Arg("id", "Numeric ID of this node").Required().String()
+	ownID := app.Arg("id", "ID of this node").Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)

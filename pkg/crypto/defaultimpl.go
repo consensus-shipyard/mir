@@ -68,7 +68,7 @@ func (c *DefaultImpl) Sign(data [][]byte) ([]byte, error) {
 	}
 }
 
-// RegisterNodeKey associates a public key with a numeric node ID.
+// RegisterNodeKey associates a public key with a node ID.
 // pubKey must be the output of SerializePubKey.
 // Calls to Verify will fail until RegisterNodeKey is successfully called with the corresponding node ID.
 // Returns nil on success, a non-nil error on failure.
@@ -93,7 +93,7 @@ func (c *DefaultImpl) DeleteNodeKey(nodeID t.NodeID) {
 	delete(c.nodeKeys, nodeID)
 }
 
-// Verify verifies a signature produced by the node with numeric ID nodeID over data.
+// Verify verifies a signature produced by the node with ID nodeID over data.
 // First, Verify computes a SHA256 hash of the concatenation of all the byte slices in data.
 // Then it verifies the signature over this hash using the public key registered under nodeID.
 // Returns nil on success (i.e., if the given signature is valid) and a non-nil error otherwise.

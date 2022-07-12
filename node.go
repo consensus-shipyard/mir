@@ -65,7 +65,7 @@ type Node struct {
 	debugMode bool
 }
 
-// NewNode creates a new node with numeric ID id.
+// NewNode creates a new node with ID id.
 // The config parameter specifies Node-level (protocol-independent) configuration, like buffer sizes, logging, ...
 // The modules parameter must contain initialized, ready-to-use modules that the new Node will use.
 func NewNode(
