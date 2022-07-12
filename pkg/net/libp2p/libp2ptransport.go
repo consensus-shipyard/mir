@@ -1,4 +1,7 @@
-package libp2ptransport
+// Package libp2p implements libp2p-based transport for Mir protocol framework.
+package libp2p
+
+//go:generate go run ./gen/gen.go
 
 import (
 	"bufio"
@@ -17,19 +20,23 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
 )
 
 const (
-	ID = "/mir/0.0.1"
+	ID                  = "/mir/0.0.1"
+	defaultRetryTimeout = 500 * time.Millisecond
 )
 
 type TransportMessage struct {
 	Sender  string
 	Payload []byte
 }
+
+var _ mirnet.Transport = &Transport{}
 
 type Transport struct {
 	host              host.Host
@@ -41,7 +48,7 @@ type Transport struct {
 	logger            logging.Logger
 }
 
-func New(h host.Host, membership map[types.NodeID]string, ownID types.NodeID, logger logging.Logger) *Transport {
+func NewTransport(h host.Host, membership map[types.NodeID]string, ownID types.NodeID, logger logging.Logger) *Transport {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -62,12 +69,15 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 }
 
 func (t *Transport) Start() error {
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler starting on %v", t.ownID, t.host.Addrs()))
 	t.host.SetStreamHandler(ID, t.mirHandler)
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler started on %v", t.ownID, t.host.Addrs()))
 	return nil
 }
 
 func (t *Transport) Stop() {
+	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.")
+	defer t.logger.Log(logging.LevelDebug, "libp2p transport stopped.")
+
 	t.outboundStreamsMx.Lock()
 	defer t.outboundStreamsMx.Unlock()
 
@@ -81,6 +91,12 @@ func (t *Transport) Stop() {
 			continue
 		}
 		t.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
+	}
+
+	if err := t.host.Close(); err != nil {
+		t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close libp2p %v: %v", t.ownID, err))
+	} else {
+		t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v libp2p host closed", t.ownID))
 	}
 }
 
@@ -102,6 +118,7 @@ func (t *Transport) Connect(ctx context.Context) {
 			if err != nil {
 				t.logger.Log(logging.LevelError,
 					fmt.Sprintf("failed to parse %v for node %v: %v", nodeAddr, nodeID, err))
+				return
 			}
 
 			// Extract the peer ID from the multiaddr.
@@ -109,6 +126,7 @@ func (t *Transport) Connect(ctx context.Context) {
 			if err != nil {
 				t.logger.Log(logging.LevelError,
 					fmt.Sprintf("failed to parse addr %v for node %v: %v", maddr, nodeID, err))
+				return
 			}
 
 			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
@@ -119,7 +137,8 @@ func (t *Transport) Connect(ctx context.Context) {
 				return
 			}
 			t.addOutboundStream(nodeID, s)
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connected to node %s", t.ownID.Pb(), nodeID.Pb()))
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
+
 		}(nodeID, nodeAddr)
 	}
 
@@ -127,21 +146,23 @@ func (t *Transport) Connect(ctx context.Context) {
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	timeout := 300 * time.Millisecond
 	for {
-		sctx, cancel := context.WithTimeout(ctx, timeout)
+		sctx, cancel := context.WithTimeout(ctx, defaultRetryTimeout)
 		s, err := t.host.NewStream(sctx, p, ID)
 		cancel()
-		if err != nil {
-			t.logger.Log(logging.LevelError, "opening stream", "err", err.Error())
-			select {
-			case <-time.After(timeout):
-				continue
-			case <-ctx.Done():
-				return nil, fmt.Errorf("context closed")
-			}
+
+		if err == nil {
+			return s, nil
 		}
-		return s, nil
+
+		t.logger.Log(logging.LevelError, "opening stream", "err", err.Error())
+
+		select {
+		case <-time.After(defaultRetryTimeout):
+			continue
+		case <-ctx.Done():
+			return nil, fmt.Errorf("context closed")
+		}
 	}
 }
 
@@ -186,6 +207,8 @@ func (t *Transport) mirHandler(s network.Stream) {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s started", s.ID()))
 	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s stopped", s.ID()))
 
+	defer s.Close() // nolint
+
 	for {
 		var msg TransportMessage
 		err := msg.UnmarshalCBOR(s)
@@ -204,6 +227,8 @@ func (t *Transport) mirHandler(s network.Stream) {
 		t.incomingMessages <- events.ListOf(
 			events.MessageReceived(types.ModuleID(payload.DestModule), types.NodeID(msg.Sender), &payload),
 		)
+
+		t.logger.Log(logging.LevelDebug, "sent to channel", "msg type=", fmt.Sprintf("%T", payload.Type))
 	}
 }
 
@@ -211,17 +236,13 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 	t.outboundStreamsMx.Lock()
 	defer t.outboundStreamsMx.Unlock()
 
-	_, found := t.outboundStreams[nodeID]
-	if found {
+	if _, found := t.outboundStreams[nodeID]; found {
 		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
 	}
 	t.outboundStreams[nodeID] = s
 }
 
-func (t *Transport) ApplyEvents(
-	ctx context.Context,
-	eventList *events.EventList,
-) error {
+func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 

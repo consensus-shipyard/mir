@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -27,12 +28,15 @@ import (
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
-	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
+	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
+	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
@@ -59,9 +63,19 @@ type parsedArgs struct {
 
 	// If set, print verbose output to stdout.
 	Verbose bool
+
+	// Network transport.
+	Net string
 }
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 
 	// Parse command-line parameters.
 	_ = parseArgs(os.Args)
@@ -77,6 +91,11 @@ func main() {
 
 	fmt.Println("Initializing...")
 
+	ownID, err := strconv.Atoi(string(args.OwnID))
+	if err != nil {
+		return fmt.Errorf("unable to convert node ID: %w", err)
+	}
+
 	// ================================================================================
 	// Generate system membership info: addresses, ports, etc...
 	// ================================================================================
@@ -90,14 +109,6 @@ func main() {
 		t.NewNodeIDFromInt(3),
 	}
 
-	// Generate addresses and ports of participating nodes.
-	// All nodes are on the local machine, but listen on different port numbers.
-	// Change this or make this configurable do deploy different nodes on different physical machines.
-	nodeAddrs := make(map[t.NodeID]string)
-	for i := range nodeIds {
-		nodeAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
-	}
-
 	// Generate addresses and ports for client request receivers.
 	// Each node uses different ports for receiving protocol messages and requests.
 	// These addresses will be used by the client code to know where to send its requests
@@ -108,23 +119,45 @@ func main() {
 		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
 	}
 
+	// Generate addresses and ports of participating nodes.
+	// All nodes are on the local machine, but listen on different port numbers.
+	// Change this or make this configurable do deploy different nodes on different physical machines.
+	nodeAddrs := make(map[t.NodeID]string)
+
 	// ================================================================================
 	// Create and initialize various modules used by mir.
 	// ================================================================================
 
 	// Initialize the networking module.
 	// Mir will use it for transporting nod-to-node messages.
-	net := grpctransport.NewGrpcTransport(nodeAddrs, args.OwnID, nil)
-	if err := net.Start(); err != nil {
-		panic(err)
+
+	var transport net.Transport
+	switch strings.ToLower(args.Net) {
+	case "grpc":
+		transport = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
+		for i := range nodeIds {
+			nodeAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
+		}
+	case "libp2p":
+		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
+		transport = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
+		for i := range nodeIds {
+			nodeAddrs[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyHostID(i, nodeBasePort).String()
+		}
+	default:
+		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
 	}
-	net.Connect(context.Background())
+
+	if err := transport.Start(); err != nil {
+		return fmt.Errorf("could not start network transport: %w", err)
+	}
+	transport.Connect(context.Background())
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIds)
 	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
 	if err != nil {
-		panic(fmt.Errorf("could not instantiate ISS protocol module: %w", err))
+		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
 	}
 
 	// ================================================================================
@@ -133,7 +166,7 @@ func main() {
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		"net": net,
+		"net": transport,
 		"iss": issProtocol,
 
 		// This is the application logic Mir is going to deliver requests to.
@@ -146,15 +179,14 @@ func main() {
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 	})
 	if err != nil {
-		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
+		return fmt.Errorf("failed to initialize Mir modules: %w", err)
 	}
 
 	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil)
 
 	// Exit immediately if Node could not be created.
 	if err != nil {
-		fmt.Printf("Could not create node: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("could not create node: %w", err)
 	}
 
 	// ================================================================================
@@ -177,12 +209,8 @@ func main() {
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
 	reqReceiver := requestreceiver.NewRequestReceiver(node, logger)
-	p, err := strconv.Atoi(string(args.OwnID))
-	if err != nil {
-		panic(fmt.Errorf("could not convert node ID: %w", err))
-	}
-	if err := reqReceiver.Start(reqReceiverBasePort + p); err != nil {
-		panic(err)
+	if err := reqReceiver.Start(reqReceiverBasePort + ownID); err != nil {
+		return fmt.Errorf("could not start request receiver: %w", err)
 	}
 
 	// ================================================================================
@@ -218,7 +246,6 @@ func main() {
 
 	// Read chat message from stdin.
 	for scanner.Scan() {
-
 		// Submit the chat message as request payload.
 		if err := client.SubmitRequest(
 			scanner.Bytes(),
@@ -244,7 +271,7 @@ func main() {
 	reqReceiver.Stop()
 
 	// stop the gRPC transport,
-	net.Stop()
+	transport.Stop()
 
 	// stop the server,
 	if args.Verbose {
@@ -253,8 +280,7 @@ func main() {
 	ctx.Done()
 	wg.Wait()
 
-	// and print the error returned by the stopped node.
-	fmt.Printf("Node error: %v\n", nodeErr)
+	return nodeErr
 }
 
 // Parses the command-line arguments and returns them in a params struct.
@@ -263,6 +289,7 @@ func parseArgs(args []string) *parsedArgs {
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
 	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
+	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
 	ownID := app.Arg("id", "Numeric ID of this node").Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
@@ -272,5 +299,6 @@ func parseArgs(args []string) *parsedArgs {
 	return &parsedArgs{
 		OwnID:   t.NodeID(*ownID),
 		Verbose: *verbose,
+		Net:     *n,
 	}
 }

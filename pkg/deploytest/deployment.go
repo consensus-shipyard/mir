@@ -18,11 +18,11 @@ import (
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
-	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
-	"github.com/filecoin-project/mir/pkg/libp2ptransport"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
+	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -39,6 +39,8 @@ const (
 
 // TestConfig contains the parameters of the deployment to be tested.
 type TestConfig struct {
+	// Optional information about the test.
+	Info string
 
 	// Number of replicas in the tested deployment.
 	NumReplicas int
@@ -187,6 +189,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 // It starts all test replicas, the dummy client, and the fake message transport subsystem,
 // waits until the replicas stop, and returns the final statuses of all the replicas.
 func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects int64, heapAlloc int64) {
+	fmt.Println(">>>>>>>>>>> ", d.TestConfig.Info)
 
 	// Initialize helper variables.
 	nodeErrors = make([]error, len(d.TestReplicas))
@@ -269,7 +272,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 // localGrpcTransport creates an instance of GrpcTransport based on the numeric IDs of test replicas.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // The network address of each test replica is the loopback 127.0.0.1.
-func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *grpctransport.GrpcTransport {
+func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *grpc.Transport {
 
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
@@ -278,7 +281,7 @@ func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logge
 		membership[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", BaseListenPort+i)
 	}
 
-	return grpctransport.NewGrpcTransport(
+	return grpc.NewTransport(
 		membership,
 		ownID,
 		logger,
@@ -288,8 +291,7 @@ func localGrpcTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logge
 // localLibp2pTransport creates an instance of libp2p based on the numeric IDs of test replicas.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // The network address of each test replica is the loopback 127.0.0.1.
-func localLibp2pTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *libp2ptransport.Transport {
-
+func localLibp2pTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Logger) *libp2p.Transport {
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]string, len(nodeIds))
@@ -304,7 +306,7 @@ func localLibp2pTransport(nodeIds []t.NodeID, ownID t.NodeID, logger logging.Log
 
 	h := libp2ptools.NewDummyHost(id, BaseListenPort)
 
-	return libp2ptransport.New(
+	return libp2p.NewTransport(
 		h,
 		membership,
 		ownID,

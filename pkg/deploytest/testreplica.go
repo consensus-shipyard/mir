@@ -7,17 +7,16 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/grpctransport"
 	"github.com/filecoin-project/mir/pkg/iss"
-	"github.com/filecoin-project/mir/pkg/libp2ptransport"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
+	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/simplewal"
@@ -147,18 +146,17 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// ATTENTION! This is hacky!
 	// If the test replica used the GRPC transport, initialize the Net module.
 	switch transport := tr.Net.(type) {
-	case *grpctransport.GrpcTransport:
+	case *grpc.Transport:
 		err := transport.Start()
 		if err != nil {
 			return fmt.Errorf("error starting gRPC transport: %w", err)
 		}
 		transport.Connect(ctx)
-	case *libp2ptransport.Transport:
+	case *libp2p.Transport:
 		err := transport.Start()
 		if err != nil {
 			return fmt.Errorf("error starting libp2p transport: %w", err)
 		}
-		time.Sleep(6 * time.Second) // to minimize opening streams attempts
 		transport.Connect(ctx)
 	}
 
@@ -179,14 +177,10 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// ATTENTION! This is hacky!
 	// If the test replica used the GRPC transport, stop the Net module.
 	switch transport := tr.Net.(type) {
-	case *grpctransport.GrpcTransport:
-		tr.Config.Logger.Log(logging.LevelDebug, "Stopping gRPC transport.")
+	case *grpc.Transport:
 		transport.Stop()
-		tr.Config.Logger.Log(logging.LevelDebug, "gRPC transport stopped.")
-	case *libp2ptransport.Transport:
-		tr.Config.Logger.Log(logging.LevelDebug, "Stopping libp2p transport.")
+	case *libp2p.Transport:
 		transport.Stop()
-		tr.Config.Logger.Log(logging.LevelDebug, "libp2p transport stopped.")
 	}
 
 	return exitErr
