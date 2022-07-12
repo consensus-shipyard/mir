@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	ID                  = "/mir/0.0.1"
-	defaultRetryTimeout = 500 * time.Millisecond
+	ID                = "/mir/0.0.1"
+	defaultMaxTimeout = 30 * time.Second
 )
 
 type TransportMessage struct {
@@ -131,7 +131,9 @@ func (t *Transport) Connect(ctx context.Context) {
 
 			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 
-			s, err := t.openStream(ctx, info.ID)
+			ctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
+			defer cancel()
+			s, err := t.host.NewStream(ctx, info.ID, ID)
 			if err != nil {
 				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
 				return
@@ -143,27 +145,6 @@ func (t *Transport) Connect(ctx context.Context) {
 	}
 
 	wg.Wait()
-}
-
-func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	for {
-		sctx, cancel := context.WithTimeout(ctx, defaultRetryTimeout)
-		s, err := t.host.NewStream(sctx, p, ID)
-		cancel()
-
-		if err == nil {
-			return s, nil
-		}
-
-		t.logger.Log(logging.LevelError, "opening stream", "err", err.Error())
-
-		select {
-		case <-time.After(defaultRetryTimeout):
-			continue
-		case <-ctx.Done():
-			return nil, fmt.Errorf("context closed")
-		}
-	}
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
