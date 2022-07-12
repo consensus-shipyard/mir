@@ -39,11 +39,11 @@ var _ mirnet.Transport = &Transport{}
 type Transport struct {
 	UnimplementedGrpcTransportServer
 
-	// The numeric ID of the node that uses this networking module.
+	// The ID of the node that uses this networking module.
 	ownID t.NodeID
 
 	// Complete static membership of the system.
-	// Maps the numeric node ID of each node in the system to a string representation of its network address.
+	// Maps the node ID of each node in the system to a string representation of its network address.
 	// The address format "IPAddress:port"
 	membership map[t.NodeID]string // nodeId -> "IPAddress:port"
 
@@ -66,9 +66,9 @@ type Transport struct {
 
 // NewTransport returns a pointer to a new initialized GrpcTransport networking module.
 // The membership parameter must represent the complete static membership of the system.
-// It maps the numeric node ID of each node in the system to
+// It maps the node ID of each node in the system to
 // a string representation of its network address with the format "IPAddress:port".
-// The ownId parameter is the numeric ID of the node that will use the returned networking module.
+// The ownId parameter is the ID of the node that will use the returned networking module.
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.

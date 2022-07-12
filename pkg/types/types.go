@@ -15,7 +15,7 @@ import (
 
 // ================================================================================
 
-// NodeID represents the numeric ID of a node.
+// NodeID represents the ID of a node.
 type NodeID string
 
 func NewNodeIDFromInt(id int) NodeID {
@@ -139,7 +139,7 @@ func ErrorFromPb(ok bool, errStr string) error {
 
 // ================================================================================
 
-// ClientID represents the numeric ID of a client.
+// ClientID represents the ID of a client.
 type ClientID string
 
 func NewClientIDFromInt(id int) ClientID {
