@@ -141,7 +141,7 @@ func run() error {
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
 		nodeAddrs := make(map[t.NodeID]multiaddr.Multiaddr)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)], _ = libp2ptools.NewDummyHostID(i, nodeBasePort)
+			nodeAddrs[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyPeerID(i, nodeBasePort)
 		}
 		transport = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
 	default:
