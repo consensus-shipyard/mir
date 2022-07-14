@@ -41,14 +41,14 @@ var _ mirnet.Transport = &Transport{}
 type Transport struct {
 	host              host.Host
 	ownID             types.NodeID
-	membership        map[types.NodeID]string
+	membership        map[types.NodeID]multiaddr.Multiaddr
 	incomingMessages  chan *events.EventList
 	outboundStreamsMx sync.Mutex
 	outboundStreams   map[types.NodeID]network.Stream
 	logger            logging.Logger
 }
 
-func NewTransport(h host.Host, membership map[types.NodeID]string, ownID types.NodeID, logger logging.Logger) *Transport {
+func NewTransport(h host.Host, membership map[types.NodeID]multiaddr.Multiaddr, ownID types.NodeID, logger logging.Logger) *Transport {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -109,23 +109,16 @@ func (t *Transport) Connect(ctx context.Context) {
 			continue
 		}
 
-		go func(nodeID types.NodeID, nodeAddr string) {
+		go func(nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
 			defer wg.Done()
 
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
 
-			maddr, err := multiaddr.NewMultiaddr(nodeAddr)
-			if err != nil {
-				t.logger.Log(logging.LevelError,
-					fmt.Sprintf("failed to parse %v for node %v: %v", nodeAddr, nodeID, err))
-				return
-			}
-
 			// Extract the peer ID from the multiaddr.
-			info, err := peer.AddrInfoFromP2pAddr(maddr)
+			info, err := peer.AddrInfoFromP2pAddr(nodeAddr)
 			if err != nil {
 				t.logger.Log(logging.LevelError,
-					fmt.Sprintf("failed to parse addr %v for node %v: %v", maddr, nodeID, err))
+					fmt.Sprintf("failed to parse addr %v for node %v: %v", nodeAddr, nodeID, err))
 				return
 			}
 
