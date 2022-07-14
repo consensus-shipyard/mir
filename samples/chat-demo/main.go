@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"github.com/multiformats/go-multiaddr"
 	"os"
 	"strconv"
 	"strings"
@@ -119,11 +120,6 @@ func run() error {
 		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
 	}
 
-	// Generate addresses and ports of participating nodes.
-	// All nodes are on the local machine, but listen on different port numbers.
-	// Change this or make this configurable do deploy different nodes on different physical machines.
-	nodeAddrs := make(map[t.NodeID]string)
-
 	// ================================================================================
 	// Create and initialize various modules used by mir.
 	// ================================================================================
@@ -131,19 +127,23 @@ func run() error {
 	// Initialize the networking module.
 	// Mir will use it for transporting nod-to-node messages.
 
+	// In the current implementation, all nodes are on the local machine, but listen on different port numbers.
+	// Change this or make this configurable to deploy different nodes on different physical machines.
 	var transport net.Transport
 	switch strings.ToLower(args.Net) {
 	case "grpc":
-		transport = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
+		nodeAddrs := make(map[t.NodeID]string)
 		for i := range nodeIds {
 			nodeAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
 		}
+		transport = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
-		transport = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
+		nodeAddrs := make(map[t.NodeID]multiaddr.Multiaddr)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyHostID(i, nodeBasePort).String()
+			nodeAddrs[t.NewNodeIDFromInt(i)], _ = libp2ptools.NewDummyHostID(i, nodeBasePort)
 		}
+		transport = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
 	}
