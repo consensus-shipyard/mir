@@ -9,6 +9,9 @@ linters:
     - gofmt
     - misspell
 
+run:
+  timeout: 2m
+
 issues:
   exclude-rules:
     - path: .*\.pb\.mir\.go
