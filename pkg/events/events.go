@@ -263,14 +263,6 @@ func WALTruncate(destModule t.ModuleID, retentionIndex t.WALRetIndex) *eventpb.E
 	}
 }
 
-// WALLoadAll returns and event instructing the WAL to load and emit all stored events.
-func WALLoadAll(destModule t.ModuleID) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type:       &eventpb.Event_WalLoadAll{WalLoadAll: &eventpb.WALLoadAll{}},
-	}
-}
-
 // WALEntry returns an event of reading an entry from the WAL.
 // Those events are used at system initialization.
 func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {

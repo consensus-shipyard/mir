@@ -33,7 +33,6 @@ message Event {
     WALAppend            wal_append              = 3;
     WALEntry             wal_entry               = 4;
     WALTruncate          wal_truncate            = 5;
-    WALLoadAll           wal_load_all            = 6;
     NewRequests          new_requests            = 7;
     HashRequest          hash_request            = 8;
     HashResult           hash_result             = 9;

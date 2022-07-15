@@ -35,10 +35,6 @@ func (p *Event_WalTruncate) Unwrap() *WALTruncate {
 	return p.WalTruncate
 }
 
-func (p *Event_WalLoadAll) Unwrap() *WALLoadAll {
-	return p.WalLoadAll
-}
-
 func (p *Event_NewRequests) Unwrap() *NewRequests {
 	return p.NewRequests
 }
