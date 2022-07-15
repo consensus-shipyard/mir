@@ -182,7 +182,7 @@ func run() error {
 		return fmt.Errorf("failed to initialize Mir modules: %w", err)
 	}
 
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil)
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil, nil)
 
 	// Exit immediately if Node could not be created.
 	if err != nil {
