@@ -5,7 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/modules/mock_modules"
+	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -18,17 +18,17 @@ func TestNode_Run(t *testing.T) {
 	testCases := map[string]func(t *testing.T) (m modules.Modules, done <-chan struct{}){
 		"InitEvents": func(t *testing.T) (modules.Modules, <-chan struct{}) {
 			ctrl := gomock.NewController(t)
-			mockModule1 := mock_modules.NewMockPassiveModule(ctrl)
-			mockModule2 := mock_modules.NewMockPassiveModule(ctrl)
+			mockModule1 := mockmodules.NewMockPassiveModule(ctrl)
+			mockModule2 := mockmodules.NewMockPassiveModule(ctrl)
 
 			var wg sync.WaitGroup
 			wg.Add(2)
 
-			mockModule1.EXPECT().ApplyEvents(events.ListOf(events.Init("mock1"))).
-				Do(func(_ *events.EventList) { wg.Done() }).
+			mockModule1.EXPECT().Event(events.Init("mock1")).
+				Do(func(_ any) { wg.Done() }).
 				Return(events.EmptyList(), nil)
-			mockModule2.EXPECT().ApplyEvents(events.ListOf(events.Init("mock2"))).
-				Do(func(_ *events.EventList) { wg.Done() }).
+			mockModule2.EXPECT().Event(events.Init("mock2")).
+				Do(func(_ any) { wg.Done() }).
 				Return(events.EmptyList(), nil)
 
 			done := make(chan struct{})
