@@ -28,7 +28,7 @@ import (
 
 const (
 	ID                = "/mir/0.0.1"
-	defaultMaxTimeout = 30 * time.Second
+	defaultMaxTimeout = 300 * time.Millisecond
 )
 
 type TransportMessage struct {
@@ -124,9 +124,7 @@ func (t *Transport) Connect(ctx context.Context) {
 
 			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
 
-			ctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
-			defer cancel()
-			s, err := t.host.NewStream(ctx, info.ID, ID)
+			s, err := t.openStream(ctx, info.ID)
 			if err != nil {
 				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
 				return
@@ -138,6 +136,27 @@ func (t *Transport) Connect(ctx context.Context) {
 	}
 
 	wg.Wait()
+}
+
+func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
+	for {
+		sctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
+		s, err := t.host.NewStream(sctx, p, ID)
+		cancel()
+
+		if err == nil {
+			return s, nil
+		}
+
+		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to open stream: %v", err))
+
+		select {
+		case <-time.After(defaultMaxTimeout):
+			continue
+		case <-ctx.Done():
+			return nil, fmt.Errorf("context closed")
+		}
+	}
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {

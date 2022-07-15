@@ -18,12 +18,12 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"github.com/multiformats/go-multiaddr"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/multiformats/go-multiaddr"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -53,6 +53,9 @@ const (
 	// Note that protocol messages and requests are following two completely distinct paths to avoid interference
 	// of clients with node-to-node communication.
 	reqReceiverBasePort = 20000
+
+	// The number of nodes participating in the chat.
+	nodeNumber = 4
 )
 
 // parsedArgs represents parsed command-line parameters passed to the program.
@@ -77,7 +80,6 @@ func main() {
 }
 
 func run() error {
-
 	// Parse command-line parameters.
 	_ = parseArgs(os.Args)
 	args := parseArgs(os.Args)
@@ -90,11 +92,16 @@ func run() error {
 		logger = logging.ConsoleWarnLogger // Only print errors and warnings by default.
 	}
 
+	ctx := context.Background()
+
 	fmt.Println("Initializing...")
 
 	ownID, err := strconv.Atoi(string(args.OwnID))
 	if err != nil {
 		return fmt.Errorf("unable to convert node ID: %w", err)
+	}
+	if ownID < 0 || ownID > nodeNumber-1 {
+		return fmt.Errorf("ID must be in [0, %d]", nodeNumber-1)
 	}
 
 	// ================================================================================
@@ -102,12 +109,10 @@ func run() error {
 	// ================================================================================
 
 	// IDs of nodes that are part of the system.
-	// This example uses a static configuration of 4 nodes.
-	nodeIds := []t.NodeID{
-		t.NewNodeIDFromInt(0),
-		t.NewNodeIDFromInt(1),
-		t.NewNodeIDFromInt(2),
-		t.NewNodeIDFromInt(3),
+	// This example uses a static configuration of nodeNumber nodes.
+	nodeIds := make([]t.NodeID, nodeNumber)
+	for i := 0; i < nodeNumber; i++ {
+		nodeIds[i] = t.NewNodeIDFromInt(i)
 	}
 
 	// Generate addresses and ports for client request receivers.
@@ -151,7 +156,7 @@ func run() error {
 	if err := transport.Start(); err != nil {
 		return fmt.Errorf("could not start network transport: %w", err)
 	}
-	transport.Connect(context.Background())
+	transport.Connect(ctx)
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIds)
@@ -194,9 +199,8 @@ func run() error {
 	// ================================================================================
 
 	// Initialize variables to synchronize Node startup and shutdown.
-	ctx := context.Background() // Calling Done() on this context will signal the Node to stop.
-	var nodeErr error           // The error returned from running the Node will be stored here.
-	var wg sync.WaitGroup       // The Node will call Done() on this WaitGroup when it actually stops.
+	var nodeErr error     // The error returned from running the Node will be stored here.
+	var wg sync.WaitGroup // The Node will call Done() on this WaitGroup when it actually stops.
 	wg.Add(1)
 
 	// Start the node in a separate goroutine
@@ -233,7 +237,7 @@ func run() error {
 	// We use just the background context in this demo app, expecting that the connection will succeed
 	// and the Connect() function will return. In a real deployment, the passed context
 	// can be used for failure handling, for example to cancel connecting.
-	client.Connect(context.Background(), reqReceiverAddrs)
+	client.Connect(ctx, reqReceiverAddrs)
 
 	// ================================================================================
 	// Read chat messages from stdin and submit them as requests.
