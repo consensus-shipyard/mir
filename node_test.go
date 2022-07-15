@@ -2,6 +2,10 @@ package mir
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -9,9 +13,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestNode_Run(t *testing.T) {
@@ -54,6 +55,7 @@ func TestNode_Run(t *testing.T) {
 				"testnode",
 				&NodeConfig{Logger: logger},
 				m,
+				nil,
 				nil,
 			)
 

@@ -9,13 +9,14 @@ package mir
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventlog"
 	"reflect"
 	"sync"
 
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/wal"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
@@ -39,6 +40,10 @@ type Node struct {
 	// Implementations of networking, hashing, request store, WAL, etc.
 	// The state machine is also a module of the node.
 	modules modules.Modules
+
+	// Write-ahead log.
+	// If not nil, it will be used at initialization to load all events stored in the WAL.
+	wal wal.WAL
 
 	// Interceptor of processed events.
 	// If not nil, every event is passed to the interceptor (by calling its Intercept method)
@@ -72,6 +77,7 @@ func NewNode(
 	id t.NodeID,
 	config *NodeConfig,
 	m modules.Modules,
+	wal wal.WAL,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
 	// Return a new Node.
@@ -84,6 +90,7 @@ func NewNode(
 
 		workChans:   newWorkChans(m),
 		modules:     m,
+		wal:         wal,
 		interceptor: interceptor,
 
 		workItems:       newWorkItems(m),
@@ -104,9 +111,8 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
-	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
-	if n.modules["wal"] != nil {
-		if err := n.processWAL(); err != nil {
+	if n.wal != nil {
+		if err := n.processWAL(ctx); err != nil {
 			n.workErrNotifier.Fail(err)
 			return fmt.Errorf("could not process WAL: %w", err)
 		}
@@ -146,8 +152,8 @@ func (n *Node) Run(ctx context.Context) error {
 
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
-	if n.modules["wal"] != nil {
-		if err := n.processWAL(); err != nil {
+	if n.wal != nil {
+		if err := n.processWAL(ctx); err != nil {
 			n.workErrNotifier.Fail(err)
 			return fmt.Errorf("could not process WAL: %w", err)
 		}
@@ -164,16 +170,13 @@ func (n *Node) Run(ctx context.Context) error {
 }
 
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
-func (n *Node) processWAL() error {
+func (n *Node) processWAL(ctx context.Context) error {
 
 	var storedEvents *events.EventList
 	var err error
 
 	// Add all events from the WAL to the new EventList.
-	// TODO: The WAL module is assumed to be stored under the "wal" key here. Generalize!
-	if storedEvents, err = n.modules["wal"].(modules.PassiveModule).ApplyEvents(
-		events.ListOf(events.WALLoadAll("wal")),
-	); err != nil {
+	if storedEvents, err = n.wal.LoadAll(ctx); err != nil {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
 

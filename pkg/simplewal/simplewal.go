@@ -16,12 +16,14 @@ SPDX-License-Identifier: Apache-2.0
 package simplewal
 
 import (
+	"context"
 	"fmt"
+	"sync"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/tidwall/wal"
@@ -41,6 +43,19 @@ type WAL struct {
 	// Otherwise it could be completely ephemeral.
 	// TODO: Implement persisting and loading the retentionIndex
 	retentionIndex t.WALRetIndex
+}
+
+func (w *WAL) LoadAll(ctx context.Context) (*events.EventList, error) {
+	storedEvents := events.EmptyList()
+
+	// Add all events from the WAL to the new EventList.
+	if err := w.loadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
+		storedEvents.PushBack(event)
+	}); err != nil {
+		return nil, fmt.Errorf("could not load WAL events: %w", err)
+	}
+
+	return storedEvents, nil
 }
 
 func (w *WAL) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
@@ -63,19 +78,6 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
 				e.WalTruncate.RetentionIndex, err)
 		}
-	case *eventpb.Event_WalLoadAll:
-
-		storedEvents := events.EmptyList()
-
-		// Add all events from the WAL to the new EventList.
-		if err := w.LoadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
-			storedEvents.PushBack(event)
-		}); err != nil {
-			return nil, fmt.Errorf("could not load WAL events: %w", err)
-		}
-
-		return storedEvents, nil
-
 	default:
 		return nil, fmt.Errorf("unexpected type of WAL event: %T", event.Type)
 	}
@@ -128,7 +130,7 @@ func (w *WAL) IsEmpty() (bool, error) {
 	return firstIndex == 0, nil
 }
 
-func (w *WAL) LoadAll(forEach func(index t.WALRetIndex, p *eventpb.Event)) error {
+func (w *WAL) loadAll(forEach func(index t.WALRetIndex, p *eventpb.Event)) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	firstIndex, err := w.log.FirstIndex()

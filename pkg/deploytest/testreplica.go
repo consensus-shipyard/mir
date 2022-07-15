@@ -3,11 +3,12 @@ package deploytest
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	"github.com/filecoin-project/mir/pkg/net"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -117,6 +118,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		tr.ID,
 		tr.Config,
 		modulesWithDefaults,
+		wal,
 		interceptor,
 	)
 	if err != nil {
