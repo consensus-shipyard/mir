@@ -10,7 +10,7 @@ package grpctransport;
 
 import "messagepb/messagepb.proto";
 
-option go_package = "github.com/filecoin-project/mir/pkg/grpctransport";
+option go_package = "github.com/filecoin-project/mir/pkg/net/grpc";
 
 service GrpcTransport {
 	rpc Listen(stream GrpcMessage) returns(ByeBye);
