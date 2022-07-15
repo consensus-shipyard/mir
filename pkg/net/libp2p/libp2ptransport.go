@@ -8,13 +8,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
@@ -29,6 +29,7 @@ import (
 const (
 	ID                = "/mir/0.0.1"
 	defaultMaxTimeout = 300 * time.Millisecond
+	PermanentAddrTTL  = math.MaxInt64 - iota
 )
 
 type TransportMessage struct {
@@ -122,7 +123,7 @@ func (t *Transport) Connect(ctx context.Context) {
 				return
 			}
 
-			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 
 			s, err := t.openStream(ctx, info.ID)
 			if err != nil {
