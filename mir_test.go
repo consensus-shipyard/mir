@@ -77,7 +77,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumClients:          0,
 				Transport:           "fake",
 				NumFakeRequests:     100,
-				Duration:            15 * time.Second,
+				Duration:            200 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 
