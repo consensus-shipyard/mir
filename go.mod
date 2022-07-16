@@ -26,7 +26,7 @@ require (
 require github.com/golang/mock v1.6.0
 
 require (
-	github.com/ipfs/go-cid v0.2.0
+	github.com/ipfs/go-cid v0.1.0
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/whyrusleeping/cbor-gen v0.0.0-20220514204315-f29c37e9c44c
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f
