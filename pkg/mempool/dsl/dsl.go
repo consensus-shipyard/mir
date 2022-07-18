@@ -123,7 +123,7 @@ func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs [][]byte
 	})
 }
 
-// UponNewBatch registers a handler for the RequestTransactions events.
+// UponRequestTransactions registers a handler for the RequestTransactions events.
 func UponRequestTransactions(m dsl.Module, handler func(txIDs []t.TxID, origin *mppb.RequestTransactionsOrigin) error) {
 	UponEvent[*mppb.Event_RequestTransactions](m, func(ev *mppb.RequestTransactions) error {
 		return handler(t.TxIDSlice(ev.TxIds), ev.Origin)
