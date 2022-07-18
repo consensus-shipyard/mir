@@ -212,7 +212,7 @@ func run() error {
 	// Create a request receiver and start receiving requests.
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
-	reqReceiver := requestreceiver.NewRequestReceiver(node, logger)
+	reqReceiver := requestreceiver.NewRequestReceiver(node, "iss", logger)
 	if err := reqReceiver.Start(reqReceiverBasePort + ownID); err != nil {
 		return fmt.Errorf("could not start request receiver: %w", err)
 	}
