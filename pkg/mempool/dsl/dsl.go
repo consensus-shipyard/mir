@@ -99,7 +99,7 @@ func UponEvent[EvWrapper mppb.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handl
 }
 
 // UponRequestBatch registers a handler for the RequestBatch events.
-func UponRequestBatch[C any](m dsl.Module, handler func(origin *mppb.RequestBatchOrigin) error) {
+func UponRequestBatch(m dsl.Module, handler func(origin *mppb.RequestBatchOrigin) error) {
 	UponEvent[*mppb.Event_RequestBatch](m, func(ev *mppb.RequestBatch) error {
 		return handler(ev.Origin)
 	})
@@ -149,7 +149,7 @@ func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, 
 }
 
 // UponRequestTransactionIDs registers a handler for the RequestTransactionIDs events.
-func UponRequestTransactionIDs[C any](m dsl.Module, handler func(txs [][]byte, origin *mppb.RequestTransactionIDsOrigin) error) {
+func UponRequestTransactionIDs(m dsl.Module, handler func(txs [][]byte, origin *mppb.RequestTransactionIDsOrigin) error) {
 	UponEvent[*mppb.Event_RequestTransactionIds](m, func(ev *mppb.RequestTransactionIDs) error {
 		return handler(ev.Txs, ev.Origin)
 	})
@@ -174,7 +174,7 @@ func UponTransactionIDsResponse[C any](m dsl.Module, handler func(txIDs []t.TxID
 }
 
 // UponRequestBatchID registers a handler for the RequestBatchID events.
-func UponRequestBatchID[C any](m dsl.Module, handler func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error) {
+func UponRequestBatchID(m dsl.Module, handler func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error) {
 	UponEvent[*mppb.Event_RequestBatchId](m, func(ev *mppb.RequestBatchID) error {
 		return handler(t.TxIDSlice(ev.TxIds), ev.Origin)
 	})
