@@ -19,6 +19,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type RequestReceiver struct {
@@ -26,6 +27,9 @@ type RequestReceiver struct {
 
 	// The Node to which to submit the received requests.
 	node *mir.Node
+
+	// The ID of the module to which to submit the received requests.
+	moduleID t.ModuleID
 
 	// The gRPC server used by this networking module.
 	grpcServer *grpc.Server
@@ -45,15 +49,16 @@ type RequestReceiver struct {
 // The returned RequestReceiver is not yet running (able to receive requests).
 // This needs to be done explicitly by calling the Start() method.
 // For the requests to be processed by passed Node, the Node must also be running.
-func NewRequestReceiver(node *mir.Node, logger logging.Logger) *RequestReceiver {
+func NewRequestReceiver(node *mir.Node, moduleID t.ModuleID, logger logging.Logger) *RequestReceiver {
 	// If no logger was given, only write errors to the console.
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 
 	return &RequestReceiver{
-		node:   node,
-		logger: logger,
+		node:     node,
+		moduleID: moduleID,
+		logger:   logger,
 	}
 }
 
@@ -83,7 +88,7 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 
 		// Submit the request to the Node.
 		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(events.NewClientRequests(
-			"iss",
+			rr.moduleID,
 			[]*requestpb.Request{req},
 		))); srErr != nil {
 

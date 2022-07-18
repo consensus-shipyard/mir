@@ -126,7 +126,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 
 	// Create a RequestReceiver for request coming over the network.
-	requestReceiver := requestreceiver.NewRequestReceiver(node, logging.Decorate(tr.Config.Logger, "ReqRec: "))
+	requestReceiver := requestreceiver.NewRequestReceiver(node, "iss", logging.Decorate(tr.Config.Logger, "ReqRec: "))
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
 		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
