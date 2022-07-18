@@ -40,7 +40,7 @@ type ModuleParams struct {
 	F           int        // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
 }
 
-// State represents the common state accessible to all parts of the multisig collector implementation.
+// State represents the common state accessible to all parts of the module implementation.
 type State struct {
 	BatchStore       map[t.BatchID][]t.TxID
 	TransactionStore map[t.TxID]*requestpb.Request
