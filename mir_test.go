@@ -14,12 +14,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/deploytest"
+	"github.com/filecoin-project/mir/pkg/iss"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
+
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/mir"
-	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 )
 
@@ -35,27 +39,40 @@ func BenchmarkIntegration(b *testing.B) {
 	b.Run("ISS", benchmarkIntegrationWithISS)
 }
 
+type TestConfig struct {
+	Info                string
+	NumReplicas         int
+	NumClients          int
+	Transport           string
+	NumFakeRequests     int
+	NumNetRequests      int
+	Duration            time.Duration
+	Directory           string
+	SlowProposeReplicas map[int]bool
+	Logger              logging.Logger
+}
+
 func testIntegrationWithISS(t *testing.T) {
 	tests := []struct {
 		Desc   string // test description
-		Config *deploytest.TestConfig
+		Config *TestConfig
 	}{
 
 		0: {"Do nothing with 1 node",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas: 1,
 				Transport:   "fake",
 				Duration:    4 * time.Second,
 			}},
 		1: {"Do nothing with 4 nodes, one of them slow",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:         4,
 				Transport:           "fake",
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 		2: {"Submit 10 fake requests with 1 node",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:     1,
 				Transport:       "fake",
 				NumFakeRequests: 10,
@@ -63,7 +80,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:        4 * time.Second,
 			}},
 		3: {"Submit 10 fake requests with 1 node, loading WAL",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:     1,
 				NumClients:      1,
 				Transport:       "fake",
@@ -72,7 +89,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:        4 * time.Second,
 			}},
 		4: {"Submit 100 fake requests with 4 nodes, one of them slow",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,
 				Transport:           "fake",
@@ -82,7 +99,7 @@ func testIntegrationWithISS(t *testing.T) {
 			}},
 
 		5: {"Submit 10 fake requests with 4 nodes and gRPC networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:     4,
 				NumClients:      1,
 				Transport:       "grpc",
@@ -90,7 +107,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:        4 * time.Second,
 			}},
 		6: {"Submit 10 requests with 1 node and gRPC networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:    1,
 				NumClients:     1,
 				Transport:      "grpc",
@@ -99,7 +116,7 @@ func testIntegrationWithISS(t *testing.T) {
 			}},
 
 		7: {"Submit 10 requests with 4 nodes and gRPC networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				Info:           "grpc 10 requests and 4 nodes",
 				NumReplicas:    4,
 				NumClients:     1,
@@ -108,7 +125,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:       4 * time.Second,
 			}},
 		8: {"Submit 10 fake requests with 4 nodes and libp2p networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:     4,
 				NumClients:      1,
 				Transport:       "libp2p",
@@ -116,7 +133,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:        10 * time.Second,
 			}},
 		9: {"Submit 10 requests with 1 node and libp2p networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas:    1,
 				NumClients:     1,
 				Transport:      "libp2p",
@@ -124,7 +141,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:       10 * time.Second,
 			}},
 		10: {"Submit 10 requests with 4 nodes and libp2p networking",
-			&deploytest.TestConfig{
+			&TestConfig{
 				Info:           "libp2p 10 requests and 4 nodes",
 				NumReplicas:    4,
 				NumClients:     1,
@@ -154,10 +171,10 @@ func testIntegrationWithISS(t *testing.T) {
 func benchmarkIntegrationWithISS(b *testing.B) {
 	benchmarks := []struct {
 		Desc   string // test description
-		Config *deploytest.TestConfig
+		Config *TestConfig
 	}{
 		0: {"Runs for 10s with 4 nodes",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas: 4,
 				NumClients:  1,
 				Transport:   "fake",
@@ -165,7 +182,7 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 				Logger:      logging.ConsoleErrorLogger,
 			}},
 		1: {"Runs for 100s with 4 nodes",
-			&deploytest.TestConfig{
+			&TestConfig{
 				NumReplicas: 4,
 				NumClients:  1,
 				Transport:   "fake",
@@ -198,14 +215,14 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 	}
 }
 
-func runIntegrationWithISSConfig(tb testing.TB, conf *deploytest.TestConfig) (heapObjects int64, heapAlloc int64) {
+func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects int64, heapAlloc int64) {
 	tb.Helper()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Create new test deployment.
-	deployment, err := deploytest.NewDeployment(conf)
+	deployment, err := newDeployment(conf)
 	require.NoError(tb, err)
 
 	// Schedule shutdown of test deployment
@@ -230,7 +247,8 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *deploytest.TestConfig) (he
 
 	// Check if all requests were delivered.
 	for _, replica := range deployment.TestReplicas {
-		assert.Equal(tb, conf.NumNetRequests+conf.NumFakeRequests, int(replica.App.RequestsProcessed))
+		app := replica.Modules["app"].(*deploytest.FakeApp)
+		assert.Equal(tb, conf.NumNetRequests+conf.NumFakeRequests, int(app.RequestsProcessed))
 	}
 
 	// If the test failed, keep the generated data.
@@ -252,7 +270,7 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *deploytest.TestConfig) (he
 // If conf.Directory is not empty, creates a directory with that path if it does not yet exist.
 // If conf.Directory is empty, creates a directory in the OS-default temporary path
 // and sets conf.Directory to that path.
-func createDeploymentDir(tb testing.TB, conf *deploytest.TestConfig) {
+func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 	tb.Helper()
 	if conf == nil {
 		return
@@ -269,4 +287,56 @@ func createDeploymentDir(tb testing.TB, conf *deploytest.TestConfig) {
 		conf.Directory = tb.TempDir()
 		tb.Logf("Created temp dir: %s\n", conf.Directory)
 	}
+}
+
+func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
+	nodeIDs := deploytest.NewNodeIDs(conf.NumReplicas)
+	logger := deploytest.NewLogger(conf.Logger)
+	transportLayer := deploytest.NewLocalTransportLayer(conf.Transport, nodeIDs, logger)
+	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
+
+	nodeModules := make(map[t.NodeID]modules.Modules)
+
+	for i, nodeID := range nodeIDs {
+		// ISS configuration
+		issConfig := iss.DefaultConfig(nodeIDs)
+		if conf.SlowProposeReplicas[i] {
+			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
+			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
+			// in the worst case, it will trigger view change by the segment timeout.
+			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
+		}
+
+		issProtocol, err := iss.New(nodeID, issConfig, logging.Decorate(logger, "ISS: "))
+		if err != nil {
+			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
+		}
+
+		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
+			"app":    &deploytest.FakeApp{},
+			"crypto": cryptoSystem.Module(nodeID),
+			"iss":    issProtocol,
+			"net":    transportLayer.Link(nodeID),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)
+		}
+
+		nodeModules[nodeID] = modulesWithDefaults
+	}
+
+	deployConf := &deploytest.TestConfig{
+		Info:                   conf.Info,
+		NodeIDs:                nodeIDs,
+		NodeModules:            nodeModules,
+		NumClients:             conf.NumClients,
+		NumFakeRequests:        conf.NumFakeRequests,
+		NumNetRequests:         conf.NumNetRequests,
+		FakeRequestsDestModule: t.ModuleID("iss"),
+		Directory:              conf.Directory,
+		Duration:               conf.Duration,
+		Logger:                 logger,
+	}
+
+	return deploytest.NewDeployment(deployConf)
 }

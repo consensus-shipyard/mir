@@ -11,10 +11,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 
 	"github.com/filecoin-project/mir"
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -29,8 +27,8 @@ type TestReplica struct {
 	// ID of the replica as seen by the protocol.
 	ID t.NodeID
 
-	// Dummy test application the replica is running.
-	App *FakeApp
+	// The modules that the node will run.
+	Modules modules.Modules
 
 	// Name of the directory where the persisted state of this TestReplica will be stored,
 	// along with the logs produced by running the replica.
@@ -42,14 +40,11 @@ type TestReplica struct {
 	// List of replica IDs constituting the (static) membership.
 	Membership []t.NodeID
 
-	// Network transport subsystem.
-	Transport net.Transport
-
 	// Number of simulated requests inserted in the test replica by a hypothetical client.
 	NumFakeRequests int
 
-	// Configuration of the ISS protocol, if used. If set to nil, the default ISS configuration is assumed.
-	ISSConfig *iss.Config
+	// ID of the module to which fake requests should be sent.
+	FakeRequestsDestModule t.ModuleID
 }
 
 // EventLogFile returns the name of the file where the replica's event log is stored.
@@ -87,37 +82,19 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		}
 	}()
 
-	// If no ISS Protocol configuration has been specified, use the default one.
-	if tr.ISSConfig == nil {
-		tr.ISSConfig = iss.DefaultConfig(tr.Membership)
+	// TODO: avoid hacky special cases like this.
+	if tr.Modules["wal"] != nil {
+		if _, isNull := tr.Modules["wal"].(modules.NullPassive); !isNull {
+			return fmt.Errorf("\"wal\" module is already present in replica configuration")
+		}
 	}
-
-	issProtocol, err := iss.New(tr.ID, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
-	if err != nil {
-		return fmt.Errorf("error creating ISS protocol module: %w", err)
-	}
-
-	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ID, mirCrypto.DefaultPseudoSeed)
-	if err != nil {
-		return fmt.Errorf("error creating crypto module: %w", err)
-	}
+	tr.Modules["wal"] = wal
 
 	// Create the mir node for this replica.
-	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		"app":    tr.App,
-		"crypto": mirCrypto.New(cryptoModule),
-		"wal":    wal,
-		"iss":    issProtocol,
-		"net":    tr.Transport,
-	})
-	if err != nil {
-		return fmt.Errorf("error initializing the Mir modules: %w", err)
-	}
-
 	node, err := mir.NewNode(
 		tr.ID,
 		tr.Config,
-		modulesWithDefaults,
+		tr.Modules,
 		wal,
 		interceptor,
 	)
@@ -127,6 +104,8 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Create a RequestReceiver for request coming over the network.
 	requestReceiver := requestreceiver.NewRequestReceiver(node, "iss", logging.Decorate(tr.Config.Logger, "ReqRec: "))
+
+	// TODO: do not assume that node IDs are integers.
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
 		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
@@ -142,14 +121,19 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Start thread submitting requests from a (single) hypothetical client.
 	// The client submits a predefined number of requests and then stops.
-	go tr.submitFakeRequests(ctx, node, &wg)
+	go tr.submitFakeRequests(ctx, node, tr.FakeRequestsDestModule, &wg)
 
-	err = tr.Transport.Start()
-	if err != nil {
-		return fmt.Errorf("error starting the network link: %w", err)
+	// TODO: avoid hacky special cases like this.
+	if transport, ok := tr.Modules["net"]; ok {
+		transport := transport.(net.Transport)
+
+		err = transport.Start()
+		if err != nil {
+			return fmt.Errorf("error starting the network link: %w", err)
+		}
+		transport.Connect(ctx)
+		defer transport.Stop()
 	}
-	tr.Transport.Connect(ctx)
-	defer tr.Transport.Stop()
 
 	// Run the node until it stops.
 	exitErr := node.Run(ctx)
@@ -171,7 +155,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 // Submits n fake requests to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, destModule t.ModuleID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// The ID of the fake client is always 0.
@@ -184,7 +168,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, w
 			// Otherwise, submit next request.
 
 			if err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
-				"iss",
+				destModule,
 				[]*requestpb.Request{events.ClientRequest(
 					t.NewClientIDFromInt(0),
 					t.ReqNo(i),
