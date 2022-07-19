@@ -19,6 +19,9 @@ type Logger interface {
 	// of any relevant log details. The keys are always strings, while the
 	// values are unspecified.
 	Log(level LogLevel, text string, args ...interface{})
+
+	// IsConcurrent returns true iff the logger can be safely concurrently accessed by multiple go-routines.
+	IsConcurrent() bool
 }
 
 type LogLevel int
@@ -61,12 +64,20 @@ func (l consoleLogger) Log(level LogLevel, text string, args ...interface{}) {
 	fmt.Printf("\n")
 }
 
+func (l consoleLogger) IsConcurrent() bool {
+	return false
+}
+
 // The nil logger drops all messages.
 type nilLogger struct{}
 
 // The Log method of the nilLogger does nothing, effectively dropping every log message.
 func (nl *nilLogger) Log(level LogLevel, text string, args ...interface{}) {
 	// Do nothing.
+}
+
+func (nl *nilLogger) IsConcurrent() bool {
+	return true
 }
 
 var (
