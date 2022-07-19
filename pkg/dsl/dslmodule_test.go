@@ -266,7 +266,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
 
 			// NB: avoid using primitive types as the context in the actual implementation, prefer named structs,
 			//     remember that the context type is used to match requests with responses.
-			VerifyNodeSigs(m, mc.Crypto, sliceutil.Repeat(msg, u), signatures, nodeIDs, &u)
+			VerifyNodeSigs(m, mc.Crypto, sliceutil.Repeat(msg, int(u)), signatures, nodeIDs, &u)
 		}
 		return nil
 	})
