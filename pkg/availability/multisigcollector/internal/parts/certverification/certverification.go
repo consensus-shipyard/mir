@@ -101,7 +101,6 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apb.Cert) (*m
 }
 
 // Context data structures                                                                                            //
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type verifySigsInCertContext struct {
 	origin *apb.VerifyCertOrigin
