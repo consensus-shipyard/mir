@@ -142,10 +142,10 @@ func testIntegrationWithISS(t *testing.T) {
 		createDeploymentDir(t, test.Config)
 
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			runIntegrationWithISSConfig(t, cfg)
+			runIntegrationWithISSConfig(t, test.Config)
 
 			if t.Failed() {
-				t.Logf("Test #%03d (%s) failed", i, desc)
+				t.Logf("Test #%03d (%s) failed", i, test.Desc)
 			}
 		})
 	}
@@ -181,8 +181,8 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 
 			var totalHeapObjects, totalHeapAlloc float64
 			for i := 0; i < b.N; i++ {
-				createDeploymentDir(b, cfg)
-				heapObjects, heapAlloc := runIntegrationWithISSConfig(b, cfg)
+				createDeploymentDir(b, bench.Config)
+				heapObjects, heapAlloc := runIntegrationWithISSConfig(b, bench.Config)
 				totalHeapObjects += float64(heapObjects)
 				totalHeapAlloc += float64(heapAlloc)
 			}
@@ -190,9 +190,9 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 			b.ReportMetric(totalHeapAlloc/float64(b.N), "heapAlloc/op")
 
 			if b.Failed() {
-				b.Logf("Benchmark #%03d (%s) failed", i, desc)
+				b.Logf("Benchmark #%03d (%s) failed", i, bench.Desc)
 			} else {
-				b.Logf("Benchmark #%03d (%s) done", i, desc)
+				b.Logf("Benchmark #%03d (%s) done", i, bench.Desc)
 			}
 		})
 	}

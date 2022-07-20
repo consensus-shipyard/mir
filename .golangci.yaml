@@ -5,7 +5,6 @@ linters:
     - goimports
     - misspell
     - goconst
-    - golint
     - gocyclo
     - errcheck
     - gosec
@@ -14,10 +13,9 @@ linters:
     - varcheck
     - structcheck
     - deadcode
-    - scopelint
+    - exportloopref
     - revive
     - dupl
-    - unconvert
 
 run:
   timeout: 2m
