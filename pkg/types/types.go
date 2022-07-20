@@ -8,9 +8,10 @@ package types
 
 import (
 	"encoding/binary"
-	"github.com/pkg/errors"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // ================================================================================

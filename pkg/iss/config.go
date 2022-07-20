@@ -8,7 +8,6 @@ package iss
 
 import (
 	"fmt"
-
 	"time"
 
 	t "github.com/filecoin-project/mir/pkg/types"

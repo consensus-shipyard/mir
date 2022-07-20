@@ -2,6 +2,7 @@ package iss
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )

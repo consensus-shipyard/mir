@@ -2,13 +2,14 @@ package dsl
 
 import (
 	"fmt"
+	"reflect"
+
 	cs "github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
-	"reflect"
 )
 
 type dslModuleImpl struct {

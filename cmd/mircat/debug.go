@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/deploytest"
@@ -18,7 +20,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // debug extracts events from the event log entries and submits them to a node instance

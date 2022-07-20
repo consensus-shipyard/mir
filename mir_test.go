@@ -135,15 +135,19 @@ func testIntegrationWithISS(t *testing.T) {
 	}
 
 	for i, test := range tests {
+		i := i
+		cfg := test.Config
+		desc := test.Desc
+
 		// Create a directory for the deployment-generated files and set the test directory name.
 		// The directory will be automatically removed when the outer test function exits.
 		createDeploymentDir(t, test.Config)
 
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			runIntegrationWithISSConfig(t, test.Config)
+			runIntegrationWithISSConfig(t, cfg)
 
 			if t.Failed() {
-				t.Logf("Test #%03d (%s) failed", i, test.Desc)
+				t.Logf("Test #%03d (%s) failed", i, desc)
 			}
 		})
 	}
@@ -173,13 +177,16 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 	}
 
 	for i, bench := range benchmarks {
+		i := i
+		cfg := bench.Config
+		desc := bench.Desc
 		b.Run(fmt.Sprintf("%03d", i), func(b *testing.B) {
 			b.ReportAllocs()
 
 			var totalHeapObjects, totalHeapAlloc float64
 			for i := 0; i < b.N; i++ {
-				createDeploymentDir(b, bench.Config)
-				heapObjects, heapAlloc := runIntegrationWithISSConfig(b, bench.Config)
+				createDeploymentDir(b, cfg)
+				heapObjects, heapAlloc := runIntegrationWithISSConfig(b, cfg)
 				totalHeapObjects += float64(heapObjects)
 				totalHeapAlloc += float64(heapAlloc)
 			}
@@ -187,9 +194,9 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 			b.ReportMetric(totalHeapAlloc/float64(b.N), "heapAlloc/op")
 
 			if b.Failed() {
-				b.Logf("Benchmark #%03d (%s) failed", i, bench.Desc)
+				b.Logf("Benchmark #%03d (%s) failed", i, desc)
 			} else {
-				b.Logf("Benchmark #%03d (%s) done", i, bench.Desc)
+				b.Logf("Benchmark #%03d (%s) done", i, desc)
 			}
 		})
 	}

@@ -13,6 +13,7 @@ package iss
 
 import (
 	"bytes"
+
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 
 	"github.com/filecoin-project/mir/pkg/events"

@@ -1,25 +1,25 @@
+// Handles the processing, display and retrieval of events from a given eventlog file
 package main
-
-//handles the processing, display and retrieval of events from a given eventlog file
 
 import (
 	"fmt"
 	"io"
 	"strconv"
 
+	"github.com/ttacon/chalk"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/ttacon/chalk"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // extracts events from eventlog entries and
 // forwards them for display
 func displayEvents(args *arguments) error {
 
-	//new reader
+	// new reader
 	reader, err := eventlog.NewReader(args.srcFile)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func displayEvents(args *arguments) error {
 			nodeID: t.NodeID(entry.NodeId),
 			time:   entry.Time,
 		}
-		//getting events from entry
+		// getting events from entry
 		for _, event := range entry.Events {
 			metadata.index = uint64(index)
 
@@ -77,9 +77,9 @@ func displayEvent(event *eventpb.Event, metadata eventMetadata) {
 	}
 }
 
-//Creates and returns a prefix tag for event display using event metadata
+// Creates and returns a prefix tag for event display using event metadata
 func getMetaTag(eventType string, metadata eventMetadata) string {
-	boldGreen := chalk.Green.NewStyle().WithTextStyle(chalk.Bold) //setting font color and style
+	boldGreen := chalk.Green.NewStyle().WithTextStyle(chalk.Bold) // setting font color and style
 	boldCyan := chalk.Cyan.NewStyle().WithTextStyle(chalk.Bold)
 	return fmt.Sprintf("%s %s",
 		boldGreen.Style(fmt.Sprintf("[ Event_%s ]", eventType)),
@@ -90,7 +90,7 @@ func getMetaTag(eventType string, metadata eventMetadata) string {
 	)
 }
 
-//displays the event
+// displays the event
 func display(eventType string, event string, metadata eventMetadata) {
 	whiteText := chalk.White.NewStyle().WithTextStyle(chalk.Bold)
 	metaTag := getMetaTag(eventType, metadata)

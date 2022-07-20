@@ -8,7 +8,6 @@ package requestreceiver
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/events"
 	"net"
 	"strconv"
 	"sync"
@@ -17,6 +16,7 @@ import (
 	"google.golang.org/grpc/peer"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )

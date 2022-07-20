@@ -3,10 +3,10 @@ package mir
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"runtime/debug"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 

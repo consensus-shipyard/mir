@@ -2,6 +2,7 @@ package dsl
 
 import (
 	"errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/dslpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"

@@ -2,12 +2,13 @@ package libp2p
 
 import (
 	"fmt"
+	mrand "math/rand"
+
 	"github.com/libp2p/go-libp2p"
 	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	mrand "math/rand"
 )
 
 // NewDummyHost creates an insecure libp2p host for test and demonstration purposes.

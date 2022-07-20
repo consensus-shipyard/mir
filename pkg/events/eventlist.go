@@ -8,6 +8,7 @@ package events
 
 import (
 	"container/list"
+
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 

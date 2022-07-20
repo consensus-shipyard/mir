@@ -16,16 +16,15 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/modules"
 	"sort"
 
 	"golang.org/x/exp/constraints"
-
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"

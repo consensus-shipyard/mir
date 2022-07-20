@@ -2,6 +2,9 @@ package iss
 
 import (
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -9,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================

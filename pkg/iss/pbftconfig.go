@@ -1,8 +1,9 @@
 package iss
 
 import (
-	t "github.com/filecoin-project/mir/pkg/types"
 	"time"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // PBFTConfig holds PBFT-specific configuration parameters used by a concrete instance of PBFT.
