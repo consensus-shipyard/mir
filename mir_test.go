@@ -135,9 +135,7 @@ func testIntegrationWithISS(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		i := i
-		cfg := test.Config
-		desc := test.Desc
+		i, test := i, test
 
 		// Create a directory for the deployment-generated files and set the test directory name.
 		// The directory will be automatically removed when the outer test function exits.
