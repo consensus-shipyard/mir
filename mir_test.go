@@ -175,9 +175,7 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 	}
 
 	for i, bench := range benchmarks {
-		i := i
-		cfg := bench.Config
-		desc := bench.Desc
+		i, bench := i, bench
 		b.Run(fmt.Sprintf("%03d", i), func(b *testing.B) {
 			b.ReportAllocs()
 
