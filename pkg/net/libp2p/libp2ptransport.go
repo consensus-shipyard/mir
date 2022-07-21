@@ -151,10 +151,15 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 
 		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to open stream: %v", err))
 
+		delay := time.NewTimer(defaultMaxTimeout)
+
 		select {
-		case <-time.After(defaultMaxTimeout):
+		case <-delay.C:
 			continue
 		case <-ctx.Done():
+			if !delay.Stop() {
+				<-delay.C
+			}
 			return nil, fmt.Errorf("context closed")
 		}
 	}
@@ -194,7 +199,7 @@ func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (t *Transport) mirHandler(s network.Stream) {

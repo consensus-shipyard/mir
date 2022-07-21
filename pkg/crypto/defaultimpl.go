@@ -18,7 +18,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -232,7 +232,7 @@ func SerializePrivKey(privKey interface{}) (privKeyBytes []byte, err error) {
 func PubKeyFromFile(fileName string) ([]byte, error) {
 
 	// Read contents of the file.
-	certBytes, err := ioutil.ReadFile(fileName)
+	certBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func PubKeyFromFile(fileName string) ([]byte, error) {
 func PrivKeyFromFile(file string) ([]byte, error) {
 
 	// Read contents of the file.
-	fileData, err := ioutil.ReadFile(file)
+	fileData, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
