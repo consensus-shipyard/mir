@@ -135,6 +135,8 @@ func testIntegrationWithISS(t *testing.T) {
 	}
 
 	for i, test := range tests {
+		i, test := i, test
+
 		// Create a directory for the deployment-generated files and set the test directory name.
 		// The directory will be automatically removed when the outer test function exits.
 		createDeploymentDir(t, test.Config)
@@ -173,6 +175,7 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 	}
 
 	for i, bench := range benchmarks {
+		i, bench := i, bench
 		b.Run(fmt.Sprintf("%03d", i), func(b *testing.B) {
 			b.ReportAllocs()
 

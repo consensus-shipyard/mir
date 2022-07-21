@@ -1,13 +1,21 @@
 linters:
   enable:
+    - gofmt
+    - govet
+    - goimports
+    - misspell
+    - goconst
     - gocyclo
+    - errcheck
+    - gosec
+    - unconvert
+    - staticcheck
+    - varcheck
+    - structcheck
+    - deadcode
+    - exportloopref
     - revive
     - dupl
-    - unconvert
-    - goconst
-    - gosec
-    - gofmt
-    - misspell
 
 run:
   timeout: 2m
@@ -15,4 +23,4 @@ run:
 issues:
   exclude-rules:
     - path: .*\.pb\.mir\.go
-      linters: [revive]
+      linters: [revive, golint]

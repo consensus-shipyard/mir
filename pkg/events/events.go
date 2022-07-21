@@ -7,12 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Strip returns a new identical (shallow copy of the) event,

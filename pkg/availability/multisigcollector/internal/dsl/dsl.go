@@ -1,7 +1,8 @@
-package Mscdsl
+package mscdsl
 
 import (
 	"fmt"
+
 	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"

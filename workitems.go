@@ -2,10 +2,10 @@ package mir
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/modules"
-	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // WorkItems is a buffer for storing outstanding events that need to be processed by the node.

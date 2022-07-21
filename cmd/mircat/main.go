@@ -5,9 +5,10 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // mircat is a tool for reviewing Mir state machine recordings.
@@ -104,7 +105,7 @@ func main() {
 
 }
 
-//parse the command line arguments
+// parse the command line arguments
 func parseArgs(args []string) (*arguments, error) {
 	if len(args) == 0 {
 		return nil, errors.Errorf("required input \" --src <Src_File> \" not found")

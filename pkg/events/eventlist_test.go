@@ -1,9 +1,11 @@
 package events
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 func TestEventList_Constructors(t *testing.T) {
@@ -26,6 +28,7 @@ func TestEventList_Constructors(t *testing.T) {
 	}
 
 	for testName, tc := range testCases {
+		tc := tc
 		t.Run(testName, func(t *testing.T) {
 			assert.Equal(t, tc.expected, tc.list.Slice())
 		})

@@ -2,11 +2,12 @@ package crypto
 
 import (
 	"fmt"
+	"hash"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"hash"
 )
 
 type HashImpl interface {

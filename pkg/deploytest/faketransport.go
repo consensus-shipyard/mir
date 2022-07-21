@@ -12,12 +12,13 @@ package deploytest
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"sync"
 )
 
 type FakeLink struct {

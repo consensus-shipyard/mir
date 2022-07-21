@@ -11,6 +11,7 @@ package iss
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"

@@ -3,6 +3,7 @@ package iss
 import (
 	"crypto"
 	"fmt"
+
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/timer"

@@ -13,14 +13,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application

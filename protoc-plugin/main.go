@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/pb/mir"
+
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/filecoin-project/mir/pkg/pb/mir"
 )
 
 // generateGenericFriendlyEnumsForEventTypes generates public interfaces of the form "[Msg]_[Oneof]" and

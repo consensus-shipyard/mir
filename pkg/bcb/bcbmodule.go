@@ -2,6 +2,7 @@ package bcb
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/bcb/bcbdsl"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"

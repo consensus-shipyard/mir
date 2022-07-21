@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+
 	"github.com/filecoin-project/mir/pkg/events"
 )
 

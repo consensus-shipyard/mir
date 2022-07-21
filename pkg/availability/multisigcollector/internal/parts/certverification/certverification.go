@@ -3,6 +3,7 @@ package certverification
 import (
 	"errors"
 	"fmt"
+
 	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -99,9 +100,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apb.Cert) (*m
 	return mscCert, nil
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Context data structures                                                                                            //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type verifySigsInCertContext struct {
 	origin *apb.VerifyCertOrigin

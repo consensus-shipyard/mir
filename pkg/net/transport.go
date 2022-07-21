@@ -2,8 +2,8 @@ package net
 
 import (
 	"context"
-	"github.com/filecoin-project/mir/pkg/modules"
 
+	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )

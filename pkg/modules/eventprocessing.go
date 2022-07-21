@@ -2,9 +2,10 @@ package modules
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"runtime/debug"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.

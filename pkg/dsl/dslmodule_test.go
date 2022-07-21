@@ -3,6 +3,12 @@ package dsl
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -10,10 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/mathutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-	"strconv"
-	"testing"
 )
 
 type simpleModuleConfig struct {
@@ -166,9 +168,11 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 	}
 
 	for testName, tc := range tests {
+		eventsIn := tc.eventsIn
+		tc := tc
 		t.Run(testName, func(t *testing.T) {
 			m := newSimpleTestingModule(mc)
-			eventsOutList, err := m.ApplyEvents(tc.eventsIn)
+			eventsOutList, err := m.ApplyEvents(eventsIn)
 
 			if tc.err != nil {
 				assert.Equal(t, tc.err.Error(), err.Error())
@@ -329,7 +333,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
-				//The context should already be disposed of and the module should panic.
+				// The context should already be disposed of and the module should panic.
 				_, _ = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
 			})
 		},
@@ -376,13 +380,14 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
-				//The context should already be disposed of and the module should panic.
+				// The context should already be disposed of and the module should panic.
 				_, _ = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
 			})
 		},
 	}
 
 	for testName, tc := range testCases {
+		tc := tc
 		t.Run(testName, func(t *testing.T) {
 			mc := defaultContextTestingModuleConfig()
 			m := newContextTestingModule(mc)

@@ -2,13 +2,15 @@ package deploytest
 
 import (
 	"fmt"
+
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/multiformats/go-multiaddr"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/multiformats/go-multiaddr"
 )
 
 type LocalLibp2pTransport struct {

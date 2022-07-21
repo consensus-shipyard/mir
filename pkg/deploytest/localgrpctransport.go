@@ -2,6 +2,7 @@ package deploytest
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"

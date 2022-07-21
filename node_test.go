@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
 	"github.com/filecoin-project/mir/pkg/types"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_Run(t *testing.T) {
@@ -47,6 +48,7 @@ func TestNode_Run(t *testing.T) {
 	}
 
 	for testName, tc := range testCases {
+		tc := tc
 		t.Run(testName, func(t *testing.T) {
 			m, tcDone := tc(t)
 
