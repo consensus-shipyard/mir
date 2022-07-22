@@ -2,9 +2,11 @@ package deploytest
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -13,9 +15,15 @@ type LocalTransportLayer interface {
 }
 
 // NewLocalTransportLayer creates an instance of LocalTransportLayer suitable for tests.
-// transportType is one of: "fake", "grpc", or "libp2p".
-func NewLocalTransportLayer(transportType string, nodeIDs []t.NodeID, logger logging.Logger) LocalTransportLayer {
+// transportType is one of: "sim", "fake", "grpc", or "libp2p".
+func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDs []t.NodeID, logger logging.Logger) LocalTransportLayer {
 	switch transportType {
+	case "sim":
+		messageDelayFn := func(from, to t.NodeID) time.Duration {
+			// TODO: Make min and max message delay configurable
+			return testsim.RandDuration(sim.Rand, 0, 10*time.Millisecond)
+		}
+		return NewSimTransport(sim, nodeIDs, messageDelayFn)
 	case "fake":
 		return NewFakeTransport(nodeIDs)
 	case "grpc":

@@ -9,6 +9,7 @@ package mir_test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,6 +18,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 
 	"github.com/otiai10/copy"
@@ -41,6 +44,7 @@ func BenchmarkIntegration(b *testing.B) {
 
 type TestConfig struct {
 	Info                string
+	RandomSeed          int64
 	NumReplicas         int
 	NumClients          int
 	Transport           string
@@ -292,7 +296,17 @@ func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	nodeIDs := deploytest.NewNodeIDs(conf.NumReplicas)
 	logger := deploytest.NewLogger(conf.Logger)
-	transportLayer := deploytest.NewLocalTransportLayer(conf.Transport, nodeIDs, logger)
+
+	var simulation *deploytest.Simulation
+	if conf.Transport == "sim" {
+		rand := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
+		eventDelayFn := func(e *eventpb.Event) time.Duration {
+			// TODO: Make min and max event processing delay configurable
+			return testsim.RandDuration(rand, 0, time.Microsecond)
+		}
+		simulation = deploytest.NewSimulation(rand, nodeIDs, eventDelayFn)
+	}
+	transportLayer := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
 
 	nodeModules := make(map[t.NodeID]modules.Modules)
@@ -327,6 +341,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 	deployConf := &deploytest.TestConfig{
 		Info:                   conf.Info,
+		Simulation:             simulation,
 		NodeIDs:                nodeIDs,
 		NodeModules:            nodeModules,
 		NumClients:             conf.NumClients,
