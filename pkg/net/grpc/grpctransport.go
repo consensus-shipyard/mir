@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
@@ -21,6 +22,7 @@ import (
 	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -255,6 +257,10 @@ func (gt *Transport) Stop() {
 // ServerError() must not be called before the GrpcTransport is stopped and its Stop() method has returned.
 func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
+}
+
+func (gt *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]multiaddr.Multiaddr) {
+
 }
 
 // Connect establishes (in parallel) network connections to all nodes in the system.

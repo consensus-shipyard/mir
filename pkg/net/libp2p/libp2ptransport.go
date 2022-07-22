@@ -77,7 +77,7 @@ func (t *Transport) Start() error {
 
 func (t *Transport) Stop() {
 	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.")
-	defer t.logger.Log(logging.LevelDebug, "libp2p transport stopped.")
+	defer t.logger.Log(logging.LevelDebug, "Stopping libp2p transport finished.")
 
 	t.outboundStreamsMx.Lock()
 	defer t.outboundStreamsMx.Unlock()
@@ -87,12 +87,16 @@ func (t *Transport) Stop() {
 			continue
 		}
 		t.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
+
 		if err := s.Close(); err != nil {
-			t.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
+			t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 			continue
 		}
+
 		t.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
 	}
+
+	t.host.RemoveStreamHandler(ID)
 
 	if err := t.host.Close(); err != nil {
 		t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close libp2p %v: %v", t.ownID, err))
@@ -101,12 +105,65 @@ func (t *Transport) Stop() {
 	}
 }
 
+func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]multiaddr.Multiaddr) {
+	wg := sync.WaitGroup{}
+	wg.Add(len(membership) - 1)
+
+	for id, addr := range membership {
+		t.membership[id] = addr
+	}
+
+	for nodeID, nodeAddr := range membership {
+		if nodeID == t.ownID {
+			continue
+		}
+
+		if t.streamExists(nodeID) {
+			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
+			wg.Done()
+			continue
+		}
+
+		go func(nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
+			defer wg.Done()
+
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
+
+			// Extract the peer ID from the multiaddr.
+			info, err := peer.AddrInfoFromP2pAddr(nodeAddr)
+			if err != nil {
+				t.logger.Log(logging.LevelError,
+					fmt.Sprintf("failed to parse addr %v for node %v: %v", nodeAddr, nodeID, err))
+				return
+			}
+
+			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
+
+			s, err := t.openStream(ctx, info.ID)
+			if err != nil {
+				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
+				return
+			}
+			t.addOutboundStream(nodeID, s)
+			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
+
+		}(nodeID, nodeAddr)
+	}
+
+	wg.Wait()
+}
+
 func (t *Transport) Connect(ctx context.Context) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(t.membership) - 1)
 
 	for nodeID, nodeAddr := range t.membership {
 		if nodeID == t.ownID {
+			continue
+		}
+
+		if t.streamExists(nodeID) {
+			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
 			continue
 		}
 
@@ -206,7 +263,13 @@ func (t *Transport) mirHandler(s network.Stream) {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s started", s.ID()))
 	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s stopped", s.ID()))
 
-	defer s.Close() // nolint
+	defer func() {
+		t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler closing stream for %v", s.ID()))
+		err := s.Close()
+		if err != nil {
+			t.logger.Log(logging.LevelError, fmt.Sprintf("closing stream for %v", s.ID()))
+		}
+	}() // nolint
 
 	for {
 		var msg TransportMessage
@@ -239,6 +302,14 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
 	}
 	t.outboundStreams[nodeID] = s
+}
+
+func (t *Transport) streamExists(nodeID types.NodeID) bool {
+	t.outboundStreamsMx.Lock()
+	defer t.outboundStreamsMx.Unlock()
+
+	_, found := t.outboundStreams[nodeID]
+	return found
 }
 
 func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
