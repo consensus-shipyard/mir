@@ -21,6 +21,8 @@ jobs:
 
       - name: Test
         run: make test
+        env:
+          GOFLAGS: "-short"
 
       - name: Retain event logs of failed tests
         if: failure()
@@ -42,6 +44,8 @@ jobs:
 
       - name: Test
         run: make test
+        env:
+          GOFLAGS: "-short"
 
       - name: Retain event logs of failed tests
         if: failure()
