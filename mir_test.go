@@ -199,6 +199,10 @@ func testIntegrationWithISS(t *testing.T) {
 
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			simMode := (test.Config.Transport == "sim")
+			if testing.Short() && !simMode {
+				t.SkipNow()
+			}
+
 			if simMode {
 				if v := os.Getenv("RANDOM_SEED"); v != "" {
 					var err error
