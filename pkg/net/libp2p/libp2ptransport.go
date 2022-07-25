@@ -49,10 +49,22 @@ type Transport struct {
 	logger            logging.Logger
 }
 
-func NewTransport(h host.Host, membership map[types.NodeID]multiaddr.Multiaddr, ownID types.NodeID, logger logging.Logger) *Transport {
+func NewTransport(h host.Host, m map[types.NodeID]types.NodeAddress, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
+
+	membership := make(map[types.NodeID]multiaddr.Multiaddr)
+
+	for nodeID, nodeAddr := range m {
+		maddr, err := nodeAddr.Multiaddr()
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse addr %v for node %v", nodeAddr, nodeID)
+		}
+		membership[nodeID] = maddr
+
+	}
+
 	return &Transport{
 		incomingMessages: make(chan *events.EventList),
 		outboundStreams:  make(map[types.NodeID]network.Stream),
@@ -60,7 +72,7 @@ func NewTransport(h host.Host, membership map[types.NodeID]multiaddr.Multiaddr, 
 		membership:       membership,
 		ownID:            ownID,
 		host:             h,
-	}
+	}, nil
 }
 
 func (t *Transport) ImplementsModule() {}
@@ -105,13 +117,9 @@ func (t *Transport) Stop() {
 	}
 }
 
-func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]multiaddr.Multiaddr) {
+func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]types.NodeAddress) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(membership) - 1)
-
-	for id, addr := range membership {
-		t.membership[id] = addr
-	}
 
 	for nodeID, nodeAddr := range membership {
 		if nodeID == t.ownID {
@@ -119,8 +127,15 @@ func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.
 		}
 
 		if t.streamExists(nodeID) {
-			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
 			wg.Done()
+			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
+			continue
+		}
+
+		maddr, err := nodeAddr.Multiaddr()
+		if err != nil {
+			wg.Done()
+			t.logger.Log(logging.LevelError, fmt.Sprintf("failed to convert %v to mutiaddr: %v", nodeAddr, err))
 			continue
 		}
 
@@ -128,26 +143,15 @@ func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.
 			defer wg.Done()
 
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
-
-			// Extract the peer ID from the multiaddr.
-			info, err := peer.AddrInfoFromP2pAddr(nodeAddr)
+			s, err := t.connectToNode(ctx, nodeAddr)
 			if err != nil {
-				t.logger.Log(logging.LevelError,
-					fmt.Sprintf("failed to parse addr %v for node %v: %v", nodeAddr, nodeID, err))
-				return
-			}
-
-			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
-
-			s, err := t.openStream(ctx, info.ID)
-			if err != nil {
-				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
+				t.logger.Log(logging.LevelError, "err", err)
 				return
 			}
 			t.addOutboundStream(nodeID, s)
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 
-		}(nodeID, nodeAddr)
+		}(nodeID, maddr)
 	}
 
 	wg.Wait()
@@ -172,19 +176,9 @@ func (t *Transport) Connect(ctx context.Context) {
 
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
 
-			// Extract the peer ID from the multiaddr.
-			info, err := peer.AddrInfoFromP2pAddr(nodeAddr)
+			s, err := t.connectToNode(ctx, nodeAddr)
 			if err != nil {
-				t.logger.Log(logging.LevelError,
-					fmt.Sprintf("failed to parse addr %v for node %v: %v", nodeAddr, nodeID, err))
-				return
-			}
-
-			t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
-
-			s, err := t.openStream(ctx, info.ID)
-			if err != nil {
-				t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
+				t.logger.Log(logging.LevelError, "err", err)
 				return
 			}
 			t.addOutboundStream(nodeID, s)
@@ -194,6 +188,24 @@ func (t *Transport) Connect(ctx context.Context) {
 	}
 
 	wg.Wait()
+}
+
+func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr) (network.Stream, error) {
+	// Extract the peer ID from the multiaddr.
+	info, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse addr %v: %w", addr, err)
+	}
+
+	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
+
+	s, err := t.openStream(ctx, info.ID)
+	if err != nil {
+		t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
+		return nil, fmt.Errorf("couldn't open stream to %v: %w", addr, err)
+	}
+
+	return s, nil
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {

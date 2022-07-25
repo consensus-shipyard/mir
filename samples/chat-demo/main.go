@@ -23,7 +23,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multiformats/go-multiaddr"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -84,6 +83,8 @@ func run() error {
 	_ = parseArgs(os.Args)
 	args := parseArgs(os.Args)
 
+	var err error
+
 	// Initialize logger that will be used throughout the code to print log messages.
 	var logger logging.Logger
 	if args.Verbose {
@@ -137,20 +138,23 @@ func run() error {
 	var transport net.Transport
 	switch strings.ToLower(args.Net) {
 	case "grpc":
-		nodeAddrs := make(map[t.NodeID]string)
+		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i)
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i))
 		}
-		transport = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
+		transport, err = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
-		nodeAddrs := make(map[t.NodeID]multiaddr.Multiaddr)
+		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = libp2ptools.NewDummyPeerID(i, nodeBasePort)
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, nodeBasePort).String())
 		}
-		transport = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
+		transport, err = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get network transport %w", err)
 	}
 
 	if err := transport.Start(); err != nil {

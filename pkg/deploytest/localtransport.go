@@ -6,5 +6,5 @@ import (
 )
 
 type LocalTransportLayer interface {
-	Link(source t.NodeID) net.Transport
+	Link(source t.NodeID) (net.Transport, error)
 }

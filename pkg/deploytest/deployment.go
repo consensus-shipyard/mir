@@ -80,7 +80,6 @@ type Deployment struct {
 
 // NewDeployment returns a Deployment initialized according to the passed configuration.
 func NewDeployment(conf *TestConfig) (*Deployment, error) {
-
 	if conf == nil {
 		return nil, fmt.Errorf("test config is nil")
 	}
@@ -129,6 +128,11 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
 		}
 
+		transport, err := transportLayer.Link(nodeID)
+		if err != nil {
+			return nil, err
+		}
+
 		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{
 			ID:              nodeID,
@@ -136,7 +140,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 			Membership:      nodeIDs,
 			Dir:             filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			App:             &FakeApp{},
-			Transport:       transportLayer.Link(nodeID),
+			Transport:       transport,
 			NumFakeRequests: conf.NumFakeRequests,
 			ISSConfig:       issConfig,
 		}

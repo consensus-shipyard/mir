@@ -117,12 +117,12 @@ func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	}
 }
 
-func (ft *FakeTransport) Link(source t.NodeID) net.Transport {
+func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 	return &FakeLink{
 		Source:        source,
 		FakeTransport: ft,
 		DoneC:         make(chan struct{}),
-	}
+	}, nil
 }
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
@@ -131,6 +131,11 @@ func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 
 func (fl *FakeLink) Start() error {
 	return nil
+}
+
+func (fl *FakeLink) UpdateConnections(ctx context.Context, m map[t.NodeID]t.NodeAddress) {
+	// TODO: implement UpdateConnections in FakeTransport if necessary
+	panic("not implemented")
 }
 
 func (fl *FakeLink) Connect(ctx context.Context) {

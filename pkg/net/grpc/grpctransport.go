@@ -12,7 +12,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
@@ -22,7 +21,6 @@ import (
 	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -47,7 +45,7 @@ type Transport struct {
 	// Complete static membership of the system.
 	// Maps the node ID of each node in the system to a string representation of its network address.
 	// The address format "IPAddress:port"
-	membership map[t.NodeID]string // nodeId -> "IPAddress:port"
+	membership map[t.NodeID]t.NodeAddress // nodeId -> "IPAddress:port"
 
 	// Channel to which all incoming messages are written.
 	// This channel is also returned by the ReceiveChan() method.
@@ -74,7 +72,7 @@ type Transport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logger) *Transport {
+func NewTransport(membership map[t.NodeID]t.NodeAddress, ownID t.NodeID, l logging.Logger) (*Transport, error) {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
@@ -87,7 +85,7 @@ func NewTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logg
 		membership:       membership,
 		connections:      make(map[t.NodeID]GrpcTransport_ListenClient),
 		logger:           l,
-	}
+	}, nil
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
@@ -197,7 +195,7 @@ func (gt *Transport) Start() error {
 		return fmt.Errorf("%s is not in membership", gt.ownID)
 	}
 	// Obtain own port number from membership.
-	_, ownPort, err := net.SplitHostPort(hp)
+	_, ownPort, err := net.SplitHostPort(hp.String())
 	if err != nil {
 		return err
 	}
@@ -259,8 +257,9 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
-func (gt *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]multiaddr.Multiaddr) {
-
+func (gt *Transport) UpdateConnections(ctx context.Context, membership map[t.NodeID]t.NodeAddress) {
+	// TODO: implement UpdateConnections for gRPC.
+	panic("not implemented")
 }
 
 // Connect establishes (in parallel) network connections to all nodes in the system.
@@ -297,7 +296,7 @@ func (gt *Transport) Connect(ctx context.Context) {
 				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
-		}(nodeID, nodeAddr)
+		}(nodeID, nodeAddr.String())
 	}
 
 	// Wait for connecting goroutines to finish.
