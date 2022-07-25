@@ -68,6 +68,10 @@ type Node struct {
 	// Only events received through the Step method are applied.
 	// Events produced by the modules are, instead of being applied,
 	debugMode bool
+
+	// This channel is closed by the Run and Debug methods on returning.
+	// Closing of the channel indicates that the node has stopped and the Stop method can also return.
+	stopped chan struct{}
 }
 
 // NewNode creates a new node with ID id.
@@ -95,6 +99,8 @@ func NewNode(
 
 		workItems:       newWorkItems(m),
 		workErrNotifier: newWorkErrNotifier(),
+
+		stopped: make(chan struct{}),
 	}, nil
 }
 
@@ -106,6 +112,10 @@ func NewNode(
 // Note that if the caller supplies such a channel, the caller is expected to read from it.
 // Otherwise, the Node's execution might block while writing to the channel.
 func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) error {
+
+	// When done, indicate to the Stop method that it can return.
+	defer close(n.stopped)
+
 	// Enable debug mode
 	n.debugMode = true
 
@@ -150,6 +160,9 @@ func (n *Node) InjectEvents(ctx context.Context, events *events.EventList) error
 // The function call is blocking and only returns when the node stops.
 func (n *Node) Run(ctx context.Context) error {
 
+	// When done, indicate to the Stop method that it can return.
+	defer close(n.stopped)
+
 	// If a WAL implementation is available,
 	// load the contents of the WAL and enqueue it for processing.
 	if n.wal != nil {
@@ -167,6 +180,17 @@ func (n *Node) Run(ctx context.Context) error {
 
 	// Start processing of events.
 	return n.process(ctx)
+}
+
+// Stop stops the Node and returns only after the node has stopped, i.e., after a call to Run or Debug returns.
+// If neither Run nor Debug has been called,
+// Stop blocks until either Run or Debug is called by another goroutine and returns.
+func (n *Node) Stop() {
+	// Indicate to the event processing loop that it should stop.
+	n.workErrNotifier.Fail(ErrStopped)
+
+	// Wait until event processing stops.
+	<-n.stopped
 }
 
 // Loads all events stored in the WAL and enqueues them in the node's processing queues.
@@ -216,6 +240,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			Chan: reflect.ValueOf(ctx.Done()),
 		})
 		selectReactions = append(selectReactions, func(_ reflect.Value) {
+			// TODO: Use a different error here to distinguish this case from calling Node.Stop()
 			n.workErrNotifier.Fail(ErrStopped)
 		})
 
