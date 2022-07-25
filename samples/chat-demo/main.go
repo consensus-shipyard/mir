@@ -281,7 +281,7 @@ func run() error {
 	if args.Verbose {
 		fmt.Println("Stopping server.")
 	}
-	ctx.Done()
+	node.Stop()
 	wg.Wait()
 
 	return nodeErr
