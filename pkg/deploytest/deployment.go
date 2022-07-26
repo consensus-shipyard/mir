@@ -41,6 +41,9 @@ type TestConfig struct {
 	// IDs of nodes in this test.
 	NodeIDs []t.NodeID
 
+	// List of nodes.
+	Nodes map[t.NodeID]t.NodeAddress
+
 	// The modules that will be run by each replica.
 	NodeModules map[t.NodeID]modules.Modules
 
@@ -102,10 +105,10 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 
 		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{
-			ID:      nodeID,
-			Config:  config,
-			NodeIDs: conf.NodeIDs,
-			// Nodes:           transportLayer.Nodes(),
+			ID:                     nodeID,
+			Config:                 config,
+			NodeIDs:                conf.NodeIDs,
+			Nodes:                  conf.Nodes,
 			Dir:                    filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			NumFakeRequests:        conf.NumFakeRequests,
 			Modules:                conf.NodeModules[nodeID],
