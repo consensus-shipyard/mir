@@ -107,7 +107,7 @@ func (t *Transport) Stop() {
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	wg := sync.WaitGroup{}
 	if len(nodes) == 0 {
-		t.logger.Log(logging.LevelWarn, fmt.Sprintf("failed to connect: empty map of nodes"))
+		t.logger.Log(logging.LevelWarn, "failed to connect: empty map of nodes")
 		return
 	}
 	wg.Add(len(nodes) - 1)
