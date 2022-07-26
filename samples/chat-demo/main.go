@@ -23,7 +23,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multiformats/go-multiaddr"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -37,6 +36,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
+	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
@@ -112,9 +112,9 @@ func run() error {
 
 	// IDs of nodes that are part of the system.
 	// This example uses a static configuration of nodeNumber nodes.
-	nodeIds := make([]t.NodeID, nodeNumber)
+	nodeIDs := make([]t.NodeID, nodeNumber)
 	for i := 0; i < nodeNumber; i++ {
-		nodeIds[i] = t.NewNodeIDFromInt(i)
+		nodeIDs[i] = t.NewNodeIDFromInt(i)
 	}
 
 	// Generate addresses and ports for client request receivers.
@@ -123,7 +123,7 @@ func run() error {
 	// (each client sends its requests to all request receivers). Each request receiver,
 	// however, will only submit the received requests to its associated Node.
 	reqReceiverAddrs := make(map[t.NodeID]string)
-	for i := range nodeIds {
+	for i := range nodeIDs {
 		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
 	}
 
@@ -137,22 +137,17 @@ func run() error {
 	// In the current implementation, all nodes are on the local machine, but listen on different port numbers.
 	// Change this or make this configurable to deploy different nodes on different physical machines.
 	var transport net.Transport
+	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 	switch strings.ToLower(args.Net) {
 	case "grpc":
-		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
-		for i := range nodeIds {
-			maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ipv4/127.0.0.1/tcp4/%d", nodeBasePort+i))
-			if err != nil {
-				panic(err)
-			}
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(maddr)
+		for i := range nodeIDs {
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + nodeBasePort))
 		}
 		transport, err = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
-		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
-		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, nodeBasePort))
+		for i := range nodeIDs {
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, nodeBasePort))
 		}
 		transport, err = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
 	default:
@@ -168,7 +163,7 @@ func run() error {
 	transport.Connect(ctx)
 
 	// Instantiate the ISS protocol module with default configuration.
-	issConfig := iss.DefaultConfig(nodeIds)
+	issConfig := iss.DefaultConfig(nodeIDs)
 	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
 	if err != nil {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
@@ -197,8 +192,6 @@ func run() error {
 	}
 
 	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil, nil)
-
-	// Exit immediately if Node could not be created.
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}
@@ -300,7 +293,7 @@ func run() error {
 func parseArgs(args []string) *parsedArgs {
 	app := kingpin.New("chat-demo", "Small chat application to demonstrate the usage of the Mir library.")
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
-	// Currently the type of the node ID is defined as uint64 by the /pkg/types package.
+	// Currently, the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
 	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
 	ownID := app.Arg("id", "ID of this node").Required().String()

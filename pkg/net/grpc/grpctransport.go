@@ -12,7 +12,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -140,11 +139,6 @@ func (gt *Transport) ApplyEvents(
 	return nil
 }
 
-func grpcAddr(maddr multiaddr.Multiaddr) (addr string, err error) {
-	_, addr, err = manet.DialArgs(maddr)
-	return
-}
-
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
@@ -201,12 +195,13 @@ func (gt *Transport) Start() error {
 	if !ok {
 		return fmt.Errorf("%s is not in membership", gt.ownID)
 	}
-	hp, err := grpcAddr(addr)
+	// Obtain net.Dial compatible address.
+	_, dialAddr, err := manet.DialArgs(addr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to obtain Dial address: %w", err)
 	}
 	// Obtain own port number from membership.
-	_, ownPort, err := net.SplitHostPort(hp)
+	_, ownPort, err := net.SplitHostPort(dialAddr)
 	if err != nil {
 		return err
 	}
@@ -289,7 +284,8 @@ func (gt *Transport) Connect(ctx context.Context) {
 	// For each node in the membership
 	for nodeID, nodeAddr := range gt.membership {
 
-		addr, err := grpcAddr(nodeAddr)
+		// Get net.Dial compatible address.
+		_, dialAddr, err := manet.DialArgs(nodeAddr)
 		if err != nil {
 			wg.Done()
 			continue
@@ -313,7 +309,7 @@ func (gt *Transport) Connect(ctx context.Context) {
 				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
-		}(nodeID, addr)
+		}(nodeID, dialAddr)
 	}
 
 	// Wait for connecting goroutines to finish.

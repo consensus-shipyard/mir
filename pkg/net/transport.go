@@ -11,10 +11,15 @@ import (
 type Transport interface {
 	modules.ActiveModule
 
+	// Start starts the networking module by initializing and starting the corresponding network services.
 	Start() error
+
+	// Stop closes all open connections to other nodes and stops the network services.
 	Stop()
 
+	// Send sends msg to the node with ID dest.
 	Send(dest t.NodeID, msg *messagepb.Message) error
-	Connect(ctx context.Context)
-	UpdateConnections(ctx context.Context, membership map[t.NodeID]t.NodeAddress)
+
+	// Connect establishes (in parallel) network connections to the provided nodes in the network.
+	Connect(ctx context.Context, membership map[t.NodeID]t.NodeAddress)
 }
