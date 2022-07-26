@@ -21,7 +21,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -201,20 +200,17 @@ func run() error {
 	// ================================================================================
 
 	// Initialize variables to synchronize Node startup and shutdown.
-	var nodeErr error     // The error returned from running the Node will be stored here.
-	var wg sync.WaitGroup // The Node will call Done() on this WaitGroup when it actually stops.
-	wg.Add(1)
+	var nodeErr error // The error returned from running the Node will be stored here.
 
 	// Start the node in a separate goroutine
 	go func() {
 		nodeErr = node.Run(ctx)
-		wg.Done()
 	}()
 
 	// Create a request receiver and start receiving requests.
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
-	reqReceiver := requestreceiver.NewRequestReceiver(node, logger)
+	reqReceiver := requestreceiver.NewRequestReceiver(node, "iss", logger)
 	if err := reqReceiver.Start(reqReceiverBasePort + ownID); err != nil {
 		return fmt.Errorf("could not start request receiver: %w", err)
 	}
@@ -283,8 +279,7 @@ func run() error {
 	if args.Verbose {
 		fmt.Println("Stopping server.")
 	}
-	ctx.Done()
-	wg.Wait()
+	node.Stop()
 
 	return nodeErr
 }

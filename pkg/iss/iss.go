@@ -16,10 +16,6 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"sort"
-
-	"golang.org/x/exp/constraints"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -31,6 +27,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================
@@ -693,7 +691,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 	//       Modify the code to only use the abstract type.
 	nodeIDs := make([]t.NodeID, 0)
 	signatures := make([][]byte, 0)
-	iterateSorted(chkp.Cert, func(nodeID string, signature []byte) bool {
+	maputil.IterateSorted(chkp.Cert, func(nodeID string, signature []byte) bool {
 		nodeIDs = append(nodeIDs, t.NodeID(nodeID))
 		signatures = append(signatures, signature)
 		return true
@@ -1139,20 +1137,4 @@ func weakQuorum(n int) int {
 	// assuming n > 3f:
 	//   return min q: q > f
 	return maxFaulty(n) + 1
-}
-
-func iterateSorted[K constraints.Ordered, V any](m map[K]V, f func(key K, value V) (cont bool)) {
-	keys := make([]K, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
-	})
-
-	for _, k := range keys {
-		if !f(k, m[k]) {
-			break
-		}
-	}
 }

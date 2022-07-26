@@ -1,5 +1,11 @@
 package maputil
 
+import (
+	"sort"
+
+	"golang.org/x/exp/constraints"
+)
+
 // GetKeys returns a slice containing all keys of map m in arbitrary order.
 func GetKeys[K comparable, V any](m map[K]V) []K {
 	keys := make([]K, 0, len(m))
@@ -35,4 +41,18 @@ func GetKeysAndValues[K comparable, V any](m map[K]V) ([]K, []V) {
 		values = append(values, v)
 	}
 	return keys, values
+}
+
+func IterateSorted[K constraints.Ordered, V any](m map[K]V, f func(key K, value V) (cont bool)) {
+	keys := GetKeys(m)
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	for _, k := range keys {
+		if !f(k, m[k]) {
+			break
+		}
+	}
 }

@@ -15,9 +15,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/modules"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -37,15 +38,14 @@ type TestConfig struct {
 	// Optional information about the test.
 	Info string
 
-	// Number of replicas in the tested deployment.
-	NumReplicas int
+	// IDs of nodes in this test.
+	NodeIDs []t.NodeID
+
+	// The modules that will be run by each replica.
+	NodeModules map[t.NodeID]modules.Modules
 
 	// Number of clients in the tested deployment.
 	NumClients int
-
-	// Type of networking to use.
-	// Current possible values: "fake", "grpc", "libp2p"
-	Transport string
 
 	// The number of requests each client submits during the execution of the deployment.
 	NumFakeRequests int
@@ -53,15 +53,15 @@ type TestConfig struct {
 	// The number of requests sent over the network (by a single DummyClient)
 	NumNetRequests int
 
+	// The target module for the clients' requests.
+	FakeRequestsDestModule t.ModuleID
+
 	// Directory where all the test-related files will be stored.
 	// If empty, an OS-default temporary directory will be used.
 	Directory string
 
 	// Duration after which the test deployment will be asked to shut down.
 	Duration time.Duration
-
-	// A set of replicas that are slow in proposing batches that is likely to trigger view change.
-	SlowProposeReplicas map[int]bool
 
 	// Logger to use for producing diagnostic messages.
 	Logger logging.Logger
@@ -84,66 +84,32 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 		return nil, fmt.Errorf("test config is nil")
 	}
 
-	// Use a common logger for all clients and replicas.
-	var logger logging.Logger
-	if conf.Logger != nil {
-		logger = logging.Synchronize(conf.Logger)
-	} else {
-		logger = logging.Synchronize(logging.ConsoleDebugLogger)
+	if conf.Logger == nil {
+		return nil, fmt.Errorf("logger is nil")
 	}
 
-	// Create a dummy static membership with replica IDs from 0 to len(replicas) - 1
-	nodeIDs := make([]t.NodeID, conf.NumReplicas)
-	for i := 0; i < len(nodeIDs); i++ {
-		nodeIDs[i] = t.NewNodeIDFromInt(i)
-	}
-
-	// Create a simulated network transport to route messages between replicas.
-	var transportLayer LocalTransportLayer
-	switch conf.Transport {
-	case "fake":
-		transportLayer = NewFakeTransport(nodeIDs)
-	case "grpc":
-		transportLayer = NewLocalGrpcTransport(nodeIDs, logger)
-	case "libp2p":
-		transportLayer = NewLocalLibp2pTransport(nodeIDs, logger)
-	}
+	// The logger will be used concurrently by all clients and nodes, so it has to be thread-safe.
+	conf.Logger = logging.Synchronize(conf.Logger)
 
 	// Create all TestReplicas for this deployment.
-	replicas := make([]*TestReplica, conf.NumReplicas)
-	for i := range replicas {
-		nodeID := t.NewNodeIDFromInt(i)
+	replicas := make([]*TestReplica, len(conf.NodeIDs))
+	for i, nodeID := range conf.NodeIDs {
 
 		// Configure the test replica's node.
 		config := &mir.NodeConfig{
-			Logger: logging.Decorate(logger, fmt.Sprintf("Node %d: ", i)),
-		}
-
-		// ISS configuration
-		issConfig := iss.DefaultConfig(nodeIDs)
-		if conf.SlowProposeReplicas[i] {
-			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
-			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
-			// in the worst case, it will trigger view change by the segment timeout.
-			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
-		}
-
-		transport, err := transportLayer.Link(nodeID)
-		if err != nil {
-			return nil, err
+			Logger: logging.Decorate(conf.Logger, fmt.Sprintf("Node %d: ", i)),
 		}
 
 		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{
-			ID:              nodeID,
-			Config:          config,
-			NodeIDs:         nodeIDs,
-			Nodes:           transportLayer.Nodes(),
-			Dir:             filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
-			App:             &FakeApp{},
-			Transport:       transport,
-			NumFakeRequests: conf.NumFakeRequests,
-			ISSConfig:       issConfig,
+			ID:      nodeID,
+			Config:  config,
+			NodeIDs: conf.NodeIDs,
+			// Nodes:           transportLayer.Nodes(),
+			Dir:                    filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
+			NumFakeRequests:        conf.NumFakeRequests,
+			Modules:                conf.NodeModules[nodeID],
+			FakeRequestsDestModule: conf.FakeRequestsDestModule,
 		}
 	}
 
@@ -158,7 +124,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 		netClients = append(netClients, dummyclient.NewDummyClient(
 			t.NewClientIDFromInt(i),
 			crypto.SHA256,
-			logger,
+			conf.Logger,
 		))
 	}
 
