@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // Creates a new Preprepare message identical to the one given as argument,
@@ -300,16 +301,19 @@ func (pbft *pbftInstance) sendNewView(view t.PBFTViewNr, vcState *pbftViewChange
 	// Extract SignedViewChanges and their senders from the view change state.
 	viewChangeSenders := make([]t.NodeID, 0, len(vcState.signedViewChanges))
 	signedViewChanges := make([]*isspbftpb.SignedViewChange, 0, len(vcState.signedViewChanges))
-	iterateSorted(vcState.signedViewChanges, func(sender t.NodeID, signedViewChange *isspbftpb.SignedViewChange) bool {
-		viewChangeSenders = append(viewChangeSenders, sender)
-		signedViewChanges = append(signedViewChanges, signedViewChange)
-		return true
-	})
+	maputil.IterateSorted(
+		vcState.signedViewChanges,
+		func(sender t.NodeID, signedViewChange *isspbftpb.SignedViewChange) bool {
+			viewChangeSenders = append(viewChangeSenders, sender)
+			signedViewChanges = append(signedViewChanges, signedViewChange)
+			return true
+		},
+	)
 
 	// Extract re-proposed Preprepares and their corresponding sequence numbers from the view change state.
 	preprepareSeqNrs := make([]t.SeqNr, 0, len(vcState.preprepares))
 	preprepares := make([]*isspbftpb.Preprepare, 0, len(vcState.preprepares))
-	iterateSorted(vcState.preprepares, func(sn t.SeqNr, preprepare *isspbftpb.Preprepare) bool {
+	maputil.IterateSorted(vcState.preprepares, func(sn t.SeqNr, preprepare *isspbftpb.Preprepare) bool {
 		preprepareSeqNrs = append(preprepareSeqNrs, sn)
 		preprepares = append(preprepares, preprepare)
 		return true
@@ -386,7 +390,7 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 	// Verify if the re-proposed hashes match the obtained Preprepares.
 	i := 0
 	prepreparesMatching := true
-	iterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
+	maputil.IterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
 
 		// If the expected digest is empty, it means that the corresponding Preprepare is an "aborted" one.
 		// In this case, check the Preprepare directly.
