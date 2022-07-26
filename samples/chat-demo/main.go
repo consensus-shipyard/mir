@@ -21,10 +21,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
-
-	"github.com/multiformats/go-multiaddr"
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -38,6 +34,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/multiformats/go-multiaddr"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 const (
@@ -199,14 +197,11 @@ func run() error {
 	// ================================================================================
 
 	// Initialize variables to synchronize Node startup and shutdown.
-	var nodeErr error     // The error returned from running the Node will be stored here.
-	var wg sync.WaitGroup // The Node will call Done() on this WaitGroup when it actually stops.
-	wg.Add(1)
+	var nodeErr error // The error returned from running the Node will be stored here.
 
 	// Start the node in a separate goroutine
 	go func() {
 		nodeErr = node.Run(ctx)
-		wg.Done()
 	}()
 
 	// Create a request receiver and start receiving requests.
@@ -282,7 +277,6 @@ func run() error {
 		fmt.Println("Stopping server.")
 	}
 	node.Stop()
-	wg.Wait()
 
 	return nodeErr
 }
