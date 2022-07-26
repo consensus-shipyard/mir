@@ -38,8 +38,12 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpc
 
 func (t *LocalGrpcTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	return grpc.NewTransport(
-		t.membership,
 		sourceID,
+		t.membership[sourceID],
 		logging.Decorate(t.logger, fmt.Sprintf("gRPC: Node %v: ", sourceID)),
 	)
+}
+
+func (t *LocalGrpcTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return t.membership
 }

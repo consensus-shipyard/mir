@@ -125,6 +125,10 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 	}, nil
 }
 
+func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return nil
+}
+
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]
 }
@@ -133,12 +137,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) UpdateConnections(ctx context.Context, m map[t.NodeID]t.NodeAddress) {
-	// TODO: implement UpdateConnections in FakeTransport if necessary
-	panic("not implemented")
-}
-
-func (fl *FakeLink) Connect(ctx context.Context) {
+func (fl *FakeLink) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	for destID, buffer := range sourceBuffers {

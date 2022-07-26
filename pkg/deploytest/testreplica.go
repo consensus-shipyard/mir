@@ -40,7 +40,10 @@ type TestReplica struct {
 	Config *mir.NodeConfig
 
 	// List of replica IDs constituting the (static) membership.
-	Membership []t.NodeID
+	NodeIDs []t.NodeID
+
+	// List of replicas.
+	Nodes map[t.NodeID]t.NodeAddress
 
 	// Network transport subsystem.
 	Transport net.Transport
@@ -89,7 +92,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// If no ISS Protocol configuration has been specified, use the default one.
 	if tr.ISSConfig == nil {
-		tr.ISSConfig = iss.DefaultConfig(tr.Membership)
+		tr.ISSConfig = iss.DefaultConfig(tr.NodeIDs)
 	}
 
 	issProtocol, err := iss.New(tr.ID, tr.ISSConfig, logging.Decorate(tr.Config.Logger, "ISS: "))
@@ -97,7 +100,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		return fmt.Errorf("error creating ISS protocol module: %w", err)
 	}
 
-	cryptoModule, err := mirCrypto.NodePseudo(tr.Membership, tr.ID, mirCrypto.DefaultPseudoSeed)
+	cryptoModule, err := mirCrypto.NodePseudo(tr.NodeIDs, tr.ID, mirCrypto.DefaultPseudoSeed)
 	if err != nil {
 		return fmt.Errorf("error creating crypto module: %w", err)
 	}
@@ -148,7 +151,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error starting the network link: %w", err)
 	}
-	tr.Transport.Connect(ctx)
+	tr.Transport.Connect(ctx, tr.Nodes)
 	defer tr.Transport.Stop()
 
 	// Run the node until it stops.

@@ -137,7 +137,8 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 		replicas[i] = &TestReplica{
 			ID:              nodeID,
 			Config:          config,
-			Membership:      nodeIDs,
+			NodeIDs:         nodeIDs,
+			Nodes:           transportLayer.Nodes(),
 			Dir:             filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			App:             &FakeApp{},
 			Transport:       transport,

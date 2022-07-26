@@ -33,21 +33,24 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 
 	for i, id := range nodeIDs {
 		lt.hosts[id] = libp2ptools.NewDummyHost(i, BaseListenPort)
-		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, BaseListenPort))
+		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, BaseListenPort))
 	}
 
 	return lt
 }
 
-func (lt *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
-	if _, ok := lt.hosts[sourceID]; !ok {
+func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
+	if _, ok := t.hosts[sourceID]; !ok {
 		panic(fmt.Errorf("unexpected node id: %v", sourceID))
 	}
 
 	return libp2p.NewTransport(
-		lt.hosts[sourceID],
-		lt.membership,
+		t.hosts[sourceID],
 		sourceID,
-		lt.logger,
+		t.logger,
 	)
+}
+
+func (t *LocalLibp2pTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return t.membership
 }

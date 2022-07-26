@@ -42,14 +42,13 @@ var _ mirnet.Transport = &Transport{}
 type Transport struct {
 	host              host.Host
 	ownID             types.NodeID
-	membership        map[types.NodeID]types.NodeAddress
 	incomingMessages  chan *events.EventList
 	outboundStreamsMx sync.Mutex
 	outboundStreams   map[types.NodeID]network.Stream
 	logger            logging.Logger
 }
 
-func NewTransport(h host.Host, membership map[types.NodeID]types.NodeAddress, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
+func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -58,7 +57,6 @@ func NewTransport(h host.Host, membership map[types.NodeID]types.NodeAddress, ow
 		incomingMessages: make(chan *events.EventList),
 		outboundStreams:  make(map[types.NodeID]network.Stream),
 		logger:           logger,
-		membership:       membership,
 		ownID:            ownID,
 		host:             h,
 	}, nil
@@ -106,11 +104,11 @@ func (t *Transport) Stop() {
 	}
 }
 
-func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.NodeID]types.NodeAddress) {
+func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	wg := sync.WaitGroup{}
-	wg.Add(len(membership) - 1)
+	wg.Add(len(nodes) - 1)
 
-	for nodeID, nodeAddr := range membership {
+	for nodeID, nodeAddr := range nodes {
 		if nodeID == t.ownID {
 			continue
 		}
@@ -125,39 +123,6 @@ func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.
 			defer wg.Done()
 
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
-			s, err := t.connectToNode(ctx, nodeAddr)
-			if err != nil {
-				t.logger.Log(logging.LevelError, "err", err)
-				return
-			}
-			t.addOutboundStream(nodeID, s)
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
-
-		}(nodeID, nodeAddr)
-	}
-
-	wg.Wait()
-}
-
-func (t *Transport) Connect(ctx context.Context) {
-	wg := sync.WaitGroup{}
-	wg.Add(len(t.membership) - 1)
-
-	for nodeID, nodeAddr := range t.membership {
-		if nodeID == t.ownID {
-			continue
-		}
-
-		if t.streamExists(nodeID) {
-			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
-			continue
-		}
-
-		go func(nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
-			defer wg.Done()
-
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
-
 			s, err := t.connectToNode(ctx, nodeAddr)
 			if err != nil {
 				t.logger.Log(logging.LevelError, "err", err)

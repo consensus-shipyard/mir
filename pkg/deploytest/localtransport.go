@@ -7,4 +7,5 @@ import (
 
 type LocalTransportLayer interface {
 	Link(source t.NodeID) (net.Transport, error)
+	Nodes() map[t.NodeID]t.NodeAddress
 }

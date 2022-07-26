@@ -143,13 +143,13 @@ func run() error {
 		for i := range nodeIDs {
 			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + nodeBasePort))
 		}
-		transport, err = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
+		transport, err = grpc.NewTransport(args.OwnID, nodeAddrs[args.OwnID], logger)
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
 		for i := range nodeIDs {
 			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, nodeBasePort))
 		}
-		transport, err = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
+		transport, err = libp2p.NewTransport(h, args.OwnID, logger)
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
 	}
@@ -160,7 +160,7 @@ func run() error {
 	if err := transport.Start(); err != nil {
 		return fmt.Errorf("could not start network transport: %w", err)
 	}
-	transport.Connect(ctx)
+	transport.Connect(ctx, nodeAddrs)
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIDs)
