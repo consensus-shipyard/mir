@@ -42,27 +42,16 @@ var _ mirnet.Transport = &Transport{}
 type Transport struct {
 	host              host.Host
 	ownID             types.NodeID
-	membership        map[types.NodeID]multiaddr.Multiaddr
+	membership        map[types.NodeID]types.NodeAddress
 	incomingMessages  chan *events.EventList
 	outboundStreamsMx sync.Mutex
 	outboundStreams   map[types.NodeID]network.Stream
 	logger            logging.Logger
 }
 
-func NewTransport(h host.Host, m map[types.NodeID]types.NodeAddress, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
+func NewTransport(h host.Host, membership map[types.NodeID]types.NodeAddress, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
-	}
-
-	membership := make(map[types.NodeID]multiaddr.Multiaddr)
-
-	for nodeID, nodeAddr := range m {
-		maddr, err := nodeAddr.Multiaddr()
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse addr %v for node %v", nodeAddr, nodeID)
-		}
-		membership[nodeID] = maddr
-
 	}
 
 	return &Transport{
@@ -132,13 +121,6 @@ func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.
 			continue
 		}
 
-		maddr, err := nodeAddr.Multiaddr()
-		if err != nil {
-			wg.Done()
-			t.logger.Log(logging.LevelError, fmt.Sprintf("failed to convert %v to mutiaddr: %v", nodeAddr, err))
-			continue
-		}
-
 		go func(nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
 			defer wg.Done()
 
@@ -151,7 +133,7 @@ func (t *Transport) UpdateConnections(ctx context.Context, membership map[types.
 			t.addOutboundStream(nodeID, s)
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 
-		}(nodeID, maddr)
+		}(nodeID, nodeAddr)
 	}
 
 	wg.Wait()

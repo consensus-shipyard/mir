@@ -33,7 +33,7 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 
 	for i, id := range nodeIDs {
 		lt.hosts[id] = libp2ptools.NewDummyHost(i, BaseListenPort)
-		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, BaseListenPort).String())
+		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, BaseListenPort))
 	}
 
 	return lt

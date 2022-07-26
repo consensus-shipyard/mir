@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiformats/go-multiaddr"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -140,14 +141,18 @@ func run() error {
 	case "grpc":
 		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(fmt.Sprintf("127.0.0.1:%d", nodeBasePort+i))
+			maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ipv4/127.0.0.1/tcp4/%d", nodeBasePort+i))
+			if err != nil {
+				panic(err)
+			}
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(maddr)
 		}
 		transport, err = grpc.NewTransport(nodeAddrs, args.OwnID, logger)
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
 		nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 		for i := range nodeIds {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, nodeBasePort).String())
+			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyPeerID(i, nodeBasePort))
 		}
 		transport, err = libp2p.NewTransport(h, nodeAddrs, args.OwnID, logger)
 	default:

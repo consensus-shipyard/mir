@@ -3,6 +3,8 @@ package deploytest
 import (
 	"fmt"
 
+	"github.com/multiformats/go-multiaddr"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
@@ -24,7 +26,11 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpc
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]t.NodeAddress)
 	for i, id := range nodeIDs {
-		membership[id] = t.NodeAddress(fmt.Sprintf("127.0.0.1:%d", BaseListenPort+i))
+		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", BaseListenPort+i))
+		if err != nil {
+			panic(err)
+		}
+		membership[id] = t.NodeAddress(maddr)
 	}
 
 	return &LocalGrpcTransport{membership, logger}

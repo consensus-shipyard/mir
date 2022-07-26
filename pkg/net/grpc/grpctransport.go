@@ -12,6 +12,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
@@ -138,6 +140,11 @@ func (gt *Transport) ApplyEvents(
 	return nil
 }
 
+func grpcAddr(maddr multiaddr.Multiaddr) (addr string, err error) {
+	_, addr, err = manet.DialArgs(maddr)
+	return
+}
+
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
@@ -190,12 +197,16 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 // listening on the port determined by the membership and own ID.
 // Before ths method is called, no other GrpcTransports can connect to this one.
 func (gt *Transport) Start() error {
-	hp, ok := gt.membership[gt.ownID]
+	addr, ok := gt.membership[gt.ownID]
 	if !ok {
 		return fmt.Errorf("%s is not in membership", gt.ownID)
 	}
+	hp, err := grpcAddr(addr)
+	if err != nil {
+		return err
+	}
 	// Obtain own port number from membership.
-	_, ownPort, err := net.SplitHostPort(hp.String())
+	_, ownPort, err := net.SplitHostPort(hp)
 	if err != nil {
 		return err
 	}
@@ -278,6 +289,12 @@ func (gt *Transport) Connect(ctx context.Context) {
 	// For each node in the membership
 	for nodeID, nodeAddr := range gt.membership {
 
+		addr, err := grpcAddr(nodeAddr)
+		if err != nil {
+			wg.Done()
+			continue
+		}
+
 		// Launch a goroutine that connects to the node.
 		go func(id t.NodeID, addr string) {
 			defer wg.Done()
@@ -296,7 +313,7 @@ func (gt *Transport) Connect(ctx context.Context) {
 				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
-		}(nodeID, nodeAddr.String())
+		}(nodeID, addr)
 	}
 
 	// Wait for connecting goroutines to finish.
