@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // pbftViewChangeState tracks the state of the view change sub-protocol in PBFT.
@@ -92,7 +93,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr) [][][
 	// dataToHash will store the serialized form of newly created empty ("aborted") Preprepares.
 	dataToHash := make([][][]byte, 0, len(vcState.reproposals))
 
-	iterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
+	maputil.IterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
 		if digest != nil && len(digest) == 0 {
 
 			// Create a new empty Preprepare message.
@@ -118,7 +119,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) 
 	i := 0
 
 	// Iterate over all empty reproposals the exactly same way as when setting the corresponding "aborted" Preprepares.
-	iterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
+	maputil.IterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
 
 		// Assign the corresponding hash to each sequence number with an empty re-proposal.
 		if digest != nil && len(digest) == 0 {

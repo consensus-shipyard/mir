@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // pbftSegmentChkp groups data structures pertaining to an instance-local checkpoint
@@ -147,7 +148,7 @@ func (pbft *pbftInstance) sendDoneMessages() *events.EventList {
 
 	// Collect the preprepare digests of all committed batches.
 	digests := make([][]byte, 0, len(pbft.segment.SeqNrs))
-	iterateSorted(pbft.slots[pbft.view], func(sn t.SeqNr, slot *pbftSlot) bool {
+	maputil.IterateSorted(pbft.slots[pbft.view], func(sn t.SeqNr, slot *pbftSlot) bool {
 		digests = append(digests, slot.Digest)
 		return true
 	})
@@ -199,7 +200,7 @@ func (pbft *pbftInstance) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr]
 	catchUpRequests := make([]*eventpb.Event, 0)
 
 	// Deterministically iterate through all the (sequence number, batch) pairs received in a quorum of Done messages.
-	iterateSorted(digests, func(sn t.SeqNr, digest []byte) bool {
+	maputil.IterateSorted(digests, func(sn t.SeqNr, digest []byte) bool {
 
 		// If no batch has been committed for the sequence number, create a retransmission request.
 		if !pbft.slots[pbft.view][sn].Committed {
