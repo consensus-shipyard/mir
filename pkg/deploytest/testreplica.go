@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/filecoin-project/mir/pkg/net"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/simplewal"

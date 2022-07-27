@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -96,7 +97,7 @@ func debug(args *arguments) error {
 		}
 	}
 
-	if err != io.EOF {
+	if errors.Is(err, io.EOF) {
 		return fmt.Errorf("error reading event log: %w", err)
 	}
 

@@ -22,6 +22,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/multiformats/go-multiaddr"
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -34,8 +37,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
-	"github.com/multiformats/go-multiaddr"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 const (
