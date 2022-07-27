@@ -257,6 +257,26 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
+func (gt *Transport) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {
+	for id, connection := range gt.connections {
+		if connection == nil {
+			continue
+		}
+
+		// Close an old connection to a node if we don't need to connect to this node further.
+		if _, newConn := nextNodes[id]; !newConn {
+			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
+
+			if err := connection.CloseSend(); err != nil {
+				gt.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", id, err))
+				continue
+			}
+
+			gt.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
+		}
+	}
+}
+
 // Connect establishes (in parallel) network connections to all nodes according to the membership table.
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.

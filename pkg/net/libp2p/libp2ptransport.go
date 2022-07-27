@@ -104,6 +104,29 @@ func (t *Transport) Stop() {
 	}
 }
 
+func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types.NodeID]types.NodeAddress) {
+	t.outboundStreamsMx.Lock()
+	defer t.outboundStreamsMx.Unlock()
+
+	for id, s := range t.outboundStreams {
+		if s == nil {
+			continue
+		}
+
+		// Close an old connection to a node if we don't need to connect to this node further.
+		if _, newConn := nextNodes[id]; !newConn {
+			t.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
+
+			if err := s.Close(); err != nil {
+				t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", id, err))
+				continue
+			}
+
+			t.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
+		}
+	}
+}
+
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))

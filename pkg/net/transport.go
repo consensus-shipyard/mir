@@ -22,4 +22,7 @@ type Transport interface {
 
 	// Connect establishes (in parallel) network connections to the provided nodes.
 	Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress)
+
+	// CloseOldConnections closes connections to the nodes that don't needed.
+	CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress)
 }
