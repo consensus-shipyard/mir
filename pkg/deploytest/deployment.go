@@ -20,6 +20,7 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -37,6 +38,9 @@ const (
 type TestConfig struct {
 	// Optional information about the test.
 	Info string
+
+	// The test simulation is only used if the deployment is configured to use "sim" transport.
+	Simulation *Simulation
 
 	// IDs of nodes in this test.
 	NodeIDs []t.NodeID
@@ -73,6 +77,9 @@ type TestConfig struct {
 // The Deployment represents a list of replicas interconnected by a simulated network transport.
 type Deployment struct {
 	TestConfig *TestConfig
+
+	// The test simulation is only used if the deployment is configured to use "sim" transport.
+	Simulation *Simulation
 
 	// The replicas of the deployment.
 	TestReplicas []*TestReplica
@@ -114,6 +121,11 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 			Modules:                conf.NodeModules[nodeID],
 			FakeRequestsDestModule: conf.FakeRequestsDestModule,
 		}
+
+		if conf.Simulation != nil {
+			replicas[i].Sim = conf.Simulation.Node(nodeID)
+			replicas[i].Proc = conf.Simulation.Spawn()
+		}
 	}
 
 	// Create dummy clients.
@@ -133,6 +145,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 
 	return &Deployment{
 		TestConfig:   conf,
+		Simulation:   conf.Simulation,
 		TestReplicas: replicas,
 		Clients:      netClients,
 	}, nil
@@ -166,11 +179,14 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 	// Start the Mir nodes.
 	nodeWg.Add(len(d.TestReplicas))
 	for i, testReplica := range d.TestReplicas {
+		i, testReplica := i, testReplica
 
 		// Start the replica in a separate goroutine.
-		go func(i int, testReplica *TestReplica) {
+		start := make(chan struct{})
+		go func() {
 			defer nodeWg.Done()
 
+			<-start
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
 			nodeErrors[i] = testReplica.Run(ctx2)
 			if err := nodeErrors[i]; err != nil {
@@ -178,7 +194,18 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 			} else {
 				testReplica.Config.Logger.Log(logging.LevelDebug, "exit")
 			}
-		}(i, testReplica)
+		}()
+
+		if d.Simulation != nil {
+			// TODO: Make replica start delay configurable?
+			delay := testsim.RandDuration(d.Simulation.Rand, 1, time.Microsecond)
+			go func() {
+				testReplica.Proc.Delay(delay)
+				close(start)
+			}()
+		} else {
+			close(start)
+		}
 	}
 
 	// Connect the deployment's DummyClients to all replicas and have them submit their requests in separate goroutines.

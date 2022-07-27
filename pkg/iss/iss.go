@@ -17,6 +17,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -28,7 +30,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================

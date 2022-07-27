@@ -9,8 +9,10 @@ package mir_test
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -23,6 +25,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -40,6 +44,7 @@ func BenchmarkIntegration(b *testing.B) {
 
 type TestConfig struct {
 	Info                string
+	RandomSeed          int64
 	NumReplicas         int
 	NumClients          int
 	Transport           string
@@ -148,6 +153,40 @@ func testIntegrationWithISS(t *testing.T) {
 				NumNetRequests: 10,
 				Duration:       15 * time.Second,
 			}},
+		11: {"Do nothing with 1 node in simulation",
+			&TestConfig{
+				NumReplicas: 1,
+				Transport:   "sim",
+				Duration:    4 * time.Second,
+			}},
+		12: {"Submit 10 fake requests with 1 node in simulation",
+			&TestConfig{
+				NumReplicas:     1,
+				Transport:       "sim",
+				NumFakeRequests: 10,
+				Duration:        4 * time.Second,
+			}},
+		13: {"Do nothing with 4 nodes in simulation",
+			&TestConfig{
+				NumReplicas: 4,
+				Transport:   "sim",
+				Duration:    4 * time.Second,
+			}},
+		14: {"Submit 10 fake requests with 4 nodes in simulation",
+			&TestConfig{
+				NumReplicas:     4,
+				Transport:       "sim",
+				NumFakeRequests: 10,
+				Duration:        4 * time.Second,
+			}},
+		15: {"Submit 100 fake requests with 4 nodes in simulation",
+			&TestConfig{
+				NumReplicas:     4,
+				NumClients:      0,
+				Transport:       "sim",
+				NumFakeRequests: 100,
+				Duration:        10 * time.Second,
+			}},
 	}
 
 	for i, test := range tests {
@@ -158,10 +197,29 @@ func testIntegrationWithISS(t *testing.T) {
 		createDeploymentDir(t, test.Config)
 
 		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+			simMode := (test.Config.Transport == "sim")
+			if testing.Short() && !simMode {
+				t.SkipNow()
+			}
+
+			if simMode {
+				if v := os.Getenv("RANDOM_SEED"); v != "" {
+					var err error
+					test.Config.RandomSeed, err = strconv.ParseInt(v, 10, 64)
+					require.NoError(t, err)
+				} else {
+					test.Config.RandomSeed = time.Now().UnixNano()
+				}
+				t.Logf("Random seed = %d", test.Config.RandomSeed)
+			}
+
 			runIntegrationWithISSConfig(t, test.Config)
 
 			if t.Failed() {
 				t.Logf("Test #%03d (%s) failed", i, test.Desc)
+				if simMode {
+					t.Logf("Reproduce with RANDOM_SEED=%d", test.Config.RandomSeed)
+				}
 			}
 		})
 	}
@@ -227,7 +285,11 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	// Schedule shutdown of test deployment
 	if conf.Duration > 0 {
 		go func() {
-			time.Sleep(conf.Duration)
+			if deployment.Simulation != nil {
+				deployment.Simulation.RunFor(conf.Duration)
+			} else {
+				time.Sleep(conf.Duration)
+			}
 			cancel()
 		}()
 	}
@@ -291,7 +353,17 @@ func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	nodeIDs := deploytest.NewNodeIDs(conf.NumReplicas)
 	logger := deploytest.NewLogger(conf.Logger)
-	transportLayer := deploytest.NewLocalTransportLayer(conf.Transport, nodeIDs, logger)
+
+	var simulation *deploytest.Simulation
+	if conf.Transport == "sim" {
+		rand := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
+		eventDelayFn := func(e *eventpb.Event) time.Duration {
+			// TODO: Make min and max event processing delay configurable
+			return testsim.RandDuration(rand, 0, time.Microsecond)
+		}
+		simulation = deploytest.NewSimulation(rand, nodeIDs, eventDelayFn)
+	}
+	transportLayer := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
 
 	nodeModules := make(map[t.NodeID]modules.Modules)
@@ -331,6 +403,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 	deployConf := &deploytest.TestConfig{
 		Info:                   conf.Info,
+		Simulation:             simulation,
 		NodeIDs:                nodeIDs,
 		Nodes:                  transportLayer.Nodes(),
 		NodeModules:            nodeModules,

@@ -180,7 +180,7 @@ func (i *Recorder) Stop() error {
 	<-i.exitC
 	i.exitErrMutex.Lock()
 	defer i.exitErrMutex.Unlock()
-	if i.exitErr == errStopped {
+	if errors.Is(i.exitErr, errStopped) {
 		return nil
 	}
 	return i.exitErr
@@ -285,7 +285,7 @@ func NewReader(source io.Reader) (*Reader, error) {
 func (r *Reader) ReadEntry() (*recordingpb.Entry, error) {
 	re := &recordingpb.Entry{}
 	err := readSizePrefixedProto(r.source, re, r.buffer)
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		r.gzReader.Close()
 		return re, err
 	}
@@ -300,7 +300,7 @@ func (r *Reader) ReadEntry() (*recordingpb.Entry, error) {
 func readSizePrefixedProto(reader *bufio.Reader, msg proto.Message, buffer *bytes.Buffer) error {
 	l, err := binary.ReadVarint(reader)
 	if err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return err
 		}
 		return errors.WithMessage(err, "could not read size prefix")
