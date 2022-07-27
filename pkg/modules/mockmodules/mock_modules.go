@@ -1,10 +1,11 @@
 package mockmodules
 
 import (
+	"github.com/golang/mock/gomock"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules/internal/mock_internal"
-	"github.com/golang/mock/gomock"
 )
 
 // MockPassiveModule is a slightly more user-friendly wrapper around gomock_modules.MockPassiveModule.

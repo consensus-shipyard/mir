@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -54,7 +55,7 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 			}
 		}
 	}
-	if err != io.EOF {
+	if errors.Is(err, io.EOF) {
 		return events, issEvents, cnt, fmt.Errorf("failed reading event log: %w", err)
 	}
 
@@ -64,15 +65,15 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 // eventName returns a string name of an Event.
 func eventName(event *eventpb.Event) string {
 	return strings.ReplaceAll(
-		reflect.TypeOf(event.Type).Elem().Name(), //gets the type's name i.e. Event_Tick , Event_Iss,etc
+		reflect.TypeOf(event.Type).Elem().Name(), // gets the type's name i.e. Event_Tick , Event_Iss,etc
 		"Event_", "")
 }
 
 // issEventName returns a string name of an ISS event.
 func issEventName(issEvent *isspb.ISSEvent) string {
 	return strings.ReplaceAll(
-		reflect.TypeOf(issEvent.Type).Elem().Name(), //gets the type's name i.e. ISSEvent_sb , ISSEvent_PersistCheckpoint,etc
-		"ISSEvent_", "") //replaces the given substring from the name
+		reflect.TypeOf(issEvent.Type).Elem().Name(), // gets the type's name i.e. ISSEvent_sb , ISSEvent_PersistCheckpoint,etc
+		"ISSEvent_", "") // replaces the given substring from the name
 }
 
 // selected returns true if the given event has been selected by the user according to the given criteria.

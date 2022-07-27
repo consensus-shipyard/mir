@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -57,7 +58,7 @@ func displayEvents(args *arguments) error {
 		}
 	}
 
-	if err != io.EOF {
+	if errors.Is(err, io.EOF) {
 		return fmt.Errorf("error reading event log: %w", err)
 	}
 
