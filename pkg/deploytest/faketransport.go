@@ -117,13 +117,19 @@ func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	}
 }
 
-func (ft *FakeTransport) Link(source t.NodeID) net.Transport {
+func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 	return &FakeLink{
 		Source:        source,
 		FakeTransport: ft,
 		DoneC:         make(chan struct{}),
-	}
+	}, nil
 }
+
+func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return nil
+}
+
+func (fl *FakeLink) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]
@@ -133,7 +139,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) Connect(ctx context.Context) {
+func (fl *FakeLink) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	for destID, buffer := range sourceBuffers {

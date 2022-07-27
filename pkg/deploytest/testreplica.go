@@ -38,7 +38,10 @@ type TestReplica struct {
 	Config *mir.NodeConfig
 
 	// List of replica IDs constituting the (static) membership.
-	Membership []t.NodeID
+	NodeIDs []t.NodeID
+
+	// List of replicas.
+	Nodes map[t.NodeID]t.NodeAddress
 
 	// Node's representation within the simulation runtime
 	Sim *SimNode
@@ -152,7 +155,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error starting the network link: %w", err)
 		}
-		transport.Connect(ctx)
+		transport.Connect(ctx, tr.Nodes)
 		defer transport.Stop()
 	}
 

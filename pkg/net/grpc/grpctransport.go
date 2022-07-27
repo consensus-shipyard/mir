@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
@@ -42,10 +43,8 @@ type Transport struct {
 	// The ID of the node that uses this networking module.
 	ownID t.NodeID
 
-	// Complete static membership of the system.
-	// Maps the node ID of each node in the system to a string representation of its network address.
-	// The address format "IPAddress:port"
-	membership map[t.NodeID]string // nodeId -> "IPAddress:port"
+	// The address of the node.
+	ownAddr t.NodeAddress
 
 	// Channel to which all incoming messages are written.
 	// This channel is also returned by the ReceiveChan() method.
@@ -72,7 +71,7 @@ type Transport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logger) *Transport {
+func NewTransport(id t.NodeID, addr t.NodeAddress, l logging.Logger) (*Transport, error) {
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
@@ -80,12 +79,12 @@ func NewTransport(membership map[t.NodeID]string, ownID t.NodeID, l logging.Logg
 	}
 
 	return &Transport{
-		ownID:            ownID,
+		ownID:            id,
+		ownAddr:          addr,
 		incomingMessages: make(chan *events.EventList),
-		membership:       membership,
 		connections:      make(map[t.NodeID]GrpcTransport_ListenClient),
 		logger:           l,
-	}
+	}, nil
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
@@ -190,12 +189,13 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 // listening on the port determined by the membership and own ID.
 // Before ths method is called, no other GrpcTransports can connect to this one.
 func (gt *Transport) Start() error {
-	hp, ok := gt.membership[gt.ownID]
-	if !ok {
-		return fmt.Errorf("%s is not in membership", gt.ownID)
+	// Obtain net.Dial compatible address.
+	_, dialAddr, err := manet.DialArgs(gt.ownAddr)
+	if err != nil {
+		return fmt.Errorf("failed to obtain Dial address: %w", err)
 	}
 	// Obtain own port number from membership.
-	_, ownPort, err := net.SplitHostPort(hp)
+	_, ownPort, err := net.SplitHostPort(dialAddr)
 	if err != nil {
 		return err
 	}
@@ -257,21 +257,48 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
-// Connect establishes (in parallel) network connections to all nodes in the system.
+func (gt *Transport) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {
+	for id, connection := range gt.connections {
+		if connection == nil {
+			continue
+		}
+
+		// Close an old connection to a node if we don't need to connect to this node further.
+		if _, newConn := nextNodes[id]; !newConn {
+			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
+
+			if err := connection.CloseSend(); err != nil {
+				gt.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", id, err))
+				continue
+			}
+
+			gt.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
+		}
+	}
+}
+
+// Connect establishes (in parallel) network connections to all nodes according to the membership table.
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
-func (gt *Transport) Connect(ctx context.Context) {
+func (gt *Transport) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
 
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
-	wg.Add(len(gt.membership))
+	wg.Add(len(nodes))
 
 	// Synchronizes concurrent access to connections.
 	lock := sync.Mutex{}
 
 	// For each node in the membership
-	for nodeID, nodeAddr := range gt.membership {
+	for nodeID, nodeAddr := range nodes {
+
+		// Get net.Dial compatible address.
+		_, dialAddr, err := manet.DialArgs(nodeAddr)
+		if err != nil {
+			wg.Done()
+			continue
+		}
 
 		// Launch a goroutine that connects to the node.
 		go func(id t.NodeID, addr string) {
@@ -291,7 +318,7 @@ func (gt *Transport) Connect(ctx context.Context) {
 				gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Node %v (%s) connected.", id, addr))
 			}
 
-		}(nodeID, nodeAddr)
+		}(nodeID, dialAddr)
 	}
 
 	// Wait for connecting goroutines to finish.
