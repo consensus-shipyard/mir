@@ -19,10 +19,10 @@ import (
 	"crypto"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
-
-	"gopkg.in/alecthomas/kingpin.v2"
+	"time"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -35,17 +35,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
-	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 const (
-
-	// Base port number for the nodes to listen to messages from each other.
-	// The nodes will listen on ports starting from nodeBasePort through nodeBasePort+3.
-	// Note that protocol messages and requests are following two completely distinct paths to avoid interference
-	// of clients with node-to-node communication.
-	nodeBasePort = 10000
 
 	// Base port number for the node request receivers to listen to messages from clients.
 	// Request receivers will listen on port reqReceiverBasePort through reqReceiverBasePort+3.
@@ -53,8 +48,12 @@ const (
 	// of clients with node-to-node communication.
 	reqReceiverBasePort = 20000
 
-	// The number of nodes participating in the chat.
-	nodeNumber = 4
+	// The number of batches per ISS segment (this is ISS-specific, use epoch length instead!)
+	segmentLength = 4
+
+	// Number of epochs by which to delay configuration changess.
+	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
+	configOffset = 2
 )
 
 // parsedArgs represents parsed command-line parameters passed to the program.
@@ -69,6 +68,9 @@ type parsedArgs struct {
 
 	// Network transport.
 	Net string
+
+	// File containing the initial membership for joining nodes.
+	InitMembershipFile *os.File
 }
 
 func main() {
@@ -97,24 +99,32 @@ func run() error {
 
 	fmt.Println("Initializing...")
 
-	ownID, err := strconv.Atoi(string(args.OwnID))
+	// ================================================================================
+	// Load system membership info: IDs, addresses, ports, etc...
+	// ================================================================================
+
+	ownNumericID, err := strconv.Atoi(string(args.OwnID))
 	if err != nil {
-		return fmt.Errorf("unable to convert node ID: %w", err)
-	}
-	if ownID < 0 || ownID > nodeNumber-1 {
-		return fmt.Errorf("ID must be in [0, %d]", nodeNumber-1)
+		return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 	}
 
-	// ================================================================================
-	// Generate system membership info: addresses, ports, etc...
-	// ================================================================================
+	initialMembership, err := loadMembership(args.InitMembershipFile)
+	if err != nil {
+		return fmt.Errorf("could not load membership: %w", err)
+	}
+	if err := args.InitMembershipFile.Close(); err != nil {
+		return fmt.Errorf("could not close membership file: %w", err)
+	}
+	addresses, err := membershipIPs(initialMembership)
+	if err != nil {
+		return fmt.Errorf("could not load node IPs: %w", err)
+	}
 
 	// IDs of nodes that are part of the system.
-	// This example uses a static configuration of nodeNumber nodes.
-	nodeIDs := make([]t.NodeID, nodeNumber)
-	for i := 0; i < nodeNumber; i++ {
-		nodeIDs[i] = t.NewNodeIDFromInt(i)
-	}
+	nodeIDs := maputil.GetKeys(initialMembership)
+	sort.Slice(nodeIDs, func(i, j int) bool {
+		return nodeIDs[i] < nodeIDs[j]
+	})
 
 	// Generate addresses and ports for client request receivers.
 	// Each node uses different ports for receiving protocol messages and requests.
@@ -122,8 +132,12 @@ func run() error {
 	// (each client sends its requests to all request receivers). Each request receiver,
 	// however, will only submit the received requests to its associated Node.
 	reqReceiverAddrs := make(map[t.NodeID]string)
-	for i := range nodeIDs {
-		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", reqReceiverBasePort+i)
+	for nodeID, nodeIP := range addresses {
+		numericID, err := strconv.Atoi(string(nodeID))
+		if err != nil {
+			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+		}
+		reqReceiverAddrs[nodeID] = fmt.Sprintf("%s:%d", nodeIP, reqReceiverBasePort+numericID)
 	}
 
 	// ================================================================================
@@ -139,16 +153,24 @@ func run() error {
 	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
 	switch strings.ToLower(args.Net) {
 	case "grpc":
-		for i := range nodeIDs {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + nodeBasePort))
-		}
-		transport, err = grpc.NewTransport(args.OwnID, nodeAddrs[args.OwnID], logger)
+		transport, err = grpc.NewTransport(args.OwnID, initialMembership[args.OwnID], logger)
+		nodeAddrs = initialMembership
 	case "libp2p":
-		h := libp2ptools.NewDummyHost(ownID, nodeBasePort)
-		for i := range nodeIDs {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, nodeBasePort))
+		h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
+		for nodeID, nodeAddr := range initialMembership {
+			numericID, err := strconv.Atoi(string(nodeID))
+			if err != nil {
+				return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+			}
+			nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
 		}
 		transport, err = libp2p.NewTransport(h, args.OwnID, logger)
+
+		//h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
+		//multiAddr := libp2ptools.NewDummyMultiaddr(ownNumericID, initialMembership[args.OwnID])
+		//fmt.Println(multiAddr)
+		//transport, err = libp2p.NewTransport(h, args.OwnID, logger)
+
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
 	}
@@ -161,8 +183,10 @@ func run() error {
 	}
 	transport.Connect(ctx, nodeAddrs)
 
-	// Instantiate the ISS protocol module with default configuration.
+	// Instantiate the ISS protocol module.
 	issConfig := iss.DefaultConfig(nodeIDs)
+	issConfig.SegmentLength = segmentLength
+	issConfig.PBFTViewChangeSegmentTimeout = 2 * time.Duration(issConfig.SegmentLength) * issConfig.MaxProposeDelay
 	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
 	if err != nil {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
@@ -179,7 +203,7 @@ func run() error {
 
 		// This is the application logic Mir is going to deliver requests to.
 		// For the implementation of the application, see app.go.
-		"app": NewChatApp(),
+		"app": NewChatApp(initialMembership, segmentLength),
 
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.
@@ -211,7 +235,7 @@ func run() error {
 	// Note that the RequestReceiver is _not_ part of the Node as its module.
 	// It is external to the Node and only submits requests it receives to the node.
 	reqReceiver := requestreceiver.NewRequestReceiver(node, "iss", logger)
-	if err := reqReceiver.Start(reqReceiverBasePort + ownID); err != nil {
+	if err := reqReceiver.Start(reqReceiverBasePort + ownNumericID); err != nil {
 		return fmt.Errorf("could not start request receiver: %w", err)
 	}
 
@@ -292,14 +316,16 @@ func parseArgs(args []string) *parsedArgs {
 	// In case that changes, this line will need to be updated.
 	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
 	ownID := app.Arg("id", "ID of this node").Required().String()
+	initMembershipFile := app.Flag("init-membership", "File containing the initial system membership.").Short('i').Required().File()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)
 	}
 
 	return &parsedArgs{
-		OwnID:   t.NodeID(*ownID),
-		Verbose: *verbose,
-		Net:     *n,
+		OwnID:              t.NodeID(*ownID),
+		Verbose:            *verbose,
+		Net:                *n,
+		InitMembershipFile: *initMembershipFile,
 	}
 }

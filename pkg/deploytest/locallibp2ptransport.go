@@ -32,8 +32,9 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 	}
 
 	for i, id := range nodeIDs {
-		lt.hosts[id] = libp2ptools.NewDummyHost(i, BaseListenPort)
-		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, BaseListenPort))
+		hostAddr := libp2ptools.NewDummyHostAddr(i, BaseListenPort)
+		lt.hosts[id] = libp2ptools.NewDummyHost(i, hostAddr)
+		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, hostAddr))
 	}
 
 	return lt

@@ -13,6 +13,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/multiformats/go-multiaddr"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -32,13 +35,45 @@ type ChatApp struct {
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
 	messages []string
+
+	// Number of batches applied to the state.
+	batchesApplied int
+
+	// Length of an ISS segment.
+	segmentLength int
+
+	// Length of the epoch of the consensus protocol.
+	// After having delivered this many batches, the app signals the end of an epoch.
+	epochLength int
+
+	// The application writes an empty struct after having applied all batches of an epoch.
+	epochFinishedC chan struct{}
+
+	// For each epoch number, stores the corresponding membership.
+	memberships map[t.EpochNr]map[t.NodeID]t.NodeAddress
+}
+
+func (chat *ChatApp) CurrentEpoch() t.EpochNr {
+	return t.EpochNr(chat.batchesApplied / chat.epochLength)
 }
 
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
-func NewChatApp() *ChatApp {
+func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, segmentLength int) *ChatApp {
+
+	// Initialize the membership for the first epochs.
+	memberships := make(map[t.EpochNr]map[t.NodeID]t.NodeAddress)
+	for i := 0; i <= configOffset+1; i++ {
+		memberships[t.EpochNr(i)] = initialMembership
+	}
+
 	return &ChatApp{
-		messages: make([]string, 0),
+		messages:       make([]string, 0),
+		batchesApplied: 0,
+		segmentLength:  segmentLength,
+		epochLength:    len(initialMembership) * segmentLength,
+		epochFinishedC: make(chan struct{}),
+		memberships:    memberships,
 	}
 }
 
@@ -75,6 +110,10 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 	return events.EmptyList(), nil
 }
 
+func (chat *ChatApp) WaitForEpochEnd() {
+	<-chat.epochFinishedC
+}
+
 // ApplyBatch applies a batch of requests to the state of the application.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
@@ -84,16 +123,73 @@ func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
 	// For each request in the batch
 	for _, req := range batch.Requests {
 
+		// Convert request payload to chat message.
+		msgString := string(req.Req.Data)
+
 		// Print content of chat message.
-		chatMessage := fmt.Sprintf("Client %v: %s", req.Req.ClientId, string(req.Req.Data))
+		chatMessage := fmt.Sprintf("Client %v: %s", req.Req.ClientId, msgString)
 
 		// Append the received chat message to the chat history.
 		chat.messages = append(chat.messages, chatMessage)
 
 		// Print received chat message.
 		fmt.Println(chatMessage)
+
+		// If this is a config message, treat it correspondingly.
+		if len(msgString) > len("Config: ") && msgString[:len("Config: ")] == "Config: " {
+			configMsg := msgString[len("Config: "):]
+			fmt.Printf("Detected config message: %s\n", configMsg)
+			chat.applyConfigMsg(configMsg)
+		}
 	}
+
+	// Update counter of applied batches.
+	chat.batchesApplied++
+
+	if chat.batchesApplied%chat.epochLength == 0 {
+		// Initialize new membership to be modified throughput the new epoch
+		chat.memberships[chat.CurrentEpoch()+configOffset+1] = maputil.Copy(chat.memberships[chat.CurrentEpoch()+configOffset])
+
+		fmt.Printf("Starting epoch %v.\nMembership:\n%v\n", chat.CurrentEpoch(), chat.memberships[chat.CurrentEpoch()])
+
+		chat.epochLength = len(chat.memberships[chat.CurrentEpoch()]) * chat.segmentLength
+
+		// Notify the manager about a new epoch.
+		//chat.epochFinishedC <- struct{}{}
+	}
+
 	return nil
+}
+
+func (chat *ChatApp) applyConfigMsg(configMsg string) {
+	tokens := strings.Fields(configMsg)
+	switch tokens[0] {
+	case "add-node":
+
+		// Parse out the node ID and address
+		nodeID := t.NodeID(tokens[1])
+		nodeAddr, err := multiaddr.NewMultiaddr(tokens[2])
+		if err != nil {
+			fmt.Printf("Adding node failed. Invalid address: %v\n", err)
+		}
+
+		fmt.Printf("Adding node: %v (%v)\n", nodeID, nodeAddr)
+		if _, ok := chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID]; ok {
+			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
+		} else {
+			chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID] = nodeAddr
+		}
+	case "remove-node":
+		nodeID := t.NodeID(tokens[1])
+		fmt.Printf("Removing node: %v\n", nodeID)
+		if _, ok := chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID]; !ok {
+			fmt.Printf("Removing node failed. Node not present in membership: %v\n", nodeID)
+		} else {
+			delete(chat.memberships[chat.CurrentEpoch()+configOffset+1], nodeID)
+		}
+	default:
+		fmt.Printf("Ignoring config message: %s (tokens: %v)\n", configMsg, tokens)
+	}
 }
 
 // Snapshot returns a binary representation of the application state.
