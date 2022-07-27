@@ -20,3 +20,6 @@ chat-demo-wal
 
 # Ignore the protoc plugin binary
 protoc-plugin/protoc-gen-mir
+
+# Ignore backup files
+*~

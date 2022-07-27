@@ -17,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/simplewal"
+	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -38,6 +39,12 @@ type TestReplica struct {
 
 	// List of replica IDs constituting the (static) membership.
 	Membership []t.NodeID
+
+	// Node's representation within the simulation runtime
+	Sim *SimNode
+
+	// Node's process within the simulation runtime
+	Proc *testsim.Process
 
 	// Number of simulated requests inserted in the test replica by a hypothetical client.
 	NumFakeRequests int
@@ -89,11 +96,17 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 	tr.Modules["wal"] = wal
 
+	modules := tr.Modules
+	if tr.Sim != nil {
+		modules["timer"] = NewSimTimerModule(tr.Sim)
+		modules = tr.Sim.WrapModules(modules)
+	}
+
 	// Create the mir node for this replica.
 	node, err := mir.NewNode(
 		tr.ID,
 		tr.Config,
-		tr.Modules,
+		modules,
 		wal,
 		interceptor,
 	)
@@ -120,7 +133,16 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Start thread submitting requests from a (single) hypothetical client.
 	// The client submits a predefined number of requests and then stops.
-	go tr.submitFakeRequests(ctx, node, tr.FakeRequestsDestModule, &wg)
+	go func() {
+		if tr.Proc != nil {
+			walEvents, err := wal.LoadAll(ctx)
+			if err != nil {
+				panic(fmt.Errorf("error loading WAL events %w", err))
+			}
+			tr.Sim.Start(tr.Proc, walEvents)
+		}
+		tr.submitFakeRequests(ctx, node, tr.FakeRequestsDestModule, &wg)
+	}()
 
 	// TODO: avoid hacky special cases like this.
 	if transport, ok := tr.Modules["net"]; ok {
@@ -157,6 +179,10 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, destModule t.ModuleID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	if tr.Proc != nil {
+		defer tr.Proc.Exit()
+	}
+
 	// The ID of the fake client is always 0.
 	for i := 0; i < tr.NumFakeRequests; i++ {
 		select {
@@ -165,20 +191,26 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 			break
 		default:
 			// Otherwise, submit next request.
-
-			if err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
+			eventList := events.ListOf(events.NewClientRequests(
 				destModule,
 				[]*requestpb.Request{events.ClientRequest(
 					t.NewClientIDFromInt(0),
 					t.ReqNo(i),
 					[]byte(fmt.Sprintf("Request %d", i)),
 				)},
-			))); err != nil {
+			))
+
+			if err := node.InjectEvents(ctx, eventList); err != nil {
 
 				// TODO (Jason), failing on err causes flakes in the teardown,
 				// so just returning for now, we should address later
 				break
 			}
+
+			if tr.Proc != nil {
+				tr.Sim.SendEvents(tr.Proc, eventList)
+			}
+
 			// TODO: Add some configurable delay here
 		}
 	}
