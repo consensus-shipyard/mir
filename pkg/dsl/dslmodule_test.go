@@ -101,7 +101,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 	})
 
 	UponCondition(m, func() error {
-		if uintsSum > 100_000 {
+		if uintsSum > 1000 {
 			return errors.New("too much")
 		}
 		return nil
@@ -161,7 +161,7 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 			err:       errors.New("unknown event type '*eventpb.Event_SendMessage'"),
 		},
 		"test failed condition": {
-			eventsIn:  events.ListOf(events.TestingUint(mc.Self, 999_999_999)),
+			eventsIn:  events.ListOf(events.TestingUint(mc.Self, 2000)),
 			eventsOut: events.EmptyList(),
 			err:       errors.New("too much"),
 		},
