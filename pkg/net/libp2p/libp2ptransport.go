@@ -106,14 +106,12 @@ func (t *Transport) Stop() {
 
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	wg := sync.WaitGroup{}
-	if len(nodes) == 0 {
-		t.logger.Log(logging.LevelWarn, "failed to connect: empty map of nodes")
-		return
-	}
-	wg.Add(len(nodes) - 1)
+	wg.Add(len(nodes))
 
 	for nodeID, nodeAddr := range nodes {
 		if nodeID == t.ownID {
+			// Do not establish a real connection with own node.
+			wg.Done()
 			continue
 		}
 
