@@ -137,10 +137,6 @@ type ISS struct {
 	// Highest epoch numbers indicated in Checkpoint messages from each node.
 	nodeEpochMap map[t.NodeID]t.EpochNr
 
-	// Index of orderers based on the buckets they are assigned.
-	// For each bucket ID, this map stores the orderer to which the bucket is assigned in the current epoch.
-	bucketOrderers map[int]sbInstance
-
 	// --------------------------------------------------------------------------------
 	// These fields are modified throughout an epoch.
 	// TODO: Move them into `epochInfo`?
@@ -179,6 +175,9 @@ type ISS struct {
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
 	lastStableCheckpoint *isspb.StableCheckpoint
+
+	// TODO: Finish and document this.
+	configurations [][]t.NodeID
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
@@ -187,11 +186,16 @@ type ISS struct {
 //   - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).
 //     see the documentation of the Config type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
+func New(ownID t.NodeID, config *Config, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
 
 	// Check whether the passed configuration is valid.
 	if err := CheckConfig(config); err != nil {
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
+	}
+
+	memberships := make([][]t.NodeID, config.ConfigOffset+1)
+	for i := 0; i < config.ConfigOffset+1; i++ {
+		memberships[i] = config.InitialMembership
 	}
 
 	// Initialize a new ISS object.
@@ -202,10 +206,9 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		logger:  logger,
 
 		// Fields modified only by initEpoch
-		config:         config,
-		epochs:         make(map[t.EpochNr]*epochInfo),
-		nodeEpochMap:   make(map[t.NodeID]t.EpochNr),
-		bucketOrderers: nil,
+		config:       config,
+		epochs:       make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap: make(map[t.NodeID]t.EpochNr),
 
 		// Fields modified throughout an epoch
 		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
@@ -213,23 +216,28 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		nextDeliveredSN:    0,
 		newEpochSN:         0,
 		messageBuffers: messagebuffer.NewBuffers(
-			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
+			removeNodeID(config.InitialMembership, ownID), // Create a message buffer for everyone except for myself.
 			config.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
 		lastStableCheckpoint: &isspb.StableCheckpoint{
-			Epoch: 0,
-			Sn:    0,
+			Sn:       0,
+			Snapshot: initialState,
+			Cert:     map[string][]byte{},
 			// TODO: When the storing of actual application state is implemented, some encoding of "initial state"
 			//       will have to be set here. E.g., an empty byte slice could be defined as "initial state" and
 			//       the application required to interpret it as such.
+
+			// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
+			//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
 		},
+		configurations: memberships,
 	}
 
 	// Initialize the first epoch (epoch 0).
 	// If the starting epoch is different (e.g. because the node is restarting),
 	// the corresponding state (including epoch number) must be loaded through applying Events read from the WAL.
-	iss.initEpoch(0)
+	iss.initEpoch(0, config.InitialMembership)
 
 	// Return the initialized protocol module.
 	return iss, nil
@@ -264,8 +272,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_StateSnapshot:
 		return iss.applyStateSnapshot(e.StateSnapshot), nil
 	case *eventpb.Event_NewConfig:
-		// TODO: Implement Reconfiguration
-		return events.EmptyList(), nil
+		return iss.applyNewConfig(e.NewConfig)
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
@@ -452,14 +459,14 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 	// TODO: This is extremely inefficient and on the critical path
 	//       (done on every request reception and TotalRequests loops over all buckets in the segment).
 	//       Maintain a counter of requests in assigned buckets instead.
-	pendingRequests := iss.buckets.Select(iss.bucketOrderers[bucket.ID].Segment().BucketIDs).TotalRequests()
+	pendingRequests := iss.buckets.Select(iss.epoch.bucketOrderers[bucket.ID].Segment().BucketIDs).TotalRequests()
 
 	// If there are enough pending requests to fill a batch,
 	// announce the total number of pending requests to the corresponding orderer.
 	// Note that this deprives the orderer from the information about the number of pending requests,
 	// as long as there are fewer of them than MaxBatchSize, but the orderer (so far) should not need this information.
 	if pendingRequests >= iss.config.MaxBatchSize {
-		eventsOut.PushBackList(iss.bucketOrderers[bucket.ID].ApplyEvent(SBPendingRequestsEvent(pendingRequests)))
+		eventsOut.PushBackList(iss.epoch.bucketOrderers[bucket.ID].ApplyEvent(SBPendingRequestsEvent(pendingRequests)))
 	}
 
 	return eventsOut
@@ -468,10 +475,21 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 // applyStateSnapshot applies the event of the application creating a state snapshot.
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(snapshot.Epoch) {
+	if iss.epoch.Nr != t.EpochNr(snapshot.Configuration.EpochNr) {
+		iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
+			"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshot.Configuration.EpochNr)
 		return events.EmptyList()
 	}
 	return iss.epoch.Checkpoint.ProcessStateSnapshot(snapshot)
+}
+
+func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
+	iss.logger.Log(logging.LevelDebug, "Adding configuration",
+		"forEpoch", len(iss.configurations),
+		"currentEpoch", iss.epoch.Nr)
+	iss.configurations = append(iss.configurations, t.NodeIDSlice(config.NodeIds))
+	// TODO: Continue here.
+	return events.EmptyList(), nil
 }
 
 // applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
@@ -561,18 +579,20 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
 		// If this is the most recent checkpoint observed, save it.
-		iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
-			"epoch", stableCheckpoint.Epoch,
+		iss.logger.Log(logging.LevelDebug, "New stable checkpoint.",
+			"epoch", stableCheckpoint.Snapshot.Configuration.EpochNr,
 			"sn", stableCheckpoint.Sn,
-			"replacingEpoch", iss.lastStableCheckpoint.Epoch,
-			"replacingSn", iss.lastStableCheckpoint.Sn)
+			"replacingEpoch", iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr,
+			"replacingSn", iss.lastStableCheckpoint.Sn,
+			"numMemberships", len(stableCheckpoint.Snapshot.Configuration.Memberships),
+		)
 		iss.lastStableCheckpoint = stableCheckpoint
 
 		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		pruneIndex := int(stableCheckpoint.Epoch) - iss.config.RetainedEpochs
+		pruneIndex := int(stableCheckpoint.Snapshot.Configuration.EpochNr) - iss.config.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL and Timer
@@ -621,8 +641,9 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// and needs the stable checkpoint in order to start
 	// catching up with state transfer.
 	var delayed []t.NodeID
-	for _, n := range iss.config.Membership {
-		if t.EpochNr(iss.lastStableCheckpoint.Epoch) > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
+	lastStableCheckpointEpoch := t.EpochNr(iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr)
+	for _, n := range iss.configurations[iss.epoch.Nr] {
+		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
 	}
@@ -647,8 +668,6 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *
 		return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
 	case *isspb.ISSMessage_Sb:
 		return iss.applySBMessage(msg.Sb, from)
-	case *isspb.ISSMessage_RetransmitRequests:
-		return iss.applyRetransmitRequestsMessage(msg.RetransmitRequests, from)
 	default:
 		panic(fmt.Errorf("unknown ISS message type: %T", msg))
 	}
@@ -710,7 +729,9 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 		//       The snapshot first has to be hashed and only then the signatures can be verified.
 		//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
 
-		[][][]byte{serializing.CheckpointForSig(t.EpochNr(chkp.Epoch), t.SeqNr(chkp.Sn), []byte{0})},
+		[][][]byte{
+			serializing.CheckpointForSig(t.EpochNr(chkp.Snapshot.Configuration.EpochNr), t.SeqNr(chkp.Sn), []byte{0}),
+		},
 		signatures,
 		nodeIDs,
 		StableCheckpointSigVerOrigin(chkp),
@@ -734,20 +755,23 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	//	return eventsOut
 	//}
 
+	// Convenience variable
+	chkpEpoch := t.EpochNr(chkp.Snapshot.Configuration.EpochNr)
+
 	// Check how far is the received stable checkpoint ahead of
 	// the local node's state.
-	if t.EpochNr(chkp.Epoch) <= iss.epoch.Nr+1 {
+	if chkpEpoch <= iss.epoch.Nr+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
 		return events.EmptyList()
 	}
 
-	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkp.Epoch)
+	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkpEpoch)
 
 	// Clean up global ISS state that belongs to the current epoch
 	// instance that local replica got stuck with.
 	iss.epochs = make(map[t.EpochNr]*epochInfo)
-	iss.epoch = nil
+	// iss.epoch = nil // This will be overwritten by initEpoch anyway.
 	iss.commitLog = make(map[t.SeqNr]*CommitLogEntry)
 	iss.unhashedLogEntries = make(map[t.SeqNr]*CommitLogEntry)
 	iss.nextDeliveredSN = t.SeqNr(chkp.Sn)
@@ -757,7 +781,17 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	// checkpoint to continue participating in the protocol
 	// starting with that epoch after installing the state
 	// snapshot from the new stable checkpoint.
-	iss.initEpoch(t.EpochNr(chkp.Epoch))
+
+	// Save the configurations obtained in the checkpoint
+	// TODO: Make sure that the node IDs are always sorted.
+	iss.configurations = make([][]t.NodeID, len(chkp.Snapshot.Configuration.Memberships))
+	for i, m := range chkp.Snapshot.Configuration.Memberships {
+		iss.configurations[i] = t.NodeIDSlice(maputil.GetSortedKeys(m.Membership))
+	}
+
+	// TODO: Check if all the configurations are present in the checkpoint.
+	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
+	iss.initEpoch(chkpEpoch, iss.configurations[chkpEpoch])
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -795,7 +829,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		// apply it to the corresponding orderer in form of an SBMessageReceived event.
 		if err := epoch.validateSBMessage(message, from); err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
-				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err)
+				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err, "epoch", epochNr)
 			return events.EmptyList()
 		}
 
@@ -808,50 +842,69 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 	}
 }
 
-// applyRetransmitRequestsMessage applies a message demanding request retransmission to a node
-// that received a proposal containing some requests, but was not yet able to authenticate those requests.
-// TODO: Implement this function. See demandRequestRetransmission for more comments.
-func (iss *ISS) applyRetransmitRequestsMessage(req *isspb.RetransmitRequests, from t.NodeID) *events.EventList {
-	iss.logger.Log(logging.LevelWarn, "UNIMPLEMENTED: Ignoring request retransmission request.",
-		"from", from, "numReqs", len(req.Requests))
-	return events.EmptyList()
-}
-
 // ============================================================
 // Additional protocol logic
 // ============================================================
 
 // initEpoch initializes a new ISS epoch with the given epoch number.
-func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
+func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 
-	iss.logger.Log(logging.LevelInfo, "New epoch", "epochNr", newEpoch)
+	var leaderPolicy LeaderSelectionPolicy
+	if newEpoch == 0 {
+		leaderPolicy = iss.config.LeaderPolicy
+	} else {
+		leaderPolicy = iss.epoch.leaderPolicy.Reconfigure(membership)
+	}
+
+	iss.logger.Log(logging.LevelInfo, "New epoch", "epochNr", newEpoch, "numNodes", len(membership))
 
 	// Set the new epoch number and re-initialize list of orderers.
-	epoch := &epochInfo{
-		Nr:         newEpoch,
-		Membership: iss.config.Membership, // TODO: Make a proper copy once reconfiguration is supported.
-		Checkpoint: newCheckpointTracker(
+	epoch := newEpochInfo(
+		newEpoch,
+		membership,
+		newCheckpointTracker(
 			iss.ownID,
 			iss.nextDeliveredSN,
 			newEpoch,
 			t.TimeDuration(iss.config.CheckpointResendPeriod),
 			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch),
 		),
+		leaderPolicy,
+	)
+
+	iss.epochs[newEpoch] = &epoch
+	iss.epoch = &epoch
+
+	// TODO: DIRTY TRICK to get some capacity of any message buffer and copy it
+	//       Implement proper adapting of buffer capacities when changing the number of message buffers.
+	var mbCapacity int
+	b, ok := maputil.Any(iss.messageBuffers)
+	if !ok {
+		mbCapacity = iss.config.MsgBufCapacity
+	} else {
+		mbCapacity = b.Capacity()
 	}
-	iss.epochs[newEpoch] = epoch
-	iss.epoch = epoch
+
+	// Add new message buffers if not already present.
+	// TODO: Implement garbage collection of old ones.
+	//       Also, this is very dirty code. Fix!
+	for _, nodeID := range membership {
+		if _, ok := iss.messageBuffers[nodeID]; nodeID != iss.ownID && !ok {
+			iss.messageBuffers[nodeID] = messagebuffer.New(
+				nodeID,
+				mbCapacity,
+				logging.Decorate(logging.Decorate(iss.logger, "Msgbuf: "), "", "source", nodeID),
+			)
+		}
+	}
 
 	// Compute the set of leaders for the new epoch.
 	// Note that leader policy is stateful, choosing leaders deterministically based on the state of the system.
 	// Its state must be consistent across all nodes when calling Leaders() on it.
-	leaders := iss.config.LeaderPolicy.Leaders(newEpoch)
+	leaders := iss.epoch.leaderPolicy.Leaders(newEpoch)
 
 	// Compute the assignment of buckets to orderers (each leader will correspond to one orderer).
 	leaderBuckets := iss.buckets.Distribute(leaders, newEpoch)
-
-	// Initialize index of orderers based on the buckets they are assigned.
-	// Given a bucket, this index helps locate the orderer to which the bucket is assigned.
-	iss.bucketOrderers = make(map[int]sbInstance)
 
 	// Create new segments of the commit log, one per leader selected by the leader selection policy.
 	// Instantiate one orderer (SB instance) for each segment.
@@ -860,7 +913,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 		// Create segment.
 		seg := &segment{
 			Leader:     leader,
-			Membership: iss.config.Membership,
+			Membership: membership,
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),
@@ -875,7 +928,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 			iss.ownID,
 			seg,
 			iss.buckets.Select(seg.BucketIDs).TotalRequests(),
-			newPBFTConfig(iss.config),
+			newPBFTConfig(iss.config, membership),
 			&sbEventService{epoch: newEpoch, instance: t.SBInstanceNr(i)},
 			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
 
@@ -884,7 +937,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 
 		// Populate index of orderers based on the buckets they are assigned.
 		for _, bID := range seg.BucketIDs {
-			iss.bucketOrderers[bID] = sbInst
+			iss.epoch.bucketOrderers[bID] = sbInst
 		}
 	}
 }
@@ -936,11 +989,31 @@ func (iss *ISS) processCommitted() *events.EventList {
 		iss.nextDeliveredSN++
 	}
 
+	// Convenience variables
+	oldEpochNr := iss.epoch.Nr
+	newEpochNr := iss.epoch.Nr + 1
+
 	// If the epoch is finished, transition to the next epoch.
 	if iss.epochFinished() {
 
+		iss.logger.Log(logging.LevelDebug, "Epoch finished.",
+			"epoch", oldEpochNr,
+			"nextSN", iss.nextDeliveredSN,
+			"numConfigs", len(iss.configurations),
+		)
+
+		if !(len(iss.configurations) > int(newEpochNr)) {
+			return eventsOut
+		}
+
 		// Initialize the internal data structures for the new epoch.
-		iss.initEpoch(iss.epoch.Nr + 1)
+		iss.initEpoch(newEpochNr, iss.configurations[newEpochNr])
+
+		// Signal the new epoch to the application.
+		// This must happen before starting the checkpoint protocol, since the application
+		// must already be in the new epoch when processing the state snapshot request
+		// emitted by the checkpoint sub-protocol.
+		eventsOut.PushBack(events.NewEpoch(appModuleName, newEpochNr))
 
 		// Look up a (or create a new) checkpoint tracker and start the checkpointing protocol.
 		// This must happen after initialization of the new epoch,
@@ -949,7 +1022,8 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// The checkpoint tracker might already exist if a corresponding message has been already received.
 		// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
 		// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
-		eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.config.Membership))
+		// The membership used for the checkpoint tracker still must be the old membership.
+		eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.configurations[oldEpochNr]))
 
 		// Give the init signals to the newly instantiated orderers.
 		// TODO: Currently this probably sends the Init event to old orderers as well.
@@ -1072,15 +1146,11 @@ func membershipSet(membership []t.NodeID) map[t.NodeID]struct{} {
 }
 
 // Returns a configuration of a new PBFT instance based on the current ISS configuration.
-func newPBFTConfig(issConfig *Config) *PBFTConfig {
-
-	// Make a copy of the current membership.
-	pbftMembership := make([]t.NodeID, len(issConfig.Membership))
-	copy(pbftMembership, issConfig.Membership)
+func newPBFTConfig(issConfig *Config, membership []t.NodeID) *PBFTConfig {
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &PBFTConfig{
-		Membership:               issConfig.Membership,
+		Membership:               membership,
 		MaxProposeDelay:          issConfig.MaxProposeDelay,
 		MsgBufCapacity:           issConfig.MsgBufCapacity,
 		MaxBatchSize:             issConfig.MaxBatchSize,

@@ -18,26 +18,26 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -48,10 +48,7 @@ const (
 	// of clients with node-to-node communication.
 	reqReceiverBasePort = 20000
 
-	// The number of batches per ISS segment (this is ISS-specific, use epoch length instead!)
-	segmentLength = 4
-
-	// Number of epochs by which to delay configuration changess.
+	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
 	configOffset = 2
 )
@@ -78,6 +75,20 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func dummyMultiAddrs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]t.NodeAddress, error) {
+	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+
+	for nodeID, nodeAddr := range membership {
+		numericID, err := strconv.Atoi(string(nodeID))
+		if err != nil {
+			return nil, fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+		}
+		nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
+	}
+
+	return nodeAddrs, nil
 }
 
 func run() error {
@@ -150,27 +161,18 @@ func run() error {
 	// In the current implementation, all nodes are on the local machine, but listen on different port numbers.
 	// Change this or make this configurable to deploy different nodes on different physical machines.
 	var transport net.Transport
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+	var nodeAddrs map[t.NodeID]t.NodeAddress
 	switch strings.ToLower(args.Net) {
 	case "grpc":
 		transport, err = grpc.NewTransport(args.OwnID, initialMembership[args.OwnID], logger)
 		nodeAddrs = initialMembership
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
-		for nodeID, nodeAddr := range initialMembership {
-			numericID, err := strconv.Atoi(string(nodeID))
-			if err != nil {
-				return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
-			}
-			nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
+		nodeAddrs, err = dummyMultiAddrs(initialMembership)
+		if err != nil {
+			return fmt.Errorf("could not generate libp2p multiaddresses: %w", err)
 		}
 		transport, err = libp2p.NewTransport(h, args.OwnID, logger)
-
-		//h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
-		//multiAddr := libp2ptools.NewDummyMultiaddr(ownNumericID, initialMembership[args.OwnID])
-		//fmt.Println(multiAddr)
-		//transport, err = libp2p.NewTransport(h, args.OwnID, logger)
-
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
 	}
@@ -184,10 +186,21 @@ func run() error {
 	transport.Connect(ctx, nodeAddrs)
 
 	// Instantiate the ISS protocol module.
+	memberships := make([]map[t.NodeID]t.NodeAddress, configOffset+1)
+	for i := 0; i < configOffset+1; i++ {
+		memberships[t.EpochNr(i)] = initialMembership
+	}
 	issConfig := iss.DefaultConfig(nodeIDs)
-	issConfig.SegmentLength = segmentLength
-	issConfig.PBFTViewChangeSegmentTimeout = 2 * time.Duration(issConfig.SegmentLength) * issConfig.MaxProposeDelay
-	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
+	issConfig.ConfigOffset = configOffset
+	issProtocol, err := iss.New(
+		args.OwnID,
+		issConfig,
+		&commonpb.StateSnapshot{
+			AppData:       []byte{},
+			Configuration: events.EpochConfig(0, memberships),
+		},
+		logger,
+	)
 	if err != nil {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
 	}
@@ -203,7 +216,7 @@ func run() error {
 
 		// This is the application logic Mir is going to deliver requests to.
 		// For the implementation of the application, see app.go.
-		"app": NewChatApp(initialMembership, segmentLength),
+		"app": NewChatApp(initialMembership, transport),
 
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.

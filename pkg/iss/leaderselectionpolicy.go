@@ -21,6 +21,13 @@ type LeaderSelectionPolicy interface {
 
 	// Suspect updates the state of the policy object by announcing it that node `node` has been suspected in epoch `e`.
 	Suspect(e t.EpochNr, node t.NodeID)
+
+	// Reconfigure returns a new LeaderSelectionPolicy based on the state of the current one,
+	// but using a new configuration.
+	// TODO: Use the whole configuration, not just the membership.
+	Reconfigure(membership []t.NodeID) LeaderSelectionPolicy
+
+	// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
 }
 
 // The SimpleLeaderPolicy is a trivial leader selection policy.
@@ -39,4 +46,11 @@ func (simple *SimpleLeaderPolicy) Leaders(e t.EpochNr) []t.NodeID {
 // Suspect does nothing for the SimpleLeaderPolicy.
 func (simple *SimpleLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 	// Do nothing.
+}
+
+// Reconfigure informs the leader selection policy about a change in the membership.
+func (simple *SimpleLeaderPolicy) Reconfigure(membership []t.NodeID) LeaderSelectionPolicy {
+	newPolicy := SimpleLeaderPolicy{Membership: make([]t.NodeID, len(membership))}
+	copy(newPolicy.Membership, membership)
+	return &newPolicy
 }

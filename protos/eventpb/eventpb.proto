@@ -57,7 +57,8 @@ message Event {
     bcbpb.Event            bcb                     = 28;
     mempoolpb.Event        mempool                 = 29;
     availabilitypb.Event   availability            = 30;
-    NewConfig            new_config              = 31;
+    NewEpoch               new_epoch               = 31;
+    NewConfig            new_config                = 32;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -204,7 +205,6 @@ message StoreVerifiedRequest {
 
 message StateSnapshotRequest {
   string module = 1;
-  uint64 epoch  = 2;
 }
 
 message AppRestoreState {
@@ -226,7 +226,10 @@ message TimerGarbageCollect {
   uint64 retention_index = 1;
 }
 
+message NewEpoch {
+  uint64 epoch_nr = 1;
+}
+
 message NewConfig {
   repeated string node_ids = 1;
-
 }
