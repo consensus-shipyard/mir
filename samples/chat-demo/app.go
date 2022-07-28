@@ -12,12 +12,12 @@ SPDX-License-Identifier: Apache-2.0
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/multiformats/go-multiaddr"
 	"strings"
-
-	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -89,18 +89,19 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		if err := chat.ApplyBatch(e.Deliver.Batch); err != nil {
 			return nil, fmt.Errorf("app batch delivery error: %w", err)
 		}
-	case *eventpb.Event_AppSnapshotRequest:
-		data, err := chat.Snapshot()
+	case *eventpb.Event_StateSnapshotRequest:
+		data, membership, err := chat.Snapshot()
 		if err != nil {
 			return nil, fmt.Errorf("app snapshot error: %w", err)
 		}
-		return events.ListOf(events.AppSnapshot(
-			t.ModuleID(e.AppSnapshotRequest.Module),
-			t.EpochNr(e.AppSnapshotRequest.Epoch),
+		return events.ListOf(events.StateSnapshot(
+			t.ModuleID(e.StateSnapshotRequest.Module),
+			t.EpochNr(e.StateSnapshotRequest.Epoch),
 			data,
+			membership,
 		)), nil
 	case *eventpb.Event_AppRestoreState:
-		if err := chat.RestoreState(e.AppRestoreState.Data); err != nil {
+		if err := chat.RestoreState(e.AppRestoreState.Snapshot); err != nil {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
 	default:
@@ -197,28 +198,18 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 // At the time of writing this comment, the Mir library does not support state transfer
 // and Snapshot is never actually called.
 // We include its implementation for completeness.
-func (chat *ChatApp) Snapshot() ([]byte, error) {
+func (chat *ChatApp) Snapshot() ([]byte, map[t.NodeID]t.NodeAddress, error) {
 
-	// We use protocol buffers to serialize the application state.
-	state := &AppState{
-		Messages: chat.messages,
-	}
-	return proto.Marshal(state)
+	return serializeMessages(chat.messages), map[t.NodeID]t.NodeAddress{}, nil
 }
 
 // RestoreState restores the application's state to the one represented by the passed argument.
 // The argument is a binary representation of the application state returned from Snapshot().
 // After the chat history is restored, RestoreState prints the whole chat history to stdout.
-func (chat *ChatApp) RestoreState(snapshot []byte) error {
+func (chat *ChatApp) RestoreState(snapshot *commonpb.StateSnapshot) error {
 
-	// Unmarshal the protobuf message from its binary form.
-	state := &AppState{}
-	if err := proto.Unmarshal(snapshot, state); err != nil {
-		return err
-	}
-
-	// Restore internal state
-	chat.messages = state.Messages
+	// Restore chat messages
+	chat.messages = deserializeMessages(snapshot.AppData)
 
 	// Print new state
 	fmt.Printf("\n CHAT STATE RESTORED. SHOWING ALL CHAT HISTORY FROM THE BEGINNING.\n")
@@ -231,3 +222,25 @@ func (chat *ChatApp) RestoreState(snapshot []byte) error {
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (chat *ChatApp) ImplementsModule() {}
+
+func serializeMessages(messages []string) []byte {
+	data := make([]byte, len(messages))
+	for _, msg := range messages {
+		data = append(data, []byte(msg)...)
+		data = append(data, 0)
+	}
+	return data
+}
+
+func deserializeMessages(data []byte) []string {
+	messages := make([]string, 0)
+
+	if len(data) == 0 {
+		return messages
+	}
+
+	for _, msg := range bytes.Split(data[:len(data)-1], []byte{0}) { // len(data)-1 to strip off the last zero byte
+		messages = append(messages, string(msg))
+	}
+	return messages
+}

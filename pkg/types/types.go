@@ -8,6 +8,7 @@ package types
 
 import (
 	"encoding/binary"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"strconv"
 	"time"
 
@@ -19,6 +20,15 @@ import (
 
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
+
+func MembershipPb(membership map[NodeID]NodeAddress) map[string]string {
+	m := make(map[string]string, len(membership))
+	maputil.IterateSorted(membership, func(nodeID NodeID, nodeAddr NodeAddress) (cont bool) {
+		m[nodeID.Pb()] = nodeAddr.String()
+		return true
+	})
+	return m
+}
 
 // ================================================================================
 
@@ -241,6 +251,12 @@ type EpochNr uint64
 // Pb converts an EpochNr number to its underlying native type.
 func (e EpochNr) Pb() uint64 {
 	return uint64(e)
+}
+
+func (e EpochNr) Bytes() []byte {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(e))
+	return bytes
 }
 
 // ================================================================================

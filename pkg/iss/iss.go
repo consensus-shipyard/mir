@@ -16,6 +16,7 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"google.golang.org/protobuf/proto"
 
@@ -260,8 +261,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_NewRequests:
 		return iss.applyNewRequests(e.NewRequests.Requests)
-	case *eventpb.Event_AppSnapshot:
-		return iss.applyAppSnapshot(e.AppSnapshot), nil
+	case *eventpb.Event_StateSnapshot:
+		return iss.applyStateSnapshot(e.StateSnapshot), nil
 	case *eventpb.Event_NewConfig:
 		// TODO: Implement Reconfiguration
 		return events.EmptyList(), nil
@@ -329,9 +330,9 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn)), nil
-	case *isspb.ISSHashOrigin_AppSnapshotEpoch:
+	case *isspb.ISSHashOrigin_StateSnapshotEpoch:
 		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyAppSnapshotHashResult(result.Digests[0], t.EpochNr(origin.AppSnapshotEpoch)), nil
+		return iss.applyStateSnapshotHashResult(result.Digests[0], t.EpochNr(origin.StateSnapshotEpoch)), nil
 	default:
 		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
 	}
@@ -464,13 +465,13 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 	return eventsOut
 }
 
-// applyAppSnapshot applies the event of the application creating a state snapshot.
+// applyStateSnapshot applies the event of the application creating a state snapshot.
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyAppSnapshot(snapshot *eventpb.AppSnapshot) *events.EventList {
+func (iss *ISS) applyStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
 	if iss.epoch.Nr != t.EpochNr(snapshot.Epoch) {
 		return events.EmptyList()
 	}
-	return iss.epoch.Checkpoint.ProcessAppSnapshot(snapshot.Data)
+	return iss.epoch.Checkpoint.ProcessStateSnapshot(snapshot)
 }
 
 // applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
@@ -495,13 +496,13 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 
 }
 
-// applyAppSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
+// applyStateSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
 // It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyAppSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
+func (iss *ISS) applyStateSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
 	if iss.epoch.Nr != epoch {
 		return events.EmptyList()
 	}
-	return iss.epoch.Checkpoint.ProcessAppSnapshotHash(digest)
+	return iss.epoch.Checkpoint.ProcessStateSnapshotHash(digest)
 }
 
 // applyCheckpointSignResult applies the event of receiving the Checkpoint message signature.
@@ -704,7 +705,12 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 	// Request verification of signatures in the checkpoint certificate
 	return events.ListOf(events.VerifyNodeSigs(
 		"crypto",
-		[][][]byte{serializing.CheckpointForSig(t.EpochNr(chkp.Epoch), t.SeqNr(chkp.Sn), chkp.AppSnapshot)},
+
+		// TODO: !!!! This is wrong !!!!
+		//       The snapshot first has to be hashed and only then the signatures can be verified.
+		//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
+
+		[][][]byte{serializing.CheckpointForSig(t.EpochNr(chkp.Epoch), t.SeqNr(chkp.Sn), []byte{0})},
 		signatures,
 		nodeIDs,
 		StableCheckpointSigVerOrigin(chkp),
@@ -717,12 +723,16 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb.StableCheckpoint) *events.EventList {
 	eventsOut := events.EmptyList()
 
-	// Ignore checkpoint with in valid or insufficiently many signatures.
-	// TODO: Make sure this code still works when reconfiguration is implemented.
-	if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.config.Membership)) {
-		iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
-		return eventsOut
-	}
+	// TODO: !!!! This is wrong !!!!
+	//       The snapshot first has to be hashed and only then the signatures can be verified.
+	//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
+
+	//// Ignore checkpoint with in valid or insufficiently many signatures.
+	//// TODO: Make sure this code still works when reconfiguration is implemented.
+	//if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.config.Membership)) {
+	//	iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
+	//	return eventsOut
+	//}
 
 	// Check how far is the received stable checkpoint ahead of
 	// the local node's state.
@@ -755,7 +765,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(appModuleName, chkp.AppSnapshot))
+	eventsOut.PushBack(events.AppRestoreState(appModuleName, chkp.Snapshot))
 
 	// Activate SB instances of the new epoch which will deliver
 	// batches after the application module has restored the state

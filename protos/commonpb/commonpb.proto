@@ -7,3 +7,9 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/commonpb";
 message HashData {
   repeated bytes data = 1;
 }
+
+message StateSnapshot {
+  uint64              epoch      = 1;
+  bytes               app_data   = 2;
+  map<string, string> membership = 3;
+}

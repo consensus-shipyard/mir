@@ -16,6 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -46,14 +47,19 @@ func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
 	return &eventpb.SigVerOrigin{Module: issModuleName.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
 }
 
-func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature []byte) *eventpb.Event {
+func PersistCheckpointEvent(
+	sn t.SeqNr,
+	stateSnapshot *commonpb.StateSnapshot,
+	appSnapshotHash,
+	signature []byte,
+) *eventpb.Event {
 	return Event(
 		issModuleName,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
-			Sn:              sn.Pb(),
-			AppSnapshot:     appSnapshot,
-			AppSnapshotHash: appSnapshotHash,
-			Signature:       signature,
+			Sn:                sn.Pb(),
+			StateSnapshot:     stateSnapshot,
+			StateSnapshotHash: appSnapshotHash,
+			Signature:         signature,
 		}}},
 	)
 }
@@ -113,8 +119,10 @@ func RequestHashOrigin(requests []*requestpb.Request) *eventpb.HashOrigin {
 	}}})
 }
 
-func AppSnapshotHashOrigin(epoch t.EpochNr) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotEpoch{AppSnapshotEpoch: epoch.Pb()}})
+func StateSnapshotHashOrigin(epoch t.EpochNr) *eventpb.HashOrigin {
+	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_StateSnapshotEpoch{
+		StateSnapshotEpoch: epoch.Pb(),
+	}})
 }
 
 func CheckpointSignOrigin(epoch t.EpochNr) *eventpb.SignOrigin {
@@ -250,12 +258,12 @@ func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMe
 	}}})
 }
 
-func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, appSnapshotHash, signature []byte) *messagepb.Message {
+func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, snapshotHash, signature []byte) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_Checkpoint{Checkpoint: &isspb.Checkpoint{
-		Epoch:           epoch.Pb(),
-		Sn:              sn.Pb(),
-		AppSnapshotHash: appSnapshotHash,
-		Signature:       signature,
+		Epoch:        epoch.Pb(),
+		Sn:           sn.Pb(),
+		SnapshotHash: snapshotHash,
+		Signature:    signature,
 	}}})
 }
 

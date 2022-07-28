@@ -273,8 +273,6 @@ func (t *Transport) mirHandler(s network.Stream) {
 		t.incomingMessages <- events.ListOf(
 			events.MessageReceived(types.ModuleID(payload.DestModule), types.NodeID(msg.Sender), &payload),
 		)
-
-		t.logger.Log(logging.LevelDebug, "sent to channel", "msg type=", fmt.Sprintf("%T", payload.Type))
 	}
 }
 
