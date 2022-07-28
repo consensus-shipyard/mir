@@ -348,3 +348,12 @@ func TimerGarbageCollect(destModule t.ModuleID, retIndex t.TimerRetIndex) *event
 		}},
 	}
 }
+
+func NewConfig(destModule t.ModuleID, nodeIDs []t.NodeID) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_NewConfig{NewConfig: &eventpb.NewConfig{
+			NodeIds: t.NodeIDSlicePb(nodeIDs),
+		}},
+	}
+}
