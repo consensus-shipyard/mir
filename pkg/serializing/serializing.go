@@ -8,6 +8,8 @@ package serializing
 
 import (
 	"encoding/binary"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -50,4 +52,23 @@ func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]b
 	binary.LittleEndian.PutUint64(snBytes, uint64(seqNr))
 
 	return [][]byte{epochBytes, snBytes, snapshotHash}
+}
+
+func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
+
+	// Append epoch and app data
+	data := [][]byte{
+		t.EpochNr(snapshot.Epoch).Bytes(),
+		snapshot.AppData,
+	}
+
+	// Append membership.
+	// Each string representing an ID and an address is explicitly terminated with a zero byte.
+	// This ensures that the last byte of an ID and the first byte of an address are not interchangeable.
+	maputil.IterateSorted(snapshot.Membership, func(id string, addr string) bool {
+		data = append(data, []byte(id), []byte{0}, []byte(addr), []byte{0})
+		return true
+	})
+
+	return data
 }

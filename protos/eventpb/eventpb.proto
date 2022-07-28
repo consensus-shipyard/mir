@@ -28,35 +28,35 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    Init                 init                    = 1;
-    Tick                 tick                    = 2;
-    WALAppend            wal_append              = 3;
-    WALEntry             wal_entry               = 4;
-    WALTruncate          wal_truncate            = 5;
-    NewRequests          new_requests            = 7;
-    HashRequest          hash_request            = 8;
-    HashResult           hash_result             = 9;
-    SignRequest          sign_request            = 10;
-    SignResult           sign_result             = 11;
-    VerifyNodeSigs       verify_node_sigs        = 12;
-    NodeSigsVerified     node_sigs_verified      = 13;
-    RequestReady         request_ready           = 14;
-    SendMessage          send_message            = 15;
-    MessageReceived      message_received        = 16;
-    Deliver              deliver                 = 17;
-    isspb.ISSEvent       iss                     = 18;
-    VerifyRequestSig     verify_request_sig      = 19;
-    RequestSigVerified   request_sig_verified    = 20;
-    StoreVerifiedRequest store_verified_request  = 21;
-    AppSnapshotRequest   app_snapshot_request    = 22;
-    AppSnapshot          app_snapshot            = 23;
-    AppRestoreState      app_restore_state       = 24;
-    TimerDelay           timer_delay             = 25;
-    TimerRepeat          timer_repeat            = 26;
-    TimerGarbageCollect  timer_garbage_collect   = 27;
-    bcbpb.Event          bcb                     = 28;
-    mempoolpb.Event      mempool                 = 29;
-    availabilitypb.Event availability            = 30;
+    Init                   init                    = 1;
+    Tick                   tick                    = 2;
+    WALAppend              wal_append              = 3;
+    WALEntry               wal_entry               = 4;
+    WALTruncate            wal_truncate            = 5;
+    NewRequests            new_requests            = 7;
+    HashRequest            hash_request            = 8;
+    HashResult             hash_result             = 9;
+    SignRequest            sign_request            = 10;
+    SignResult             sign_result             = 11;
+    VerifyNodeSigs         verify_node_sigs        = 12;
+    NodeSigsVerified       node_sigs_verified      = 13;
+    RequestReady           request_ready           = 14;
+    SendMessage            send_message            = 15;
+    MessageReceived        message_received        = 16;
+    Deliver                deliver                 = 17;
+    isspb.ISSEvent         iss                     = 18;
+    VerifyRequestSig       verify_request_sig      = 19;
+    RequestSigVerified     request_sig_verified    = 20;
+    StoreVerifiedRequest   store_verified_request  = 21;
+    StateSnapshotRequest   state_snapshot_request  = 22;
+    commonpb.StateSnapshot state_snapshot          = 23;
+    AppRestoreState        app_restore_state       = 24;
+    TimerDelay             timer_delay             = 25;
+    TimerRepeat            timer_repeat            = 26;
+    TimerGarbageCollect    timer_garbage_collect   = 27;
+    bcbpb.Event            bcb                     = 28;
+    mempoolpb.Event        mempool                 = 29;
+    availabilitypb.Event   availability            = 30;
     NewConfig            new_config              = 31;
 
     // for unit-tests
@@ -202,18 +202,13 @@ message StoreVerifiedRequest {
   bytes             authenticator = 3;
 }
 
-message AppSnapshotRequest {
+message StateSnapshotRequest {
   string module = 1;
   uint64 epoch  = 2;
 }
 
-message AppSnapshot {
-  uint64 epoch = 1;
-  bytes  data  = 2;
-}
-
 message AppRestoreState {
-  bytes  data  = 1;
+  commonpb.StateSnapshot snapshot = 1;
 }
 
 message TimerDelay {

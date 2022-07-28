@@ -9,6 +9,7 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -37,18 +38,19 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		if err := fa.ApplyBatch(e.Deliver.Batch); err != nil {
 			return nil, fmt.Errorf("app batch delivery error: %w", err)
 		}
-	case *eventpb.Event_AppSnapshotRequest:
-		data, err := fa.Snapshot()
+	case *eventpb.Event_StateSnapshotRequest:
+		data, membership, err := fa.Snapshot()
 		if err != nil {
 			return nil, fmt.Errorf("app snapshot error: %w", err)
 		}
-		return events.ListOf(events.AppSnapshot(
-			t.ModuleID(e.AppSnapshotRequest.Module),
-			t.EpochNr(e.AppSnapshotRequest.Epoch),
+		return events.ListOf(events.StateSnapshot(
+			t.ModuleID(e.StateSnapshotRequest.Module),
+			t.EpochNr(e.StateSnapshotRequest.Epoch),
 			data,
+			membership,
 		)), nil
 	case *eventpb.Event_AppRestoreState:
-		if err := fa.RestoreState(e.AppRestoreState.Data); err != nil {
+		if err := fa.RestoreState(e.AppRestoreState.Snapshot); err != nil {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
 	default:
@@ -70,12 +72,13 @@ func (fa *FakeApp) ApplyBatch(batch *requestpb.Batch) error {
 	return nil
 }
 
-func (fa *FakeApp) Snapshot() ([]byte, error) {
-	return uint64ToBytes(fa.RequestsProcessed), nil
+func (fa *FakeApp) Snapshot() ([]byte, map[t.NodeID]t.NodeAddress, error) {
+	// TODO: Track membership return a non-empty one when reconfiguration is supported.
+	return uint64ToBytes(fa.RequestsProcessed), map[t.NodeID]t.NodeAddress{}, nil
 }
 
-func (fa *FakeApp) RestoreState(snapshot []byte) error {
-	fa.RequestsProcessed = uint64FromBytes(snapshot)
+func (fa *FakeApp) RestoreState(snapshot *commonpb.StateSnapshot) error {
+	fa.RequestsProcessed = uint64FromBytes(snapshot.AppData)
 	return nil
 }
 

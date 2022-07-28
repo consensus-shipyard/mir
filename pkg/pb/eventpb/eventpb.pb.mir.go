@@ -3,6 +3,7 @@ package eventpb
 import (
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
+	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -95,12 +96,12 @@ func (p *Event_StoreVerifiedRequest) Unwrap() *StoreVerifiedRequest {
 	return p.StoreVerifiedRequest
 }
 
-func (p *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
-	return p.AppSnapshotRequest
+func (p *Event_StateSnapshotRequest) Unwrap() *StateSnapshotRequest {
+	return p.StateSnapshotRequest
 }
 
-func (p *Event_AppSnapshot) Unwrap() *AppSnapshot {
-	return p.AppSnapshot
+func (p *Event_StateSnapshot) Unwrap() *commonpb.StateSnapshot {
+	return p.StateSnapshot
 }
 
 func (p *Event_AppRestoreState) Unwrap() *AppRestoreState {
