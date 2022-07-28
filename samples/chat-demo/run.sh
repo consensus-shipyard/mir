@@ -5,7 +5,12 @@ NODE_3_LOG="./node_3.log"
 
 rm -rf ./node_*.log
 
-NET="libp2p"
+NET="${1:-"libp2p"}"
+
+if [[ "$NET" != "grpc" && "$NET" != "libp2p" ]]; then
+  echo "unknown transport $NET"
+  exit 1
+fi
 
 tmux new-session -d -s "demo" \; \
   new-window   -t "demo" \; \

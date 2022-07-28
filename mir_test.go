@@ -16,19 +16,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/deploytest"
-	"github.com/filecoin-project/mir/pkg/iss"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/testsim"
-	t "github.com/filecoin-project/mir/pkg/types"
-
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/deploytest"
+	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/testsim"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (
@@ -384,11 +383,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}
 
+		transport, err := transportLayer.Link(nodeID)
+		if err != nil {
+			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
+		}
+
 		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 			"app":    &deploytest.FakeApp{},
 			"crypto": cryptoSystem.Module(nodeID),
 			"iss":    issProtocol,
-			"net":    transportLayer.Link(nodeID),
+			"net":    transport,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)
@@ -401,6 +405,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		Info:                   conf.Info,
 		Simulation:             simulation,
 		NodeIDs:                nodeIDs,
+		Nodes:                  transportLayer.Nodes(),
 		NodeModules:            nodeModules,
 		NumClients:             conf.NumClients,
 		NumFakeRequests:        conf.NumFakeRequests,

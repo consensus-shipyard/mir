@@ -11,8 +11,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 )
+
+// ================================================================================
+
+// NodeAddress represents the address of a node.
+type NodeAddress multiaddr.Multiaddr
 
 // ================================================================================
 
@@ -24,8 +30,8 @@ func NewNodeIDFromInt(id int) NodeID {
 }
 
 // Pb converts a NodeID to its underlying native type.
-func (nid NodeID) Pb() string {
-	return string(nid)
+func (id NodeID) Pb() string {
+	return string(id)
 }
 
 // NodeIDSlice converts a slice of NodeIDs represented directly as their underlying native type

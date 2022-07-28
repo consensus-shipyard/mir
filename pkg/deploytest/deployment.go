@@ -45,6 +45,9 @@ type TestConfig struct {
 	// IDs of nodes in this test.
 	NodeIDs []t.NodeID
 
+	// List of nodes.
+	Nodes map[t.NodeID]t.NodeAddress
+
 	// The modules that will be run by each replica.
 	NodeModules map[t.NodeID]modules.Modules
 
@@ -87,7 +90,6 @@ type Deployment struct {
 
 // NewDeployment returns a Deployment initialized according to the passed configuration.
 func NewDeployment(conf *TestConfig) (*Deployment, error) {
-
 	if conf == nil {
 		return nil, fmt.Errorf("test config is nil")
 	}
@@ -112,7 +114,8 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 		replicas[i] = &TestReplica{
 			ID:                     nodeID,
 			Config:                 config,
-			Membership:             conf.NodeIDs,
+			NodeIDs:                conf.NodeIDs,
+			Nodes:                  conf.Nodes,
 			Dir:                    filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			NumFakeRequests:        conf.NumFakeRequests,
 			Modules:                conf.NodeModules[nodeID],

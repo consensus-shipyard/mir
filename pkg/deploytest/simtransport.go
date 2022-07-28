@@ -40,8 +40,12 @@ func NewSimTransport(s *Simulation, nodeIDs []t.NodeID, delayFn MessageDelayFn) 
 	return t
 }
 
-func (t *SimTransport) Link(source t.NodeID) net.Transport {
-	return t.nodes[source]
+func (t *SimTransport) Link(source t.NodeID) (net.Transport, error) {
+	return t.nodes[source], nil
+}
+
+func (t *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return nil
 }
 
 type simTransportModule struct {
@@ -79,9 +83,11 @@ func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return nil
 }
 
-func (m *simTransportModule) Connect(ctx context.Context) {
-	go m.handleOutChan(ctx, m.SimTransport.Simulation.Spawn())
+func (m *simTransportModule) CloseOldConnections(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+}
 
+func (m *simTransportModule) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+	go m.handleOutChan(ctx, m.SimTransport.Simulation.Spawn())
 }
 
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {

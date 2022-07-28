@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/multiformats/go-multiaddr"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -16,7 +15,7 @@ import (
 type LocalLibp2pTransport struct {
 	// Complete static membership of the system.
 	// Maps the node ID of each node in the system to its libp2p address.
-	membership map[t.NodeID]multiaddr.Multiaddr
+	membership map[t.NodeID]t.NodeAddress
 
 	// Maps node ids to their libp2p host.
 	hosts map[t.NodeID]host.Host
@@ -27,28 +26,31 @@ type LocalLibp2pTransport struct {
 
 func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLibp2pTransport {
 	lt := &LocalLibp2pTransport{
-		membership: make(map[t.NodeID]multiaddr.Multiaddr, len(nodeIDs)),
+		membership: make(map[t.NodeID]t.NodeAddress, len(nodeIDs)),
 		hosts:      make(map[t.NodeID]host.Host),
 		logger:     logger,
 	}
 
 	for i, id := range nodeIDs {
 		lt.hosts[id] = libp2ptools.NewDummyHost(i, BaseListenPort)
-		lt.membership[id] = libp2ptools.NewDummyPeerID(i, BaseListenPort)
+		lt.membership[id] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, BaseListenPort))
 	}
 
 	return lt
 }
 
-func (lt *LocalLibp2pTransport) Link(sourceID t.NodeID) net.Transport {
-	if _, ok := lt.hosts[sourceID]; !ok {
+func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
+	if _, ok := t.hosts[sourceID]; !ok {
 		panic(fmt.Errorf("unexpected node id: %v", sourceID))
 	}
 
 	return libp2p.NewTransport(
-		lt.hosts[sourceID],
-		lt.membership,
+		t.hosts[sourceID],
 		sourceID,
-		lt.logger,
+		t.logger,
 	)
+}
+
+func (t *LocalLibp2pTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	return t.membership
 }
