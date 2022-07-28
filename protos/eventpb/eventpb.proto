@@ -57,6 +57,7 @@ message Event {
     bcbpb.Event          bcb                     = 28;
     mempoolpb.Event      mempool                 = 29;
     availabilitypb.Event availability            = 30;
+    NewConfig            new_config              = 31;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -228,4 +229,9 @@ message TimerRepeat {
 
 message TimerGarbageCollect {
   uint64 retention_index = 1;
+}
+
+message NewConfig {
+  repeated string node_ids = 1;
+
 }

@@ -1,12 +1,11 @@
 package eventpb
 
 import (
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/bcbpb"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
-	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
+	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
+	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -130,6 +129,10 @@ func (p *Event_Mempool) Unwrap() *mempoolpb.Event {
 
 func (p *Event_Availability) Unwrap() *availabilitypb.Event {
 	return p.Availability
+}
+
+func (p *Event_NewConfig) Unwrap() *NewConfig {
+	return p.NewConfig
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {
