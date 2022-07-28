@@ -262,6 +262,9 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyNewRequests(e.NewRequests.Requests)
 	case *eventpb.Event_AppSnapshot:
 		return iss.applyAppSnapshot(e.AppSnapshot), nil
+	case *eventpb.Event_NewConfig:
+		// TODO: Implement Reconfiguration
+		return events.EmptyList(), nil
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
