@@ -9,7 +9,15 @@ message HashData {
 }
 
 message StateSnapshot {
-  uint64              epoch      = 1;
-  bytes               app_data   = 2;
-  map<string, string> membership = 3;
+  bytes       app_data      = 2;
+  EpochConfig configuration = 3;
+}
+
+message EpochConfig {
+  uint64              epoch_nr    = 1;
+  repeated Membership memberships = 2;
+}
+
+message Membership {
+  map<string, string> membership = 1;
 }

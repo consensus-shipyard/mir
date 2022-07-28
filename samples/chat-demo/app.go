@@ -13,7 +13,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/multiformats/go-multiaddr"
@@ -36,44 +38,40 @@ type ChatApp struct {
 	// to which each delivered request appends one message.
 	messages []string
 
-	// Number of batches applied to the state.
-	batchesApplied int
-
-	// Length of an ISS segment.
-	segmentLength int
-
-	// Length of the epoch of the consensus protocol.
-	// After having delivered this many batches, the app signals the end of an epoch.
-	epochLength int
-
-	// The application writes an empty struct after having applied all batches of an epoch.
-	epochFinishedC chan struct{}
+	// The current epoch number.
+	currentEpoch t.EpochNr
 
 	// For each epoch number, stores the corresponding membership.
-	memberships map[t.EpochNr]map[t.NodeID]t.NodeAddress
+	memberships []map[t.NodeID]t.NodeAddress
+
+	// Network transport module used by Mir.
+	// The app needs a reference to it in order to manage connections when the membership changes.
+	transport net.Transport
 }
 
-func (chat *ChatApp) CurrentEpoch() t.EpochNr {
-	return t.EpochNr(chat.batchesApplied / chat.epochLength)
-}
+// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
+func (chat *ChatApp) ImplementsModule() {}
 
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
-func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, segmentLength int) *ChatApp {
+func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, transport net.Transport) *ChatApp {
 
 	// Initialize the membership for the first epochs.
-	memberships := make(map[t.EpochNr]map[t.NodeID]t.NodeAddress)
-	for i := 0; i <= configOffset+1; i++ {
-		memberships[t.EpochNr(i)] = initialMembership
+	// We use configOffset+2 memberships to account for:
+	// - The first epoch (epoch 0)
+	// - The configOffset epochs that already have a fixed membership (epochs 1 to configOffset)
+	// - The membership of the following epoch (configOffset+1) initialized with the same membership,
+	//   but potentially changed during the first epoch (epoch 0) through special configuration requests.
+	memberships := make([]map[t.NodeID]t.NodeAddress, configOffset+2)
+	for i := 0; i < configOffset+2; i++ {
+		memberships[i] = initialMembership
 	}
 
 	return &ChatApp{
-		messages:       make([]string, 0),
-		batchesApplied: 0,
-		segmentLength:  segmentLength,
-		epochLength:    len(initialMembership) * segmentLength,
-		epochFinishedC: make(chan struct{}),
-		memberships:    memberships,
+		messages:     make([]string, 0),
+		currentEpoch: 0,
+		memberships:  memberships,
+		transport:    transport,
 	}
 }
 
@@ -84,42 +82,26 @@ func (chat *ChatApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList,
 func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		// no actions on init
+		return events.EmptyList(), nil // no actions on init
 	case *eventpb.Event_Deliver:
-		if err := chat.ApplyBatch(e.Deliver.Batch); err != nil {
-			return nil, fmt.Errorf("app batch delivery error: %w", err)
-		}
+		return chat.applyBatch(e.Deliver.Batch)
+	case *eventpb.Event_NewEpoch:
+		return chat.applyNewEpoch(e.NewEpoch)
 	case *eventpb.Event_StateSnapshotRequest:
-		data, membership, err := chat.Snapshot()
-		if err != nil {
-			return nil, fmt.Errorf("app snapshot error: %w", err)
-		}
-		return events.ListOf(events.StateSnapshot(
-			t.ModuleID(e.StateSnapshotRequest.Module),
-			t.EpochNr(e.StateSnapshotRequest.Epoch),
-			data,
-			membership,
-		)), nil
+		return chat.applySnapshotRequest(e.StateSnapshotRequest)
 	case *eventpb.Event_AppRestoreState:
-		if err := chat.RestoreState(e.AppRestoreState.Snapshot); err != nil {
-			return nil, fmt.Errorf("app restore state error: %w", err)
-		}
+		return chat.applyRestoreState(e.AppRestoreState.Snapshot)
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}
-
-	return events.EmptyList(), nil
 }
 
-func (chat *ChatApp) WaitForEpochEnd() {
-	<-chat.epochFinishedC
-}
-
-// ApplyBatch applies a batch of requests to the state of the application.
+// applyBatch applies a batch of requests to the state of the application.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
-func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
+func (chat *ChatApp) applyBatch(batch *requestpb.Batch) (*events.EventList, error) {
+	eventsOut := events.EmptyList()
 
 	// For each request in the batch
 	for _, req := range batch.Requests {
@@ -139,33 +121,26 @@ func (chat *ChatApp) ApplyBatch(batch *requestpb.Batch) error {
 		// If this is a config message, treat it correspondingly.
 		if len(msgString) > len("Config: ") && msgString[:len("Config: ")] == "Config: " {
 			configMsg := msgString[len("Config: "):]
-			fmt.Printf("Detected config message: %s\n", configMsg)
 			chat.applyConfigMsg(configMsg)
 		}
 	}
 
-	// Update counter of applied batches.
-	chat.batchesApplied++
-
-	if chat.batchesApplied%chat.epochLength == 0 {
-		// Initialize new membership to be modified throughput the new epoch
-		chat.memberships[chat.CurrentEpoch()+configOffset+1] = maputil.Copy(chat.memberships[chat.CurrentEpoch()+configOffset])
-
-		fmt.Printf("Starting epoch %v.\nMembership:\n%v\n", chat.CurrentEpoch(), chat.memberships[chat.CurrentEpoch()])
-
-		chat.epochLength = len(chat.memberships[chat.CurrentEpoch()]) * chat.segmentLength
-
-		// Notify the manager about a new epoch.
-		//chat.epochFinishedC <- struct{}{}
-	}
-
-	return nil
+	return eventsOut, nil
 }
 
 func (chat *ChatApp) applyConfigMsg(configMsg string) {
 	tokens := strings.Fields(configMsg)
+
+	if len(tokens) == 0 {
+		fmt.Printf("Ignoring empty config message.\n")
+	}
+
 	switch tokens[0] {
 	case "add-node":
+
+		if len(tokens) < 3 {
+			fmt.Printf("Ignoring config message: %s (tokens: %v). Need 3 tokens.\n", configMsg, tokens)
+		}
 
 		// Parse out the node ID and address
 		nodeID := t.NodeID(tokens[1])
@@ -175,72 +150,118 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 		}
 
 		fmt.Printf("Adding node: %v (%v)\n", nodeID, nodeAddr)
-		if _, ok := chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID]; ok {
+		if _, ok := chat.memberships[chat.currentEpoch+configOffset+1][nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
 		} else {
-			chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID] = nodeAddr
+			chat.memberships[chat.currentEpoch+configOffset+1][nodeID] = nodeAddr
 		}
 	case "remove-node":
 		nodeID := t.NodeID(tokens[1])
 		fmt.Printf("Removing node: %v\n", nodeID)
-		if _, ok := chat.memberships[chat.CurrentEpoch()+configOffset+1][nodeID]; !ok {
+		if _, ok := chat.memberships[chat.currentEpoch+configOffset+1][nodeID]; !ok {
 			fmt.Printf("Removing node failed. Node not present in membership: %v\n", nodeID)
 		} else {
-			delete(chat.memberships[chat.CurrentEpoch()+configOffset+1], nodeID)
+			delete(chat.memberships[chat.currentEpoch+configOffset+1], nodeID)
 		}
 	default:
 		fmt.Printf("Ignoring config message: %s (tokens: %v)\n", configMsg, tokens)
 	}
 }
 
-// Snapshot returns a binary representation of the application state.
-// The returned value can be passed to RestoreState().
-// At the time of writing this comment, the Mir library does not support state transfer
-// and Snapshot is never actually called.
-// We include its implementation for completeness.
-func (chat *ChatApp) Snapshot() ([]byte, map[t.NodeID]t.NodeAddress, error) {
+func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
 
-	return serializeMessages(chat.messages), map[t.NodeID]t.NodeAddress{}, nil
+	// Sanity check.
+	if t.EpochNr(newEpoch.EpochNr) != chat.currentEpoch+1 {
+		return nil, fmt.Errorf("expected next epoch to be %d, got %d", chat.currentEpoch+1, newEpoch.EpochNr)
+	}
+
+	fmt.Printf("New epoch: %d\n", newEpoch.EpochNr)
+
+	// Convenience variable.
+	newMembership := chat.memberships[newEpoch.EpochNr+configOffset]
+
+	// Append a new membership data structure to be modified throughout the new epoch.
+	chat.memberships = append(chat.memberships, maputil.Copy(newMembership))
+
+	// Create network connections to all nodes in the new membership.
+	if nodeAddrs, err := dummyMultiAddrs(newMembership); err != nil {
+		return nil, err
+	} else {
+		chat.transport.Connect(context.Background(), nodeAddrs)
+	}
+
+	// Update current epoch number.
+	chat.currentEpoch = t.EpochNr(newEpoch.EpochNr)
+
+	// Notify ISS about the new membership.
+	return events.ListOf(events.NewConfig("iss", maputil.GetSortedKeys(newMembership))), nil
+}
+
+// applySnapshotRequest produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
+// The snapshot is a binary representation of the application state that can be passed to applyRestoreState().
+func (chat *ChatApp) applySnapshotRequest(snapshotRequest *eventpb.StateSnapshotRequest) (*events.EventList, error) {
+	return events.ListOf(events.StateSnapshotResponse(
+		t.ModuleID(snapshotRequest.Module),
+		events.StateSnapshot(chat.serializeMessages(), events.EpochConfig(chat.currentEpoch, chat.memberships)),
+	)), nil
+}
+
+func (chat *ChatApp) serializeMessages() []byte {
+	data := make([]byte, 0)
+	for _, msg := range chat.messages {
+		data = append(data, []byte(msg)...)
+		data = append(data, 0)
+	}
+
+	return data
 }
 
 // RestoreState restores the application's state to the one represented by the passed argument.
 // The argument is a binary representation of the application state returned from Snapshot().
 // After the chat history is restored, RestoreState prints the whole chat history to stdout.
-func (chat *ChatApp) RestoreState(snapshot *commonpb.StateSnapshot) error {
+func (chat *ChatApp) applyRestoreState(snapshot *commonpb.StateSnapshot) (*events.EventList, error) {
 
 	// Restore chat messages
-	chat.messages = deserializeMessages(snapshot.AppData)
+	chat.restoreChat(snapshot.AppData)
+
+	// Restore configuration
+	if err := chat.restoreConfiguration(snapshot.Configuration); err != nil {
+		return nil, err
+	}
 
 	// Print new state
-	fmt.Printf("\n CHAT STATE RESTORED. SHOWING ALL CHAT HISTORY FROM THE BEGINNING.\n")
+	fmt.Printf("\nCHAT STATE RESTORED. SHOWING ALL CHAT HISTORY FROM THE BEGINNING.\n\n")
 	for _, message := range chat.messages {
 		fmt.Println(message)
 	}
 
+	return events.EmptyList(), nil
+}
+
+func (chat *ChatApp) restoreChat(data []byte) {
+	chat.messages = make([]string, 0)
+	if len(data) > 0 {
+		for _, msg := range bytes.Split(data[:len(data)-1], []byte{0}) { // len(data)-1 to strip off the last zero byte
+			chat.messages = append(chat.messages, string(msg))
+		}
+	}
+}
+
+func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
+	chat.currentEpoch = t.EpochNr(config.EpochNr)
+	chat.memberships = make([]map[t.NodeID]t.NodeAddress, len(config.Memberships))
+	for e, mem := range config.Memberships {
+		chat.memberships[e] = make(map[t.NodeID]t.NodeAddress)
+		for nID, nAddr := range mem.Membership {
+			var err error
+			chat.memberships[e][t.NodeID(nID)], err = multiaddr.NewMultiaddr(nAddr)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	fmt.Printf("Restored app memberships: %d (epoch: %d)\n", len(chat.memberships), chat.currentEpoch)
+
 	return nil
-}
-
-// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (chat *ChatApp) ImplementsModule() {}
-
-func serializeMessages(messages []string) []byte {
-	data := make([]byte, len(messages))
-	for _, msg := range messages {
-		data = append(data, []byte(msg)...)
-		data = append(data, 0)
-	}
-	return data
-}
-
-func deserializeMessages(data []byte) []string {
-	messages := make([]string, 0)
-
-	if len(data) == 0 {
-		return messages
-	}
-
-	for _, msg := range bytes.Split(data[:len(data)-1], []byte{0}) { // len(data)-1 to strip off the last zero byte
-		messages = append(messages, string(msg))
-	}
-	return messages
 }

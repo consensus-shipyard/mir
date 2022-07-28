@@ -58,17 +58,30 @@ func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
 
 	// Append epoch and app data
 	data := [][]byte{
-		t.EpochNr(snapshot.Epoch).Bytes(),
+		t.EpochNr(snapshot.Configuration.EpochNr).Bytes(),
 		snapshot.AppData,
 	}
 
 	// Append membership.
 	// Each string representing an ID and an address is explicitly terminated with a zero byte.
 	// This ensures that the last byte of an ID and the first byte of an address are not interchangeable.
-	maputil.IterateSorted(snapshot.Membership, func(id string, addr string) bool {
-		data = append(data, []byte(id), []byte{0}, []byte(addr), []byte{0})
-		return true
-	})
+	for _, membership := range snapshot.Configuration.Memberships {
+		maputil.IterateSorted(membership.Membership, func(id string, addr string) bool {
+			data = append(data, []byte(id), []byte{0}, []byte(addr), []byte{0})
+			return true
+		})
+	}
 
 	return data
+}
+
+// Uint64ToBytes returns a 8-byte slice encoding an unsigned 64-bit integer.
+func Uint64ToBytes(n uint64) []byte {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, n)
+	return buf
+}
+
+func BytesToUint64(data []byte) uint64 {
+	return binary.LittleEndian.Uint64(data)
 }

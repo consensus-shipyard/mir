@@ -8,6 +8,7 @@ package types
 
 import (
 	"encoding/binary"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"strconv"
 	"time"
@@ -21,13 +22,13 @@ import (
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
 
-func MembershipPb(membership map[NodeID]NodeAddress) map[string]string {
-	m := make(map[string]string, len(membership))
+func MembershipPb(membership map[NodeID]NodeAddress) *commonpb.Membership {
+	nodeAddresses := make(map[string]string, len(membership))
 	maputil.IterateSorted(membership, func(nodeID NodeID, nodeAddr NodeAddress) (cont bool) {
-		m[nodeID.Pb()] = nodeAddr.String()
+		nodeAddresses[nodeID.Pb()] = nodeAddr.String()
 		return true
 	})
-	return m
+	return &commonpb.Membership{Membership: nodeAddresses}
 }
 
 // ================================================================================

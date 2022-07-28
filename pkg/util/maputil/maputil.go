@@ -15,6 +15,14 @@ func GetKeys[K comparable, V any](m map[K]V) []K {
 	return keys
 }
 
+func GetSortedKeys[K constraints.Ordered, V any](m map[K]V) []K {
+	keys := GetKeys(m)
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+	return keys
+}
+
 // GetValuesOf returns a slice containing the values from map m corresponding to the provided keys, in the same order
 // as the keys.
 func GetValuesOf[K comparable, V any](m map[K]V, keys []K) []V {
@@ -47,13 +55,8 @@ func GetKeysAndValues[K comparable, V any](m map[K]V) ([]K, []V) {
 }
 
 func IterateSorted[K constraints.Ordered, V any](m map[K]V, f func(key K, value V) (cont bool)) {
-	keys := GetKeys(m)
 
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
-	})
-
-	for _, k := range keys {
+	for _, k := range GetSortedKeys(m) {
 		if !f(k, m[k]) {
 			break
 		}
@@ -66,4 +69,17 @@ func Copy[K comparable, V any](m map[K]V) map[K]V {
 		newMap[k] = v
 	}
 	return newMap
+}
+
+// Any returns an arbitrary element of the map m.
+// If m is not empty, the second return value is true.
+// If the map is empty, Any returns the zero value of the m's value type and false.
+func Any[K comparable, V any](m map[K]V) (V, bool) {
+
+	for _, val := range m {
+		return val, true
+	}
+
+	var zeroVal V
+	return zeroVal, false
 }

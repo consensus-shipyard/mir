@@ -284,34 +284,45 @@ func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb
 // epoch is the epoch number which initial state is captured in the snapshot.
 // The application itself need not be aware of sn, it is only by the protocol
 // to be able to identify the response of the application in form of an StateSnapshot event.
-func StateSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID, epoch t.EpochNr) *eventpb.Event {
+func StateSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_StateSnapshotRequest{StateSnapshotRequest: &eventpb.StateSnapshotRequest{
 			Module: srcModule.Pb(),
-			Epoch:  epoch.Pb(),
 		}},
 	}
 }
 
-// StateSnapshot returns an event representing the application making a snapshot of its state.
+// StateSnapshotResponse returns an event representing the application making a snapshot of its state.
 // epoch is the number of the epoch whose initial state is captured in the snapshot,
 // appData is the serialized application state (the snapshot itself)
 // and membership is the membership of the epoch.
-func StateSnapshot(
+func StateSnapshotResponse(
 	destModule t.ModuleID,
-	epoch t.EpochNr,
-	appData []byte,
-	membership map[t.NodeID]t.NodeAddress,
+	snapshot *commonpb.StateSnapshot,
 ) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_StateSnapshot{StateSnapshot: &commonpb.StateSnapshot{
-			Epoch:      epoch.Pb(),
-			AppData:    appData,
-			Membership: t.MembershipPb(membership),
-		}},
+		Type:       &eventpb.Event_StateSnapshot{StateSnapshot: snapshot},
 	}
+}
+
+// StateSnapshot is a constructor for the StateSnapshot protobuf object.
+func StateSnapshot(appData []byte, configuration *commonpb.EpochConfig) *commonpb.StateSnapshot {
+	return &commonpb.StateSnapshot{
+		AppData:       appData,
+		Configuration: configuration,
+	}
+}
+
+// EpochConfig represents the configuration of the system during one epoch
+func EpochConfig(epochNr t.EpochNr, memberships []map[t.NodeID]t.NodeAddress) *commonpb.EpochConfig {
+	m := make([]*commonpb.Membership, len(memberships))
+	for i, membership := range memberships {
+		m[i] = t.MembershipPb(membership)
+	}
+
+	return &commonpb.EpochConfig{EpochNr: epochNr.Pb(), Memberships: m}
 }
 
 // AppRestoreState returns an event representing the protocol module asking the application
@@ -353,6 +364,15 @@ func TimerGarbageCollect(destModule t.ModuleID, retIndex t.TimerRetIndex) *event
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{
 			RetentionIndex: retIndex.Pb(),
+		}},
+	}
+}
+
+func NewEpoch(destModule t.ModuleID, epochNr t.EpochNr) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_NewEpoch{NewEpoch: &eventpb.NewEpoch{
+			EpochNr: epochNr.Pb(),
 		}},
 	}
 }

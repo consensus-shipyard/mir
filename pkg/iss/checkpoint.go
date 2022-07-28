@@ -13,6 +13,7 @@ package iss
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -101,7 +102,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 
 	// Request a snapshot of the application state.
 	// TODO: also get a snapshot of the shared state
-	return events.ListOf(events.StateSnapshotRequest(appModuleName, issModuleName, ct.epoch))
+	return events.ListOf(events.StateSnapshotRequest(appModuleName, issModuleName))
 }
 
 func (ct *checkpointTracker) ProcessStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
@@ -150,6 +151,12 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 		t.TimerRetIndex(ct.epoch)),
 	)
 
+	ct.Log(logging.LevelDebug, "Sending checkpoint message",
+		"epoch", ct.epoch,
+		"dataLen", len(ct.stateSnapshot.AppData),
+		"numNodes", len(ct.stateSnapshot.Configuration.Memberships),
+	)
+
 	// Apply pending Checkpoint messages
 	for s, m := range ct.pendingMessages {
 		walEvent.FollowUps(ct.applyMessage(m, s).Slice())
@@ -175,6 +182,8 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	} else if !bytes.Equal(ct.stateSnapshotHash, msg.SnapshotHash) {
 		// Snapshot hash mismatch
 		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "source", source)
+		fmt.Println(ct.stateSnapshot)
+		fmt.Println("")
 		return events.EmptyList()
 	}
 
@@ -233,7 +242,6 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 
 	// Create a stable checkpoint object.
 	stableCheckpoint := &isspb.StableCheckpoint{
-		Epoch:    ct.epoch.Pb(),
 		Sn:       ct.seqNr.Pb(),
 		Snapshot: ct.stateSnapshot,
 		Cert:     cert,

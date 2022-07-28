@@ -18,9 +18,14 @@ import (
 // To obtain real time delays, these need to be multiplied by the period of the ticker provided to the Node at runtime.
 type Config struct {
 
-	// The IDs of all nodes that execute the protocol.
+	// The IDs of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
-	Membership []t.NodeID
+	InitialMembership []t.NodeID
+
+	// Number of epochs by which to delay configuration changes.
+	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
+	// Thus, in the "current" configuration, ConfigOffset subsequent configurations are already known.
+	ConfigOffset int
 
 	// The length of an ISS segment, in sequence numbers.
 	// This is the number of commitLog entries each orderer needs to output in an epoch.
@@ -110,7 +115,7 @@ type Config struct {
 func CheckConfig(c *Config) error {
 
 	// The membership must not be empty.
-	if len(c.Membership) == 0 {
+	if len(c.InitialMembership) == 0 {
 		return fmt.Errorf("empty membership")
 	}
 
@@ -175,7 +180,7 @@ func CheckConfig(c *Config) error {
 // DefaultConfig is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultConfig can serve as a starting point.
-func DefaultConfig(membership []t.NodeID) *Config {
+func DefaultConfig(initialMembership []t.NodeID) *Config {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
@@ -184,12 +189,13 @@ func DefaultConfig(membership []t.NodeID) *Config {
 	segmentLength := 4
 
 	return &Config{
-		Membership:                   membership,
+		InitialMembership:            initialMembership,
+		ConfigOffset:                 2,
 		SegmentLength:                segmentLength,
 		MaxBatchSize:                 4,
 		MaxProposeDelay:              maxProposeDelay,
-		NumBuckets:                   len(membership),
-		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: membership},
+		NumBuckets:                   len(initialMembership),
+		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: initialMembership},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:               1,

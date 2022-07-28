@@ -132,6 +132,10 @@ func (p *Event_Availability) Unwrap() *availabilitypb.Event {
 	return p.Availability
 }
 
+func (p *Event_NewEpoch) Unwrap() *NewEpoch {
+	return p.NewEpoch
+}
+
 func (p *Event_NewConfig) Unwrap() *NewConfig {
 	return p.NewConfig
 }

@@ -109,7 +109,6 @@ message PersistCheckpoint {
 }
 
 message StableCheckpoint {
-  uint64                 epoch    = 1;
   uint64                 sn       = 2;
   commonpb.StateSnapshot snapshot = 3;
   map<string, bytes>     cert     = 4;

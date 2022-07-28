@@ -109,6 +109,10 @@ func NewBuffers(nodeIDs []t.NodeID, totalCapacity int, logger logging.Logger) ma
 	return buffers
 }
 
+func (mb *MessageBuffer) Capacity() int {
+	return mb.capacity
+}
+
 // Store stores a given message in the MessageBuffer, if capacity allows it.
 // Returns true if the message has been successfully stored, false otherwise.
 // If msg is larger than the buffer capacity,
