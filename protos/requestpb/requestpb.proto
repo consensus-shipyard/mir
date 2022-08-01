@@ -13,7 +13,8 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/requestpb";
 message Request {
   string client_id = 1;
   uint64 req_no = 2;
-  bytes data = 3;
+  uint64 type = 3;
+  bytes data = 4;
 }
 
 message HashedRequest {
