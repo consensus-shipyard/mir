@@ -3,6 +3,7 @@ package events
 import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -28,7 +29,7 @@ func RequestBatch(dest t.ModuleID, origin *mppb.RequestBatchOrigin) *eventpb.Eve
 }
 
 // NewBatch is a response to a RequestBatch event.
-func NewBatch(dest t.ModuleID, txIDs []t.TxID, txs [][]byte, origin *mppb.RequestBatchOrigin) *eventpb.Event {
+func NewBatch(dest t.ModuleID, txIDs []t.TxID, txs []*requestpb.Request, origin *mppb.RequestBatchOrigin) *eventpb.Event {
 	return Event(dest, &mppb.Event{
 		Type: &mppb.Event_NewBatch{
 			NewBatch: &mppb.NewBatch{
@@ -54,7 +55,7 @@ func RequestTransactions(dest t.ModuleID, txIDs []t.TxID, origin *mppb.RequestTr
 }
 
 // TransactionsResponse is a response to a RequestTransactions event.
-func TransactionsResponse(dest t.ModuleID, present []bool, txs [][]byte, origin *mppb.RequestTransactionsOrigin) *eventpb.Event {
+func TransactionsResponse(dest t.ModuleID, present []bool, txs []*requestpb.Request, origin *mppb.RequestTransactionsOrigin) *eventpb.Event {
 	return Event(dest, &mppb.Event{
 		Type: &mppb.Event_TransactionsResponse{
 			TransactionsResponse: &mppb.TransactionsResponse{
@@ -68,7 +69,7 @@ func TransactionsResponse(dest t.ModuleID, present []bool, txs [][]byte, origin 
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.
 // It is possible that some of these transactions are not present in the mempool.
-func RequestTransactionIDs(dest t.ModuleID, txs [][]byte, origin *mppb.RequestTransactionIDsOrigin) *eventpb.Event {
+func RequestTransactionIDs(dest t.ModuleID, txs []*requestpb.Request, origin *mppb.RequestTransactionIDsOrigin) *eventpb.Event {
 	return Event(dest, &mppb.Event{
 		Type: &mppb.Event_RequestTransactionIds{
 			RequestTransactionIds: &mppb.RequestTransactionIDs{

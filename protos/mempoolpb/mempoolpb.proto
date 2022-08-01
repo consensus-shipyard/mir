@@ -7,6 +7,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/mempoolpb";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "mir/plugin.proto";
+import "requestpb/requestpb.proto";
 
 // ============================================================
 // Events
@@ -33,9 +34,9 @@ message RequestBatch {
 
 // NewBatch is a response to a RequestBatch event.
 message NewBatch {
-  repeated bytes     tx_ids = 1;
-  repeated bytes     txs    = 2;
-  RequestBatchOrigin origin = 3;
+  repeated bytes             tx_ids = 1;
+  repeated requestpb.Request txs    = 2;
+  RequestBatchOrigin         origin = 3;
 }
 
 // RequestTransactions allows the availability layer to request transactions from the mempool by their IDs.
@@ -47,15 +48,15 @@ message RequestTransactions {
 
 // TransactionsResponse is a response to a RequestTransactions event.
 message TransactionsResponse {
-  repeated bool             present = 1;
-  repeated bytes            txs     = 2;
-  RequestTransactionsOrigin origin  = 3;
+  repeated bool              present = 1;
+  repeated requestpb.Request txs     = 2;
+  RequestTransactionsOrigin  origin  = 3;
 }
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.
 // It is possible that some of these transactions are not present in the mempool.
 message RequestTransactionIDs {
-  repeated bytes              txs    = 1;
+  repeated requestpb.Request  txs    = 1;
   RequestTransactionIDsOrigin origin = 2;
 }
 

@@ -3,6 +3,7 @@ package events
 import (
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -81,7 +82,7 @@ func RequestTransactions(dest t.ModuleID, cert *apb.Cert, origin *apb.RequestTra
 }
 
 // ProvideTransactions is a response to a RequestTransactions event.
-func ProvideTransactions(dest t.ModuleID, txs [][]byte, origin *apb.RequestTransactionsOrigin) *eventpb.Event {
+func ProvideTransactions(dest t.ModuleID, txs []*requestpb.Request, origin *apb.RequestTransactionsOrigin) *eventpb.Event {
 	return Event(dest, &apb.Event{
 		Type: &apb.Event_ProvideTransactions{
 			ProvideTransactions: &apb.ProvideTransactions{

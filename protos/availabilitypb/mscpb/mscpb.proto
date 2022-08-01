@@ -4,6 +4,8 @@ package availabilitypb.mscpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb";
 
+import "requestpb/requestpb.proto";
+
 // ============================================================
 // Messages
 // ============================================================
@@ -18,8 +20,8 @@ message Message {
 }
 
 message RequestSigMessage {
-  repeated bytes txs    = 1;
-  uint64         req_id = 2;
+  repeated requestpb.Request txs    = 1;
+  uint64                     req_id = 2;
 }
 
 message SigMessage {
@@ -33,8 +35,8 @@ message RequestBatchMessage {
 }
 
 message ProvideBatchMessage {
-  repeated bytes txs     = 1;
-  uint64         req_id  = 2;
+  repeated requestpb.Request txs     = 1;
+  uint64                     req_id  = 2;
 }
 
 // TODO: implement pulling of missing txs.
