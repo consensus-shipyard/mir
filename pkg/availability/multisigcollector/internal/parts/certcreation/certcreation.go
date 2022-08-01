@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -66,7 +67,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs [][]byte, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpb.Request, context *requestBatchFromMempoolContext) error {
 		// TODO: add persistent storage for crash-recovery.
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})
 		return nil
@@ -136,7 +137,7 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// When receive a request for a signature, compute the ids of the received transactions.
-	mscdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs [][]byte, reqID RequestID) error {
+	mscdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpb.Request, reqID RequestID) error {
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})
@@ -179,12 +180,12 @@ type requestBatchFromMempoolContext struct {
 
 type requestIDOfOwnBatchContext struct {
 	reqID RequestID
-	txs   [][]byte
+	txs   []*requestpb.Request
 }
 
 type computeIDsOfReceivedTxsContext struct {
 	sourceID t.NodeID
-	txs      [][]byte
+	txs      []*requestpb.Request
 	reqID    RequestID
 }
 

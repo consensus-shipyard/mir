@@ -7,6 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -24,7 +25,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 
 	commonState := &common.State{
 		BatchStore:       make(map[t.BatchID][]t.TxID),
-		TransactionStore: make(map[t.TxID][]byte),
+		TransactionStore: make(map[t.TxID]*requestpb.Request),
 	}
 
 	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID, commonState)

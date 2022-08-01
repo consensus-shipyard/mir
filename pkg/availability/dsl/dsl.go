@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -66,7 +67,7 @@ func RequestTransactions[C any](m dsl.Module, dest t.ModuleID, cert *apb.Cert, c
 }
 
 // ProvideTransactions is a response to a RequestTransactions event.
-func ProvideTransactions(m dsl.Module, dest t.ModuleID, txs [][]byte, origin *apb.RequestTransactionsOrigin) {
+func ProvideTransactions(m dsl.Module, dest t.ModuleID, txs []*requestpb.Request, origin *apb.RequestTransactionsOrigin) {
 	dsl.EmitEvent(m, aevents.ProvideTransactions(dest, txs, origin))
 }
 
@@ -141,7 +142,7 @@ func UponRequestTransactions(m dsl.Module, handler func(cert *apb.Cert, origin *
 }
 
 // UponProvideTransactions registers a handler for the ProvideTransactions events.
-func UponProvideTransactions[C any](m dsl.Module, handler func(txs [][]byte, context *C) error) {
+func UponProvideTransactions[C any](m dsl.Module, handler func(txs []*requestpb.Request, context *C) error) {
 	UponEvent[*apb.Event_ProvideTransactions](m, func(ev *apb.ProvideTransactions) error {
 		originWrapper, ok := ev.Origin.Type.(*apb.RequestTransactionsOrigin_Dsl)
 		if !ok {

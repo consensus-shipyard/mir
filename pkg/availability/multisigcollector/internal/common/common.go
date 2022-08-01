@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -51,7 +52,7 @@ func (params *ModuleParams) F() int {
 // State represents the common state used by all parts of the multisig collector implementation.
 type State struct {
 	BatchStore       map[t.BatchID][]t.TxID
-	TransactionStore map[t.TxID][]byte
+	TransactionStore map[t.TxID]*requestpb.Request
 }
 
 // SigData is the binary data that should be signed for forming a certificate.

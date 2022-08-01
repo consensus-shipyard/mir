@@ -9,6 +9,7 @@ import (
 	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -47,7 +48,7 @@ func IncludeBatchReconstruction(
 	mscdsl.UponRequestTransactions(m, func(cert *mscpb.Cert, origin *apb.RequestTransactionsOrigin) error {
 		txIDs, ok := state.BatchStore[t.BatchID(cert.BatchId)]
 		if ok {
-			txs := make([][]byte, len(txIDs))
+			txs := make([]*requestpb.Request, len(txIDs))
 			for i, txID := range txIDs {
 				txs[i] = state.TransactionStore[txID]
 			}
@@ -75,7 +76,7 @@ func IncludeBatchReconstruction(
 			return nil
 		}
 
-		txs := make([][]byte, len(txIDs))
+		txs := make([]*requestpb.Request, len(txIDs))
 		for i, txID := range txIDs {
 			txs[i] = state.TransactionStore[txID]
 		}
@@ -85,7 +86,7 @@ func IncludeBatchReconstruction(
 	})
 
 	// When receive a requested batch, compute the ids of the received transactions.
-	mscdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs [][]byte, reqID RequestID) error {
+	mscdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs []*requestpb.Request, reqID RequestID) error {
 		_, ok := state.RequestState[reqID]
 		if !ok {
 			// Ignore a message with an invalid or outdated request id.
@@ -134,11 +135,11 @@ func IncludeBatchReconstruction(
 
 type requestTxIDsContext struct {
 	reqID RequestID
-	txs   [][]byte
+	txs   []*requestpb.Request
 }
 
 type requestBatchIDContext struct {
 	reqID RequestID
-	txs   [][]byte
+	txs   []*requestpb.Request
 	txIDs []t.TxID
 }

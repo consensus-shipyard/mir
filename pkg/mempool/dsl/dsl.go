@@ -5,6 +5,7 @@ import (
 	mpevents "github.com/filecoin-project/mir/pkg/mempool/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -25,7 +26,7 @@ func RequestBatch[C any](m dsl.Module, dest t.ModuleID, context *C) {
 }
 
 // NewBatch is a response to a RequestBatch event.
-func NewBatch(m dsl.Module, dest t.ModuleID, txIDs []t.TxID, txs [][]byte, origin *mppb.RequestBatchOrigin) {
+func NewBatch(m dsl.Module, dest t.ModuleID, txIDs []t.TxID, txs []*requestpb.Request, origin *mppb.RequestBatchOrigin) {
 	dsl.EmitEvent(m, mpevents.NewBatch(dest, txIDs, txs, origin))
 }
 
@@ -45,13 +46,13 @@ func RequestTransactions[C any](m dsl.Module, dest t.ModuleID, txIDs []t.TxID, c
 }
 
 // TransactionsResponse is a response to a RequestTransactions event.
-func TransactionsResponse(m dsl.Module, dest t.ModuleID, present []bool, txs [][]byte, origin *mppb.RequestTransactionsOrigin) {
+func TransactionsResponse(m dsl.Module, dest t.ModuleID, present []bool, txs []*requestpb.Request, origin *mppb.RequestTransactionsOrigin) {
 	dsl.EmitEvent(m, mpevents.TransactionsResponse(dest, present, txs, origin))
 }
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.
 // It is possible that some of these transactions are not present in the mempool.
-func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs [][]byte, context *C) {
+func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs []*requestpb.Request, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &mppb.RequestTransactionIDsOrigin{
@@ -110,7 +111,7 @@ func UponRequestBatch(m dsl.Module, handler func(origin *mppb.RequestBatchOrigin
 }
 
 // UponNewBatch registers a handler for the NewBatch events.
-func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs [][]byte, context *C) error) {
+func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs []*requestpb.Request, context *C) error) {
 	UponEvent[*mppb.Event_NewBatch](m, func(ev *mppb.NewBatch) error {
 		originWrapper, ok := ev.Origin.Type.(*mppb.RequestBatchOrigin_Dsl)
 		if !ok {
@@ -135,7 +136,7 @@ func UponRequestTransactions(m dsl.Module, handler func(txIDs []t.TxID, origin *
 }
 
 // UponTransactionsResponse registers a handler for the TransactionsResponse events.
-func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, txs [][]byte, context *C) error) {
+func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, txs []*requestpb.Request, context *C) error) {
 	UponEvent[*mppb.Event_TransactionsResponse](m, func(ev *mppb.TransactionsResponse) error {
 		originWrapper, ok := ev.Origin.Type.(*mppb.RequestTransactionsOrigin_Dsl)
 		if !ok {
@@ -153,7 +154,7 @@ func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, 
 }
 
 // UponRequestTransactionIDs registers a handler for the RequestTransactionIDs events.
-func UponRequestTransactionIDs(m dsl.Module, handler func(txs [][]byte, origin *mppb.RequestTransactionIDsOrigin) error) {
+func UponRequestTransactionIDs(m dsl.Module, handler func(txs []*requestpb.Request, origin *mppb.RequestTransactionIDsOrigin) error) {
 	UponEvent[*mppb.Event_RequestTransactionIds](m, func(ev *mppb.RequestTransactionIDs) error {
 		return handler(ev.Txs, ev.Origin)
 	})

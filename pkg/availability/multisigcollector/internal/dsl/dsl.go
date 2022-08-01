@@ -3,6 +3,8 @@ package mscdsl
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+
 	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
@@ -24,7 +26,7 @@ func UponMscMessageReceived(m dsl.Module, handler func(from t.NodeID, msg *mscpb
 	})
 }
 
-func UponRequestSigMessageReceived(m dsl.Module, handler func(from t.NodeID, txs [][]byte, reqID uint64) error) {
+func UponRequestSigMessageReceived(m dsl.Module, handler func(from t.NodeID, txs []*requestpb.Request, reqID uint64) error) {
 	UponMscMessageReceived(m, func(from t.NodeID, msg *mscpb.Message) error {
 		requestSigMsgWrapper, ok := msg.Type.(*mscpb.Message_RequestSig)
 		if !ok {
@@ -60,7 +62,7 @@ func UponRequestBatchMessageReceived(m dsl.Module, handler func(from t.NodeID, b
 	})
 }
 
-func UponProvideBatchMessageReceived(m dsl.Module, handler func(from t.NodeID, txs [][]byte, reqID uint64) error) {
+func UponProvideBatchMessageReceived(m dsl.Module, handler func(from t.NodeID, txs []*requestpb.Request, reqID uint64) error) {
 	UponMscMessageReceived(m, func(from t.NodeID, msg *mscpb.Message) error {
 		provideBatchMsgWrapper, ok := msg.Type.(*mscpb.Message_ProvideBatch)
 		if !ok {

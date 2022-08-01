@@ -8,6 +8,7 @@ import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
 import "mir/plugin.proto";
+import "requestpb/requestpb.proto";
 
 // ============================================================
 // Events
@@ -63,8 +64,8 @@ message RequestTransactions {
 
 // ProvideTransactions is a response to a RequestTransactions event.
 message ProvideTransactions {
-  repeated bytes            txs    = 1;
-  RequestTransactionsOrigin origin = 2;
+  repeated requestpb.Request txs    = 1;
+  RequestTransactionsOrigin  origin = 2;
 }
 
 // TODO: add events related to garbage collection.
