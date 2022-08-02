@@ -67,9 +67,6 @@ type TestConfig struct {
 	// If empty, an OS-default temporary directory will be used.
 	Directory string
 
-	// Duration after which the test deployment will be asked to shut down.
-	Duration time.Duration
-
 	// Logger to use for producing diagnostic messages.
 	Logger logging.Logger
 }
