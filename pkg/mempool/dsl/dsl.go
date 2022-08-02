@@ -15,6 +15,7 @@ func RequestBatch[C any](m dsl.Module, dest t.ModuleID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &mppb.RequestBatchOrigin{
+		Module: m.ModuleID().Pb(),
 		Type: &mppb.RequestBatchOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
@@ -34,6 +35,7 @@ func RequestTransactions[C any](m dsl.Module, dest t.ModuleID, txIDs []t.TxID, c
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &mppb.RequestTransactionsOrigin{
+		Module: m.ModuleID().Pb(),
 		Type: &mppb.RequestTransactionsOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
@@ -53,6 +55,7 @@ func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs [][]byte, c
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &mppb.RequestTransactionIDsOrigin{
+		Module: m.ModuleID().Pb(),
 		Type: &mppb.RequestTransactionIDsOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
@@ -72,6 +75,7 @@ func RequestBatchID[C any](m dsl.Module, dest t.ModuleID, txIDs []t.TxID, contex
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &mppb.RequestBatchIDOrigin{
+		Module: m.ModuleID().Pb(),
 		Type: &mppb.RequestBatchIDOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
