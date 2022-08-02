@@ -33,7 +33,7 @@ message RequestBatch {
 
 // NewBatch is a response to a RequestBatch event.
 message NewBatch {
-  repeated string    tx_ids = 1;
+  repeated bytes     tx_ids = 1;
   repeated bytes     txs    = 2;
   RequestBatchOrigin origin = 3;
 }
@@ -41,7 +41,7 @@ message NewBatch {
 // RequestTransactions allows the availability layer to request transactions from the mempool by their IDs.
 // It is possible that some of these transactions are not present in the mempool.
 message RequestTransactions {
-  repeated string           tx_ids = 1;
+  repeated bytes            tx_ids = 1;
   RequestTransactionsOrigin origin = 2;
 }
 
@@ -61,20 +61,20 @@ message RequestTransactionIDs {
 
 // TransactionIDsResponse is a response to a RequestTransactionIDs event.
 message TransactionIDsResponse {
-  repeated string             tx_ids = 1;
+  repeated bytes              tx_ids = 1;
   RequestTransactionIDsOrigin origin = 2;
 }
 
 // RequestBatchID allows other modules to request the mempool module to compute the ID of a batch.
 // It is possible that some transactions in the batch are not present in the mempool.
 message RequestBatchID {
-  repeated string       tx_ids = 1;
+  repeated bytes        tx_ids = 1;
   RequestBatchIDOrigin origin = 2;
 }
 
 // BatchIDResponse is a response to a RequestBatchID event.
 message BatchIDResponse {
-  string               batch_id = 1;
+  bytes                batch_id = 1;
   RequestBatchIDOrigin origin   = 2;
 }
 
