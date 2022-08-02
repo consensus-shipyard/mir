@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package mir_test
+package iss
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/deploytest"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -375,7 +374,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 	for i, nodeID := range nodeIDs {
 		// ISS configuration
-		issConfig := iss.DefaultConfig(nodeIDs)
+		issConfig := DefaultConfig(nodeIDs)
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
@@ -383,7 +382,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
 		}
 
-		issProtocol, err := iss.New(nodeID, issConfig, logging.Decorate(logger, "ISS: "))
+		issProtocol, err := New(nodeID, issConfig, logging.Decorate(logger, "ISS: "))
 		if err != nil {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}
@@ -393,7 +392,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
 		}
 
-		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
+		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
 			"app":    &deploytest.FakeApp{},
 			"crypto": cryptoSystem.Module(nodeID),
 			"iss":    issProtocol,
