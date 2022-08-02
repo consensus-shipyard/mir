@@ -128,7 +128,9 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	iter := evs.Iterator()
 	for ev := iter.Next(); ev != nil; ev = iter.Next() {
 		handlers, ok := m.eventHandlers[reflect.TypeOf(ev.Type)]
-		if !ok {
+
+		// For convenience, it is not considered an error to not have handlers for the Init event.
+		if !ok && reflect.TypeOf(ev.Type) != reflectutil.TypeOf[*eventpb.Event_Init]() {
 			return nil, fmt.Errorf("unknown event type '%T'", ev.Type)
 		}
 
