@@ -417,7 +417,6 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		NumNetRequests:         conf.NumNetRequests,
 		FakeRequestsDestModule: t.ModuleID("iss"),
 		Directory:              conf.Directory,
-		Duration:               conf.Duration,
 		Logger:                 logger,
 	}
 
