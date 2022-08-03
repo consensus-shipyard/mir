@@ -37,16 +37,7 @@ func DefaultModuleConfig() *ModuleConfig {
 type ModuleParams struct {
 	InstanceUID []byte     // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
 	AllNodes    []t.NodeID // the list of participating nodes
-}
-
-// N is the total number of replicas.
-func (params *ModuleParams) N() int {
-	return len(params.AllNodes)
-}
-
-// F is the maximum number of replicas that can be tolerated.
-func (params *ModuleParams) F() int {
-	return (params.N() - 1) / 3
+	F           int        // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
 }
 
 // State represents the common state used by all parts of the multisig collector implementation.

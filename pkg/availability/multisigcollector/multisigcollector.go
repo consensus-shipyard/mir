@@ -1,6 +1,8 @@
 package multisigcollector
 
 import (
+	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
@@ -18,9 +20,13 @@ type ModuleParams = common.ModuleParams
 // NewModule creates a new instance of the multisig collector module.
 // Multisig collector is the simplest implementation of the availability layer.
 // Whenever an availability certificate is requested, it pulls a batch from the mempool module,
-// sends it to all replicas and collects a quorum (i.e., more than (N+F)/2) of signatures confirming that
+// sends it to all replicas and collects params.F+1 signatures confirming that
 // other nodes have persistently stored the batch.
-func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.PassiveModule {
+func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules.PassiveModule, error) {
+	if 2*params.F+1 < len(params.AllNodes) {
+		return nil, fmt.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
+	}
+
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{
@@ -32,5 +38,5 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID, commonState)
 	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID, commonState)
 
-	return m
+	return m, nil
 }
