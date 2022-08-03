@@ -67,7 +67,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apb.Cert) (*m
 	mscCert := mscCertWrapper.Msc
 
 	// Check that the certificate contains a sufficient number of signatures.
-	if len(mscCert.Signers) <= (params.N()+params.F())/2 {
+	if len(mscCert.Signers) <= params.F+1 {
 		return nil, fmt.Errorf("insuficient number of signatures")
 	}
 
