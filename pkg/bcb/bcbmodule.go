@@ -11,6 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
+// ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
 type ModuleConfig struct {
 	Self     t.ModuleID // id of this module
 	Consumer t.ModuleID // id of the module to send the "Deliver" event to
@@ -18,6 +19,7 @@ type ModuleConfig struct {
 	Crypto   t.ModuleID
 }
 
+// DefaultModuleConfig returns a valid module config with default names for all modules.
 func DefaultModuleConfig(consumer t.ModuleID) *ModuleConfig {
 	return &ModuleConfig{
 		Self:     "bcb",
@@ -27,21 +29,26 @@ func DefaultModuleConfig(consumer t.ModuleID) *ModuleConfig {
 	}
 }
 
+// ModuleParams sets the values for the parameters of an instance of the protocol.
+// All replicas are expected to use identical module parameters.
 type ModuleParams struct {
 	InstanceUID []byte     // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
 	AllNodes    []t.NodeID // the list of participating nodes
 	Leader      t.NodeID   // the id of the leader of the instance
 }
 
+// GetN returns the total number of nodes.
 func (params *ModuleParams) GetN() int {
 	return len(params.AllNodes)
 }
 
+// GetF returns the maximum tolerated number of faulty nodes.
 func (params *ModuleParams) GetF() int {
 	return (params.GetN() - 1) / 3
 }
 
-type cbModuleState struct {
+// bcbModuleState represents the state of the bcb module.
+type bcbModuleState struct {
 	// this variable is not part of the original protocol description, but it greatly simplifies the code
 	request []byte
 
@@ -52,16 +59,6 @@ type cbModuleState struct {
 	echoSigs     map[t.NodeID][]byte
 }
 
-type signStartMessageContext struct{}
-
-type verifyEchoContext struct {
-	signature []byte
-}
-
-type verifyFinalContext struct {
-	data []byte
-}
-
 // NewModule returns a passive module for the Signed Echo Broadcast from the textbook "Introduction to reliable and
 // secure distributed programming". It serves as a motivating example for the DSL module interface.
 // The pseudocode can also be found in https://dcl.epfl.ch/site/_media/education/sdc_byzconsensus.pdf (Algorithm 4
@@ -69,7 +66,7 @@ type verifyFinalContext struct {
 func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.PassiveModule {
 	m := dsl.NewModule(mc.Self)
 
-	state := cbModuleState{
+	state := bcbModuleState{
 		request: nil,
 
 		sentEcho:     false,
@@ -162,4 +159,16 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	})
 
 	return m
+}
+
+// Context data structures
+
+type signStartMessageContext struct{}
+
+type verifyEchoContext struct {
+	signature []byte
+}
+
+type verifyFinalContext struct {
+	data []byte
 }
