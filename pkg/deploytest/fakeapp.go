@@ -78,7 +78,7 @@ func (fa *FakeApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.Ev
 
 	for _, req := range batch.Txs {
 		fa.RequestsProcessed++
-		fmt.Printf("Received request: \"%s\". Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
+		fmt.Printf("Received request: %q. Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
 	}
 	return events.EmptyList(), nil
 }
