@@ -6,9 +6,12 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -33,6 +36,8 @@ const (
 
 var (
 	transportType string
+	statFileName  string
+	statPeriod    time.Duration
 
 	nodeCmd = &cobra.Command{
 		Use:   "node",
@@ -46,6 +51,8 @@ var (
 func init() {
 	rootCmd.AddCommand(nodeCmd)
 	nodeCmd.Flags().StringVarP(&transportType, "net", "t", "libp2p", "network transport (libp2p|grpc)")
+	nodeCmd.Flags().StringVarP(&statFileName, "statFile", "o", "", "output file for statistics")
+	nodeCmd.Flags().DurationVar(&statPeriod, "statPeriod", time.Second, "statistic record period")
 }
 
 func runNode() error {
@@ -105,6 +112,9 @@ func runNode() error {
 	// TODO: Adjust once a default crypto implementation is provided by Mir.
 	crypto := mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}})
 
+	stats := NewStats()
+	interceptor := NewStatInterceptor(stats)
+
 	nodeModules, err := iss.DefaultModules(modules.Modules{
 		"net":    transport,
 		"crypto": crypto,
@@ -116,7 +126,7 @@ func runNode() error {
 	}
 
 	nodeConfig := &mir.NodeConfig{Logger: logger}
-	node, err := mir.NewNode(t.NodeID(id), nodeConfig, nodeModules, nil, nil)
+	node, err := mir.NewNode(t.NodeID(id), nodeConfig, nodeModules, nil, interceptor)
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}
@@ -134,6 +144,38 @@ func runNode() error {
 	}
 	transport.Connect(ctx, nodeAddrs)
 	defer transport.Stop()
+
+	var statFile *os.File
+	if statFileName != "" {
+		statFile, err = os.Create(statFileName)
+		if err != nil {
+			return fmt.Errorf("could not open output file for statistics: %w", err)
+		}
+	} else {
+		statFile = os.Stdout
+	}
+
+	statsCSV := csv.NewWriter(statFile)
+	stats.WriteCSVHeader(statsCSV)
+
+	go func() {
+		timestamp := time.Now()
+		for {
+			ticker := time.NewTicker(statPeriod)
+			defer ticker.Stop()
+
+			select {
+			case <-ctx.Done():
+				return
+			case t := <-ticker.C:
+				d := t.Sub(timestamp)
+				stats.WriteCSVRecord(statsCSV, d)
+				statsCSV.Flush()
+				timestamp = t
+				stats.Reset()
+			}
+		}
+	}()
 
 	defer node.Stop()
 	return node.Run(ctx)
