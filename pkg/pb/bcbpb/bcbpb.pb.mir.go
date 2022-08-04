@@ -7,7 +7,7 @@ type Event_TypeWrapper[Ev any] interface {
 	Unwrap() *Ev
 }
 
-func (p *Event_Request) Unwrap() *Request {
+func (p *Event_Request) Unwrap() *BroadcastRequest {
 	return p.Request
 }
 
