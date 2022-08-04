@@ -30,6 +30,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/spf13/cobra v1.5.0
 	github.com/whyrusleeping/cbor-gen v0.0.0-20220514204315-f29c37e9c44c
+	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f
 )
 
