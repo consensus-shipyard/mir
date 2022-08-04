@@ -17,7 +17,7 @@ func Request(m dsl.Module, dest t.ModuleID, data []byte) {
 		Type: &eventpb.Event_Bcb{
 			Bcb: &bcbpb.Event{
 				Type: &bcbpb.Event_Request{
-					Request: &bcbpb.Request{
+					Request: &bcbpb.BroadcastRequest{
 						Data: data,
 					},
 				},
@@ -54,8 +54,8 @@ func UponEvent[EvWrapper bcbpb.Event_TypeWrapper[Ev], Ev any](m dsl.Module, hand
 	})
 }
 
-func UponRequest(m dsl.Module, handler func(data []byte) error) {
-	UponEvent[*bcbpb.Event_Request](m, func(ev *bcbpb.Request) error {
+func UponBroadcastRequest(m dsl.Module, handler func(data []byte) error) {
+	UponEvent[*bcbpb.Event_Request](m, func(ev *bcbpb.BroadcastRequest) error {
 		return handler(ev.Data)
 	})
 }

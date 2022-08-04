@@ -10,7 +10,7 @@ import "mir/plugin.proto";
 // Messages
 // ============================================================
 
-message Request {
+message BroadcastRequest {
   bytes data = 1;
 }
 
@@ -21,8 +21,8 @@ message Deliver {
 message Event {
   oneof type {
     option (mir.event_type) = true;
-    Request request = 1;
-    Deliver deliver = 2;
+    BroadcastRequest request = 1;
+    Deliver          deliver = 2;
   }
 }
 

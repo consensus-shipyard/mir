@@ -77,7 +77,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	}
 
 	// upon event <bcb, Broadcast | m> do    // only process s
-	bcbdsl.UponRequest(m, func(data []byte) error {
+	bcbdsl.UponBroadcastRequest(m, func(data []byte) error {
 		if nodeID != params.Leader {
 			return fmt.Errorf("only the leader node can receive requests")
 		}
