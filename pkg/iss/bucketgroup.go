@@ -71,9 +71,10 @@ func (buckets bucketGroup) RequestBucket(req *requestpb.HashedRequest) *requestB
 // the ID of each bucket in the group will be assigned to the node infinitely many times.
 // Distribute also makes best effort to distribute the buckets evenly among the leaders.
 // If `leaders` is empty, Distribute returns an empty map.
+//
 // TODO: Update this to have a more sophisticated, livenes-ensuring implementation,
-//       to actually implement what is written above.
-//       An additional parameter with all the nodes (even non-leaders) might help there.
+// to actually implement what is written above.
+// An additional parameter with all the nodes (even non-leaders) might help there.
 func (buckets bucketGroup) Distribute(leaders []t.NodeID, epoch t.EpochNr) map[t.NodeID][]int {
 
 	// Catch the corner case where the input is empty.

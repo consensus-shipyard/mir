@@ -182,10 +182,10 @@ type ISS struct {
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
-// - ownID:  the ID of the node being instantiated with ISS.
-// - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).
-//           see the documentation of the Config type for details.
-// - logger: Logger the ISS implementation uses to output log messages.
+//   - ownID:  the ID of the node being instantiated with ISS.
+//   - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).
+//     see the documentation of the Config type for details.
+//   - logger: Logger the ISS implementation uses to output log messages.
 func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 
 	// Check whether the passed configuration is valid.
@@ -979,8 +979,9 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 
 // removeFromBuckets removes the given requests from their corresponding buckets.
 // This happens when a batch is committed.
+//
 // TODO: Implement marking requests as "in flight"/proposed, so we don't accept proposals with duplicates.
-//       This could maybe be done on the WaitForRequests/RequestsReady path...
+// This could maybe be done on the WaitForRequests/RequestsReady path...
 func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
 
 	// Remove each request from its bucket.
