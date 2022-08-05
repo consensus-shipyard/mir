@@ -22,16 +22,6 @@ type ModuleConfig struct {
 	Crypto  t.ModuleID
 }
 
-// DefaultModuleConfig returns a valid module config with default names for all modules.
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self:    "availability",
-		Mempool: "mempool",
-		Net:     "net",
-		Crypto:  "crypto",
-	}
-}
-
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
