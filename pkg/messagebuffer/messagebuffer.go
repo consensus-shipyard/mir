@@ -172,13 +172,14 @@ func (mb *MessageBuffer) remove(e *list.Element) proto.Message {
 // Iterate iterates over all messages in the MessageBuffer and applies a and removes selected ones,
 // according the provided filter function.
 // Iterate takes two function arguments:
-// - filter is applied to every message in the buffer and performs the following actions based on its output
-//   (see description of the Applicable type):
+// (1) filter is applied to every message in the buffer and performs the following actions based on its output
+// (see description of the Applicable type):
 //   - Past:    Remove message from the buffer.
 //   - Current: Remove message from the buffer and call apply with the message and its sender as arguments.
 //   - Future:  Do nothing.
 //   - Invalid: Remove message from the buffer.
-// - apply is called with every message for which filter returns the Current value.
+//
+// (2) apply is called with every message for which filter returns the Current value.
 func (mb *MessageBuffer) Iterate(
 	filter func(source t.NodeID, msg proto.Message) Applicable,
 	apply func(source t.NodeID, msg proto.Message),

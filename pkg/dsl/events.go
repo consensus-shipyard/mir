@@ -31,9 +31,10 @@ func SendMessage(m Module, destModule t.ModuleID, msg *messagepb.Message, dest [
 // SignRequest emits a request event to sign the given message.
 // The response should be processed using UponSignResult with the same context type C.
 // C can be an arbitrary type and does not have to be serializable.
+//
 // NB: The context is passed by reference in order to prevent the programmer from making a bug where they pass the
-//     context by value when they send a request, but accept it by reference in the handler (or vice versa). This would
-//     make the handler not match the response event.
+// context by value when they send a request, but accept it by reference in the handler (or vice versa). This would
+// make the handler not match the response event.
 func SignRequest[C any](m Module, destModule t.ModuleID, data [][]byte, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 

@@ -77,18 +77,18 @@ type pbftInstance struct {
 
 // newPbftInstance allocates and initializes a new instance of the PBFT orderer.
 // It takes the following parameters:
-// - ownID:              The ID of this node.
-// - segment:            The segment governing this SB instance,
-//                       specifying the leader, the set of sequence numbers, the buckets, etc.
-// - numPendingRequests: The number of requests currently pending in the buckets
-//                       assigned to the new instance (segment.BucketIDs) and ready to be proposed by this PBFT orderer.
-//                       This is required for the orderer to know whether it make proposals right away.
-// - config:             PBFT-specific configuration parameters.
-// - eventService:       Event creator object enabling the orderer to produce events.
-//                       All events this orderer creates will be created using the methods of the eventService.
-//                       The eventService must be configured to produce events associated with this PBFT orderer,
-//                       since the implementation of the orderer does not know its own identity at the level of ISS.
-// - logger:             Logger for outputting debugging messages.
+//   - ownID: The ID of this node.
+//   - segment: The segment governing this SB instance,
+//     specifying the leader, the set of sequence numbers, the buckets, etc.
+//   - numPendingRequests: The number of requests currently pending in the buckets
+//     assigned to the new instance (segment.BucketIDs) and ready to be proposed by this PBFT orderer.
+//     This is required for the orderer to know whether it make proposals right away.
+//   - config: PBFT-specific configuration parameters.
+//   - eventService: Event creator object enabling the orderer to produce events.
+//     All events this orderer creates will be created using the methods of the eventService.
+//     The eventService must be configured to produce events associated with this PBFT orderer,
+//     since the implementation of the orderer does not know its own identity at the level of ISS.
+//   - logger: Logger for outputting debugging messages.
 func newPbftInstance(
 	ownID t.NodeID,
 	segment *segment,

@@ -29,10 +29,13 @@ func GetValuesOf[K comparable, V any](m map[K]V, keys []K) []V {
 // corresponding values, in the corresponding order.
 //
 // statement
-//   keys, values := GetKeysAndValues(m)
+//
+//	keys, values := GetKeysAndValues(m)
+//
 // is equivalent to:
-//   keys := GetKeys(m)
-//   values := GetValuesOf(m, keys)
+//
+//	keys := GetKeys(m)
+//	values := GetValuesOf(m, keys)
 func GetKeysAndValues[K comparable, V any](m map[K]V) ([]K, []V) {
 	keys := make([]K, 0, len(m))
 	values := make([]V, 0, len(m))
