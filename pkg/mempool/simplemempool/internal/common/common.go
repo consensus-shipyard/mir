@@ -9,7 +9,6 @@ import (
 type ModuleConfig struct {
 	Self   t.ModuleID // id of this module
 	Hasher t.ModuleID
-	Crypto t.ModuleID
 }
 
 // ModuleParams sets the values for the parameters of an instance of the protocol.
