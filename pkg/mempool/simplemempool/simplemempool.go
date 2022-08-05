@@ -23,7 +23,6 @@ func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
 		Self:   "availability",
 		Hasher: "hasher",
-		Crypto: "crypto",
 	}
 }
 
