@@ -14,7 +14,7 @@ type State struct {
 	NewTxIDs []t.TxID
 }
 
-// IncludeBatchCreation registers event handlers for processing new transactions and forming batches.
+// IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
 func IncludeBatchCreation(
 	m dsl.Module,
 	mc *common.ModuleConfig,

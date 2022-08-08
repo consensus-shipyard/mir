@@ -10,7 +10,8 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-//
+// IncludeComputationOfTransactionAndBatchIDs registers event handler for processing RequestTransactionIDs and
+// RequestBatchID events.
 func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
 	mc *common.ModuleConfig,

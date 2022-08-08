@@ -9,8 +9,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// IncludeTransactionLookupByID registers event handlers for transaction looking up transactions in the mempool by
-// their IDs.
+// IncludeTransactionLookupByID registers event handlers for processing RequestTransactions events.
 func IncludeTransactionLookupByID(
 	m dsl.Module,
 	mc *common.ModuleConfig,
