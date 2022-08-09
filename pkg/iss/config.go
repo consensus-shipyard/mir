@@ -14,10 +14,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
-// The Config type defines all the ISS configuration parameters.
+// The ModuleParams type defines all the ISS configuration parameters.
 // Note that some fields specify delays in ticks of the logical clock.
 // To obtain real time delays, these need to be multiplied by the period of the ticker provided to the Node at runtime.
-type Config struct {
+type ModuleParams struct {
 
 	// The identities of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
@@ -104,7 +104,7 @@ type Config struct {
 	CheckpointResendPeriod time.Duration
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
-	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in Config.
+	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in ModuleParams.
 	PBFTDoneResendPeriod         time.Duration
 	PBFTCatchUpDelay             time.Duration
 	PBFTViewChangeBatchTimeout   time.Duration
@@ -112,8 +112,8 @@ type Config struct {
 	PBFTViewChangeResendPeriod   time.Duration
 }
 
-// CheckConfig checks whether the given configuration satisfies all necessary constraints.
-func CheckConfig(c *Config) error {
+// CheckParams checks whether the given configuration satisfies all necessary constraints.
+func CheckParams(c *ModuleParams) error {
 
 	// The membership must not be empty.
 	if len(c.InitialMembership) == 0 {
@@ -177,11 +177,11 @@ func CheckConfig(c *Config) error {
 }
 
 // DefaultConfig returns the default configuration for a given membership.
-// There is no guarantee that this configuration ensures good performance, but it will pass the CheckConfig test.
+// There is no guarantee that this configuration ensures good performance, but it will pass the CheckParams test.
 // DefaultConfig is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultConfig can serve as a starting point.
-func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *Config {
+func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
@@ -189,7 +189,7 @@ func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *Config {
 	maxProposeDelay := time.Second
 	segmentLength := 4
 
-	return &Config{
+	return &ModuleParams{
 		InitialMembership:            initialMembership,
 		ConfigOffset:                 2,
 		SegmentLength:                segmentLength,

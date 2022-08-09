@@ -192,8 +192,7 @@ func run() error {
 	issConfig.ConfigOffset = configOffset
 	issProtocol, err := iss.New(
 		args.OwnID,
-		issConfig,
-		iss.InitialStateSnapshot(chatApp.serializeMessages(), issConfig),
+		iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(chatApp.serializeMessages(), issConfig),
 		logger,
 	)
 	if err != nil {

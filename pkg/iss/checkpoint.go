@@ -29,6 +29,10 @@ import (
 type checkpointTracker struct {
 	logging.Logger
 
+	// IDs of modules the checkpoint tracker interacts with.
+	// TODO: Eventually put the checkpoint tracker in a separate package and create its own ModuleConfig type.
+	moduleConfig ModuleConfig
+
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
 
@@ -67,6 +71,7 @@ type checkpointTracker struct {
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
 func newCheckpointTracker(
+	moduleConfig ModuleConfig,
 	ownID t.NodeID,
 	sn t.SeqNr,
 	epoch t.EpochNr,
@@ -75,6 +80,7 @@ func newCheckpointTracker(
 ) *checkpointTracker {
 	return &checkpointTracker{
 		Logger:          logger,
+		moduleConfig:    moduleConfig,
 		ownID:           ownID,
 		seqNr:           sn,
 		epoch:           epoch,
@@ -100,7 +106,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID, appStateContext contex
 	copy(ct.membership, membership)
 
 	// Request a snapshot of the application state.
-	return events.ListOf(events.AppSnapshotRequest(appModuleName, issModuleName, appStateContext))
+	return events.ListOf(events.AppSnapshotRequest(ct.moduleConfig.App, ct.moduleConfig.Self, appStateContext))
 }
 
 func (ct *checkpointTracker) ProcessStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
@@ -110,9 +116,9 @@ func (ct *checkpointTracker) ProcessStateSnapshot(snapshot *commonpb.StateSnapsh
 
 	// Initiate computing the hash of the snapshot
 	hashEvent := events.HashRequest(
-		hasherModuleName,
+		ct.moduleConfig.Hasher,
 		[][][]byte{serializing.SnapshotForHash(snapshot)},
-		StateSnapshotHashOrigin(ct.epoch),
+		StateSnapshotHashOrigin(ct.moduleConfig.Self, ct.epoch),
 	)
 
 	return events.ListOf(hashEvent)
@@ -125,7 +131,11 @@ func (ct *checkpointTracker) ProcessStateSnapshotHash(snapshotHash []byte) *even
 
 	// Request signature
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, snapshotHash)
-	sigEvent := events.SignRequest(cryptoModuleName, sigData, CheckpointSignOrigin(ct.epoch))
+	sigEvent := events.SignRequest(
+		ct.moduleConfig.Crypto,
+		sigData,
+		CheckpointSignOrigin(ct.moduleConfig.Self, ct.epoch),
+	)
 
 	return events.ListOf(sigEvent)
 }
@@ -137,14 +147,20 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	ct.confirmations[ct.ownID] = struct{}{}
 
 	// Write Checkpoint to WAL
-	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.stateSnapshot, ct.stateSnapshotHash, signature)
-	walEvent := events.WALAppend(walModuleName, persistEvent, t.RetentionIndex(ct.epoch))
+	persistEvent := PersistCheckpointEvent(
+		ct.moduleConfig.Self,
+		ct.seqNr,
+		ct.stateSnapshot,
+		ct.stateSnapshotHash,
+		signature,
+	)
+	walEvent := events.WALAppend(ct.moduleConfig.Wal, persistEvent, t.RetentionIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.stateSnapshotHash, signature)
 	walEvent.FollowUp(events.TimerRepeat(
 		"timer",
-		[]*eventpb.Event{events.SendMessage(netModuleName, m, ct.membership)},
+		[]*eventpb.Event{events.SendMessage(ct.moduleConfig.Net, m, ct.membership)},
 		ct.resendPeriod,
 		t.RetentionIndex(ct.epoch)),
 	)
@@ -195,11 +211,11 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(ct.epoch, ct.seqNr, ct.stateSnapshotHash)
 	verifySigEvent := events.VerifyNodeSigs(
-		cryptoModuleName,
+		ct.moduleConfig.Crypto,
 		[][][]byte{sigData},
 		[][]byte{msg.Signature},
 		[]t.NodeID{source},
-		CheckpointSigVerOrigin(ct.epoch),
+		CheckpointSigVerOrigin(ct.moduleConfig.Self, ct.epoch),
 	)
 
 	return events.ListOf(verifySigEvent)
@@ -245,10 +261,10 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 
 	// First persist the checkpoint in the WAL, then announce it to the protocol.
 	persistEvent := events.WALAppend(
-		walModuleName,
-		PersistStableCheckpointEvent(stableCheckpoint),
+		ct.moduleConfig.Wal,
+		PersistStableCheckpointEvent(ct.moduleConfig.Self, stableCheckpoint),
 		t.RetentionIndex(ct.epoch),
 	)
-	persistEvent.FollowUp(StableCheckpointEvent(stableCheckpoint))
+	persistEvent.FollowUp(StableCheckpointEvent(ct.moduleConfig.Self, stableCheckpoint))
 	return events.ListOf(persistEvent)
 }
