@@ -34,21 +34,27 @@ func Event(destModule t.ModuleID, event *isspb.ISSEvent) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Iss{Iss: event}}
 }
 
-func HashOrigin(origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{Module: issModuleName.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
+func HashOrigin(ownModuleID t.ModuleID, origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
+	return &eventpb.HashOrigin{Module: ownModuleID.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
-func SignOrigin(origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{Module: issModuleName.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
+func SignOrigin(ownModuleID t.ModuleID, origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
+	return &eventpb.SignOrigin{Module: ownModuleID.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
 }
 
-func SigVerOrigin(origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{Module: issModuleName.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
+func SigVerOrigin(ownModuleID t.ModuleID, origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
+	return &eventpb.SigVerOrigin{Module: ownModuleID.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
 }
 
-func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature []byte) *eventpb.Event {
+func PersistCheckpointEvent(
+	ownModuleID t.ModuleID,
+	sn t.SeqNr,
+	appSnapshot,
+	appSnapshotHash,
+	signature []byte,
+) *eventpb.Event {
 	return Event(
-		issModuleName,
+		ownModuleID,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
 			Sn:              sn.Pb(),
 			AppSnapshot:     appSnapshot,
@@ -58,9 +64,9 @@ func PersistCheckpointEvent(sn t.SeqNr, appSnapshot, appSnapshotHash, signature 
 	)
 }
 
-func PersistStableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
+func PersistStableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
 	return Event(
-		issModuleName,
+		ownModuleID,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
 			PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
 				StableCheckpoint: stableCheckpoint,
@@ -69,24 +75,29 @@ func PersistStableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eve
 	)
 }
 
-func StableCheckpointEvent(stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
+func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
 	return Event(
-		issModuleName,
+		ownModuleID,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_StableCheckpoint{
 			StableCheckpoint: stableCheckpoint,
 		}},
 	)
 }
 
-func PushCheckpoint() *eventpb.Event {
-	return Event(issModuleName, &isspb.ISSEvent{Type: &isspb.ISSEvent_PushCheckpoint{
+func PushCheckpoint(ownModuleID t.ModuleID) *eventpb.Event {
+	return Event(ownModuleID, &isspb.ISSEvent{Type: &isspb.ISSEvent_PushCheckpoint{
 		PushCheckpoint: &isspb.PushCheckpoint{},
 	}})
 }
 
-func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEvent) *eventpb.Event {
+func SBEvent(
+	ownModuleID t.ModuleID,
+	epoch t.EpochNr,
+	instance t.SBInstanceNr,
+	event *isspb.SBInstanceEvent,
+) *eventpb.Event {
 	return Event(
-		issModuleName,
+		ownModuleID,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
 			Epoch:    epoch.Pb(),
 			Instance: instance.Pb(),
@@ -95,44 +106,64 @@ func SBEvent(epoch t.EpochNr, instance t.SBInstanceNr, event *isspb.SBInstanceEv
 	)
 }
 
-func LogEntryHashOrigin(logEntrySN t.SeqNr) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_LogEntrySn{LogEntrySn: logEntrySN.Pb()}})
+func LogEntryHashOrigin(ownModuleID t.ModuleID, logEntrySN t.SeqNr) *eventpb.HashOrigin {
+	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_LogEntrySn{
+		LogEntrySn: logEntrySN.Pb(),
+	}})
 }
 
-func SBHashOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Sb{Sb: &isspb.SBHashOrigin{
+func SBHashOrigin(ownModuleID t.ModuleID,
+	epoch t.EpochNr,
+	instance t.SBInstanceNr,
+	origin *isspb.SBInstanceHashOrigin,
+) *eventpb.HashOrigin {
+	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Sb{Sb: &isspb.SBHashOrigin{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
 		Origin:   origin,
 	}}})
 }
 
-func RequestHashOrigin(requests []*requestpb.Request) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Requests{Requests: &isspb.RequestHashOrigin{
-		Requests: requests,
-	}}})
+func RequestHashOrigin(ownModuleID t.ModuleID, requests []*requestpb.Request) *eventpb.HashOrigin {
+	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Requests{
+		Requests: &isspb.RequestHashOrigin{Requests: requests},
+	}})
 }
 
-func AppSnapshotHashOrigin(epoch t.EpochNr) *eventpb.HashOrigin {
-	return HashOrigin(&isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotEpoch{AppSnapshotEpoch: epoch.Pb()}})
+func AppSnapshotHashOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.HashOrigin {
+	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_AppSnapshotEpoch{
+		AppSnapshotEpoch: epoch.Pb(),
+	}})
 }
 
-func CheckpointSignOrigin(epoch t.EpochNr) *eventpb.SignOrigin {
-	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
+func CheckpointSignOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.SignOrigin {
+	return SignOrigin(ownModuleID, &isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointEpoch{
+		CheckpointEpoch: epoch.Pb(),
+	}})
 }
 
-func CheckpointSigVerOrigin(epoch t.EpochNr) *eventpb.SigVerOrigin {
-	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{CheckpointEpoch: epoch.Pb()}})
+func CheckpointSigVerOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.SigVerOrigin {
+	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{
+		CheckpointEpoch: epoch.Pb()}},
+	)
 }
 
-func StableCheckpointSigVerOrigin(stableCheckpoint *isspb.StableCheckpoint) *eventpb.SigVerOrigin {
-	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_StableCheckpoint{
+func StableCheckpointSigVerOrigin(
+	ownModuleID t.ModuleID,
+	stableCheckpoint *isspb.StableCheckpoint,
+) *eventpb.SigVerOrigin {
+	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_StableCheckpoint{
 		StableCheckpoint: stableCheckpoint,
 	}})
 }
 
-func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
-	return SignOrigin(&isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
+func SBSignOrigin(
+	ownModuleID t.ModuleID,
+	epoch t.EpochNr,
+	instance t.SBInstanceNr,
+	origin *isspb.SBInstanceSignOrigin,
+) *eventpb.SignOrigin {
+	return SignOrigin(ownModuleID, &isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
 		Origin:   origin,
@@ -140,11 +171,12 @@ func SBSignOrigin(epoch t.EpochNr, instance t.SBInstanceNr, origin *isspb.SBInst
 }
 
 func SBSigVerOrigin(
+	ownModuleID t.ModuleID,
 	epoch t.EpochNr,
 	instance t.SBInstanceNr,
 	origin *isspb.SBInstanceSigVerOrigin,
 ) *eventpb.SigVerOrigin {
-	return SigVerOrigin(&isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_Sb{Sb: &isspb.SBSigVerOrigin{
+	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_Sb{Sb: &isspb.SBSigVerOrigin{
 		Epoch:    epoch.Pb(),
 		Instance: instance.Pb(),
 		Origin:   origin,

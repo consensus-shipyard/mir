@@ -114,7 +114,7 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 	logger := logging.ConsoleDebugLogger
 
 	// Instantiate an ISS protocol module with the default configuration.
-	protocol, err := iss.New(id, iss.DefaultConfig(membership), logging.Decorate(logger, "ISS: "))
+	protocol, err := iss.New(id, iss.DefaultModuleConfig(), iss.DefaultConfig(membership), logging.Decorate(logger, "ISS: "))
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}

@@ -163,7 +163,7 @@ func run() error {
 
 	// Instantiate the ISS protocol module with default configuration.
 	issConfig := iss.DefaultConfig(nodeIDs)
-	issProtocol, err := iss.New(args.OwnID, issConfig, logger)
+	issProtocol, err := iss.New(args.OwnID, iss.DefaultModuleConfig(), issConfig, logger)
 	if err != nil {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
 	}

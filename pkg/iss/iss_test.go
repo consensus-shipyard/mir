@@ -382,7 +382,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
 		}
 
-		issProtocol, err := New(nodeID, issConfig, logging.Decorate(logger, "ISS: "))
+		issProtocol, err := New(nodeID, DefaultModuleConfig(), issConfig, logging.Decorate(logger, "ISS: "))
 		if err != nil {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}

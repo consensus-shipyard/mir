@@ -33,27 +33,35 @@ import (
 )
 
 // ============================================================
-// Global package variables
-// ============================================================
-
-// Names of modules this protocol depends on.
-// The corresponding modules are expected by ISS to be stored under these keys by the Node.
-var (
-	issModuleName    t.ModuleID = "iss"
-	netModuleName    t.ModuleID = "net"
-	appModuleName    t.ModuleID = "app"
-	walModuleName    t.ModuleID = "wal"
-	hasherModuleName t.ModuleID = "hasher"
-	cryptoModuleName t.ModuleID = "crypto"
-	timerModuleName  t.ModuleID = "timer"
-)
-
-// ============================================================
 // Auxiliary types
 // ============================================================
 
+// ModuleConfig contains the names of modules ISS depends on.
+// The corresponding modules are expected by ISS to be stored under these keys by the Node.
+type ModuleConfig struct {
+	Self   t.ModuleID
+	Net    t.ModuleID
+	App    t.ModuleID
+	Wal    t.ModuleID
+	Hasher t.ModuleID
+	Crypto t.ModuleID
+	Timer  t.ModuleID
+}
+
+func DefaultModuleConfig() ModuleConfig {
+	return ModuleConfig{
+		Self:   "iss",
+		Net:    "net",
+		App:    "app",
+		Wal:    "wal",
+		Hasher: "hasher",
+		Crypto: "crypto",
+		Timer:  "timer",
+	}
+}
+
 // The segment type represents an ISS segment.
-// It is use to parametrize an orderer (i.e. the SB instance).
+// It is used to parametrize an orderer (i.e. the SB instance).
 type segment struct {
 
 	// The leader node of the orderer.
@@ -106,6 +114,9 @@ type ISS struct {
 	// These fields should only be set at initialization and remain static
 	// --------------------------------------------------------------------------------
 
+	// IDs of modules ISS interacts with.
+	moduleConfig ModuleConfig
+
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
 
@@ -125,7 +136,7 @@ type ISS struct {
 	// The ISS configuration parameters (e.g. number of buckets, batch size, etc...)
 	// passed to New() when creating an ISS protocol instance.
 	// TODO: Make it possible to change this dynamically.
-	config *Config
+	config *ModuleParams
 
 	// The current epoch instance.
 	epoch *epochInfo
@@ -184,24 +195,25 @@ type ISS struct {
 // Arguments:
 //   - ownID:  the ID of the node being instantiated with ISS.
 //   - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).
-//     see the documentation of the Config type for details.
+//     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
+func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, logger logging.Logger) (*ISS, error) {
 
 	// Check whether the passed configuration is valid.
-	if err := CheckConfig(config); err != nil {
+	if err := CheckParams(params); err != nil {
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
 	// Initialize a new ISS object.
 	iss := &ISS{
 		// Static fields
-		ownID:   ownID,
-		buckets: newBuckets(config.NumBuckets, logger),
-		logger:  logger,
+		ownID:        ownID,
+		moduleConfig: moduleConfig,
+		buckets:      newBuckets(params.NumBuckets, logger),
+		logger:       logger,
 
 		// Fields modified only by initEpoch
-		config:         config,
+		config:         params,
 		epochs:         make(map[t.EpochNr]*epochInfo),
 		nodeEpochMap:   make(map[t.NodeID]t.EpochNr),
 		bucketOrderers: nil,
@@ -212,8 +224,8 @@ func New(ownID t.NodeID, config *Config, logger logging.Logger) (*ISS, error) {
 		nextDeliveredSN:    0,
 		newEpochSN:         0,
 		messageBuffers: messagebuffer.NewBuffers(
-			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
-			config.MsgBufCapacity,
+			removeNodeID(params.Membership, ownID), // Create a message buffer for everyone except for myself.
+			params.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
 		lastStableCheckpoint: &isspb.StableCheckpoint{
@@ -323,7 +335,12 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(epoch, instance, SBHashResultEvent(result.Digests, origin.Sb.Origin)))
+		return iss.ApplyEvent(SBEvent(
+			iss.moduleConfig.Self,
+			epoch,
+			instance,
+			SBHashResultEvent(result.Digests, origin.Sb.Origin),
+		))
 	case *isspb.ISSHashOrigin_Requests:
 		return iss.applyRequestHashResult(origin.Requests.Requests, result.Digests), nil
 	case *isspb.ISSHashOrigin_LogEntrySn:
@@ -355,7 +372,12 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) (*events.EventList, 
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(epoch, instance, SBSignResultEvent(result.Signature, origin.Sb.Origin)))
+		return iss.ApplyEvent(SBEvent(
+			iss.moduleConfig.Self,
+			epoch,
+			instance,
+			SBSignResultEvent(result.Signature, origin.Sb.Origin),
+		))
 	case *isspb.ISSSignOrigin_CheckpointEpoch:
 		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch)), nil
 	default:
@@ -381,7 +403,7 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
 		epoch := t.EpochNr(origin.Sb.Epoch)
 		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(epoch, instance, SBNodeSigsVerifiedEvent(
+		return iss.ApplyEvent(SBEvent(iss.moduleConfig.Self, epoch, instance, SBNodeSigsVerifiedEvent(
 			result.Valid,
 			result.Errors,
 			t.NodeIDSlice(result.NodeIds),
@@ -417,7 +439,7 @@ func (iss *ISS) applyNewRequests(requests []*requestpb.Request) (*events.EventLi
 	return events.ListOf(events.HashRequest(
 		"hasher",
 		requestData,
-		RequestHashOrigin(requests),
+		RequestHashOrigin(iss.moduleConfig.Self, requests),
 	)), nil
 
 }
@@ -575,8 +597,8 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL and Timer
-			eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(pruneIndex)))
-			eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(pruneIndex)))
+			eventsOut.PushBack(events.WALTruncate(iss.moduleConfig.Wal, t.WALRetIndex(pruneIndex)))
+			eventsOut.PushBack(events.TimerGarbageCollect(iss.moduleConfig.Timer, t.TimerRetIndex(pruneIndex)))
 
 			// Prune epoch state.
 			for epoch := range iss.epochs {
@@ -590,8 +612,8 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that cauthg up
 			// before the re-transmission is garbage-collected.
 			eventsOut.PushBack(events.TimerRepeat(
-				timerModuleName,
-				[]*eventpb.Event{PushCheckpoint()},
+				iss.moduleConfig.Timer,
+				[]*eventpb.Event{PushCheckpoint(iss.moduleConfig.Self)},
 				t.TimeDuration(iss.config.CatchUpTimerPeriod),
 
 				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
@@ -626,7 +648,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 		}
 	}
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
-	return events.ListOf(events.SendMessage(netModuleName, m, delayed)), nil
+	return events.ListOf(events.SendMessage(iss.moduleConfig.Net, m, delayed)), nil
 }
 
 // applyMessageReceived applies a message received over the network.
@@ -707,7 +729,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 		[][][]byte{serializing.CheckpointForSig(t.EpochNr(chkp.Epoch), t.SeqNr(chkp.Sn), chkp.AppSnapshot)},
 		signatures,
 		nodeIDs,
-		StableCheckpointSigVerOrigin(chkp),
+		StableCheckpointSigVerOrigin(iss.moduleConfig.Self, chkp),
 	))
 }
 
@@ -755,7 +777,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(appModuleName, chkp.AppSnapshot))
+	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.AppSnapshot))
 
 	// Activate SB instances of the new epoch which will deliver
 	// batches after the application module has restored the state
@@ -821,6 +843,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 		Nr:         newEpoch,
 		Membership: iss.config.Membership, // TODO: Make a proper copy once reconfiguration is supported.
 		Checkpoint: newCheckpointTracker(
+			iss.moduleConfig,
 			iss.ownID,
 			iss.nextDeliveredSN,
 			newEpoch,
@@ -866,7 +889,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 			seg,
 			iss.buckets.Select(seg.BucketIDs).TotalRequests(),
 			newPBFTConfig(iss.config),
-			&sbEventService{epoch: newEpoch, instance: t.SBInstanceNr(i)},
+			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpoch, instance: t.SBInstanceNr(i)},
 			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
 
 		// Add the orderer to the list of orderers.
@@ -912,7 +935,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// TODO: Once system configuration requests are introduced, apply them here.
 
 		// Create a new Deliver event.
-		eventsOut.PushBack(events.Deliver(appModuleName, iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
+		eventsOut.PushBack(events.Deliver(iss.moduleConfig.App, iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
 
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.",
@@ -1062,23 +1085,23 @@ func membershipSet(membership []t.NodeID) map[t.NodeID]struct{} {
 }
 
 // Returns a configuration of a new PBFT instance based on the current ISS configuration.
-func newPBFTConfig(issConfig *Config) *PBFTConfig {
+func newPBFTConfig(issParams *ModuleParams) *PBFTConfig {
 
 	// Make a copy of the current membership.
-	pbftMembership := make([]t.NodeID, len(issConfig.Membership))
-	copy(pbftMembership, issConfig.Membership)
+	pbftMembership := make([]t.NodeID, len(issParams.Membership))
+	copy(pbftMembership, issParams.Membership)
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &PBFTConfig{
-		Membership:               issConfig.Membership,
-		MaxProposeDelay:          issConfig.MaxProposeDelay,
-		MsgBufCapacity:           issConfig.MsgBufCapacity,
-		MaxBatchSize:             issConfig.MaxBatchSize,
-		DoneResendPeriod:         issConfig.PBFTDoneResendPeriod,
-		CatchUpDelay:             issConfig.PBFTCatchUpDelay,
-		ViewChangeBatchTimeout:   issConfig.PBFTViewChangeBatchTimeout,
-		ViewChangeSegmentTimeout: issConfig.PBFTViewChangeSegmentTimeout,
-		ViewChangeResendPeriod:   issConfig.PBFTViewChangeResendPeriod,
+		Membership:               issParams.Membership,
+		MaxProposeDelay:          issParams.MaxProposeDelay,
+		MsgBufCapacity:           issParams.MsgBufCapacity,
+		MaxBatchSize:             issParams.MaxBatchSize,
+		DoneResendPeriod:         issParams.PBFTDoneResendPeriod,
+		CatchUpDelay:             issParams.PBFTCatchUpDelay,
+		ViewChangeBatchTimeout:   issParams.PBFTViewChangeBatchTimeout,
+		ViewChangeSegmentTimeout: issParams.PBFTViewChangeSegmentTimeout,
+		ViewChangeResendPeriod:   issParams.PBFTViewChangeResendPeriod,
 	}
 }
 
