@@ -31,7 +31,7 @@ type PBFTConfig struct {
 
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
-	// Same as Config.MsgBufCapacity, but used only for one instance of PBFT.
+	// Same as ModuleParams.MsgBufCapacity, but used only for one instance of PBFT.
 	// Must not be negative.
 	MsgBufCapacity int
 

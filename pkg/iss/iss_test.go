@@ -393,8 +393,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		// ISS instantiation
 		issProtocol, err := New(
 			nodeID,
-			issConfig,
-			InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
+			DefaultModuleConfig(), issConfig, InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
 			logging.Decorate(logger, "ISS: "),
 		)
 		if err != nil {
