@@ -18,7 +18,7 @@ type pbftViewChangeState struct {
 	// At initialization, an explicit nil entry is created for each sequence number of the segment.
 	// Based on received ViewChange messages, each value will eventually be set to
 	// - either a non-zero-length byte slice representing a digest to be re-proposed
-	// - or a zero-length byte slice marking it safe to re-propose a special "null" batch.
+	// - or a zero-length byte slice marking it safe to re-propose a special "null" certificate.
 	reproposals map[t.SeqNr][]byte
 
 	// Preprepare messages to be reproposed in the new view.
@@ -26,7 +26,7 @@ type pbftViewChangeState struct {
 	// Based on received ViewChange messages, each value will eventually be set to
 	// a new Preprepare message to be re-proposed (with a correctly set view number).
 	// This also holds for sequence numbers for which nothing was prepared in the previous view,
-	// in which case the value is set to a Preprepare with an empty batch and the "aborted" flag set.
+	// in which case the value is set to a Preprepare with an empty certificate and the "aborted" flag set.
 	preprepares map[t.SeqNr]*isspbftpb.Preprepare
 
 	prepreparedIDs map[t.SeqNr][]t.NodeID
@@ -148,8 +148,9 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *pbftInstance, view
 
 // askForMissingPreprepares requests the Preprepare messages that are part of a new view.
 // The new primary might have received a prepare certificate from other nodes in the ViewChange messages they sent
-// and thus the new primary has to re-propose the corresponding batch by including the corresponding Preprepare message
-// the NewView message. However, the new primary might not have all the corresponding Preprepare messages,
+// and thus the new primary has to re-propose the corresponding availability certificate
+// by including the corresponding Preprepare message in the NewView message.
+// However, the new primary might not have all the corresponding Preprepare messages,
 // in which case it calls this function.
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message

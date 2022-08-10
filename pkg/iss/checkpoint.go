@@ -124,7 +124,7 @@ func (ct *checkpointTracker) ProcessAppSnapshot(snapshot []byte) *events.EventLi
 	return events.ListOf(hashEvent)
 }
 
-func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events.EventList {
+func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) (*events.EventList, error) {
 
 	// Save the received snapshot hash
 	ct.appSnapshotHash = snapshotHash
@@ -137,7 +137,7 @@ func (ct *checkpointTracker) ProcessAppSnapshotHash(snapshotHash []byte) *events
 		CheckpointSignOrigin(ct.moduleConfig.Self, ct.epoch),
 	)
 
-	return events.ListOf(sigEvent)
+	return events.ListOf(sigEvent), nil
 }
 
 func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *events.EventList {

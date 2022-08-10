@@ -21,7 +21,7 @@ import (
 // The orderer should work completely independently (and not be aware) of other orderers or the context it is used in,
 // in order to be as flexible as possible.
 // The ISS implementation, however, must distinguish between events produced by different orderers where necessary
-// (e.g., when an orderer requests a new batch, ISS must pass the created batch back to the right orderer),
+// (e.g., when an orderer requests a new certificate, ISS must pass the created certificate back to the right orderer),
 // while at the same time being transparent to events of no direct concern (e.g. WAL events).
 // Intercepting all events produced by all orderers and augmenting them by the orderers' identities
 // is impractical and clutters the ISS code.

@@ -44,7 +44,7 @@ type pbftInstance struct {
 	// The buffer is checked after each view change.
 	messageBuffers map[t.NodeID]*messagebuffer.MessageBuffer
 
-	// Tracks the state related to proposing batches.
+	// Tracks the state related to proposing availability certificates.
 	proposal pbftProposalState
 
 	// For each view, slots contains one pbftSlot per sequence number this orderer is responsible for.
@@ -101,10 +101,10 @@ func newPbftInstance(
 		slots:             make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
-			proposalsMade:      0,
-			batchRequested:     false,
-			batchRequestedView: 0,
-			proposalTimeout:    0,
+			proposalsMade:     0,
+			certRequested:     false,
+			certRequestedView: 0,
+			proposalTimeout:   0,
 		},
 		messageBuffers: messagebuffer.NewBuffers(
 			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
@@ -133,8 +133,8 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyInit()
 	case *isspb.SBInstanceEvent_PbftProposeTimeout:
 		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout))
-	case *isspb.SBInstanceEvent_PbftViewChangeBatchTimeout:
-		return pbft.applyViewChangeBatchTimeout(e.PbftViewChangeBatchTimeout)
+	case *isspb.SBInstanceEvent_PbftViewChangeSnTimeout:
+		return pbft.applyViewChangeSNTimeout(e.PbftViewChangeSnTimeout)
 	case *isspb.SBInstanceEvent_PbftViewChangeSegTimeout:
 		return pbft.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout))
 	case *isspb.SBInstanceEvent_CertReady:
@@ -251,8 +251,10 @@ func (pbft *pbftInstance) Segment() *segment {
 // General protocol logic (other specific parts in separate files)
 // ============================================================
 
-// canPropose returns true if the current state of the PBFT orderer allows for a new batch to be proposed.
-// Note that "new batch" means a "fresh" batch proposed during normal operation outside of view change.
+// canPropose returns true if the current state of the PBFT orderer
+// allows for a new availability certificate to be proposed.
+// Note that "new availability certificate" means a "fresh" certificate
+// proposed during normal operation outside of view change.
 // Proposals part of a new view message during a view change do not call this function and are treated separately.
 func (pbft *pbftInstance) canPropose() bool {
 	return pbft.ownID == pbft.segment.Leader && // Only the leader can propose
@@ -261,13 +263,13 @@ func (pbft *pbftInstance) canPropose() bool {
 		// This is specific for the SB-version of PBFT used in ISS and deviates from the standard PBFT protocol.
 		pbft.view == 0 &&
 
-		// A new batch must not have been requested (if it has, we are already in the process of proposing).
-		!pbft.proposal.batchRequested &&
+		// A new certificate must not have been requested (if it has, we are already in the process of proposing).
+		!pbft.proposal.certRequested &&
 
 		// There must still be a free sequence number for which a proposal can be made.
 		pbft.proposal.proposalsMade < len(pbft.segment.SeqNrs) &&
 
-		// The batch timeout must have passed.
+		// The proposal timeout must have passed.
 		pbft.proposal.proposalTimeout > pbft.proposal.proposalsMade &&
 
 		// No proposals can be made while in view change.
@@ -341,8 +343,8 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 	// Set view change timeouts
 	timerEvents := events.EmptyList()
 	timerEvents.PushBack(pbft.eventService.TimerDelay(
-		computeTimeout(t.TimeDuration(pbft.config.ViewChangeBatchTimeout), view),
-		pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(view, pbft.numCommitted(view)))),
+		computeTimeout(t.TimeDuration(pbft.config.ViewChangeSNTimeout), view),
+		pbft.eventService.SBEvent(PbftViewChangeSNTimeout(view, pbft.numCommitted(view)))),
 	).PushBack(pbft.eventService.TimerDelay(
 		computeTimeout(t.TimeDuration(pbft.config.ViewChangeSegmentTimeout), view),
 		pbft.eventService.SBEvent(PbftViewChangeSegmentTimeout(view))),

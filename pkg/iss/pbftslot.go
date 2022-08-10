@@ -30,10 +30,10 @@ type pbftSlot struct {
 	// Serves mostly as an optimization to not re-validate already validated messages.
 	ValidCommits []*isspbftpb.Commit
 
-	// The digest of the proposed (preprepared) batch
+	// The digest of the proposed (preprepared) certificate
 	Digest []byte
 
-	// Flags denoting whether a batch has been, respectively, preprepared, prepared, and committed in this slot
+	// Flags denoting whether a certificate has been, respectively, preprepared, prepared, and committed in this slot
 	// Note that Preprepared == true is not equivalent to Preprepare != nil, since the Preprepare message is stored
 	// before the node preprepares the proposal (it first has to verify that all requests are available
 	// and only then can preprepare the proposal and send the Prepare messages).
@@ -67,7 +67,7 @@ func newPbftSlot(f int) *pbftSlot {
 // This is used during view change, when the protocol initializes a new PBFT view.
 func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr) {
 
-	// If the slot has already committed a batch, just copy over the result.
+	// If the slot has already committed a certificate, just copy over the result.
 	if prevSlot.Committed {
 		slot.Committed = true
 		slot.Digest = prevSlot.Digest
@@ -87,27 +87,27 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		eventsOut.PushBackList(pbft.sendCommit(pbftCommitMsg(sn, pbft.view, slot.Digest)))
 	}
 
-	// If the slot just became committed, reset batch timeout and deliver the batch.
+	// If the slot just became committed, reset SN timeout and deliver the certificate.
 	if !slot.Committed && slot.checkCommitted() {
 
 		// Mark slot as committed.
 		slot.Committed = true
 
-		// Set a new batch timeout (unless the segment is finished with a stable checkpoint).
-		// Note that we set a new batch timeout even if everything has already been committed.
+		// Set a new SN timeout (unless the segment is finished with a stable checkpoint).
+		// Note that we set a new SN timeout even if everything has already been committed.
 		// In such a case, we expect a quorum of other nodes to also commit everything and send a Done message
 		// before the timeout fires.
 		// The timeout event contains the current view and the number of committed slots.
 		// It will be ignored if any of those values change by the time the timer fires
-		// or if a quorum of nodes confirms having committed all batches.
+		// or if a quorum of nodes confirms having committed all certificates.
 		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
 			eventsOut.PushBack(pbft.eventService.TimerDelay(
-				t.TimeDuration(pbft.config.ViewChangeBatchTimeout),
-				pbft.eventService.SBEvent(PbftViewChangeBatchTimeout(pbft.view, pbft.numCommitted(pbft.view))),
+				t.TimeDuration(pbft.config.ViewChangeSNTimeout),
+				pbft.eventService.SBEvent(PbftViewChangeSNTimeout(pbft.view, pbft.numCommitted(pbft.view))),
 			))
 		}
 
-		// If all batches have been committed (i.e. this is the last batch to commit),
+		// If all certificates have been committed (i.e. this is the last certificate to commit),
 		// send a Done message to all other nodes.
 		// This is required for liveness, see comments for pbftSegmentChkp.
 		if pbft.allCommitted() {
@@ -115,7 +115,7 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 			eventsOut.PushBackList(pbft.sendDoneMessages())
 		}
 
-		// Deliver batch.
+		// Deliver availability certificate.
 		eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
 			sn,
 			slot.Preprepare.CertData,
