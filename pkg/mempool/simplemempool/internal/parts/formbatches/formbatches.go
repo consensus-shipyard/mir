@@ -44,23 +44,22 @@ func IncludeBatchCreation(
 		var txs []*requestpb.Request
 		batchSize := 0
 
-		var i int
-		var txID t.TxID
-
-		for i, txID = range state.NewTxIDs {
+		txCount := 0
+		for _, txID := range state.NewTxIDs {
 			tx := state.TxByID[txID]
 
 			// TODO: add other limitations (if any) here.
-			if i == params.MaxTransactionsInBatch {
+			if txCount == params.MaxTransactionsInBatch {
 				break
 			}
 
 			txIDs = append(txIDs, txID)
 			txs = append(txs, tx)
 			batchSize += len(tx.Data)
+			txCount++
 		}
 
-		state.NewTxIDs = state.NewTxIDs[i:]
+		state.NewTxIDs = state.NewTxIDs[txCount:]
 
 		// Note that a batch may be empty.
 		mpdsl.NewBatch(m, t.ModuleID(origin.Module), txIDs, txs, origin)
