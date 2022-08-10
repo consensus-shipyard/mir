@@ -97,6 +97,11 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 // Each appended message is also printed to stdout.
 func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, error) {
 
+	// Skip padding certificates. Deliver events with nil certificates are considered noops.
+	if deliver.Cert.Type == nil {
+		return events.EmptyList(), nil
+	}
+
 	switch c := deliver.Cert.Type.(type) {
 	case *availabilitypb.Cert_Msc:
 		if len(c.Msc.BatchId) == 0 {
