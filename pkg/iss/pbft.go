@@ -80,9 +80,6 @@ type pbftInstance struct {
 //   - ownID: The ID of this node.
 //   - segment: The segment governing this SB instance,
 //     specifying the leader, the set of sequence numbers, the buckets, etc.
-//   - numPendingRequests: The number of requests currently pending in the buckets
-//     assigned to the new instance (segment.BucketIDs) and ready to be proposed by this PBFT orderer.
-//     This is required for the orderer to know whether it make proposals right away.
 //   - config: PBFT-specific configuration parameters.
 //   - eventService: Event creator object enabling the orderer to produce events.
 //     All events this orderer creates will be created using the methods of the eventService.
@@ -92,7 +89,6 @@ type pbftInstance struct {
 func newPbftInstance(
 	ownID t.NodeID,
 	segment *segment,
-	numPendingRequests t.NumRequests,
 	config *PBFTConfig,
 	eventService *sbEventService,
 	logger logging.Logger) *pbftInstance {
@@ -106,7 +102,6 @@ func newPbftInstance(
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:      0,
-			numPendingRequests: numPendingRequests,
 			batchRequested:     false,
 			batchRequestedView: 0,
 			proposalTimeout:    0,
@@ -142,10 +137,8 @@ func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.Event
 		return pbft.applyViewChangeBatchTimeout(e.PbftViewChangeBatchTimeout)
 	case *isspb.SBInstanceEvent_PbftViewChangeSegTimeout:
 		return pbft.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout))
-	case *isspb.SBInstanceEvent_PendingRequests:
-		return pbft.applyPendingRequests(t.NumRequests(e.PendingRequests.NumRequests))
-	case *isspb.SBInstanceEvent_BatchReady:
-		return pbft.applyBatchReady(e.BatchReady)
+	case *isspb.SBInstanceEvent_CertReady:
+		return pbft.applyCertReady(e.CertReady)
 	case *isspb.SBInstanceEvent_HashResult:
 		return pbft.applyHashResult(e.HashResult)
 	case *isspb.SBInstanceEvent_SignResult:
@@ -274,11 +267,8 @@ func (pbft *pbftInstance) canPropose() bool {
 		// There must still be a free sequence number for which a proposal can be made.
 		pbft.proposal.proposalsMade < len(pbft.segment.SeqNrs) &&
 
-		// Either the batch timeout must have passed, or there must be enough requests for a full batch.
-		// The value 0 for config.MaxBatchSize means no limit on batch size,
-		// i.e., a proposal cannot be triggered just by the number of pending requests.
-		(pbft.proposal.proposalTimeout > pbft.proposal.proposalsMade ||
-			(pbft.config.MaxBatchSize != 0 && pbft.proposal.numPendingRequests >= pbft.config.MaxBatchSize)) &&
+		// The batch timeout must have passed.
+		pbft.proposal.proposalTimeout > pbft.proposal.proposalsMade &&
 
 		// No proposals can be made while in view change.
 		!pbft.inViewChange
@@ -317,20 +307,6 @@ func (pbft *pbftInstance) numCommitted(view t.PBFTViewNr) int {
 // (i.e., have the committed flag set).
 func (pbft *pbftInstance) allCommitted() bool {
 	return pbft.numCommitted(pbft.view) == len(pbft.slots[pbft.view])
-}
-
-// applyPendingRequests processes a notification form ISS about the number of requests in buckets ready to be proposed.
-func (pbft *pbftInstance) applyPendingRequests(numRequests t.NumRequests) *events.EventList {
-
-	// Update the orderer's view on the number of pending requests.
-	pbft.proposal.numPendingRequests = numRequests
-
-	if pbft.canPropose() {
-		// Start a new proposal if applicable (i.e. if the number of pending requests reached config.MaxBatchSize).
-		return pbft.requestNewBatch()
-	}
-
-	return events.EmptyList()
 }
 
 func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {

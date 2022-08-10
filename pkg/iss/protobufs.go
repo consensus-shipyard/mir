@@ -16,6 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -191,12 +192,12 @@ func SBInitEvent() *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Init{Init: &isspb.SBInit{}}}
 }
 
-func SBDeliverEvent(sn t.SeqNr, batch *requestpb.Batch, aborted bool) *isspb.SBInstanceEvent {
+func SBDeliverEvent(sn t.SeqNr, certData []byte, aborted bool) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Deliver{
 		Deliver: &isspb.SBDeliver{
-			Sn:      sn.Pb(),
-			Batch:   batch,
-			Aborted: aborted,
+			Sn:       sn.Pb(),
+			CertData: certData,
+			Aborted:  aborted,
 		},
 	}}
 }
@@ -229,6 +230,10 @@ func SBBatchReadyEvent(batch *requestpb.Batch, pendingReqsLeft t.NumRequests) *i
 		Batch:               batch,
 		PendingRequestsLeft: pendingReqsLeft.Pb(),
 	}}}
+}
+
+func SBCertReadyEvent(cert *availabilitypb.Cert) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CertReady{CertReady: &isspb.SBCertReady{Cert: cert}}}
 }
 
 func SBResurrectBatchEvent(batch *requestpb.Batch) *isspb.SBInstanceEvent {

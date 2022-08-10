@@ -11,6 +11,7 @@ package isspb;
 import "commonpb/commonpb.proto";
 import "isspbftpb/isspbftpb.proto";
 import "requestpb/requestpb.proto";
+import "availabilitypb/availabilitypb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
@@ -139,6 +140,7 @@ message SBInstanceEvent {
     SBTick             tick               = 5;
     SBCutBatch         cut_batch          = 6;
     SBBatchReady       batch_ready        = 7;
+    SBCertReady        cert_ready         = 8;
     SBHashRequest      hash_request       = 10;
     SBHashResult       hash_result        = 11;
     SBSignResult       sign_result        = 12;
@@ -167,9 +169,13 @@ message SBBatchReady {
   uint64 pending_requests_left = 2;
 }
 
+message SBCertReady {
+  availabilitypb.Cert cert = 1;
+}
+
 message SBDeliver {
   uint64          sn      = 1;
-  requestpb.Batch batch   = 2;
+  bytes           cert_data = 2;
   bool            aborted = 3;
 }
 

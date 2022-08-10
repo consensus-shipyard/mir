@@ -302,7 +302,7 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 	// Deliver batch.
 	eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
 		sn,
-		slot.Preprepare.Batch,
+		slot.Preprepare.CertData,
 		slot.Preprepare.Aborted,
 	)))
 

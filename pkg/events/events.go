@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/contextstore"
@@ -265,10 +266,10 @@ func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.RetentionIndex) *e
 }
 
 // Deliver returns an event of delivering a request batch to the application in sequence number order.
-func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb.Event {
+func Deliver(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Deliver{Deliver: &eventpb.Deliver{
-		Sn:    sn.Pb(),
-		Batch: batch,
+		Sn:   sn.Pb(),
+		Cert: cert,
 	}}}
 }
 

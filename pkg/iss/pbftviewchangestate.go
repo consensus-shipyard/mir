@@ -3,7 +3,6 @@ package iss
 import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -100,7 +99,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr) [][][
 			vcState.preprepares[sn] = pbftPreprepareMsg(
 				sn,
 				view,
-				&requestpb.Batch{Requests: []*requestpb.HashedRequest{}},
+				[]byte{},
 				true,
 			)
 
