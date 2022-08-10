@@ -13,13 +13,14 @@ import (
 
 // pbftSegmentChkp groups data structures pertaining to an instance-local checkpoint
 // created when all slots have been committed.
-// If correct nodes stop participating in the protocol immediately after having delivered all batches in a segment,
-// a minority of nodes might get stuck in higher views if they did not deliver all batches yet,
+// If correct nodes stop participating in the protocol immediately after having delivered all certificates in a segment,
+// a minority of nodes might get stuck in higher views if they did not deliver all certificates yet,
 // never finding enough support for finishing a view change.
 // The high-level checkpoints (encompassing all segments) are not enough to resolve this problem,
 // because multiple segments can block each other, each with its own majority of nodes that finish it,
 // but with too few nodes that finished all segments.
-// If, for example, each segment only has one node that fails to complete it, no high-level checkpoint can be constructed,
+// If, for example, each segment only has one node that fails to complete it,
+// no high-level checkpoint can be constructed,
 // as too few nodes will have delivered everything from all the segments.
 // Thus, local instance-level checkpoints are required, so nodes can catch up on each segment separately.
 type pbftSegmentChkp struct {
@@ -63,7 +64,7 @@ func (chkp *pbftSegmentChkp) SetDone() {
 	chkp.done = true
 }
 
-// Digests returns, for each sequence number of the associated segment, the digest of the committed batch
+// Digests returns, for each sequence number of the associated segment, the digest of the committed certificate
 // (more precisely, the digest of the corresponding Preprepare message).
 // If the information is not yet available (not enough Done messages have been received), Digests returns nil.
 func (chkp *pbftSegmentChkp) Digests() map[t.SeqNr][]byte {
@@ -118,7 +119,8 @@ func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *isspbftpb.Done, 
 		// Save the IDs of the nodes that are done with the segment
 		chkp.doneNodes = chkp.doneMsgIndex[strKey]
 
-		// Save, for each sequence number of the segment, the corresponding Preprepare digest of the committed batch.
+		// Save, for each sequence number of the segment,
+		// the corresponding Preprepare digest of the committed certificate.
 		if chkp.digests == nil {
 			chkp.digests = make(map[t.SeqNr][]byte, len(segment.SeqNrs))
 			for i, sn := range segment.SeqNrs {
@@ -146,7 +148,7 @@ func (pbft *pbftInstance) sendDoneMessages() *events.EventList {
 
 	pbft.logger.Log(logging.LevelInfo, "Done with segment.")
 
-	// Collect the preprepare digests of all committed batches.
+	// Collect the preprepare digests of all committed certificates.
 	digests := make([][]byte, 0, len(pbft.segment.SeqNrs))
 	maputil.IterateSorted(pbft.slots[pbft.view], func(sn t.SeqNr, slot *pbftSlot) bool {
 		digests = append(digests, slot.Digest)
@@ -163,7 +165,7 @@ func (pbft *pbftInstance) sendDoneMessages() *events.EventList {
 // applyMsgDone applies a received Done message.
 // Once enough Done messages have been applied, makes the protocol
 // - stop participating in view changes and
-// - set up a timer for fetching missing batches.
+// - set up a timer for fetching missing certificates.
 func (pbft *pbftInstance) applyMsgDone(doneMsg *isspbftpb.Done, from t.NodeID) *events.EventList {
 
 	// Register Done message.
@@ -175,7 +177,8 @@ func (pbft *pbftInstance) applyMsgDone(doneMsg *isspbftpb.Done, from t.NodeID) *
 		return events.EmptyList()
 	}
 
-	// If this was the last Done message required for a quorum, set up a timer to ask for the missing committed batches.
+	// If this was the last Done message required for a quorum,
+	// set up a timer to ask for the missing committed certificates.
 	// In case the requests get lost, they need to be periodically retransmitted.
 	// Also, we still want to give the node some time to deliver the requests naturally before trying to catch up.
 	// Thus, we pack a TimerRepeat Event (that triggers the first "repetition" immediately) inside a TimerDelay.
@@ -189,20 +192,22 @@ func (pbft *pbftInstance) applyMsgDone(doneMsg *isspbftpb.Done, from t.NodeID) *
 		),
 	))
 
-	// TODO: Requesting all missing batches from all the nodes known to have them right away is quite an overkill,
+	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,
 	//       resulting in a huge waste of resources. Be smarter about it by, for example, only asking a few nodes first.
 }
 
-// catchUpRequests assembles and returns a list of Events representing requests for retransmission of committed batches.
+// catchUpRequests assembles and returns a list of Events
+// representing requests for retransmission of committed certificates.
 // The list contains one request for each slot of the segment that has not yet been committed.
 func (pbft *pbftInstance) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]byte) []*eventpb.Event {
 
 	catchUpRequests := make([]*eventpb.Event, 0)
 
-	// Deterministically iterate through all the (sequence number, batch) pairs received in a quorum of Done messages.
+	// Deterministically iterate through all the (sequence number, certificate) pairs
+	// received in a quorum of Done messages.
 	maputil.IterateSorted(digests, func(sn t.SeqNr, digest []byte) bool {
 
-		// If no batch has been committed for the sequence number, create a retransmission request.
+		// If no certificate has been committed for the sequence number, create a retransmission request.
 		if !pbft.slots[pbft.view][sn].Committed {
 			catchUpRequests = append(catchUpRequests, pbft.eventService.SendMessage(
 				PbftCatchUpRequestSBMessage(sn, digest),
@@ -215,8 +220,8 @@ func (pbft *pbftInstance) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr]
 	return catchUpRequests
 }
 
-// applyMsgCatchUpRequest applies a request for retransmitting a missing committed batch.
-// It looks up the requested batch (more precisely, the corresponding Preprepare message)
+// applyMsgCatchUpRequest applies a request for retransmitting a missing committed certificate.
+// It looks up the requested certificate (more precisely, the corresponding Preprepare message)
 // by its sequence number and digest and sends it to the originator of the request inside a CatchUpResponse message.
 // If no matching Preprepare is found, does nothing.
 func (pbft *pbftInstance) applyMsgCatchUpRequest(
@@ -234,7 +239,7 @@ func (pbft *pbftInstance) applyMsgCatchUpRequest(
 	return events.EmptyList()
 }
 
-// applyMsgCatchUpResponse applies a retransmitted missing committed batch.
+// applyMsgCatchUpResponse applies a retransmitted missing committed certificate.
 // It only requests hashing of the response,
 // the actual handling of it being performed only when the hash result is available.
 func (pbft *pbftInstance) applyMsgCatchUpResponse(preprepare *isspbftpb.Preprepare, _ t.NodeID) *events.EventList {
@@ -254,7 +259,7 @@ func (pbft *pbftInstance) applyMsgCatchUpResponse(preprepare *isspbftpb.Preprepa
 	return events.ListOf(hashRequest)
 }
 
-// applyCatchUpResponseHashResult processes a missing committed batch when its hash becomes available.
+// applyCatchUpResponseHashResult processes a missing committed certificate when its hash becomes available.
 // It is the final step of catching up with an instance-level checkpoint.
 func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 	digest []byte,
@@ -272,7 +277,7 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 		return events.EmptyList()
 	}
 
-	// Check whether the received batch was actually requested (a faulty node might have sent it on its own).
+	// Check whether the received certificate was actually requested (a faulty node might have sent it on its own).
 	digests := pbft.segmentCheckpoint.Digests()
 	if digests == nil {
 		pbft.logger.Log(logging.LevelWarn, "Ignoring unsolicited CatchUpResponse.", "sn", sn)
@@ -287,11 +292,11 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 
 	pbft.logger.Log(logging.LevelDebug, "Catching up with segment-level checkpoint.", "sn", sn)
 
-	// Add the missing batch, updating the corresponding Preprepare's view.
+	// Add the missing certificate, updating the corresponding Preprepare's view.
 	// Note that copying a Preprepare with an updated view preserves its hash.
 	slot.catchUp(copyPreprepareToNewView(preprepare, pbft.view), digest)
 
-	// If all batches have been committed (i.e. this is the last batch to commit),
+	// If all certificates have been committed (i.e. this is the last certificate to commit),
 	// send a Done message to all other nodes.
 	// This is required for liveness, see comments for pbftSegmentChkp.
 	if pbft.allCommitted() {
@@ -299,7 +304,7 @@ func (pbft *pbftInstance) applyCatchUpResponseHashResult(
 		eventsOut.PushBackList(pbft.sendDoneMessages())
 	}
 
-	// Deliver batch.
+	// Deliver certificate.
 	eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
 		sn,
 		slot.Preprepare.CertData,

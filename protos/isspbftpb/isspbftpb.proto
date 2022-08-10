@@ -91,7 +91,7 @@ message ReqWaitReference {
   uint64 view = 2;
 }
 
-message VCBatchTimeout {
+message VCSNTimeout {
   uint64 view         = 1;
   uint64 numCommitted = 2;
 }

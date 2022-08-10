@@ -24,10 +24,10 @@ func copyPreprepareToNewView(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr
 // Event handling
 // ============================================================
 
-// applyViewChangeBatchTimeout applies the view change batch timeout event
-// triggered some time after a batch is committed.
+// applyViewChangeSNTimeout applies the view change SN timeout event
+// triggered some time after a certificate is committed.
 // If nothing has been committed since, triggers a view change.
-func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VCBatchTimeout) *events.EventList {
+func (pbft *pbftInstance) applyViewChangeSNTimeout(timeoutEvent *isspbftpb.VCSNTimeout) *events.EventList {
 
 	// If the view is still the same as when the timer was set up,
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
@@ -36,7 +36,7 @@ func (pbft *pbftInstance) applyViewChangeBatchTimeout(timeoutEvent *isspbftpb.VC
 		!pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
 
 		// Start the view change sub-protocol.
-		pbft.logger.Log(logging.LevelWarn, "View change batch timer expired.",
+		pbft.logger.Log(logging.LevelWarn, "View change SN timer expired.",
 			"view", pbft.view, "numCommitted", timeoutEvent.NumCommitted)
 		return pbft.startViewChange()
 	}
@@ -65,7 +65,7 @@ func (pbft *pbftInstance) applyViewChangeSegmentTimeout(view t.PBFTViewNr) *even
 }
 
 // startViewChange initiates the view change subprotocol.
-// It is triggered on expiry of the batch timeout or the segment timeout.
+// It is triggered on expiry of the SN timeout or the segment timeout.
 // It constructs the PBFT view change message and creates an event requesting signing it.
 func (pbft *pbftInstance) startViewChange() *events.EventList {
 
@@ -471,7 +471,7 @@ func (pbft *pbftInstance) latestPendingVCState() (*pbftViewChangeState, t.PBFTVi
 // ============================================================
 
 // viewChangePSet represents the P set of a PBFT view change message.
-// For each sequence number, it holds the digest of the last prepared batch,
+// For each sequence number, it holds the digest of the last prepared certificate,
 // along with the view in which it was prepared.
 type viewChangePSet map[t.SeqNr]*isspbftpb.PSetEntry
 
@@ -516,7 +516,7 @@ func reconstructPSet(entries []*isspbftpb.PSetEntry) (viewChangePSet, error) {
 
 // The Q set of a PBFT view change message.
 // For each sequence number, it holds the digests (encoded as string map keys)
-// of all batches preprepared for that sequence number,
+// of all certificates preprepared for that sequence number,
 // along with the latest view in which each of them was preprepared.
 type viewChangeQSet map[t.SeqNr]map[string]t.PBFTViewNr
 
@@ -633,7 +633,7 @@ func (pbft *pbftInstance) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSe
 				// Get the pbftSlot of sn in view (convenience variable)
 				slot := slots[sn]
 
-				// If a batch was prepared for sn in view, add the corresponding entry to the PSet.
+				// If a certificate was prepared for sn in view, add the corresponding entry to the PSet.
 				// If there was an entry corresponding to an older view, it will be overwritten.
 				if slot.Prepared {
 					pSet[sn] = &isspbftpb.PSetEntry{
@@ -643,8 +643,8 @@ func (pbft *pbftInstance) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSe
 					}
 				}
 
-				// If a batch was preprepared for sn in view, add the corresponding entry to the QSet.
-				// If the same batch has been preprepared in an older view, its entry will be overwritten.
+				// If a certificate was preprepared for sn in view, add the corresponding entry to the QSet.
+				// If the same certificate has been preprepared in an older view, its entry will be overwritten.
 				if slot.Preprepared {
 					qSet[sn][string(slot.Digest)] = view
 				}

@@ -21,7 +21,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -126,12 +125,6 @@ func SBHashOrigin(ownModuleID t.ModuleID,
 	}}})
 }
 
-func RequestHashOrigin(ownModuleID t.ModuleID, requests []*requestpb.Request) *eventpb.HashOrigin {
-	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Requests{
-		Requests: &isspb.RequestHashOrigin{Requests: requests},
-	}})
-}
-
 func StateSnapshotHashOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.HashOrigin {
 	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_StateSnapshotEpoch{
 		StateSnapshotEpoch: epoch.Pb(),
@@ -211,33 +204,12 @@ func SBMessageReceivedEvent(message *isspb.SBInstanceMessage, from t.NodeID) *is
 	}}
 }
 
-func SBPendingRequestsEvent(numRequests t.NumRequests) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PendingRequests{
-		PendingRequests: &isspb.SBPendingRequests{
-			NumRequests: numRequests.Pb(),
-		},
-	}}
-}
-
-func SBCutBatchEvent(maxSize t.NumRequests) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CutBatch{CutBatch: &isspb.SBCutBatch{
-		MaxSize: maxSize.Pb(),
-	}}}
-}
-
-func SBBatchReadyEvent(batch *requestpb.Batch, pendingReqsLeft t.NumRequests) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_BatchReady{BatchReady: &isspb.SBBatchReady{
-		Batch:               batch,
-		PendingRequestsLeft: pendingReqsLeft.Pb(),
-	}}}
+func SBCertRequestEvent() *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CertRequest{CertRequest: &isspb.SBCertRequest{}}}
 }
 
 func SBCertReadyEvent(cert *availabilitypb.Cert) *isspb.SBInstanceEvent {
 	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CertReady{CertReady: &isspb.SBCertReady{Cert: cert}}}
-}
-
-func SBResurrectBatchEvent(batch *requestpb.Batch) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_ResurrectBatch{ResurrectBatch: batch}}
 }
 
 func SBHashResultEvent(digests [][]byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {

@@ -64,9 +64,9 @@ func PbftProposeTimeout(numProposals uint64) *isspb.SBInstanceEvent {
 	}}
 }
 
-func PbftViewChangeBatchTimeout(view t.PBFTViewNr, numCommitted int) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftViewChangeBatchTimeout{
-		PbftViewChangeBatchTimeout: &isspbftpb.VCBatchTimeout{
+func PbftViewChangeSNTimeout(view t.PBFTViewNr, numCommitted int) *isspb.SBInstanceEvent {
+	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_PbftViewChangeSnTimeout{
+		PbftViewChangeSnTimeout: &isspbftpb.VCSNTimeout{
 			View:         view.Pb(),
 			NumCommitted: uint64(numCommitted),
 		},
@@ -297,8 +297,6 @@ func serializePreprepareForHashing(preprepare *isspbftpb.Preprepare) [][]byte {
 	}
 
 	// TODO: Implement deterministic cert serialization and use a cert directly
-	//// Encode the availability certificate content.
-	//batchData := serializing.BatchForHash(preprepare.Cert)
 
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,

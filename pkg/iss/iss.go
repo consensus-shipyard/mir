@@ -16,8 +16,6 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/contextstore"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 
 	"google.golang.org/protobuf/proto"
 
@@ -26,6 +24,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -82,7 +81,7 @@ type segment struct {
 }
 
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
-// Whenever an orderer delivers a batch (or a special abort value),
+// Whenever an orderer delivers an availability certificate (or a special abort value),
 // it is inserted to the commit log in form of a commitLogEntry.
 type CommitLogEntry struct {
 	// Sequence number at which this entry has been ordered.
@@ -92,10 +91,10 @@ type CommitLogEntry struct {
 	// TODO: Replace by actual certificate when deterministic serialization of certificates is implemented.
 	CertData []byte
 
-	// The digest (hash) of the batch.
+	// The digest (hash) of the entry.
 	Digest []byte
 
-	// A flag indicating whether this entry is an actual request batch (false)
+	// A flag indicating whether this entry is an actual certificate (false)
 	// or whether the orderer delivered a special abort value (true).
 	Aborted bool
 
@@ -132,7 +131,7 @@ type ISS struct {
 	// These fields might change from epoch to epoch. Modified only by initEpoch()
 	// --------------------------------------------------------------------------------
 
-	// The ISS configuration parameters (e.g. batch size, segment length, etc...)
+	// The ISS configuration parameters (e.g. segment length, proposal frequency etc...)
 	// passed to New() when creating an ISS protocol instance.
 	// TODO: Make it possible to change this dynamically.
 	config *ModuleParams
@@ -158,17 +157,17 @@ type ISS struct {
 	// The buffer is checked after each epoch transition.
 	messageBuffers map[t.NodeID]*messagebuffer.MessageBuffer
 
-	// The final log of committed batches.
-	// For each sequence number, it holds the committed batch (or the special abort value).
+	// The final log of committed availability certificates.
+	// For each sequence number, it holds the committed certificate (or the special abort value).
 	// Each Deliver event of an orderer translates to inserting an entry in the commitLog.
-	// This, in turn, leads to delivering the batch to the application,
+	// This, in turn, leads to delivering the certificate to the application,
 	// as soon as all entries with lower sequence numbers have been delivered.
 	// I.e., the entries are not necessarily inserted in order of their sequence numbers,
 	// but they are delivered to the application in that order.
 	commitLog map[t.SeqNr]*CommitLogEntry
 
 	// CommitLogEntries for which the hash has been requested, but not yet computed.
-	// When an orderer delivers a Batch, ISS creates a CommitLogEntry with a nil Hash, stores it here,
+	// When an orderer delivers a certificate, ISS creates a CommitLogEntry with a nil Hash, stores it here,
 	// and creates a HashRequest. When the HashResult arrives, ISS removes the CommitLogEntry from unhashedLogEntries,
 	// fills in the missing hash, and inserts it to the commitLog.
 	unhashedLogEntries map[t.SeqNr]*CommitLogEntry
@@ -195,7 +194,7 @@ type ISS struct {
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
 //   - ownID:  the ID of the node being instantiated with ISS.
-//   - config: ISS protocol-specific configuration (e.g. batch size, segment length, etc...).
+//   - config: ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
 //     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
 func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
@@ -294,7 +293,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		return iss.applyInit(), nil
+		return iss.applyInit()
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_SignResult:
@@ -302,7 +301,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_AppSnapshot:
-		return iss.applyAppSnapshot(e.AppSnapshot), nil
+		return iss.applyAppSnapshot(e.AppSnapshot)
 	case *eventpb.Event_NewConfig:
 		return iss.applyNewConfig(e.NewConfig)
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
@@ -310,18 +309,16 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		case *isspb.ISSEvent_Sb:
 			return iss.applySBEvent(issEvent.Sb)
 		case *isspb.ISSEvent_StableCheckpoint:
-			return iss.applyStableCheckpoint(issEvent.StableCheckpoint), nil
+			return iss.applyStableCheckpoint(issEvent.StableCheckpoint)
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
 			return events.EmptyList(), nil
 		case *isspb.ISSEvent_PushCheckpoint:
 			return iss.applyPushCheckpoint()
 		default:
-			panic(fmt.Sprintf("unknown ISS event type: %T", issEvent))
+			return nil, fmt.Errorf("unknown ISS event type: %T", issEvent)
 		}
 
-	case *eventpb.Event_MessageReceived:
-		return iss.applyMessageReceived(e.MessageReceived), nil
 	case *eventpb.Event_Availability:
 		switch avEvent := e.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
@@ -329,6 +326,10 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		default:
 			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
 		}
+
+	case *eventpb.Event_MessageReceived:
+		return iss.applyMessageReceived(e.MessageReceived)
+
 	default:
 		return nil, fmt.Errorf("unknown protocol (ISS) event type: %T", event.Type)
 	}
@@ -344,10 +345,10 @@ func (iss *ISS) ImplementsModule() {}
 // applyInit initializes the ISS protocol.
 // This event is only expected to be applied once at startup,
 // after all the events stored in the WAL have been applied and before any other event has been applied.
-func (iss *ISS) applyInit() *events.EventList {
+func (iss *ISS) applyInit() (*events.EventList, error) {
 
 	// Trigger an Init event at all orderers.
-	return iss.initOrderers()
+	return iss.initOrderers(), nil
 }
 
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
@@ -378,12 +379,12 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 		))
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
-		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn)), nil
+		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
 	case *isspb.ISSHashOrigin_StateSnapshotEpoch:
 		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyStateSnapshotHashResult(result.Digests[0], t.EpochNr(origin.StateSnapshotEpoch)), nil
+		return iss.applyStateSnapshotHashResult(result.Digests[0], t.EpochNr(origin.StateSnapshotEpoch))
 	default:
-		panic(fmt.Sprintf("unknown origin of hash result: %T", origin))
+		return nil, fmt.Errorf("unknown origin of hash result: %T", origin)
 	}
 }
 
@@ -414,7 +415,7 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) (*events.EventList, 
 	case *isspb.ISSSignOrigin_CheckpointEpoch:
 		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch)), nil
 	default:
-		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
+		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
 	}
 }
 
@@ -454,13 +455,13 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 	case *isspb.ISSSigVerOrigin_StableCheckpoint:
 		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint), nil
 	default:
-		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
+		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
 	}
 }
 
 // applyAppSnapshot applies the event of the application creating a state snapshot.
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) *events.EventList {
+func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.EventList, error) {
 
 	//events.StateSnapshot(, events.EpochConfig(chat.currentEpoch, chat.memberships)),
 
@@ -471,12 +472,12 @@ func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) *events.Event
 			appSnapshot.AppData,
 			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.config.ConfigOffset+1]),
 			// TODO: Make sure that all the necessary configurations have been received through the NewConfig event.
-		))
+		)), nil
 	}
 
 	iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
 		"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshotEpoch)
-	return events.EmptyList()
+	return events.EmptyList(), nil
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
@@ -499,8 +500,8 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 
 // applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
 // It attaches the digest to the entry and inserts the entry to the commit log.
-// Based on the state of the commitLog, it may trigger delivering batches to the application.
-func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *events.EventList {
+// Based on the state of the commitLog, it may trigger delivering certificates to the application.
+func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) (*events.EventList, error) {
 
 	// Remove pending CommitLogEntry from the "waiting room"
 	logEntry := iss.unhashedLogEntries[logEntrySN]
@@ -513,7 +514,7 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 	iss.commitLog[logEntry.Sn] = logEntry
 
 	// Deliver commitLog entries to the application in sequence number order.
-	// This is relevant in the case when the sequence number of the currently SB-delivered batch
+	// This is relevant in the case when the sequence number of the currently SB-delivered certificate
 	// is the first sequence number not yet delivered to the application.
 	return iss.processCommitted()
 
@@ -521,9 +522,9 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) *even
 
 // applyStateSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
 // It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyStateSnapshotHashResult(digest []byte, epoch t.EpochNr) *events.EventList {
+func (iss *ISS) applyStateSnapshotHashResult(digest []byte, epoch t.EpochNr) (*events.EventList, error) {
 	if iss.epoch.Nr != epoch {
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	}
 	return iss.epoch.Checkpoint.ProcessStateSnapshotHash(digest)
 }
@@ -579,7 +580,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 }
 
-func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) *events.EventList {
+func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
@@ -631,7 +632,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
 	}
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
@@ -663,7 +664,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 // applyMessageReceived applies a message received over the network.
 // Note that this is not the only place messages are applied.
 // Messages received "ahead of time" that have been buffered are applied in applyBufferedMessages.
-func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *events.EventList {
+func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (*events.EventList, error) {
 
 	// Convenience variables used for readability.
 	message := messageReceived.Msg
@@ -672,13 +673,13 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) *
 	// ISS only accepts ISS messages. If another message is applied, the next line panics.
 	switch msg := message.Type.(*messagepb.Message_Iss).Iss.Type.(type) {
 	case *isspb.ISSMessage_Checkpoint:
-		return iss.applyCheckpointMessage(msg.Checkpoint, from)
+		return iss.applyCheckpointMessage(msg.Checkpoint, from), nil
 	case *isspb.ISSMessage_StableCheckpoint:
 		return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
 	case *isspb.ISSMessage_Sb:
-		return iss.applySBMessage(msg.Sb, from)
+		return iss.applySBMessage(msg.Sb, from), nil
 	default:
-		panic(fmt.Errorf("unknown ISS message type: %T", msg))
+		return nil, fmt.Errorf("unknown ISS message type: %T", msg)
 	}
 }
 
@@ -716,7 +717,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 // applyStableCheckpointMessage processes a received StableCheckpoint message
 // by creating a request for verifying the signatures in the included checkpoint certificate.
 // The actual processing then happens in applyStableCheckpointSigVerResult.
-func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.NodeID) *events.EventList {
+func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
 	// Extract signatures and the signing node IDs from the received message.
 	// TODO: Using underlying protobuf type for node ID explicitly here (nodeID string).
@@ -743,7 +744,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 		signatures,
 		nodeIDs,
 		StableCheckpointSigVerOrigin(iss.moduleConfig.Self, chkp),
-	))
+	)), nil
 }
 
 // applyStableCheckpointSigVerResult applies a StableCheckpoint message
@@ -809,7 +810,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Snapshot))
 
 	// Activate SB instances of the new epoch which will deliver
-	// batches after the application module has restored the state
+	// availability certificates after the application module has restored the state
 	// from the snapshot.
 	eventsOut.PushBackList(iss.initOrderers())
 
@@ -960,26 +961,23 @@ func (iss *ISS) epochFinished() bool {
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
 // Whenever a new entry is inserted in the commitLog, this function must be called
-// to create Deliver events for all the batches that can be delivered to the application.
+// to create Deliver events for all the certificates that can be delivered to the application.
 // processCommitted also triggers other internal Events like epoch transitions and state checkpointing.
-func (iss *ISS) processCommitted() *events.EventList {
+func (iss *ISS) processCommitted() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// The iss.nextDeliveredSN variable always contains the lowest sequence number
-	// for which no batch has been delivered yet.
+	// for which no certificate has been delivered yet.
 	// As long as there is an entry in the commitLog with that sequence number,
-	// deliver the corresponding batch and advance to the next sequence number.
+	// deliver the corresponding certificate and advance to the next sequence number.
 	for iss.commitLog[iss.nextDeliveredSN] != nil {
-
-		// TODO: Once system configuration requests are introduced, apply them here.
 
 		certData := iss.commitLog[iss.nextDeliveredSN].CertData
 
 		var cert availabilitypb.Cert
 		if len(certData) > 0 {
 			if err := proto.Unmarshal(certData, &cert); err != nil {
-				// TODO: Use proper error propagation.
-				panic(fmt.Errorf("cannot unmarshal availability certificate: %w", err))
+				return nil, fmt.Errorf("cannot unmarshal availability certificate: %w", err)
 			}
 		}
 
@@ -989,11 +987,11 @@ func (iss *ISS) processCommitted() *events.EventList {
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
-		// Remove just delivered batch from the temporary
-		// store of batches that were agreed upon out-of-order.
+		// Remove just delivered certificate from the temporary
+		// store of certificates that were agreed upon out-of-order.
 		delete(iss.commitLog, iss.nextDeliveredSN)
 
-		// Increment the sequence number of the next batch to deliver.
+		// Increment the sequence number of the next certificate to deliver.
 		iss.nextDeliveredSN++
 	}
 
@@ -1002,7 +1000,7 @@ func (iss *ISS) processCommitted() *events.EventList {
 		eventsOut.PushBackList(iss.advanceEpoch())
 	}
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 func (iss *ISS) advanceEpoch() *events.EventList {
@@ -1047,8 +1045,6 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	))
 
 	// Give the init signals to the newly instantiated orderers.
-	// TODO: Currently this probably sends the Init event to old orderers as well.
-	//       That should not happen! Investigate and fix.
 	eventsOut.PushBackList(iss.initOrderers())
 
 	// Process backlog of buffered SB messages.
@@ -1160,10 +1156,9 @@ func newPBFTConfig(issParams *ModuleParams, membership []t.NodeID) *PBFTConfig {
 		Membership:               membership,
 		MaxProposeDelay:          issParams.MaxProposeDelay,
 		MsgBufCapacity:           issParams.MsgBufCapacity,
-		MaxBatchSize:             issParams.MaxBatchSize,
 		DoneResendPeriod:         issParams.PBFTDoneResendPeriod,
 		CatchUpDelay:             issParams.PBFTCatchUpDelay,
-		ViewChangeBatchTimeout:   issParams.PBFTViewChangeBatchTimeout,
+		ViewChangeSNTimeout:      issParams.PBFTViewChangeSNTimeout,
 		ViewChangeSegmentTimeout: issParams.PBFTViewChangeSegmentTimeout,
 		ViewChangeResendPeriod:   issParams.PBFTViewChangeResendPeriod,
 	}
@@ -1203,7 +1198,7 @@ func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 	}
 
 	// Put everything together in a slice and return it.
-	return [][]byte{snBuf, suspectBuf, []byte{aborted}, entry.CertData}
+	return [][]byte{snBuf, suspectBuf, {aborted}, entry.CertData}
 }
 
 func maxFaulty(n int) int {

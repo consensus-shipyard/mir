@@ -18,7 +18,7 @@ import (
 // Data structures and functions
 // ============================================================
 
-// pbftProposalState tracks the state of the pbftInstance related to proposing batches.
+// pbftProposalState tracks the state of the pbftInstance related to proposing certificates.
 // The proposal state is only used if this node is the leader of this instance of PBFT.
 type pbftProposalState struct {
 
@@ -27,31 +27,25 @@ type pbftProposalState struct {
 	// and to stop proposing when a proposal has been made for all sequence numbers.
 	proposalsMade int
 
-	// Saves the number of pending requests that are available to be included in the next proposal,
-	// as reported by ISS through the PendingRequests event.
-	// When this value exceeds config.MaxBatchSize, a proposal might be made before the config.MaxProposeDelay.
-	numPendingRequests t.NumRequests
-
-	// Flag indicating whether a new batch has been requested from ISS.
+	// Flag indicating whether a new certificate has been requested from ISS.
 	// This effectively means that a proposal is in progress and no new proposals should be started.
-	// This is required, since the PBFT implementation does not assemble request batches itself,
-	// as it is not managing the request buckets
+	// This is required, since the PBFT implementation does not assemble availability certificates itself
 	// (which, in general, do not exclusively concern the orderer and are thus managed by ISS directly).
 	// Instead, when the PBFT instance is ready to propose,
-	// it requests a new batch from the enclosing ISS implementation to provide the batch.
-	batchRequested bool
+	// it requests a new certificate from the enclosing ISS implementation.
+	certRequested bool
 
-	// If batchRequested is true, batchRequestedView indicates the PBFT view
-	// in which the PBFT protocol was when the batch was requested.
-	// When the batch is ready, the protocol needs to check whether it is still in the same view
-	// as when the batch was requested.
+	// If certRequested is true, certRequestedView indicates the PBFT view
+	// in which the PBFT protocol was when the certificate was requested.
+	// When the certificate is ready, the protocol needs to check whether it is still in the same view
+	// as when the certificate was requested.
 	// If the view advanced in the meantime, the proposal must be aborted and the contained requests resurrected
 	// (i.e., put back in their respective ISS bucket queues).
-	// If batchRequested is false, batchRequestedView must not be used.
-	batchRequestedView t.PBFTViewNr
+	// If certRequested is false, certRequestedView must not be used.
+	certRequestedView t.PBFTViewNr
 
 	// the number of proposals for which the timeout has passed.
-	// If this number is higher than proposalsMade, a new batch can be proposed.
+	// If this number is higher than proposalsMade, a new certificate can be proposed.
 	proposalTimeout int
 }
 
@@ -78,38 +72,39 @@ func (pbft *pbftInstance) applyProposeTimeout(numProposals int) *events.EventLis
 	return events.EmptyList()
 }
 
-// requestNewBatch asks (by means of a CutBatch event) ISS to assemble a new request batch.
-// When the batch is ready, it must be passed to the orderer using the BatchReady event.
+// requestNewCert asks (by means of a CertRequest event) ISS to provide a new availability certificate.
+// When the certificate is ready, it must be passed to the orderer using the CertReady event.
 func (pbft *pbftInstance) requestNewCert() *events.EventList {
 
-	// Set a flag indicating that a batch has been requested,
-	// so that no new batches will be requested before the reception of this one.
-	// It will be cleared when BatchReady is received.
-	pbft.proposal.batchRequested = true
+	// Set a flag indicating that a certificate has been requested,
+	// so that no new certificates will be requested before the reception of this one.
+	// It will be cleared when CertReady is received.
+	pbft.proposal.certRequested = true
 
-	// Remember the view in which the batch has been requested
-	// to make sure that we are still in the same view when the batch becomes ready.
-	pbft.proposal.batchRequestedView = pbft.view
+	// Remember the view in which the certificate has been requested
+	// to make sure that we are still in the same view when the certificate becomes ready.
+	pbft.proposal.certRequestedView = pbft.view
 
-	// Emit the CutBatch event.
-	// Operation continues on reception of the BatchReady event.
-	return events.ListOf(pbft.eventService.SBEvent(SBCutBatchEvent(pbft.config.MaxBatchSize)))
+	// Emit the CertRequest event.
+	// Operation continues on reception of the CertReady event.
+	return events.ListOf(pbft.eventService.SBEvent(SBCertRequestEvent()))
 }
 
 // applyCertReady processes a new availability certificate ready to be proposed.
-// This event is triggered by ISS in response to the CutBatch event produced by this orderer.
+// This event is triggered by ISS in response to the CertRequest event produced by this orderer.
 func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventList {
 	eventsOut := events.EmptyList()
 
-	// Clear flag that was set in requestNewBatch(), so that new batches can be requested if necessary.
-	pbft.proposal.batchRequested = false
+	// Clear flag that was set in requestNewCert(), so that new certificates can be requested if necessary.
+	pbft.proposal.certRequested = false
 
-	if pbft.proposal.batchRequestedView == pbft.view {
-		// If the protocol is still in the same PBFT view as when the batch was requested, propose the received batch.
+	if pbft.proposal.certRequestedView == pbft.view {
+		// If the protocol is still in the same PBFT view as when the certificate was requested,
+		// propose the received certificate.
 		eventsOut.PushBackList(pbft.propose(cert.Cert))
 	} else {
-		// If the PBFT view advanced since the batch was requested,
-		// do not propose the batch and resurrect the requests it contains.
+		// If the PBFT view advanced since the certificate was requested,
+		// do not propose the certificate and resurrect the requests it contains.
 		//eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
 		// TODO: Implement resurrection!
 	}
@@ -117,7 +112,7 @@ func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventL
 	return eventsOut
 }
 
-// propose proposes a new request batch by sending a Preprepare message.
+// propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT orderer allows sending a new proposal
 // and does not perform any checks in this regard.
 func (pbft *pbftInstance) propose(cert *availabilitypb.Cert) *events.EventList {
@@ -193,10 +188,6 @@ func (pbft *pbftInstance) applyMsgPreprepare(preprepare *isspbftpb.Preprepare, f
 			"sender", from,
 		)
 	}
-
-	// TODO: Check whether the requests belong to the assigned buckets (probably better done at ISS leve).
-	// TODO: Check whether the batch contains any duplicate requests.
-	//       If it doesn't, mark the contained requests as "in flight" before continuing.
 
 	// Save the received preprepare message.
 	slot.Preprepare = preprepare
@@ -303,7 +294,7 @@ func (pbft *pbftInstance) sendCommit(commit *isspbftpb.Commit) *events.EventList
 
 // applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
-// may trigger additional events like delivering the corresponding batch.
+// may trigger additional events like delivering the corresponding certificate.
 func (pbft *pbftInstance) applyMsgCommit(commit *isspbftpb.Commit, from t.NodeID) *events.EventList {
 
 	// Convenience variable
@@ -324,7 +315,7 @@ func (pbft *pbftInstance) applyMsgCommit(commit *isspbftpb.Commit, from t.NodeID
 	}
 
 	// Save the received Commit message and advance the slot state
-	// (potentially delivering the corresponding batch).
+	// (potentially delivering the corresponding certificate and its successors).
 	slot.Commits[from] = commit
 	return slot.advanceState(pbft, sn)
 }
