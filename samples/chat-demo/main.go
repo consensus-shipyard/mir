@@ -16,7 +16,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"crypto"
 	"fmt"
 	net2 "net"
 	"os"
@@ -27,15 +26,17 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
-	"github.com/filecoin-project/mir/pkg/dummyclient"
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -199,6 +200,36 @@ func run() error {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
 	}
 
+	// Use a simple mempool for incoming requests.
+	mempool := simplemempool.NewModule(
+		&simplemempool.ModuleConfig{
+			Self:   "mempool",
+			Hasher: "hasher",
+		},
+		&simplemempool.ModuleParams{
+			MaxTransactionsInBatch: 10,
+		},
+	)
+
+	// Instantiate the availability layer.
+	multisigCollector, err := multisigcollector.NewModule(
+		&multisigcollector.ModuleConfig{
+			Self:    "availability",
+			Mempool: "mempool",
+			Net:     "net",
+			Crypto:  "crypto",
+		},
+		&multisigcollector.ModuleParams{
+			InstanceUID: []byte("chat multisig collector"),
+			AllNodes:    nodeIDs,
+			F:           (len(nodeIDs) - 1) / 2,
+		},
+		args.OwnID,
+	)
+	if err != nil {
+		return err
+	}
+
 	// ================================================================================
 	// Create a Mir Node, attaching the ChatApp implementation and other modules.
 	// ================================================================================
@@ -216,6 +247,9 @@ func run() error {
 		// consisting of a single zero byte and treats those signatures as valid.
 		// TODO: Remove this line once a default crypto implementation is provided by Mir.
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
+
+		"mempool":      mempool,
+		"availability": multisigCollector,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize Mir modules: %w", err)
@@ -238,36 +272,6 @@ func run() error {
 		nodeErr = node.Run(ctx)
 	}()
 
-	// Create a request receiver and start receiving requests.
-	// Note that the RequestReceiver is _not_ part of the Node as its module.
-	// It is external to the Node and only submits requests it receives to the node.
-	reqReceiver := requestreceiver.NewRequestReceiver(node, "iss", logger)
-	if err := reqReceiver.Start(reqReceiverBasePort + ownNumericID); err != nil {
-		return fmt.Errorf("could not start request receiver: %w", err)
-	}
-
-	// ================================================================================
-	// Create a dummy client for submitting requests (chat messages) to the system.
-	// ================================================================================
-
-	// Create a DummyClient. In this example, the client's ID corresponds to the ID of the node it is collocated with,
-	// but in general this need not be the case.
-	// Also note that the client IDs are in a different namespace than Node IDs.
-	// The client also needs to be initialized with a Hasher and MirModule module in order to be able to sign requests.
-	// We use a dummy MirModule module set up the same way as the Node's MirModule module,
-	// so the client's signatures are accepted.
-	client := dummyclient.NewDummyClient(
-		t.ClientID(args.OwnID),
-		crypto.SHA256,
-		logger,
-	)
-
-	// Create network connections to all Nodes' request receivers.
-	// We use just the background context in this demo app, expecting that the connection will succeed
-	// and the Connect() function will return. In a real deployment, the passed context
-	// can be used for failure handling, for example to cancel connecting.
-	client.Connect(ctx, reqReceiverAddrs)
-
 	// ================================================================================
 	// Read chat messages from stdin and submit them as requests.
 	// ================================================================================
@@ -278,13 +282,22 @@ func run() error {
 	fmt.Println("Type in your messages and press 'Enter' to send.")
 
 	// Read chat message from stdin.
+	nextReqNo := t.ReqNo(0)
 	for scanner.Scan() {
+
 		// Submit the chat message as request payload.
-		if err := client.SubmitRequest(
-			scanner.Bytes(),
-		); err != nil {
+		err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
+			"mempool",
+			[]*requestpb.Request{events.ClientRequest(t.ClientID(args.OwnID), nextReqNo, scanner.Bytes())})),
+		)
+
+		// Print error if occurred.
+		if err != nil {
 			fmt.Println(err)
+		} else {
+			nextReqNo++
 		}
+
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Printf("Error reading input: %v\n", err)
@@ -296,12 +309,8 @@ func run() error {
 
 	// After sending a few messages, we disconnect the client,
 	if args.Verbose {
-		fmt.Println("Done sending messages.")
+		fmt.Println("Stopping transport.")
 	}
-	client.Disconnect()
-
-	// stop the request receiver,
-	reqReceiver.Stop()
 
 	// stop the gRPC transport,
 	transport.Stop()
