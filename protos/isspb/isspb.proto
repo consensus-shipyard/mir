@@ -138,14 +138,13 @@ message SBInstanceEvent {
     SBMessageReceived  message_received   = 3;
     SBPendingRequests  pending_requests   = 4;
     SBTick             tick               = 5;
-    SBCutBatch         cut_batch          = 6;
+    SBCertRequest      cert_request       = 6;
     SBBatchReady       batch_ready        = 7;
     SBCertReady        cert_ready         = 8;
     SBHashRequest      hash_request       = 10;
     SBHashResult       hash_result        = 11;
     SBSignResult       sign_result        = 12;
     SBNodeSigsVerified node_sigs_verified = 13;
-    requestpb.Batch   resurrect_batch   = 14;
 
     isspbftpb.Preprepare       pbft_persist_preprepare         = 100;
     isspbftpb.Prepare          pbft_persist_prepare            = 101;
@@ -153,15 +152,14 @@ message SBInstanceEvent {
     isspbftpb.SignedViewChange pbft_persist_signed_view_change = 103;
     isspbftpb.NewView          pbft_persist_new_view           = 104;
     uint64                     pbft_propose_timeout            = 105;
-    isspbftpb.VCBatchTimeout   pbft_view_change_batch_timeout  = 106;
+    isspbftpb.VCSNTimeout      pbft_view_change_sn_timeout     = 106;
     uint64                     pbft_view_change_seg_timeout    = 107;
   }
 }
 
 message SBInit {}
 
-message SBCutBatch {
-  uint64 max_size = 1;
+message SBCertRequest {
 }
 
 message SBBatchReady {

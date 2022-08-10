@@ -13,13 +13,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // sbInstance represents an instance of Sequenced Broadcast and is the type of each ISS orderer.
 // Each orderer (being an sbInstance) is assigned a segment and is responsible for
-// proposing and delivering request batches for all sequence numbers described by the segment.
+// proposing and delivering request certificates for all sequence numbers described by the segment.
 type sbInstance interface {
 
 	// ApplyEvent receives one event and applies it to the SB implementation's state machine,
@@ -48,22 +47,20 @@ func (iss *ISS) applySBInstanceEvent(
 	switch e := event.Type.(type) {
 	case *isspb.SBInstanceEvent_Deliver:
 		return iss.applySBInstDeliver(instance, e.Deliver)
-	case *isspb.SBInstanceEvent_CutBatch:
-		return iss.applySBInstCutBatch(instance, t.NumRequests(e.CutBatch.MaxSize))
-	case *isspb.SBInstanceEvent_ResurrectBatch:
-		return iss.applySBInstResurrectBatch(e.ResurrectBatch)
+	case *isspb.SBInstanceEvent_CertRequest:
+		return iss.applySBInstCertRequest(instance)
 	default:
 		return instance.ApplyEvent(event)
 	}
 }
 
-// applySBInstDeliver processes the event of an SB instance delivering a request batch (or the special abort value)
+// applySBInstDeliver processes the event of an SB instance delivering a certificate (or the special abort value)
 // for a sequence number. It creates a corresponding commitLog entry and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
 // Operation continues on reception of the HashResult event.
 func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver) *events.EventList {
 
-	// Create a new preliminary log entry based on the delivered batch and hash it.
+	// Create a new preliminary log entry based on the delivered certificate and hash it.
 	// Note that, although tempting, the hash used internally by the SB implementation cannot be re-used.
 	// Apart from making the SB abstraction extremely leaky (reason enough not to do it), it would also be incorrect.
 	// E.g., in PBFT, if the digest of the corresponding Preprepare message was used, the hashes at different nodes
@@ -89,9 +86,10 @@ func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver
 	))
 }
 
-// applySBInstCutBatch processes a request by an orderer for a new request batch that the orderer will propose.
-// To this end, applySBInstCutBatch requests a new batch certificate from the availability layer.
-func (iss *ISS) applySBInstCutBatch(instance sbInstance, maxBatchSize t.NumRequests) *events.EventList {
+// applySBInstCertRequest processes a request by an orderer for a new availability certificate
+// that the orderer will propose.
+// To this end, applySBInstCertRequest requests a new certificate from the availability layer.
+func (iss *ISS) applySBInstCertRequest(instance sbInstance) *events.EventList {
 	return events.ListOf(availabilityevents.RequestCert(iss.moduleConfig.Avaliability, &availabilitypb.RequestCertOrigin{
 		Module: iss.moduleConfig.Self.Pb(),
 		Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
@@ -107,14 +105,4 @@ func (iss *ISS) applyNewCert(newCert *availabilitypb.NewCert) (*events.EventList
 	instance := iss.contextStore.RecoverAndDispose(csID).(sbInstance)
 
 	return instance.ApplyEvent(SBCertReadyEvent(newCert.Cert)), nil
-}
-
-// applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed
-// or committed. Through the ResurrectBatch event, an orderer "returns" a batch it was unable to order.
-func (iss *ISS) applySBInstResurrectBatch(batch *requestpb.Batch) *events.EventList {
-
-	// TODO: Implement resurrection (if appropriate).
-
-	// No further actions to be performed.
-	return events.EmptyList()
 }

@@ -14,19 +14,19 @@ type PBFTConfig struct {
 	// Must not be empty.
 	Membership []t.NodeID
 
-	// The maximum time duration between two proposals of new batches during normal operation.
+	// The maximum time duration between two proposals of new certificatees during normal operation.
 	// This parameter caps the waiting time in order to bound latency.
 	// When MaxProposeDelay has elapsed since the last proposal,
-	// the protocol tries to propose a new request batch, even if the batch is not full (or even completely empty).
+	// the protocol tries to propose a new availability certificate.
 	// Must not be negative.
 	MaxProposeDelay time.Duration
 
-	// When a node has committed all batches in a segment, it will periodically send the Done message
+	// When a node has committed all certificates in a segment, it will periodically send the Done message
 	// in intervals of DoneResendPeriod.
 	DoneResendPeriod time.Duration
 
 	// After a node learns about a quorum of other nodes finishing a segment,
-	// it waits for CatchUpDelay before requesting missing committed batches from other nodes.
+	// it waits for CatchUpDelay before requesting missing committed certificates from other nodes.
 	CatchUpDelay time.Duration
 
 	// Maximal number of bytes used for message backlogging buffers
@@ -35,19 +35,13 @@ type PBFTConfig struct {
 	// Must not be negative.
 	MsgBufCapacity int
 
-	// The maximal number of requests in a proposed request batch.
-	// As soon as the number of pending requests reaches MaxBatchSize,
-	// the PBFT instance may decide to immediately propose a new request batch.
-	// Setting MaxBatchSize to zero signifies no limit on batch size.
-	MaxBatchSize t.NumRequests
-
-	// Per-batch view change timeout for view 0.
-	// If no batch is delivered by a PBFT instance within this timeout, the node triggers a view change.
+	// Per-sequence-number view change timeout for view 0.
+	// If no certificate is delivered by a PBFT instance within this timeout, the node triggers a view change.
 	// With each new view, the timeout doubles (without changing this value)
-	ViewChangeBatchTimeout time.Duration
+	ViewChangeSNTimeout time.Duration
 
 	// View change timeout for view 0 for the whole segment.
-	// If not all batches of the associated segment are delivered by a PBFT instance within this timeout,
+	// If not all certificates of the associated segment are delivered by a PBFT instance within this timeout,
 	// the node triggers a view change.
 	// With each new view, the timeout doubles (without changing this value)
 	ViewChangeSegmentTimeout time.Duration

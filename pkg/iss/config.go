@@ -46,19 +46,11 @@ type ModuleParams struct {
 	// TODO: That EpochLength is not implemented now. SegmentLength has to be used.
 	EpochLength int
 
-	// The maximal number of requests in a proposed request batch.
-	// As soon as the buckets assigned to an orderer contain MaxBatchSize requests,
-	// the orderer may decide to immediately propose a new request batch.
-	// This is meaningful, for example, for the PBFT orderer.
-	// Setting MaxBatchSize to zero signifies no limit on batch size.
-	// TODO: Consider making this orderer-specific.
-	MaxBatchSize t.NumRequests
-
 	// The maximum time duration between two proposals of an orderer, where applicable.
-	// For orderers that wait for a request batch to fill before proposing it (e.g. PBFT),
+	// For orderers that wait for an availability certificate to fill before proposing it (e.g. PBFT),
 	// this parameter caps the waiting time in order to bound latency.
 	// When MaxProposeDelay has elapsed since the last proposal made by an orderer,
-	// the orderer proposes a new request batch, even if the batch is not full (or even completely empty).
+	// the orderer proposes a new availability certificate.
 	// Must not be negative.
 	MaxProposeDelay time.Duration
 
@@ -107,7 +99,7 @@ type ModuleParams struct {
 	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in ModuleParams.
 	PBFTDoneResendPeriod         time.Duration
 	PBFTCatchUpDelay             time.Duration
-	PBFTViewChangeBatchTimeout   time.Duration
+	PBFTViewChangeSNTimeout      time.Duration
 	PBFTViewChangeSegmentTimeout time.Duration
 	PBFTViewChangeResendPeriod   time.Duration
 }
@@ -135,12 +127,6 @@ func CheckParams(c *ModuleParams) error {
 	if (c.EpochLength != 0 && c.SegmentLength != 0) || (c.EpochLength == 0 && c.SegmentLength == 0) {
 		return fmt.Errorf("conflicting EpochLength (%d) and SegmentLength (%d) (exactly one must be zero)",
 			c.EpochLength, c.SegmentLength)
-	}
-
-	// MaxBatchSize must not be negative (it can be zero though, signifying infinite batch size).
-	// This check is technically not necessary for an unsigned type, but we keep it in case the type changes one day.
-	if c.MaxBatchSize < 0 { //nolint:staticcheck
-		return fmt.Errorf("negative MaxBatchSize: %d", c.MaxBatchSize)
 	}
 
 	// MaxProposeDelay must not be negative.
@@ -193,7 +179,6 @@ func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 		InitialMembership:            initialMembership,
 		ConfigOffset:                 2,
 		SegmentLength:                segmentLength,
-		MaxBatchSize:                 4,
 		MaxProposeDelay:              maxProposeDelay,
 		NumBuckets:                   len(initialMembership),
 		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: maputil.GetSortedKeys(initialMembership)},
@@ -204,7 +189,7 @@ func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 		PBFTDoneResendPeriod:         maxProposeDelay,
 		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 		CheckpointResendPeriod:       maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
-		PBFTViewChangeBatchTimeout:   4 * maxProposeDelay,
+		PBFTViewChangeSNTimeout:      4 * maxProposeDelay,
 		PBFTViewChangeSegmentTimeout: 2 * time.Duration(segmentLength) * maxProposeDelay,
 		PBFTViewChangeResendPeriod:   maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
 	}
