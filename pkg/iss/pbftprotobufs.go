@@ -19,8 +19,6 @@ package iss
 import (
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -159,12 +157,12 @@ func PbftCatchUpResponseSBMessage(preprepare *isspbftpb.Preprepare) *isspb.SBIns
 // of enforcing that all fields are explicitly set and none is forgotten.
 // Should the structure of the message change (e.g. by augmenting it by new fields),
 // using this function ensures that these the message is always constructed properly.
-func pbftPreprepareMsg(sn t.SeqNr, view t.PBFTViewNr, batch *requestpb.Batch, aborted bool) *isspbftpb.Preprepare {
+func pbftPreprepareMsg(sn t.SeqNr, view t.PBFTViewNr, certData []byte, aborted bool) *isspbftpb.Preprepare {
 	return &isspbftpb.Preprepare{
-		Sn:      sn.Pb(),
-		View:    view.Pb(),
-		Batch:   batch,
-		Aborted: aborted,
+		Sn:       sn.Pb(),
+		View:     view.Pb(),
+		CertData: certData,
+		Aborted:  aborted,
 	}
 }
 
@@ -298,16 +296,14 @@ func serializePreprepareForHashing(preprepare *isspbftpb.Preprepare) [][]byte {
 		aborted = 1
 	}
 
-	// Encode the batch content.
-	batchData := serializing.BatchForHash(preprepare.Batch)
+	// TODO: Implement deterministic cert serialization and use a cert directly
+	//// Encode the availability certificate content.
+	//batchData := serializing.BatchForHash(preprepare.Cert)
 
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
 	// as the view change protocol might compare hashes of Preprepares across vies.
-	data := make([][]byte, 0, len(preprepare.Batch.Requests)+3)
-	data = append(data, t.SeqNr(preprepare.Sn).Bytes(), []byte{aborted})
-	data = append(data, batchData...)
-	return data
+	return [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.CertData}
 }
 
 func serializeViewChangeForSigning(vc *isspbftpb.ViewChange) [][]byte {

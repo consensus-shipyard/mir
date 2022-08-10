@@ -185,7 +185,7 @@ message WALLoadAll {
 
 message Deliver {
   uint64 sn = 1;
-  requestpb.Batch batch = 2;
+  availabilitypb.Cert cert = 2;
 }
 
 message VerifyRequestSig {

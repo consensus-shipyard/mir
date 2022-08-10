@@ -17,7 +17,7 @@ import (
 // The Preprepare message produced by this function has the same digest as the original preprepare,
 // since the view number is not used for hash computation.
 func copyPreprepareToNewView(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr) *isspbftpb.Preprepare {
-	return pbftPreprepareMsg(t.SeqNr(preprepare.Sn), view, preprepare.Batch, preprepare.Aborted)
+	return pbftPreprepareMsg(t.SeqNr(preprepare.Sn), view, preprepare.CertData, preprepare.Aborted)
 }
 
 // ============================================================
@@ -430,7 +430,7 @@ func validEmptyPreprepare(preprepare *isspbftpb.Preprepare, view t.PBFTViewNr, s
 	return preprepare.Aborted &&
 		t.SeqNr(preprepare.Sn) == sn &&
 		t.PBFTViewNr(preprepare.View) == view &&
-		len(preprepare.Batch.Requests) == 0
+		len(preprepare.CertData) == 0
 }
 
 // viewChangeState returns the state of the view change sub-protocol associated with the given view,

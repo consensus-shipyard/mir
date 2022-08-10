@@ -17,12 +17,16 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 
@@ -69,10 +73,17 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return events.EmptyList(), nil // no actions on init
-	case *eventpb.Event_Deliver:
-		return chat.applyBatch(e.Deliver.Batch)
 	case *eventpb.Event_NewEpoch:
 		return chat.applyNewEpoch(e.NewEpoch)
+	case *eventpb.Event_Deliver:
+		return chat.ApplyDeliver(e.Deliver)
+	case *eventpb.Event_Availability:
+		switch e := e.Availability.Type.(type) {
+		case *availabilitypb.Event_ProvideTransactions:
+			return chat.applyProvideTransactions(e.ProvideTransactions)
+		default:
+			return nil, fmt.Errorf("unexpected availability event type: %T", e)
+		}
 	case *eventpb.Event_AppSnapshotRequest:
 		return chat.applySnapshotRequest(e.AppSnapshotRequest)
 	case *eventpb.Event_AppRestoreState:
@@ -82,21 +93,43 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 	}
 }
 
-// applyBatch applies a batch of requests to the state of the application.
+// ApplyDeliver applies a batch of requests to the state of the application.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
-func (chat *ChatApp) applyBatch(batch *requestpb.Batch) (*events.EventList, error) {
-	eventsOut := events.EmptyList()
+func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, error) {
 
+	switch c := deliver.Cert.Type.(type) {
+	case *availabilitypb.Cert_Msc:
+		if len(c.Msc.BatchId) == 0 {
+			fmt.Println("Received empty batch availability certificate.")
+			return events.EmptyList(), nil
+		} else {
+			return events.ListOf(availabilityevents.RequestTransactions(
+				"availability",
+				deliver.Cert,
+				&availabilitypb.RequestTransactionsOrigin{
+					Module: "app",
+					Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
+						ContextStore: &contextstorepb.Origin{ItemID: 0},
+					},
+				},
+			)), nil
+		}
+	default:
+		return nil, fmt.Errorf("unknown availability certificate type: %T", deliver.Cert.Type)
+	}
+}
+
+func (chat *ChatApp) applyProvideTransactions(ptx *availabilitypb.ProvideTransactions) (*events.EventList, error) {
 	// For each request in the batch
-	for _, req := range batch.Requests {
+	for _, req := range ptx.Txs {
 
 		// Convert request payload to chat message.
-		msgString := string(req.Req.Data)
+		msgString := string(req.Data)
 
 		// Print content of chat message.
-		chatMessage := fmt.Sprintf("Client %v: %s", req.Req.ClientId, msgString)
+		chatMessage := fmt.Sprintf("Client %v: %s", req.ClientId, msgString)
 
 		// Append the received chat message to the chat history.
 		chat.messages = append(chat.messages, chatMessage)
@@ -111,7 +144,7 @@ func (chat *ChatApp) applyBatch(batch *requestpb.Batch) (*events.EventList, erro
 		}
 	}
 
-	return eventsOut, nil
+	return events.EmptyList(), nil
 }
 
 func (chat *ChatApp) applyConfigMsg(configMsg string) {
@@ -162,6 +195,7 @@ func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventLis
 	if nodeAddrs, err = dummyMultiAddrs(chat.newMembership); err != nil {
 		return nil, err
 	}
+
 	chat.transport.Connect(context.Background(), nodeAddrs)
 
 	// Notify ISS about the new membership.

@@ -7,7 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -15,8 +19,7 @@ import (
 
 // sbInstance represents an instance of Sequenced Broadcast and is the type of each ISS orderer.
 // Each orderer (being an sbInstance) is assigned a segment and is responsible for
-// proposing and delivering request batches for all sequence numbers described by the segment,
-// while the batches only contain requests belonging to buckets referenced by the segment.
+// proposing and delivering request batches for all sequence numbers described by the segment.
 type sbInstance interface {
 
 	// ApplyEvent receives one event and applies it to the SB implementation's state machine,
@@ -60,20 +63,17 @@ func (iss *ISS) applySBInstanceEvent(
 // Operation continues on reception of the HashResult event.
 func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver) *events.EventList {
 
-	// Remove the delivered requests from their respective buckets.
-	iss.removeFromBuckets(deliver.Batch.Requests)
-
 	// Create a new preliminary log entry based on the delivered batch and hash it.
 	// Note that, although tempting, the hash used internally by the SB implementation cannot be re-used.
 	// Apart from making the SB abstraction extremely leaky (reason enough not to do it), it would also be incorrect.
 	// E.g., in PBFT, if the digest of the corresponding Preprepare message was used, the hashes at different nodes
 	// might mismatch, if they commit in different PBFT views (and thus using different Preprepares).
 	unhashedEntry := &CommitLogEntry{
-		Sn:      t.SeqNr(deliver.Sn),
-		Batch:   deliver.Batch,
-		Digest:  nil,
-		Aborted: deliver.Aborted,
-		Suspect: instance.Segment().Leader,
+		Sn:       t.SeqNr(deliver.Sn),
+		CertData: deliver.CertData,
+		Digest:   nil,
+		Aborted:  deliver.Aborted,
+		Suspect:  instance.Segment().Leader,
 	}
 
 	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
@@ -90,33 +90,30 @@ func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver
 }
 
 // applySBInstCutBatch processes a request by an orderer for a new request batch that the orderer will propose.
-// applySBInstCutBatch removes up to maxBatchSize requests from the buckets currently assigned to the orderer
-// with ID instanceID, constructs a batch containing those requests, and submits the batch to the orderer
-// via a BatchReady event.
-// If there are no requests in the corresponding buckets, applySBInstCutBatch still provides an empty batch immediately.
+// To this end, applySBInstCutBatch requests a new batch certificate from the availability layer.
 func (iss *ISS) applySBInstCutBatch(instance sbInstance, maxBatchSize t.NumRequests) *events.EventList {
+	return events.ListOf(availabilityevents.RequestCert(iss.moduleConfig.Avaliability, &availabilitypb.RequestCertOrigin{
+		Module: iss.moduleConfig.Self.Pb(),
+		Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
+			ItemID: iss.contextStore.Store(instance).Pb(),
+		}},
+	}))
+}
 
-	// Look up the relevant buckets, based on the orderer's segment.
-	buckets := iss.buckets.Select(instance.Segment().BucketIDs)
+func (iss *ISS) applyNewCert(newCert *availabilitypb.NewCert) (*events.EventList, error) {
+	csID := contextstore.ItemID(
+		newCert.Origin.Type.(*availabilitypb.RequestCertOrigin_ContextStore).ContextStore.ItemID,
+	)
+	instance := iss.contextStore.RecoverAndDispose(csID).(sbInstance)
 
-	// Create a new batch, removing its requests from their buckets.
-	batch := buckets.CutBatch(maxBatchSize)
-
-	// Count the remaining requests in the buckets.
-	requestsLeft := buckets.TotalRequests()
-
-	// Notify submit the new batch to the orderer.
-	return instance.ApplyEvent(SBBatchReadyEvent(batch, requestsLeft))
+	return instance.ApplyEvent(SBCertReadyEvent(newCert.Cert)), nil
 }
 
 // applySBInstResurrectBatch resurrects requests contained in a batch that was cut, but could not been proposed
 // or committed. Through the ResurrectBatch event, an orderer "returns" a batch it was unable to order.
 func (iss *ISS) applySBInstResurrectBatch(batch *requestpb.Batch) *events.EventList {
 
-	// Put each request in its corresponding bucket.
-	for _, reqRef := range batch.Requests {
-		iss.buckets.RequestBucket(reqRef).Resurrect(reqRef)
-	}
+	// TODO: Implement resurrection (if appropriate).
 
 	// No further actions to be performed.
 	return events.EmptyList()

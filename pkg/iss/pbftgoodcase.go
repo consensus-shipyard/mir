@@ -2,6 +2,7 @@ package iss
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 
 	"google.golang.org/protobuf/proto"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -71,7 +71,7 @@ func (pbft *pbftInstance) applyProposeTimeout(numProposals int) *events.EventLis
 
 		// If this was the last bit missing, start a new proposal.
 		if pbft.canPropose() {
-			return pbft.requestNewBatch()
+			return pbft.requestNewCert()
 		}
 	}
 
@@ -80,7 +80,7 @@ func (pbft *pbftInstance) applyProposeTimeout(numProposals int) *events.EventLis
 
 // requestNewBatch asks (by means of a CutBatch event) ISS to assemble a new request batch.
 // When the batch is ready, it must be passed to the orderer using the BatchReady event.
-func (pbft *pbftInstance) requestNewBatch() *events.EventList {
+func (pbft *pbftInstance) requestNewCert() *events.EventList {
 
 	// Set a flag indicating that a batch has been requested,
 	// so that no new batches will be requested before the reception of this one.
@@ -96,9 +96,9 @@ func (pbft *pbftInstance) requestNewBatch() *events.EventList {
 	return events.ListOf(pbft.eventService.SBEvent(SBCutBatchEvent(pbft.config.MaxBatchSize)))
 }
 
-// applyBatchReady processes a new batch ready to be proposed.
+// applyCertReady processes a new availability certificate ready to be proposed.
 // This event is triggered by ISS in response to the CutBatch event produced by this orderer.
-func (pbft *pbftInstance) applyBatchReady(batch *isspb.SBBatchReady) *events.EventList {
+func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// Clear flag that was set in requestNewBatch(), so that new batches can be requested if necessary.
@@ -106,15 +106,13 @@ func (pbft *pbftInstance) applyBatchReady(batch *isspb.SBBatchReady) *events.Eve
 
 	if pbft.proposal.batchRequestedView == pbft.view {
 		// If the protocol is still in the same PBFT view as when the batch was requested, propose the received batch.
-		eventsOut.PushBackList(pbft.propose(batch.Batch))
+		eventsOut.PushBackList(pbft.propose(cert.Cert))
 	} else {
 		// If the PBFT view advanced since the batch was requested,
 		// do not propose the batch and resurrect the requests it contains.
-		eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
+		//eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
+		// TODO: Implement resurrection!
 	}
-
-	// Update the number of pending requests that remain after the batch was created.
-	eventsOut.PushBackList(pbft.applyPendingRequests(t.NumRequests(batch.PendingRequestsLeft)))
 
 	return eventsOut
 }
@@ -122,7 +120,13 @@ func (pbft *pbftInstance) applyBatchReady(batch *isspb.SBBatchReady) *events.Eve
 // propose proposes a new request batch by sending a Preprepare message.
 // propose assumes that the state of the PBFT orderer allows sending a new proposal
 // and does not perform any checks in this regard.
-func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
+func (pbft *pbftInstance) propose(cert *availabilitypb.Cert) *events.EventList {
+
+	certBytes, err := proto.Marshal(cert)
+	if err != nil {
+		// TODO: Use proper error propagation.
+		panic(fmt.Errorf("error marshalling certificate: %w", err))
+	}
 
 	// Update proposal counter.
 	sn := pbft.segment.SeqNrs[pbft.proposal.proposalsMade]
@@ -130,10 +134,10 @@ func (pbft *pbftInstance) propose(batch *requestpb.Batch) *events.EventList {
 
 	// Log debug message.
 	pbft.logger.Log(logging.LevelDebug, "Proposing.",
-		"sn", sn, "batchSize", len(batch.Requests))
+		"sn", sn)
 
 	// Create the proposal (consisting of a Preprepare message).
-	preprepare := pbftPreprepareMsg(sn, pbft.view, batch, false)
+	preprepare := pbftPreprepareMsg(sn, pbft.view, certBytes, false)
 
 	// Create a Preprepare message send Event.
 	// No need for periodic re-transmission.
