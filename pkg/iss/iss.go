@@ -16,6 +16,8 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/contextstore"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 
 	"google.golang.org/protobuf/proto"
 
@@ -39,24 +41,26 @@ import (
 // ModuleConfig contains the names of modules ISS depends on.
 // The corresponding modules are expected by ISS to be stored under these keys by the Node.
 type ModuleConfig struct {
-	Self   t.ModuleID
-	Net    t.ModuleID
-	App    t.ModuleID
-	Wal    t.ModuleID
-	Hasher t.ModuleID
-	Crypto t.ModuleID
-	Timer  t.ModuleID
+	Self         t.ModuleID
+	Net          t.ModuleID
+	App          t.ModuleID
+	Wal          t.ModuleID
+	Hasher       t.ModuleID
+	Crypto       t.ModuleID
+	Timer        t.ModuleID
+	Avaliability t.ModuleID
 }
 
 func DefaultModuleConfig() ModuleConfig {
 	return ModuleConfig{
-		Self:   "iss",
-		Net:    "net",
-		App:    "app",
-		Wal:    "wal",
-		Hasher: "hasher",
-		Crypto: "crypto",
-		Timer:  "timer",
+		Self:         "iss",
+		Net:          "net",
+		App:          "app",
+		Wal:          "wal",
+		Hasher:       "hasher",
+		Crypto:       "crypto",
+		Timer:        "timer",
+		Avaliability: "availability",
 	}
 }
 
@@ -73,9 +77,6 @@ type segment struct {
 	// List of sequence numbers for which the orderer is responsible.
 	// This is the actual "segment" of the commit log.
 	SeqNrs []t.SeqNr
-
-	// List of IDs of buckets from which the orderer will draw the requests it proposes.
-	BucketIDs []int
 }
 
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
@@ -85,8 +86,9 @@ type CommitLogEntry struct {
 	// Sequence number at which this entry has been ordered.
 	Sn t.SeqNr
 
-	// The delivered request batch.
-	Batch *requestpb.Batch
+	// The delivered availability certificate data.
+	// TODO: Replace by actual certificate when deterministic serialization of certificates is implemented.
+	CertData []byte
 
 	// The digest (hash) of the batch.
 	Digest []byte
@@ -120,11 +122,6 @@ type ISS struct {
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
 
-	// The buckets holding incoming requests.
-	// In each epoch, these buckets are re-distributed to the epoch's orderers,
-	// each ordering one segment of the commit log.
-	buckets *bucketGroup
-
 	// Logger the ISS implementation uses to output log messages.
 	// This is mostly for debugging - not to be confused with the commit log.
 	logger logging.Logger
@@ -133,7 +130,7 @@ type ISS struct {
 	// These fields might change from epoch to epoch. Modified only by initEpoch()
 	// --------------------------------------------------------------------------------
 
-	// The ISS configuration parameters (e.g. number of buckets, batch size, etc...)
+	// The ISS configuration parameters (e.g. batch size, segment length, etc...)
 	// passed to New() when creating an ISS protocol instance.
 	// TODO: Make it possible to change this dynamically.
 	config *ModuleParams
@@ -146,10 +143,6 @@ type ISS struct {
 
 	// Highest epoch numbers indicated in Checkpoint messages from each node.
 	nodeEpochMap map[t.NodeID]t.EpochNr
-
-	// Index of orderers based on the buckets they are assigned.
-	// For each bucket ID, this map stores the orderer to which the bucket is assigned in the current epoch.
-	bucketOrderers map[int]sbInstance
 
 	// --------------------------------------------------------------------------------
 	// These fields are modified throughout an epoch.
@@ -189,12 +182,15 @@ type ISS struct {
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
 	lastStableCheckpoint *isspb.StableCheckpoint
+
+	// TODO: Write comment.
+	contextStore contextstore.ContextStore[any]
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
 //   - ownID:  the ID of the node being instantiated with ISS.
-//   - config: ISS protocol-specific configuration (e.g. number of buckets, batch size, etc...).
+//   - config: ISS protocol-specific configuration (e.g. batch size, segment length, etc...).
 //     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
 func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, logger logging.Logger) (*ISS, error) {
@@ -209,14 +205,12 @@ func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, logger
 		// Static fields
 		ownID:        ownID,
 		moduleConfig: moduleConfig,
-		buckets:      newBuckets(params.NumBuckets, logger),
 		logger:       logger,
 
 		// Fields modified only by initEpoch
-		config:         params,
-		epochs:         make(map[t.EpochNr]*epochInfo),
-		nodeEpochMap:   make(map[t.NodeID]t.EpochNr),
-		bucketOrderers: nil,
+		config:       params,
+		epochs:       make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap: make(map[t.NodeID]t.EpochNr),
 
 		// Fields modified throughout an epoch
 		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
@@ -235,6 +229,8 @@ func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, logger
 			//       will have to be set here. E.g., an empty byte slice could be defined as "initial state" and
 			//       the application required to interpret it as such.
 		},
+
+		contextStore: contextstore.NewSequentialContextStore[any](),
 	}
 
 	// Initialize the first epoch (epoch 0).
@@ -270,8 +266,6 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
-	case *eventpb.Event_NewRequests:
-		return iss.applyNewRequests(e.NewRequests.Requests)
 	case *eventpb.Event_AppSnapshot:
 		return iss.applyAppSnapshot(e.AppSnapshot), nil
 	case *eventpb.Event_NewConfig:
@@ -294,6 +288,13 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 	case *eventpb.Event_MessageReceived:
 		return iss.applyMessageReceived(e.MessageReceived), nil
+	case *eventpb.Event_Availability:
+		switch avEvent := e.Availability.Type.(type) {
+		case *availabilitypb.Event_NewCert:
+			return iss.applyNewCert(avEvent.NewCert)
+		default:
+			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
+		}
 	default:
 		return nil, fmt.Errorf("unknown protocol (ISS) event type: %T", event.Type)
 	}
@@ -341,8 +342,6 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 			instance,
 			SBHashResultEvent(result.Digests, origin.Sb.Origin),
 		))
-	case *isspb.ISSHashOrigin_Requests:
-		return iss.applyRequestHashResult(origin.Requests.Requests, result.Digests), nil
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn)), nil
@@ -423,67 +422,6 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 	default:
 		panic(fmt.Sprintf("unknown origin of sign result: %T", origin))
 	}
-}
-
-// applyNewRequests applies the NewRequests event to the state of the ISS protocol state machine.
-// A NewRequests event means that the contained requests are considered valid and authentic by the node
-// and can be processed.
-func (iss *ISS) applyNewRequests(requests []*requestpb.Request) (*events.EventList, error) {
-	// Request received from a client. Have the digest computed.
-
-	requestData := make([][][]byte, len(requests))
-	for i, request := range requests {
-		requestData[i] = serializing.RequestForHash(request)
-	}
-
-	return events.ListOf(events.HashRequest(
-		"hasher",
-		requestData,
-		RequestHashOrigin(iss.moduleConfig.Self, requests),
-	)), nil
-
-}
-
-func (iss *ISS) applyRequestHashResult(requests []*requestpb.Request, digests [][]byte) *events.EventList {
-	eventsOut := events.EmptyList()
-
-	for i, request := range requests {
-		eventsOut.PushBackList(iss.handleHashedRequest(events.HashedRequest(request, digests[i])))
-	}
-
-	return eventsOut
-}
-
-func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.EventList {
-	eventsOut := events.EmptyList()
-
-	// Get bucket to which the new request maps.
-	bucket := iss.buckets.RequestBucket(request)
-
-	// Add request to its bucket if it has not been added yet.
-	if !bucket.Add(request) {
-		// If the request already has been added, do nothing and return, as if the event did not exist.
-		// Returning here is important, because the rest of this function
-		// must only be executed once for a request in an epoch (to prevent request duplication).
-		return events.EmptyList()
-	}
-
-	// Count number of requests in all the buckets assigned to the same instance as the bucket of the received request.
-	// These are all the requests pending to be proposed by the instance.
-	// TODO: This is extremely inefficient and on the critical path
-	//       (done on every request reception and TotalRequests loops over all buckets in the segment).
-	//       Maintain a counter of requests in assigned buckets instead.
-	pendingRequests := iss.buckets.Select(iss.bucketOrderers[bucket.ID].Segment().BucketIDs).TotalRequests()
-
-	// If there are enough pending requests to fill a batch,
-	// announce the total number of pending requests to the corresponding orderer.
-	// Note that this deprives the orderer from the information about the number of pending requests,
-	// as long as there are fewer of them than MaxBatchSize, but the orderer (so far) should not need this information.
-	if pendingRequests >= iss.config.MaxBatchSize {
-		eventsOut.PushBackList(iss.bucketOrderers[bucket.ID].ApplyEvent(SBPendingRequestsEvent(pendingRequests)))
-	}
-
-	return eventsOut
 }
 
 // applyAppSnapshot applies the event of the application creating a state snapshot.
@@ -859,13 +797,6 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 	// Its state must be consistent across all nodes when calling Leaders() on it.
 	leaders := iss.config.LeaderPolicy.Leaders(newEpoch)
 
-	// Compute the assignment of buckets to orderers (each leader will correspond to one orderer).
-	leaderBuckets := iss.buckets.Distribute(leaders, newEpoch)
-
-	// Initialize index of orderers based on the buckets they are assigned.
-	// Given a bucket, this index helps locate the orderer to which the bucket is assigned.
-	iss.bucketOrderers = make(map[int]sbInstance)
-
 	// Create new segments of the commit log, one per leader selected by the leader selection policy.
 	// Instantiate one orderer (SB instance) for each segment.
 	for i, leader := range leaders {
@@ -878,7 +809,6 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),
 				iss.config.SegmentLength),
-			BucketIDs: leaderBuckets[leader],
 		}
 		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
 
@@ -887,7 +817,6 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 		sbInst := newPbftInstance(
 			iss.ownID,
 			seg,
-			iss.buckets.Select(seg.BucketIDs).TotalRequests(),
 			newPBFTConfig(iss.config),
 			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpoch, instance: t.SBInstanceNr(i)},
 			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
@@ -895,10 +824,6 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr) {
 		// Add the orderer to the list of orderers.
 		iss.epoch.Orderers = append(iss.epoch.Orderers, sbInst)
 
-		// Populate index of orderers based on the buckets they are assigned.
-		for _, bID := range seg.BucketIDs {
-			iss.bucketOrderers[bID] = sbInst
-		}
 	}
 }
 
@@ -934,12 +859,21 @@ func (iss *ISS) processCommitted() *events.EventList {
 
 		// TODO: Once system configuration requests are introduced, apply them here.
 
+		certData := iss.commitLog[iss.nextDeliveredSN].CertData
+
+		var cert availabilitypb.Cert
+		if len(certData) > 0 {
+			if err := proto.Unmarshal(certData, &cert); err != nil {
+				// TODO: Use proper error propagation.
+				panic(fmt.Errorf("cannot unmarshal availability certificate: %w", err))
+			}
+		}
+
 		// Create a new Deliver event.
-		eventsOut.PushBack(events.Deliver(iss.moduleConfig.App, iss.nextDeliveredSN, iss.commitLog[iss.nextDeliveredSN].Batch))
+		eventsOut.PushBack(events.Deliver(iss.moduleConfig.App, iss.nextDeliveredSN, &cert))
 
 		// Output debugging information.
-		iss.logger.Log(logging.LevelDebug, "Delivering entry.",
-			"sn", iss.nextDeliveredSN, "nReq", len(iss.commitLog[iss.nextDeliveredSN].Batch.Requests))
+		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
 		// Remove just delivered batch from the temporary
 		// store of batches that were agreed upon out-of-order.
@@ -998,19 +932,6 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 	}
 
 	return eventsOut
-}
-
-// removeFromBuckets removes the given requests from their corresponding buckets.
-// This happens when a batch is committed.
-//
-// TODO: Implement marking requests as "in flight"/proposed, so we don't accept proposals with duplicates.
-// This could maybe be done on the WaitForRequests/RequestsReady path...
-func (iss *ISS) removeFromBuckets(requests []*requestpb.HashedRequest) {
-
-	// Remove each request from its bucket.
-	for _, req := range requests {
-		iss.buckets.RequestBucket(req).Remove(req)
-	}
 }
 
 // bufferedMessageFilter decides, given a message, whether it is appropriate to apply the message, discard it,
@@ -1138,14 +1059,8 @@ func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 		aborted = 1
 	}
 
-	// Encode the batch content.
-	batchData := serializing.BatchForHash(entry.Batch)
-
 	// Put everything together in a slice and return it.
-	data := make([][]byte, 0, len(entry.Batch.Requests)+3)
-	data = append(data, snBuf, suspectBuf, []byte{aborted})
-	data = append(data, batchData...)
-	return data
+	return [][]byte{snBuf, suspectBuf, []byte{aborted}, entry.CertData}
 }
 
 func maxFaulty(n int) int {

@@ -118,7 +118,7 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		// Deliver batch.
 		eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
 			sn,
-			slot.Preprepare.Batch,
+			slot.Preprepare.CertData,
 			slot.Preprepare.Aborted,
 		)))
 
