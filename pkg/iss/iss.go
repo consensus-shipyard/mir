@@ -475,20 +475,30 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 // applyStateSnapshot applies the event of the application creating a state snapshot.
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
 func (iss *ISS) applyStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
-	if iss.epoch.Nr != t.EpochNr(snapshot.Configuration.EpochNr) {
+
+	snapshotEpoch := t.EpochNr(snapshot.Configuration.EpochNr)
+
+	if epoch, ok := iss.epochs[snapshotEpoch]; ok {
+		return epoch.Checkpoint.ProcessStateSnapshot(snapshot)
+	} else {
 		iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
 			"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshot.Configuration.EpochNr)
 		return events.EmptyList()
 	}
-	return iss.epoch.Checkpoint.ProcessStateSnapshot(snapshot)
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
 		"forEpoch", len(iss.configurations),
-		"currentEpoch", iss.epoch.Nr)
+		"currentEpoch", iss.epoch.Nr,
+		"newConfigNodes", config.NodeIds)
 	iss.configurations = append(iss.configurations, t.NodeIDSlice(config.NodeIds))
-	// TODO: Continue here.
+
+	// Advance to the next epoch if this configuration was the last missing bit.
+	if iss.epochFinished() {
+		return iss.advanceEpoch(), nil
+	}
+
 	return events.EmptyList(), nil
 }
 
@@ -579,7 +589,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
 		// If this is the most recent checkpoint observed, save it.
-		iss.logger.Log(logging.LevelDebug, "New stable checkpoint.",
+		iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
 			"epoch", stableCheckpoint.Snapshot.Configuration.EpochNr,
 			"sn", stableCheckpoint.Sn,
 			"replacingEpoch", iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr,
@@ -608,7 +618,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 
 			// Start state catch-up.
 			// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
-			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that cauthg up
+			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that caught up
 			// before the re-transmission is garbage-collected.
 			eventsOut.PushBack(events.TimerRepeat(
 				timerModuleName,
@@ -647,6 +657,10 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 			delayed = append(delayed, n)
 		}
 	}
+
+	iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
+		"delayed", delayed, "numNodes", len(iss.configurations[iss.epoch.Nr]), "nodeEpochMap", iss.nodeEpochMap)
+
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
 	return events.ListOf(events.SendMessage(netModuleName, m, delayed)), nil
 }
@@ -679,13 +693,12 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 	// Remember the highest epoch number for each node to detect
 	// later if the remote node is delayed too much and requires
 	// assistance in order to catch up through state transfer.
-	epoch := t.EpochNr(message.Epoch)
-	if iss.nodeEpochMap[source] < epoch {
-		iss.nodeEpochMap[source] = epoch
+	epochNr := t.EpochNr(message.Epoch)
+	if iss.nodeEpochMap[source] < epochNr {
+		iss.nodeEpochMap[source] = epochNr
 	}
 
-	switch {
-	case epoch > iss.epoch.Nr:
+	if epochNr > iss.epoch.Nr {
 		// If the message is for a future epoch,
 		// it might have been sent by a node that already transitioned to a newer epoch,
 		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
@@ -693,15 +706,15 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 		iss.messageBuffers[source].Store(message)
 
 		return events.EmptyList()
-
-	case epoch == iss.epoch.Nr:
-		// If the message is for the current epoch, check its validity and
-		// apply it to the corresponding checkpoint tracker instance.
-		return iss.epoch.Checkpoint.applyMessage(message, source)
-
-	default: // epoch < iss.epoch.Nr:
-		// Ignore old messages
-		return events.EmptyList()
+	} else {
+		if epoch, ok := iss.epochs[epochNr]; ok {
+			// If the message is for a known epoch, check its validity and
+			// apply it to the corresponding checkpoint tracker instance.
+			return epoch.Checkpoint.applyMessage(message, source)
+		} else {
+			// Otherwise, ignore message (in this case it must be from a garbage-collectd epoch).
+			return events.EmptyList()
+		}
 	}
 }
 
@@ -856,7 +869,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 		leaderPolicy = iss.epoch.leaderPolicy.Reconfigure(membership)
 	}
 
-	iss.logger.Log(logging.LevelInfo, "New epoch", "epochNr", newEpoch, "numNodes", len(membership))
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpoch, "numNodes", len(membership))
 
 	// Set the new epoch number and re-initialize list of orderers.
 	epoch := newEpochInfo(
@@ -989,50 +1002,59 @@ func (iss *ISS) processCommitted() *events.EventList {
 		iss.nextDeliveredSN++
 	}
 
+	// If the epoch is finished, transition to the next epoch.
+	if iss.epochFinished() {
+		eventsOut.PushBackList(iss.advanceEpoch())
+	}
+
+	return eventsOut
+}
+
+func (iss *ISS) advanceEpoch() *events.EventList {
+	eventsOut := events.EmptyList()
+
 	// Convenience variables
 	oldEpochNr := iss.epoch.Nr
 	newEpochNr := iss.epoch.Nr + 1
 
-	// If the epoch is finished, transition to the next epoch.
-	if iss.epochFinished() {
+	iss.logger.Log(logging.LevelDebug, "Advancing epoch.",
+		"epoch", oldEpochNr,
+		"nextSN", iss.nextDeliveredSN,
+		"numConfigs", len(iss.configurations),
+	)
 
-		iss.logger.Log(logging.LevelDebug, "Epoch finished.",
-			"epoch", oldEpochNr,
-			"nextSN", iss.nextDeliveredSN,
-			"numConfigs", len(iss.configurations),
-		)
-
-		if !(len(iss.configurations) > int(newEpochNr)) {
-			return eventsOut
-		}
-
-		// Initialize the internal data structures for the new epoch.
-		iss.initEpoch(newEpochNr, iss.configurations[newEpochNr])
-
-		// Signal the new epoch to the application.
-		// This must happen before starting the checkpoint protocol, since the application
-		// must already be in the new epoch when processing the state snapshot request
-		// emitted by the checkpoint sub-protocol.
-		eventsOut.PushBack(events.NewEpoch(appModuleName, newEpochNr))
-
-		// Look up a (or create a new) checkpoint tracker and start the checkpointing protocol.
-		// This must happen after initialization of the new epoch,
-		// as the sequence number the checkpoint will be associated with (iss.nextDeliveredSN)
-		// is already part of the new epoch.
-		// The checkpoint tracker might already exist if a corresponding message has been already received.
-		// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
-		// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
-		// The membership used for the checkpoint tracker still must be the old membership.
-		eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.configurations[oldEpochNr]))
-
-		// Give the init signals to the newly instantiated orderers.
-		// TODO: Currently this probably sends the Init event to old orderers as well.
-		//       That should not happen! Investigate and fix.
-		eventsOut.PushBackList(iss.initOrderers())
-
-		// Process backlog of buffered SB messages.
-		eventsOut.PushBackList(iss.applyBufferedMessages())
+	if !(len(iss.configurations) > int(newEpochNr)) {
+		iss.logger.Log(logging.LevelWarn, "Cannot advance to epoch yet. Waiting for configuration.",
+			"newEpoch", newEpochNr)
+		return eventsOut
 	}
+
+	// Initialize the internal data structures for the new epoch.
+	iss.initEpoch(newEpochNr, iss.configurations[newEpochNr])
+
+	// Signal the new epoch to the application.
+	// This must happen before starting the checkpoint protocol, since the application
+	// must already be in the new epoch when processing the state snapshot request
+	// emitted by the checkpoint sub-protocol.
+	eventsOut.PushBack(events.NewEpoch(appModuleName, newEpochNr))
+
+	// Look up a (or create a new) checkpoint tracker and start the checkpointing protocol.
+	// This must happen after initialization of the new epoch,
+	// as the sequence number the checkpoint will be associated with (iss.nextDeliveredSN)
+	// is already part of the new epoch.
+	// The checkpoint tracker might already exist if a corresponding message has been already received.
+	// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
+	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
+	// The membership used for the checkpoint tracker still must be the old membership.
+	eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.configurations[oldEpochNr]))
+
+	// Give the init signals to the newly instantiated orderers.
+	// TODO: Currently this probably sends the Init event to old orderers as well.
+	//       That should not happen! Investigate and fix.
+	eventsOut.PushBackList(iss.initOrderers())
+
+	// Process backlog of buffered SB messages.
+	eventsOut.PushBackList(iss.applyBufferedMessages())
 
 	return eventsOut
 }
