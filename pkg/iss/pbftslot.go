@@ -2,7 +2,6 @@ package iss
 
 import (
 	"bytes"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -41,13 +40,13 @@ type pbftSlot struct {
 	Prepared    bool
 	Committed   bool
 
-	// Number of tolerated failures of the PBFT instance this slot belongs to.
-	f int
+	// Number of nodes executing this instance of PBFT
+	numNodes int
 }
 
 // newPbftSlot allocates a new pbftSlot object and returns it, initializing all its fields.
 // The f parameter designates the number of tolerated failures of the PBFT instance this slot belongs to.
-func newPbftSlot(f int) *pbftSlot {
+func newPbftSlot(numNodes int) *pbftSlot {
 	return &pbftSlot{
 		Preprepare:    nil,
 		Prepares:      make(map[t.NodeID]*isspbftpb.Prepare),
@@ -58,7 +57,7 @@ func newPbftSlot(f int) *pbftSlot {
 		Preprepared:   false,
 		Prepared:      false,
 		Committed:     false,
-		f:             f,
+		numNodes:      numNodes,
 	}
 }
 
@@ -139,7 +138,7 @@ func (slot *pbftSlot) checkPrepared() bool {
 
 	// Check if enough unique Prepare messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.Prepares) < 2*slot.f+1 {
+	if len(slot.Prepares) < strongQuorum(slot.numNodes) {
 		return false
 	}
 
@@ -161,7 +160,7 @@ func (slot *pbftSlot) checkPrepared() bool {
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidPrepares) >= 2*slot.f+1
+	return len(slot.ValidPrepares) >= strongQuorum(slot.numNodes)
 }
 
 // checkCommitted evaluates whether the pbftSlot fulfills the conditions to be committed.
@@ -175,7 +174,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 
 	// Check if enough unique Commit messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.Commits) < 2*slot.f+1 {
+	if len(slot.Commits) < strongQuorum(slot.numNodes) {
 		return false
 	}
 
@@ -197,7 +196,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidCommits) >= 2*slot.f+1
+	return len(slot.ValidCommits) >= strongQuorum(slot.numNodes)
 }
 
 func (slot *pbftSlot) getPreprepare(digest []byte) *isspbftpb.Preprepare {

@@ -354,7 +354,7 @@ func (pbft *pbftInstance) initView(view t.PBFTViewNr) *events.EventList {
 
 		// Create a fresh, empty slot.
 		// For n being the membership size, f = (n-1) / 3
-		pbft.slots[view][sn] = newPbftSlot((len(pbft.segment.Membership) - 1) / 3)
+		pbft.slots[view][sn] = newPbftSlot(len(pbft.segment.Membership))
 
 		// Except for initialization of view 0, carry over state from the previous view.
 		if view > 0 {
