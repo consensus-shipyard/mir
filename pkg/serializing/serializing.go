@@ -8,11 +8,11 @@ package serializing
 
 import (
 	"encoding/binary"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // TODO: Write doc.

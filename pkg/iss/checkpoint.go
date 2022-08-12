@@ -13,14 +13,12 @@ package iss
 
 import (
 	"bytes"
-	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/contextstore"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -182,8 +180,6 @@ func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID
 	} else if !bytes.Equal(ct.stateSnapshotHash, msg.SnapshotHash) {
 		// Snapshot hash mismatch
 		ct.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "source", source)
-		fmt.Println(ct.stateSnapshot)
-		fmt.Println("")
 		return events.EmptyList()
 	}
 

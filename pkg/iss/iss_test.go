@@ -360,12 +360,12 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 	var simulation *deploytest.Simulation
 	if conf.Transport == "sim" {
-		rand := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
+		r := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
 		eventDelayFn := func(e *eventpb.Event) time.Duration {
 			// TODO: Make min and max event processing delay configurable
-			return testsim.RandDuration(rand, 0, time.Microsecond)
+			return testsim.RandDuration(r, 0, time.Microsecond)
 		}
-		simulation = deploytest.NewSimulation(rand, nodeIDs, eventDelayFn)
+		simulation = deploytest.NewSimulation(r, nodeIDs, eventDelayFn)
 	}
 	transportLayer := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
@@ -373,8 +373,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	nodeModules := make(map[t.NodeID]modules.Modules)
 
 	for i, nodeID := range nodeIDs {
+
+		// Dummy application
+		fakeApp := &deploytest.FakeApp{
+			ProtocolModule:    "iss",
+			Membership:        transportLayer.Nodes(),
+			RequestsProcessed: 0,
+		}
+
 		// ISS configuration
-		issConfig := DefaultConfig(nodeIDs)
+		issConfig := DefaultConfig(transportLayer.Nodes())
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
@@ -382,7 +390,13 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
 		}
 
-		issProtocol, err := New(nodeID, issConfig, logging.Decorate(logger, "ISS: "))
+		// ISS instantiation
+		issProtocol, err := New(
+			nodeID,
+			issConfig,
+			InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
+			logging.Decorate(logger, "ISS: "),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}
@@ -393,7 +407,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		}
 
 		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
-			"app":    &deploytest.FakeApp{},
+			"app":    fakeApp,
 			"crypto": cryptoSystem.Module(nodeID),
 			"iss":    issProtocol,
 			"net":    transport,

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // The Config type defines all the ISS configuration parameters.
@@ -18,9 +19,9 @@ import (
 // To obtain real time delays, these need to be multiplied by the period of the ticker provided to the Node at runtime.
 type Config struct {
 
-	// The IDs of all nodes that execute the protocol in the first epoch.
+	// The identities of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
-	InitialMembership []t.NodeID
+	InitialMembership map[t.NodeID]t.NodeAddress
 
 	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
@@ -180,7 +181,7 @@ func CheckConfig(c *Config) error {
 // DefaultConfig is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultConfig can serve as a starting point.
-func DefaultConfig(initialMembership []t.NodeID) *Config {
+func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *Config {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
@@ -195,7 +196,7 @@ func DefaultConfig(initialMembership []t.NodeID) *Config {
 		MaxBatchSize:                 4,
 		MaxProposeDelay:              maxProposeDelay,
 		NumBuckets:                   len(initialMembership),
-		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: initialMembership},
+		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: maputil.GetSortedKeys(initialMembership)},
 		RequestNAckTimeout:           16,
 		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:               1,

@@ -21,6 +21,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 // debug extracts events from the event log entries and submits them to a node instance
@@ -33,8 +34,14 @@ func debug(args *arguments) error {
 		return err
 	}
 
+	// TODO: Empty addresses might not work here, as they will probably produce wrong snapshots.
+	membership := make(map[t.NodeID]t.NodeAddress)
+	for _, nID := range args.membership {
+		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+	}
+
 	// Create a debugger node and a new Context.
-	node, err := debuggerNode(args.ownID, args.membership)
+	node, err := debuggerNode(args.ownID, membership)
 	if err != nil {
 		return err
 	}
@@ -108,13 +115,15 @@ func debug(args *arguments) error {
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
-func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
+func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node, error) {
 
 	// Logger used by the node.
 	logger := logging.ConsoleDebugLogger
 
 	// Instantiate an ISS protocol module with the default configuration.
-	protocol, err := iss.New(id, iss.DefaultConfig(membership), logging.Decorate(logger, "ISS: "))
+	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
+	issConfig := iss.DefaultConfig(membership)
+	protocol, err := iss.New(id, issConfig, iss.InitialStateSnapshot([]byte{}, issConfig), logging.Decorate(logger, "ISS: "))
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}
@@ -123,8 +132,12 @@ func debuggerNode(id t.NodeID, membership []t.NodeID) (*mir.Node, error) {
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":    modules.NullActive{},
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-		"app":    &deploytest.FakeApp{},
-		"iss":    protocol,
+		"app": &deploytest.FakeApp{
+			ProtocolModule:    "iss",
+			Membership:        nil,
+			RequestsProcessed: 0,
+		},
+		"iss": protocol,
 	})
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))

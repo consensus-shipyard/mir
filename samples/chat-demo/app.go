@@ -15,17 +15,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"github.com/multiformats/go-multiaddr"
 	"strings"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application
@@ -158,11 +159,12 @@ func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventLis
 	fmt.Printf("New epoch: %d\n", newEpoch.EpochNr)
 
 	// Create network connections to all nodes in the new membership.
-	if nodeAddrs, err := dummyMultiAddrs(chat.newMembership); err != nil {
+	var nodeAddrs map[t.NodeID]t.NodeAddress
+	var err error
+	if nodeAddrs, err = dummyMultiAddrs(chat.newMembership); err != nil {
 		return nil, err
-	} else {
-		chat.transport.Connect(context.Background(), nodeAddrs)
 	}
+	chat.transport.Connect(context.Background(), nodeAddrs)
 
 	// Notify ISS about the new membership.
 	return events.ListOf(events.NewConfig("iss", maputil.Copy(chat.newMembership))), nil
@@ -221,8 +223,5 @@ func (chat *ChatApp) restoreChat(data []byte) {
 
 func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
 	chat.newMembership = t.Membership(config.Memberships[len(config.Memberships)-1])
-
-	fmt.Printf("Restored app next membership: %d (epoch: %d)\n", len(chat.newMembership), config.EpochNr)
-
 	return nil
 }
