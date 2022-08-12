@@ -14,6 +14,7 @@ package iss
 import (
 	"bytes"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -92,7 +93,7 @@ func newCheckpointTracker(
 // The checkpoint to be produced encompasses all currently delivered sequence numbers.
 // If Start is called during epoch transition,
 // it must be called with the old epoch's membership.
-func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
+func (ct *checkpointTracker) Start(membership []t.NodeID, appStateContext contextstore.ItemID) *events.EventList {
 
 	// Save the membership this instance of the checkpoint protocol will use.
 	// This is required in case where the membership changes before the checkpoint sub-protocol finishes.
@@ -101,8 +102,7 @@ func (ct *checkpointTracker) Start(membership []t.NodeID) *events.EventList {
 	copy(ct.membership, membership)
 
 	// Request a snapshot of the application state.
-	// TODO: also get a snapshot of the shared state
-	return events.ListOf(events.StateSnapshotRequest(appModuleName, issModuleName))
+	return events.ListOf(events.AppSnapshotRequest(appModuleName, issModuleName, appStateContext))
 }
 
 func (ct *checkpointTracker) ProcessStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {

@@ -31,6 +31,15 @@ func MembershipPb(membership map[NodeID]NodeAddress) *commonpb.Membership {
 	return &commonpb.Membership{Membership: nodeAddresses}
 }
 
+func Membership(membershipPb *commonpb.Membership) map[NodeID]NodeAddress {
+	membership := make(map[NodeID]NodeAddress)
+	for _, nID := range maputil.GetKeys(membershipPb.Membership) {
+		membership[NodeID(nID)], _ = multiaddr.NewMultiaddr(membershipPb.Membership[nID])
+		// TODO: Handle errors here!!!
+	}
+	return membership
+}
+
 // ================================================================================
 
 // NodeID represents the ID of a node.

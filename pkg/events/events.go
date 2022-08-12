@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	"github.com/filecoin-project/mir/pkg/contextstore"
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
@@ -280,30 +282,31 @@ func Deliver(destModule t.ModuleID, sn t.SeqNr, batch *requestpb.Batch) *eventpb
 	}}}
 }
 
-// StateSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
-// epoch is the epoch number which initial state is captured in the snapshot.
-// The application itself need not be aware of sn, it is only by the protocol
-// to be able to identify the response of the application in form of an StateSnapshot event.
-func StateSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID) *eventpb.Event {
+// AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
+func AppSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID, contextID contextstore.ItemID) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_StateSnapshotRequest{StateSnapshotRequest: &eventpb.StateSnapshotRequest{
+		Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
 			Module: srcModule.Pb(),
+			Origin: contextstore.Origin(contextID),
 		}},
 	}
 }
 
-// StateSnapshotResponse returns an event representing the application making a snapshot of its state.
-// epoch is the number of the epoch whose initial state is captured in the snapshot,
+// AppSnapshotResponse returns an event representing the application making a snapshot of its state.
 // appData is the serialized application state (the snapshot itself)
-// and membership is the membership of the epoch.
-func StateSnapshotResponse(
+// and origin is the origin of the corresponding AppSnapshotRequest.
+func AppSnapshotResponse(
 	destModule t.ModuleID,
-	snapshot *commonpb.StateSnapshot,
+	appData []byte,
+	origin *contextstorepb.Origin,
 ) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
-		Type:       &eventpb.Event_StateSnapshot{StateSnapshot: snapshot},
+		Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
+			AppData: appData,
+			Origin:  origin,
+		}},
 	}
 }
 
@@ -377,11 +380,11 @@ func NewEpoch(destModule t.ModuleID, epochNr t.EpochNr) *eventpb.Event {
 	}
 }
 
-func NewConfig(destModule t.ModuleID, nodeIDs []t.NodeID) *eventpb.Event {
+func NewConfig(destModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_NewConfig{NewConfig: &eventpb.NewConfig{
-			NodeIds: t.NodeIDSlicePb(nodeIDs),
+			Membership: t.MembershipPb(membership),
 		}},
 	}
 }

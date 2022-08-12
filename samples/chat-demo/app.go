@@ -38,11 +38,8 @@ type ChatApp struct {
 	// to which each delivered request appends one message.
 	messages []string
 
-	// The current epoch number.
-	currentEpoch t.EpochNr
-
-	// For each epoch number, stores the corresponding membership.
-	memberships []map[t.NodeID]t.NodeAddress
+	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
+	newMembership map[t.NodeID]t.NodeAddress
 
 	// Network transport module used by Mir.
 	// The app needs a reference to it in order to manage connections when the membership changes.
@@ -56,22 +53,10 @@ func (chat *ChatApp) ImplementsModule() {}
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
 func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, transport net.Transport) *ChatApp {
 
-	// Initialize the membership for the first epochs.
-	// We use configOffset+2 memberships to account for:
-	// - The first epoch (epoch 0)
-	// - The configOffset epochs that already have a fixed membership (epochs 1 to configOffset)
-	// - The membership of the following epoch (configOffset+1) initialized with the same membership,
-	//   but potentially changed during the first epoch (epoch 0) through special configuration requests.
-	memberships := make([]map[t.NodeID]t.NodeAddress, configOffset+2)
-	for i := 0; i < configOffset+2; i++ {
-		memberships[i] = initialMembership
-	}
-
 	return &ChatApp{
-		messages:     make([]string, 0),
-		currentEpoch: 0,
-		memberships:  memberships,
-		transport:    transport,
+		messages:      make([]string, 0),
+		newMembership: initialMembership,
+		transport:     transport,
 	}
 }
 
@@ -87,8 +72,8 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		return chat.applyBatch(e.Deliver.Batch)
 	case *eventpb.Event_NewEpoch:
 		return chat.applyNewEpoch(e.NewEpoch)
-	case *eventpb.Event_StateSnapshotRequest:
-		return chat.applySnapshotRequest(e.StateSnapshotRequest)
+	case *eventpb.Event_AppSnapshotRequest:
+		return chat.applySnapshotRequest(e.AppSnapshotRequest)
 	case *eventpb.Event_AppRestoreState:
 		return chat.applyRestoreState(e.AppRestoreState.Snapshot)
 	default:
@@ -150,18 +135,18 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 		}
 
 		fmt.Printf("Adding node: %v (%v)\n", nodeID, nodeAddr)
-		if _, ok := chat.memberships[chat.currentEpoch+configOffset+1][nodeID]; ok {
+		if _, ok := chat.newMembership[nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
 		} else {
-			chat.memberships[chat.currentEpoch+configOffset+1][nodeID] = nodeAddr
+			chat.newMembership[nodeID] = nodeAddr
 		}
 	case "remove-node":
 		nodeID := t.NodeID(tokens[1])
 		fmt.Printf("Removing node: %v\n", nodeID)
-		if _, ok := chat.memberships[chat.currentEpoch+configOffset+1][nodeID]; !ok {
+		if _, ok := chat.newMembership[nodeID]; !ok {
 			fmt.Printf("Removing node failed. Node not present in membership: %v\n", nodeID)
 		} else {
-			delete(chat.memberships[chat.currentEpoch+configOffset+1], nodeID)
+			delete(chat.newMembership, nodeID)
 		}
 	default:
 		fmt.Printf("Ignoring config message: %s (tokens: %v)\n", configMsg, tokens)
@@ -170,39 +155,26 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 
 func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
 
-	// Sanity check.
-	if t.EpochNr(newEpoch.EpochNr) != chat.currentEpoch+1 {
-		return nil, fmt.Errorf("expected next epoch to be %d, got %d", chat.currentEpoch+1, newEpoch.EpochNr)
-	}
-
 	fmt.Printf("New epoch: %d\n", newEpoch.EpochNr)
 
-	// Convenience variable.
-	newMembership := chat.memberships[newEpoch.EpochNr+configOffset]
-
-	// Append a new membership data structure to be modified throughout the new epoch.
-	chat.memberships = append(chat.memberships, maputil.Copy(newMembership))
-
 	// Create network connections to all nodes in the new membership.
-	if nodeAddrs, err := dummyMultiAddrs(newMembership); err != nil {
+	if nodeAddrs, err := dummyMultiAddrs(chat.newMembership); err != nil {
 		return nil, err
 	} else {
 		chat.transport.Connect(context.Background(), nodeAddrs)
 	}
 
-	// Update current epoch number.
-	chat.currentEpoch = t.EpochNr(newEpoch.EpochNr)
-
 	// Notify ISS about the new membership.
-	return events.ListOf(events.NewConfig("iss", maputil.GetSortedKeys(newMembership))), nil
+	return events.ListOf(events.NewConfig("iss", maputil.Copy(chat.newMembership))), nil
 }
 
 // applySnapshotRequest produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
 // The snapshot is a binary representation of the application state that can be passed to applyRestoreState().
-func (chat *ChatApp) applySnapshotRequest(snapshotRequest *eventpb.StateSnapshotRequest) (*events.EventList, error) {
-	return events.ListOf(events.StateSnapshotResponse(
+func (chat *ChatApp) applySnapshotRequest(snapshotRequest *eventpb.AppSnapshotRequest) (*events.EventList, error) {
+	return events.ListOf(events.AppSnapshotResponse(
 		t.ModuleID(snapshotRequest.Module),
-		events.StateSnapshot(chat.serializeMessages(), events.EpochConfig(chat.currentEpoch, chat.memberships)),
+		chat.serializeMessages(),
+		snapshotRequest.Origin,
 	)), nil
 }
 
@@ -248,20 +220,9 @@ func (chat *ChatApp) restoreChat(data []byte) {
 }
 
 func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
-	chat.currentEpoch = t.EpochNr(config.EpochNr)
-	chat.memberships = make([]map[t.NodeID]t.NodeAddress, len(config.Memberships))
-	for e, mem := range config.Memberships {
-		chat.memberships[e] = make(map[t.NodeID]t.NodeAddress)
-		for nID, nAddr := range mem.Membership {
-			var err error
-			chat.memberships[e][t.NodeID(nID)], err = multiaddr.NewMultiaddr(nAddr)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	chat.newMembership = t.Membership(config.Memberships[len(config.Memberships)-1])
 
-	fmt.Printf("Restored app memberships: %d (epoch: %d)\n", len(chat.memberships), chat.currentEpoch)
+	fmt.Printf("Restored app next membership: %d (epoch: %d)\n", len(chat.newMembership), config.EpochNr)
 
 	return nil
 }
