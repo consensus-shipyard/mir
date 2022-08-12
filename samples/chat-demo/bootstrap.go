@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
-	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr/net"
 	"os"
 	"strings"
+
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 func loadMembership(f *os.File) (map[t.NodeID]t.NodeAddress, error) {

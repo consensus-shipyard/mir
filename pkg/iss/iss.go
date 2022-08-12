@@ -16,15 +16,15 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/contextstore"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -220,7 +220,8 @@ func New(ownID t.NodeID, config *Config, initialState *commonpb.StateSnapshot, l
 		nextDeliveredSN:    0,
 		newEpochSN:         0,
 		messageBuffers: messagebuffer.NewBuffers(
-			removeNodeID(config.InitialMembership, ownID), // Create a message buffer for everyone except for myself.
+			// Create a message buffer for everyone except for myself.
+			removeNodeID(maputil.GetSortedKeys(config.InitialMembership), ownID),
 			config.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
@@ -243,10 +244,29 @@ func New(ownID t.NodeID, config *Config, initialState *commonpb.StateSnapshot, l
 	// Initialize the first epoch (epoch 0).
 	// If the starting epoch is different (e.g. because the node is restarting),
 	// the corresponding state (including epoch number) must be loaded through applying Events read from the WAL.
-	iss.initEpoch(0, config.InitialMembership)
+	iss.initEpoch(0, maputil.GetSortedKeys(config.InitialMembership))
 
 	// Return the initialized protocol module.
 	return iss, nil
+}
+
+func InitialStateSnapshot(
+	appState []byte,
+	config *Config,
+) *commonpb.StateSnapshot {
+
+	memberships := make([]*commonpb.Membership, config.ConfigOffset+1)
+	for i := 0; i < config.ConfigOffset+1; i++ {
+		memberships[i] = t.MembershipPb(config.InitialMembership)
+	}
+
+	return &commonpb.StateSnapshot{
+		AppData: appState,
+		Configuration: &commonpb.EpochConfig{
+			EpochNr:     0,
+			Memberships: memberships,
+		},
+	}
 }
 
 // ============================================================
@@ -490,14 +510,13 @@ func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) *events.Event
 		return epoch.Checkpoint.ProcessStateSnapshot(events.StateSnapshot(
 			appSnapshot.AppData,
 			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.config.ConfigOffset+1]),
-			// TODO: +1 or not?
 			// TODO: Make sure that all the necessary configurations have been received through the NewConfig event.
 		))
-	} else {
-		iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
-			"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshotEpoch)
-		return events.EmptyList()
 	}
+
+	iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
+		"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshotEpoch)
+	return events.EmptyList()
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
@@ -722,16 +741,16 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 		iss.messageBuffers[source].Store(message)
 
 		return events.EmptyList()
-	} else {
-		if epoch, ok := iss.epochs[epochNr]; ok {
-			// If the message is for a known epoch, check its validity and
-			// apply it to the corresponding checkpoint tracker instance.
-			return epoch.Checkpoint.applyMessage(message, source)
-		} else {
-			// Otherwise, ignore message (in this case it must be from a garbage-collectd epoch).
-			return events.EmptyList()
-		}
 	}
+
+	// If the message is for a known epoch, check its validity and
+	// apply it to the corresponding checkpoint tracker instance.
+	if epoch, ok := iss.epochs[epochNr]; ok {
+		return epoch.Checkpoint.applyMessage(message, source)
+	}
+
+	// Otherwise, ignore message (in this case it must be from a garbage-collectd epoch).
+	return events.EmptyList()
 }
 
 // applyStableCheckpointMessage processes a received StableCheckpoint message

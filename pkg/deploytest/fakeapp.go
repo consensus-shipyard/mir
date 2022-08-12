@@ -9,18 +9,20 @@ package deploytest
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
-
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // FakeApp represents a dummy stub application used for testing only.
 type FakeApp struct {
+	ProtocolModule t.ModuleID
+
+	Membership map[t.NodeID]t.NodeAddress
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
@@ -38,21 +40,18 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		if err := fa.ApplyBatch(e.Deliver.Batch); err != nil {
 			return nil, fmt.Errorf("app batch delivery error: %w", err)
 		}
-	case *eventpb.Event_StateSnapshotRequest:
-		data, membership, err := fa.Snapshot()
-		if err != nil {
-			return nil, fmt.Errorf("app snapshot error: %w", err)
-		}
-		return events.ListOf(events.StateSnapshot(
-			t.ModuleID(e.StateSnapshotRequest.Module),
-			t.EpochNr(e.StateSnapshotRequest.Epoch),
-			data,
-			membership,
+	case *eventpb.Event_AppSnapshotRequest:
+		return events.ListOf(events.AppSnapshotResponse(
+			t.ModuleID(e.AppSnapshotRequest.Module),
+			fa.Snapshot(),
+			e.AppSnapshotRequest.Origin,
 		)), nil
 	case *eventpb.Event_AppRestoreState:
 		if err := fa.RestoreState(e.AppRestoreState.Snapshot); err != nil {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
+	case *eventpb.Event_NewEpoch:
+		return events.ListOf(events.NewConfig(fa.ProtocolModule, fa.Membership)), nil
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}
@@ -72,9 +71,8 @@ func (fa *FakeApp) ApplyBatch(batch *requestpb.Batch) error {
 	return nil
 }
 
-func (fa *FakeApp) Snapshot() ([]byte, map[t.NodeID]t.NodeAddress, error) {
-	// TODO: Track membership return a non-empty one when reconfiguration is supported.
-	return uint64ToBytes(fa.RequestsProcessed), map[t.NodeID]t.NodeAddress{}, nil
+func (fa *FakeApp) Snapshot() []byte {
+	return uint64ToBytes(fa.RequestsProcessed)
 }
 
 func (fa *FakeApp) RestoreState(snapshot *commonpb.StateSnapshot) error {

@@ -16,6 +16,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 type MessageDelayFn func(from, to t.NodeID) time.Duration
@@ -27,25 +28,32 @@ type SimTransport struct {
 }
 
 func NewSimTransport(s *Simulation, nodeIDs []t.NodeID, delayFn MessageDelayFn) *SimTransport {
-	t := &SimTransport{
+	st := &SimTransport{
 		Simulation: s,
 		delayFn:    delayFn,
 		nodes:      make(map[t.NodeID]*simTransportModule, len(nodeIDs)),
 	}
 
 	for _, id := range nodeIDs {
-		t.nodes[id] = newModule(t, id, s.Node(id))
+		st.nodes[id] = newModule(st, id, s.Node(id))
 	}
 
-	return t
+	return st
 }
 
-func (t *SimTransport) Link(source t.NodeID) (net.Transport, error) {
-	return t.nodes[source], nil
+func (st *SimTransport) Link(source t.NodeID) (net.Transport, error) {
+	return st.nodes[source], nil
 }
 
-func (t *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
-	return nil
+func (st *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
+	membership := make(map[t.NodeID]t.NodeAddress)
+
+	// Dummy addresses. Never actually used.
+	for nID := range st.nodes {
+		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+	}
+
+	return membership
 }
 
 type simTransportModule struct {

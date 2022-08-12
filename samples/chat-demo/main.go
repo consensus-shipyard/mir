@@ -18,26 +18,27 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	net2 "net"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -148,7 +149,7 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 		}
-		reqReceiverAddrs[nodeID] = fmt.Sprintf("%s:%d", nodeIP, reqReceiverBasePort+numericID)
+		reqReceiverAddrs[nodeID] = net2.JoinHostPort(nodeIP, fmt.Sprintf("%d", reqReceiverBasePort+numericID))
 	}
 
 	// ================================================================================
@@ -185,20 +186,14 @@ func run() error {
 	}
 	transport.Connect(ctx, nodeAddrs)
 
-	// Instantiate the ISS protocol module.
-	memberships := make([]map[t.NodeID]t.NodeAddress, configOffset+1)
-	for i := 0; i < configOffset+1; i++ {
-		memberships[t.EpochNr(i)] = initialMembership
-	}
-	issConfig := iss.DefaultConfig(nodeIDs)
+	chatApp := NewChatApp(initialMembership, transport)
+
+	issConfig := iss.DefaultConfig(initialMembership)
 	issConfig.ConfigOffset = configOffset
 	issProtocol, err := iss.New(
 		args.OwnID,
 		issConfig,
-		&commonpb.StateSnapshot{
-			AppData:       []byte{},
-			Configuration: events.EpochConfig(0, memberships),
-		},
+		iss.InitialStateSnapshot(chatApp.serializeMessages(), issConfig),
 		logger,
 	)
 	if err != nil {
@@ -216,7 +211,7 @@ func run() error {
 
 		// This is the application logic Mir is going to deliver requests to.
 		// For the implementation of the application, see app.go.
-		"app": NewChatApp(initialMembership, transport),
+		"app": chatApp,
 
 		// Use dummy crypto module that only produces signatures
 		// consisting of a single zero byte and treats those signatures as valid.

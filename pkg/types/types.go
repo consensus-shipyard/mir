@@ -8,13 +8,14 @@ package types
 
 import (
 	"encoding/binary"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"strconv"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
+
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // ================================================================================

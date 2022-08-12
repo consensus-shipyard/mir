@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"fmt"
-	t "github.com/filecoin-project/mir/pkg/types"
 	mrand "math/rand"
 
 	"github.com/libp2p/go-libp2p"
@@ -10,6 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // NewDummyHost creates an insecure libp2p host for test and demonstration purposes.

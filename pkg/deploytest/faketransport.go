@@ -19,6 +19,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 type FakeLink struct {
@@ -126,7 +127,14 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 }
 
 func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
-	return nil
+	membership := make(map[t.NodeID]t.NodeAddress)
+
+	// Dummy addresses. Never actually used.
+	for nID := range ft.Buffers {
+		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+	}
+
+	return membership
 }
 
 func (fl *FakeLink) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {}
