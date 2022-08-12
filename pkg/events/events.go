@@ -234,17 +234,6 @@ func NodeSigsVerified(
 	}
 }
 
-// RequestReady returns an event signifying that a new request is ready to be inserted into the protocol state machine.
-// This normally occurs when the request has been received, persisted, authenticated, and an authenticator is available.
-func RequestReady(destModule t.ModuleID, request *requestpb.Request) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_RequestReady{RequestReady: &eventpb.RequestReady{
-			Request: request,
-		}},
-	}
-}
-
 // WALAppend returns an event of appending a new entry to the WAL.
 // This event is produced by the protocol state machine for persisting its state.
 func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
