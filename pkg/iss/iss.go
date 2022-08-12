@@ -16,6 +16,7 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 
 	"google.golang.org/protobuf/proto"
@@ -177,7 +178,10 @@ type ISS struct {
 	lastStableCheckpoint *isspb.StableCheckpoint
 
 	// TODO: Finish and document this.
-	configurations [][]t.NodeID
+	configurations []map[t.NodeID]t.NodeAddress
+
+	// Stores the context of request-response type invocations of other modules.
+	contextStore contextstore.ContextStore[any]
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
@@ -193,9 +197,9 @@ func New(ownID t.NodeID, config *Config, initialState *commonpb.StateSnapshot, l
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
-	memberships := make([][]t.NodeID, config.ConfigOffset+1)
+	memberships := make([]map[t.NodeID]t.NodeAddress, config.ConfigOffset+1)
 	for i := 0; i < config.ConfigOffset+1; i++ {
-		memberships[i] = config.InitialMembership
+		memberships[i] = t.Membership(initialState.Configuration.Memberships[i])
 	}
 
 	// Initialize a new ISS object.
@@ -232,6 +236,8 @@ func New(ownID t.NodeID, config *Config, initialState *commonpb.StateSnapshot, l
 			//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
 		},
 		configurations: memberships,
+
+		contextStore: contextstore.NewSequentialContextStore[any](),
 	}
 
 	// Initialize the first epoch (epoch 0).
@@ -269,8 +275,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_NewRequests:
 		return iss.applyNewRequests(e.NewRequests.Requests)
-	case *eventpb.Event_StateSnapshot:
-		return iss.applyStateSnapshot(e.StateSnapshot), nil
+	case *eventpb.Event_AppSnapshot:
+		return iss.applyAppSnapshot(e.AppSnapshot), nil
 	case *eventpb.Event_NewConfig:
 		return iss.applyNewConfig(e.NewConfig)
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
@@ -474,25 +480,35 @@ func (iss *ISS) handleHashedRequest(request *requestpb.HashedRequest) *events.Ev
 
 // applyStateSnapshot applies the event of the application creating a state snapshot.
 // It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyStateSnapshot(snapshot *commonpb.StateSnapshot) *events.EventList {
+func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) *events.EventList {
 
-	snapshotEpoch := t.EpochNr(snapshot.Configuration.EpochNr)
+	//events.StateSnapshot(, events.EpochConfig(chat.currentEpoch, chat.memberships)),
+
+	snapshotEpoch := iss.contextStore.RecoverAndDispose(contextstore.ItemID(appSnapshot.Origin.ItemID)).(t.EpochNr)
 
 	if epoch, ok := iss.epochs[snapshotEpoch]; ok {
-		return epoch.Checkpoint.ProcessStateSnapshot(snapshot)
+		return epoch.Checkpoint.ProcessStateSnapshot(events.StateSnapshot(
+			appSnapshot.AppData,
+			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.config.ConfigOffset+1]),
+			// TODO: +1 or not?
+			// TODO: Make sure that all the necessary configurations have been received through the NewConfig event.
+		))
 	} else {
 		iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
-			"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshot.Configuration.EpochNr)
+			"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshotEpoch)
 		return events.EmptyList()
 	}
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
+
+	newMembership := t.Membership(config.Membership)
+
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
 		"forEpoch", len(iss.configurations),
 		"currentEpoch", iss.epoch.Nr,
-		"newConfigNodes", config.NodeIds)
-	iss.configurations = append(iss.configurations, t.NodeIDSlice(config.NodeIds))
+		"newConfigNodes", maputil.GetSortedKeys(newMembership))
+	iss.configurations = append(iss.configurations, newMembership)
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
@@ -652,7 +668,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// catching up with state transfer.
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := t.EpochNr(iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr)
-	for _, n := range iss.configurations[iss.epoch.Nr] {
+	for _, n := range maputil.GetKeys(iss.configurations[iss.epoch.Nr]) {
 		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
@@ -796,15 +812,14 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	// snapshot from the new stable checkpoint.
 
 	// Save the configurations obtained in the checkpoint
-	// TODO: Make sure that the node IDs are always sorted.
-	iss.configurations = make([][]t.NodeID, len(chkp.Snapshot.Configuration.Memberships))
+	iss.configurations = make([]map[t.NodeID]t.NodeAddress, len(chkp.Snapshot.Configuration.Memberships))
 	for i, m := range chkp.Snapshot.Configuration.Memberships {
-		iss.configurations[i] = t.NodeIDSlice(maputil.GetSortedKeys(m.Membership))
+		iss.configurations[i] = t.Membership(m)
 	}
 
 	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkpEpoch, iss.configurations[chkpEpoch])
+	iss.initEpoch(chkpEpoch, maputil.GetSortedKeys(iss.configurations[chkpEpoch]))
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -1030,7 +1045,7 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	}
 
 	// Initialize the internal data structures for the new epoch.
-	iss.initEpoch(newEpochNr, iss.configurations[newEpochNr])
+	iss.initEpoch(newEpochNr, maputil.GetSortedKeys(iss.configurations[newEpochNr]))
 
 	// Signal the new epoch to the application.
 	// This must happen before starting the checkpoint protocol, since the application
@@ -1046,7 +1061,10 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
 	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
 	// The membership used for the checkpoint tracker still must be the old membership.
-	eventsOut.PushBackList(iss.epoch.Checkpoint.Start(iss.configurations[oldEpochNr]))
+	eventsOut.PushBackList(iss.epoch.Checkpoint.Start(
+		maputil.GetSortedKeys(iss.configurations[oldEpochNr]),
+		iss.contextStore.Store(newEpochNr),
+	))
 
 	// Give the init signals to the newly instantiated orderers.
 	// TODO: Currently this probably sends the Init event to old orderers as well.

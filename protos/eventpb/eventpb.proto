@@ -48,8 +48,8 @@ message Event {
     VerifyRequestSig       verify_request_sig      = 19;
     RequestSigVerified     request_sig_verified    = 20;
     StoreVerifiedRequest   store_verified_request  = 21;
-    StateSnapshotRequest   state_snapshot_request  = 22;
-    commonpb.StateSnapshot state_snapshot          = 23;
+    AppSnapshotRequest     app_snapshot_request    = 22;
+    AppSnapshot            app_snapshot            = 23;
     AppRestoreState        app_restore_state       = 24;
     TimerDelay             timer_delay             = 25;
     TimerRepeat            timer_repeat            = 26;
@@ -203,8 +203,14 @@ message StoreVerifiedRequest {
   bytes             authenticator = 3;
 }
 
-message StateSnapshotRequest {
-  string module = 1;
+message AppSnapshotRequest {
+  string                module = 1;
+  contextstorepb.Origin origin = 2;
+}
+
+message AppSnapshot {
+  bytes                 app_data = 1;
+  contextstorepb.Origin origin   = 2;
 }
 
 message AppRestoreState {
@@ -231,5 +237,5 @@ message NewEpoch {
 }
 
 message NewConfig {
-  repeated string node_ids = 1;
+  commonpb.Membership membership = 1;
 }
