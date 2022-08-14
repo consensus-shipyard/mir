@@ -13,6 +13,10 @@ func (sl *synchronizedLogger) Log(level LogLevel, text string, args ...interface
 	sl.mutex.Unlock()
 }
 
+func (sl *synchronizedLogger) MinLevel() LogLevel {
+	return sl.logger.MinLevel()
+}
+
 func (sl *synchronizedLogger) IsConcurrent() bool {
 	return true
 }

@@ -20,6 +20,10 @@ type Logger interface {
 	// values are unspecified.
 	Log(level LogLevel, text string, args ...interface{})
 
+	// MinLevel returns the minimum level at which the logging is performed.
+	// This method must be thread-safe and wait-free even if IsConcurrent returns false.
+	MinLevel() LogLevel
+
 	// IsConcurrent returns true iff the logger can be safely concurrently accessed by multiple go-routines.
 	IsConcurrent() bool
 }
@@ -31,6 +35,7 @@ const (
 	LevelInfo
 	LevelWarn
 	LevelError
+	LevelDisable // not supposed to be passed to the Log method.
 )
 
 // Simple console logger writing log messages directly to standard output.
@@ -66,6 +71,10 @@ func (l consoleLogger) Log(level LogLevel, text string, args ...interface{}) {
 	fmt.Printf("\n")
 }
 
+func (l consoleLogger) MinLevel() LogLevel {
+	return l.level
+}
+
 func (l consoleLogger) IsConcurrent() bool {
 	return false
 }
@@ -76,6 +85,10 @@ type nilLogger struct{}
 // The Log method of the nilLogger does nothing, effectively dropping every log message.
 func (nl nilLogger) Log(level LogLevel, text string, args ...interface{}) {
 	// Do nothing.
+}
+
+func (nl nilLogger) MinLevel() LogLevel {
+	return LevelDisable
 }
 
 func (nl nilLogger) IsConcurrent() bool {
