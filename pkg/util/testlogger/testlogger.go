@@ -38,6 +38,10 @@ func (tl *TestLogger) Log(level logging.LogLevel, text string, args ...interface
 	tl.entries = append(tl.entries, &newEntry)
 }
 
+func (tl *TestLogger) MinLevel() logging.LogLevel {
+	return logging.LevelDebug
+}
+
 func (tl *TestLogger) IsConcurrent() bool {
 	return false
 }

@@ -13,6 +13,10 @@ func (dl *decoratedLogger) Log(level LogLevel, text string, args ...interface{})
 	dl.logger.Log(level, fmt.Sprintf("%s%s", dl.prefix, text), passedArgs...)
 }
 
+func (dl *decoratedLogger) MinLevel() LogLevel {
+	return dl.logger.MinLevel()
+}
+
 func (dl *decoratedLogger) IsConcurrent() bool {
 	return dl.logger.IsConcurrent()
 }
