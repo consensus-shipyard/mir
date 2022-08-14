@@ -34,14 +34,16 @@ const (
 )
 
 // Simple console logger writing log messages directly to standard output.
-type consoleLogger LogLevel
+type consoleLogger struct {
+	level LogLevel
+}
 
 // Log is invoked with the log level, the log message, and key/value pairs
 // of any relevant log details. The keys are always strings, while the
 // values are unspecified. If the level is greater of equal than this consoleLogger,
 // Log() writes the log message to standard output.
 func (l consoleLogger) Log(level LogLevel, text string, args ...interface{}) {
-	if level < LogLevel(l) {
+	if level < l.level {
 		return
 	}
 
@@ -82,16 +84,16 @@ func (nl *nilLogger) IsConcurrent() bool {
 
 var (
 	// ConsoleDebugLogger implements Logger and writes all log messages to stdout.
-	ConsoleDebugLogger Logger = consoleLogger(LevelDebug)
+	ConsoleDebugLogger Logger = consoleLogger{LevelDebug}
 
 	// ConsoleInfoLogger implements Logger and writes all LevelInfo and above log messages to stdout.
-	ConsoleInfoLogger Logger = consoleLogger(LevelInfo)
+	ConsoleInfoLogger Logger = consoleLogger{LevelInfo}
 
 	// ConsoleWarnLogger implements Logger and writes all LevelWarn and above log messages to stdout.
-	ConsoleWarnLogger Logger = consoleLogger(LevelWarn)
+	ConsoleWarnLogger Logger = consoleLogger{LevelWarn}
 
 	// ConsoleErrorLogger implements Logger and writes all LevelError log messages to stdout.
-	ConsoleErrorLogger Logger = consoleLogger(LevelError)
+	ConsoleErrorLogger Logger = consoleLogger{LevelError}
 
 	// NilLogger drops all log messages.
 	NilLogger Logger = &nilLogger{}
