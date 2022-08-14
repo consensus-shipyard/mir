@@ -26,6 +26,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -218,6 +219,13 @@ func run() error {
 		},
 	)
 
+	// Use fake batch database.
+	batchdb := fakebatchdb.NewModule(
+		&fakebatchdb.ModuleConfig{
+			Self: "batchdb",
+		},
+	)
+
 	mscFactory := factorymodule.New(
 		"availability",
 		factorymodule.DefaultParams(
@@ -231,6 +239,7 @@ func run() error {
 					&multisigcollector.ModuleConfig{
 						Self:    mscID,
 						Mempool: "mempool",
+						BatchDB: "batchdb",
 						Net:     "net",
 						Crypto:  "crypto",
 					},
@@ -269,6 +278,7 @@ func run() error {
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 
 		"mempool":      mempool,
+		"batchdb":      batchdb,
 		"availability": mscFactory,
 	})
 	if err != nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/factorymodule"
@@ -417,6 +418,13 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			},
 		)
 
+		// Use fake batch database.
+		batchdb := fakebatchdb.NewModule(
+			&fakebatchdb.ModuleConfig{
+				Self: "batchdb",
+			},
+		)
+
 		// Instantiate the availability layer.
 		mscFactory := factorymodule.New(
 			"availability",
@@ -431,6 +439,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 						&multisigcollector.ModuleConfig{
 							Self:    mscID,
 							Mempool: "mempool",
+							BatchDB: "batchdb",
 							Net:     "net",
 							Crypto:  "crypto",
 						},
@@ -456,6 +465,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"iss":          issProtocol,
 			"net":          transport,
 			"mempool":      mempool,
+			"batchdb":      batchdb,
 			"availability": mscFactory,
 		})
 		if err != nil {

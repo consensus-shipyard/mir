@@ -1,6 +1,7 @@
 package certcreation
 
 import (
+	batchdbdsl "github.com/filecoin-project/mir/pkg/availability/batchdb/dsl"
 	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	mscdsl "github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/dsl"
@@ -15,7 +16,6 @@ import (
 
 // State represents the state related to this part of the module.
 type State struct {
-	*common.State
 	NextReqID    RequestID
 	RequestState map[RequestID]*RequestState
 }
@@ -39,10 +39,8 @@ func IncludeCreatingCertificates(
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	nodeID t.NodeID,
-	commonState *common.State,
 ) {
 	state := State{
-		State:        commonState,
 		NextReqID:    0,
 		RequestState: make(map[uint64]*RequestState),
 	}
@@ -142,23 +140,23 @@ func IncludeCreatingCertificates(
 		return nil
 	})
 
-	// When the ids of the received transactions are computed, store the transactions and compute the id of the batch.
+	// When the ids of the received transactions are computed, compute the id of the batch.
 	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *computeIDsOfReceivedTxsContext) error {
-		// TODO: use persistent storage for crash-recovery.
-		for i, txID := range txIDs {
-			state.TransactionStore[txID] = context.txs[i]
-		}
-
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs,
-			&computeIDOfReceivedBatchContext{context.sourceID, txIDs, context.reqID})
+			&computeIDOfReceivedBatchContext{context.sourceID, txIDs, context.txs, context.reqID})
 		return nil
 	})
 
-	// When the id of the batch is computed, store the batch and generate a signature.
+	// When the id of the batch is computed, store the batch persistently.
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *computeIDOfReceivedBatchContext) error {
-		state.BatchStore[batchID] = context.txIDs
+		batchdbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
+			&storeBatchContext{context.sourceID, context.reqID, batchID})
+		return nil
+	})
 
-		sigMsg := common.SigData(params.InstanceUID, batchID)
+	// When the batch is stored, generate a signature
+	batchdbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
+		sigMsg := common.SigData(params.InstanceUID, context.batchID)
 		dsl.SignRequest(m, mc.Crypto, sigMsg, &signReceivedBatchContext{context.sourceID, context.reqID})
 		return nil
 	})
@@ -192,7 +190,14 @@ type computeIDsOfReceivedTxsContext struct {
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
 	txIDs    []t.TxID
+	txs      []*requestpb.Request
 	reqID    RequestID
+}
+
+type storeBatchContext struct {
+	sourceID t.NodeID
+	reqID    RequestID
+	batchID  t.BatchID
 }
 
 type signReceivedBatchContext struct {
