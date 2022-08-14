@@ -31,7 +31,8 @@ type Logger interface {
 type LogLevel int
 
 const (
-	LevelDebug LogLevel = iota
+	LevelTrace LogLevel = iota
+	LevelDebug
 	LevelInfo
 	LevelWarn
 	LevelError
@@ -96,7 +97,10 @@ func (nl nilLogger) IsConcurrent() bool {
 }
 
 var (
-	// ConsoleDebugLogger implements Logger and writes all log messages to stdout.
+	// ConsoleTraceLogger implements Logger and writes all log messages to stdout.
+	ConsoleTraceLogger Logger = consoleLogger{LevelTrace}
+
+	// ConsoleDebugLogger implements Logger and writes all LevelDebug and above messages to stdout.
 	ConsoleDebugLogger Logger = consoleLogger{LevelDebug}
 
 	// ConsoleInfoLogger implements Logger and writes all LevelInfo and above log messages to stdout.

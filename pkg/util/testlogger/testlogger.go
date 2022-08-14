@@ -39,7 +39,7 @@ func (tl *TestLogger) Log(level logging.LogLevel, text string, args ...interface
 }
 
 func (tl *TestLogger) MinLevel() logging.LogLevel {
-	return logging.LevelDebug
+	return logging.LevelTrace
 }
 
 func (tl *TestLogger) IsConcurrent() bool {
