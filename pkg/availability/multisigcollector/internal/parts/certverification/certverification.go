@@ -19,7 +19,6 @@ func IncludeVerificationOfCertificates(
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	nodeID t.NodeID,
-	_ *common.State, // this part of the protocol is stateless.
 ) {
 	// When receive a request to verify a certificate, check that it is structurally correct and verify the signatures.
 	adsl.UponVerifyCert(m, func(cert *apb.Cert, origin *apb.VerifyCertOrigin) error {

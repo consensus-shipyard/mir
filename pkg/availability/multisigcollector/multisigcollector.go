@@ -9,7 +9,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,6 +20,7 @@ func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
 		Self:    "availability",
 		Mempool: "mempool",
+		BatchDB: "batchdb",
 		Net:     "net",
 		Crypto:  "crypto",
 	}
@@ -42,14 +42,9 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules
 
 	m := dsl.NewModule(mc.Self)
 
-	commonState := &common.State{
-		BatchStore:       make(map[t.BatchID][]t.TxID),
-		TransactionStore: make(map[t.TxID]*requestpb.Request),
-	}
-
-	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID, commonState)
-	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID, commonState)
-	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID, commonState)
+	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID)
+	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID)
+	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID)
 
 	return m, nil
 }

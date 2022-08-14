@@ -1,6 +1,7 @@
 package batchreconstruction
 
 import (
+	batchdbdsl "github.com/filecoin-project/mir/pkg/availability/batchdb/dsl"
 	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	mscdsl "github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/dsl"
@@ -15,7 +16,6 @@ import (
 
 // State represents the state related to this part of the module.
 type State struct {
-	*common.State
 	NextReqID    RequestID
 	RequestState map[RequestID]*RequestState
 }
@@ -36,52 +36,52 @@ func IncludeBatchReconstruction(
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	nodeID t.NodeID,
-	commonState *common.State,
 ) {
 	state := State{
-		State:        commonState,
 		NextReqID:    0,
 		RequestState: make(map[uint64]*RequestState),
 	}
 
-	// When receive a request for transactions, first check the local storage and then ask other nodes.
+	// When receive a request for transactions, first check the local storage.
 	mscdsl.UponRequestTransactions(m, func(cert *mscpb.Cert, origin *apb.RequestTransactionsOrigin) error {
-		txIDs, ok := state.BatchStore[t.BatchID(cert.BatchId)]
-		if ok {
-			txs := make([]*requestpb.Request, len(txIDs))
-			for i, txID := range txIDs {
-				txs[i] = state.TransactionStore[txID]
-			}
+		// NOTE: it is assumed that cert is valid.
+		batchdbdsl.LookupBatch(m, mc.BatchDB, t.BatchID(cert.BatchId), &lookupBatchLocallyContext{cert, origin})
+		return nil
+	})
 
-			adsl.ProvideTransactions(m, t.ModuleID(origin.Module), txs, origin)
+	// If the batch is present in the local storage, return it. Otherwise, ask the nodes that signed the certificate.
+	batchdbdsl.UponLookupBatchResponse(m, func(found bool, txs []*requestpb.Request, metadata []byte, context *lookupBatchLocallyContext) error {
+		if found {
+			adsl.ProvideTransactions(m, t.ModuleID(context.origin.Module), txs, context.origin)
 			return nil
 		}
 
 		reqID := state.NextReqID
 		state.NextReqID++
 
-		state.RequestState[reqID] = &RequestState{t.BatchID(cert.BatchId), origin}
+		state.RequestState[reqID] = &RequestState{t.BatchID(context.cert.BatchId), context.origin}
 
 		dsl.SendMessage(m, mc.Net,
-			protobuf.RequestBatchMessage(mc.Self, t.BatchID(cert.BatchId), reqID),
-			t.NodeIDSlice(cert.Signers))
+			protobuf.RequestBatchMessage(mc.Self, t.BatchID(context.cert.BatchId), reqID),
+			t.NodeIDSlice(context.cert.Signers))
 		return nil
 	})
 
-	// When receive a request for batch from another node, send all transactions in response.
+	// When receive a request for batch from another node, lookup the batch in the local storage.
 	mscdsl.UponRequestBatchMessageReceived(m, func(from t.NodeID, batchID t.BatchID, reqID RequestID) error {
-		txIDs, ok := state.BatchStore[batchID]
-		if !ok {
+		// TODO: add some DoS prevention mechanisms.
+		batchdbdsl.LookupBatch(m, mc.BatchDB, batchID, &lookupBatchOnRemoteRequestContext{from, reqID})
+		return nil
+	})
+
+	// If the batch is found in the local storage, send it to the requesting node.
+	batchdbdsl.UponLookupBatchResponse(m, func(found bool, txs []*requestpb.Request, metadata []byte, context *lookupBatchOnRemoteRequestContext) error {
+		if !found {
 			// Ignore invalid request.
 			return nil
 		}
 
-		txs := make([]*requestpb.Request, len(txIDs))
-		for i, txID := range txIDs {
-			txs[i] = state.TransactionStore[txID]
-		}
-
-		dsl.SendMessage(m, mc.Net, protobuf.ProvideBatchMessage(mc.Self, txs, reqID), []t.NodeID{from})
+		dsl.SendMessage(m, mc.Net, protobuf.ProvideBatchMessage(mc.Self, txs, context.reqID), []t.NodeID{context.requester})
 		return nil
 	})
 
@@ -116,22 +116,31 @@ func IncludeBatchReconstruction(
 			return nil
 		}
 
-		state.BatchStore[batchID] = context.txIDs
-		for i, txID := range context.txIDs {
-			state.TransactionStore[txID] = context.txs[i]
-		}
-
+		batchdbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, []byte{} /*metadata*/, &storeBatchContext{})
 		adsl.ProvideTransactions(m, t.ModuleID(requestState.ReqOrigin.Module), context.txs, requestState.ReqOrigin)
 
 		// Dispose of the state associated with this request.
 		delete(state.RequestState, context.reqID)
 		return nil
 	})
+
+	batchdbdsl.UponBatchStored(m, func(_ *storeBatchContext) error {
+		// do nothing.
+		return nil
+	})
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Context data structures                                                                                            //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Context data structures
+
+type lookupBatchLocallyContext struct {
+	cert   *mscpb.Cert
+	origin *apb.RequestTransactionsOrigin
+}
+
+type lookupBatchOnRemoteRequestContext struct {
+	requester t.NodeID
+	reqID     RequestID
+}
 
 type requestTxIDsContext struct {
 	reqID RequestID
@@ -143,3 +152,5 @@ type requestBatchIDContext struct {
 	txs   []*requestpb.Request
 	txIDs []t.TxID
 }
+
+type storeBatchContext struct{}

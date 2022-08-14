@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -18,6 +17,7 @@ func (uid InstanceUID) Bytes() []byte {
 type ModuleConfig struct {
 	Self    t.ModuleID // id of this module
 	Mempool t.ModuleID
+	BatchDB t.ModuleID
 	Net     t.ModuleID
 	Crypto  t.ModuleID
 }
@@ -28,12 +28,6 @@ type ModuleParams struct {
 	InstanceUID []byte     // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
 	AllNodes    []t.NodeID // the list of participating nodes
 	F           int        // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
-}
-
-// State represents the common state accessible to all parts of the module implementation.
-type State struct {
-	BatchStore       map[t.BatchID][]t.TxID
-	TransactionStore map[t.TxID]*requestpb.Request
 }
 
 // SigData is the binary data that should be signed for forming a certificate.

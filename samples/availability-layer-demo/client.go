@@ -9,6 +9,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -94,10 +95,15 @@ func run() error {
 		},
 	)
 
+	batchdb := fakebatchdb.NewModule(&fakebatchdb.ModuleConfig{
+		Self: "batchdb",
+	})
+
 	availability, err := multisigcollector.NewModule(
 		&multisigcollector.ModuleConfig{
 			Self:    "availability",
 			Mempool: "mempool",
+			BatchDB: "batchdb",
 			Net:     "net",
 			Crypto:  "crypto",
 		},
@@ -118,6 +124,7 @@ func run() error {
 	m := map[t.ModuleID]modules.Module{
 		"net":          transport,
 		"mempool":      mempool,
+		"batchdb":      batchdb,
 		"hasher":       mirCrypto.NewHasher(crypto.SHA256),
 		"crypto":       mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 		"availability": availability,
