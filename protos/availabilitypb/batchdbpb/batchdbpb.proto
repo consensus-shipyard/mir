@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package batchdbpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb";
+
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "mir/plugin.proto";
+import "requestpb/requestpb.proto";
+
+// ============================================================
+// Events
+// ============================================================
+
+message Event {
+  oneof Type {
+    option (mir.event_type) = true;
+
+    LookupBatch         lookup          = 1;
+    LookupBatchResponse lookup_response = 2;
+    StoreBatch          store           = 3;
+    BatchStored         stored          = 4;
+  }
+}
+
+// LookupBatch is used to pull a batch with its metadata from the local batch database.
+message LookupBatch {
+  bytes             batch_id = 1;
+  LookupBatchOrigin origin   = 2;
+}
+
+// LookupBatchResponse is a response to a LookupBatch event.
+message LookupBatchResponse {
+  bool                       found    = 1;
+  repeated requestpb.Request txs      = 2;
+  bytes                      metadata = 3;
+  LookupBatchOrigin          origin   = 4;
+}
+
+// StoreBatch is used to store a new batch in the local batch database.
+message StoreBatch {
+    bytes batch_id                 = 1;
+    repeated bytes tx_ids          = 2;
+    repeated requestpb.Request txs = 3;
+    bytes metadata                 = 4;
+    StoreBatchOrigin origin        = 5;
+}
+
+// BatchStored is a response to a VerifyCert event.
+message BatchStored {
+  StoreBatchOrigin origin = 1;
+}
+
+// ============================================================
+// Data structures
+// ============================================================
+
+message LookupBatchOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message StoreBatchOrigin {
+  string module = 1;
+  oneof Type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
