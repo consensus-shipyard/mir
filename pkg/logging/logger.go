@@ -74,11 +74,11 @@ func (l consoleLogger) IsConcurrent() bool {
 type nilLogger struct{}
 
 // The Log method of the nilLogger does nothing, effectively dropping every log message.
-func (nl *nilLogger) Log(level LogLevel, text string, args ...interface{}) {
+func (nl nilLogger) Log(level LogLevel, text string, args ...interface{}) {
 	// Do nothing.
 }
 
-func (nl *nilLogger) IsConcurrent() bool {
+func (nl nilLogger) IsConcurrent() bool {
 	return true
 }
 
@@ -96,5 +96,5 @@ var (
 	ConsoleErrorLogger Logger = consoleLogger{LevelError}
 
 	// NilLogger drops all log messages.
-	NilLogger Logger = &nilLogger{}
+	NilLogger Logger = nilLogger{}
 )
