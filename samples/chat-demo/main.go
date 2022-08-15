@@ -64,8 +64,11 @@ type parsedArgs struct {
 	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
 	OwnID t.NodeID
 
-	// If set, print verbose output to stdout.
+	// If set, print debug output to stdout.
 	Verbose bool
+
+	// If set, print trace output to stdout.
+	Trace bool
 
 	// Network transport.
 	Net string
@@ -104,7 +107,9 @@ func run() error {
 
 	// Initialize logger that will be used throughout the code to print log messages.
 	var logger logging.Logger
-	if args.Verbose {
+	if args.Trace {
+		logger = logging.ConsoleTraceLogger // Print trace-level info.
+	} else if args.Verbose {
 		logger = logging.ConsoleDebugLogger // Print debug-level info in verbose mode.
 	} else {
 		logger = logging.ConsoleWarnLogger // Only print errors and warnings by default.
@@ -343,6 +348,7 @@ func run() error {
 func parseArgs(args []string) *parsedArgs {
 	app := kingpin.New("chat-demo", "Small chat application to demonstrate the usage of the Mir library.")
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
+	trace := app.Flag("trace", "Very verbose mode.").Bool()
 	// Currently, the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
 	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
@@ -356,6 +362,7 @@ func parseArgs(args []string) *parsedArgs {
 	return &parsedArgs{
 		OwnID:              t.NodeID(*ownID),
 		Verbose:            *verbose,
+		Trace:              *trace,
 		Net:                *n,
 		InitMembershipFile: *initMembershipFile,
 	}
