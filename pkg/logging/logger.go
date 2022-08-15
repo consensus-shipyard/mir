@@ -98,19 +98,19 @@ func (nl nilLogger) IsConcurrent() bool {
 
 var (
 	// ConsoleTraceLogger implements Logger and writes all log messages to stdout.
-	ConsoleTraceLogger Logger = consoleLogger{LevelTrace}
+	ConsoleTraceLogger Logger = Synchronize(consoleLogger{LevelTrace})
 
 	// ConsoleDebugLogger implements Logger and writes all LevelDebug and above messages to stdout.
-	ConsoleDebugLogger Logger = consoleLogger{LevelDebug}
+	ConsoleDebugLogger Logger = Synchronize(consoleLogger{LevelDebug})
 
 	// ConsoleInfoLogger implements Logger and writes all LevelInfo and above log messages to stdout.
-	ConsoleInfoLogger Logger = consoleLogger{LevelInfo}
+	ConsoleInfoLogger Logger = Synchronize(consoleLogger{LevelInfo})
 
 	// ConsoleWarnLogger implements Logger and writes all LevelWarn and above log messages to stdout.
-	ConsoleWarnLogger Logger = consoleLogger{LevelWarn}
+	ConsoleWarnLogger Logger = Synchronize(consoleLogger{LevelWarn})
 
 	// ConsoleErrorLogger implements Logger and writes all LevelError log messages to stdout.
-	ConsoleErrorLogger Logger = consoleLogger{LevelError}
+	ConsoleErrorLogger Logger = Synchronize(consoleLogger{LevelError})
 
 	// NilLogger drops all log messages.
 	NilLogger Logger = nilLogger{}
