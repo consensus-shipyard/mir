@@ -14,6 +14,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/wal"
@@ -84,6 +85,9 @@ func NewNode(
 	wal wal.WAL,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
+	// Make sure that the logger can be accessed concurrently.
+	config.Logger = logging.Synchronize(config.Logger)
+
 	// Return a new Node.
 	return &Node{
 		ID:     id,
