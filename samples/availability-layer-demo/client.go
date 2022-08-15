@@ -29,6 +29,20 @@ const (
 	nodeNumber = 4
 )
 
+// parsedArgs represents parsed command-line parameters passed to the program.
+type parsedArgs struct {
+
+	// ID of this node.
+	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
+	OwnID t.NodeID
+
+	// If set, print debug output to stdout.
+	Verbose bool
+
+	// If set, print trace output to stdout.
+	Trace bool
+}
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Println(err)
@@ -38,6 +52,16 @@ func main() {
 
 func run() error {
 	args := parseArgs(os.Args)
+
+	// Initialize logger that will be used throughout the code to print log messages.
+	var logger logging.Logger
+	if args.Trace {
+		logger = logging.ConsoleTraceLogger // Print trace-level info.
+	} else if args.Verbose {
+		logger = logging.ConsoleDebugLogger // Print debug-level info in verbose mode.
+	} else {
+		logger = logging.ConsoleWarnLogger // Only print errors and warnings by default.
+	}
 
 	// IDs of nodes that are part of the system.
 	// This example uses a static configuration of nodeNumber nodes.
@@ -51,7 +75,7 @@ func run() error {
 		nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + nodeBasePort))
 	}
 
-	transport, err := grpc.NewTransport(args.OwnID, nodeAddrs[args.OwnID], logging.NilLogger)
+	transport, err := grpc.NewTransport(args.OwnID, nodeAddrs[args.OwnID], logger)
 	if err != nil {
 		return fmt.Errorf("failed to get network transport %w", err)
 	}
@@ -101,7 +125,7 @@ func run() error {
 	}
 
 	// create a Mir node
-	node, err := mir.NewNode("client", &mir.NodeConfig{Logger: logging.NilLogger}, m, nil, nil)
+	node, err := mir.NewNode("client", &mir.NodeConfig{Logger: logger}, m, nil, nil)
 	if err != nil {
 		return fmt.Errorf("error creating a Mir node: %w", err)
 	}
@@ -119,6 +143,7 @@ func run() error {
 func parseArgs(args []string) *parsedArgs {
 	app := kingpin.New("chat-demo", "Small chat application to demonstrate the usage of the Mir library.")
 	verbose := app.Flag("verbose", "Verbose mode.").Short('v').Bool()
+	trace := app.Flag("trace", "Very verbose mode.").Bool()
 	ownID := app.Arg("id", "ID of this node").Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
@@ -128,16 +153,6 @@ func parseArgs(args []string) *parsedArgs {
 	return &parsedArgs{
 		OwnID:   t.NodeID(*ownID),
 		Verbose: *verbose,
+		Trace:   *trace,
 	}
-}
-
-// parsedArgs represents parsed command-line parameters passed to the program.
-type parsedArgs struct {
-
-	// ID of this node.
-	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
-	OwnID t.NodeID
-
-	// If set, print verbose output to stdout.
-	Verbose bool
 }
