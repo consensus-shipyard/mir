@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -70,6 +71,15 @@ func (n *Node) processModuleEvents(
 	// Intercept the (stripped of all follow-ups) events that are about to be processed.
 	// This is only for debugging / diagnostic purposes.
 	n.interceptEvents(plainEvents)
+
+	// In Trace mode, log all events.
+	if n.Config.Logger.MinLevel() <= logging.LevelTrace {
+		iter := plainEvents.Iterator()
+		for event := iter.Next(); event != nil; event = iter.Next() {
+			n.Config.Logger.Log(logging.LevelTrace,
+				fmt.Sprintf("Event for module %v: %v", event.DestModule, event.Type))
+		}
+	}
 
 	// Process events.
 	switch m := module.(type) {
