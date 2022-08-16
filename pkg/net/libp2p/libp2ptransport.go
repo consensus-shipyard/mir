@@ -27,9 +27,11 @@ import (
 )
 
 const (
-	ProtocolID        = "/mir/0.0.1"
-	defaultMaxTimeout = 200 * time.Millisecond
-	PermanentAddrTTL  = math.MaxInt64 - iota
+	ProtocolID           = "/mir/0.0.1"
+	maxConnectingTimeout = 200 * time.Millisecond
+	retryTimeout         = 2 * time.Second
+	retryAttempts        = 20
+	PermanentAddrTTL     = math.MaxInt64 - iota
 )
 
 type TransportMessage struct {
@@ -171,11 +173,7 @@ func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr)
 
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 
-	ctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
-	defer cancel()
-
-	// s, err := t.openStream(ctx, info.ID)
-	s, err := t.host.NewStream(ctx, info.ID, ProtocolID)
+	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open new stream to node %v: %w", addr, err)
 	}
@@ -184,19 +182,21 @@ func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr)
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	for {
-		sctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
-		s, err := t.host.NewStream(sctx, p, ProtocolID)
+	var streamErr error
+	for i := 0; i < retryAttempts; i++ {
+		sctx, cancel := context.WithTimeout(ctx, maxConnectingTimeout)
+
+		s, streamErr := t.host.NewStream(sctx, p, ProtocolID)
 		cancel()
 
-		if err == nil {
+		if streamErr == nil {
 			return s, nil
 		}
 
-		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to open stream: %v", err))
+		t.logger.Log(
+			logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %d sec", p, retryTimeout))
 
-		delay := time.NewTimer(defaultMaxTimeout)
-
+		delay := time.NewTimer(retryTimeout)
 		select {
 		case <-delay.C:
 			continue
@@ -204,9 +204,10 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 			if !delay.Stop() {
 				<-delay.C
 			}
-			return nil, fmt.Errorf("context closed")
+			return nil, fmt.Errorf("libp2p opening stream: context closed")
 		}
 	}
+	return nil, fmt.Errorf("failed to open stream to %s: %w", p, streamErr)
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
