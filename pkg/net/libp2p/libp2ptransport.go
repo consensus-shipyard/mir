@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	ID                = "/mir/0.0.1"
-	defaultMaxTimeout = 300 * time.Millisecond
+	ProtocolID        = "/mir/0.0.1"
+	defaultMaxTimeout = 200 * time.Millisecond
 	PermanentAddrTTL  = math.MaxInt64 - iota
 )
 
@@ -70,7 +70,7 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 
 func (t *Transport) Start() error {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler starting on %v", t.ownID, t.host.Addrs()))
-	t.host.SetStreamHandler(ID, t.mirHandler)
+	t.host.SetStreamHandler(ProtocolID, t.mirHandler)
 	return nil
 }
 
@@ -95,7 +95,7 @@ func (t *Transport) Stop() {
 		t.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
 	}
 
-	t.host.RemoveStreamHandler(ID)
+	t.host.RemoveStreamHandler(ProtocolID)
 
 	if err := t.host.Close(); err != nil {
 		t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close libp2p %v: %v", t.ownID, err))
@@ -171,10 +171,13 @@ func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr)
 
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 
-	s, err := t.openStream(ctx, info.ID)
+	ctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
+	defer cancel()
+
+	// s, err := t.openStream(ctx, info.ID)
+	s, err := t.host.NewStream(ctx, info.ID, ProtocolID)
 	if err != nil {
-		t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
-		return nil, fmt.Errorf("couldn't open stream to %v: %w", addr, err)
+		return nil, fmt.Errorf("failed to open new stream to node %v: %w", addr, err)
 	}
 
 	return s, nil
@@ -183,7 +186,7 @@ func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr)
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
 	for {
 		sctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
-		s, err := t.host.NewStream(sctx, p, ID)
+		s, err := t.host.NewStream(sctx, p, ProtocolID)
 		cancel()
 
 		if err == nil {
