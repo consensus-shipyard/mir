@@ -31,6 +31,7 @@ const (
 	maxConnectingTimeout = 200 * time.Millisecond
 	retryTimeout         = 2 * time.Second
 	retryAttempts        = 20
+	nonErrorAttempts     = 2
 	PermanentAddrTTL     = math.MaxInt64 - iota
 )
 
@@ -193,8 +194,10 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 			return s, nil
 		}
 
-		t.logger.Log(
-			logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %d sec", p, retryTimeout))
+		if i >= nonErrorAttempts {
+			t.logger.Log(
+				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %d sec", p, retryTimeout))
+		}
 
 		delay := time.NewTimer(retryTimeout)
 		select {
