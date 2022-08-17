@@ -306,17 +306,6 @@ func (td TimeDuration) Pb() uint64 {
 }
 
 // ================================================================================
-
-// ModuleID represents an identifier of a module.
-// Modules are stored under their identifiers in modules.Modules
-type ModuleID string
-
-// Pb converts a ModuleID to a type used in a Protobuf message.
-func (mid ModuleID) Pb() string {
-	return string(mid)
-}
-
-// ================================================================================
 // Auxiliary functions
 // ================================================================================
 
