@@ -4,11 +4,13 @@ package threshcryptopb;
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
-import "mir/plugin.proto";
+import "mir/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/threshcryptopb";
 
 message Event {
+  option (mir.event_class) = true;
+
   oneof type {
     option (mir.event_type) = true;
 
@@ -24,17 +26,23 @@ message Event {
 }
 
 message SignShare {
+  option (mir.event) = true;
+
   repeated bytes  data   = 1;
   SignShareOrigin origin = 2;
 }
 
 message SignShareResult {
+  option (mir.event) = true;
+
   bytes           signature_share = 1;
   SignShareOrigin origin          = 2;
 }
 
 message SignShareOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -42,20 +50,26 @@ message SignShareOrigin {
 }
 
 message VerifyShare {
+  option (mir.event) = true;
+
   repeated bytes    data            = 1;
   bytes             signature_share = 2;
-  string            node_id         = 3;
+  string            node_id         = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   VerifyShareOrigin origin          = 4;
 }
 
 message VerifyShareResult {
+  option (mir.event) = true;
+
   bool              ok     = 1;
   string            error  = 2;
   VerifyShareOrigin origin = 3;
 }
 
 message VerifyShareOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -63,19 +77,25 @@ message VerifyShareOrigin {
 }
 
 message VerifyFull {
+  option (mir.event) = true;
+
   repeated bytes   data           = 1;
   bytes            full_signature = 2;
   VerifyFullOrigin origin         = 3;
 }
 
 message VerifyFullResult {
+  option (mir.event) = true;
+
   bool             ok     = 1;
   string           error  = 2;
   VerifyFullOrigin origin = 3;
 }
 
 message VerifyFullOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -83,12 +103,16 @@ message VerifyFullOrigin {
 }
 
 message Recover {
+  option (mir.event) = true;
+
   repeated bytes data             = 1;
   repeated bytes signature_shares = 2;
   RecoverOrigin  origin           = 3;
 }
 
 message RecoverResult {
+  option (mir.event) = true;
+
   bytes         full_signature = 1;
   bool          ok             = 2;
   string        error          = 3;
@@ -96,7 +120,9 @@ message RecoverResult {
 }
 
 message RecoverOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;

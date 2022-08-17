@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package net;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/net";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  bool message_root = 61000;
+  bool message_class = 61001;
+  bool message = 61002;
+}
+
+extend google.protobuf.OneofOptions {
+  bool message_type = 61001;
+}

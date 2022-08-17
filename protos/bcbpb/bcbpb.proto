@@ -4,30 +4,42 @@ package bcbpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/bcbpb";
 
-import "mir/plugin.proto";
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
 
 // ============================================================
 // Messages
 // ============================================================
 
-message BroadcastRequest {
-  bytes data = 1;
-}
-
-message Deliver {
-  bytes data = 1;
-}
-
 message Event {
+  option (mir.event_class) = true;
+
   oneof type {
     option (mir.event_type) = true;
+
     BroadcastRequest request = 1;
     Deliver          deliver = 2;
   }
 }
 
+message BroadcastRequest {
+  option (mir.event) = true;
+
+  bytes data = 1;
+}
+
+message Deliver {
+  option (mir.event) = true;
+
+  bytes data = 1;
+}
+
 message Message {
+  option (net.message_class) = true;
+
   oneof type {
+    option (net.message_type) = true;
+
     StartMessage start_message = 1;
     EchoMessage  echo_message  = 2;
     FinalMessage final_message = 3;
@@ -35,14 +47,20 @@ message Message {
 }
 
 message StartMessage {
+  option (net.message) = true;
+
   bytes data = 1;
 }
 
 message EchoMessage {
+  option (net.message) = true;
+
   bytes signature = 1;
 }
 
 message FinalMessage {
+  option (net.message) = true;
+
   bytes data = 1;
   repeated string signers = 2;
   repeated bytes signatures = 3;

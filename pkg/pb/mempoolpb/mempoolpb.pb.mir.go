@@ -1,40 +1,46 @@
 package mempoolpb
 
-type Event_Type = isEvent_Type
+import (
+	reflect "reflect"
+)
 
-type Event_TypeWrapper[Ev any] interface {
-	Event_Type
-	Unwrap() *Ev
+func (*Event) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Event_RequestBatch)(nil)),
+		reflect.TypeOf((*Event_NewBatch)(nil)),
+		reflect.TypeOf((*Event_RequestTransactions)(nil)),
+		reflect.TypeOf((*Event_TransactionsResponse)(nil)),
+		reflect.TypeOf((*Event_RequestTransactionIds)(nil)),
+		reflect.TypeOf((*Event_TransactionIdsResponse)(nil)),
+		reflect.TypeOf((*Event_RequestBatchId)(nil)),
+		reflect.TypeOf((*Event_BatchIdResponse)(nil)),
+	}
 }
 
-func (p *Event_RequestBatch) Unwrap() *RequestBatch {
-	return p.RequestBatch
+func (*RequestBatchOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestBatchOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestBatchOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_NewBatch) Unwrap() *NewBatch {
-	return p.NewBatch
+func (*RequestTransactionsOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestTransactionsOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestTransactionsOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_RequestTransactions) Unwrap() *RequestTransactions {
-	return p.RequestTransactions
+func (*RequestTransactionIDsOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestTransactionIDsOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestTransactionIDsOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_TransactionsResponse) Unwrap() *TransactionsResponse {
-	return p.TransactionsResponse
-}
-
-func (p *Event_RequestTransactionIds) Unwrap() *RequestTransactionIDs {
-	return p.RequestTransactionIds
-}
-
-func (p *Event_TransactionIdsResponse) Unwrap() *TransactionIDsResponse {
-	return p.TransactionIdsResponse
-}
-
-func (p *Event_RequestBatchId) Unwrap() *RequestBatchID {
-	return p.RequestBatchId
-}
-
-func (p *Event_BatchIdResponse) Unwrap() *BatchIDResponse {
-	return p.BatchIdResponse
+func (*RequestBatchIDOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestBatchIDOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestBatchIDOrigin_Dsl)(nil)),
+	}
 }

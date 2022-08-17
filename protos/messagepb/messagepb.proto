@@ -15,11 +15,19 @@ import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
 
+import "mir/dsl/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
 message Message {
-  string dest_module = 1;
+  option (net.message_root) = true;
+
+  string dest_module = 1 [(mir.dsl.omit_in_handler) = true];
+
   oneof type {
+    option (net.message_type) = true;
+
     isspb.ISSMessage             iss                = 2;
     bcbpb.Message                bcb                = 3;
     availabilitypb.mscpb.Message multisig_collector = 4;
