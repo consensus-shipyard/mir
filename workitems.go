@@ -34,7 +34,7 @@ func (wi workItems) AddEvents(events *events.EventList) error {
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		// Look up the corresponding module's buffer and add the event to it.
-		if buffer, ok := wi[t.ModuleID(event.DestModule)]; ok {
+		if buffer, ok := wi[t.ModuleID(event.DestModule).Top()]; ok {
 			buffer.PushBack(event)
 		} else {
 			return fmt.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
