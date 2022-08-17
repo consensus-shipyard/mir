@@ -1,16 +1,20 @@
 package bcbpb
 
-type Event_Type = isEvent_Type
+import (
+	reflect "reflect"
+)
 
-type Event_TypeWrapper[Ev any] interface {
-	Event_Type
-	Unwrap() *Ev
+func (*Event) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Event_Request)(nil)),
+		reflect.TypeOf((*Event_Deliver)(nil)),
+	}
 }
 
-func (p *Event_Request) Unwrap() *BroadcastRequest {
-	return p.Request
-}
-
-func (p *Event_Deliver) Unwrap() *Deliver {
-	return p.Deliver
+func (*Message) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Message_StartMessage)(nil)),
+		reflect.TypeOf((*Message_EchoMessage)(nil)),
+		reflect.TypeOf((*Message_FinalMessage)(nil)),
+	}
 }

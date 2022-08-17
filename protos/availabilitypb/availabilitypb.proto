@@ -7,15 +7,18 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
-import "mir/plugin.proto";
 import "requestpb/requestpb.proto";
+
+import "mir/codegen_extensions.proto";
 
 // ============================================================
 // Events
 // ============================================================
 
 message Event {
-  oneof Type {
+  option (mir.event_class) = true;
+
+  oneof type {
     option (mir.event_type) = true;
 
     RequestCert request_cert = 1;
@@ -49,6 +52,8 @@ message VerifyCert {
 
 // CertVerified is a response to a VerifyCert event.
 message CertVerified {
+  option (mir.event) = true;
+
   bool             valid  = 1;
   string           err    = 2;
   VerifyCertOrigin origin = 3;
@@ -75,8 +80,10 @@ message ProvideTransactions {
 // ============================================================
 
 message RequestCertOrigin {
-  string module = 1;
-  oneof Type {
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
   }
@@ -84,22 +91,24 @@ message RequestCertOrigin {
 
 message RequestTransactionsOrigin {
   string module = 1;
-  oneof Type {
+  oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
   }
 }
 
 message VerifyCertOrigin {
+  option (mir.struct) = true;
+
   string module = 1;
-  oneof Type {
+  oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
   }
 }
 
 message Cert {
-  oneof Type {
+  oneof type {
     availabilitypb.mscpb.Cert msc = 1;
   }
 }

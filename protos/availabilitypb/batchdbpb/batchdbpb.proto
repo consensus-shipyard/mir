@@ -6,7 +6,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batch
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
-import "mir/plugin.proto";
+import "mir/codegen_extensions.proto";
 import "requestpb/requestpb.proto";
 
 // ============================================================
@@ -14,6 +14,8 @@ import "requestpb/requestpb.proto";
 // ============================================================
 
 message Event {
+  option (mir.event_class) = true;
+
   oneof Type {
     option (mir.event_type) = true;
 

@@ -1,32 +1,30 @@
 package availabilitypb
 
-type Event_Type = isEvent_Type
+import (
+	reflect "reflect"
+)
 
-type Event_TypeWrapper[Ev any] interface {
-	Event_Type
-	Unwrap() *Ev
+func (*Event) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Event_RequestCert)(nil)),
+		reflect.TypeOf((*Event_NewCert)(nil)),
+		reflect.TypeOf((*Event_VerifyCert)(nil)),
+		reflect.TypeOf((*Event_CertVerified)(nil)),
+		reflect.TypeOf((*Event_RequestTransactions)(nil)),
+		reflect.TypeOf((*Event_ProvideTransactions)(nil)),
+	}
 }
 
-func (p *Event_RequestCert) Unwrap() *RequestCert {
-	return p.RequestCert
+func (*RequestCertOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestCertOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestCertOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_NewCert) Unwrap() *NewCert {
-	return p.NewCert
-}
-
-func (p *Event_VerifyCert) Unwrap() *VerifyCert {
-	return p.VerifyCert
-}
-
-func (p *Event_CertVerified) Unwrap() *CertVerified {
-	return p.CertVerified
-}
-
-func (p *Event_RequestTransactions) Unwrap() *RequestTransactions {
-	return p.RequestTransactions
-}
-
-func (p *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
-	return p.ProvideTransactions
+func (*VerifyCertOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*VerifyCertOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*VerifyCertOrigin_Dsl)(nil)),
+	}
 }

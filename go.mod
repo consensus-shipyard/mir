@@ -26,6 +26,7 @@ require (
 require github.com/golang/mock v1.6.0
 
 require (
+	github.com/dave/jennifer v1.5.1
 	github.com/drand/kyber v1.1.15
 	github.com/drand/kyber-bls12381 v0.2.3
 	github.com/fxamacker/cbor/v2 v2.4.0

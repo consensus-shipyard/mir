@@ -1,40 +1,46 @@
 package threshcryptopb
 
-type Event_Type = isEvent_Type
+import (
+	reflect "reflect"
+)
 
-type Event_TypeWrapper[Ev any] interface {
-	Event_Type
-	Unwrap() *Ev
+func (*Event) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Event_SignShare)(nil)),
+		reflect.TypeOf((*Event_SignShareResult)(nil)),
+		reflect.TypeOf((*Event_VerifyShare)(nil)),
+		reflect.TypeOf((*Event_VerifyShareResult)(nil)),
+		reflect.TypeOf((*Event_VerifyFull)(nil)),
+		reflect.TypeOf((*Event_VerifyFullResult)(nil)),
+		reflect.TypeOf((*Event_Recover)(nil)),
+		reflect.TypeOf((*Event_RecoverResult)(nil)),
+	}
 }
 
-func (p *Event_SignShare) Unwrap() *SignShare {
-	return p.SignShare
+func (*SignShareOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*SignShareOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*SignShareOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_SignShareResult) Unwrap() *SignShareResult {
-	return p.SignShareResult
+func (*VerifyShareOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*VerifyShareOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*VerifyShareOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_VerifyShare) Unwrap() *VerifyShare {
-	return p.VerifyShare
+func (*VerifyFullOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*VerifyFullOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*VerifyFullOrigin_Dsl)(nil)),
+	}
 }
 
-func (p *Event_VerifyShareResult) Unwrap() *VerifyShareResult {
-	return p.VerifyShareResult
-}
-
-func (p *Event_VerifyFull) Unwrap() *VerifyFull {
-	return p.VerifyFull
-}
-
-func (p *Event_VerifyFullResult) Unwrap() *VerifyFullResult {
-	return p.VerifyFullResult
-}
-
-func (p *Event_Recover) Unwrap() *Recover {
-	return p.Recover
-}
-
-func (p *Event_RecoverResult) Unwrap() *RecoverResult {
-	return p.RecoverResult
+func (*RecoverOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RecoverOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RecoverOrigin_Dsl)(nil)),
+	}
 }

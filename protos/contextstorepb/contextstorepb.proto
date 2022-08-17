@@ -4,10 +4,14 @@ package contextstorepb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/contextstorepb";
 
+import "mir/codegen_extensions.proto";
+
 // ============================================================
 // Messages
 // ============================================================
 
 message Origin {
+  option (mir.struct) = true;
+
   uint64 itemID = 1;
 }

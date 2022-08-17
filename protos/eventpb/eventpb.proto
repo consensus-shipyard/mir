@@ -14,7 +14,6 @@ import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
 import "google/protobuf/wrappers.proto";
 import "bcbpb/bcbpb.proto";
-import "mir/plugin.proto";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "mempoolpb/mempoolpb.proto";
@@ -27,10 +26,15 @@ import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
 
+import "mir/codegen_extensions.proto";
+import "mir/dsl/codegen_extensions.proto";
+
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
 // Event represents a state event to be injected into the state machine
 message Event {
+  option (mir.event_root) = true;
+
   // TODO, normalize naming, for instance Complete/Completed
   oneof type {
     option (mir.event_type) = true;
@@ -85,9 +89,9 @@ message Event {
   // after the corresponding entry has been persisted in the write-ahead log (WAL).
   // In this case, the WAL append event would be this event
   // and the next field would contain the message sending event.
-  repeated Event next = 100;
+  repeated Event next = 100 [(mir.omit_in_events_constructor) = true];
 
-  string dest_module = 200;
+  string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID", (mir.dsl.omit_in_handler) = true];
 }
 
 message Init {}
@@ -181,7 +185,9 @@ message SendMessage {
 }
 
 message MessageReceived {
-  string from = 1;
+  option (mir.event) = true;
+
+  string from = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   messagepb.Message msg = 2;
 }
 
