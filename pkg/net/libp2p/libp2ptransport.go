@@ -27,9 +27,12 @@ import (
 )
 
 const (
-	ID                = "/mir/0.0.1"
-	defaultMaxTimeout = 300 * time.Millisecond
-	PermanentAddrTTL  = math.MaxInt64 - iota
+	ProtocolID           = "/mir/0.0.1"
+	maxConnectingTimeout = 200 * time.Millisecond
+	retryTimeout         = 2 * time.Second
+	retryAttempts        = 20
+	nonErrorAttempts     = 2
+	PermanentAddrTTL     = math.MaxInt64 - iota
 )
 
 type TransportMessage struct {
@@ -70,7 +73,7 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 
 func (t *Transport) Start() error {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler starting on %v", t.ownID, t.host.Addrs()))
-	t.host.SetStreamHandler(ID, t.mirHandler)
+	t.host.SetStreamHandler(ProtocolID, t.mirHandler)
 	return nil
 }
 
@@ -95,7 +98,7 @@ func (t *Transport) Stop() {
 		t.logger.Log(logging.LevelDebug, "Closed connection", "to", id)
 	}
 
-	t.host.RemoveStreamHandler(ID)
+	t.host.RemoveStreamHandler(ProtocolID)
 
 	if err := t.host.Close(); err != nil {
 		t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close libp2p %v: %v", t.ownID, err))
@@ -173,27 +176,33 @@ func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr)
 
 	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
-		t.logger.Log(logging.LevelError, fmt.Sprintf("couldn't open stream: %v", err))
-		return nil, fmt.Errorf("couldn't open stream to %v: %w", addr, err)
+		return nil, fmt.Errorf("failed to open new stream to node %v: %w", addr, err)
 	}
 
 	return s, nil
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
-	for {
-		sctx, cancel := context.WithTimeout(ctx, defaultMaxTimeout)
-		s, err := t.host.NewStream(sctx, p, ID)
+	var streamErr error
+	for i := 0; i < retryAttempts; i++ {
+		sctx, cancel := context.WithTimeout(ctx, maxConnectingTimeout)
+
+		s, streamErr := t.host.NewStream(sctx, p, ProtocolID)
 		cancel()
 
-		if err == nil {
+		if streamErr == nil {
 			return s, nil
 		}
 
-		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to open stream: %v", err))
+		if i >= nonErrorAttempts {
+			t.logger.Log(
+				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %d sec", p, retryTimeout))
+		} else {
+			t.logger.Log(
+				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s, retry in %d sec", p, retryTimeout))
+		}
 
-		delay := time.NewTimer(defaultMaxTimeout)
-
+		delay := time.NewTimer(retryTimeout)
 		select {
 		case <-delay.C:
 			continue
@@ -201,9 +210,10 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 			if !delay.Stop() {
 				<-delay.C
 			}
-			return nil, fmt.Errorf("context closed")
+			return nil, fmt.Errorf("libp2p opening stream: context closed")
 		}
 	}
+	return nil, fmt.Errorf("failed to open stream to %s: %w", p, streamErr)
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
