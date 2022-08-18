@@ -92,21 +92,23 @@ func (fa *FakeApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, er
 
 	switch c := deliver.Cert.Type.(type) {
 	case *availabilitypb.Cert_Msc:
+
 		if len(c.Msc.BatchId) == 0 {
 			fmt.Println("Received empty batch availability certificate.")
 			return events.EmptyList(), nil
-		} else {
-			return events.ListOf(availabilityevents.RequestTransactions(
-				"availability",
-				deliver.Cert,
-				&availabilitypb.RequestTransactionsOrigin{
-					Module: "app",
-					Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
-						ContextStore: &contextstorepb.Origin{ItemID: 0},
-					},
-				},
-			)), nil
 		}
+
+		return events.ListOf(availabilityevents.RequestTransactions(
+			"availability",
+			deliver.Cert,
+			&availabilitypb.RequestTransactionsOrigin{
+				Module: "app",
+				Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
+					ContextStore: &contextstorepb.Origin{ItemID: 0},
+				},
+			},
+		)), nil
+
 	default:
 		return nil, fmt.Errorf("unknown availability certificate type: %T", deliver.Cert.Type)
 	}

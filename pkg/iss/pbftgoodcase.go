@@ -2,12 +2,12 @@ package iss
 
 import (
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
@@ -102,7 +102,7 @@ func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventL
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
 		eventsOut.PushBackList(pbft.propose(cert.Cert))
-	} else {
+	} else { // nolint:staticcheck
 		// If the PBFT view advanced since the certificate was requested,
 		// do not propose the certificate and resurrect the requests it contains.
 		//eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))

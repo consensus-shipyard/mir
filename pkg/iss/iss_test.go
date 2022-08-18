@@ -9,8 +9,6 @@ package iss
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -23,8 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
