@@ -116,9 +116,9 @@ func IncludeCreatingCertificates(
 	// When F+1 signatures are collected, create and output a certificate.
 	dsl.UponCondition(m, func() error {
 		// Iterate over active outgoing requests.
-		//Most of the time, there is expected to be at most one active outgoing request.
+		// Most of the time, there is expected to be at most one active outgoing request.
 		for reqID, requestState := range state.RequestState {
-			if len(requestState.sigs) > params.F+1 {
+			if len(requestState.sigs) >= params.F+1 {
 				certNodes, certSigs := maputil.GetKeysAndValues(requestState.sigs)
 
 				requestingModule := t.ModuleID(requestState.ReqOrigin.Module)
