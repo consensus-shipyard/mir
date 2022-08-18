@@ -9,6 +9,8 @@ package iss
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -375,19 +377,15 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	for i, nodeID := range nodeIDs {
 
 		// Dummy application
-		fakeApp := &deploytest.FakeApp{
-			ProtocolModule:    "iss",
-			Membership:        transportLayer.Nodes(),
-			RequestsProcessed: 0,
-		}
+		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
 		// ISS configuration
 		issConfig := DefaultConfig(transportLayer.Nodes())
 		if conf.SlowProposeReplicas[i] {
-			// Increase MaxProposeDelay such that it is likely to trigger view change by the batch timeout.
-			// Since a sensible value for the segment timeout needs to be stricter than the batch timeout,
+			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
+			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
-			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeBatchTimeout
+			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeSNTimeout
 		}
 
 		// ISS instantiation
@@ -405,11 +403,43 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
 		}
 
+		// Use a simple mempool for incoming requests.
+		mempool := simplemempool.NewModule(
+			&simplemempool.ModuleConfig{
+				Self:   "mempool",
+				Hasher: "hasher",
+			},
+			&simplemempool.ModuleParams{
+				MaxTransactionsInBatch: 10,
+			},
+		)
+
+		// Instantiate the availability layer.
+		multisigCollector, err := multisigcollector.NewModule(
+			&multisigcollector.ModuleConfig{
+				Self:    "availability",
+				Mempool: "mempool",
+				Net:     "net",
+				Crypto:  "crypto",
+			},
+			&multisigcollector.ModuleParams{
+				InstanceUID: []byte("chat multisig collector"),
+				AllNodes:    nodeIDs,
+				F:           (len(nodeIDs) - 1) / 2,
+			},
+			nodeID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error instantiating availability module: %w", err)
+		}
+
 		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
-			"app":    fakeApp,
-			"crypto": cryptoSystem.Module(nodeID),
-			"iss":    issProtocol,
-			"net":    transport,
+			"app":          fakeApp,
+			"crypto":       cryptoSystem.Module(nodeID),
+			"iss":          issProtocol,
+			"net":          transport,
+			"mempool":      mempool,
+			"availability": multisigCollector,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)
@@ -427,7 +457,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		NumClients:             conf.NumClients,
 		NumFakeRequests:        conf.NumFakeRequests,
 		NumNetRequests:         conf.NumNetRequests,
-		FakeRequestsDestModule: t.ModuleID("iss"),
+		FakeRequestsDestModule: t.ModuleID("mempool"),
 		Directory:              conf.Directory,
 		Logger:                 logger,
 	}

@@ -132,12 +132,8 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":    modules.NullActive{},
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-		"app": &deploytest.FakeApp{
-			ProtocolModule:    "iss",
-			Membership:        nil,
-			RequestsProcessed: 0,
-		},
-		"iss": protocol,
+		"app":    deploytest.NewFakeApp("iss", nil),
+		"iss":    protocol,
 	})
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
