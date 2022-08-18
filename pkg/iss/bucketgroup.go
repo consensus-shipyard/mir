@@ -12,28 +12,28 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// bucketGroup represents a group of request buckets.
+// BucketGroup represents a group of request buckets.
 // It is used to represent both the set of all buckets used by ISS throughout the whole execution (across epochs),
 // and subsets of it used to create request batches.
-type bucketGroup []*requestBucket
+type BucketGroup []*RequestBucket
 
-// newBuckets returns a new group of numBuckets initialized buckets.
+// NewBuckets returns a new group of numBuckets initialized buckets.
 // The logger will be used to output bucket-related debugging messages.
-func newBuckets(numBuckets int, logger logging.Logger) *bucketGroup {
-	buckets := make([]*requestBucket, numBuckets)
+func NewBuckets(numBuckets int, logger logging.Logger) *BucketGroup {
+	buckets := make([]*RequestBucket, numBuckets)
 	for i := 0; i < numBuckets; i++ {
 		buckets[i] = newRequestBucket(i, logging.Decorate(logger, "Bucket: ", "bID", i))
 	}
-	return (*bucketGroup)(&buckets)
+	return (*BucketGroup)(&buckets)
 }
 
 // Get returns the bucket with id bID.
-func (buckets bucketGroup) Get(bID int) *requestBucket {
+func (buckets BucketGroup) Get(bID int) *RequestBucket {
 	return buckets[bID]
 }
 
 // TotalRequests returns the total number of requests in all buckets of this group.
-func (buckets bucketGroup) TotalRequests() t.NumRequests {
+func (buckets BucketGroup) TotalRequests() t.NumRequests {
 	numRequests := t.NumRequests(0)
 	for _, bucket := range buckets {
 		numRequests += t.NumRequests(bucket.Len())
@@ -45,8 +45,8 @@ func (buckets bucketGroup) TotalRequests() t.NumRequests {
 // Select does not make deep copies of the selected buckets
 // and the buckets underlying both the original and the new group are the same.
 // If any of the given IDs is not represented in this group, Select panics.
-func (buckets bucketGroup) Select(bucketIDs []int) bucketGroup {
-	selectedBuckets := make([]*requestBucket, len(bucketIDs))
+func (buckets BucketGroup) Select(bucketIDs []int) BucketGroup {
+	selectedBuckets := make([]*RequestBucket, len(bucketIDs))
 	for i, bID := range bucketIDs {
 		selectedBuckets[i] = buckets[bID]
 	}
@@ -58,7 +58,7 @@ func (buckets bucketGroup) Select(bucketIDs []int) bucketGroup {
 // to evenly distribute requests among the buckets in the group.
 // Thus, the same request may map to some bucket in one group and to a different bucket in a different group,
 // even if the former bucket is part of the latter group.
-func (buckets bucketGroup) RequestBucket(req *requestpb.HashedRequest) *requestBucket {
+func (buckets BucketGroup) RequestBucket(req *requestpb.HashedRequest) *RequestBucket {
 	bucketID := int(req.Req.ReqNo) % len(buckets) // If types change, this might need to be updated.
 	return buckets.Get(bucketID)
 }
@@ -75,7 +75,7 @@ func (buckets bucketGroup) RequestBucket(req *requestpb.HashedRequest) *requestB
 // TODO: Update this to have a more sophisticated, livenes-ensuring implementation,
 // to actually implement what is written above.
 // An additional parameter with all the nodes (even non-leaders) might help there.
-func (buckets bucketGroup) Distribute(leaders []t.NodeID, epoch t.EpochNr) map[t.NodeID][]int {
+func (buckets BucketGroup) Distribute(leaders []t.NodeID, epoch t.EpochNr) map[t.NodeID][]int {
 
 	// Catch the corner case where the input is empty.
 	if len(leaders) == 0 {
@@ -110,7 +110,7 @@ func (buckets bucketGroup) Distribute(leaders []t.NodeID, epoch t.EpochNr) map[t
 // removing those requests from their respective buckets.
 // The size of the returned batch will be min(buckets.TotalRequests(), maxBatchSize).
 // If possible, requests are taken from every non-empty bucket in the group.
-func (buckets bucketGroup) CutBatch(maxBatchSize t.NumRequests) *requestpb.Batch {
+func (buckets BucketGroup) CutBatch(maxBatchSize t.NumRequests) *requestpb.Batch {
 
 	// Allocate a new request batch.
 	batch := &requestpb.Batch{Requests: make([]*requestpb.HashedRequest, 0, maxBatchSize)}

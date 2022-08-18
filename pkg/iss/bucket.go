@@ -14,14 +14,14 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
-// requestBucket represents a subset of received requests (called a Bucket in ISS)
+// RequestBucket represents a subset of received requests (called a Bucket in ISS)
 // that retains the order in which the requests have been added.
 // Each request deterministically maps to a single bucket.
-// A hash function (bucketGroup.RequestBucket()) decides which bucket a request falls into.
+// A hash function (BucketGroup.RequestBucket()) decides which bucket a request falls into.
 //
 // The implementation of a bucket must support efficient additions (new requests),
 // removals of the n oldest requests (cutting a batch), as well as removals of random requests (committing requests).
-type requestBucket struct {
+type RequestBucket struct {
 
 	// Numeric ID of the bucket.
 	// A hash function maps each request to a bucket ID.
@@ -57,8 +57,8 @@ type requestBucket struct {
 }
 
 // newRequestBucket returns a new initialized request bucket with ID `id`.
-func newRequestBucket(id int, logger logging.Logger) *requestBucket {
-	return &requestBucket{
+func newRequestBucket(id int, logger logging.Logger) *RequestBucket {
+	return &RequestBucket{
 		ID:      id,
 		reqMap:  make(map[string]*list.Element),
 		reqList: list.List{},
@@ -67,7 +67,7 @@ func newRequestBucket(id int, logger logging.Logger) *requestBucket {
 }
 
 // Len returns the number of requests in the bucket.
-func (b *requestBucket) Len() int {
+func (b *RequestBucket) Len() int {
 	// Only requests that are actually present, i.e., those added and not removed, count.
 	// Even though removed requests might still linger around in the reqMap (to prevent re-adding them),
 	// those do not count towards the number of requests in the bucket.
@@ -79,7 +79,7 @@ func (b *requestBucket) Len() int {
 // (except for the case of request resurrection, but this is done using the Resurrect() method).
 // Returns true if the request was not in the bucket and has just been added,
 // false if the request already has been added.
-func (b *requestBucket) Add(req *requestpb.HashedRequest) bool {
+func (b *RequestBucket) Add(req *requestpb.HashedRequest) bool {
 
 	// Compute map key of request.
 	key := reqStrKey(req)
@@ -103,7 +103,7 @@ func (b *requestBucket) Add(req *requestpb.HashedRequest) bool {
 // Moreover, removing a request from the bucket, even if the request is not present in the bucket,
 // also prevents the request from being added in the future using Add().
 // It can be, however, returned to the bucket during request resurrection, see Resurrect().
-func (b *requestBucket) Remove(req *requestpb.HashedRequest) {
+func (b *RequestBucket) Remove(req *requestpb.HashedRequest) {
 
 	// Look up the corresponding element in the reqMap.
 	reqKey := reqStrKey(req)
@@ -129,14 +129,14 @@ func (b *requestBucket) Remove(req *requestpb.HashedRequest) {
 // Contains returns true if the given request is in the bucket, false otherwise.
 // Only requests that have been added but not removed count as contained in the bucket,
 // as well as resurrected requests that have not been removed since resurrection.
-func (b *requestBucket) Contains(req *requestpb.HashedRequest) bool {
+func (b *RequestBucket) Contains(req *requestpb.HashedRequest) bool {
 	// We check against nil on purpose, as we are not interested in removed requests here.
 	return b.reqMap[reqStrKey(req)] != nil
 }
 
 // RemoveFirst removes the first up to n requests from the bucket and appends them to the accumulator acc.
 // Returns the resulting slice obtained by appending the Requests to acc.
-func (b *requestBucket) RemoveFirst(n int, acc []*requestpb.HashedRequest) []*requestpb.HashedRequest {
+func (b *RequestBucket) RemoveFirst(n int, acc []*requestpb.HashedRequest) []*requestpb.HashedRequest {
 
 	for ; b.Len() > 0 && n > 0; n-- {
 		acc = append(acc, b.reqList.Remove(b.reqList.Front()).(*requestpb.HashedRequest))
@@ -151,7 +151,7 @@ func (b *requestBucket) RemoveFirst(n int, acc []*requestpb.HashedRequest) []*re
 // but, for some reason, the batch is not committed in the same epoch.
 // In such a case, the requests contained in the batch need to be resurrected
 // (i.e., put back in their respective buckets) so they can be committed in a future epoch.
-func (b *requestBucket) Resurrect(req *requestpb.HashedRequest) {
+func (b *RequestBucket) Resurrect(req *requestpb.HashedRequest) {
 
 	// Compute map key of request.
 	key := reqStrKey(req)

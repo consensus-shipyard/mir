@@ -99,17 +99,17 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 	tr.Modules["wal"] = wal
 
-	modules := tr.Modules
+	mod := tr.Modules
 	if tr.Sim != nil {
-		modules["timer"] = NewSimTimerModule(tr.Sim)
-		modules = tr.Sim.WrapModules(modules)
+		mod["timer"] = NewSimTimerModule(tr.Sim)
+		mod = tr.Sim.WrapModules(mod)
 	}
 
 	// Create the mir node for this replica.
 	node, err := mir.NewNode(
 		tr.ID,
 		tr.Config,
-		modules,
+		mod,
 		wal,
 		interceptor,
 	)

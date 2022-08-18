@@ -49,7 +49,7 @@ type ModuleConfig struct {
 	Hasher       t.ModuleID
 	Crypto       t.ModuleID
 	Timer        t.ModuleID
-	Avaliability t.ModuleID
+	Availability t.ModuleID
 }
 
 func DefaultModuleConfig() ModuleConfig {
@@ -61,7 +61,7 @@ func DefaultModuleConfig() ModuleConfig {
 		Hasher:       "hasher",
 		Crypto:       "crypto",
 		Timer:        "timer",
-		Avaliability: "availability",
+		Availability: "availability",
 	}
 }
 
