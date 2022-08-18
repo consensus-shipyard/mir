@@ -156,8 +156,6 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 
 func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
 
-	fmt.Printf("New epoch: %d\n", newEpoch.EpochNr)
-
 	// Create network connections to all nodes in the new membership.
 	var nodeAddrs map[t.NodeID]t.NodeAddress
 	var err error
