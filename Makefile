@@ -31,6 +31,7 @@ lint:
 
 .PHONY: generate
 generate:
+	go generate ./protos # Generate basic protobufs first, as those might be necessary to generate the rest.
 	go generate ./...
 
 samples: $(targetdir)/chat-demo
