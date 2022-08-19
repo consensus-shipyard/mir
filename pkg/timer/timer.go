@@ -17,7 +17,7 @@ type Timer struct {
 	eventsOut chan *events.EventList
 
 	retIndexMutex sync.RWMutex
-	retIndex      t.TimerRetIndex
+	retIndex      t.RetentionIndex
 }
 
 func New() *Timer {
@@ -55,10 +55,10 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 				ctx,
 				events.EmptyList().PushBackSlice(e.TimerRepeat.Events),
 				t.TimeDuration(e.TimerRepeat.Delay),
-				t.TimerRetIndex(e.TimerRepeat.RetentionIndex),
+				t.RetentionIndex(e.TimerRepeat.RetentionIndex),
 			)
 		case *eventpb.Event_TimerGarbageCollect:
-			tm.GarbageCollect(t.TimerRetIndex(e.TimerGarbageCollect.RetentionIndex))
+			tm.GarbageCollect(t.RetentionIndex(e.TimerGarbageCollect.RetentionIndex))
 		default:
 			return fmt.Errorf("unexpected type of Timer event: %T", event.Type)
 		}
@@ -103,7 +103,7 @@ func (tm *Timer) Repeat(
 	ctx context.Context,
 	events *events.EventList,
 	period t.TimeDuration,
-	retIndex t.TimerRetIndex,
+	retIndex t.RetentionIndex,
 ) {
 	go func() {
 
@@ -139,7 +139,7 @@ func (tm *Timer) Repeat(
 // When GarbageCollect is called, the Timer stops repeatedly producing events associated with a retention index
 // smaller than retIndex.
 // If GarbageCollect already has been invoked with the same or higher retention index, the call has no effect.
-func (tm *Timer) GarbageCollect(retIndex t.TimerRetIndex) {
+func (tm *Timer) GarbageCollect(retIndex t.RetentionIndex) {
 	tm.retIndexMutex.Lock()
 	defer tm.retIndexMutex.Unlock()
 
@@ -149,7 +149,7 @@ func (tm *Timer) GarbageCollect(retIndex t.TimerRetIndex) {
 	}
 }
 
-func (tm *Timer) getRetIndex() t.TimerRetIndex {
+func (tm *Timer) getRetIndex() t.RetentionIndex {
 	tm.retIndexMutex.RLock()
 	defer tm.retIndexMutex.RUnlock()
 

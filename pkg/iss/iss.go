@@ -641,8 +641,8 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL and Timer
-			eventsOut.PushBack(events.WALTruncate(walModuleName, t.WALRetIndex(pruneIndex)))
-			eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.TimerRetIndex(pruneIndex)))
+			eventsOut.PushBack(events.WALTruncate(walModuleName, t.RetentionIndex(pruneIndex)))
+			eventsOut.PushBack(events.TimerGarbageCollect(timerModuleName, t.RetentionIndex(pruneIndex)))
 
 			// Prune epoch state.
 			for epoch := range iss.epochs {
@@ -663,7 +663,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
 				// Using pruneIndex makes sure that the re-transmission is stopped
 				// on every stable checkpoint (when another one is started).
-				t.TimerRetIndex(pruneIndex),
+				t.RetentionIndex(pruneIndex),
 			))
 
 		}

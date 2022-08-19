@@ -138,7 +138,7 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 
 	// Write Checkpoint to WAL
 	persistEvent := PersistCheckpointEvent(ct.seqNr, ct.stateSnapshot, ct.stateSnapshotHash, signature)
-	walEvent := events.WALAppend(walModuleName, persistEvent, t.WALRetIndex(ct.epoch))
+	walEvent := events.WALAppend(walModuleName, persistEvent, t.RetentionIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.stateSnapshotHash, signature)
@@ -146,7 +146,7 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 		"timer",
 		[]*eventpb.Event{events.SendMessage(netModuleName, m, ct.membership)},
 		ct.resendPeriod,
-		t.TimerRetIndex(ct.epoch)),
+		t.RetentionIndex(ct.epoch)),
 	)
 
 	ct.Log(logging.LevelDebug, "Sending checkpoint message",
@@ -247,7 +247,7 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 	persistEvent := events.WALAppend(
 		walModuleName,
 		PersistStableCheckpointEvent(stableCheckpoint),
-		t.WALRetIndex(ct.epoch),
+		t.RetentionIndex(ct.epoch),
 	)
 	persistEvent.FollowUp(StableCheckpointEvent(stableCheckpoint))
 	return events.ListOf(persistEvent)
