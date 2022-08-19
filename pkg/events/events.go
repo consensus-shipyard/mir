@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -375,5 +376,12 @@ func NewConfig(destModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *ev
 		Type: &eventpb.Event_NewConfig{NewConfig: &eventpb.NewConfig{
 			Membership: t.MembershipPb(membership),
 		}},
+	}
+}
+
+func Factory(destModule t.ModuleID, evt *factorymodulepb.Factory) *eventpb.Event {
+	return &eventpb.Event{
+		Type:       &eventpb.Event_Factory{Factory: evt},
+		DestModule: destModule.Pb(),
 	}
 }

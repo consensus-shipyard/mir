@@ -5,6 +5,7 @@ package availabilitypb.mscpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb";
 
 import "requestpb/requestpb.proto";
+import "commonpb/commonpb.proto";
 
 // ============================================================
 // Messages
@@ -59,4 +60,12 @@ message Cert {
   // TODO: can be encoded as n bits
   repeated string signers    = 2;
   repeated bytes  signatures = 3;
+}
+
+// ============================================================
+// Instantiation parameters
+// ============================================================
+
+message InstanceParams {
+  commonpb.Membership membership = 1;
 }

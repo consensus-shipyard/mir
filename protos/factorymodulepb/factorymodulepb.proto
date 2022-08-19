@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package factorymodulepb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/factorymodulepb";
+
+import "availabilitypb/mscpb/mscpb.proto";
+
+message Factory {
+  oneof type {
+    NewModule      new_module      = 1;
+    GarbageCollect garbage_collect = 2;
+  }
+}
+
+message NewModule {
+  string          module_id       = 1;
+  uint64          retention_index = 2;
+  GeneratorParams params          = 3;
+}
+
+message GarbageCollect {
+  uint64 retention_index = 1;
+}
+
+message GeneratorParams {
+  oneof type {
+    availabilitypb.mscpb.InstanceParams multisig_collector = 1;
+    EchoModuleParams                    echo_test_module   = 2;
+  }
+}
+
+// Used only for unit tests.
+message EchoModuleParams {
+  string prefix = 1; // This prefix is appended to all strings the module echoes.
+}
