@@ -226,22 +226,16 @@ func (rn ReqNo) Pb() uint64 {
 
 // ================================================================================
 
-// WALRetIndex represents the WAL (Write-Ahead Log) retention index assigned to every entry (and used for truncating).
-type WALRetIndex uint64
+// RetentionIndex represents an abstract notion of system progress used in garbage collection.
+// The basic idea is to associate various parts of the system (parts of the state, even whole modules)
+// that are subject to eventual garbage collection with a retention index.
+// As the system progresses, the retention index monotonically increases
+// and parts of the system associated with a lower retention index can be garbage-collected.
+type RetentionIndex uint64
 
-// Pb converts a WALRetIndex to its underlying native type.
-func (wri WALRetIndex) Pb() uint64 {
-	return uint64(wri)
-}
-
-// ================================================================================
-
-// TimerRetIndex represents the Timer retention index used for garbage-collecting "Repeat" invocations.
-type TimerRetIndex uint64
-
-// Pb converts a TimerRetIndex to its underlying native type.
-func (tri TimerRetIndex) Pb() uint64 {
-	return uint64(tri)
+// Pb converts a RetentionIndex to its underlying native type.
+func (ri RetentionIndex) Pb() uint64 {
+	return uint64(ri)
 }
 
 // ================================================================================

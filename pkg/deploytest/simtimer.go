@@ -19,7 +19,7 @@ import (
 type simTimerModule struct {
 	*SimNode
 	eventsOut chan *events.EventList
-	processes map[t.TimerRetIndex]*testsim.Process
+	processes map[t.RetentionIndex]*testsim.Process
 }
 
 // NewSimTimerModule returns a Timer modules to be used in simulation.
@@ -27,7 +27,7 @@ func NewSimTimerModule(node *SimNode) modules.ActiveModule {
 	return &simTimerModule{
 		SimNode:   node,
 		eventsOut: make(chan *events.EventList, 1),
-		processes: map[t.TimerRetIndex]*testsim.Process{},
+		processes: map[t.RetentionIndex]*testsim.Process{},
 	}
 }
 
@@ -55,10 +55,10 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 	case *eventpb.Event_TimerRepeat:
 		eventsOut := events.EmptyList().PushBackSlice(e.TimerRepeat.Events)
 		d := t.TimeDuration(e.TimerRepeat.Delay)
-		retIdx := t.TimerRetIndex(e.TimerRepeat.RetentionIndex)
+		retIdx := t.RetentionIndex(e.TimerRepeat.RetentionIndex)
 		m.repeat(ctx, eventsOut, d, retIdx)
 	case *eventpb.Event_TimerGarbageCollect:
-		retIdx := t.TimerRetIndex(e.TimerGarbageCollect.RetentionIndex)
+		retIdx := t.RetentionIndex(e.TimerGarbageCollect.RetentionIndex)
 		m.garbageCollect(retIdx)
 	default:
 		return fmt.Errorf("unexpected type of Timer event: %T", e)
@@ -99,7 +99,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList,
 	}()
 }
 
-func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d t.TimeDuration, retIdx t.TimerRetIndex) {
+func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d t.TimeDuration, retIdx t.RetentionIndex) {
 	proc := m.Spawn()
 	m.processes[retIdx] = proc
 
@@ -132,7 +132,7 @@ func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList
 	}()
 }
 
-func (m *simTimerModule) garbageCollect(retIdx t.TimerRetIndex) {
+func (m *simTimerModule) garbageCollect(retIdx t.RetentionIndex) {
 	for i, proc := range m.processes {
 		if i < retIdx {
 			proc.Kill()

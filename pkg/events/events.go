@@ -236,7 +236,7 @@ func NodeSigsVerified(
 
 // WALAppend returns an event of appending a new entry to the WAL.
 // This event is produced by the protocol state machine for persisting its state.
-func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
+func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.RetentionIndex) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_WalAppend{WalAppend: &eventpb.WALAppend{
 		Event:          event,
 		RetentionIndex: retentionIndex.Pb(),
@@ -246,7 +246,7 @@ func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.WAL
 // WALTruncate returns and event on removing all entries from the WAL
 // that have been appended with a retentionIndex smaller than the
 // specified one.
-func WALTruncate(destModule t.ModuleID, retentionIndex t.WALRetIndex) *eventpb.Event {
+func WALTruncate(destModule t.ModuleID, retentionIndex t.RetentionIndex) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_WalTruncate{WalTruncate: &eventpb.WALTruncate{
@@ -257,7 +257,7 @@ func WALTruncate(destModule t.ModuleID, retentionIndex t.WALRetIndex) *eventpb.E
 
 // WALEntry returns an event of reading an entry from the WAL.
 // Those events are used at system initialization.
-func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.WALRetIndex) *eventpb.Event {
+func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.RetentionIndex) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_WalEntry{WalEntry: &eventpb.WALEntry{
 		Event: persistedEvent,
 	}}}
@@ -339,7 +339,7 @@ func TimerRepeat(
 	destModule t.ModuleID,
 	events []*eventpb.Event,
 	delay t.TimeDuration,
-	retIndex t.TimerRetIndex,
+	retIndex t.RetentionIndex,
 ) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
@@ -351,7 +351,7 @@ func TimerRepeat(
 	}
 }
 
-func TimerGarbageCollect(destModule t.ModuleID, retIndex t.TimerRetIndex) *eventpb.Event {
+func TimerGarbageCollect(destModule t.ModuleID, retIndex t.RetentionIndex) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{

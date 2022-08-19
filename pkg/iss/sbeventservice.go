@@ -46,7 +46,7 @@ func (ec *sbEventService) SendMessage(message *isspb.SBInstanceMessage, destinat
 // On recovery, this event will be fed back to the same orderer instance
 // (which, however, must be created during the recovery process).
 func (ec *sbEventService) WALAppend(event *isspb.SBInstanceEvent) *eventpb.Event {
-	return events.WALAppend(walModuleName, SBEvent(ec.epoch, ec.instance, event), t.WALRetIndex(ec.epoch))
+	return events.WALAppend(walModuleName, SBEvent(ec.epoch, ec.instance, event), t.RetentionIndex(ec.epoch))
 }
 
 func (ec *sbEventService) HashRequest(data [][][]byte, origin *isspb.SBInstanceHashOrigin) *eventpb.Event {
@@ -77,7 +77,7 @@ func (ec *sbEventService) TimerDelay(delay t.TimeDuration, evts ...*eventpb.Even
 }
 
 func (ec *sbEventService) TimerRepeat(period t.TimeDuration, evts ...*eventpb.Event) *eventpb.Event {
-	return events.TimerRepeat(timerModuleName, evts, period, t.TimerRetIndex(ec.epoch))
+	return events.TimerRepeat(timerModuleName, evts, period, t.RetentionIndex(ec.epoch))
 }
 
 // SBEvent creates an event to be processed by ISS in association with the orderer that created it (e.g. Deliver).

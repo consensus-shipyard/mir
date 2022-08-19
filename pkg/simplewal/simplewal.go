@@ -42,14 +42,14 @@ type WAL struct {
 	// It is required to skip outdated entries when loading.
 	// Otherwise it could be completely ephemeral.
 	// TODO: Implement persisting and loading the retentionIndex
-	retentionIndex t.WALRetIndex
+	retentionIndex t.RetentionIndex
 }
 
 func (w *WAL) LoadAll(ctx context.Context) (*events.EventList, error) {
 	storedEvents := events.EmptyList()
 
 	// Add all events from the WAL to the new EventList.
-	if err := w.loadAll(func(retIdx t.WALRetIndex, event *eventpb.Event) {
+	if err := w.loadAll(func(retIdx t.RetentionIndex, event *eventpb.Event) {
 		storedEvents.PushBack(event)
 	}); err != nil {
 		return nil, fmt.Errorf("could not load WAL events: %w", err)
@@ -69,12 +69,12 @@ func (w *WAL) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_Init:
 		// no actions on init
 	case *eventpb.Event_WalAppend:
-		if err := w.Append(e.WalAppend.Event, t.WALRetIndex(e.WalAppend.RetentionIndex)); err != nil {
+		if err := w.Append(e.WalAppend.Event, t.RetentionIndex(e.WalAppend.RetentionIndex)); err != nil {
 			return nil, fmt.Errorf("could not persist event (retention index %d) to WAL: %w",
 				e.WalAppend.RetentionIndex, err)
 		}
 	case *eventpb.Event_WalTruncate:
-		if err := w.Truncate(t.WALRetIndex(e.WalTruncate.RetentionIndex)); err != nil {
+		if err := w.Truncate(t.RetentionIndex(e.WalTruncate.RetentionIndex)); err != nil {
 			return nil, fmt.Errorf("could not truncate WAL (retention index %d): %w",
 				e.WalTruncate.RetentionIndex, err)
 		}
@@ -130,7 +130,7 @@ func (w *WAL) IsEmpty() (bool, error) {
 	return firstIndex == 0, nil
 }
 
-func (w *WAL) loadAll(forEach func(index t.WALRetIndex, p *eventpb.Event)) error {
+func (w *WAL) loadAll(forEach func(index t.RetentionIndex, p *eventpb.Event)) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	firstIndex, err := w.log.FirstIndex()
@@ -160,8 +160,8 @@ func (w *WAL) loadAll(forEach func(index t.WALRetIndex, p *eventpb.Event)) error
 			return errors.WithMessage(err, "error decoding to proto, is the WAL corrupt?")
 		}
 
-		if t.WALRetIndex(result.RetentionIndex) >= w.retentionIndex {
-			forEach(t.WALRetIndex(result.RetentionIndex), result.Event)
+		if t.RetentionIndex(result.RetentionIndex) >= w.retentionIndex {
+			forEach(t.RetentionIndex(result.RetentionIndex), result.Event)
 		}
 	}
 
@@ -187,14 +187,14 @@ func (w *WAL) write(index uint64, entry *WALEntry) error {
 	return w.log.Write(index+1, data) // The log implementation seems to be indexing starting with 1.
 }
 
-func (w *WAL) Append(event *eventpb.Event, retentionIndex t.WALRetIndex) error {
+func (w *WAL) Append(event *eventpb.Event, retentionIndex t.RetentionIndex) error {
 	return w.write(w.idx, &WALEntry{
 		RetentionIndex: retentionIndex.Pb(),
 		Event:          event,
 	})
 }
 
-func (w *WAL) Truncate(retentionIndex t.WALRetIndex) error {
+func (w *WAL) Truncate(retentionIndex t.RetentionIndex) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
