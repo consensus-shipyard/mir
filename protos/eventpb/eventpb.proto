@@ -19,6 +19,7 @@ import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "mempoolpb/mempoolpb.proto";
 import "availabilitypb/availabilitypb.proto";
+import "factorymodulepb/factorymodulepb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -58,7 +59,8 @@ message Event {
     mempoolpb.Event        mempool                 = 29;
     availabilitypb.Event   availability            = 30;
     NewEpoch               new_epoch               = 31;
-    NewConfig            new_config                = 32;
+    NewConfig              new_config              = 32;
+    factorymodulepb.Factory      factory                 = 33;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;

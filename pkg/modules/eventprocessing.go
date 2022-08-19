@@ -34,7 +34,7 @@ func ApplyEventsSequentially(
 // ApplyEventsConcurrently takes a list of events and applies the given applyEvent function to each event in the list.
 // Processing is performed concurrently on all events in the input list.
 // Thus, the provided applyEvent function must be thread-safe.
-// The EventLists returned by applyEvent are aggregated in a single EventList and returned by ApplyEventsSequentially.
+// The EventLists returned by applyEvent are aggregated in a single EventList and returned by ApplyEventsConcurrently.
 // Despite being executed concurrently,
 // the order of the returned results preserves the order of the corresponding input events.
 // Thus, if applyEvent is deterministic, the output of ApplyEventsConcurrently is also deterministic.
