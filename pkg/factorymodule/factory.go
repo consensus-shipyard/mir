@@ -13,7 +13,7 @@ import (
 
 // TODO: Add support for active modules as well.
 
-type moduleGenerator func(id t.ModuleID, params *factorymodulepb.GeneratorParams) modules.PassiveModule
+type moduleGenerator func(id t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error)
 
 type FactoryModule struct {
 	ownID     t.ModuleID
@@ -87,8 +87,14 @@ func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*
 		return events.EmptyList(), nil
 	}
 
-	// Create new instance of the submodule and assign it to its retention index.
-	fm.submodules[id] = fm.generator(id, newModule.Params)
+	// Create new instance of the submodule.
+	if submodule, err := fm.generator(id, newModule.Params); err != nil {
+		return nil, err
+	} else {
+		fm.submodules[id] = submodule
+	}
+
+	// Assign the newly created submodule to its retention index.
 	fm.moduleRetention[retIdx] = append(fm.moduleRetention[retIdx], id)
 
 	// Initialize new submodule and return the resulting events.
