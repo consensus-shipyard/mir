@@ -53,12 +53,12 @@ func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error
 func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 	return NewFactoryModule(
 		echoFactoryID,
-		func(id tp.ModuleID, params *factorymodulepb.GeneratorParams) modules.PassiveModule {
+		func(id tp.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
 			return &echoModule{
 				t:      t,
 				id:     id,
 				prefix: params.Type.(*factorymodulepb.GeneratorParams_EchoTestModule).EchoTestModule.Prefix,
-			}
+			}, nil
 		},
 		logger)
 }
