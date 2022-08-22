@@ -2,13 +2,14 @@ package factorymodule
 
 import (
 	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"google.golang.org/protobuf/proto"
 )
 
 // TODO: Add support for active modules as well.
@@ -20,11 +21,18 @@ type FactoryModule struct {
 	submodules      map[t.ModuleID]modules.PassiveModule
 	moduleRetention map[t.RetentionIndex][]t.ModuleID
 	retIdx          t.RetentionIndex
+	messageBuffer   *messagebuffer.MessageBuffer // TODO: Split by NodeID (using NewBuffers). Future configurations...?
 
 	logger logging.Logger
 }
 
 func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModule {
+
+	// Zero value of the t.NodeID type.
+	// This is used as a dummy value, as for now the node ID is ignored by the message buffer.
+	// TODO: This is hacky, fix when using separate buffers for different nodes.
+	var zeroID t.NodeID
+
 	return &FactoryModule{
 		ownID:     id,
 		generator: params.Generator,
@@ -32,6 +40,7 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		submodules:      make(map[t.ModuleID]modules.PassiveModule),
 		moduleRetention: make(map[t.RetentionIndex][]t.ModuleID),
 		retIdx:          0,
+		messageBuffer:   messagebuffer.New(zeroID, params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ")),
 
 		logger: logger,
 	}
@@ -97,8 +106,33 @@ func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*
 	// Assign the newly created submodule to its retention index.
 	fm.moduleRetention[retIdx] = append(fm.moduleRetention[retIdx], id)
 
-	// Initialize new submodule and return the resulting events.
-	return fm.submodules[id].ApplyEvents(events.ListOf(events.Init(id)))
+	// Initialize new submodule.
+	eventsOut, err := fm.submodules[id].ApplyEvents(events.ListOf(events.Init(id)))
+	if err != nil {
+		return nil, err
+	}
+
+	// Get messages for the new submodule that arrived early and have been buffered.
+	bufferedMessages := events.EmptyList()
+	fm.messageBuffer.Iterate(func(_ t.NodeID, msg proto.Message) messagebuffer.Applicable {
+		if t.ModuleID(msg.(*eventpb.Event).DestModule) == id {
+			return messagebuffer.Current
+		} else {
+			return messagebuffer.Future
+		}
+	}, func(_ t.NodeID, msg proto.Message) {
+		bufferedMessages.PushBack(msg.(*eventpb.Event))
+	})
+
+	// Apply buffered messages
+	results, err := fm.submodules[id].ApplyEvents(bufferedMessages)
+	if err != nil {
+		return nil, err
+	}
+	eventsOut.PushBackList(results)
+
+	// Return all output events.
+	return eventsOut, nil
 }
 
 func (fm *FactoryModule) applyGarbageCollect(gc *factorymodulepb.GarbageCollect) (*events.EventList, error) {
@@ -126,12 +160,26 @@ func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, 
 	var submodule modules.PassiveModule
 	var ok bool
 	if submodule, ok = fm.submodules[mID]; !ok {
-		fm.logger.Log(logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
-			"moduleID", mID, "eventType", fmt.Sprintf("%T", event.Type))
+		fm.tryBuffering(event)
 		return events.EmptyList(), nil
 	}
 
 	// TODO: This might be inefficient. Try to not forward events one by one.
 	//       Especially once parallel processing is supported.
 	return submodule.ApplyEvents(events.ListOf(event))
+}
+
+func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
+	msg, ok := event.Type.(*eventpb.Event_MessageReceived)
+	if !ok {
+		fm.logger.Log(logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
+			"moduleID", t.ModuleID(event.DestModule), "eventType", fmt.Sprintf("%T", event.Type))
+		return
+	}
+
+	if !fm.messageBuffer.Store(event) {
+		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
+			"moduleID", t.ModuleID(event.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
+			"from", msg.MessageReceived.From)
+	}
 }
