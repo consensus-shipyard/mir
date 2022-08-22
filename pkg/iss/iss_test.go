@@ -23,12 +23,15 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/deploytest"
+	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -415,23 +418,37 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		)
 
 		// Instantiate the availability layer.
-		multisigCollector, err := multisigcollector.NewModule(
-			&multisigcollector.ModuleConfig{
-				Self:    "availability",
-				Mempool: "mempool",
-				Net:     "net",
-				Crypto:  "crypto",
-			},
-			&multisigcollector.ModuleParams{
-				InstanceUID: []byte("chat multisig collector"),
-				AllNodes:    nodeIDs,
-				F:           (len(nodeIDs) - 1) / 2,
-			},
-			nodeID,
+		mscFactory := factorymodule.New(
+			"availability",
+			factorymodule.DefaultParams(
+				func(mscID t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
+
+					m := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector.Membership
+					mscNodeIDs := maputil.GetSortedKeys(t.Membership(m))
+
+					// Instantiate the availability layer.
+					multisigCollector, err := multisigcollector.NewModule(
+						&multisigcollector.ModuleConfig{
+							Self:    mscID,
+							Mempool: "mempool",
+							Net:     "net",
+							Crypto:  "crypto",
+						},
+						&multisigcollector.ModuleParams{
+							InstanceUID: []byte(mscID),
+							AllNodes:    mscNodeIDs,
+							F:           (len(mscNodeIDs) - 1) / 2,
+						},
+						nodeID,
+					)
+					if err != nil {
+						return nil, err
+					}
+					return multisigCollector, nil
+				},
+			),
+			logger,
 		)
-		if err != nil {
-			return nil, fmt.Errorf("error instantiating availability module: %w", err)
-		}
 
 		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
 			"app":          fakeApp,
@@ -439,7 +456,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"iss":          issProtocol,
 			"net":          transport,
 			"mempool":      mempool,
-			"availability": multisigCollector,
+			"availability": mscFactory,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)

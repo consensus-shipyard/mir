@@ -14,6 +14,9 @@ type PBFTConfig struct {
 	// Must not be empty.
 	Membership []t.NodeID
 
+	// ID of the availability module from which this PBFT instance gets its availability certificates.
+	AvailabilityModuleID t.ModuleID
+
 	// The maximum time duration between two proposals of new certificatees during normal operation.
 	// This parameter caps the waiting time in order to bound latency.
 	// When MaxProposeDelay has elapsed since the last proposal,

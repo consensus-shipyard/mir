@@ -24,6 +24,9 @@ import (
 type FakeApp struct {
 	ProtocolModule t.ModuleID
 
+	// Stores the current ISS epoch.
+	currentEpoch t.EpochNr
+
 	Membership map[t.NodeID]t.NodeAddress
 
 	// The state of the FakeApp only consists of a counter of processed requests.
@@ -37,6 +40,7 @@ type FakeApp struct {
 func NewFakeApp(protocolModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *FakeApp {
 	return &FakeApp{
 		ProtocolModule:    protocolModule,
+		currentEpoch:      0,
 		Membership:        membership,
 		delivered:         make(map[t.ClientID]map[t.ReqNo]struct{}),
 		RequestsProcessed: 0,
@@ -71,6 +75,7 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
 	case *eventpb.Event_NewEpoch:
+		fa.currentEpoch = t.EpochNr(e.NewEpoch.EpochNr)
 		return events.ListOf(events.NewConfig(fa.ProtocolModule, fa.Membership)), nil
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
@@ -99,7 +104,7 @@ func (fa *FakeApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, er
 		}
 
 		return events.ListOf(availabilityevents.RequestTransactions(
-			"availability",
+			t.ModuleID("availability").Then(t.ModuleID(fmt.Sprintf("%v", fa.currentEpoch))),
 			deliver.Cert,
 			&availabilitypb.RequestTransactionsOrigin{
 				Module: "app",

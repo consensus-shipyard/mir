@@ -2,6 +2,9 @@ package factorymodule
 
 import (
 	"fmt"
+
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -9,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"google.golang.org/protobuf/proto"
 )
 
 // TODO: Add support for active modules as well.
@@ -117,9 +119,8 @@ func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*
 	fm.messageBuffer.Iterate(func(_ t.NodeID, msg proto.Message) messagebuffer.Applicable {
 		if t.ModuleID(msg.(*eventpb.Event).DestModule) == id {
 			return messagebuffer.Current
-		} else {
-			return messagebuffer.Future
 		}
+		return messagebuffer.Future
 	}, func(_ t.NodeID, msg proto.Message) {
 		bufferedMessages.PushBack(msg.(*eventpb.Event))
 	})

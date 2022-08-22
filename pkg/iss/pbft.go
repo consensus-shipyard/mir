@@ -247,6 +247,12 @@ func (pbft *pbftInstance) Segment() *segment {
 	return pbft.segment
 }
 
+// AvailabilityModuleID returns the ID of the availability module
+// from which this SB instance gets its availability certificates.
+func (pbft *pbftInstance) AvailabilityModuleID() t.ModuleID {
+	return pbft.config.AvailabilityModuleID
+}
+
 // ============================================================
 // General protocol logic (other specific parts in separate files)
 // ============================================================
