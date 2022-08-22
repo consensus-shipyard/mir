@@ -53,6 +53,8 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 
 	if t.ModuleID(event.DestModule) == fm.ownID {
 		switch e := event.Type.(type) {
+		case *eventpb.Event_Init:
+			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
 			switch e := e.Factory.Type.(type) {
 			case *factorymodulepb.Factory_NewModule:
@@ -88,10 +90,10 @@ func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*
 	}
 
 	// Create new instance of the submodule.
-	if submodule, err := fm.generator(id, newModule.Params); err != nil {
-		return nil, err
-	} else {
+	if submodule, err := fm.generator(id, newModule.Params); err == nil {
 		fm.submodules[id] = submodule
+	} else {
+		return nil, err
 	}
 
 	// Assign the newly created submodule to its retention index.
