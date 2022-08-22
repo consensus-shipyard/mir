@@ -68,7 +68,7 @@ func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList)
 
 	it := eventList.Iterator()
 	for e := it.Next(); e != nil; e = it.Next() {
-		m := t.ModuleID(e.DestModule)
+		m := t.ModuleID(e.DestModule).Top()
 		if eventsMap[m] == nil {
 			eventsMap[m] = events.EmptyList()
 			moduleIDs = append(moduleIDs, m)
@@ -81,7 +81,7 @@ func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList)
 	})
 
 	for _, m := range moduleIDs {
-		proc.Send(n.moduleChans[m], eventsMap[m])
+		proc.Send(n.moduleChans[m.Top()], eventsMap[m.Top()])
 		proc.Yield() // wait until the receiver blocks
 	}
 }
@@ -107,7 +107,7 @@ func (n *SimNode) WrapModules(mods modules.Modules) modules.Modules {
 // WrapModule wraps the module to be used in simulation.
 func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
 	moduleChan := testsim.NewChan()
-	n.moduleChans[id] = moduleChan
+	n.moduleChans[id.Top()] = moduleChan
 
 	switch m := m.(type) {
 	case modules.ActiveModule:
