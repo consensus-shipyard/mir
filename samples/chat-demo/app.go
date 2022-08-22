@@ -99,10 +99,7 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 	}
 }
 
-// ApplyDeliver applies a batch of requests to the state of the application.
-// In our case, it simply extends the message history
-// by appending the payload of each received request as a new chat message.
-// Each appended message is also printed to stdout.
+// ApplyDeliver applies a delivered availability certificate.
 func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, error) {
 
 	// Skip padding certificates. Deliver events with nil certificates are considered noops.
@@ -112,12 +109,17 @@ func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, 
 
 	switch c := deliver.Cert.Type.(type) {
 	case *availabilitypb.Cert_Msc:
+		// If the certificate was produced by the multisig collector
 
+		// Ignore empty batch availability certificates.
 		if len(c.Msc.BatchId) == 0 {
 			fmt.Println("Received empty batch availability certificate.")
 			return events.EmptyList(), nil
 		}
 
+		// Request transaction payloads that the received certificate refers to
+		// from the appropriate instance (there is one per epoch) of the availability layer,
+		// which should respond with a ProvideTransactions event.
 		return events.ListOf(availabilityevents.RequestTransactions(
 			availabilityModuleID.Then(t.ModuleID(fmt.Sprintf("%v", chat.currentEpoch))),
 			deliver.Cert,
@@ -133,6 +135,11 @@ func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, 
 	}
 }
 
+// applyProvideTransactions applies transactions received from the availability layer to the app state.
+// In our case, it simply extends the message history
+// by appending the payload of each received request as a new chat message.
+// Each appended message is also printed to stdout.
+// Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
 func (chat *ChatApp) applyProvideTransactions(ptx *availabilitypb.ProvideTransactions) (*events.EventList, error) {
 	// For each request in the batch
 	for _, req := range ptx.Txs {
