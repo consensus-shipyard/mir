@@ -272,6 +272,8 @@ func (gt *Transport) CloseOldConnections(ctx context.Context, nextNodes map[t.No
 				continue
 			}
 
+			delete(gt.connections, id)
+
 			gt.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
 		}
 	}
