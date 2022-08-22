@@ -51,15 +51,15 @@ func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error
 }
 
 func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
-	return NewFactoryModule(
+	return New(
 		echoFactoryID,
-		func(id tp.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
+		DefaultParams(func(id tp.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
 			return &echoModule{
 				t:      t,
 				id:     id,
 				prefix: params.Type.(*factorymodulepb.GeneratorParams_EchoTestModule).EchoTestModule.Prefix,
 			}, nil
-		},
+		}),
 		logger)
 }
 
@@ -160,7 +160,7 @@ func TestFactoryModule(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, 0, evOut.Len())
 			logger.CheckFirstEntry(t, logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
-				"moduleID", echoFactoryID.Then("non-existent-module"))
+				"moduleID", echoFactoryID.Then("non-existent-module"), "eventType", fmt.Sprintf("%T", wrongEvent.Type))
 			logger.CheckEmpty(t)
 		},
 
@@ -194,7 +194,12 @@ func TestFactoryModule(t *testing.T) {
 
 			for i := 0; i < 3; i++ {
 				logger.CheckAnyEntry(t, logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
-					"moduleID", echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))
+					"moduleID", echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
+					"eventType", fmt.Sprintf("%T", events.TestingString(
+						echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
+						"Hi!",
+					).Type),
+				)
 			}
 
 			for i := 3; i <= 5; i++ {
