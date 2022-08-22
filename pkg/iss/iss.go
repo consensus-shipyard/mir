@@ -21,12 +21,15 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -346,9 +349,17 @@ func (iss *ISS) ImplementsModule() {}
 // This event is only expected to be applied once at startup,
 // after all the events stored in the WAL have been applied and before any other event has been applied.
 func (iss *ISS) applyInit() (*events.EventList, error) {
+	eventsOut := events.EmptyList()
+
+	// Initialize the availability modules.
+	for epochNr, configuration := range iss.configurations {
+		eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(epochNr), t.MembershipPb(configuration)))
+	}
 
 	// Trigger an Init event at all orderers.
-	return iss.initOrderers(), nil
+	eventsOut.PushBackList(iss.initOrderers())
+
+	return eventsOut, nil
 }
 
 // applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
@@ -481,21 +492,28 @@ func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.Even
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
+	eventsOut := events.EmptyList()
 
+	// Convenience variable.
 	newMembership := t.Membership(config.Membership)
+
+	// Initialize the new availability module
+	eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(len(iss.configurations)), config.Membership))
 
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
 		"forEpoch", len(iss.configurations),
 		"currentEpoch", iss.epoch.Nr,
 		"newConfigNodes", maputil.GetSortedKeys(newMembership))
+
+	// Save the new configuration.
 	iss.configurations = append(iss.configurations, newMembership)
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
-		return iss.advanceEpoch(), nil
+		eventsOut.PushBackList(iss.advanceEpoch())
 	}
 
-	return events.EmptyList(), nil
+	return eventsOut, nil
 }
 
 // applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
@@ -795,6 +813,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	iss.configurations = make([]map[t.NodeID]t.NodeAddress, len(chkp.Snapshot.Configuration.Memberships))
 	for i, m := range chkp.Snapshot.Configuration.Memberships {
 		iss.configurations[i] = t.Membership(m)
+		eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(i), m))
 	}
 
 	// TODO: Check if all the configurations are present in the checkpoint.
@@ -819,6 +838,17 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	eventsOut.PushBackList(iss.applyBufferedMessages())
 
 	return eventsOut
+}
+
+func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.Membership) *eventpb.Event {
+	return factorymodule.FactoryNewModule(
+		iss.moduleConfig.Availability,
+		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+		t.RetentionIndex(epochNr),
+		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
+			MultisigCollector: &mscpb.InstanceParams{Membership: membership},
+		}},
+	)
 }
 
 // applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
@@ -932,7 +962,11 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 		sbInst := newPbftInstance(
 			iss.ownID,
 			seg,
-			newPBFTConfig(iss.config, membership),
+			newPBFTConfig(
+				iss.config,
+				membership,
+				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epoch.Nr))),
+			),
 			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpoch, instance: t.SBInstanceNr(i)},
 			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
 
@@ -1149,11 +1183,12 @@ func membershipSet(membership []t.NodeID) map[t.NodeID]struct{} {
 }
 
 // Returns a configuration of a new PBFT instance based on the current ISS configuration.
-func newPBFTConfig(issParams *ModuleParams, membership []t.NodeID) *PBFTConfig {
+func newPBFTConfig(issParams *ModuleParams, membership []t.NodeID, availabilityModuleID t.ModuleID) *PBFTConfig {
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &PBFTConfig{
 		Membership:               membership,
+		AvailabilityModuleID:     availabilityModuleID,
 		MaxProposeDelay:          issParams.MaxProposeDelay,
 		MsgBufCapacity:           issParams.MsgBufCapacity,
 		DoneResendPeriod:         issParams.PBFTDoneResendPeriod,

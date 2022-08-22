@@ -17,6 +17,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/multiformats/go-multiaddr"
+
 	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -27,8 +29,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+)
 
-	"github.com/multiformats/go-multiaddr"
+const (
+	availabilityModuleID = t.ModuleID("availability")
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application
@@ -40,6 +44,9 @@ type ChatApp struct {
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
 	messages []string
+
+	// Stores the current ISS epoch.
+	currentEpoch t.EpochNr
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
 	newMembership map[t.NodeID]t.NodeAddress
@@ -58,6 +65,7 @@ func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, transport net.Tran
 
 	return &ChatApp{
 		messages:      make([]string, 0),
+		currentEpoch:  0,
 		newMembership: initialMembership,
 		transport:     transport,
 	}
@@ -111,7 +119,7 @@ func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, 
 		}
 
 		return events.ListOf(availabilityevents.RequestTransactions(
-			"availability",
+			availabilityModuleID.Then(t.ModuleID(fmt.Sprintf("%v", chat.currentEpoch))),
 			deliver.Cert,
 			&availabilitypb.RequestTransactionsOrigin{
 				Module: "app",
@@ -193,6 +201,9 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 
 func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
 
+	// Update current epoch number.
+	chat.currentEpoch = t.EpochNr(newEpoch.EpochNr)
+
 	// Create network connections to all nodes in the new membership.
 	var nodeAddrs map[t.NodeID]t.NodeAddress
 	var err error
@@ -233,6 +244,9 @@ func (chat *ChatApp) applyRestoreState(snapshot *commonpb.StateSnapshot) (*event
 
 	// Restore chat messages
 	chat.restoreChat(snapshot.AppData)
+
+	// Restore epoch number
+	chat.currentEpoch = t.EpochNr(snapshot.Configuration.EpochNr)
 
 	// Restore configuration
 	if err := chat.restoreConfiguration(snapshot.Configuration); err != nil {

@@ -32,6 +32,10 @@ type sbInstance interface {
 
 	// Segment returns the segment assigned to this SB instance.
 	Segment() *segment
+
+	// AvailabilityModuleID returns the ID of the availability module
+	// from which this SB instance gets its availability certificates.
+	AvailabilityModuleID() t.ModuleID
 }
 
 // ============================================================
@@ -90,12 +94,15 @@ func (iss *ISS) applySBInstDeliver(instance sbInstance, deliver *isspb.SBDeliver
 // that the orderer will propose.
 // To this end, applySBInstCertRequest requests a new certificate from the availability layer.
 func (iss *ISS) applySBInstCertRequest(instance sbInstance) *events.EventList {
-	return events.ListOf(availabilityevents.RequestCert(iss.moduleConfig.Availability, &availabilitypb.RequestCertOrigin{
-		Module: iss.moduleConfig.Self.Pb(),
-		Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
-			ItemID: iss.contextStore.Store(instance).Pb(),
-		}},
-	}))
+	return events.ListOf(availabilityevents.RequestCert(
+		instance.AvailabilityModuleID(),
+		&availabilitypb.RequestCertOrigin{
+			Module: iss.moduleConfig.Self.Pb(),
+			Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
+				ItemID: iss.contextStore.Store(instance).Pb(),
+			}},
+		},
+	))
 }
 
 func (iss *ISS) applyNewCert(newCert *availabilitypb.NewCert) (*events.EventList, error) {
