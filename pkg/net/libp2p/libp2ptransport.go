@@ -125,6 +125,9 @@ func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types
 				continue
 			}
 
+			// If we had that connection then remove it.
+			delete(t.outboundStreams, id)
+
 			t.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
 		}
 	}
