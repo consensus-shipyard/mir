@@ -13,8 +13,6 @@ import (
 
 // TODO: Add support for active modules as well.
 
-type moduleGenerator func(id t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error)
-
 type FactoryModule struct {
 	ownID     t.ModuleID
 	generator moduleGenerator
@@ -26,10 +24,10 @@ type FactoryModule struct {
 	logger logging.Logger
 }
 
-func NewFactoryModule(id t.ModuleID, generator moduleGenerator, logger logging.Logger) *FactoryModule {
+func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModule {
 	return &FactoryModule{
 		ownID:     id,
-		generator: generator,
+		generator: params.Generator,
 
 		submodules:      make(map[t.ModuleID]modules.PassiveModule),
 		moduleRetention: make(map[t.RetentionIndex][]t.ModuleID),
@@ -128,7 +126,8 @@ func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, 
 	var submodule modules.PassiveModule
 	var ok bool
 	if submodule, ok = fm.submodules[mID]; !ok {
-		fm.logger.Log(logging.LevelWarn, "Ignoring submodule event. Destination module not found.", "moduleID", mID)
+		fm.logger.Log(logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
+			"moduleID", mID, "eventType", fmt.Sprintf("%T", event.Type))
 		return events.EmptyList(), nil
 	}
 
