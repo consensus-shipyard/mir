@@ -1,4 +1,4 @@
-package factorymodule
+package events
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
@@ -7,7 +7,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-func FactoryNewModule(
+func NewModule(
 	dest t.ModuleID,
 	id t.ModuleID,
 	retentionIndex t.RetentionIndex,
@@ -22,7 +22,7 @@ func FactoryNewModule(
 	}})
 }
 
-func FactoryGarbageCollect(
+func GarbageCollect(
 	dest t.ModuleID,
 	retentionIndex t.RetentionIndex,
 ) *eventpb.Event {
@@ -33,7 +33,7 @@ func FactoryGarbageCollect(
 	}})
 }
 
-func FactoryEchoModuleParams(prefix string) *factorymodulepb.GeneratorParams {
+func EchoModuleParams(prefix string) *factorymodulepb.GeneratorParams {
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_EchoTestModule{
 		EchoTestModule: &factorymodulepb.EchoModuleParams{
 			Prefix: prefix,
