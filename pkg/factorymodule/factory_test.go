@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -27,8 +28,7 @@ type echoModule struct {
 	prefix string
 }
 
-func (em *echoModule) ImplementsModule() {
-}
+func (em *echoModule) ImplementsModule() {}
 
 func (em *echoModule) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
 	return modules.ApplyEventsSequentially(evts, em.applyEvent)
@@ -65,17 +65,17 @@ func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 
 func TestFactoryModule(t *testing.T) {
 	var echoFactory modules.PassiveModule
-	logger := testlogger.NewTestLogger()
+	logger := testlogger.New()
 
 	testCases := map[string]func(t *testing.T){
 
 		"00 Instantiate": func(t *testing.T) {
 			echoFactory = newEchoFactory(t, logger)
-			evOut, err := echoFactory.ApplyEvents(events.ListOf(FactoryNewModule(
+			evOut, err := echoFactory.ApplyEvents(events.ListOf(factoryevents.NewModule(
 				echoFactoryID,
 				echoFactoryID.Then("inst0"),
 				0,
-				FactoryEchoModuleParams("Inst 0: "),
+				factoryevents.EchoModuleParams("Inst 0: "),
 			)))
 			assert.NoError(t, err)
 			assert.Equal(t, 1, evOut.Len())
@@ -101,11 +101,11 @@ func TestFactoryModule(t *testing.T) {
 
 		"02 Instantiate many": func(t *testing.T) {
 			for i := 1; i <= 5; i++ {
-				evOut, err := echoFactory.ApplyEvents(events.ListOf(FactoryNewModule(
+				evOut, err := echoFactory.ApplyEvents(events.ListOf(factoryevents.NewModule(
 					echoFactoryID,
 					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
 					tp.RetentionIndex(i),
-					FactoryEchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
+					factoryevents.EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
 				)))
 				assert.NoError(t, err)
 				assert.Equal(t, 1, evOut.Len())
@@ -159,13 +159,13 @@ func TestFactoryModule(t *testing.T) {
 			evOut, err := echoFactory.ApplyEvents(events.ListOf(wrongEvent))
 			assert.NoError(t, err)
 			assert.Equal(t, 0, evOut.Len())
-			logger.CheckFirstEntry(t, logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
+			logger.CheckFirstEntry(t, logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
 				"moduleID", echoFactoryID.Then("non-existent-module"), "eventType", fmt.Sprintf("%T", wrongEvent.Type))
 			logger.CheckEmpty(t)
 		},
 
 		"06 Garbage-collect some": func(t *testing.T) {
-			evOut, err := echoFactory.ApplyEvents(events.ListOf(FactoryGarbageCollect(
+			evOut, err := echoFactory.ApplyEvents(events.ListOf(factoryevents.GarbageCollect(
 				echoFactoryID,
 				3,
 			)))
@@ -193,7 +193,7 @@ func TestFactoryModule(t *testing.T) {
 			})
 
 			for i := 0; i < 3; i++ {
-				logger.CheckAnyEntry(t, logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
+				logger.CheckAnyEntry(t, logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
 					"moduleID", echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
 					"eventType", fmt.Sprintf("%T", events.TestingString(
 						echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),

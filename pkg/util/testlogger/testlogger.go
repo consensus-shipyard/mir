@@ -20,7 +20,7 @@ type TestLogger struct {
 	entryIndex map[string]int
 }
 
-func NewTestLogger() *TestLogger {
+func New() *TestLogger {
 	return &TestLogger{
 		entries:    make([]*testLogEntry, 0),
 		entryIndex: make(map[string]int),
@@ -47,11 +47,12 @@ func (tl *TestLogger) CheckEmpty(t *testing.T) {
 }
 
 func (tl *TestLogger) CheckFirstEntry(t *testing.T, level logging.LogLevel, text string, args ...interface{}) {
-	tl.checkAndRemoveEntry(t, &testLogEntry{
+	entry := testLogEntry{
 		level: level,
 		text:  text,
 		args:  args,
-	}, 0)
+	}
+	tl.checkAndRemoveEntry(t, &entry, 0)
 }
 
 func (tl *TestLogger) CheckAnyEntry(t *testing.T, level logging.LogLevel, text string, args ...interface{}) {
@@ -64,22 +65,28 @@ func (tl *TestLogger) CheckAnyEntry(t *testing.T, level logging.LogLevel, text s
 	idx, ok := tl.entryIndex[entryStr]
 	if assert.True(t, ok, "entry not in log") {
 		tl.checkAndRemoveEntry(t, &entry, idx)
-		delete(tl.entryIndex, entryStr)
 	}
 }
 
 func (tl *TestLogger) checkAndRemoveEntry(t *testing.T, refEntry *testLogEntry, idx int) {
-	assert.Less(t, idx, len(tl.entries))
+
+	// Mark function as test helper
+	t.Helper()
+
+	// Check that the log contains enough entries.
+	assert.Less(t, idx, len(tl.entries),
+		"log only contains %d entries, expected at least %d", len(tl.entries), idx+1)
 	entry := tl.entries[idx]
 
-	assert.Equal(t, refEntry.level, entry.level)
-	assert.Equal(t, refEntry.text, entry.text)
-	assert.Equal(t, len(refEntry.args), len(entry.args))
+	// Check the content of the log entry.
+	assert.Equal(t, refEntry.level, entry.level, "unexpected log level")
+	assert.Equal(t, refEntry.text, entry.text, "unexpected log message")
+	assert.Equal(t, len(refEntry.args), len(entry.args), "unexpected number of log message parameters")
 	for i, arg := range refEntry.args {
-		assert.Equal(t, arg, entry.args[i])
+		assert.Equal(t, arg, entry.args[i], "unexpected log message parameter at offset %d", i)
 	}
 
-	newEntries := tl.entries[0:idx]
-	newEntries = append(newEntries, tl.entries[idx+1:]...)
-	tl.entries = newEntries
+	// Remove entry from the log.
+	tl.entries = append(tl.entries[:idx], tl.entries[idx+1:]...)
+	delete(tl.entryIndex, fmt.Sprintf("%v", entry))
 }

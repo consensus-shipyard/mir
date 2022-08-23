@@ -96,7 +96,7 @@ type ModuleParams struct {
 	CheckpointResendPeriod time.Duration
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
-	// TODO: Separate this in a sub-group of the ISS config, maybe even use a field of type PBFTConfig in ModuleParams.
+	// TODO: Separate this in a sub-group of the ISS params, maybe even use a field of type PBFTConfig in ModuleParams.
 	PBFTDoneResendPeriod         time.Duration
 	PBFTCatchUpDelay             time.Duration
 	PBFTViewChangeSNTimeout      time.Duration

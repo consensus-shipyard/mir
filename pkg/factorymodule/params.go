@@ -10,14 +10,14 @@ const (
 	DefaultMsgBufSize = 1024 * 1024 // 1 MB
 )
 
-type moduleGenerator func(id t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error)
+type ModuleGenerator func(id t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error)
 
 type ModuleParams struct {
-	Generator  moduleGenerator
+	Generator  ModuleGenerator
 	MsgBufSize int
 }
 
-func DefaultParams(generator moduleGenerator) ModuleParams {
+func DefaultParams(generator ModuleGenerator) ModuleParams {
 	return ModuleParams{
 		Generator:  generator,
 		MsgBufSize: DefaultMsgBufSize,

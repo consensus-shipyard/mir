@@ -21,7 +21,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/factorymodule"
+	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -55,8 +55,8 @@ type ModuleConfig struct {
 	Availability t.ModuleID
 }
 
-func DefaultModuleConfig() ModuleConfig {
-	return ModuleConfig{
+func DefaultModuleConfig() *ModuleConfig {
+	return &ModuleConfig{
 		Self:         "iss",
 		Net:          "net",
 		App:          "app",
@@ -121,7 +121,7 @@ type ISS struct {
 	// --------------------------------------------------------------------------------
 
 	// IDs of modules ISS interacts with.
-	moduleConfig ModuleConfig
+	moduleConfig *ModuleConfig
 
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
@@ -137,7 +137,7 @@ type ISS struct {
 	// The ISS configuration parameters (e.g. segment length, proposal frequency etc...)
 	// passed to New() when creating an ISS protocol instance.
 	// TODO: Make it possible to change this dynamically.
-	config *ModuleParams
+	params *ModuleParams
 
 	// The current epoch instance.
 	epoch *epochInfo
@@ -197,10 +197,10 @@ type ISS struct {
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
 //   - ownID:  the ID of the node being instantiated with ISS.
-//   - config: ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
+//   - params: ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
 //     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
+func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
 
 	// Check whether the passed configuration is valid.
 	if err := CheckParams(params); err != nil {
@@ -220,7 +220,7 @@ func New(ownID t.NodeID, moduleConfig ModuleConfig, params *ModuleParams, initia
 		logger:       logger,
 
 		// Fields modified only by initEpoch
-		config:       params,
+		params:       params,
 		epochs:       make(map[t.EpochNr]*epochInfo),
 		nodeEpochMap: make(map[t.NodeID]t.EpochNr),
 
@@ -481,7 +481,7 @@ func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.Even
 	if epoch, ok := iss.epochs[snapshotEpoch]; ok {
 		return epoch.Checkpoint.ProcessStateSnapshot(events.StateSnapshot(
 			appSnapshot.AppData,
-			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.config.ConfigOffset+1]),
+			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.params.ConfigOffset+1]),
 			// TODO: Make sure that all the necessary configurations have been received through the NewConfig event.
 		)), nil
 	}
@@ -616,7 +616,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		pruneIndex := int(stableCheckpoint.Snapshot.Configuration.EpochNr) - iss.config.RetainedEpochs
+		pruneIndex := int(stableCheckpoint.Snapshot.Configuration.EpochNr) - iss.params.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL and Timer
@@ -637,7 +637,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 			eventsOut.PushBack(events.TimerRepeat(
 				iss.moduleConfig.Timer,
 				[]*eventpb.Event{PushCheckpoint(iss.moduleConfig.Self)},
-				t.TimeDuration(iss.config.CatchUpTimerPeriod),
+				t.TimeDuration(iss.params.CatchUpTimerPeriod),
 
 				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
 				// Using pruneIndex makes sure that the re-transmission is stopped
@@ -660,14 +660,14 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// stable checkpoint to is determined based on the
 	// highest epoch number in the messages received from
 	// the node so far. If the highest epoch number we
-	// have heard from the node is more than config.RetainedEpochs
+	// have heard from the node is more than params.RetainedEpochs
 	// behind, then that node is likely to be left behind
 	// and needs the stable checkpoint in order to start
 	// catching up with state transfer.
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := t.EpochNr(iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr)
 	for _, n := range maputil.GetKeys(iss.configurations[iss.epoch.Nr]) {
-		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.config.RetainedEpochs) {
+		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.params.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
 	}
@@ -777,7 +777,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 
 	//// Ignore checkpoint with in valid or insufficiently many signatures.
 	//// TODO: Make sure this code still works when reconfiguration is implemented.
-	//if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.config.Membership)) {
+	//if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
 	//	iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
 	//	return eventsOut
 	//}
@@ -841,7 +841,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 }
 
 func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.Membership) *eventpb.Event {
-	return factorymodule.FactoryNewModule(
+	return factoryevents.NewModule(
 		iss.moduleConfig.Availability,
 		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
 		t.RetentionIndex(epochNr),
@@ -889,7 +889,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 
 	var leaderPolicy LeaderSelectionPolicy
 	if newEpoch == 0 {
-		leaderPolicy = iss.config.LeaderPolicy
+		leaderPolicy = iss.params.LeaderPolicy
 	} else {
 		leaderPolicy = iss.epoch.leaderPolicy.Reconfigure(membership)
 	}
@@ -905,7 +905,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 			iss.ownID,
 			iss.nextDeliveredSN,
 			newEpoch,
-			t.TimeDuration(iss.config.CheckpointResendPeriod),
+			t.TimeDuration(iss.params.CheckpointResendPeriod),
 			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch),
 		),
 		leaderPolicy,
@@ -919,7 +919,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 	var mbCapacity int
 	b, ok := maputil.Any(iss.messageBuffers)
 	if !ok {
-		mbCapacity = iss.config.MsgBufCapacity
+		mbCapacity = iss.params.MsgBufCapacity
 	} else {
 		mbCapacity = b.Capacity()
 	}
@@ -953,7 +953,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),
-				iss.config.SegmentLength),
+				iss.params.SegmentLength),
 		}
 		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
 
@@ -963,7 +963,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 			iss.ownID,
 			seg,
 			newPBFTConfig(
-				iss.config,
+				iss.params,
 				membership,
 				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epoch.Nr))),
 			),

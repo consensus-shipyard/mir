@@ -18,7 +18,7 @@ import (
 
 type FactoryModule struct {
 	ownID     t.ModuleID
-	generator moduleGenerator
+	generator ModuleGenerator
 
 	submodules      map[t.ModuleID]modules.PassiveModule
 	moduleRetention map[t.RetentionIndex][]t.ModuleID
@@ -48,8 +48,7 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 	}
 }
 
-func (fm *FactoryModule) ImplementsModule() {
-}
+func (fm *FactoryModule) ImplementsModule() {}
 
 func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
 	// TODO: Perform event processing in parallel (applyEvent will need to be made thread-safe).
@@ -142,6 +141,8 @@ func (fm *FactoryModule) applyGarbageCollect(gc *factorymodulepb.GarbageCollect)
 
 		// Delete all modules associated with the current retention index.
 		for _, mID := range fm.moduleRetention[fm.retIdx] {
+			// TODO: Apply a "shutdown" notification event to each garbage-collected module
+			//       to give it a chance to clean up.
 			delete(fm.submodules, mID)
 		}
 
@@ -173,7 +174,7 @@ func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, 
 func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
 	msg, ok := event.Type.(*eventpb.Event_MessageReceived)
 	if !ok {
-		fm.logger.Log(logging.LevelWarn, "Ignoring submodule event. Destination module not found.",
+		fm.logger.Log(logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
 			"moduleID", t.ModuleID(event.DestModule), "eventType", fmt.Sprintf("%T", event.Type))
 		return
 	}

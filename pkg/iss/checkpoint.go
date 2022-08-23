@@ -31,7 +31,7 @@ type checkpointTracker struct {
 
 	// IDs of modules the checkpoint tracker interacts with.
 	// TODO: Eventually put the checkpoint tracker in a separate package and create its own ModuleConfig type.
-	moduleConfig ModuleConfig
+	moduleConfig *ModuleConfig
 
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
@@ -71,7 +71,7 @@ type checkpointTracker struct {
 
 // newCheckpointTracker allocates and returns a new instance of a checkpointTracker associated with sequence number sn.
 func newCheckpointTracker(
-	moduleConfig ModuleConfig,
+	moduleConfig *ModuleConfig,
 	ownID t.NodeID,
 	sn t.SeqNr,
 	epoch t.EpochNr,

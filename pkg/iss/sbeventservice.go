@@ -32,7 +32,7 @@ import (
 // Through its methods, the sbEventService controls which of these Node-level events an orderer can use and how.
 // It thus defines the interface for communication of the orderer with the outside.
 type sbEventService struct {
-	moduleConfig ModuleConfig
+	moduleConfig *ModuleConfig
 	epoch        t.EpochNr
 	instance     t.SBInstanceNr
 }

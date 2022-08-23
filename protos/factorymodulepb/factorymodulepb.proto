@@ -32,5 +32,5 @@ message GeneratorParams {
 
 // Used only for unit tests.
 message EchoModuleParams {
-  string prefix = 1; // This prefix is appended to all strings the module echoes.
+  string prefix = 1; // This prefix is prepended to all strings the module echoes.
 }
