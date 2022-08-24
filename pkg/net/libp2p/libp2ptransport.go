@@ -146,7 +146,7 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 
 		if t.streamExists(nodeID) {
 			wg.Done()
-			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
+			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already exists", nodeID.Pb()))
 			continue
 		}
 
@@ -294,7 +294,7 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 	defer t.outboundStreamsMx.Unlock()
 
 	if _, found := t.outboundStreams[nodeID]; found {
-		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already extists\n", nodeID.Pb()))
+		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already exists", nodeID.Pb()))
 	}
 	t.outboundStreams[nodeID] = s
 }
