@@ -19,21 +19,15 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
-)
-
-const (
-	availabilityModuleID = t.ModuleID("availability")
 )
 
 // ChatApp and its methods implement the application logic of the small chat demo application
@@ -45,9 +39,6 @@ type ChatApp struct {
 	// The only state of the application is the chat message history,
 	// to which each delivered request appends one message.
 	messages []string
-
-	// Stores the current ISS epoch.
-	currentEpoch t.EpochNr
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
 	newMembership map[t.NodeID]t.NodeAddress
@@ -66,7 +57,6 @@ func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, transport net.Tran
 
 	return &ChatApp{
 		messages:      make([]string, 0),
-		currentEpoch:  0,
 		newMembership: initialMembership,
 		transport:     transport,
 	}
@@ -82,8 +72,6 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		return events.EmptyList(), nil // no actions on init
 	case *eventpb.Event_NewEpoch:
 		return chat.applyNewEpoch(e.NewEpoch)
-	case *eventpb.Event_DeliverCert:
-		return chat.ApplyDeliverCert(e.DeliverCert)
 	case *eventpb.Event_Availability:
 		switch e := e.Availability.Type.(type) {
 		case *availabilitypb.Event_ProvideTransactions:
@@ -97,42 +85,6 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		return chat.applyRestoreState(e.AppRestoreState.Snapshot)
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
-	}
-}
-
-// ApplyDeliverCert applies a delivered availability certificate.
-func (chat *ChatApp) ApplyDeliverCert(deliverCert *eventpb.DeliverCert) (*events.EventList, error) {
-
-	// Skip padding certificates. DeliverCert events with nil certificates are considered noops.
-	if deliverCert.Cert.Type == nil {
-		return events.EmptyList(), nil
-	}
-
-	switch c := deliverCert.Cert.Type.(type) {
-	case *availabilitypb.Cert_Msc:
-		// If the certificate was produced by the multisig collector
-
-		// Ignore empty batch availability certificates.
-		if len(c.Msc.BatchId) == 0 {
-			fmt.Println("Received empty batch availability certificate.")
-			return events.EmptyList(), nil
-		}
-
-		// Request transaction payloads that the received certificate refers to
-		// from the appropriate instance (there is one per epoch) of the availability layer,
-		// which should respond with a ProvideTransactions event.
-		return events.ListOf(availabilityevents.RequestTransactions(
-			availabilityModuleID.Then(t.ModuleID(fmt.Sprintf("%v", chat.currentEpoch))),
-			deliverCert.Cert,
-			&availabilitypb.RequestTransactionsOrigin{
-				Module: "app",
-				Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
-					ContextStore: &contextstorepb.Origin{ItemID: 0},
-				},
-			},
-		)), nil
-	default:
-		return nil, fmt.Errorf("unknown availability certificate type: %T", deliverCert.Cert.Type)
 	}
 }
 
@@ -209,9 +161,6 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 
 func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
 
-	// Update current epoch number.
-	chat.currentEpoch = t.EpochNr(newEpoch.EpochNr)
-
 	// Create network connections to all nodes in the new membership.
 	var nodeAddrs map[t.NodeID]t.NodeAddress
 	var err error
@@ -252,9 +201,6 @@ func (chat *ChatApp) applyRestoreState(snapshot *commonpb.StateSnapshot) (*event
 
 	// Restore chat messages
 	chat.restoreChat(snapshot.AppData)
-
-	// Restore epoch number
-	chat.currentEpoch = t.EpochNr(snapshot.Configuration.EpochNr)
 
 	// Restore configuration
 	if err := chat.restoreConfiguration(snapshot.Configuration); err != nil {
