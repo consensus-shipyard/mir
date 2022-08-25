@@ -36,7 +36,7 @@ func VerifyCert[C any](m dsl.Module, dest t.ModuleID, cert *apb.Cert, context *C
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &apb.VerifyCertOrigin{
-		Module: dest.Pb(),
+		Module: m.ModuleID().Pb(),
 		Type: &apb.VerifyCertOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
@@ -57,7 +57,7 @@ func RequestTransactions[C any](m dsl.Module, dest t.ModuleID, cert *apb.Cert, c
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &apb.RequestTransactionsOrigin{
-		Module: dest.Pb(),
+		Module: m.ModuleID().Pb(),
 		Type: &apb.RequestTransactionsOrigin_Dsl{
 			Dsl: dsl.Origin(contextID),
 		},
