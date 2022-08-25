@@ -82,8 +82,8 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		return events.EmptyList(), nil // no actions on init
 	case *eventpb.Event_NewEpoch:
 		return chat.applyNewEpoch(e.NewEpoch)
-	case *eventpb.Event_Deliver:
-		return chat.ApplyDeliver(e.Deliver)
+	case *eventpb.Event_DeliverCert:
+		return chat.ApplyDeliverCert(e.DeliverCert)
 	case *eventpb.Event_Availability:
 		switch e := e.Availability.Type.(type) {
 		case *availabilitypb.Event_ProvideTransactions:
@@ -100,15 +100,15 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 	}
 }
 
-// ApplyDeliver applies a delivered availability certificate.
-func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, error) {
+// ApplyDeliverCert applies a delivered availability certificate.
+func (chat *ChatApp) ApplyDeliverCert(deliverCert *eventpb.DeliverCert) (*events.EventList, error) {
 
-	// Skip padding certificates. Deliver events with nil certificates are considered noops.
-	if deliver.Cert.Type == nil {
+	// Skip padding certificates. DeliverCert events with nil certificates are considered noops.
+	if deliverCert.Cert.Type == nil {
 		return events.EmptyList(), nil
 	}
 
-	switch c := deliver.Cert.Type.(type) {
+	switch c := deliverCert.Cert.Type.(type) {
 	case *availabilitypb.Cert_Msc:
 		// If the certificate was produced by the multisig collector
 
@@ -123,7 +123,7 @@ func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, 
 		// which should respond with a ProvideTransactions event.
 		return events.ListOf(availabilityevents.RequestTransactions(
 			availabilityModuleID.Then(t.ModuleID(fmt.Sprintf("%v", chat.currentEpoch))),
-			deliver.Cert,
+			deliverCert.Cert,
 			&availabilitypb.RequestTransactionsOrigin{
 				Module: "app",
 				Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
@@ -132,7 +132,7 @@ func (chat *ChatApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, 
 			},
 		)), nil
 	default:
-		return nil, fmt.Errorf("unknown availability certificate type: %T", deliver.Cert.Type)
+		return nil, fmt.Errorf("unknown availability certificate type: %T", deliverCert.Cert.Type)
 	}
 }
 

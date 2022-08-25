@@ -55,8 +55,8 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-	case *eventpb.Event_Deliver:
-		return fa.ApplyDeliver(e.Deliver)
+	case *eventpb.Event_DeliverCert:
+		return fa.ApplyDeliverCert(e.DeliverCert)
 	case *eventpb.Event_Availability:
 		switch e := e.Availability.Type.(type) {
 		case *availabilitypb.Event_ProvideTransactions:
@@ -87,15 +87,15 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fa *FakeApp) ImplementsModule() {}
 
-// ApplyDeliver applies a batch of requests to the state of the application.
-func (fa *FakeApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, error) {
+// ApplyDeliverCert applies a batch of requests to the state of the application.
+func (fa *FakeApp) ApplyDeliverCert(deliverCert *eventpb.DeliverCert) (*events.EventList, error) {
 
-	// Skip padding certificates. Deliver events with nil certificates are considered noops.
-	if deliver.Cert.Type == nil {
+	// Skip padding certificates. DeliverCert events with nil certificates are considered noops.
+	if deliverCert.Cert.Type == nil {
 		return events.EmptyList(), nil
 	}
 
-	switch c := deliver.Cert.Type.(type) {
+	switch c := deliverCert.Cert.Type.(type) {
 	case *availabilitypb.Cert_Msc:
 
 		if len(c.Msc.BatchId) == 0 {
@@ -105,7 +105,7 @@ func (fa *FakeApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, er
 
 		return events.ListOf(availabilityevents.RequestTransactions(
 			t.ModuleID("availability").Then(t.ModuleID(fmt.Sprintf("%v", fa.currentEpoch))),
-			deliver.Cert,
+			deliverCert.Cert,
 			&availabilitypb.RequestTransactionsOrigin{
 				Module: "app",
 				Type: &availabilitypb.RequestTransactionsOrigin_ContextStore{
@@ -115,7 +115,7 @@ func (fa *FakeApp) ApplyDeliver(deliver *eventpb.Deliver) (*events.EventList, er
 		)), nil
 
 	default:
-		return nil, fmt.Errorf("unknown availability certificate type: %T", deliver.Cert.Type)
+		return nil, fmt.Errorf("unknown availability certificate type: %T", deliverCert.Cert.Type)
 	}
 }
 
