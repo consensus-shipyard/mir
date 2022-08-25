@@ -44,6 +44,14 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 	return &newEvent, nextList
 }
 
+func Redirect(event *eventpb.Event, destination t.ModuleID) *eventpb.Event {
+	return &eventpb.Event{
+		Type:       event.Type,
+		Next:       event.Next,
+		DestModule: destination.Pb(),
+	}
+}
+
 // ============================================================
 // Event Constructors
 // ============================================================

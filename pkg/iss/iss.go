@@ -59,7 +59,7 @@ func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
 		Self:         "iss",
 		Net:          "net",
-		App:          "app",
+		App:          "batchFetcher",
 		Wal:          "wal",
 		Hasher:       "hasher",
 		Crypto:       "crypto",
