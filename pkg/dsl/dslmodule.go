@@ -13,10 +13,11 @@ import (
 )
 
 type dslModuleImpl struct {
-	moduleID          t.ModuleID
-	eventHandlers     map[reflect.Type][]func(ev *eventpb.Event) error
-	conditionHandlers []func() error
-	outputEvents      *events.EventList
+	moduleID            t.ModuleID
+	defaultEventHandler func(ev *eventpb.Event) error
+	eventHandlers       map[reflect.Type][]func(ev *eventpb.Event) error
+	conditionHandlers   []func() error
+	outputEvents        *events.EventList
 	// contextStore is used to store and recover context on asynchronous operations such as signature verification.
 	contextStore cs.ContextStore[any]
 	// eventCleanupContextIDs is used to dispose of the used up entries in contextStore.
@@ -47,6 +48,7 @@ type Module interface {
 func NewModule(moduleID t.ModuleID) Module {
 	return &dslModuleImpl{
 		moduleID:               moduleID,
+		defaultEventHandler:    failExceptForInit,
 		eventHandlers:          make(map[reflect.Type][]func(ev *eventpb.Event) error),
 		outputEvents:           &events.EventList{},
 		contextStore:           cs.NewSequentialContextStore[any](),
@@ -73,6 +75,10 @@ func UponEvent[EvWrapper eventpb.Event_TypeWrapper[Ev], Ev any](m Module, handle
 		func(evWrapper *eventpb.Event) error {
 			return handler(evWrapper.Type.(EvWrapper).Unwrap())
 		})
+}
+
+func UponOtherEvent(m Module, handler func(ev *eventpb.Event) error) {
+	m.DslHandle().impl.defaultEventHandler = handler
 }
 
 // UponCondition registers a special type of handler that will be invoked each time after processing a batch of events.
@@ -129,11 +135,15 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	for ev := iter.Next(); ev != nil; ev = iter.Next() {
 		handlers, ok := m.eventHandlers[reflect.TypeOf(ev.Type)]
 
-		// For convenience, it is not considered an error to not have handlers for the Init event.
-		if !ok && reflect.TypeOf(ev.Type) != reflectutil.TypeOf[*eventpb.Event_Init]() {
-			return nil, fmt.Errorf("unknown event type '%T'", ev.Type)
+		// If no specific handler was defined for this event type, execute the default handler.
+		if !ok {
+			err := m.defaultEventHandler(ev)
+			if err != nil {
+				return nil, err
+			}
 		}
 
+		// Execute all handlers registered for the event type.
 		for _, h := range handlers {
 			err := h(ev)
 			if err != nil {
@@ -162,4 +172,14 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	outputEvents := m.outputEvents
 	m.outputEvents = &events.EventList{}
 	return outputEvents, nil
+}
+
+// The failExceptForInit returns an error for every received event type except for Init.
+// For convenience, if this is used as the default event handler,
+// it is not considered an error to not have handlers for the Init event.
+func failExceptForInit(ev *eventpb.Event) error {
+	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
+		return nil
+	}
+	return fmt.Errorf("unknown event type '%T'", ev.Type)
 }
