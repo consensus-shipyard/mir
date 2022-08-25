@@ -77,8 +77,8 @@ func (p *Event_MessageReceived) Unwrap() *MessageReceived {
 	return p.MessageReceived
 }
 
-func (p *Event_Deliver) Unwrap() *Deliver {
-	return p.Deliver
+func (p *Event_DeliverCert) Unwrap() *DeliverCert {
+	return p.DeliverCert
 }
 
 func (p *Event_Iss) Unwrap() *isspb.ISSEvent {

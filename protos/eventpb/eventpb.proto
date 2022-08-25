@@ -45,7 +45,7 @@ message Event {
     RequestReady            request_ready           = 14;
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
-    Deliver                 deliver                 = 17;
+    DeliverCert             deliver_cert            = 17;
     isspb.ISSEvent          iss                     = 18;
     VerifyRequestSig        verify_request_sig      = 19;
     RequestSigVerified      request_sig_verified    = 20;
@@ -185,7 +185,7 @@ message WALTruncate {
 message WALLoadAll {
 }
 
-message Deliver {
+message DeliverCert {
   uint64 sn = 1;
   availabilitypb.Cert cert = 2;
 }

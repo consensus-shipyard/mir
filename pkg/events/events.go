@@ -266,11 +266,13 @@ func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.RetentionIndex) *e
 }
 
 // Deliver returns an event of delivering a request batch to the application in sequence number order.
-func Deliver(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Deliver{Deliver: &eventpb.Deliver{
-		Sn:   sn.Pb(),
-		Cert: cert,
-	}}}
+func DeliverCert(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_DeliverCert{
+		DeliverCert: &eventpb.DeliverCert{
+			Sn:   sn.Pb(),
+			Cert: cert,
+		},
+	}}
 }
 
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.

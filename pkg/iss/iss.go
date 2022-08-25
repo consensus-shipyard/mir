@@ -1015,8 +1015,8 @@ func (iss *ISS) processCommitted() (*events.EventList, error) {
 			}
 		}
 
-		// Create a new Deliver event.
-		eventsOut.PushBack(events.Deliver(iss.moduleConfig.App, iss.nextDeliveredSN, &cert))
+		// Create a new DeliverCert event.
+		eventsOut.PushBack(events.DeliverCert(iss.moduleConfig.App, iss.nextDeliveredSN, &cert))
 
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
