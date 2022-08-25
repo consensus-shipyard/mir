@@ -28,6 +28,7 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss"
@@ -223,14 +224,19 @@ func run() error {
 		logger,
 	)
 
+	// The batch fetcher receives availability certificates from the ordering protocol (ISS),
+	// retrieves the corresponding transaction batches, and delivers them to the application.
+	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
+
 	// ================================================================================
 	// Create a Mir Node, attaching the ChatApp implementation and other modules.
 	// ================================================================================
 
 	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		"net": transport,
-		"iss": issProtocol,
+		"net":          transport,
+		"iss":          issProtocol,
+		"batchFetcher": batchFetcher,
 
 		// This is the application logic Mir is going to deliver requests to.
 		// For the implementation of the application, see app.go.

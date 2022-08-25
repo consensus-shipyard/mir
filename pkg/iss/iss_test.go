@@ -23,6 +23,7 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
@@ -435,10 +436,13 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			logger,
 		)
 
+		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
+
 		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
 			"app":          fakeApp,
 			"crypto":       cryptoSystem.Module(nodeID),
 			"iss":          issProtocol,
+			"batchFetcher": batchFetcher,
 			"net":          transport,
 			"mempool":      mempool,
 			"batchdb":      batchdb,
