@@ -19,7 +19,6 @@ import (
 	"fmt"
 	net2 "net"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -42,7 +41,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -126,12 +124,6 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("could not load node IPs: %w", err)
 	}
-
-	// IDs of nodes that are part of the system.
-	nodeIDs := maputil.GetKeys(initialMembership)
-	sort.Slice(nodeIDs, func(i, j int) bool {
-		return nodeIDs[i] < nodeIDs[j]
-	})
 
 	// Generate addresses and ports for client request receivers.
 	// Each node uses different ports for receiving protocol messages and requests.
