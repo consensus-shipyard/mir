@@ -30,7 +30,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
@@ -39,7 +38,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -213,36 +211,15 @@ func run() error {
 		},
 	)
 
-	mscFactory := factorymodule.New(
-		"availability",
-		factorymodule.DefaultParams(
-			func(mscID t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
-
-				m := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector.Membership
-				mscNodeIDs := maputil.GetSortedKeys(t.Membership(m))
-
-				// Instantiate the availability layer.
-				multisigCollector, err := multisigcollector.NewModule(
-					&multisigcollector.ModuleConfig{
-						Self:    mscID,
-						Mempool: "mempool",
-						BatchDB: "batchdb",
-						Net:     "net",
-						Crypto:  "crypto",
-					},
-					&multisigcollector.ModuleParams{
-						InstanceUID: []byte(mscID),
-						AllNodes:    mscNodeIDs,
-						F:           (len(mscNodeIDs) - 1) / 2,
-					},
-					args.OwnID,
-				)
-				if err != nil {
-					return nil, err
-				}
-				return multisigCollector, nil
-			},
-		),
+	availability := multisigcollector.NewReconfigurableModule(
+		&multisigcollector.ModuleConfig{
+			Self:    "availability",
+			Mempool: "mempool",
+			BatchDB: "batchdb",
+			Net:     "net",
+			Crypto:  "crypto",
+		},
+		args.OwnID,
 		logger,
 	)
 
@@ -266,7 +243,7 @@ func run() error {
 
 		"mempool":      mempool,
 		"batchdb":      batchdb,
-		"availability": mscFactory,
+		"availability": availability,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize Mir modules: %w", err)
