@@ -53,13 +53,13 @@ func newEpochInfo(
 // If validation fails, returns the reason for which the message is considered invalid.
 func (e *epochInfo) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error {
 
-	// Message must be destined for the current epoch.
+	// Message must be destined for this epoch.
 	if t.EpochNr(message.Epoch) != e.Nr {
 		return fmt.Errorf("invalid epoch: %v (expected %v)", message.Epoch, e.Nr)
 	}
 
 	// Message must refer to a valid SB instance.
-	if int(message.Instance) > len(e.Orderers) {
+	if int(message.Instance) >= len(e.Orderers) {
 		return fmt.Errorf("invalid SB instance number: %d", message.Instance)
 	}
 
