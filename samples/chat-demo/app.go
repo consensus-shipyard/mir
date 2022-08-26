@@ -21,6 +21,7 @@ import (
 
 	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
@@ -214,7 +215,7 @@ func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventLis
 	// Create network connections to all nodes in the new membership.
 	var nodeAddrs map[t.NodeID]t.NodeAddress
 	var err error
-	if nodeAddrs, err = dummyMultiAddrs(chat.newMembership); err != nil {
+	if nodeAddrs, err = membership.DummyMultiAddrs(chat.newMembership); err != nil {
 		return nil, err
 	}
 
