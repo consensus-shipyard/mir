@@ -33,6 +33,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -85,20 +86,6 @@ func main() {
 	}
 }
 
-func dummyMultiAddrs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]t.NodeAddress, error) {
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
-
-	for nodeID, nodeAddr := range membership {
-		numericID, err := strconv.Atoi(string(nodeID))
-		if err != nil {
-			return nil, fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
-		}
-		nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
-	}
-
-	return nodeAddrs, nil
-}
-
 func run() error {
 	// Parse command-line parameters.
 	_ = parseArgs(os.Args)
@@ -129,14 +116,14 @@ func run() error {
 		return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 	}
 
-	initialMembership, err := loadMembership(args.InitMembershipFile)
+	initialMembership, err := membership.FromFile(args.InitMembershipFile)
 	if err != nil {
 		return fmt.Errorf("could not load membership: %w", err)
 	}
 	if err := args.InitMembershipFile.Close(); err != nil {
 		return fmt.Errorf("could not close membership file: %w", err)
 	}
-	addresses, err := membershipIPs(initialMembership)
+	addresses, err := membership.GetIPs(initialMembership)
 	if err != nil {
 		return fmt.Errorf("could not load node IPs: %w", err)
 	}
@@ -178,7 +165,7 @@ func run() error {
 		nodeAddrs = initialMembership
 	case "libp2p":
 		h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
-		nodeAddrs, err = dummyMultiAddrs(initialMembership)
+		nodeAddrs, err = membership.DummyMultiAddrs(initialMembership)
 		if err != nil {
 			return fmt.Errorf("could not generate libp2p multiaddresses: %w", err)
 		}
