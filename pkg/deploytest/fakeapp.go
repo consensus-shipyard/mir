@@ -26,17 +26,12 @@ type FakeApp struct {
 
 	// The state of the FakeApp only consists of a counter of processed requests.
 	RequestsProcessed uint64
-
-	// Map of delivered requests that is used to filter duplicates.
-	// TODO: Implement compaction (client watermarks) so that this map does not grow indefinitely.
-	delivered map[t.ClientID]map[t.ReqNo]struct{}
 }
 
 func NewFakeApp(protocolModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *FakeApp {
 	return &FakeApp{
 		ProtocolModule:    protocolModule,
 		Membership:        membership,
-		delivered:         make(map[t.ClientID]map[t.ReqNo]struct{}),
 		RequestsProcessed: 0,
 	}
 }
@@ -82,23 +77,8 @@ func (fa *FakeApp) ImplementsModule() {}
 func (fa *FakeApp) applyProvideTransactions(ptx *availabilitypb.ProvideTransactions) (*events.EventList, error) {
 
 	for _, req := range ptx.Txs {
-
-		// Convenience variables
-		clID := t.ClientID(req.ClientId)
-		reqNo := t.ReqNo(req.ReqNo)
-
-		// Only process request if it has not yet been delivered.
-		// TODO: Make this more efficient by compacting the delivered set.
-		_, ok := fa.delivered[clID]
-		if !ok {
-			fa.delivered[clID] = make(map[t.ReqNo]struct{})
-		}
-		if _, ok := fa.delivered[clID][reqNo]; !ok {
-			fa.delivered[clID][reqNo] = struct{}{}
-			fa.RequestsProcessed++
-			fmt.Printf("Received request: \"%s\". Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
-		}
-
+		fa.RequestsProcessed++
+		fmt.Printf("Received request: \"%s\". Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
 	}
 	return events.EmptyList(), nil
 }

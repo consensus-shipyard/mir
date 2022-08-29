@@ -27,6 +27,10 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	// The current epoch number, as announced by the ordering protocol.
 	epochNr := t.EpochNr(0)
 
+	// Map of delivered requests that is used to filter duplicates.
+	// TODO: Implement compaction (client watermarks) so that this map does not grow indefinitely.
+	delivered := make(map[t.ClientID]map[t.ReqNo]struct{})
+
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event that has arrived before has not yet been transformed to a ProvideTransactions event.
 	var output outputQueue
@@ -79,11 +83,37 @@ func NewModule(mc *ModuleConfig) modules.Module {
 		return nil
 	})
 
-	// The ProvideTransactions handler assigns the received transaction batch to the corresponding output item
+	// The ProvideTransactions handler filters the received transaction batch,
+	// removing all transactions that have been previously delivered,
+	// assigns the remaining transactions to the corresponding output item
 	// (the one created on reception of the corresponding availability certificate in DeliverCert)
 	// and flushes the output stream.
 	availabilitydsl.UponProvideTransactions(m, func(txs []*requestpb.Request, item *outputItem) error {
-		item.event = availabilityevents.ProvideTransactions(mc.Destination, txs, nil)
+
+		// Filter out transactions that already have been delivered
+		newTxs := make([]*requestpb.Request, 0, len(txs))
+		for _, req := range txs {
+			// Runs for each received transaction.
+
+			// Convenience variables
+			clID := t.ClientID(req.ClientId)
+			reqNo := t.ReqNo(req.ReqNo)
+
+			// Only keep request if it has not yet been delivered.
+			// TODO: Make this more efficient by compacting the delivered set.
+			_, ok := delivered[clID]
+			if !ok {
+				// If this is the first transaction from this client, create a new entry for the ClientID.
+				delivered[clID] = make(map[t.ReqNo]struct{})
+			}
+			if _, ok := delivered[clID][reqNo]; !ok {
+				// If the transaction has not yet been delivered, record its delivery and append it to the output.
+				delivered[clID][reqNo] = struct{}{}
+				newTxs = append(newTxs, req)
+			}
+		}
+
+		item.event = availabilityevents.ProvideTransactions(mc.Destination, newTxs, nil)
 		output.Flush(m)
 		return nil
 	})
