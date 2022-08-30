@@ -61,6 +61,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 		info, found := state.BatchStore[batchID]
 		if !found {
 			batchdbdsl.LookupBatchResponse(m, t.ModuleID(origin.Module), false, nil, nil, origin)
+			return nil
 		}
 
 		txs := make([]*requestpb.Request, len(info.txIDs))
