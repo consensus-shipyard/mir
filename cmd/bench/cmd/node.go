@@ -113,7 +113,7 @@ func runNode() error {
 	crypto := mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}})
 
 	stats := NewStats()
-	interceptor := NewStatInterceptor(stats)
+	interceptor := NewStatInterceptor(stats, "app")
 
 	nodeModules, err := iss.DefaultModules(modules.Modules{
 		"net":    transport,
