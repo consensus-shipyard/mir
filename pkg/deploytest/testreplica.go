@@ -79,12 +79,10 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	defer wal.Close()
 
 	// Initialize recording of events.
-	file, err := os.Create(tr.EventLogFile())
+	interceptor, err := eventlog.NewRecorder(tr.ID, tr.EventLogFile(), logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	if err != nil {
-		return fmt.Errorf("error creating event log file: %w", err)
+		return fmt.Errorf("error creating interceptor: %w", err)
 	}
-	defer file.Close()
-	interceptor := eventlog.NewRecorder(tr.ID, file, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	defer func() {
 		if err := interceptor.Stop(); err != nil {
 			panic(err)
