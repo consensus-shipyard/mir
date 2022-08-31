@@ -10,14 +10,16 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
+	"strconv"
 	"time"
 
-	rateLimiter "golang.org/x/time/rate"
-
 	"github.com/spf13/cobra"
+	rateLimiter "golang.org/x/time/rate"
 
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/membership"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -52,14 +54,25 @@ func runClient() error {
 		logger = logging.ConsoleWarnLogger
 	}
 
-	nodeIDs := make([]t.NodeID, nrNodes)
-	for i := range nodeIDs {
-		nodeIDs[i] = t.NewNodeIDFromInt(i)
+	initialMembership, err := membership.FromFileName(membershipFile)
+	if err != nil {
+		return fmt.Errorf("could not load membership: %w", err)
+	}
+	addresses, err := membership.GetIPs(initialMembership)
+	if err != nil {
+		return fmt.Errorf("could not load node IPs: %w", err)
 	}
 
+	// Generate addresses and ports for client request receivers.
+	// Each node uses different ports for receiving protocol messages and requests.
+	// These addresses will be used by the client code to know where to send its requests.
 	reqReceiverAddrs := make(map[t.NodeID]string)
-	for i := range nodeIDs {
-		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", ReqReceiverBasePort+i)
+	for nodeID, nodeIP := range addresses {
+		numericID, err := strconv.Atoi(string(nodeID))
+		if err != nil {
+			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+		}
+		reqReceiverAddrs[nodeID] = net.JoinHostPort(nodeIP, fmt.Sprintf("%d", ReqReceiverBasePort+numericID))
 	}
 
 	ctx, stop := context.WithCancel(context.Background())

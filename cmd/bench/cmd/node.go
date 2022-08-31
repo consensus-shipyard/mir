@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -16,21 +17,24 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/membership"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net"
+	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
-	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
-	NodeBasePort        = 10000
 	ReqReceiverBasePort = 20000
 )
 
@@ -63,37 +67,50 @@ func runNode() error {
 		logger = logging.ConsoleWarnLogger
 	}
 
-	ownID, err := strconv.Atoi(id)
+	initialMembership, err := membership.FromFileName(membershipFile)
+	if err != nil {
+		return fmt.Errorf("could not load membership: %w", err)
+	}
+	addresses, err := membership.GetIPs(initialMembership)
+	if err != nil {
+		return fmt.Errorf("could not load node IPs: %w", err)
+	}
+
+	ownNumericID, err := strconv.Atoi(id)
 	if err != nil {
 		return fmt.Errorf("unable to convert node ID: %w", err)
-	} else if ownID < 0 || ownID >= nrNodes {
-		return fmt.Errorf("ID must be in [0, %d]", nrNodes-1)
+	} else if ownNumericID < 0 || ownNumericID >= len(initialMembership) {
+		return fmt.Errorf("ID must be in [0, %d]", len(initialMembership)-1)
 	}
+	ownID := t.NodeID(id)
 
-	nodeIDs := make([]t.NodeID, nrNodes)
-	for i := range nodeIDs {
-		nodeIDs[i] = t.NewNodeIDFromInt(i)
-	}
-
+	// Generate addresses and ports for client request receivers.
+	// Each node uses different ports for receiving protocol messages and requests.
+	// These addresses will be used by the client code to know where to send its requests.
 	reqReceiverAddrs := make(map[t.NodeID]string)
-	for i := range nodeIDs {
-		reqReceiverAddrs[t.NewNodeIDFromInt(i)] = fmt.Sprintf("127.0.0.1:%d", ReqReceiverBasePort+i)
+	for nodeID, nodeIP := range addresses {
+		numericID, err := strconv.Atoi(string(nodeID))
+		if err != nil {
+			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+		}
+		reqReceiverAddrs[nodeID] = net.JoinHostPort(nodeIP, fmt.Sprintf("%d", ReqReceiverBasePort+numericID))
 	}
 
-	var transport net.Transport
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+	// In the current implementation, all nodes are on the local machine, but listen on different port numbers.
+	// Change this or make this configurable to deploy different nodes on different physical machines.
+	var transport mirnet.Transport
+	var nodeAddrs map[t.NodeID]t.NodeAddress
 	switch strings.ToLower(transportType) {
 	case "grpc":
-		for i := range nodeIDs {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + NodeBasePort))
-		}
-		transport, err = grpc.NewTransport(t.NodeID(id), nodeAddrs[t.NodeID(id)], logger)
+		transport, err = grpc.NewTransport(ownID, initialMembership[ownID], logger)
+		nodeAddrs = initialMembership
 	case "libp2p":
-		h := libp2ptools.NewDummyHost(ownID, NodeBasePort)
-		for i := range nodeIDs {
-			nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(i, NodeBasePort))
+		h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[ownID])
+		nodeAddrs, err = membership.DummyMultiAddrs(initialMembership)
+		if err != nil {
+			return fmt.Errorf("could not generate libp2p multiaddresses: %w", err)
 		}
-		transport, err = libp2p.NewTransport(h, t.NodeID(id), logger)
+		transport, err = libp2p.NewTransport(h, ownID, logger)
 	default:
 		return fmt.Errorf("unknown network transport %s", strings.ToLower(transportType))
 	}
@@ -101,11 +118,50 @@ func runNode() error {
 		return fmt.Errorf("failed to get network transport %w", err)
 	}
 
-	issConfig := iss.DefaultConfig(nodeIDs)
-	issProtocol, err := iss.New(t.NodeID(id), issConfig, logger)
+	issConfig := iss.DefaultConfig(initialMembership)
+	issProtocol, err := iss.New(
+		ownID,
+		iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot([]byte{}, issConfig),
+		logger,
+	)
 	if err != nil {
 		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
 	}
+
+	// Use a simple mempool for incoming requests.
+	mempool := simplemempool.NewModule(
+		&simplemempool.ModuleConfig{
+			Self:   "mempool",
+			Hasher: "hasher",
+		},
+		&simplemempool.ModuleParams{
+			MaxTransactionsInBatch: 10,
+		},
+	)
+
+	// Use fake batch database.
+	batchdb := fakebatchdb.NewModule(
+		&fakebatchdb.ModuleConfig{
+			Self: "batchdb",
+		},
+	)
+
+	// Instantiate a reconfigurable availability layer.
+	availability := multisigcollector.NewReconfigurableModule(
+		&multisigcollector.ModuleConfig{
+			Self:    "availability",
+			Mempool: "mempool",
+			BatchDB: "batchdb",
+			Net:     "net",
+			Crypto:  "crypto",
+		},
+		ownID,
+		logger,
+	)
+
+	// The batch fetcher receives availability certificates from the ordering protocol (ISS),
+	// retrieves the corresponding transaction batches, and delivers them to the application.
+	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
 
 	// Use dummy crypto module that only produces signatures
 	// consisting of a single zero byte and treats those signatures as valid.
@@ -116,10 +172,14 @@ func runNode() error {
 	interceptor := NewStatInterceptor(stats, "app")
 
 	nodeModules, err := iss.DefaultModules(modules.Modules{
-		"net":    transport,
-		"crypto": crypto,
-		"iss":    issProtocol,
-		"app":    &App{Logger: logger},
+		"net":          transport,
+		"crypto":       crypto,
+		"iss":          issProtocol,
+		"app":          &App{Logger: logger, ProtocolModule: "iss", Membership: nodeAddrs},
+		"batchfetcher": batchFetcher,
+		"mempool":      mempool,
+		"batchdb":      batchdb,
+		"availability": availability,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to initialize Mir modules: %w", err)
@@ -133,8 +193,8 @@ func runNode() error {
 
 	ctx := context.Background()
 
-	reqReceiver := requestreceiver.NewRequestReceiver(node, "iss", logger)
-	if err := reqReceiver.Start(ReqReceiverBasePort + ownID); err != nil {
+	reqReceiver := requestreceiver.NewRequestReceiver(node, "mempool", logger)
+	if err := reqReceiver.Start(ReqReceiverBasePort + ownNumericID); err != nil {
 		return fmt.Errorf("could not start request receiver: %w", err)
 	}
 	defer reqReceiver.Stop()
@@ -167,11 +227,11 @@ func runNode() error {
 			select {
 			case <-ctx.Done():
 				return
-			case t := <-ticker.C:
-				d := t.Sub(timestamp)
+			case ts := <-ticker.C:
+				d := ts.Sub(timestamp)
 				stats.WriteCSVRecord(statsCSV, d)
 				statsCSV.Flush()
-				timestamp = t
+				timestamp = ts
 				stats.Reset()
 			}
 		}
