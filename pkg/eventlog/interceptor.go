@@ -16,6 +16,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -80,7 +82,7 @@ func CompressionLevelOpt(level int) RecorderOpt {
 	return compressionLevelOpt(level)
 }
 
-// DefaultBuffer size is the number of unwritten state events which
+// DefaultBufferSize is the number of unwritten state events which
 // may be held in queue before blocking.
 const DefaultBufferSize = 5000
 
@@ -99,6 +101,7 @@ func BufferSizeOpt(size int) RecorderOpt {
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
 	nodeID            t.NodeID
+	dest              *os.File
 	timeSource        func() int64
 	compressionLevel  int
 	retainRequestData bool
@@ -110,10 +113,20 @@ type Recorder struct {
 	exitErrMutex sync.Mutex
 }
 
-func NewRecorder(nodeID t.NodeID, dest io.Writer, logger logging.Logger, opts ...RecorderOpt) *Recorder {
+func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...RecorderOpt) (*Recorder, error) {
 	startTime := time.Now()
 
+	if err := os.MkdirAll(path, 0700); err != nil {
+		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
+	}
+
+	dest, err := os.Create(filepath.Join(path, "eventlog.gz"))
+	if err != nil {
+		return nil, fmt.Errorf("error creating event log file: %w", err)
+	}
+
 	i := &Recorder{
+		dest:   dest,
 		nodeID: nodeID,
 		timeSource: func() int64 {
 			return time.Since(startTime).Milliseconds()
@@ -138,7 +151,7 @@ func NewRecorder(nodeID t.NodeID, dest io.Writer, logger logging.Logger, opts ..
 	}
 
 	go func() {
-		err := i.run(dest)
+		err := i.run()
 		if err != nil {
 			logger.Log(logging.LevelError, "Interceptor returned with error.", "err", err)
 		} else {
@@ -146,7 +159,7 @@ func NewRecorder(nodeID t.NodeID, dest io.Writer, logger logging.Logger, opts ..
 		}
 	}()
 
-	return i
+	return i, nil
 }
 
 type eventTime struct {
@@ -183,12 +196,16 @@ func (i *Recorder) Stop() error {
 	if errors.Is(i.exitErr, errStopped) {
 		return nil
 	}
+	err := i.dest.Close()
+	if err != nil {
+		return err
+	}
 	return i.exitErr
 }
 
 var errStopped = fmt.Errorf("interceptor stopped at caller request")
 
-func (i *Recorder) run(dest io.Writer) (exitErr error) {
+func (i *Recorder) run() (exitErr error) {
 	cnt := 0 // Counts total number of events written.
 
 	defer func() {
@@ -199,7 +216,7 @@ func (i *Recorder) run(dest io.Writer) (exitErr error) {
 		fmt.Printf("Intercepted events written to event log: %d\n", cnt)
 	}()
 
-	gzWriter, err := gzip.NewWriterLevel(dest, i.compressionLevel)
+	gzWriter, err := gzip.NewWriterLevel(i.dest, i.compressionLevel)
 	if err != nil {
 		return err
 	}
