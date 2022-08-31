@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	id      string
-	nrNodes int
-	verbose bool
+	id             string
+	membershipFile string
+	verbose        bool
 
 	rootCmd = &cobra.Command{
 		Use:   "bench",
@@ -34,6 +34,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "node/client ID")
 	_ = rootCmd.MarkPersistentFlagRequired("id")
-	rootCmd.PersistentFlags().IntVarP(&nrNodes, "nrNodes", "n", 4, "total number of nodes")
+	rootCmd.PersistentFlags().StringVarP(&membershipFile, "membership", "m", "", "total number of nodes")
+	_ = rootCmd.MarkPersistentFlagRequired("membership")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
 }

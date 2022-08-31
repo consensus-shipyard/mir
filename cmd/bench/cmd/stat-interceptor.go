@@ -6,7 +6,7 @@ package cmd
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -38,10 +38,10 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 			for _, req := range e.NewRequests.Requests {
 				i.Stats.NewRequest(req)
 			}
-		case *eventpb.Event_Availability:
-			switch e := e.Availability.Type.(type) {
-			case *availabilitypb.Event_ProvideTransactions:
-				for _, req := range e.ProvideTransactions.Txs {
+		case *eventpb.Event_BatchFetcher:
+			switch e := e.BatchFetcher.Type.(type) {
+			case *bfpb.Event_NewOrderedBatch:
+				for _, req := range e.NewOrderedBatch.Txs {
 					i.Stats.Delivered(req)
 				}
 			}
