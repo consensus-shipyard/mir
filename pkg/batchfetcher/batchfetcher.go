@@ -4,18 +4,17 @@ import (
 	"fmt"
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // NewModule returns a new batch fetcher module.
-// The batch receives events output by the ordering protocol (e.g. ISS)
+// The batch fetcher receives events output by the ordering protocol (e.g. ISS)
 // and relays them to the application in the same order.
 // It replaces the DeliverCert events from the input stream by the corresponding ProvideTransactions
 // that it obtains from the availability layer.
@@ -32,7 +31,8 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	delivered := make(map[t.ClientID]map[t.ReqNo]struct{})
 
 	// Queue of output events. It is required for buffering events being relayed
-	// in case a DeliverCert event that has arrived before has not yet been transformed to a ProvideTransactions event.
+	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
+	// In such a case, events received later must not be relayed until the pending certificate has been resolved.
 	var output outputQueue
 
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
@@ -47,39 +47,27 @@ func NewModule(mc *ModuleConfig) modules.Module {
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	// TODO: Verify Certificate? Here or elsewhere?
+	// TODO: Make sure the certificate has been verified by the producer of this event.
 	dsl.UponEvent[*eventpb.Event_DeliverCert](m, func(cert *eventpb.DeliverCert) error {
 		// Skip padding certificates. DeliverCert events with nil certificates are considered noops.
 		if cert.Cert.Type == nil {
 			return nil
 		}
 
-		switch c := cert.Cert.Type.(type) {
-		case *availabilitypb.Cert_Msc:
+		// Create an empty output item and enqueue it immediately.
+		// Actual output will be delayed until the transactions have been received.
+		// This is necessary to preserve the order of incoming and outgoing events.
+		item := outputItem{event: nil}
+		output.Enqueue(&item)
 
-			// TODO: Check whether this makes any sense.
-			if len(c.Msc.BatchId) == 0 {
-				fmt.Println("Received empty batch availability certificate.")
-				return nil
-			}
+		// Request transactions from the availability layer.
+		availabilitydsl.RequestTransactions(
+			m,
+			mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+			cert.Cert,
+			&txRequestContext{queueItem: &item},
+		)
 
-			// Create an empty output item and enqueue it immediately.
-			// Actual output will be delayed until the transactions have been received.
-			// This is necessary to preserve the order of incoming and outgoing events.
-			item := outputItem{event: nil}
-			output.Enqueue(&item)
-
-			// Request transactions from the availability layer.
-			availabilitydsl.RequestTransactions(
-				m,
-				mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-				cert.Cert,
-				&item,
-			)
-
-		default:
-			return fmt.Errorf("unknown availability certificate type: %T", cert.Cert.Type)
-		}
 		return nil
 	})
 
@@ -88,7 +76,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	// assigns the remaining transactions to the corresponding output item
 	// (the one created on reception of the corresponding availability certificate in DeliverCert)
 	// and flushes the output stream.
-	availabilitydsl.UponProvideTransactions(m, func(txs []*requestpb.Request, item *outputItem) error {
+	availabilitydsl.UponProvideTransactions(m, func(txs []*requestpb.Request, context *txRequestContext) error {
 
 		// Filter out transactions that already have been delivered
 		newTxs := make([]*requestpb.Request, 0, len(txs))
@@ -113,7 +101,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			}
 		}
 
-		item.event = availabilityevents.ProvideTransactions(mc.Destination, newTxs, nil)
+		context.queueItem.event = bfevents.NewOrderedBatch(mc.Destination, newTxs)
 		output.Flush(m)
 		return nil
 	})
@@ -128,4 +116,9 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	})
 
 	return m
+}
+
+// txRequestContext saves the context of requesting transactions from the availability layer.
+type txRequestContext struct {
+	queueItem *outputItem
 }
