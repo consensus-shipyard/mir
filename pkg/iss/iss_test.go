@@ -442,7 +442,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"app":          fakeApp,
 			"crypto":       cryptoSystem.Module(nodeID),
 			"iss":          issProtocol,
-			"batchFetcher": batchFetcher,
+			"batchfetcher": batchFetcher,
 			"net":          transport,
 			"mempool":      mempool,
 			"batchdb":      batchdb,

@@ -21,6 +21,7 @@ import "mempoolpb/mempoolpb.proto";
 import "availabilitypb/availabilitypb.proto";
 import "factorymodulepb/factorymodulepb.proto";
 import "availabilitypb/batchdbpb/batchdbpb.proto";
+import "batchfetcherpb/batchfetcherpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -63,6 +64,7 @@ message Event {
     NewConfig               new_config              = 32;
     factorymodulepb.Factory factory                 = 33;
     batchdbpb.Event         batch_db                = 34;
+    batchfetcherpb.Event    batch_fetcher           = 35;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;

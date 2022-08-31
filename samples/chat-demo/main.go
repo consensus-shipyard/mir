@@ -236,7 +236,7 @@ func run() error {
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":          transport,
 		"iss":          issProtocol,
-		"batchFetcher": batchFetcher,
+		"batchfetcher": batchFetcher,
 
 		// This is the application logic Mir is going to deliver requests to.
 		// For the implementation of the application, see app.go.

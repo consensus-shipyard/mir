@@ -11,7 +11,7 @@ type ModuleConfig struct {
 
 func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
-		Self:         "batchFetcher",
+		Self:         "batchfetcher",
 		Availability: "availability",
 		Destination:  "app",
 	}

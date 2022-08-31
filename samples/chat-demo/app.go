@@ -23,7 +23,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -72,12 +72,12 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 		return events.EmptyList(), nil // no actions on init
 	case *eventpb.Event_NewEpoch:
 		return chat.applyNewEpoch(e.NewEpoch)
-	case *eventpb.Event_Availability:
-		switch e := e.Availability.Type.(type) {
-		case *availabilitypb.Event_ProvideTransactions:
-			return chat.applyProvideTransactions(e.ProvideTransactions)
+	case *eventpb.Event_BatchFetcher:
+		switch e := e.BatchFetcher.Type.(type) {
+		case *bfpb.Event_NewOrderedBatch:
+			return chat.applyNewOrderedBatch(e.NewOrderedBatch)
 		default:
-			return nil, fmt.Errorf("unexpected availability event type: %T", e)
+			return nil, fmt.Errorf("unexpected batch fetcher event type: %T", e)
 		}
 	case *eventpb.Event_AppSnapshotRequest:
 		return chat.applySnapshotRequest(e.AppSnapshotRequest)
@@ -93,9 +93,9 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
 // Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
-func (chat *ChatApp) applyProvideTransactions(ptx *availabilitypb.ProvideTransactions) (*events.EventList, error) {
+func (chat *ChatApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.EventList, error) {
 	// For each request in the batch
-	for _, req := range ptx.Txs {
+	for _, req := range batch.Txs {
 
 		// Convert request payload to chat message.
 		msgString := string(req.Data)

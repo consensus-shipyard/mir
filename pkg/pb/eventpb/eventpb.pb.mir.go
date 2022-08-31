@@ -3,6 +3,7 @@ package eventpb
 import (
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
+	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -147,6 +148,10 @@ func (p *Event_Factory) Unwrap() *factorymodulepb.Factory {
 
 func (p *Event_BatchDb) Unwrap() *batchdbpb.Event {
 	return p.BatchDb
+}
+
+func (p *Event_BatchFetcher) Unwrap() *batchfetcherpb.Event {
+	return p.BatchFetcher
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {

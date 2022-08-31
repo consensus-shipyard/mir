@@ -12,7 +12,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -44,10 +44,10 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-	case *eventpb.Event_Availability:
-		switch e := e.Availability.Type.(type) {
-		case *availabilitypb.Event_ProvideTransactions:
-			return fa.applyProvideTransactions(e.ProvideTransactions)
+	case *eventpb.Event_BatchFetcher:
+		switch e := e.BatchFetcher.Type.(type) {
+		case *bfpb.Event_NewOrderedBatch:
+			return fa.applyNewOrderedBatch(e.NewOrderedBatch)
 		default:
 			return nil, fmt.Errorf("unexpected availability event type: %T", e)
 		}
@@ -74,9 +74,9 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 func (fa *FakeApp) ImplementsModule() {}
 
 // ApplyBatch applies a batch of transactions.
-func (fa *FakeApp) applyProvideTransactions(ptx *availabilitypb.ProvideTransactions) (*events.EventList, error) {
+func (fa *FakeApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.EventList, error) {
 
-	for _, req := range ptx.Txs {
+	for _, req := range batch.Txs {
 		fa.RequestsProcessed++
 		fmt.Printf("Received request: \"%s\". Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
 	}
