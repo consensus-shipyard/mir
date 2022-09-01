@@ -20,7 +20,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
@@ -163,17 +163,14 @@ func runNode() error {
 	// retrieves the corresponding transaction batches, and delivers them to the application.
 	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
 
-	// Use dummy crypto module that only produces signatures
-	// consisting of a single zero byte and treats those signatures as valid.
-	// TODO: Adjust once a default crypto implementation is provided by Mir.
-	crypto := mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}})
+	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
 	stats := NewStats()
 	interceptor := NewStatInterceptor(stats, "app")
 
 	nodeModules, err := iss.DefaultModules(modules.Modules{
 		"net":          transport,
-		"crypto":       crypto,
+		"crypto":       cryptoSystem.Module(ownID),
 		"iss":          issProtocol,
 		"app":          &App{Logger: logger, ProtocolModule: "iss", Membership: nodeAddrs},
 		"batchfetcher": batchFetcher,

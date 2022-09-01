@@ -65,6 +65,14 @@ func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) 
 	return ips, nil
 }
 
+func GetIDs(membership map[t.NodeID]t.NodeAddress) []t.NodeID {
+	ids := make([]t.NodeID, 0, len(membership))
+	for nodeID := range membership {
+		ids = append(ids, nodeID)
+	}
+	return ids
+}
+
 // DummyMultiAddrs returns a set of libp2p multiaddresses based on the given membership,
 // generating host keys deterministically based on node IDs.
 // The node IDs must be convertable to numbers, otherwise DummyMultiAddrs returns an error.
