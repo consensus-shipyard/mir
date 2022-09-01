@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
@@ -165,8 +166,8 @@ func runNode() error {
 
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
-	stats := NewStats()
-	interceptor := NewStatInterceptor(stats, "app")
+	stat := stats.NewStats()
+	interceptor := stats.NewStatInterceptor(stat, "app")
 
 	nodeModules, err := iss.DefaultModules(modules.Modules{
 		"net":          transport,
@@ -212,8 +213,8 @@ func runNode() error {
 		statFile = os.Stdout
 	}
 
-	statsCSV := csv.NewWriter(statFile)
-	stats.WriteCSVHeader(statsCSV)
+	statCSV := csv.NewWriter(statFile)
+	stat.WriteCSVHeader(statCSV)
 
 	go func() {
 		timestamp := time.Now()
@@ -226,10 +227,10 @@ func runNode() error {
 				return
 			case ts := <-ticker.C:
 				d := ts.Sub(timestamp)
-				stats.WriteCSVRecord(statsCSV, d)
-				statsCSV.Flush()
+				stat.WriteCSVRecord(statCSV, d)
+				statCSV.Flush()
 				timestamp = ts
-				stats.Reset()
+				stat.Reset()
 			}
 		}
 	}()
