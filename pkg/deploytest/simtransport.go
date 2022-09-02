@@ -147,7 +147,10 @@ func (m *simTransportModule) sendMessage(ctx context.Context, msg *messagepb.Mes
 			return
 		}
 
-		destModule := m.SimTransport.nodes[target]
+		destModule, ok := m.SimTransport.nodes[target]
+		if !ok {
+			panic(fmt.Sprintf("Destination node does not exist: %v", target))
+		}
 		proc.Send(destModule.simChan, message{m.id, target, msg})
 
 		proc.Exit()
