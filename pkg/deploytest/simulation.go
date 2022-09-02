@@ -6,6 +6,7 @@ package deploytest
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -81,7 +82,11 @@ func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList)
 	})
 
 	for _, m := range moduleIDs {
-		proc.Send(n.moduleChans[m.Top()], eventsMap[m.Top()])
+		ch, ok := n.moduleChans[m.Top()]
+		if !ok {
+			panic(fmt.Sprintf("destination module does not exist: %v", m.Top()))
+		}
+		proc.Send(ch, eventsMap[m.Top()])
 		proc.Yield() // wait until the receiver blocks
 	}
 }
