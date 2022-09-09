@@ -16,3 +16,13 @@ func Generate[T any](n int, f func(i int) T) []T {
 	}
 	return arr
 }
+
+func IndexOf[T comparable](slice []T, val T) (bool, int) {
+	for idx, v := range slice {
+		if v == val {
+			return true, idx
+		}
+	}
+
+	return false, -1
+}
