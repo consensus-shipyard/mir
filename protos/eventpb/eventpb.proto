@@ -65,6 +65,14 @@ message Event {
     factorymodulepb.Factory factory                 = 33;
     batchdbpb.Event         batch_db                = 34;
     batchfetcherpb.Event    batch_fetcher           = 35;
+    ThreshSign              thresh_sign             = 36;
+    ThreshSignResult        thresh_sign_result      = 37;
+    ThreshVerShare          thresh_ver_share        = 38;
+    ThreshVerShareResult    thresh_ver_share_result = 39;
+    ThreshVerFull           thresh_ver_full         = 40;
+    ThreshVerFullResult     thresh_ver_full_result  = 41;
+    ThreshRecover           thresh_recover          = 42;
+    ThreshRecoverResult     thresh_recover_result   = 43;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -244,4 +252,83 @@ message NewEpoch {
 
 message NewConfig {
   commonpb.Membership membership = 1;
+}
+
+message ThreshSign {
+  repeated bytes   data   = 1;
+  ThreshSignOrigin origin = 2;
+}
+
+message ThreshSignResult {
+  bytes            signature_share = 1;
+  ThreshSignOrigin origin          = 2;
+}
+
+message ThreshSignOrigin {
+  string module = 1;
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message ThreshVerShare {
+  repeated bytes       data            = 1;
+  bytes                signature_share = 2;
+  ThreshVerShareOrigin origin          = 3;
+}
+
+message ThreshVerShareResult {
+  bool              ok       = 1;
+  string            error    = 2;
+  ThreshVerShareOrigin origin   = 3;
+}
+
+message ThreshVerShareOrigin {
+  string module = 1;
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message ThreshVerFull {
+  repeated bytes      data            = 1;
+  bytes               full_signature  = 2;
+  ThreshVerFullOrigin origin          = 3;
+}
+
+message ThreshVerFullResult {
+  bool                ok       = 1;
+  string              error    = 2;
+  ThreshVerFullOrigin origin   = 3;
+}
+
+message ThreshVerFullOrigin {
+  string module = 1;
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message ThreshRecover {
+  repeated bytes      data             = 1;
+  repeated bytes      signature_shares = 2;
+  ThreshRecoverOrigin origin           = 3;
+}
+
+message ThreshRecoverResult {
+  bytes               full_signature = 1;
+  bool                ok             = 2;
+  string              error          = 3;
+  ThreshRecoverOrigin origin         = 4;
+}
+
+message ThreshRecoverOrigin {
+  string module = 1;
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
 }

@@ -155,6 +155,38 @@ func (p *Event_BatchFetcher) Unwrap() *batchfetcherpb.Event {
 	return p.BatchFetcher
 }
 
+func (p *Event_ThreshSign) Unwrap() *ThreshSign {
+	return p.ThreshSign
+}
+
+func (p *Event_ThreshSignResult) Unwrap() *ThreshSignResult {
+	return p.ThreshSignResult
+}
+
+func (p *Event_ThreshVerShare) Unwrap() *ThreshVerShare {
+	return p.ThreshVerShare
+}
+
+func (p *Event_ThreshVerShareResult) Unwrap() *ThreshVerShareResult {
+	return p.ThreshVerShareResult
+}
+
+func (p *Event_ThreshVerFull) Unwrap() *ThreshVerFull {
+	return p.ThreshVerFull
+}
+
+func (p *Event_ThreshVerFullResult) Unwrap() *ThreshVerFullResult {
+	return p.ThreshVerFullResult
+}
+
+func (p *Event_ThreshRecover) Unwrap() *ThreshRecover {
+	return p.ThreshRecover
+}
+
+func (p *Event_ThreshRecoverResult) Unwrap() *ThreshRecoverResult {
+	return p.ThreshRecoverResult
+}
+
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 	return p.TestingString
 }
