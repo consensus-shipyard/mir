@@ -5,10 +5,10 @@ on:
   push:
     branches: [ main ]
   pull_request:
-      # The branches below must be a subset of the branches above
-      branches: [ main ]
+    # The branches below must be a subset of the branches above
+    branches: [ main ]
   schedule:
-      - cron: '43 11 * * 6'
+    - cron: '43 11 * * 6'
 
 jobs:
   semgrep:
@@ -16,6 +16,8 @@ jobs:
     name: Scan
     # If you are self-hosting, change the following `runs-on` value:
     runs-on: ubuntu-latest
+    # At present, use semgrep findings with INFO level
+    continue-on-error: true
 
     container:
       # A Docker image with Semgrep installed. Do not change this.
