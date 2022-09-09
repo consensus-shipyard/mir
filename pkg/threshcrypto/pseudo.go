@@ -13,6 +13,7 @@ import (
 
 	"github.com/drand/kyber/util/random"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 var (
@@ -38,7 +39,7 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 
 	var idx int
 	var ok bool
-	if ok, idx = indexOf(nodes, ownID); !ok {
+	if ok, idx = sliceutil.IndexOf(nodes, ownID); !ok {
 		return nil, fmt.Errorf("own node ID not in node list")
 	}
 
@@ -47,14 +48,4 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 	} else {
 		return tcInstances[idx], nil
 	}
-}
-
-func indexOf[T comparable](slice []T, val T) (bool, int) {
-	for idx, v := range slice {
-		if v == val {
-			return true, idx
-		}
-	}
-
-	return false, -1
 }
