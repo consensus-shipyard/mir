@@ -396,3 +396,111 @@ func Factory(destModule t.ModuleID, evt *factorymodulepb.Factory) *eventpb.Event
 		DestModule: destModule.Pb(),
 	}
 }
+
+// ThreshSign returns an event representing a request to the threshcrypto module for computing the signature share over data.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// ThreshSignResult produced by the crypto module.
+func ThreshSign(destModule t.ModuleID, data [][]byte, origin *eventpb.ThreshSignOrigin) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_ThreshSign{ThreshSign: &eventpb.ThreshSign{
+			Data:   data,
+			Origin: origin,
+		}},
+	}
+}
+
+// ThreshSignResult returns an event representing the computation of a signature share by the threshcrypto module.
+// It contains the computed signature share and the ThreshSignOrigin,
+// an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the contained signature.
+func ThreshSignResult(destModule t.ModuleID, signatureShare []byte, origin *eventpb.ThreshSignOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_ThreshSignResult{ThreshSignResult: &eventpb.ThreshSignResult{
+		SignatureShare: signatureShare,
+		Origin:         origin,
+	}}}
+}
+
+// ThreshVerShare returns an event representing a request to the threshcrypto module for verifying
+// a signature share over data against the group/module's public key.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// ThreshVerShareResult produced by the crypto module.
+func ThreshVerShare(destModule t.ModuleID, data [][]byte, sigShare []byte, origin *eventpb.ThreshVerShareOrigin) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_ThreshVerShare{ThreshVerShare: &eventpb.ThreshVerShare{
+			Data:           data,
+			SignatureShare: sigShare,
+			Origin:         origin,
+		}},
+	}
+}
+
+// ThreshVerShareResult returns an event representing the verification of a signature share by the threshcrypto module.
+// It contains the result of the verification (boolean and a string error if applicable) and the ThreshVerShareOrigin,
+// an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the contained signature.
+func ThreshVerShareResult(destModule t.ModuleID, ok bool, err string, origin *eventpb.ThreshVerShareOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_ThreshVerShareResult{ThreshVerShareResult: &eventpb.ThreshVerShareResult{
+		Ok:     ok,
+		Error:  err,
+		Origin: origin,
+	}}}
+}
+
+// ThreshVerFull returns an event representing a request to the threshcrypto module for verifying
+// a full signature over data against the group/module's public key.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// ThreshVerFullResult produced by the crypto module.
+func ThreshVerFull(destModule t.ModuleID, data [][]byte, sigFull []byte, origin *eventpb.ThreshVerFullOrigin) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_ThreshVerFull{ThreshVerFull: &eventpb.ThreshVerFull{
+			Data:          data,
+			FullSignature: sigFull,
+			Origin:        origin,
+		}},
+	}
+}
+
+// ThreshVerFullResult returns an event representing the verification of a full signature by the threshcrypto module.
+// It contains the result of the verification (boolean and a string error if applicable) and the ThreshVerFullOrigin,
+// an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the contained signature.
+func ThreshVerFullResult(destModule t.ModuleID, ok bool, err string, origin *eventpb.ThreshVerFullOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_ThreshVerFullResult{ThreshVerFullResult: &eventpb.ThreshVerFullResult{
+		Ok:     ok,
+		Error:  err,
+		Origin: origin,
+	}}}
+}
+
+// ThreshRecover returns an event representing a request to the threshcrypto module for recovering
+// a full signature share over data from signature shares.
+// The full signature can only be recovered if enough shares are provided, and if they were created from the group's
+// private key shares, therefore the full signature is always valid for this data in the group.
+// The origin is an object used to maintain the context for the requesting module and will be included in the
+// ThreshRecoverResult produced by the crypto module.
+func ThreshRecover(destModule t.ModuleID, data [][]byte, sigShares [][]byte, origin *eventpb.ThreshRecoverOrigin) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_ThreshRecover{ThreshRecover: &eventpb.ThreshRecover{
+			Data:            data,
+			SignatureShares: sigShares,
+			Origin:          origin,
+		}},
+	}
+}
+
+// ThreshRecoverResult returns an event representing the recovery of a full signature by the threshcrypto module.
+// It contains the result of the recovery (boolean, the recovered signature, and a string error if applicable)
+// and the ThreshRecoverOrigin, an object used to maintain the context for the requesting module,
+// i.e., information about what to do with the contained signature.
+func ThreshRecoverResult(destModule t.ModuleID, fullSig []byte, ok bool, err string, origin *eventpb.ThreshRecoverOrigin) *eventpb.Event {
+	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_ThreshRecoverResult{ThreshRecoverResult: &eventpb.ThreshRecoverResult{
+		FullSignature: fullSig,
+		Ok:     ok,
+		Error:  err,
+		Origin: origin,
+	}}}
+}
