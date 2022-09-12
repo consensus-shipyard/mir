@@ -74,18 +74,14 @@ func (t *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 		if err := binary.Write(w, binary.BigEndian, int64(v)); err != nil {
 			return err
 		}
-		written += binary.Size(int64(t.n))
+		written += binary.Size(int64(v))
 		return nil
 	}
 
 	marshalKyber := func(v kyber.Marshaling) error {
-		if n, err := v.MarshalTo(w); err != nil {
-			written += n
-			return err
-		} else {
-			written += n
-			return nil
-		}
+		n, err := v.MarshalTo(w)
+		written += n
+		return err
 	}
 
 	if err := marshalInt(t.t); err != nil {
@@ -131,14 +127,14 @@ func (t *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	t.scheme = scheme
 
 	unmarshalInt := func(v *int) error {
-		var v_i64 int64
-		if err := binary.Read(r, binary.BigEndian, &v_i64); err != nil {
+		var vI64 int64
+		if err := binary.Read(r, binary.BigEndian, &vI64); err != nil {
 			return err
 		}
-		read += binary.Size(int64(t.n))
-		*v = int(v_i64)
+		read += binary.Size(vI64)
+		*v = int(vI64)
 
-		if int64(*v) != v_i64 {
+		if int64(*v) != vI64 {
 			return fmt.Errorf("loss of int precision during decode")
 		}
 
@@ -146,13 +142,9 @@ func (t *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	}
 
 	unmarshalKyber := func(v kyber.Marshaling) error {
-		if n, err := v.UnmarshalFrom(r); err != nil {
-			read += n
-			return err
-		} else {
-			read += n
-			return nil
-		}
+		n, err := v.UnmarshalFrom(r)
+		read += n
+		return err
 	}
 
 	if err := unmarshalInt(&t.t); err != nil {

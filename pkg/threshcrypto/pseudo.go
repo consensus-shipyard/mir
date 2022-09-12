@@ -12,6 +12,7 @@ import (
 	prand "math/rand"
 
 	"github.com/drand/kyber/util/random"
+
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -43,9 +44,10 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 		return nil, fmt.Errorf("own node ID not in node list")
 	}
 
-	if tcInstances, err := TBLS12381Keygen(threshold, len(nodes), randomness); err != nil {
+	tcInstances, err := TBLS12381Keygen(threshold, len(nodes), randomness)
+	if err != nil {
 		return nil, err
-	} else {
-		return tcInstances[idx], nil
 	}
+
+	return tcInstances[idx], nil
 }

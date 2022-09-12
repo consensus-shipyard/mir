@@ -499,8 +499,8 @@ func ThreshRecover(destModule t.ModuleID, data [][]byte, sigShares [][]byte, ori
 func ThreshRecoverResult(destModule t.ModuleID, fullSig []byte, ok bool, err string, origin *eventpb.ThreshRecoverOrigin) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_ThreshRecoverResult{ThreshRecoverResult: &eventpb.ThreshRecoverResult{
 		FullSignature: fullSig,
-		Ok:     ok,
-		Error:  err,
-		Origin: origin,
+		Ok:            ok,
+		Error:         err,
+		Origin:        origin,
 	}}}
 }
