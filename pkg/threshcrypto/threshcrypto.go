@@ -32,13 +32,14 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 	case *eventpb.Event_ThreshSign:
 		// Compute signature share
 
-		if sigShare, err := c.threshCrypto.SignShare(e.ThreshSign.Data); err != nil {
+		sigShare, err := c.threshCrypto.SignShare(e.ThreshSign.Data)
+		if err != nil {
 			return nil, err
-		} else {
-			return events.ListOf(
-				events.ThreshSignResult(t.ModuleID(e.ThreshSign.Origin.Module), sigShare, e.ThreshSign.Origin),
-			), nil
 		}
+
+		return events.ListOf(
+			events.ThreshSignResult(t.ModuleID(e.ThreshSign.Origin.Module), sigShare, e.ThreshSign.Origin),
+		), nil
 
 	case *eventpb.Event_ThreshVerShare:
 		// Verify signature share
