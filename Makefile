@@ -25,6 +25,11 @@ clean:
 test:
 	go test -race ./...
 
+.PHONY: format
+format:
+	gofmt -w -s .
+	goimports -w -local "github.com/filecoin-project/mir" .
+
 .PHONY: lint
 lint:
 	golangci-lint run ./...
