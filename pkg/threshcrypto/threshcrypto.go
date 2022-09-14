@@ -1,5 +1,5 @@
-// Package crypto provides an implementation of the MirModule module.
-// It supports RSA and ECDSA signatures.
+// Package threshcrypto provides an implementation of the MirModule module.
+// It supports TBLS signatures.
 package threshcrypto
 
 import (
@@ -31,14 +31,15 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		// no actions on init
 		return events.EmptyList(), nil
 	case *eventpb.Event_ThreshCrypto:
-		return c.ApplyTCEvent(e.ThreshCrypto)
+		return c.applyTCEvent(e.ThreshCrypto)
 	default:
 		// Complain about all other incoming event types.
 		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
 	}
 }
 
-func (c *MirModule) ApplyTCEvent(event *threshcryptopb.Event) (*events.EventList, error) {
+// apply a thresholdcryptopb.Event
+func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *threshcryptopb.Event_SignShare:
 		// Compute signature share

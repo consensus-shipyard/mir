@@ -19,6 +19,9 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
+// TBLSInst an instance of a BLS-based (t, len(members))-threshold signature scheme
+// It is capable of creating signature shares with its (single) private key share,
+// and validating/recovering signatures involving all group members.
 type TBLSInst struct {
 	t         int
 	members   []t.NodeID
@@ -28,6 +31,8 @@ type TBLSInst struct {
 	public    *share.PubPoly
 }
 
+// Constructs a TBLS scheme using the BLS12-381 pairing, with signatures being points on curve G1,
+// and keys points on curve G2.
 func tbls12381Scheme() (pairing.Suite, sign.ThresholdScheme, kyber.Group, kyber.Group) {
 	suite := bls12381.NewBLS12381Suite()
 	scheme := tbls.NewThresholdSchemeOnG1(suite)
@@ -37,10 +42,13 @@ func tbls12381Scheme() (pairing.Suite, sign.ThresholdScheme, kyber.Group, kyber.
 	return suite, scheme, sigGroup, keyGroup
 }
 
+// TBLS12381Keygen constructs a set TBLSInst for a given set of member nodes and threshold T
+// using the BLS12-381 pairing, with signatures being points on curve G1,
+// and keys points on curve G2.
 func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) ([]*TBLSInst, error) {
 	N := len(members)
 	if !(T >= (N+1)/2 && N > 0) {
-		return nil, fmt.Errorf("TBLS requires t >= (n+1)/2 and n > 0")
+		return nil, fmt.Errorf("TBLS requires t >= (n+1)/2 and n > 0, where n is the number of group members")
 	}
 
 	pairing, scheme, sigGroup, keyGroup := tbls12381Scheme()
@@ -69,6 +77,8 @@ func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) ([]*TB
 	return instances, nil
 }
 
+// Writes the properties of a TBLSInst to an io.Writer
+// Can be read with TBLSInst.UnmarshalFrom
 func (inst *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 	written := 0
 
@@ -142,6 +152,9 @@ func (inst *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 	return written, nil
 }
 
+// Sets the properties of a TBLSInst from an io.Reader
+// The property stream can be created from TBLSInst.MarshalTo
+// NOTE: Currently assumes the underlying scheme is the same as in TBLS12381Keygen()
 func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	read := 0
 
@@ -241,10 +254,12 @@ func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	return read, nil
 }
 
+// constructs signature share for message
 func (inst *TBLSInst) SignShare(msg [][]byte) ([]byte, error) {
 	return inst.scheme.Sign(inst.privShare, digest(msg))
 }
 
+// verifies that a signature share is for a given message from a given node
 func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	idx, err := tbls.SigShare(sigShare).Index()
 	if err != nil {
@@ -258,10 +273,13 @@ func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID
 	return inst.scheme.VerifyPartial(inst.public, digest(msg), sigShare)
 }
 
+// verifies that a (full) signature is valid for a given message
 func (inst *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
 	return inst.scheme.VerifyRecovered(inst.public.Commit(), digest(msg), sigFull)
 }
 
+// recovers a full signature from a set of (previously validated) shares, that are known to be from
+// distinct nodes
 func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
 	// We don't use inst.scheme.Recover to avoid validating sigShares twice
 
@@ -302,6 +320,7 @@ func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) 
 	return sig, nil
 }
 
+// digest computes the SHA256 of the concatenation of all byte slices in data.
 func digest(data [][]byte) []byte {
 	h := sha256.New()
 	for _, d := range data {

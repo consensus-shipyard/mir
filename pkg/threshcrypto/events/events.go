@@ -30,7 +30,7 @@ func SignShareResult(destModule t.ModuleID, signatureShare []byte, origin *pb.Si
 }
 
 // VerifyShare returns an event representing a request to the threshcrypto module for verifying
-// a signature share over data against the group/module's public key.
+// a signature share over data against a node's public key share, belonging to the module instance's group.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // VerifyShareResult produced by the crypto module.
 func VerifyShare(destModule t.ModuleID, data [][]byte, sigShare []byte, nodeID t.NodeID, origin *pb.VerifyShareOrigin) *eventpb.Event {

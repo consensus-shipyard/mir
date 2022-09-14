@@ -11,7 +11,7 @@ import t "github.com/filecoin-project/mir/pkg/types"
 // The ThreshCrypto interface represents an implementation of threshold cryptography primitives inside the MirModule module.
 // It is responsible for producing and verifying cryptographic threshold signatures, which disperses the authority
 // to sign among a group of N members, where T must sign their share for a full signature to be produced.
-// It internally stores information about the group's public key and the node's private key share.
+// It internally stores information about the group, its public key and shares, and the node's private key share.
 type ThreshCrypto interface {
 	// SignShare signs the provided data and returns the resulting signature share.
 	// The data to be signed is the concatenation of all the passed byte slices.

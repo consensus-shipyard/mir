@@ -23,6 +23,7 @@ var (
 	DefaultPseudoSeed int64 = 12345
 )
 
+// pseudorandomStream creates a deterministic cipher.Stream from a seed
 func pseudorandomStream(seed int64) cipher.Stream {
 	pseudorand := prand.New(prand.NewSource(seed)) //nolint:gosec
 	return random.New(pseudorand)
