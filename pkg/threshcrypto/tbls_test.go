@@ -1,11 +1,14 @@
 package threshcrypto
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/filecoin-project/mir/pkg/types"
 )
 
 func TestTBLSHappySmoke(t *testing.T) {
@@ -13,8 +16,7 @@ func TestTBLSHappySmoke(t *testing.T) {
 	N := 5
 	T := 3
 
-	rand := pseudorandomStream(DefaultPseudoSeed)
-	keys, err := TBLS12381Keygen(T, N, rand)
+	keys, err := keygen(T, N, DefaultPseudoSeed)
 	assert.NoError(t, err)
 
 	data := [][]byte{{1, 2, 3, 4, 5}, {4, 2}}
@@ -29,8 +31,8 @@ func TestTBLSHappySmoke(t *testing.T) {
 
 	// everyone can verify everyone's share
 	for _, k := range keys {
-		for _, sh := range shares {
-			require.NoError(t, k.VerifyShare(data, sh))
+		for i, sh := range shares {
+			require.NoError(t, k.VerifyShare(data, sh, types.NodeID(fmt.Sprint(i))))
 		}
 	}
 
@@ -51,8 +53,7 @@ func TestTBLSSadSmoke(t *testing.T) {
 	N := 5
 	T := 3
 
-	rand := pseudorandomStream(DefaultPseudoSeed)
-	keys, err := TBLS12381Keygen(T, N, rand)
+	keys, err := keygen(T, N, DefaultPseudoSeed)
 	require.NoError(t, err)
 
 	data := [][]byte{{1, 2, 3, 4, 5}, {4, 2}}
@@ -78,7 +79,7 @@ func TestTBLSSadSmoke(t *testing.T) {
 
 	// mangled share fails verification
 	for _, k := range keys {
-		assert.Error(t, k.VerifyShare(data, shares[1]))
+		assert.Error(t, k.VerifyShare(data, shares[1], "1"))
 	}
 
 	// can't recover full sig when we have >=T shares but <T valid shares
@@ -98,8 +99,7 @@ func TestTBLSMarshalling(t *testing.T) {
 	N := 3
 	T := N
 
-	rand := pseudorandomStream(DefaultPseudoSeed)
-	keys, err := TBLS12381Keygen(T, N, rand)
+	keys, err := keygen(T, N, DefaultPseudoSeed)
 	require.NoError(t, err)
 
 	keys2 := marshalUnmarshalKeys(t, keys)
@@ -128,6 +128,16 @@ func TestTBLSMarshalling(t *testing.T) {
 		_, err = keys2[i].Recover(data, sigShares)
 		assert.NoError(t, err)
 	}
+}
+
+func keygen(T, N int, seed int64) ([]*TBLSInst, error) {
+	members := make([]types.NodeID, N)
+	for i := range members {
+		members[i] = types.NodeID(fmt.Sprint(i))
+	}
+
+	rand := pseudorandomStream(DefaultPseudoSeed)
+	return TBLS12381Keygen(T, members, rand)
 }
 
 func marshalUnmarshalKeys(t *testing.T, src []*TBLSInst) []*TBLSInst {
