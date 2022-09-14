@@ -8,6 +8,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
+	tcEvents "github.com/filecoin-project/mir/pkg/threshcrypto/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -28,52 +30,60 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 	case *eventpb.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
+	case *eventpb.Event_ThreshCrypto:
+		return c.ApplyTCEvent(e.ThreshCrypto)
+	default:
+		// Complain about all other incoming event types.
+		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
+	}
+}
 
-	case *eventpb.Event_ThreshSign:
+func (c *MirModule) ApplyTCEvent(event *threshcryptopb.Event) (*events.EventList, error) {
+	switch e := event.Type.(type) {
+	case *threshcryptopb.Event_SignShare:
 		// Compute signature share
 
-		sigShare, err := c.threshCrypto.SignShare(e.ThreshSign.Data)
+		sigShare, err := c.threshCrypto.SignShare(e.SignShare.Data)
 		if err != nil {
 			return nil, err
 		}
 
 		return events.ListOf(
-			events.ThreshSignResult(t.ModuleID(e.ThreshSign.Origin.Module), sigShare, e.ThreshSign.Origin),
+			tcEvents.SignShareResult(t.ModuleID(e.SignShare.Origin.Module), sigShare, e.SignShare.Origin),
 		), nil
 
-	case *eventpb.Event_ThreshVerShare:
+	case *threshcryptopb.Event_VerifyShare:
 		// Verify signature share
 
-		err := c.threshCrypto.VerifyShare(e.ThreshVerShare.Data, e.ThreshVerShare.SignatureShare)
+		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare)
 		ok := err == nil
 
 		return events.ListOf(
-			events.ThreshVerShareResult(t.ModuleID(e.ThreshVerShare.Origin.Module), ok, err.Error(), e.ThreshVerShare.Origin),
+			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, err.Error(), e.VerifyShare.Origin),
 		), nil
 
-	case *eventpb.Event_ThreshVerFull:
+	case *threshcryptopb.Event_VerifyFull:
 		// Verify full signature
 
-		err := c.threshCrypto.VerifyFull(e.ThreshVerFull.Data, e.ThreshVerFull.FullSignature)
+		err := c.threshCrypto.VerifyFull(e.VerifyFull.Data, e.VerifyFull.FullSignature)
 		ok := err == nil
 
 		return events.ListOf(
-			events.ThreshVerFullResult(t.ModuleID(e.ThreshVerFull.Origin.Module), ok, err.Error(), e.ThreshVerFull.Origin),
+			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, err.Error(), e.VerifyFull.Origin),
 		), nil
 
-	case *eventpb.Event_ThreshRecover:
+	case *threshcryptopb.Event_Recover:
 		// Recover full signature from shares
 
-		fullSig, err := c.threshCrypto.Recover(e.ThreshRecover.Data, e.ThreshRecover.SignatureShares)
+		fullSig, err := c.threshCrypto.Recover(e.Recover.Data, e.Recover.SignatureShares)
 		ok := err == nil
 
 		return events.ListOf(
-			events.ThreshRecoverResult(t.ModuleID(e.ThreshRecover.Origin.Module), fullSig, ok, err.Error(), e.ThreshRecover.Origin),
+			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, err.Error(), e.Recover.Origin),
 		), nil
-
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
+		return nil, fmt.Errorf("unexpected type of MirModule threshcrypto event: %T", event.Type)
 	}
 }
 
