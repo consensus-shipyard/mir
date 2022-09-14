@@ -162,12 +162,12 @@ func CheckParams(c *ModuleParams) error {
 	return nil
 }
 
-// DefaultConfig returns the default configuration for a given membership.
+// DefaultParams returns the default configuration for a given membership.
 // There is no guarantee that this configuration ensures good performance, but it will pass the CheckParams test.
-// DefaultConfig is intended for use during testing and hello-world examples.
+// DefaultParams is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
-// for which DefaultConfig can serve as a starting point.
-func DefaultConfig(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
+// for which DefaultParams can serve as a starting point.
+func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.

@@ -382,7 +382,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
 		// ISS configuration
-		issConfig := DefaultConfig(transportLayer.Nodes())
+		issConfig := DefaultParams(transportLayer.Nodes())
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
@@ -447,7 +447,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"mempool":      mempool,
 			"batchdb":      batchdb,
 			"availability": availability,
-		})
+		}, DefaultModuleConfig())
 		if err != nil {
 			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)
 		}

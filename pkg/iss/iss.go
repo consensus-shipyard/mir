@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 // For the details of the protocol, see (TODO).
 // To use ISS, instantiate it by calling `iss.New` and use it as the Protocol module when instantiating a mir.Node.
 // A default configuration (to pass, among other arguments, to `iss.New`)
-// can be obtained from `iss.DefaultConfig`.
+// can be obtained from `iss.DefaultParams`.
 //
 // Current status: This package is currently being implemented and is not yet functional.
 package iss
