@@ -17,43 +17,21 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	net2 "net"
 	"os"
 	"strconv"
-	"strings"
 
+	"github.com/filecoin-project/mir/pkg/systems/smr"
+	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
-	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
-	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/net/grpc"
-	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
-)
-
-const (
-
-	// Base port number for the node request receivers to listen to messages from clients.
-	// Request receivers will listen on port reqReceiverBasePort through reqReceiverBasePort+3.
-	// Note that protocol messages and requests are following two completely distinct paths to avoid interference
-	// of clients with node-to-node communication.
-	reqReceiverBasePort = 20000
-
-	// Number of epochs by which to delay configuration changes.
-	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
-	configOffset = 2
+	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 // parsedArgs represents parsed command-line parameters passed to the program.
@@ -72,13 +50,13 @@ type parsedArgs struct {
 	// Network transport.
 	Net string
 
-	// File containing the initial membership for joining nodes.
-	InitMembershipFile *os.File
+	// Name of the file containing the initial membership for joining nodes.
+	InitMembershipFile string
 }
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Println(err)
+		errstack.Println(err)
 		os.Exit(1)
 	}
 }
@@ -108,146 +86,45 @@ func run() error {
 	// Load system membership info: IDs, addresses, ports, etc...
 	// ================================================================================
 
+	// For the dummy chat application, we require node IDs to be numeric,
+	// as other metadata is derived from node IDs.
 	ownNumericID, err := strconv.Atoi(string(args.OwnID))
 	if err != nil {
 		return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 	}
 
-	initialMembership, err := membership.FromFile(args.InitMembershipFile)
+	// Load initial system membership from the file indicated through the command line.
+	initialAddrs, err := membership.FromFileName(args.InitMembershipFile)
 	if err != nil {
 		return fmt.Errorf("could not load membership: %w", err)
 	}
-	if err := args.InitMembershipFile.Close(); err != nil {
-		return fmt.Errorf("could not close membership file: %w", err)
-	}
-	addresses, err := membership.GetIPs(initialMembership)
+	initialMembership, err := membership.DummyMultiAddrs(initialAddrs)
 	if err != nil {
-		return fmt.Errorf("could not load node IPs: %w", err)
-	}
-
-	// Generate addresses and ports for client request receivers.
-	// Each node uses different ports for receiving protocol messages and requests.
-	// These addresses will be used by the client code to know where to send its requests
-	// (each client sends its requests to all request receivers). Each request receiver,
-	// however, will only submit the received requests to its associated Node.
-	reqReceiverAddrs := make(map[t.NodeID]string)
-	for nodeID, nodeIP := range addresses {
-		numericID, err := strconv.Atoi(string(nodeID))
-		if err != nil {
-			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
-		}
-		reqReceiverAddrs[nodeID] = net2.JoinHostPort(nodeIP, fmt.Sprintf("%d", reqReceiverBasePort+numericID))
+		return fmt.Errorf("could not create dummy multiaddrs: %w", err)
 	}
 
 	// ================================================================================
-	// Create and initialize various modules used by mir.
+	// Instantiate the Mir node with the appropriate set of modules.
 	// ================================================================================
 
-	// Initialize the networking module.
-	// Mir will use it for transporting nod-to-node messages.
-
-	// In the current implementation, all nodes are on the local machine, but listen on different port numbers.
-	// Change this or make this configurable to deploy different nodes on different physical machines.
-	var transport net.Transport
-	var nodeAddrs map[t.NodeID]t.NodeAddress
-	switch strings.ToLower(args.Net) {
-	case "grpc":
-		transport, err = grpc.NewTransport(args.OwnID, initialMembership[args.OwnID], logger)
-		nodeAddrs = initialMembership
-	case "libp2p":
-		h := libp2ptools.NewDummyHost(ownNumericID, initialMembership[args.OwnID])
-		nodeAddrs, err = membership.DummyMultiAddrs(initialMembership)
-		if err != nil {
-			return fmt.Errorf("could not generate libp2p multiaddresses: %w", err)
-		}
-		transport, err = libp2p.NewTransport(h, args.OwnID, logger)
-	default:
-		return fmt.Errorf("unknown network transport %s", strings.ToLower(args.Net))
-	}
-	if err != nil {
-		return fmt.Errorf("failed to get network transport %w", err)
-	}
-
-	if err := transport.Start(); err != nil {
-		return fmt.Errorf("could not start network transport: %w", err)
-	}
-	transport.Connect(ctx, nodeAddrs)
-
-	chatApp := NewChatApp(initialMembership, transport)
-
-	issConfig := iss.DefaultConfig(initialMembership)
-	issConfig.ConfigOffset = configOffset
-	issProtocol, err := iss.New(
+	// Create a Mir SMR system.
+	chatApp, err := smr.New(
 		args.OwnID,
-		iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(chatApp.serializeMessages(), issConfig),
+		libp2p.NewDummyHostKey(ownNumericID),
+		initialMembership,
+		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
+		NewChatApp(initialMembership),
 		logger,
 	)
 	if err != nil {
-		return fmt.Errorf("could not instantiate ISS protocol module: %w", err)
+		return fmt.Errorf("could not create chat app: %w", err)
 	}
 
-	// Use a simple mempool for incoming requests.
-	mempool := simplemempool.NewModule(
-		&simplemempool.ModuleConfig{
-			Self:   "mempool",
-			Hasher: "hasher",
-		},
-		&simplemempool.ModuleParams{
-			MaxTransactionsInBatch: 10,
-		},
-	)
-
-	// Use fake batch database.
-	batchdb := fakebatchdb.NewModule(
-		&fakebatchdb.ModuleConfig{
-			Self: "batchdb",
-		},
-	)
-
-	availability := multisigcollector.NewReconfigurableModule(
-		&multisigcollector.ModuleConfig{
-			Self:    "availability",
-			Mempool: "mempool",
-			BatchDB: "batchdb",
-			Net:     "net",
-			Crypto:  "crypto",
-		},
-		args.OwnID,
-		logger,
-	)
-
-	// The batch fetcher receives availability certificates from the ordering protocol (ISS),
-	// retrieves the corresponding transaction batches, and delivers them to the application.
-	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
-
-	// ================================================================================
-	// Create a Mir Node, attaching the ChatApp implementation and other modules.
-	// ================================================================================
-
-	// Create a Mir Node, using a default configuration and passing the modules initialized just above.
-	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		"net":          transport,
-		"iss":          issProtocol,
-		"batchfetcher": batchFetcher,
-
-		// This is the application logic Mir is going to deliver requests to.
-		// For the implementation of the application, see app.go.
-		"app": chatApp,
-
-		// Use dummy crypto module that only produces signatures
-		// consisting of a single zero byte and treats those signatures as valid.
-		// TODO: Remove this line once a default crypto implementation is provided by Mir.
-		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-
-		"mempool":      mempool,
-		"batchdb":      batchdb,
-		"availability": availability,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize Mir modules: %w", err)
+	if err := chatApp.Start(ctx); err != nil {
+		return fmt.Errorf("could not create chat app: %w", err)
 	}
 
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil, nil)
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, chatApp.Modules(), nil, nil)
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}
@@ -299,15 +176,13 @@ func run() error {
 	// Shut down.
 	// ================================================================================
 
-	// After sending a few messages, we disconnect the client,
+	// Stop the application.
 	if args.Verbose {
-		fmt.Println("Stopping transport.")
+		fmt.Println("Stopping SMR app.")
 	}
+	chatApp.Stop()
 
-	// stop the gRPC transport,
-	transport.Stop()
-
-	// stop the server,
+	// Stop the node.
 	if args.Verbose {
 		fmt.Println("Stopping server.")
 	}
@@ -325,7 +200,8 @@ func parseArgs(args []string) *parsedArgs {
 	// In case that changes, this line will need to be updated.
 	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
 	ownID := app.Arg("id", "ID of this node").Required().String()
-	initMembershipFile := app.Flag("init-membership", "File containing the initial system membership.").Short('i').Required().File()
+	initMembershipFile := app.Flag("init-membership", "File containing the initial system membership.").
+		Short('i').Required().String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)

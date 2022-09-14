@@ -13,19 +13,13 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/membership"
-	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net"
-	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -42,49 +36,15 @@ type ChatApp struct {
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
 	newMembership map[t.NodeID]t.NodeAddress
-
-	// Network transport module used by Mir.
-	// The app needs a reference to it in order to manage connections when the membership changes.
-	transport net.Transport
 }
-
-// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (chat *ChatApp) ImplementsModule() {}
 
 // NewChatApp returns a new instance of the chat demo application.
 // The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
-func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, transport net.Transport) *ChatApp {
+func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress) *ChatApp {
 
 	return &ChatApp{
 		messages:      make([]string, 0),
 		newMembership: initialMembership,
-		transport:     transport,
-	}
-}
-
-func (chat *ChatApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-	return modules.ApplyEventsSequentially(eventsIn, chat.ApplyEvent)
-}
-
-func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
-		return events.EmptyList(), nil // no actions on init
-	case *eventpb.Event_NewEpoch:
-		return chat.applyNewEpoch(e.NewEpoch)
-	case *eventpb.Event_BatchFetcher:
-		switch e := e.BatchFetcher.Type.(type) {
-		case *bfpb.Event_NewOrderedBatch:
-			return chat.applyNewOrderedBatch(e.NewOrderedBatch)
-		default:
-			return nil, fmt.Errorf("unexpected batch fetcher event type: %T", e)
-		}
-	case *eventpb.Event_AppSnapshotRequest:
-		return chat.applySnapshotRequest(e.AppSnapshotRequest)
-	case *eventpb.Event_AppRestoreState:
-		return chat.applyRestoreState(e.AppRestoreState.Snapshot)
-	default:
-		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}
 }
 
@@ -93,9 +53,9 @@ func (chat *ChatApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error)
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
 // Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
-func (chat *ChatApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.EventList, error) {
+func (chat *ChatApp) ApplyTXs(txs []*requestpb.Request) error {
 	// For each request in the batch
-	for _, req := range batch.Txs {
+	for _, req := range txs {
 
 		// Convert request payload to chat message.
 		msgString := string(req.Data)
@@ -116,7 +76,7 @@ func (chat *ChatApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.
 		}
 	}
 
-	return events.EmptyList(), nil
+	return nil
 }
 
 func (chat *ChatApp) applyConfigMsg(configMsg string) {
@@ -159,29 +119,14 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 	}
 }
 
-func (chat *ChatApp) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList, error) {
-
-	// Create network connections to all nodes in the new membership.
-	var nodeAddrs map[t.NodeID]t.NodeAddress
-	var err error
-	if nodeAddrs, err = membership.DummyMultiAddrs(chat.newMembership); err != nil {
-		return nil, err
-	}
-
-	chat.transport.Connect(context.Background(), nodeAddrs)
-
-	// Notify ISS about the new membership.
-	return events.ListOf(events.NewConfig("iss", maputil.Copy(chat.newMembership))), nil
+func (chat *ChatApp) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+	return maputil.Copy(chat.newMembership), nil
 }
 
 // applySnapshotRequest produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
 // The snapshot is a binary representation of the application state that can be passed to applyRestoreState().
-func (chat *ChatApp) applySnapshotRequest(snapshotRequest *eventpb.AppSnapshotRequest) (*events.EventList, error) {
-	return events.ListOf(events.AppSnapshotResponse(
-		t.ModuleID(snapshotRequest.Module),
-		chat.serializeMessages(),
-		snapshotRequest.Origin,
-	)), nil
+func (chat *ChatApp) Snapshot() ([]byte, error) {
+	return chat.serializeMessages(), nil
 }
 
 func (chat *ChatApp) serializeMessages() []byte {
@@ -197,14 +142,14 @@ func (chat *ChatApp) serializeMessages() []byte {
 // RestoreState restores the application's state to the one represented by the passed argument.
 // The argument is a binary representation of the application state returned from Snapshot().
 // After the chat history is restored, RestoreState prints the whole chat history to stdout.
-func (chat *ChatApp) applyRestoreState(snapshot *commonpb.StateSnapshot) (*events.EventList, error) {
+func (chat *ChatApp) RestoreState(appData []byte, epochConfig *commonpb.EpochConfig) error {
 
 	// Restore chat messages
-	chat.restoreChat(snapshot.AppData)
+	chat.restoreChat(appData)
 
 	// Restore configuration
-	if err := chat.restoreConfiguration(snapshot.Configuration); err != nil {
-		return nil, err
+	if err := chat.restoreConfiguration(epochConfig); err != nil {
+		return err
 	}
 
 	// Print new state
@@ -213,7 +158,7 @@ func (chat *ChatApp) applyRestoreState(snapshot *commonpb.StateSnapshot) (*event
 		fmt.Println(message)
 	}
 
-	return events.EmptyList(), nil
+	return nil
 }
 
 func (chat *ChatApp) restoreChat(data []byte) {
