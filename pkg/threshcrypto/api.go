@@ -23,8 +23,7 @@ type ThreshCrypto interface {
 	VerifyShare(data [][]byte, signatureShare []byte) error
 
 	// Recover constructs a full signature from signature shares over data.
-	// The given array may contain invalid signature shares: as long as at least T distinct signature
-	// shares are valid, Recover will succeed, albeit less efficiently.
+	// All signature shares MUST have been previously verified with VerifyShare.
 	// Returns the full signature (and a nil error) on success and a non-nil error otherwise.
 	// Signatures returned by Recover are guaranteed to be valid.
 	Recover(data [][]byte, signatureShares [][]byte) ([]byte, error)
