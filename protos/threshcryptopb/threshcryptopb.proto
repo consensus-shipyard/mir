@@ -41,7 +41,8 @@ message SignShareOrigin {
 message VerifyShare {
   repeated bytes    data = 1;
   bytes             signature_share = 2;
-  VerifyShareOrigin origin = 3;
+  string            node_id = 3;
+  VerifyShareOrigin origin = 4;
 }
 
 message VerifyShareResult {

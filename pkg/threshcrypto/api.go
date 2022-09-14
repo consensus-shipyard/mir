@@ -6,6 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 package threshcrypto
 
+import t "github.com/filecoin-project/mir/pkg/types"
+
 // The ThreshCrypto interface represents an implementation of threshold cryptography primitives inside the MirModule module.
 // It is responsible for producing and verifying cryptographic threshold signatures, which disperses the authority
 // to sign among a group of N members, where T must sign their share for a full signature to be produced.
@@ -18,9 +20,9 @@ type ThreshCrypto interface {
 	// Returns the signature (and a nil error) on success, and a non-nil error otherwise.
 	SignShare(data [][]byte) ([]byte, error)
 
-	// VerifyShare verifies that a signature share is valid for the given data.
+	// VerifyShare verifies that a signature share is valid for the given data and node (if applicable).
 	// Returns nil on success (i.e., if the given signature share is valid) and a non-nil error otherwise.
-	VerifyShare(data [][]byte, signatureShare []byte) error
+	VerifyShare(data [][]byte, signatureShare []byte, nodeID t.NodeID) error
 
 	// Recover constructs a full signature from signature shares over data.
 	// All signature shares MUST have been previously verified with VerifyShare.

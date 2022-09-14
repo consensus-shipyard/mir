@@ -13,6 +13,7 @@ import (
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/tbls"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type TBLSInst struct {
@@ -185,7 +186,7 @@ func (t *TBLSInst) SignShare(msg [][]byte) ([]byte, error) {
 	return t.scheme.Sign(t.privShare, digest(msg))
 }
 
-func (t *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte) error {
+func (t *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	return t.scheme.VerifyPartial(t.public, digest(msg), sigShare)
 }
 
