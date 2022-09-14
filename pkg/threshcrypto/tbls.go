@@ -13,12 +13,14 @@ import (
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/tbls"
+	"golang.org/x/exp/slices"
+
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type TBLSInst struct {
 	t         int
-	n         int
+	members   []t.NodeID
 	scheme    sign.ThresholdScheme
 	privShare *share.PriShare
 	public    *share.PubPoly
@@ -33,8 +35,9 @@ func tbls12381Scheme() (pairing.Suite, sign.ThresholdScheme, kyber.Group, kyber.
 	return suite, scheme, sigGroup, keyGroup
 }
 
-func TBLS12381Keygen(t, n int, randSource cipher.Stream) ([]*TBLSInst, error) {
-	if !(t >= (n+1)/2 && n > 0) {
+func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) ([]*TBLSInst, error) {
+	N := len(members)
+	if !(T >= (N+1)/2 && N > 0) {
 		return nil, fmt.Errorf("TBLS requires t >= (n+1)/2 and n > 0")
 	}
 
@@ -45,25 +48,25 @@ func TBLS12381Keygen(t, n int, randSource cipher.Stream) ([]*TBLSInst, error) {
 	}
 
 	secret := sigGroup.Scalar().Pick(randSource)
-	privFull := share.NewPriPoly(keyGroup, t, secret, randSource)
+	privFull := share.NewPriPoly(keyGroup, T, secret, randSource)
 	public := privFull.Commit(keyGroup.Point().Base())
 
-	privShares := privFull.Shares(n)
-	instances := make([]*TBLSInst, n)
-	for i := 0; i < n; i++ {
+	privShares := privFull.Shares(N)
+	instances := make([]*TBLSInst, N)
+	for i := 0; i < N; i++ {
 		instances[i] = &TBLSInst{
 			scheme:    scheme,
 			privShare: privShares[i],
 			public:    public,
-			t:         t,
-			n:         n,
+			t:         T,
+			members:   members,
 		}
 	}
 
 	return instances, nil
 }
 
-func (t *TBLSInst) MarshalTo(w io.Writer) (int, error) {
+func (inst *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 	written := 0
 
 	marshalInt := func(v int) error {
@@ -74,20 +77,43 @@ func (t *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 		return nil
 	}
 
+	marshalString := func(v string) error {
+		vBytes := []byte(v)
+
+		if err := marshalInt(len(vBytes)); err != nil {
+			return err
+		}
+
+		for _, b := range vBytes {
+			if err := binary.Write(w, binary.BigEndian, b); err != nil {
+				return err
+			}
+			written += binary.Size(b)
+		}
+
+		return nil
+	}
+
 	marshalKyber := func(v kyber.Marshaling) error {
 		n, err := v.MarshalTo(w)
 		written += n
 		return err
 	}
 
-	if err := marshalInt(t.t); err != nil {
-		return written, err
-	}
-	if err := marshalInt(t.n); err != nil {
+	if err := marshalInt(inst.t); err != nil {
 		return written, err
 	}
 
-	pubPoint, pubCommitments := t.public.Info()
+	if err := marshalInt(len(inst.members)); err != nil {
+		return written, err
+	}
+	for _, member := range inst.members {
+		if err := marshalString(string(member)); err != nil {
+			return written, err
+		}
+	}
+
+	pubPoint, pubCommitments := inst.public.Info()
 	if err := marshalKyber(pubPoint); err != nil {
 		return written, err
 	}
@@ -102,25 +128,25 @@ func (t *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 		}
 	}
 
-	if err := marshalInt(t.privShare.I); err != nil {
+	if err := marshalInt(inst.privShare.I); err != nil {
 		return written, err
 	}
 
-	if err := marshalKyber(t.privShare.V); err != nil {
+	if err := marshalKyber(inst.privShare.V); err != nil {
 		return written, err
 	}
 
 	return written, nil
 }
 
-func (t *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
+func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	read := 0
 
-	t.privShare = &share.PriShare{}
-	t.public = &share.PubPoly{}
+	inst.privShare = &share.PriShare{}
+	inst.public = &share.PubPoly{}
 
 	_, scheme, _, keyGroup := tbls12381Scheme()
-	t.scheme = scheme
+	inst.scheme = scheme
 
 	unmarshalInt := func(v *int) error {
 		var vI64 int64
@@ -137,17 +163,46 @@ func (t *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 		return nil
 	}
 
+	unmarshalString := func() (string, error) {
+		var size int
+		if err := unmarshalInt(&size); err != nil {
+			return "", err
+		}
+
+		strBytes := make([]byte, size)
+
+		for i := range strBytes {
+			if err := binary.Read(r, binary.BigEndian, &strBytes[i]); err != nil {
+				return "", err
+			}
+			read += binary.Size(strBytes[i])
+		}
+
+		return string(strBytes), nil
+	}
+
 	unmarshalKyber := func(v kyber.Marshaling) error {
 		n, err := v.UnmarshalFrom(r)
 		read += n
 		return err
 	}
 
-	if err := unmarshalInt(&t.t); err != nil {
+	if err := unmarshalInt(&inst.t); err != nil {
 		return read, err
 	}
-	if err := unmarshalInt(&t.n); err != nil {
+
+	var nMembers int
+	if err := unmarshalInt(&nMembers); err != nil {
 		return read, err
+	}
+
+	members := make([]t.NodeID, nMembers)
+	for i := range members {
+		s, err := unmarshalString()
+		if err != nil {
+			return read, err
+		}
+		members[i] = t.NodeID(s)
 	}
 
 	pubPoint := keyGroup.Point()
@@ -168,34 +223,43 @@ func (t *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 		}
 	}
 
-	t.public = share.NewPubPoly(keyGroup, pubPoint, pubCommitments)
+	inst.public = share.NewPubPoly(keyGroup, pubPoint, pubCommitments)
 
-	if err := unmarshalInt(&t.privShare.I); err != nil {
+	if err := unmarshalInt(&inst.privShare.I); err != nil {
 		return read, err
 	}
 
-	t.privShare.V = keyGroup.Scalar()
-	if err := unmarshalKyber(t.privShare.V); err != nil {
+	inst.privShare.V = keyGroup.Scalar()
+	if err := unmarshalKyber(inst.privShare.V); err != nil {
 		return read, err
 	}
 
 	return read, nil
 }
 
-func (t *TBLSInst) SignShare(msg [][]byte) ([]byte, error) {
-	return t.scheme.Sign(t.privShare, digest(msg))
+func (inst *TBLSInst) SignShare(msg [][]byte) ([]byte, error) {
+	return inst.scheme.Sign(inst.privShare, digest(msg))
 }
 
-func (t *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID) error {
-	return t.scheme.VerifyPartial(t.public, digest(msg), sigShare)
+func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID) error {
+	idx, err := tbls.SigShare(sigShare).Index()
+	if err != nil {
+		return err
+	}
+
+	if idx != slices.Index(inst.members, nodeID) {
+		return fmt.Errorf("signature share belongs to another node")
+	}
+
+	return inst.scheme.VerifyPartial(inst.public, digest(msg), sigShare)
 }
 
-func (t *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
-	return t.scheme.VerifyRecovered(t.public.Commit(), digest(msg), sigFull)
+func (inst *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
+	return inst.scheme.VerifyRecovered(inst.public.Commit(), digest(msg), sigFull)
 }
 
-func (t *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
-	return t.scheme.Recover(t.public, digest(msg), sigShares, t.t, t.n)
+func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
+	return inst.scheme.Recover(inst.public, digest(msg), sigShares, inst.t, len(inst.members))
 }
 
 func digest(data [][]byte) []byte {
