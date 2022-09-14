@@ -81,18 +81,6 @@ func TestTBLSSadSmoke(t *testing.T) {
 	for _, k := range keys {
 		assert.Error(t, k.VerifyShare(data, shares[1], "1"))
 	}
-
-	// can't recover full sig when we have >=T shares but <T valid shares
-	for _, k := range keys {
-		_, err := k.Recover(data, shares[:T])
-		assert.Error(t, err)
-	}
-
-	// ... but can recover full sig when we have T good shares, even if we have some bad ones mixed in
-	for _, k := range keys {
-		_, err := k.Recover(data, shares)
-		assert.NoError(t, err)
-	}
 }
 
 func TestTBLSMarshalling(t *testing.T) {

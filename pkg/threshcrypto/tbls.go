@@ -4,6 +4,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
@@ -22,6 +23,7 @@ type TBLSInst struct {
 	t         int
 	members   []t.NodeID
 	scheme    sign.ThresholdScheme
+	sigGroup  kyber.Group
 	privShare *share.PriShare
 	public    *share.PubPoly
 }
@@ -55,6 +57,7 @@ func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) ([]*TB
 	instances := make([]*TBLSInst, N)
 	for i := 0; i < N; i++ {
 		instances[i] = &TBLSInst{
+			sigGroup:  sigGroup,
 			scheme:    scheme,
 			privShare: privShares[i],
 			public:    public,
@@ -145,8 +148,9 @@ func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	inst.privShare = &share.PriShare{}
 	inst.public = &share.PubPoly{}
 
-	_, scheme, _, keyGroup := tbls12381Scheme()
+	_, scheme, sigGroup, keyGroup := tbls12381Scheme()
 	inst.scheme = scheme
+	inst.sigGroup = sigGroup
 
 	unmarshalInt := func(v *int) error {
 		var vI64 int64
@@ -259,7 +263,43 @@ func (inst *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
 }
 
 func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
-	return inst.scheme.Recover(inst.public, digest(msg), sigShares, inst.t, len(inst.members))
+	// We don't use inst.scheme.Recover to avoid validating sigShares twice
+
+	// This function is a modified version of the original implementation of inst.scheme.Recover
+	// The original can be found at: https://github.com/drand/kyber/blob/9b6e107d216803c85237cd7c45196e5c545e447b/sign/tbls/tbls.go#L118
+
+	var pubShares []*share.PubShare
+	for _, sig := range sigShares {
+		sh := tbls.SigShare(sig)
+		i, err := sh.Index()
+		if err != nil {
+			continue
+		}
+		point := inst.sigGroup.Point()
+		if err := point.UnmarshalBinary(sh.Value()); err != nil {
+			continue
+		}
+		pubShares = append(pubShares, &share.PubShare{I: i, V: point})
+		if len(pubShares) >= inst.t {
+			break
+		}
+	}
+
+	if len(pubShares) < inst.t {
+		return nil, errors.New("not enough valid partial signatures")
+	}
+
+	commit, err := share.RecoverCommit(inst.sigGroup, pubShares, inst.t, len(inst.members))
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := commit.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return sig, nil
 }
 
 func digest(data [][]byte) []byte {
