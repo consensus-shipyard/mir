@@ -1,11 +1,10 @@
 package mir
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/pkg/errors"
 )
 
 // WorkItems is a buffer for storing outstanding events that need to be processed by the node.
@@ -37,7 +36,7 @@ func (wi workItems) AddEvents(events *events.EventList) error {
 		if buffer, ok := wi[t.ModuleID(event.DestModule).Top()]; ok {
 			buffer.PushBack(event)
 		} else {
-			return fmt.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
+			return errors.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
 		}
 	}
 	return nil

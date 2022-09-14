@@ -122,7 +122,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
-	issConfig := iss.DefaultConfig(membership)
+	issConfig := iss.DefaultParams(membership)
 	protocol, err := iss.New(id, iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot([]byte{}, issConfig), logging.Decorate(logger, "ISS: "))
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
@@ -134,7 +134,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 		"app":    deploytest.NewFakeApp("iss", nil),
 		"iss":    protocol,
-	})
+	}, iss.DefaultModuleConfig())
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
 	}
