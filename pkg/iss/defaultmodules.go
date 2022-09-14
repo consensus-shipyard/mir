@@ -3,11 +3,12 @@ package iss
 import (
 	"crypto"
 
+	"github.com/pkg/errors"
+
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/pkg/errors"
 )
 
 // DefaultModules takes a Modules object (as a value, not a pointer to it) and returns a pointer to a new Modules object

@@ -5,10 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // ********************************************************************************
+//                                                                               //
 //         Chat demo application for demonstrating the usage of Mir              //
 //                             (main executable)                                 //
 //                                                                               //
-//                     Run with --help flag for usage info.                      //
 // ********************************************************************************
 
 package main
@@ -20,9 +20,11 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/pkg/errors"
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/filecoin-project/mir/pkg/systems/smr"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -90,17 +92,17 @@ func run() error {
 	// as other metadata is derived from node IDs.
 	ownNumericID, err := strconv.Atoi(string(args.OwnID))
 	if err != nil {
-		return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+		return errors.Wrap(err, "node IDs must be numeric in the sample app")
 	}
 
 	// Load initial system membership from the file indicated through the command line.
 	initialAddrs, err := membership.FromFileName(args.InitMembershipFile)
 	if err != nil {
-		return fmt.Errorf("could not load membership: %w", err)
+		return errors.Wrap(err, "could not load membership")
 	}
 	initialMembership, err := membership.DummyMultiAddrs(initialAddrs)
 	if err != nil {
-		return fmt.Errorf("could not create dummy multiaddrs: %w", err)
+		return errors.Wrap(err, "could not create dummy multiaddrs")
 	}
 
 	// ================================================================================
@@ -108,7 +110,7 @@ func run() error {
 	// ================================================================================
 
 	// Create a Mir SMR system.
-	chatApp, err := smr.New(
+	smrSystem, err := smr.New(
 		args.OwnID,
 		libp2p.NewDummyHostKey(ownNumericID),
 		initialMembership,
@@ -117,16 +119,16 @@ func run() error {
 		logger,
 	)
 	if err != nil {
-		return fmt.Errorf("could not create chat app: %w", err)
+		return errors.Wrap(err, "could not create SMR system")
 	}
 
-	if err := chatApp.Start(ctx); err != nil {
-		return fmt.Errorf("could not create chat app: %w", err)
+	if err := smrSystem.Start(ctx); err != nil {
+		return errors.Wrap(err, "could not start SMR system")
 	}
 
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, chatApp.Modules(), nil, nil)
+	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, smrSystem.Modules(), nil, nil)
 	if err != nil {
-		return fmt.Errorf("could not create node: %w", err)
+		return errors.Wrap(err, "could not create node")
 	}
 
 	// ================================================================================
@@ -176,15 +178,15 @@ func run() error {
 	// Shut down.
 	// ================================================================================
 
-	// Stop the application.
+	// Stop the system.
 	if args.Verbose {
-		fmt.Println("Stopping SMR app.")
+		fmt.Println("Stopping SMR system.")
 	}
-	chatApp.Stop()
+	smrSystem.Stop()
 
 	// Stop the node.
 	if args.Verbose {
-		fmt.Println("Stopping server.")
+		fmt.Println("Stopping node.")
 	}
 	node.Stop()
 
