@@ -12,7 +12,9 @@ func Println(err error) {
 	fmt.Println(err)
 	firstWithStack := FirstWithStack(err)
 	if hasStack(firstWithStack) {
-		fmt.Printf("First error with a stack trace:\n%v%+v\n", firstWithStack, firstWithStack.(stackTracer).StackTrace())
+		var st stackTracer
+		errors.As(firstWithStack, &st)
+		fmt.Printf("First error with a stack trace:\n%v%+v\n", firstWithStack, st.StackTrace())
 	}
 }
 
@@ -37,13 +39,13 @@ func isWrapper(err error) bool {
 	type wrapper interface {
 		Unwrap() error
 	}
-	_, ok := err.(wrapper)
+	_, ok := err.(wrapper) //nolint:errorlint
 	return ok
 }
 
 // hasStack returns true if err implements the StackTrace() method.
 func hasStack(err error) bool {
-	_, ok := err.(stackTracer)
+	_, ok := err.(stackTracer) //nolint:errorlint
 	return ok
 }
 

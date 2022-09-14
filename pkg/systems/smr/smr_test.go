@@ -10,10 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/filecoin-project/mir/pkg/iss"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
