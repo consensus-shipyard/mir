@@ -23,18 +23,13 @@ type TBLSInst struct {
 	public    *share.PubPoly
 }
 
-type TBLSInstData struct {
-	PrivI int
-	PrivV kyber.Scalar
-}
-
 func tbls12381Scheme() (pairing.Suite, sign.ThresholdScheme, kyber.Group, kyber.Group) {
-	pairing := bls12381.NewBLS12381Suite()
-	scheme := tbls.NewThresholdSchemeOnG1(pairing)
-	sigGroup := pairing.G1()
-	keyGroup := pairing.G2()
+	suite := bls12381.NewBLS12381Suite()
+	scheme := tbls.NewThresholdSchemeOnG1(suite)
+	sigGroup := suite.G1()
+	keyGroup := suite.G2()
 
-	return pairing, scheme, sigGroup, keyGroup
+	return suite, scheme, sigGroup, keyGroup
 }
 
 func TBLS12381Keygen(t, n int, randSource cipher.Stream) ([]*TBLSInst, error) {

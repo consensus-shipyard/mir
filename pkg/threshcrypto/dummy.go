@@ -23,12 +23,12 @@ type DummyCrypto struct {
 	DummySigFull []byte
 }
 
-// Sign always returns the dummy signature DummySig, regardless of the data.
+// SignShare always returns the dummy signature DummySig, regardless of the data.
 func (dc *DummyCrypto) SignShare(data [][]byte) ([]byte, error) {
 	return dc.DummySigShare, nil
 }
 
-// Verify returns nil (i.e. success) only if signature share equals DummySigShare.
+// VerifyShare returns nil (i.e. success) only if signature share equals DummySigShare.
 // data is ignored.
 func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte) error {
 	if !bytes.Equal(sigShare, dc.DummySigShare) {
@@ -38,7 +38,7 @@ func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte) error {
 	return nil
 }
 
-// Verify returns nil (i.e. success) only if signature equals DummySig.
+// VerifyFull returns nil (i.e. success) only if signature equals DummySig.
 // data is ignored.
 func (dc *DummyCrypto) VerifyFull(data [][]byte, signature []byte) error {
 	if !bytes.Equal(signature, dc.DummySigFull) {
@@ -48,7 +48,7 @@ func (dc *DummyCrypto) VerifyFull(data [][]byte, signature []byte) error {
 	return nil
 }
 
-// Verifies signature shares and produces DummySigFull if they are valid, otherwise an error is returned.
+// Recovers full signature from signature shares if they are valid, otherwise an error is returned.
 // data is ignored.
 func (dc *DummyCrypto) Recover(data [][]byte, sigShares [][]byte) ([]byte, error) {
 	for _, share := range sigShares {
