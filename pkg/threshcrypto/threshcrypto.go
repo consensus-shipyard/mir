@@ -55,7 +55,7 @@ func (c *MirModule) ApplyTCEvent(event *threshcryptopb.Event) (*events.EventList
 	case *threshcryptopb.Event_VerifyShare:
 		// Verify signature share
 
-		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare)
+		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, t.NodeID(e.VerifyShare.NodeId))
 		ok := err == nil
 
 		return events.ListOf(

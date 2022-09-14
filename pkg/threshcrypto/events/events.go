@@ -33,11 +33,12 @@ func SignShareResult(destModule t.ModuleID, signatureShare []byte, origin *pb.Si
 // a signature share over data against the group/module's public key.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // VerifyShareResult produced by the crypto module.
-func VerifyShare(destModule t.ModuleID, data [][]byte, sigShare []byte, origin *pb.VerifyShareOrigin) *eventpb.Event {
+func VerifyShare(destModule t.ModuleID, data [][]byte, sigShare []byte, nodeID t.NodeID, origin *pb.VerifyShareOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{
 		Type: &pb.Event_VerifyShare{VerifyShare: &pb.VerifyShare{
 			Data:           data,
 			SignatureShare: sigShare,
+			NodeId:         nodeID.Pb(),
 			Origin:         origin,
 		}},
 	})

@@ -9,6 +9,8 @@ package threshcrypto
 import (
 	"bytes"
 	"fmt"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // DummyCrypto represents a dummy MirModule module that
@@ -19,19 +21,22 @@ type DummyCrypto struct {
 	// The only accepted signature share
 	DummySigShare []byte
 
+	// Current node ID
+	Self t.NodeID
+
 	// The only accepted full signature
 	DummySigFull []byte
 }
 
 // SignShare always returns the dummy signature DummySig, regardless of the data.
 func (dc *DummyCrypto) SignShare(data [][]byte) ([]byte, error) {
-	return dc.DummySigShare, nil
+	return dc.buildSigShare(dc.Self), nil
 }
 
 // VerifyShare returns nil (i.e. success) only if signature share equals DummySigShare.
 // data is ignored.
-func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte) error {
-	if !bytes.Equal(sigShare, dc.DummySigShare) {
+func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte, nodeID t.NodeID) error {
+	if !bytes.Equal(sigShare, dc.buildSigShare(nodeID)) {
 		return fmt.Errorf("dummy signature mismatch")
 	}
 
@@ -52,10 +57,18 @@ func (dc *DummyCrypto) VerifyFull(data [][]byte, signature []byte) error {
 // data is ignored.
 func (dc *DummyCrypto) Recover(data [][]byte, sigShares [][]byte) ([]byte, error) {
 	for _, share := range sigShares {
-		if err := dc.VerifyShare(data, share); err != nil {
+		nodeID := share[:(len(share) - len(dc.DummySigShare))]
+
+		if err := dc.VerifyShare(data, share, t.NodeID(nodeID)); err != nil {
 			return nil, err
 		}
 	}
 
 	return dc.DummySigFull, nil
+}
+
+func (dc *DummyCrypto) buildSigShare(nodeID t.NodeID) []byte {
+	share := []byte(nodeID)
+	share = append(share, dc.DummySigShare...)
+	return share
 }
