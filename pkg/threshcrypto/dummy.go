@@ -14,12 +14,13 @@ import (
 )
 
 // DummyCrypto represents a dummy MirModule module that
-// always produces the same dummy byte slices specified at instantiation as the signature share/full signature.
+// always produces the same dummy byte slices specified at instantiation as the full signature.
+// Signature shares always consist in the nodeID followed by a preset suffix (DummySigShareSuffix)
 // Verification of these dummy signatures always succeeds.
 // This is intended as a stub for testing purposes.
 type DummyCrypto struct {
-	// The only accepted signature share
-	DummySigShare []byte
+	// The only accepted signature share suffix
+	DummySigShareSuffix []byte
 
 	// Current node ID
 	Self t.NodeID
@@ -33,7 +34,7 @@ func (dc *DummyCrypto) SignShare(data [][]byte) ([]byte, error) {
 	return dc.buildSigShare(dc.Self), nil
 }
 
-// VerifyShare returns nil (i.e. success) only if signature share equals DummySigShare.
+// VerifyShare returns nil (i.e. success) only if signature share equals nodeID||DummySigShareSuffix.
 // data is ignored.
 func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	if !bytes.Equal(sigShare, dc.buildSigShare(nodeID)) {
@@ -57,7 +58,7 @@ func (dc *DummyCrypto) VerifyFull(data [][]byte, signature []byte) error {
 // data is ignored.
 func (dc *DummyCrypto) Recover(data [][]byte, sigShares [][]byte) ([]byte, error) {
 	for _, share := range sigShares {
-		nodeID := share[:(len(share) - len(dc.DummySigShare))]
+		nodeID := share[:(len(share) - len(dc.DummySigShareSuffix))]
 
 		if err := dc.VerifyShare(data, share, t.NodeID(nodeID)); err != nil {
 			return nil, err
@@ -67,8 +68,9 @@ func (dc *DummyCrypto) Recover(data [][]byte, sigShares [][]byte) ([]byte, error
 	return dc.DummySigFull, nil
 }
 
+// construct the dummy signature share for a nodeID
 func (dc *DummyCrypto) buildSigShare(nodeID t.NodeID) []byte {
 	share := []byte(nodeID)
-	share = append(share, dc.DummySigShare...)
+	share = append(share, dc.DummySigShareSuffix...)
 	return share
 }
