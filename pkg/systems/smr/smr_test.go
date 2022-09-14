@@ -1,10 +1,4 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
-
-package iss
+package smr
 
 import (
 	"context"
@@ -16,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -382,7 +377,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
 		// ISS configuration
-		issConfig := DefaultParams(transportLayer.Nodes())
+		issConfig := iss.DefaultParams(transportLayer.Nodes())
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
@@ -391,9 +386,9 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		}
 
 		// ISS instantiation
-		issProtocol, err := New(
+		issProtocol, err := iss.New(
 			nodeID,
-			DefaultModuleConfig(), issConfig, InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
+			iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
 			logging.Decorate(logger, "ISS: "),
 		)
 		if err != nil {
@@ -438,7 +433,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
 
-		modulesWithDefaults, err := DefaultModules(map[t.ModuleID]modules.Module{
+		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 			"app":          fakeApp,
 			"crypto":       cryptoSystem.Module(nodeID),
 			"iss":          issProtocol,
@@ -447,7 +442,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"mempool":      mempool,
 			"batchdb":      batchdb,
 			"availability": availability,
-		}, DefaultModuleConfig())
+		}, iss.DefaultModuleConfig())
 		if err != nil {
 			return nil, fmt.Errorf("error initializing the Mir modules: %w", err)
 		}
