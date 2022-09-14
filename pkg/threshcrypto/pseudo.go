@@ -12,9 +12,9 @@ import (
 	prand "math/rand"
 
 	"github.com/drand/kyber/util/random"
+	"golang.org/x/exp/slices"
 
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 var (
@@ -38,9 +38,8 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 	// Create a new pseudorandom source from the given seed.
 	randomness := pseudorandomStream(seed)
 
-	var idx int
-	var ok bool
-	if ok, idx = sliceutil.IndexOf(nodes, ownID); !ok {
+	idx := slices.Index(nodes, ownID)
+	if idx == -1 {
 		return nil, fmt.Errorf("own node ID not in node list")
 	}
 
