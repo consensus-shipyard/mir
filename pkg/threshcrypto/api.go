@@ -25,7 +25,8 @@ type ThreshCrypto interface {
 	VerifyShare(data [][]byte, signatureShare []byte, nodeID t.NodeID) error
 
 	// Recover constructs a full signature from signature shares over data.
-	// All signature shares MUST have been previously verified with VerifyShare.
+	// All signature shares MUST have been previously verified with VerifyShare, and must come from
+	// different nodes.
 	// Returns the full signature (and a nil error) on success and a non-nil error otherwise.
 	// Signatures returned by Recover are guaranteed to be valid.
 	Recover(data [][]byte, signatureShares [][]byte) ([]byte, error)
