@@ -286,7 +286,7 @@ func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) 
 	// This function is a modified version of the original implementation of inst.scheme.Recover
 	// The original can be found at: https://github.com/drand/kyber/blob/9b6e107d216803c85237cd7c45196e5c545e447b/sign/tbls/tbls.go#L118
 
-	var pubShares []*share.PubShare
+	pubShares := make([]*share.PubShare, 0, inst.t)
 	for _, sig := range sigShares {
 		sh := tbls.SigShare(sig)
 		i, err := sh.Index()
