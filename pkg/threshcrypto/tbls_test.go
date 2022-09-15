@@ -1,7 +1,6 @@
 package threshcrypto
 
 import (
-	"fmt"
 	"io"
 	"testing"
 
@@ -32,7 +31,7 @@ func TestTBLSHappySmoke(t *testing.T) {
 	// everyone can verify everyone's share
 	for _, k := range keys {
 		for i, sh := range shares {
-			require.NoError(t, k.VerifyShare(data, sh, types.NodeID(fmt.Sprint(i))))
+			require.NoError(t, k.VerifyShare(data, sh, types.NewNodeIDFromInt(i)))
 		}
 	}
 
@@ -121,7 +120,7 @@ func TestTBLSMarshalling(t *testing.T) {
 func keygen(T, N int, seed int64) ([]*TBLSInst, error) {
 	members := make([]types.NodeID, N)
 	for i := range members {
-		members[i] = types.NodeID(fmt.Sprint(i))
+		members[i] = types.NewNodeIDFromInt(i)
 	}
 
 	rand := pseudorandomStream(DefaultPseudoSeed)
