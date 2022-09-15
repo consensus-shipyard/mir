@@ -12,7 +12,7 @@ import (
 )
 
 var (
-// DefaultPseudoSeed is an arbitrary number that the nodes can use as a seed when instantiating their MirModule modules.
+	// DefaultPseudoSeed is an arbitrary number that the nodes can use as a seed when instantiating their MirModule modules.
 	// This is not secure, but helps during testing, as it obviates the exchange of public keys among nodes.
 	DefaultPseudoSeed int64 = 12345
 )
