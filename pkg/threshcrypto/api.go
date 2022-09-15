@@ -1,9 +1,3 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
-
 package threshcrypto
 
 import t "github.com/filecoin-project/mir/pkg/types"
