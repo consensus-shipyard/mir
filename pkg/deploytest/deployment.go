@@ -152,7 +152,6 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 // It starts all test replicas, the dummy client, and the fake message transport subsystem,
 // waits until the replicas stop, and returns the final statuses of all the replicas.
 func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects int64, heapAlloc int64) {
-	fmt.Println(">>>>>>>>>>> ", d.TestConfig.Info)
 
 	// Initialize helper variables.
 	nodeErrors = make([]error, len(d.TestReplicas))
@@ -239,7 +238,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 	clientWg.Wait()
 
 	fmt.Printf("All go routines shut down\n")
-	return
+	return nodeErrors, heapObjects, heapAlloc
 }
 
 // localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns

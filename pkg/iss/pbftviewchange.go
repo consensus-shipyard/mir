@@ -651,7 +651,7 @@ func (pbft *pbftInstance) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSe
 			}
 		}
 	}
-	return
+	return pSet, qSet
 }
 
 // ============================================================

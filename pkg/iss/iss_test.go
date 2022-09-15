@@ -333,7 +333,7 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 		require.NoError(tb, err)
 	}
 
-	return
+	return heapObjects, heapAlloc
 }
 
 // If conf.Directory is not empty, creates a directory with that path if it does not yet exist.

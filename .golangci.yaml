@@ -1,29 +1,31 @@
 linters:
   enable:
-    - gofmt
-    - govet
-    - goimports
-    - misspell
+    - asciicheck
+    - deadcode
+    - dogsled
+    - dupl
+    - errcheck
+    - errorlint
+    - exportloopref
+    - gocognit
     - goconst
     - gocyclo
-    - errcheck
+    - gofmt
+    - goimports
     - gosec
-    - unconvert
-    - staticcheck
-    - varcheck
-    - structcheck
-    - deadcode
-    - exportloopref
-    - revive
-    - dupl
     - gosimple
-    - gocognit
-    - unused
-    - stylecheck
+    - govet
     - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - staticcheck
+    - structcheck
+    - stylecheck
     - unconvert
+    - unused
     - varcheck
-    - errorlint
 
 linters-settings:
   goimports:
