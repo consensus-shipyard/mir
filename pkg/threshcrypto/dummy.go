@@ -15,7 +15,7 @@ import (
 
 // DummyCrypto represents a dummy MirModule module that
 // always produces the same dummy byte slices specified at instantiation as the full signature.
-// Signature shares always consist in the nodeID followed by a preset suffix (DummySigShareSuffix)
+// Signature shares always consist of the nodeID followed by a preset suffix (DummySigShareSuffix)
 // Verification of these dummy signatures always succeeds.
 // This is intended as a stub for testing purposes.
 type DummyCrypto struct {
