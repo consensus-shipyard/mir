@@ -3,4 +3,3 @@
 # This file uses .gitignore syntax
 
 *.pb.go
-git
