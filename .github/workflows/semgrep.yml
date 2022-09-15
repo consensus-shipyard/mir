@@ -30,7 +30,7 @@ jobs:
       # Fetch project source with GitHub Actions Checkout.
       - uses: actions/checkout@v3
       # Run the "semgrep ci" command on the command line of the docker image.
-      - run: semgrep ci
+      - run: semgrep ci --verbose
         env:
           # Add the rules that Semgrep uses by setting the SEMGREP_RULES environment variable.
           SEMGREP_RULES: p/semgrep-go-correctness p/trailofbits
