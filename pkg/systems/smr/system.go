@@ -21,7 +21,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// System represents s Mir SMR system.
+// System represents a Mir SMR system.
 // It groups and configures the various Mir modules that need to work together to implement state machine replication.
 type System struct {
 	// modules is the set of Mir modules that make up the system.
