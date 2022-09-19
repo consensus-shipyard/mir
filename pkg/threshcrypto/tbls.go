@@ -77,8 +77,8 @@ func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) ([]*TB
 	return instances, nil
 }
 
-// Writes the properties of a TBLSInst to an io.Writer
-// Can be read with TBLSInst.UnmarshalFrom
+// MarshalTo writes the properties of a TBLSInst to an io.Writer.
+// Can be read with TBLSInst.UnmarshalFrom.
 func (inst *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 	written := 0
 
@@ -152,9 +152,9 @@ func (inst *TBLSInst) MarshalTo(w io.Writer) (int, error) {
 	return written, nil
 }
 
-// Sets the properties of a TBLSInst from an io.Reader
-// The property stream can be created from TBLSInst.MarshalTo
-// NOTE: Currently assumes the underlying scheme is the same as in TBLS12381Keygen()
+// UnmarshalFrom sets the properties of a TBLSInst from an io.Reader.
+// The property stream can be created from TBLSInst.MarshalTo.
+// NOTE: Currently assumes the underlying scheme is the same as in TBLS12381Keygen().
 func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	read := 0
 
@@ -254,12 +254,12 @@ func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 	return read, nil
 }
 
-// constructs signature share for message
+// SignShare constructs a signature share for the message.
 func (inst *TBLSInst) SignShare(msg [][]byte) ([]byte, error) {
 	return inst.scheme.Sign(inst.privShare, digest(msg))
 }
 
-// verifies that a signature share is for a given message from a given node
+// VerifyShare verifies that a signature share is for a given message from a given node.
 func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	idx, err := tbls.SigShare(sigShare).Index()
 	if err != nil {
@@ -273,13 +273,13 @@ func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID
 	return inst.scheme.VerifyPartial(inst.public, digest(msg), sigShare)
 }
 
-// verifies that a (full) signature is valid for a given message
+// VerifyFull verifies that a (full) signature is valid for a given message.
 func (inst *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
 	return inst.scheme.VerifyRecovered(inst.public.Commit(), digest(msg), sigFull)
 }
 
-// recovers a full signature from a set of (previously validated) shares, that are known to be from
-// distinct nodes
+// Recover recovers a full signature from a set of (previously validated) shares, that are known to be from
+// distinct nodes.
 func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
 	// We don't use inst.scheme.Recover to avoid validating sigShares twice
 
