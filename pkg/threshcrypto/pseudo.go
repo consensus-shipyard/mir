@@ -29,7 +29,7 @@ func pseudorandomStream(seed int64) cipher.Stream {
 // Intended for testing purposes and assuming a static membership known to all nodes,
 // NodePseudo can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (ThreshCrypto, error) {
+func TBLSPseudo(nodes []t.NodeID, nByz, threshold int, ownID t.NodeID, seed int64) (ThreshCrypto, error) {
 	// Create a new pseudorandom source from the given seed.
 	randomness := pseudorandomStream(seed)
 
@@ -38,7 +38,7 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 		return nil, fmt.Errorf("own node ID not in node list")
 	}
 
-	tcInstances, err := TBLS12381Keygen(threshold, nodes, randomness)
+	tcInstances, err := TBLS12381Keygen(nByz, threshold, nodes, randomness)
 	if err != nil {
 		return nil, err
 	}
