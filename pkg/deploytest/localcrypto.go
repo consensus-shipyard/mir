@@ -10,6 +10,7 @@ import (
 )
 
 type LocalCryptoSystem interface {
+	Crypto(id t.NodeID) mirCrypto.Crypto
 	Module(id t.NodeID) modules.Module
 }
 
@@ -23,11 +24,14 @@ func NewLocalCryptoSystem(cryptoType string, nodeIDs []t.NodeID, logger logging.
 	return &localPseudoCryptoSystem{nodeIDs}
 }
 
-func (cs *localPseudoCryptoSystem) Module(id t.NodeID) modules.Module {
+func (cs *localPseudoCryptoSystem) Crypto(id t.NodeID) mirCrypto.Crypto {
 	cryptoImpl, err := mirCrypto.NodePseudo(cs.nodeIDs, id, mirCrypto.DefaultPseudoSeed)
 	if err != nil {
 		panic(fmt.Sprintf("error creating crypto module: %v", err))
 	}
+	return cryptoImpl
+}
 
-	return mirCrypto.New(cryptoImpl)
+func (cs *localPseudoCryptoSystem) Module(id t.NodeID) modules.Module {
+	return mirCrypto.New(cs.Crypto(id))
 }
