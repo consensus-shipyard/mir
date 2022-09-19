@@ -4,11 +4,14 @@ package threshcryptopb;
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
+import "mir/plugin.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/threshcryptopb";
 
 message Event {
   oneof type {
+    option (mir.event_type) = true;
+
     SignShare         sign_share          = 1;
     SignShareResult   sign_share_result   = 2;
     VerifyShare       verify_share        = 3;
