@@ -21,10 +21,10 @@ tmux new-session -d -s "demo" \; \
   split-window -t "demo:0.0" -h \; \
   split-window -t "demo:0.2" -h \; \
   \
-  send-keys -t "demo:0.0" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 -n $(quoted "$@") 0 2>&1 | tee \"$NODE_0_LOG\"" Enter \; \
-  send-keys -t "demo:0.1" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 -n $(quoted "$@") 1 2>&1 | tee \"$NODE_1_LOG\"" Enter \; \
-  send-keys -t "demo:0.2" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 -n $(quoted "$@") 2 2>&1 | tee \"$NODE_2_LOG\"" Enter \; \
-  send-keys -t "demo:0.3" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 -n $(quoted "$@") 3 2>&1 | tee \"$NODE_3_LOG\"" Enter \; \
+  send-keys -t "demo:0.0" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 $(quoted "$@") 0 2>&1 | tee \"$NODE_0_LOG\"" Enter \; \
+  send-keys -t "demo:0.1" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 $(quoted "$@") 1 2>&1 | tee \"$NODE_1_LOG\"" Enter \; \
+  send-keys -t "demo:0.2" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 $(quoted "$@") 2 2>&1 | tee \"$NODE_2_LOG\"" Enter \; \
+  send-keys -t "demo:0.3" "go run ./samples/chat-demo -i samples/chat-demo/membership-4 $(quoted "$@") 3 2>&1 | tee \"$NODE_3_LOG\"" Enter \; \
   attach-session -t "demo:0.0"
 #!/usr/bin/env bash
 set -eu
