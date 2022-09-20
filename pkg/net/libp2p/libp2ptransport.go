@@ -45,6 +45,7 @@ var _ mirnet.Transport = &Transport{}
 type Transport struct {
 	host              host.Host
 	ownID             types.NodeID
+	connWg            *sync.WaitGroup
 	incomingMessages  chan *events.EventList
 	outboundStreamsMx sync.Mutex
 	outboundStreams   map[types.NodeID]network.Stream
@@ -57,6 +58,7 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 	}
 
 	return &Transport{
+		connWg:           &sync.WaitGroup{},
 		incomingMessages: make(chan *events.EventList),
 		outboundStreams:  make(map[types.NodeID]network.Stream),
 		logger:           logger,
@@ -132,8 +134,21 @@ func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types
 		}
 	}
 }
-
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+	if len(nodes) == 0 {
+		return
+	}
+	t.connWg.Add(1)
+	go t.connect(ctx, nodes)
+}
+
+func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+	t.logger.Log(logging.LevelDebug, "started connecting nodes")
+	defer t.connWg.Done()
+	defer func() {
+		t.logger.Log(logging.LevelDebug, "finished connecting nodes")
+	}()
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 
