@@ -107,6 +107,8 @@ func (t *Transport) Stop() {
 	} else {
 		t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v libp2p host closed", t.ownID))
 	}
+
+	t.connWg.Wait()
 }
 
 func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types.NodeID]types.NodeAddress) {
@@ -134,8 +136,10 @@ func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types
 		}
 	}
 }
+
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	if len(nodes) == 0 {
+		t.logger.Log(logging.LevelWarn, "no nodes to connect to")
 		return
 	}
 	t.connWg.Add(1)
@@ -165,7 +169,7 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 			continue
 		}
 
-		go func(nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
+		go func(ctx context.Context, nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
 			defer wg.Done()
 
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
@@ -177,7 +181,7 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 			t.addOutboundStream(nodeID, s)
 			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 
-		}(nodeID, nodeAddr)
+		}(ctx, nodeID, nodeAddr)
 	}
 
 	wg.Wait()
