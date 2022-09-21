@@ -216,6 +216,8 @@ func (t *Transport) reconnect(ctx context.Context, nodes map[types.NodeID]types.
 func (t *Transport) connectToNode(ctx context.Context, id types.NodeID, addr multiaddr.Multiaddr, wg *sync.WaitGroup) {
 	defer wg.Done()
 
+	fmt.Println(id, addr)
+
 	if t.isConnectionToNodeInProgress(id) {
 		t.logger.Log(logging.LevelDebug, fmt.Sprintf("connecting to node %s in progress", id.Pb()))
 		return
@@ -228,7 +230,7 @@ func (t *Transport) connectToNode(ctx context.Context, id types.NodeID, addr mul
 
 	info, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
-		t.logger.Log(logging.LevelError, "failed to parse addr %v: %w", addr, err)
+		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to parse addr %v: %v", addr, err))
 		return
 	}
 
@@ -310,7 +312,11 @@ func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
 	}
 	if err != nil || len(t.host.Network().ConnsToPeer(s.Conn().RemotePeer())) == 0 {
 		t.connWg.Add(1)
-		t.reconnect(context.TODO(), map[types.NodeID]types.NodeAddress{dest: s.Conn().RemoteMultiaddr()})
+		addr, err := multiaddr.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", s.Conn().RemoteMultiaddr(), s.Conn().RemotePeer()))
+		if err != nil {
+			return err
+		}
+		t.reconnect(context.TODO(), map[types.NodeID]types.NodeAddress{dest: addr})
 		return errors.Wrapf(mirnet.ErrWritingFailed, "%v", err)
 	}
 
@@ -354,9 +360,6 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 	t.outboundStreamsMx.Lock()
 	defer t.outboundStreamsMx.Unlock()
 
-	if _, found := t.outboundStreams[nodeID]; found {
-		t.logger.Log(logging.LevelWarn, fmt.Sprintf("stream to %s already exists", nodeID.Pb()))
-	}
 	t.outboundStreams[nodeID] = s
 }
 
