@@ -3,10 +3,18 @@ package net
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
+
+// ErrNoStreamForDest occurs on sending attempt when there is no established stream for the destination node.
+var ErrNoStreamForDest = errors.New("no stream for the destination node")
+
+// ErrWritingFailed occurs on when writing to the stream failed.
+var ErrWritingFailed = errors.New("writing to the stream failed")
 
 type Transport interface {
 	modules.ActiveModule

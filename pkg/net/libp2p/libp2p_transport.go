@@ -16,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -27,12 +28,12 @@ import (
 )
 
 const (
-	ProtocolID           = "/mir/0.0.1"
-	maxConnectingTimeout = 200 * time.Millisecond
-	retryTimeout         = 2 * time.Second
-	retryAttempts        = 20
-	nonErrorAttempts     = 2
-	PermanentAddrTTL     = math.MaxInt64 - iota
+	ProtocolID             = "/mir/0.0.1"
+	maxConnectingTimeout   = 200 * time.Millisecond
+	retryTimeout           = 2 * time.Second
+	retryAttempts          = 20
+	noLoggingErrorAttempts = 2
+	PermanentAddrTTL       = math.MaxInt64 - iota
 )
 
 type TransportMessage struct {
@@ -43,13 +44,15 @@ type TransportMessage struct {
 var _ mirnet.Transport = &Transport{}
 
 type Transport struct {
-	host              host.Host
-	ownID             types.NodeID
-	connWg            *sync.WaitGroup
-	incomingMessages  chan *events.EventList
-	outboundStreamsMx sync.Mutex
-	outboundStreams   map[types.NodeID]network.Stream
-	logger            logging.Logger
+	host                    host.Host
+	ownID                   types.NodeID
+	connWg                  *sync.WaitGroup
+	incomingMessages        chan *events.EventList
+	outboundStreamsMx       sync.Mutex
+	outboundStreams         map[types.NodeID]network.Stream
+	connectionsInProgress   map[types.NodeID]bool
+	connectionsInProgressMx sync.Mutex
+	logger                  logging.Logger
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -58,12 +61,13 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 	}
 
 	return &Transport{
-		connWg:           &sync.WaitGroup{},
-		incomingMessages: make(chan *events.EventList),
-		outboundStreams:  make(map[types.NodeID]network.Stream),
-		logger:           logger,
-		ownID:            ownID,
-		host:             h,
+		connWg:                &sync.WaitGroup{},
+		incomingMessages:      make(chan *events.EventList),
+		outboundStreams:       make(map[types.NodeID]network.Stream),
+		connectionsInProgress: make(map[types.NodeID]bool),
+		logger:                logger,
+		ownID:                 ownID,
+		host:                  h,
 	}, nil
 }
 
@@ -146,14 +150,24 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 	go t.connect(ctx, nodes)
 }
 
+func (t *Transport) syncConnect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+	if len(nodes) == 0 {
+		t.logger.Log(logging.LevelWarn, "no nodes to connect to")
+		return
+	}
+	t.connWg.Add(1)
+	t.connect(ctx, nodes)
+}
+
 func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
-	t.logger.Log(logging.LevelDebug, "started connecting nodes")
+	t.logger.Log(logging.LevelDebug, "started sync connecting nodes")
+
 	defer t.connWg.Done()
 	defer func() {
-		t.logger.Log(logging.LevelDebug, "finished connecting nodes")
+		t.logger.Log(logging.LevelDebug, "finished sync connecting nodes")
 	}()
 
-	wg := sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 	wg.Add(len(nodes))
 
 	for nodeID, nodeAddr := range nodes {
@@ -169,39 +183,66 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 			continue
 		}
 
-		go func(ctx context.Context, nodeID types.NodeID, nodeAddr multiaddr.Multiaddr) {
-			defer wg.Done()
-
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), nodeID.Pb()))
-			s, err := t.connectToNode(ctx, nodeAddr)
-			if err != nil {
-				t.logger.Log(logging.LevelError, "err", err)
-				return
-			}
-			t.addOutboundStream(nodeID, s)
-			t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
-
-		}(ctx, nodeID, nodeAddr)
+		go t.connectToNode(ctx, nodeID, nodeAddr, wg)
 	}
 
 	wg.Wait()
 }
 
-func (t *Transport) connectToNode(ctx context.Context, addr multiaddr.Multiaddr) (network.Stream, error) {
-	// Extract the peer ID from the multiaddr.
+func (t *Transport) reconnect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+	t.logger.Log(logging.LevelDebug, "started reconnecting")
+
+	defer t.connWg.Done()
+	defer func() {
+		t.logger.Log(logging.LevelDebug, "finished reconnecting")
+	}()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(nodes))
+
+	for nodeID, nodeAddr := range nodes {
+		if nodeID == t.ownID {
+			// Do not establish a real connection with own node.
+			wg.Done()
+			continue
+		}
+
+		go t.connectToNode(ctx, nodeID, nodeAddr, wg)
+	}
+
+	wg.Wait()
+}
+
+func (t *Transport) connectToNode(ctx context.Context, id types.NodeID, addr multiaddr.Multiaddr, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	if t.isConnectionToNodeInProgress(id) {
+		t.logger.Log(logging.LevelDebug, fmt.Sprintf("connecting to node %s in progress", id.Pb()))
+		return
+	}
+
+	t.addConnectionInProgress(id)
+	defer t.removeConnectionInProgress(id)
+
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), id.Pb()))
+
 	info, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse addr %v: %w", addr, err)
+		t.logger.Log(logging.LevelError, "failed to parse addr %v: %w", addr, err)
+		return
 	}
 
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 
 	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open new stream to node %v: %w", addr, err)
+		t.removeConnectionInProgress(id)
+		t.logger.Log(logging.LevelError, "failed to open stream to node %v: %w", addr, err)
+		return
 	}
 
-	return s, nil
+	t.addOutboundStream(id, s)
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), id.Pb()))
 }
 
 func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, error) {
@@ -216,7 +257,7 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 			return s, nil
 		}
 
-		if i >= nonErrorAttempts {
+		if i >= noLoggingErrorAttempts {
 			t.logger.Log(
 				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()))
 		} else {
@@ -239,19 +280,17 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
-	outBytes, err := proto.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
-	}
-
 	t.outboundStreamsMx.Lock()
 	s, ok := t.outboundStreams[dest]
 	t.outboundStreamsMx.Unlock()
 	if !ok {
-		return fmt.Errorf("failed to get stream for node %v", dest)
+		return errors.Wrap(mirnet.ErrNoStreamForDest, dest.Pb())
 	}
 
-	w := bufio.NewWriter(bufio.NewWriter(s))
+	outBytes, err := proto.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
 
 	msg := TransportMessage{
 		t.ownID.Pb(),
@@ -264,12 +303,15 @@ func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
 		return err
 	}
 
+	w := bufio.NewWriter(s)
 	_, err = w.Write(buf.Bytes())
 	if err == nil {
 		w.Flush()
 	}
-	if err != nil {
-		return err
+	if err != nil || len(t.host.Network().ConnsToPeer(s.Conn().RemotePeer())) == 0 {
+		t.connWg.Add(1)
+		t.reconnect(context.TODO(), map[types.NodeID]types.NodeAddress{dest: s.Conn().RemoteMultiaddr()})
+		return errors.Wrapf(mirnet.ErrWritingFailed, "%v", err)
 	}
 
 	return nil
@@ -324,6 +366,28 @@ func (t *Transport) streamExists(nodeID types.NodeID) bool {
 
 	_, found := t.outboundStreams[nodeID]
 	return found
+}
+
+func (t *Transport) isConnectionToNodeInProgress(nodeID types.NodeID) bool {
+	t.connectionsInProgressMx.Lock()
+	defer t.connectionsInProgressMx.Unlock()
+
+	_, found := t.connectionsInProgress[nodeID]
+	return found
+}
+
+func (t *Transport) addConnectionInProgress(nodeID types.NodeID) {
+	t.connectionsInProgressMx.Lock()
+	defer t.connectionsInProgressMx.Unlock()
+
+	t.connectionsInProgress[nodeID] = true
+}
+
+func (t *Transport) removeConnectionInProgress(nodeID types.NodeID) {
+	t.connectionsInProgressMx.Lock()
+	defer t.connectionsInProgressMx.Unlock()
+
+	delete(t.connectionsInProgress, nodeID)
 }
 
 func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
