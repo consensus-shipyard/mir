@@ -66,6 +66,8 @@ func TestLibp2pReconnect(t *testing.T) {
 
 	ctx := context.Background()
 
+	var err error
+
 	h := newLibp2pTransportHarness(nodeIDs, logger, 10000)
 
 	a, err := h.Link(nodeIDs[0])
@@ -93,7 +95,7 @@ func TestLibp2pReconnect(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	err = a.Send(nodeIDs[1], &msg)
-	require.Error(t, mirnet.ErrWritingFailed)
+	require.Equal(t, mirnet.ErrWritingFailed, err)
 
 	err = a.Send(nodeIDs[1], &msg)
 	require.NoError(t, err)

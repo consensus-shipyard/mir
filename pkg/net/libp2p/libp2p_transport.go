@@ -317,7 +317,7 @@ func (t *Transport) Send(dest types.NodeID, payload *messagepb.Message) error {
 			return err
 		}
 		t.reconnect(context.TODO(), map[types.NodeID]types.NodeAddress{dest: addr})
-		return errors.Wrapf(mirnet.ErrWritingFailed, "%v", err)
+		return mirnet.ErrWritingFailed
 	}
 
 	return nil
