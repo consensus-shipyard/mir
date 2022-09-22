@@ -11,6 +11,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	mirnet "github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
 	tools "github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -61,12 +62,12 @@ func (t *libp2pTransportHarness) Nodes() map[types.NodeID]types.NodeAddress {
 }
 
 func TestLibp2pReconnect(t *testing.T) {
-	nodeIDs := []types.NodeID{types.NodeID("a"), types.NodeID("b")}
+	ctx := context.Background()
 	logger := logging.ConsoleDebugLogger
 
-	ctx := context.Background()
-
-	var err error
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+	nodeIDs := []types.NodeID{nodeA, nodeB}
 
 	h := newLibp2pTransportHarness(nodeIDs, logger, 10000)
 
@@ -82,9 +83,16 @@ func TestLibp2pReconnect(t *testing.T) {
 
 	a.syncConnect(ctx, h.Nodes())
 
-	msg := messagepb.Message{}
-	err = a.Send(nodeIDs[1], &msg)
+	nodeBEventsChan := b.EventsOut()
+
+	err = a.Send(nodeIDs[1], &messagepb.Message{})
 	require.NoError(t, err)
+
+	events := <-nodeBEventsChan
+	e := events.Iterator().Next()
+	msg, valid := e.Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
 	err = b.host.Network().ClosePeer(a.host.ID())
 	require.NoError(t, err)
@@ -92,13 +100,19 @@ func TestLibp2pReconnect(t *testing.T) {
 	n := len(b.host.Network().Peers())
 	require.Equal(t, 0, n)
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
-	err = a.Send(nodeIDs[1], &msg)
+	err = a.Send(nodeIDs[1], &messagepb.Message{})
 	require.Equal(t, mirnet.ErrWritingFailed, err)
 
-	err = a.Send(nodeIDs[1], &msg)
+	err = a.Send(nodeIDs[1], &messagepb.Message{})
 	require.NoError(t, err)
+
+	events = <-nodeBEventsChan
+	e = events.Iterator().Next()
+	msg, valid = e.Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
 	a.Stop()
 	b.Stop()
