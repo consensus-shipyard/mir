@@ -67,30 +67,46 @@ func TestLibp2pReconnect(t *testing.T) {
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
-	nodeIDs := []types.NodeID{nodeA, nodeB}
+	nodeC := types.NodeID("c")
 
-	h := newLibp2pTransportHarness(nodeIDs, logger, 10000)
+	h := newLibp2pTransportHarness([]types.NodeID{nodeA, nodeB, nodeC}, logger, 10000)
 
-	a, err := h.Link(nodeIDs[0])
+	a, err := h.Link(nodeA)
 	require.NoError(t, err)
 	err = a.Start()
+	defer a.Stop()
 	require.NoError(t, err)
 
-	b, err := h.Link(nodeIDs[1])
+	b, err := h.Link(nodeB)
 	require.NoError(t, err)
 	err = b.Start()
+	defer b.Stop()
+	require.NoError(t, err)
+
+	c, err := h.Link(nodeC)
+	require.NoError(t, err)
+	err = c.Start()
+	defer c.Stop()
 	require.NoError(t, err)
 
 	a.syncConnect(ctx, h.Nodes())
+	b.syncConnect(ctx, h.Nodes())
+	c.syncConnect(ctx, h.Nodes())
 
 	nodeBEventsChan := b.EventsOut()
+	nodeCEventsChan := c.EventsOut()
 
-	err = a.Send(nodeIDs[1], &messagepb.Message{})
+	err = a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
+	nodeBEvents := <-nodeBEventsChan
+	msg, valid := nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
-	events := <-nodeBEventsChan
-	e := events.Iterator().Next()
-	msg, valid := e.Type.(*eventpb.Event_MessageReceived)
+	err = a.Send(nodeC, &messagepb.Message{})
+	require.NoError(t, err)
+	nodeCEvents := <-nodeCEventsChan
+	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
@@ -98,22 +114,24 @@ func TestLibp2pReconnect(t *testing.T) {
 	require.NoError(t, err)
 
 	n := len(b.host.Network().Peers())
-	require.Equal(t, 0, n)
+	require.Equal(t, 1, n)
 
 	time.Sleep(3 * time.Second)
 
-	err = a.Send(nodeIDs[1], &messagepb.Message{})
+	err = a.Send(nodeB, &messagepb.Message{})
 	require.Equal(t, mirnet.ErrWritingFailed, err)
 
-	err = a.Send(nodeIDs[1], &messagepb.Message{})
+	err = a.Send(nodeC, &messagepb.Message{})
 	require.NoError(t, err)
-
-	events = <-nodeBEventsChan
-	e = events.Iterator().Next()
-	msg, valid = e.Type.(*eventpb.Event_MessageReceived)
+	nodeCEvents = <-nodeCEventsChan
+	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
-	a.Stop()
-	b.Stop()
+	err = a.Send(nodeB, &messagepb.Message{})
+	require.NoError(t, err)
+	nodeBEvents = <-nodeBEventsChan
+	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 }
