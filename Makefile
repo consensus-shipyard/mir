@@ -34,6 +34,10 @@ format:
 lint:
 	golangci-lint run ./...
 
+.PHONY: fuzz
+fuzz:
+	./fuzz.sh
+
 .PHONY: generate
 generate:
 	go generate ./protos # Generate basic protobufs first, as those might be necessary to generate the rest.

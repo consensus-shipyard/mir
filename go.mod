@@ -26,6 +26,7 @@ require (
 require github.com/golang/mock v1.6.0
 
 require (
+	github.com/google/gofuzz v1.0.0
 	github.com/ipfs/go-cid v0.1.0
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/spf13/cobra v1.5.0
