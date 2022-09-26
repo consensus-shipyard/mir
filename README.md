@@ -20,7 +20,7 @@ The first intended use of Mir is as a scalable and efficient
 and, potentially, as a Byzantine fault-tolerant ordering service in Hyperledger Fabric.
 However, Mir hopes to be a building block of a next generation of distributed systems, being used by many applications.
 
-## Structure and Usage
+## Nodes, Modules, and Events
 
 Mir is a framework for implementing distributed protocols (also referred to as distributed algorithms)
 meant to run on a distributed system.
@@ -29,68 +29,58 @@ Each node locally executes (its portion of) a protocol,
 sending and receiving *messages* to and from other nodes over a communication network.
 
 Mir models a node of such a distributed system and presents the consumer (the programmer using Mir)
-with a [*Node*](/node.go) abstraction.
-The Node receives *requests*, processes them (while coordinating with other Nodes using the distributed protocol),
-and eventually delivers them to a (consumer-defined) *application*.
-Fundamentally, Mir's purpose can be summed up simply as receiving requests from the consumer
-and delivering them to an application as prescribed by some protocol.
-The [ISS](/pkg/iss) protocol, for example, being a total order broadcast protocol,
-guarantees that all requests received by the nodes will be delivered to the application in the same order.
+with a [`Node`](/node.go) abstraction.
+The main task of a `Node` is to process events.
 
-Note that the application need not necessarily be an end-user application -
-any program using Mir is an application from Mir's point of view.
-While the application logic is (except for the included sample demos) always expected to
-be provided by the Mir consumer, this need not be the case for the protocol.
-While the consumer is free to provide a custom protocol component,
-Mir will provide out-of-the-box implementations of different distributed protocols for the consumer to select
-(the first of them being ISS).
+A node contains one or multiple [`Module`](/pkg/modules/modules.go)s that implement the logic for event processing.
+Each module independently consumes, processes, and outputs events.
+This approach bears resemblance to the [actor model](https://en.wikipedia.org/wiki/Actor_model),
+where events exchanged between modules correspond to messages exchanged between actors.
 
-We now describe how the above (providing an application, selecting a protocol, etc.) works in practice.
-This is where Mir's modular design comes into play.
-The Node abstraction mentioned above is implemented as a Go struct that contains multiple *modules*.
-In short, when instantiating a Node, the consumer of Mir provides implementations of these modules to Mir.
-For example, instantiating a node might look as follows:
+The Node implements an event loop where all events created by modules are stored in a buffer and
+distributed to their corresponding target modules for processing.
+For example, when the networking module receives a protocol message over the network,
+it generates a `MessageReceived` event (containing the received message)
+that the node implementation routes to the protocol module, which processes the message,
+potentially outputting `SendMessage` events that the Node implementation routes back to the networking module.
+
+The architecture described above enables a powerful debugging approach.
+All Events in the event loop can, in debug mode, be recorded, inspected, or even modified and replayed to the Node
+using a debugging interface.
+
+In practice, when instantiating a Node, the consumer of Mir provides implementations of these modules to Mir.
+For example, instantiating a node of a state machine replication system might look as follows:
 
 ```go
     // Example Node instantiation adapted from samples/chat-demo/main.go
-    node, err := mir.NewNode(/*some more arguments*/ &modules.Modules{
-        Net:      grpcNetworking,
-        // ...
-        Protocol: issProtocol,
-        App:      NewChatApp(reqStore),
-        Crypto:   ecdsaCrypto,
-    })
+    node, err := mir.NewNode(
+		/* some more technical arguments ... */
+		&modules.Modules{
+			// ... 
+			"app":      NewChatApp(reqStore),
+			"protocol": TOBProtocol,
+			"net":      grpcNetworking,
+			"crypto":   ecdsaCrypto,
+		},
+		eventInterceptor,
+		writeAheadLog,
+	)
 ```
 
+![Example Mir Node](/docs/images/high-level-architecture.png)
+
 Here the consumer provides modules for networking
-(implements sending and receiving messages over the network, in this case using gRPC),
-the protocol logic (using the ISS protocol), the application (implementing the logic of a chat app), and a cryptographic
-module (able to produce and verify digital signatures using the ECDSA algorithm).
-There are more modules a Node is using, some of them always have to be provided,
-some can be left out and Mir will fall back to default built-in implementations.
-Some modules, even though they always need to be explicitly provided at Node instantiation,
-are part of Mir and can themselves be instantiated easily using Mir library functions.
+(implements sending and receiving messages over the network),
+the protocol logic (using some total-order broadcast protocol),
+the application (implementing the logic of the replicated app),
+and a cryptographic module (able to produce and verify digital signatures using ECDSA).
+the `eventInterceptor` implements recording of the events passed between the modules
+for analysis and debugging purposes.
+The `writeAheadLog` is a special module that enables the node to recover from crashes.
+For more details, see the [Documentation](/docs).
 
-Inside the Node, the modules interact using *Events*.
-Each module independently consumes, processes, and outputs Events.
-This approach bears resemblance to the [actor model](https://en.wikipedia.org/wiki/Actor_model),
-where Events exchanged between modules correspond to messages exchanged between actors.
-
-The Node implements an event loop, where all Events created by modules are stored in a buffer and, based on their types,
-distributed to their corresponding modules for processing.
-For example, when the networking module receives a protocol message over the network,
-it generates a `MessageReceived` Event (containing the received message)
-that the Node implementation routes to the protocol module, which processes the message,
-potentially outputting `SendMessage` Events that the Node implementation routes back to the networking module.
-
-The architecture described above enables a powerful debugging approach.
-All Events in the event loop can, in debug mode, be recorded, inspected, or even replayed to the Node
-using a debugging interface.
-
-The high-level architecture of a Node is depicted in the figure below.
-For more details, see the [module interfaces](/pkg/modules)
-and a more detailed description of each module in the [Documentation](/docs).
-![High-level architecture of a Mir Node](/docs/images/high-level-architecture.png)
+The programmer working with Mir is free to provide own implementations of these modules,
+but Mir already comes bundled with several module implementations out of the box.
 
 ### Relation to the Mir-BFT protocol
 
@@ -104,7 +94,7 @@ ISS is just one (the first) of the protocols implemented in Mir.
 
 ## Current Status
 
-This library is in development and not usable yet.
+This library is in development.
 This document describes what the library *should become* rather than what it *currently is*.
 This document itself is more than likely to still change.
 You are more than welcome to contribute to accelerating the development of the Mir library
