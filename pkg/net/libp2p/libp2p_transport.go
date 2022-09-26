@@ -23,7 +23,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
-	util "github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -42,18 +41,21 @@ type TransportMessage struct {
 
 var _ mirnet.Transport = &Transport{}
 
+type nodeInfo struct {
+	ID        types.NodeID
+	Addr      types.NodeAddress
+	Stream    network.Stream
+	IsOpening bool
+}
+
 type Transport struct {
-	nodes             map[types.NodeID]types.NodeAddress
-	nodesMx           sync.Mutex
-	host              host.Host
-	ownID             types.NodeID
-	connWg            *sync.WaitGroup
-	incomingMessages  chan *events.EventList
-	outboundStreamsMx sync.Mutex
-	outboundStreams   map[types.NodeID]network.Stream
-	openingStreams    map[types.NodeID]bool
-	openingStreamsMx  sync.Mutex
-	logger            logging.Logger
+	host             host.Host
+	ownID            types.NodeID
+	connWg           *sync.WaitGroup
+	incomingMessages chan *events.EventList
+	logger           logging.Logger
+	nodes            map[types.NodeID]*nodeInfo
+	nodesLock        sync.RWMutex
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -64,9 +66,7 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 	return &Transport{
 		connWg:           &sync.WaitGroup{},
 		incomingMessages: make(chan *events.EventList),
-		nodes:            make(map[types.NodeID]types.NodeAddress),
-		outboundStreams:  make(map[types.NodeID]network.Stream),
-		openingStreams:   make(map[types.NodeID]bool),
+		nodes:            make(map[types.NodeID]*nodeInfo),
 		logger:           logger,
 		ownID:            ownID,
 		host:             h,
@@ -89,16 +89,16 @@ func (t *Transport) Stop() {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("Stopping libp2p transport: %s", t.ownID))
 	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("Stopping libp2p transport finished: %s", t.ownID))
 
-	t.outboundStreamsMx.Lock()
-	defer t.outboundStreamsMx.Unlock()
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
-	for id, s := range t.outboundStreams {
-		if s == nil {
+	for id, info := range t.nodes {
+		if info.Stream == nil {
 			continue
 		}
 		t.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
 
-		if err := s.Close(); err != nil {
+		if err := info.Stream.Close(); err != nil {
 			t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 			continue
 		}
@@ -117,29 +117,25 @@ func (t *Transport) Stop() {
 	t.connWg.Wait()
 }
 
-func (t *Transport) CloseOldConnections(ctx context.Context, nextNodes map[types.NodeID]types.NodeAddress) {
-	t.outboundStreamsMx.Lock()
-	defer t.outboundStreamsMx.Unlock()
+func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddress) {
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
-	t.nodesMx.Lock()
-	defer t.nodesMx.Unlock()
-
-	for nodeID, s := range t.outboundStreams {
-		if s == nil {
+	for nodeID, node := range t.nodes {
+		if node.Stream == nil {
 			continue
 		}
 
 		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := nextNodes[nodeID]; !newConn {
+		if _, newConn := newNodes[nodeID]; !newConn {
 			t.logger.Log(logging.LevelDebug, "Closing old connection", "to", nodeID)
 
-			if err := s.Close(); err != nil {
+			if err := node.Stream.Close(); err != nil {
 				t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", nodeID, err))
 				continue
 			}
 
 			// If we had that connection then remove it.
-			delete(t.outboundStreams, nodeID)
 			delete(t.nodes, nodeID)
 
 			t.logger.Log(logging.LevelDebug, "Closed old connection", "to", nodeID)
@@ -153,9 +149,16 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		return
 	}
 
-	t.nodesMx.Lock()
-	t.nodes = util.Copy(nodes)
-	t.nodesMx.Unlock()
+	t.nodesLock.Lock()
+	for id, addr := range nodes {
+		t.nodes[id] = &nodeInfo{
+			ID:        id,
+			Addr:      addr,
+			IsOpening: false,
+			Stream:    nil,
+		}
+	}
+	t.nodesLock.Unlock()
 
 	t.connWg.Add(1)
 	go t.connect(ctx, nodes)
@@ -204,9 +207,11 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), node.Pb()))
 
-	t.nodesMx.Lock()
-	addr := t.nodes[node]
-	t.nodesMx.Unlock()
+	addr, found := t.getAddr(node)
+	if !found {
+		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to get addr %v for node %v", addr, node))
+		return
+	}
 	info, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
 		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to parse addr %v: %v", addr, err))
@@ -261,17 +266,13 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
-	t.nodesMx.Lock()
-	_, ok := t.nodes[dest]
-	t.nodesMx.Unlock()
-	if !ok {
+	found := t.nodeExists(dest)
+	if !found {
 		return fmt.Errorf("failed to get address for node %s", dest)
 	}
 
-	t.outboundStreamsMx.Lock()
-	s, ok := t.outboundStreams[dest]
-	t.outboundStreamsMx.Unlock()
-	if !ok {
+	s, found := t.getStream(dest)
+	if !found {
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
 		return fmt.Errorf("no open stream for node %s, reopening", dest)
@@ -343,40 +344,82 @@ func (t *Transport) mirHandler(s network.Stream) {
 }
 
 func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
-	t.outboundStreamsMx.Lock()
-	defer t.outboundStreamsMx.Unlock()
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
-	t.outboundStreams[nodeID] = s
+	v, found := t.nodes[nodeID]
+	if !found {
+		return
+	}
+	v.Stream = s
+}
+
+func (t *Transport) nodeExists(nodeID types.NodeID) bool {
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
+
+	_, found := t.nodes[nodeID]
+	return found
 }
 
 func (t *Transport) streamExists(nodeID types.NodeID) bool {
-	t.outboundStreamsMx.Lock()
-	defer t.outboundStreamsMx.Unlock()
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
 
-	_, found := t.outboundStreams[nodeID]
-	return found
+	v, found := t.nodes[nodeID]
+	return found && v.Stream != nil
+}
+
+func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, bool) {
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
+
+	v, found := t.nodes[nodeID]
+	if !found {
+		return nil, false
+	}
+	return v.Stream, true
+}
+
+func (t *Transport) getAddr(nodeID types.NodeID) (types.NodeAddress, bool) {
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
+
+	v, found := t.nodes[nodeID]
+	if !found {
+		return nil, false
+	}
+	return v.Addr, true
 }
 
 func (t *Transport) isConnectionToNodeInProgress(nodeID types.NodeID) bool {
-	t.openingStreamsMx.Lock()
-	defer t.openingStreamsMx.Unlock()
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
 
-	_, found := t.openingStreams[nodeID]
-	return found
+	info, found := t.nodes[nodeID]
+	return found && info.IsOpening
 }
 
 func (t *Transport) addConnectionInProgress(nodeID types.NodeID) {
-	t.openingStreamsMx.Lock()
-	defer t.openingStreamsMx.Unlock()
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
-	t.openingStreams[nodeID] = true
+	info, found := t.nodes[nodeID]
+	if !found {
+		return
+	}
+	info.IsOpening = true
 }
 
 func (t *Transport) removeConnectionInProgress(nodeID types.NodeID) {
-	t.openingStreamsMx.Lock()
-	defer t.openingStreamsMx.Unlock()
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
-	delete(t.openingStreams, nodeID)
+	info, found := t.nodes[nodeID]
+	if !found {
+		return
+	}
+	info.IsOpening = false
 }
 
 func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {

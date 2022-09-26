@@ -24,5 +24,5 @@ type Transport interface {
 	Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress)
 
 	// CloseOldConnections closes connections to the nodes that don't needed.
-	CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress)
+	CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress)
 }

@@ -257,14 +257,14 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
-func (gt *Transport) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {
+func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 	for id, connection := range gt.connections {
 		if connection == nil {
 			continue
 		}
 
 		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := nextNodes[id]; !newConn {
+		if _, newConn := newNodes[id]; !newConn {
 			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
 
 			if err := connection.CloseSend(); err != nil {

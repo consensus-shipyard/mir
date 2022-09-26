@@ -91,7 +91,7 @@ func (m *simTransportModule) Send(ctx context.Context, dest t.NodeID, msg *messa
 	return nil
 }
 
-func (m *simTransportModule) CloseOldConnections(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 }
 
 func (m *simTransportModule) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
