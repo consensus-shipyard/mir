@@ -86,8 +86,8 @@ func (m *simTransportModule) Stop() {
 	close(m.stopChan)
 }
 
-func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
-	m.sendMessage(context.Background(), msg, dest)
+func (m *simTransportModule) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
+	m.sendMessage(ctx, msg, dest)
 	return nil
 }
 
