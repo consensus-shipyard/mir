@@ -15,8 +15,7 @@ func TestTBLSHappySmoke(t *testing.T) {
 	N := 5
 	T := 3
 
-	keys, err := keygen(T-1, T, N)
-	assert.NoError(t, err)
+	keys := keygen(T-1, T, N)
 
 	data := [][]byte{{1, 2, 3, 4, 5}, {4, 2}}
 
@@ -52,8 +51,7 @@ func TestTBLSSadSmoke(t *testing.T) {
 	N := 5
 	T := 3
 
-	keys, err := keygen(T-1, T, N)
-	require.NoError(t, err)
+	keys := keygen(T-1, T, N)
 
 	data := [][]byte{{1, 2, 3, 4, 5}, {4, 2}}
 
@@ -66,7 +64,7 @@ func TestTBLSSadSmoke(t *testing.T) {
 	}
 
 	// all of the same share is no good
-	_, err = keys[0].Recover(data, [][]byte{shares[0], shares[0], shares[0]})
+	_, err := keys[0].Recover(data, [][]byte{shares[0], shares[0], shares[0]})
 	assert.Error(t, err)
 
 	// too little shares is no good
@@ -87,8 +85,7 @@ func TestTBLSMarshalling(t *testing.T) {
 	T := N
 	nByz := (N+1)/2 - 1
 
-	keys, err := keygen(nByz, T, N)
-	require.NoError(t, err)
+	keys := keygen(nByz, T, N)
 
 	keys2 := marshalUnmarshalKeys(t, keys)
 
@@ -118,14 +115,14 @@ func TestTBLSMarshalling(t *testing.T) {
 	}
 }
 
-func keygen(nByz, T, N int) ([]*TBLSInst, error) {
+func keygen(nByz, T, N int) []*TBLSInst {
 	members := make([]types.NodeID, N)
 	for i := range members {
 		members[i] = types.NewNodeIDFromInt(i)
 	}
 
 	rand := pseudorandomStream(DefaultPseudoSeed)
-	return TBLS12381Keygen(nByz, T, members, rand)
+	return TBLS12381Keygen(T, members, rand)
 }
 
 func marshalUnmarshalKeys(t *testing.T, src []*TBLSInst) []*TBLSInst {

@@ -45,11 +45,8 @@ func tbls12381Scheme() (pairing.Suite, sign.ThresholdScheme, kyber.Group, kyber.
 // TBLS12381Keygen constructs a set TBLSInst for a given set of member nodes and threshold T
 // with nByz byzantine nodes, using the BLS12-381 pairing, with signatures being points on curve G1,
 // and keys points on curve G2.
-func TBLS12381Keygen(nByz, T int, members []t.NodeID, randSource cipher.Stream) ([]*TBLSInst, error) {
+func TBLS12381Keygen(T int, members []t.NodeID, randSource cipher.Stream) []*TBLSInst {
 	N := len(members)
-	if !(nByz < (N+1)/2 && nByz >= 0 && T > nByz) {
-		return nil, fmt.Errorf("(T, N)-threshold BLS requires 0 <= nByz < N/2, and T > nByz, where nByz is the number of byzantine participants")
-	}
 
 	pairing, scheme, sigGroup, keyGroup := tbls12381Scheme()
 
@@ -74,7 +71,7 @@ func TBLS12381Keygen(nByz, T int, members []t.NodeID, randSource cipher.Stream) 
 		}
 	}
 
-	return instances, nil
+	return instances
 }
 
 // MarshalTo writes the properties of a TBLSInst to an io.Writer.
