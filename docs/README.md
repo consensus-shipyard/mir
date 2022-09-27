@@ -61,6 +61,25 @@ Follow-up events can be arbitrarily nested to express more complex dependency tr
 Note that a follow-up event is not guaranteed to be processed immediately after the parent event.
 Mir does not even guarantee that a follow-up event will be processed before other events emitted by the same module.
 
+### Event representation
+
+Mir uses Protocol Buffers (Protobuf) to represent events.
+Protobuf definitions are located in the [/protos](/protos) directory,
+with the `Event` object ("message" in protobuf terminology)
+defined in [/protos/eventpb/eventpb.proto](/protos/eventpb/eventpb.proto).
+
+The various types of events are defined in the `Event` object using the `oneof` construct.
+Whenever new event types are introduced, the `Event` object definition must be updated accordingly.
+If new `.proto` files are added, corresponding lines must be added to [/protos/generate.go](/protos/generate.go).
+
+Whenever any Protobuf definitions are updated or added, the corresponding Go code must be regenerated
+(by running `make generate` from Mir the root directory).
+
+> Note: This approach is not ideal, as adding new event types requires modifying the `Event` object
+> defined in the Mir library codebase.
+> Moreover, for historical reasons, there is no clean approach to defining event types in general.
+> This is likely to change in the future.
+
 ## Modules
 
 A module is a component of the node that consumes, processes, and produces events.
