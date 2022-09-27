@@ -12,10 +12,10 @@ As the library matures, the application can be extended to support state transfe
 4 nodes need to be started on the local machine, e.g. in 4 different terminal windows (from the root repository directory):
 
 ```bash
-go run ./samples/chat-demo 0
-go run ./samples/chat-demo 1
-go run ./samples/chat-demo 2
-go run ./samples/chat-demo 3
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 0
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 1
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 2
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 3
 ```
 
 If you have `tmux` you can run the nodes by the following command:
@@ -28,7 +28,7 @@ and then stop them using this command:
 tmux kill-session -t demo
 ```
 
-This version of the application, even it uses network communication over the loopback interfase,
+This version of the application, even it uses network communication over the loopback interface,
 can only be run locally, because the network addresses of all nodes are hard-coded to be `127.0.0.1`.
 It is trivial though to modify it for communication over the actual network by either changing the
 addresses to something else or to make them command-line parameters.
