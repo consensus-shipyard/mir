@@ -8,8 +8,6 @@ package crypto
 
 import t "github.com/filecoin-project/mir/pkg/types"
 
-// TODO: Augment to support threshold signatures.
-
 // The Crypto interface represents an implementation of the cryptographic primitives inside the MirModule module.
 // It is responsible for producing and verifying cryptographic signatures.
 // It internally stores information about which clients and nodes are associated with which public keys.
