@@ -53,7 +53,7 @@ type Node struct {
 
 	// A buffer for storing outstanding events that need to be processed by the node.
 	// It contains a separate sub-buffer for each type of event.
-	workItems workItems
+	workItems eventBuffer
 
 	// Channels for routing work items between modules.
 	// Whenever workItems contains events, those events will be written (by the process() method)
@@ -101,7 +101,7 @@ func NewNode(
 		wal:         wal,
 		interceptor: interceptor,
 
-		workItems:       newWorkItems(m),
+		workItems:       newEventBuffer(m),
 		workErrNotifier: newWorkErrNotifier(),
 
 		stopped: make(chan struct{}),
@@ -208,7 +208,7 @@ func (n *Node) processWAL(ctx context.Context) error {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
 
-	// Enqueue all events to the workItems buffers.
+	// Enqueue all events to the eventBuffer buffers.
 	if err = n.workItems.AddEvents(storedEvents); err != nil {
 		return fmt.Errorf("could not enqueue WAL events for processing: %w", err)
 	}
@@ -248,7 +248,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			n.workErrNotifier.Fail(ErrStopped)
 		})
 
-		// Add events produced by modules and debugger to the workItems buffers and handle logical time.
+		// Add events produced by modules and debugger to the eventBuffer buffers and handle logical time.
 
 		selectCases = append(selectCases, reflect.SelectCase{
 			Dir:  reflect.SelectRecv,
@@ -271,7 +271,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			returnErr = n.workErrNotifier.Err()
 		})
 
-		// For each generic event buffer in workItems that contains events to be submitted to its corresponding module,
+		// For each generic event buffer in eventBuffer that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
 
 		for moduleID, buffer := range n.workItems {
