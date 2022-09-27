@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package pingpongpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/pingpongpb";
+
+message Event {
+  oneof type {
+    PingTime ping_time = 1;
+  }
+}
+
+message PingTime {}
+
+message Message {
+  oneof type {
+    Ping ping = 1;
+    Pong pong = 2;
+  }
+}
+
+message Ping {
+  uint64 seq_nr = 1;
+}
+
+message Pong {
+  uint64 seq_nr = 1;
+}

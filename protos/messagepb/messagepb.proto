@@ -11,6 +11,7 @@ package messagepb;
 import "isspb/isspb.proto";
 import "bcbpb/bcbpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
+import "pingpongpb/pingpongpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
@@ -20,5 +21,6 @@ message Message {
     isspb.ISSMessage             iss                = 2;
     bcbpb.Message                bcb                = 3;
     availabilitypb.mscpb.Message multisig_collector = 4;
+    pingpongpb.Message           pingpong           = 5;
   }
 }
