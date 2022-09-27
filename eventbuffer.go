@@ -8,12 +8,12 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// WorkItems is a buffer for storing outstanding events that need to be processed by the node.
+// eventBuffer is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each module.
-type workItems map[t.ModuleID]*events.EventList
+type eventBuffer map[t.ModuleID]*events.EventList
 
-// NewWorkItems allocates and returns a pointer to a new WorkItems object.
-func newWorkItems(modules modules.Modules) workItems {
+// newEventBuffer allocates and returns a pointer to a new eventBuffer object.
+func newEventBuffer(modules modules.Modules) eventBuffer {
 
 	wi := make(map[t.ModuleID]*events.EventList)
 
@@ -24,10 +24,10 @@ func newWorkItems(modules modules.Modules) workItems {
 	return wi
 }
 
-// AddEvents adds events produced by modules to the workItems buffer.
+// AddEvents adds events produced by modules to the eventBuffer buffer.
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
 // When AddEvents returns a non-nil error, any subset of the events may have been added.
-func (wi workItems) AddEvents(events *events.EventList) error {
+func (wi eventBuffer) AddEvents(events *events.EventList) error {
 	iter := events.Iterator()
 
 	// For each incoming event

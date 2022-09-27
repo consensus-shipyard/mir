@@ -52,12 +52,12 @@ In practice, when instantiating a Node, the consumer of Mir provides implementat
 For example, instantiating a node of a state machine replication system might look as follows:
 
 ```go
-    // Example Node instantiation adapted from samples/chat-demo/main.go
+    // Example Node instantiation
     node, err := mir.NewNode(
 		/* some more technical arguments ... */
 		&modules.Modules{
 			// ... 
-			"app":      NewChatApp(reqStore),
+			"app":      NewChatApp(),
 			"protocol": TOBProtocol,
 			"net":      grpcNetworking,
 			"crypto":   ecdsaCrypto,
@@ -122,7 +122,7 @@ Once installed, the generated sources can be updated by executing `go generate .
 
 ## Documentation
 
-For a description of the design and inner workings of the library, see [Mir Library Architecture](/docs).
+For a description of the design and inner workings of the library, see [Mir Library Overview](/docs).
 We also keep a log of [Architecture Decision Records (ADRs)](/docs/architecture-decision-records).
 
 For a small demo application, see [/samples/chat-demo](/samples/chat-demo)
