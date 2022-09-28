@@ -89,7 +89,7 @@ func runNode() error {
 	stat := stats.NewStats()
 	interceptor := stats.NewStatInterceptor(stat, "app")
 
-	nodeConfig := &mir.NodeConfig{Logger: logger}
+	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
 	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), nil, interceptor)
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)

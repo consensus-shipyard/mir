@@ -139,7 +139,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
 	}
 
-	node, err := mir.NewNode(id, &mir.NodeConfig{Logger: logger}, modulesWithDefaults, nil, nil)
+	node, err := mir.NewNode(id, mir.DefaultNodeConfig().WithLogger(logger), modulesWithDefaults, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
 	}
