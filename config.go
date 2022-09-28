@@ -17,13 +17,27 @@ import "github.com/filecoin-project/mir/pkg/logging"
 type NodeConfig struct {
 	// Logger provides the logging functions.
 	Logger logging.Logger
+
+	// PauseInputThreshold is the number of events in the node's internal event buffer that triggers the disabling
+	// of further external input (i.e. events emitted by active modules). Events emitted by passive modules are
+	// not affected. The processing of external events is resumed when the number of events in the buffer drops
+	// below the ResumeInputThreshold.
+	PauseInputThreshold int
+
+	// ResumeInputThreshold is the number of events in the node's internal event buffer that triggers the enabling
+	// of external input (i.e. events emitted by active modules). Events emitted by passive modules are not affected.
+	// When the external input is disabled and the number of events in the buffer drops below ResumeInputThreshold,
+	// external input events can be added to the event buffer again.
+	ResumeInputThreshold int
 }
 
 // DefaultNodeConfig returns the default node configuration.
 // It can be used as a base for creating more specific configurations when instantiating a Node.
 func DefaultNodeConfig() *NodeConfig {
 	return &NodeConfig{
-		Logger: logging.ConsoleInfoLogger,
+		Logger:               logging.ConsoleInfoLogger,
+		PauseInputThreshold:  1024,
+		ResumeInputThreshold: 512,
 	}
 }
 

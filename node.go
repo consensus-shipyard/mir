@@ -53,7 +53,7 @@ type Node struct {
 
 	// A buffer for storing outstanding events that need to be processed by the node.
 	// It contains a separate sub-buffer for each type of event.
-	workItems eventBuffer
+	workItems *eventBuffer
 
 	// Channels for routing work items between modules.
 	// Whenever workItems contains events, those events will be written (by the process() method)
@@ -64,6 +64,13 @@ type Node struct {
 
 	// Used to synchronize the exit of the node's worker go routines.
 	workErrNotifier *workErrNotifier
+
+	// When true, importing events from ActiveModules is disabled.
+	// This value is set to true when the internal event buffer exceeds a certain threshold
+	// and reset to false when the buffer is drained under a certain threshold.
+	inputPaused bool
+
+	inputPausedCond *sync.Cond
 
 	// If set to true, the node is in debug mode.
 	// Only events received through the Step method are applied.
@@ -103,6 +110,9 @@ func NewNode(
 
 		workItems:       newEventBuffer(m),
 		workErrNotifier: newWorkErrNotifier(),
+
+		inputPaused:     false,
+		inputPausedCond: sync.NewCond(&sync.Mutex{}),
 
 		stopped: make(chan struct{}),
 	}, nil
@@ -259,6 +269,12 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
 			}
+
+			// Keep track of the size of the input buffer.
+			// When it exceeds the PauseInputThreshold, pause the input from active modules.
+			if n.workItems.totalEvents > n.Config.PauseInputThreshold {
+				n.pauseInput()
+			}
 		})
 
 		// If an error occurred, stop processing.
@@ -274,8 +290,8 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		// For each generic event buffer in eventBuffer that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
 
-		for moduleID, buffer := range n.workItems {
-			if buffer.Len() > 0 {
+		for moduleID, buffer := range n.workItems.buffers {
+			if numEvents := buffer.Len(); numEvents > 0 {
 
 				// Create case for writing in the work channel.
 				selectCases = append(selectCases, reflect.SelectCase{
@@ -292,7 +308,14 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
-					n.workItems[mID] = events.EmptyList()
+					n.workItems.buffers[mID] = events.EmptyList()
+
+					// Keep track of the size of the event buffer.
+					// Whenever it drops below the ResumeInputThreshold, resume input.
+					n.workItems.totalEvents -= numEvents
+					if n.workItems.totalEvents <= n.Config.ResumeInputThreshold {
+						n.resumeInput()
+					}
 				})
 			}
 		}
@@ -373,6 +396,9 @@ func (n *Node) importEvents(
 ) {
 	for {
 
+		n.waitForInputEnabled()
+		// TODO: Make sure that waitForInputEnabled() returns when the context is canceled or a work error occurred.
+
 		// First, try to read events from the input.
 		select {
 		case newEvents, ok := <-eventSource:
@@ -415,6 +441,27 @@ func (n *Node) interceptEvents(events *events.EventList) {
 			n.workErrNotifier.Fail(err)
 		}
 	}
+}
+
+func (n *Node) pauseInput() {
+	n.inputPausedCond.L.Lock()
+	n.inputPaused = true
+	n.inputPausedCond.L.Unlock()
+}
+
+func (n *Node) resumeInput() {
+	n.inputPausedCond.L.Lock()
+	n.inputPaused = false
+	n.inputPausedCond.Broadcast()
+	n.inputPausedCond.L.Unlock()
+}
+
+func (n *Node) waitForInputEnabled() {
+	n.inputPausedCond.L.Lock()
+	for n.inputPaused {
+		n.inputPausedCond.Wait()
+	}
+	n.inputPausedCond.L.Unlock()
 }
 
 func createInitEvents(m modules.Modules) *events.EventList {

@@ -11,15 +11,21 @@ import (
 
 // eventBuffer is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each module.
-type eventBuffer map[t.ModuleID]*events.EventList
+type eventBuffer struct {
+	buffers     map[t.ModuleID]*events.EventList
+	totalEvents int
+}
 
 // newEventBuffer allocates and returns a pointer to a new eventBuffer object.
-func newEventBuffer(modules modules.Modules) eventBuffer {
+func newEventBuffer(modules modules.Modules) *eventBuffer {
 
-	wi := make(map[t.ModuleID]*events.EventList)
+	wi := &eventBuffer{
+		buffers:     make(map[t.ModuleID]*events.EventList),
+		totalEvents: 0,
+	}
 
 	for moduleID := range modules {
-		wi[moduleID] = events.EmptyList()
+		wi.buffers[moduleID] = events.EmptyList()
 	}
 
 	return wi
@@ -28,15 +34,16 @@ func newEventBuffer(modules modules.Modules) eventBuffer {
 // AddEvents adds events produced by modules to the eventBuffer buffer.
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
 // When AddEvents returns a non-nil error, any subset of the events may have been added.
-func (wi eventBuffer) AddEvents(events *events.EventList) error {
+func (wi *eventBuffer) AddEvents(events *events.EventList) error {
 	iter := events.Iterator()
 
 	// For each incoming event
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		// Look up the corresponding module's buffer and add the event to it.
-		if buffer, ok := wi[t.ModuleID(event.DestModule).Top()]; ok {
+		if buffer, ok := wi.buffers[t.ModuleID(event.DestModule).Top()]; ok {
 			buffer.PushBack(event)
+			wi.totalEvents++
 		} else {
 			if _, ok := event.Type.(*eventpb.Event_MessageReceived); !ok {
 				// If the event is a MessageReceived event, we don't need to return an error, because
