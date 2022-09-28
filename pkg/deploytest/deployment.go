@@ -103,9 +103,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 	for i, nodeID := range conf.NodeIDs {
 
 		// Configure the test replica's node.
-		config := &mir.NodeConfig{
-			Logger: logging.Decorate(conf.Logger, fmt.Sprintf("Node %d: ", i)),
-		}
+		config := mir.DefaultNodeConfig().WithLogger(logging.Decorate(conf.Logger, fmt.Sprintf("Node %d: ", i)))
 
 		// Create instance of TestReplica.
 		replicas[i] = &TestReplica{

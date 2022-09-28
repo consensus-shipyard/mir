@@ -126,7 +126,7 @@ func run() error {
 		return errors.Wrap(err, "could not start SMR system")
 	}
 
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, smrSystem.Modules(), nil, nil)
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}

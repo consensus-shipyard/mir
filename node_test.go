@@ -55,7 +55,7 @@ func TestNode_Run(t *testing.T) {
 			logger := logging.ConsoleWarnLogger
 			n, err := NewNode(
 				"testnode",
-				&NodeConfig{Logger: logger},
+				DefaultNodeConfig().WithLogger(logger),
 				m,
 				nil,
 				nil,

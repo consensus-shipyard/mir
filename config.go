@@ -26,3 +26,9 @@ func DefaultNodeConfig() *NodeConfig {
 		Logger: logging.ConsoleInfoLogger,
 	}
 }
+
+func (nc *NodeConfig) WithLogger(logger logging.Logger) *NodeConfig {
+	newConfig := *nc
+	newConfig.Logger = logger
+	return &newConfig
+}
