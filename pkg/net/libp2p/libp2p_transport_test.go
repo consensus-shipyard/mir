@@ -286,11 +286,6 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.StartAll()
 	defer m.StopAll()
 
-	require.Equal(t, nodeA, a.ownID)
-	require.Equal(t, nodeB, b.ownID)
-	require.Equal(t, nodeC, c.ownID)
-	require.Equal(t, nodeD, d.ownID)
-
 	t.Log(">>> connecting nodes")
 
 	initialNodes := m.Membership(nodeA, nodeB, nodeC)
@@ -316,5 +311,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	d.CloseOldConnections(newNodes)
 
 	require.NoError(t, m.testConnectedToNodesEventually(nodeA, nodeB, nodeD))
+	require.NoError(t, m.testConnectedToNodesEventually(nodeB, nodeA, nodeD))
+
 	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeA, nodeC))
+	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeB, nodeC))
+	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeD, nodeC))
 }

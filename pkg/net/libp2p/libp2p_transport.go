@@ -131,22 +131,22 @@ func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddr
 				if nodeInfo.Stream != nil {
 					info, err := peer.AddrInfoFromP2pAddr(nodeInfo.Addr)
 					if err != nil {
-						t.logger.Log(logging.LevelError, "failed to parse addr", "addr", nodeInfo.Addr, "err", err)
+						t.logger.Log(logging.LevelError, "failed to parse addr", "src", t.ownID, "addr", nodeInfo.Addr, "err", err)
 						continue
 					}
 					err = t.host.Network().ClosePeer(info.ID)
 					if err != nil {
-						t.logger.Log(logging.LevelError, "Could not close old connection to node", "dst", nodeID, "err", err)
+						t.logger.Log(logging.LevelError, "Could not close old connection to node", "src", t.ownID, "dst", nodeID, "err", err)
 						continue
 					}
 				} else {
-					t.logger.Log(logging.LevelDebug, "No stream for old connection", "dst", nodeID)
+					t.logger.Log(logging.LevelDebug, "No stream for old connection", "src", t.ownID, "dst", nodeID)
 				}
-			}
 
-			t.nodesLock.Lock()
-			delete(t.nodes, nodeID)
-			t.nodesLock.Unlock()
+				t.nodesLock.Lock()
+				delete(t.nodes, nodeID)
+				t.nodesLock.Unlock()
+			}
 		}
 	}()
 }
@@ -157,19 +157,21 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		return
 	}
 
-	t.nodesLock.Lock()
 	for id, addr := range nodes {
 		_, found := t.nodes[id]
 		if !found {
+
+			t.nodesLock.Lock()
 			t.nodes[id] = &nodeInfo{
 				ID:        id,
 				Addr:      addr,
 				IsOpening: false,
 				Stream:    nil,
 			}
+			t.nodesLock.Unlock()
+
 		}
 	}
-	t.nodesLock.Unlock()
 
 	t.connWg.Add(1)
 	go t.connect(ctx, nodes)
@@ -220,7 +222,8 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	addr, found := t.getAddr(node)
 	if !found {
-		t.logger.Log(logging.LevelError, "failed to get node address", "node", node)
+		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
+		fmt.Println(t.ownID, t.nodes)
 		return
 	}
 	info, err := peer.AddrInfoFromP2pAddr(addr)
