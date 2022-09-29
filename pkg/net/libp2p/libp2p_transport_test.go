@@ -149,8 +149,8 @@ func (m *mockLibp2pCommunication) sendEventually(ctx context.Context, srcNode, d
 func (m *mockLibp2pCommunication) connectedToNodesEventually(node types.NodeID, nodes ...types.NodeID) error {
 	src := m.getTransport(node)
 
-	timeout := time.After(5 * time.Second)
-	checkTicker := time.NewTicker(1400 * time.Millisecond)
+	timeout := time.After(10 * time.Second)
+	checkTicker := time.NewTicker(1000 * time.Millisecond)
 	defer checkTicker.Stop()
 
 	for {
@@ -168,6 +168,7 @@ func (m *mockLibp2pCommunication) connectedToNodesEventually(node types.NodeID, 
 				}
 			}
 			if connections == len(nodes) {
+				m.t.Logf("%v connected to %v\n", node, nodes)
 				return nil
 			}
 		}
@@ -179,7 +180,7 @@ func (m *mockLibp2pCommunication) noConnectionBetweenNodesEventually(nodeID1, no
 	n2 := m.getTransport(nodeID2)
 
 	timeout := time.After(10 * time.Second)
-	checkTicker := time.NewTicker(1400 * time.Millisecond)
+	checkTicker := time.NewTicker(1000 * time.Millisecond)
 	defer checkTicker.Stop()
 
 	for {
@@ -189,9 +190,9 @@ func (m *mockLibp2pCommunication) noConnectionBetweenNodesEventually(nodeID1, no
 		case <-checkTicker.C:
 			m.t.Logf("%v checks connections to %v\n", nodeID1, nodeID2)
 			if len(n1.host.Network().ConnsToPeer(n2.host.ID())) == 0 {
+				m.t.Logf("%v not connected to %v\n", nodeID1, nodeID2)
 				return nil
 			}
-			m.t.Logf("%v/%v connection: %v\n", nodeID1, nodeID2, n1.host.Network().ConnsToPeer(n2.host.ID()))
 		}
 	}
 }
