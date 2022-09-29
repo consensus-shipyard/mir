@@ -14,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
 	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 type mockLibp2pCommunication struct {
@@ -86,14 +85,14 @@ func (m *mockLibp2pCommunication) StopAll(transports ...*Transport) {
 func (m *mockLibp2pCommunication) Start(transports ...*Transport) {
 	for _, v := range transports {
 		err := v.Start()
-		require.NoError(m.t, err)
+		require.NoError(m.t, err, "starting node", v.ownID)
 	}
 }
 
 func (m *mockLibp2pCommunication) StartAll() {
 	for _, v := range m.transports {
 		err := v.Start()
-		require.NoError(m.t, err)
+		require.NoError(m.t, err, "starting node", v.ownID)
 	}
 }
 
@@ -109,15 +108,14 @@ func (m *mockLibp2pCommunication) Membership(ids ...types.NodeID) map[types.Node
 	return nodeMap
 }
 
-func (m *mockLibp2pCommunication) FourTransports() (*Transport, *Transport, *Transport, *Transport) {
-	if len(m.transports) < 4 {
-		m.t.Fatalf("want 4 transports, have %d", len(m.transports))
+func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Transport, *Transport, *Transport, *Transport) {
+	if len(nodeID) != 4 {
+		m.t.Fatalf("want 4 node IDs, have %d", len(nodeID))
 	}
 
 	ts := [4]*Transport{}
 
-	keys := maputil.GetSortedKeys(m.transports)
-	for i, v := range keys {
+	for i, v := range nodeID {
 		ts[i] = m.transports[v]
 	}
 
@@ -210,7 +208,7 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
-	a, b, c, d := m.FourTransports()
+	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAll()
 	defer m.StopAll()
 
@@ -284,7 +282,7 @@ func TestLibp2p_Connecting(t *testing.T) {
 
 	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
-	a, b, c, d := m.FourTransports()
+	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAll()
 	defer m.StopAll()
 
