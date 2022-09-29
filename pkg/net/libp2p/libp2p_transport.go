@@ -174,21 +174,20 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		return
 	}
 
+	t.nodesLock.Lock()
 	for id, addr := range nodes {
 		_, found := t.nodes[id]
 		if !found {
-
-			t.nodesLock.Lock()
 			t.nodes[id] = &nodeInfo{
 				ID:        id,
 				Addr:      addr,
 				IsOpening: false,
 				Stream:    nil,
 			}
-			t.nodesLock.Unlock()
 
 		}
 	}
+	t.nodesLock.Unlock()
 
 	t.connWg.Add(1)
 	go t.connect(ctx, nodes)
