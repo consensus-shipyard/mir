@@ -223,7 +223,6 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 	addr, found := t.getAddr(node)
 	if !found {
 		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
-		fmt.Println(t.ownID, t.nodes)
 		return
 	}
 	info, err := peer.AddrInfoFromP2pAddr(addr)
