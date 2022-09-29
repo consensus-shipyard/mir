@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,7 +13,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
-	tools "github.com/filecoin-project/mir/pkg/util/libp2p"
+	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 type mockLibp2pCommunication struct {
@@ -34,9 +36,9 @@ func newMockLibp2pCommunication(t *testing.T, nodeIDs []types.NodeID, logger log
 
 	var err error
 	for i, id := range nodeIDs {
-		hostAddr := tools.NewDummyHostAddr(i, port)
-		lt.hosts[id] = tools.NewDummyHost(i, hostAddr)
-		lt.membership[id] = types.NodeAddress(tools.NewDummyMultiaddr(i, hostAddr))
+		hostAddr := libp2putil.NewDummyHostAddr(i, port)
+		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
+		lt.membership[id] = types.NodeAddress(libp2putil.NewDummyMultiaddr(i, hostAddr))
 		lt.transports[id], err = NewTransport(lt.hosts[id], id, logger)
 		if err != nil {
 			t.Fatalf("failed to create transport for node %s: %v", id, err)
@@ -69,6 +71,59 @@ func (m *mockLibp2pCommunication) Nodes() map[types.NodeID]types.NodeAddress {
 	return m.membership
 }
 
+func (m *mockLibp2pCommunication) Stop(transports ...*Transport) {
+	for _, v := range transports {
+		v.Stop()
+	}
+}
+
+func (m *mockLibp2pCommunication) StopAll(transports ...*Transport) {
+	for _, v := range m.transports {
+		v.Stop()
+	}
+}
+
+func (m *mockLibp2pCommunication) Start(transports ...*Transport) {
+	for _, v := range transports {
+		err := v.Start()
+		require.NoError(m.t, err)
+	}
+}
+
+func (m *mockLibp2pCommunication) StartAll() {
+	for _, v := range m.transports {
+		err := v.Start()
+		require.NoError(m.t, err)
+	}
+}
+
+func (m *mockLibp2pCommunication) Membership(ids ...types.NodeID) map[types.NodeID]types.NodeAddress {
+	nodeMap := make(map[types.NodeID]types.NodeAddress)
+	for _, id := range ids {
+		addr, ok := m.membership[id]
+		if !ok {
+			m.t.Fatalf("failed to get addr for a new node %v", id)
+		}
+		nodeMap[id] = addr
+	}
+	return nodeMap
+}
+
+func (m *mockLibp2pCommunication) FourTransports() (*Transport, *Transport, *Transport, *Transport) {
+	if len(m.transports) < 4 {
+		m.t.Fatalf("want 4 transports, have %d", len(m.transports))
+	}
+
+	ts := [4]*Transport{}
+
+	keys := maputil.GetSortedKeys(m.transports)
+	for i, v := range keys {
+		ts[i] = m.transports[v]
+	}
+
+	return ts[0], ts[1], ts[2], ts[3]
+}
+
 func (m *mockLibp2pCommunication) sendEventually(ctx context.Context, srcNode, dstNode types.NodeID, msg *messagepb.Message) error {
 	src := m.getTransport(srcNode)
 
@@ -91,7 +146,57 @@ func (m *mockLibp2pCommunication) sendEventually(ctx context.Context, srcNode, d
 	}
 }
 
-func TestLibp2pReconnect(t *testing.T) {
+func (m *mockLibp2pCommunication) connectedToNodesEventually(node types.NodeID, nodes ...types.NodeID) error {
+	src := m.getTransport(node)
+
+	timeout := time.After(5 * time.Second)
+	checkTicker := time.NewTicker(1400 * time.Millisecond)
+	defer checkTicker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("%v is not connected to %v", node, nodes)
+		case <-checkTicker.C:
+			connections := 0
+			m.t.Logf("%v checks connections to %v\n", node, nodes)
+			for i := range nodes {
+				dst := m.transports[nodes[i]]
+				m.t.Logf("%v/%v connection: %v\n", node, nodes[i], src.host.Network().ConnsToPeer(dst.host.ID()))
+				if len(src.host.Network().ConnsToPeer(dst.host.ID())) != 0 {
+					connections++
+				}
+			}
+			if connections == len(nodes) {
+				return nil
+			}
+		}
+	}
+}
+
+func (m *mockLibp2pCommunication) noConnectionBetweenNodesEventually(nodeID1, nodeID2 types.NodeID) error {
+	n1 := m.getTransport(nodeID1)
+	n2 := m.getTransport(nodeID2)
+
+	timeout := time.After(10 * time.Second)
+	checkTicker := time.NewTicker(1400 * time.Millisecond)
+	defer checkTicker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("%v has connection to %v\n", nodeID1, nodeID2)
+		case <-checkTicker.C:
+			m.t.Logf("%v checks connections to %v\n", nodeID1, nodeID2)
+			if len(n1.host.Network().ConnsToPeer(n2.host.ID())) == 0 {
+				return nil
+			}
+			m.t.Logf("%v/%v connection: %v\n", nodeID1, nodeID2, n1.host.Network().ConnsToPeer(n2.host.ID()))
+		}
+	}
+}
+
+func TestLibp2p_Sending(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -100,32 +205,28 @@ func TestLibp2pReconnect(t *testing.T) {
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 	nodeC := types.NodeID("c")
+	nodeD := types.NodeID("d")
 
-	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC}, logger, 10000)
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger, 10000)
 
-	a := m.getTransport(nodeA)
-	err := a.Start()
-	require.NoError(t, err)
-	defer a.Stop()
+	a, b, c, d := m.FourTransports()
+	m.StartAll()
+	defer m.StopAll()
 
-	b := m.getTransport(nodeB)
-	err = b.Start()
-	require.NoError(t, err)
-	defer b.Stop()
-
-	c := m.getTransport(nodeC)
-	err = c.Start()
-	require.NoError(t, err)
-	defer c.Stop()
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+	require.Equal(t, nodeC, c.ownID)
 
 	t.Log(">>> connecting nodes")
 
-	a.Connect(ctx, m.Nodes())
-	b.Connect(ctx, m.Nodes())
-	c.Connect(ctx, m.Nodes())
+	initialNodes := m.Membership(nodeA, nodeB, nodeC)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+	c.Connect(ctx, initialNodes)
 
 	t.Log(">>> sending messages")
-	err = m.sendEventually(ctx, nodeA, "unknownNode", &messagepb.Message{})
+	err := m.sendEventually(ctx, nodeA, "unknownNode", &messagepb.Message{})
 	require.Error(t, err)
 
 	nodeBEventsChan := b.EventsOut()
@@ -145,7 +246,7 @@ func TestLibp2pReconnect(t *testing.T) {
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
-	t.Log("disconnecting nodes")
+	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
 	require.Equal(t, 1, len(b.host.Network().Peers()))
 
@@ -166,4 +267,69 @@ func TestLibp2pReconnect(t *testing.T) {
 	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+
+	t.Log(">>> reconfigure nodes")
+
+	newNodes := m.Membership(nodeA, nodeB, nodeD)
+
+	a.Connect(ctx, newNodes)
+	a.CloseOldConnections(newNodes)
+
+	b.Connect(ctx, newNodes)
+	b.CloseOldConnections(newNodes)
+
+	d.Connect(ctx, newNodes)
+	d.CloseOldConnections(newNodes)
+
+	require.NoError(t, m.connectedToNodesEventually(nodeA, nodeB, nodeD))
+}
+
+func TestLibp2p_Connecting(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+	nodeC := types.NodeID("c")
+	nodeD := types.NodeID("d")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger, 10000)
+
+	a, b, c, d := m.FourTransports()
+	m.StartAll()
+	defer m.StopAll()
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+	require.Equal(t, nodeC, c.ownID)
+	require.Equal(t, nodeD, d.ownID)
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB, nodeC)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+	c.Connect(ctx, initialNodes)
+
+	require.NoError(t, m.connectedToNodesEventually(nodeA, nodeB, nodeC))
+	require.NoError(t, m.noConnectionBetweenNodesEventually(nodeA, nodeD))
+
+	t.Log(">>> reconfigure nodes")
+
+	newNodes := m.Membership(nodeA, nodeB, nodeD)
+
+	a.Connect(ctx, newNodes)
+	a.CloseOldConnections(newNodes)
+
+	b.Connect(ctx, newNodes)
+	b.CloseOldConnections(newNodes)
+
+	d.Connect(ctx, newNodes)
+	d.CloseOldConnections(newNodes)
+
+	require.NoError(t, m.connectedToNodesEventually(nodeA, nodeB, nodeD))
+	require.NoError(t, m.noConnectionBetweenNodesEventually(nodeA, nodeC))
 }

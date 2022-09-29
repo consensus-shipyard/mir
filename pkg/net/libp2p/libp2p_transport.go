@@ -80,14 +80,14 @@ func (t *Transport) EventsOut() <-chan *events.EventList {
 }
 
 func (t *Transport) Start() error {
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s handler starting on %v", t.ownID, t.host.Addrs()))
+	t.logger.Log(logging.LevelDebug, "mir handler is starting", "ownID", t.ownID, "addrs", t.host.Addrs())
 	t.host.SetStreamHandler(ProtocolID, t.mirHandler)
 	return nil
 }
 
 func (t *Transport) Stop() {
-	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.", "ownID", t.ownID))
-	defer t.logger.Log(logging.LevelDebug, "Stopping libp2p transport finished.", "ownID", t.ownID))
+	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.", "ownID", t.ownID)
+	defer t.logger.Log(logging.LevelDebug, "Stopping libp2p transport finished.", "ownID", t.ownID)
 
 	t.nodesLock.Lock()
 	defer t.nodesLock.Unlock()
@@ -99,7 +99,7 @@ func (t *Transport) Stop() {
 		t.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
 
 		if err := info.Stream.Close(); err != nil {
-			t.logger.Log(logging.LevelError, "Could not close connection.", "nodeID", id, "err", err))
+			t.logger.Log(logging.LevelError, "Could not close connection.", "nodeID", id, "err", err)
 			continue
 		}
 
@@ -109,38 +109,46 @@ func (t *Transport) Stop() {
 	t.host.RemoveStreamHandler(ProtocolID)
 
 	if err := t.host.Close(); err != nil {
-		t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close libp2p %v: %v", t.ownID, err))
+		t.logger.Log(logging.LevelError, "Could not close libp2p", "ownID", t.ownID, "err", err)
 	} else {
-		t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v libp2p host closed", t.ownID))
+		t.logger.Log(logging.LevelDebug, "libp2p host closed", "ownID", t.ownID)
 	}
 
 	t.connWg.Wait()
 }
 
 func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddress) {
-	t.nodesLock.Lock()
-	defer t.nodesLock.Unlock()
+	t.connWg.Add(1)
 
-	for nodeID, node := range t.nodes {
-		if node.Stream == nil {
-			continue
-		}
+	go func() {
+		defer t.connWg.Done()
 
-		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := newNodes[nodeID]; !newConn {
-			t.logger.Log(logging.LevelDebug, "Closing old connection", "to", nodeID)
+		for nodeID, nodeInfo := range t.nodes {
+			// Close an old connection to a node if we don't need to connect to it further.
+			if _, foundInNewNodes := newNodes[nodeID]; !foundInNewNodes {
+				t.logger.Log(logging.LevelDebug, "Closing old connection", "src", t.ownID, "dst", nodeID)
 
-			if err := node.Stream.Close(); err != nil {
-				t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", nodeID, err))
-				continue
+				if nodeInfo.Stream != nil {
+					info, err := peer.AddrInfoFromP2pAddr(nodeInfo.Addr)
+					if err != nil {
+						t.logger.Log(logging.LevelError, "failed to parse addr", "addr", nodeInfo.Addr, "err", err)
+						continue
+					}
+					err = t.host.Network().ClosePeer(info.ID)
+					if err != nil {
+						t.logger.Log(logging.LevelError, "Could not close old connection to node", "dst", nodeID, "err", err)
+						continue
+					}
+				} else {
+					t.logger.Log(logging.LevelDebug, "No stream for old connection", "dst", nodeID)
+				}
 			}
 
-			// If we had that connection then remove it.
+			t.nodesLock.Lock()
 			delete(t.nodes, nodeID)
-
-			t.logger.Log(logging.LevelDebug, "Closed old connection", "to", nodeID)
+			t.nodesLock.Unlock()
 		}
-	}
+	}()
 }
 
 func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
@@ -151,11 +159,14 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 
 	t.nodesLock.Lock()
 	for id, addr := range nodes {
-		t.nodes[id] = &nodeInfo{
-			ID:        id,
-			Addr:      addr,
-			IsOpening: false,
-			Stream:    nil,
+		_, found := t.nodes[id]
+		if !found {
+			t.nodes[id] = &nodeInfo{
+				ID:        id,
+				Addr:      addr,
+				IsOpening: false,
+				Stream:    nil,
+			}
 		}
 	}
 	t.nodesLock.Unlock()
@@ -183,7 +194,7 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 		}
 
 		if t.streamExists(nodeID) {
-			t.logger.Log(logging.LevelInfo, fmt.Sprintf("stream to %s already exists", nodeID.Pb()))
+			t.logger.Log(logging.LevelInfo, "stream to node already exists", "dst", nodeID)
 			wg.Done()
 			continue
 		}
@@ -198,23 +209,23 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 	defer wg.Done()
 
 	if t.isConnectionToNodeInProgress(node) {
-		t.logger.Log(logging.LevelDebug, fmt.Sprintf("connecting to node %s is in progress", node.Pb()))
+		t.logger.Log(logging.LevelDebug, "connecting to node is in progress", "id", node)
 		return
 	}
 
-	t.addConnectionInProgress(node)
-	defer t.removeConnectionInProgress(node)
+	t.setConnectionInProgress(node)
+	defer t.clearConnectionInProgress(node)
 
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s is connecting to node %s", t.ownID.Pb(), node.Pb()))
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, node))
 
 	addr, found := t.getAddr(node)
 	if !found {
-		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to get addr %v for node %v", addr, node))
+		t.logger.Log(logging.LevelError, "failed to get node address", "addr", addr, "node", node)
 		return
 	}
 	info, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
-		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to parse addr %v: %v", addr, err))
+		t.logger.Log(logging.LevelError, "failed to parse addr", "addr", addr, "err", err)
 		return
 	}
 
@@ -222,8 +233,7 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
-		t.removeConnectionInProgress(node)
-		t.logger.Log(logging.LevelError, fmt.Sprintf("failed to open stream to node %v: %v", addr, err))
+		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", addr, "node", node, "err", err)
 		return
 	}
 
@@ -266,6 +276,7 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
+	fmt.Println(t.ownID, "calls send")
 	found := t.nodeExists(dest)
 	if !found {
 		return fmt.Errorf("failed to get address for node %s", dest)
@@ -311,14 +322,14 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 }
 
 func (t *Transport) mirHandler(s network.Stream) {
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s started", s.ID()))
-	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler for %s stopped", s.ID()))
+	t.logger.Log(logging.LevelDebug, "mir handler started", "streamID", s.ID())
+	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "streamID", s.ID())
 
 	defer func() {
-		t.logger.Log(logging.LevelDebug, fmt.Sprintf("mir handler closing stream for %v", s.ID()))
+		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "streamID", s.ID())
 		err := s.Close()
 		if err != nil {
-			t.logger.Log(logging.LevelError, fmt.Sprintf("closing stream for %v", s.ID()))
+			t.logger.Log(logging.LevelError, "closing stream", "streamID", s.ID(), "err", err)
 		}
 	}() // nolint
 
