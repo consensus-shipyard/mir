@@ -15,6 +15,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -56,6 +57,25 @@ type Transport struct {
 	logger           logging.Logger
 	nodes            map[types.NodeID]*nodeInfo
 	nodesLock        sync.RWMutex
+}
+
+var errNodeNotFound = errors.New("failed to get node info")
+var errNoStreamFound = errors.New("failed to get node stream")
+
+type nodeInfoError struct {
+	DestNode types.NodeID
+}
+
+func (e *nodeInfoError) Error() string {
+	return fmt.Sprintf("failed to get info for node %s on sending", e.DestNode)
+}
+
+type streamInfoError struct {
+	DestNode types.NodeID
+}
+
+func (e *streamInfoError) Error() string {
+	return fmt.Sprintf("no open stream for node %s", e.DestNode)
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -278,16 +298,14 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
-	found := t.nodeExists(dest)
-	if !found {
-		return fmt.Errorf("failed to get address for node %s on sending", dest)
+	s, err := t.getStream(dest)
+	if e, ok := err.(*nodeInfoError); ok {
+		return e
 	}
-
-	s, found := t.getStream(dest)
-	if !found {
+	if e, ok := err.(*streamInfoError); ok {
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
-		return fmt.Errorf("no open stream for node %s, reopening", dest)
+		return e
 	}
 
 	outBytes, err := proto.Marshal(payload)
@@ -382,15 +400,20 @@ func (t *Transport) streamExists(nodeID types.NodeID) bool {
 	return found && v.Stream != nil
 }
 
-func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, bool) {
+func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, error) {
 	t.nodesLock.RLock()
 	defer t.nodesLock.RUnlock()
 
-	v, found := t.nodes[nodeID]
+	found := t.nodeExists(nodeID)
 	if !found {
-		return nil, false
+		return nil, &nodeInfoError{nodeID}
 	}
-	return v.Stream, true
+
+	v, found := t.nodes[nodeID]
+	if !found || v.Stream == nil {
+		return nil, &streamInfoError{nodeID}
+	}
+	return v.Stream, nil
 }
 
 func (t *Transport) getAddr(nodeID types.NodeID) (types.NodeAddress, bool) {
