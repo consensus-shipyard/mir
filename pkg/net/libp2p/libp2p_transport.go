@@ -59,9 +59,6 @@ type Transport struct {
 	nodesLock        sync.RWMutex
 }
 
-var errNodeNotFound = errors.New("failed to get node info")
-var errNoStreamFound = errors.New("failed to get node stream")
-
 type nodeInfoError struct {
 	DestNode types.NodeID
 }
@@ -298,14 +295,16 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
+	var nodeErr *nodeInfoError
+	var streamErr *streamInfoError
 	s, err := t.getStream(dest)
-	if e, ok := err.(*nodeInfoError); ok {
-		return e
+	if errors.As(err, &nodeErr) {
+		return err
 	}
-	if e, ok := err.(*streamInfoError); ok {
+	if errors.As(err, &streamErr) {
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
-		return e
+		return err
 	}
 
 	outBytes, err := proto.Marshal(payload)
@@ -384,14 +383,6 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 	v.Stream = s
 }
 
-func (t *Transport) nodeExists(nodeID types.NodeID) bool {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
-
-	_, found := t.nodes[nodeID]
-	return found
-}
-
 func (t *Transport) streamExists(nodeID types.NodeID) bool {
 	t.nodesLock.RLock()
 	defer t.nodesLock.RUnlock()
@@ -404,7 +395,7 @@ func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, error) {
 	t.nodesLock.RLock()
 	defer t.nodesLock.RUnlock()
 
-	found := t.nodeExists(nodeID)
+	_, found := t.nodes[nodeID]
 	if !found {
 		return nil, &nodeInfoError{nodeID}
 	}
