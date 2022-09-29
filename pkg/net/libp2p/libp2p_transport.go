@@ -86,8 +86,8 @@ func (t *Transport) Start() error {
 }
 
 func (t *Transport) Stop() {
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("Stopping libp2p transport: %s", t.ownID))
-	defer t.logger.Log(logging.LevelDebug, fmt.Sprintf("Stopping libp2p transport finished: %s", t.ownID))
+	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.", "ownID", t.ownID))
+	defer t.logger.Log(logging.LevelDebug, "Stopping libp2p transport finished.", "ownID", t.ownID))
 
 	t.nodesLock.Lock()
 	defer t.nodesLock.Unlock()
