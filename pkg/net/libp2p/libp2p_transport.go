@@ -273,10 +273,10 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 
 		if i >= noLoggingErrorAttempts {
 			t.logger.Log(
-				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()), "src", t.ownID)
+				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %s,", p, retryTimeout.String()), "src", t.ownID)
 		} else {
 			t.logger.Log(
-				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()), "src", t.ownID)
+				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s, retry in %s,", p, retryTimeout.String()), "src", t.ownID)
 		}
 
 		delay := time.NewTimer(retryTimeout)
