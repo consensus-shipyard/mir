@@ -25,7 +25,7 @@ type mockLibp2pCommunication struct {
 	transports map[types.NodeID]*Transport
 }
 
-func newMockLibp2pCommunication(t *testing.T, nodeIDs []types.NodeID, logger logging.Logger, port int) *mockLibp2pCommunication {
+func newMockLibp2pCommunication(t *testing.T, nodeIDs []types.NodeID, logger logging.Logger) *mockLibp2pCommunication {
 	lt := &mockLibp2pCommunication{
 		t:          t,
 		membership: make(map[types.NodeID]types.NodeAddress, len(nodeIDs)),
@@ -36,7 +36,7 @@ func newMockLibp2pCommunication(t *testing.T, nodeIDs []types.NodeID, logger log
 
 	var err error
 	for i, id := range nodeIDs {
-		hostAddr := libp2putil.NewDummyHostAddr(i, port)
+		hostAddr := libp2putil.NewFreeHostAddr()
 		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
 		lt.membership[id] = types.NodeAddress(libp2putil.NewDummyMultiaddr(i, hostAddr))
 		lt.transports[id], err = NewTransport(lt.hosts[id], id, logger)
@@ -208,7 +208,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	nodeC := types.NodeID("c")
 	nodeD := types.NodeID("d")
 
-	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger, 10000)
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports()
 	m.StartAll()
@@ -296,7 +296,7 @@ func TestLibp2p_Connecting(t *testing.T) {
 	nodeC := types.NodeID("c")
 	nodeD := types.NodeID("d")
 
-	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger, 10000)
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports()
 	m.StartAll()
