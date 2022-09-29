@@ -400,7 +400,7 @@ func (t *Transport) isConnectionToNodeInProgress(nodeID types.NodeID) bool {
 	return found && info.IsOpening
 }
 
-func (t *Transport) addConnectionInProgress(nodeID types.NodeID) {
+func (t *Transport) setConnectionInProgress(nodeID types.NodeID) {
 	t.nodesLock.Lock()
 	defer t.nodesLock.Unlock()
 
