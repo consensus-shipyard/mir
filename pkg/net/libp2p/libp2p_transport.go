@@ -99,7 +99,7 @@ func (t *Transport) Stop() {
 		t.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
 
 		if err := info.Stream.Close(); err != nil {
-			t.logger.Log(logging.LevelError, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
+			t.logger.Log(logging.LevelError, "Could not close connection.", "nodeID", id, "err", err))
 			continue
 		}
 
