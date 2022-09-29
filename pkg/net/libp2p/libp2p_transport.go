@@ -220,7 +220,7 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	addr, found := t.getAddr(node)
 	if !found {
-		t.logger.Log(logging.LevelError, "failed to get node address", "addr", addr, "node", node)
+		t.logger.Log(logging.LevelError, "failed to get node address", "node", node)
 		return
 	}
 	info, err := peer.AddrInfoFromP2pAddr(addr)
@@ -276,10 +276,9 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
-	fmt.Println(t.ownID, "calls send")
 	found := t.nodeExists(dest)
 	if !found {
-		return fmt.Errorf("failed to get address for node %s", dest)
+		return fmt.Errorf("failed to get address for node %s on sending", dest)
 	}
 
 	s, found := t.getStream(dest)
