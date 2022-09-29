@@ -411,7 +411,7 @@ func (t *Transport) setConnectionInProgress(nodeID types.NodeID) {
 	info.IsOpening = true
 }
 
-func (t *Transport) removeConnectionInProgress(nodeID types.NodeID) {
+func (t *Transport) clearConnectionInProgress(nodeID types.NodeID) {
 	t.nodesLock.Lock()
 	defer t.nodesLock.Unlock()
 
