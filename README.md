@@ -117,8 +117,14 @@ sudo snap install --classic protobuf
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install github.com/golang/mock/mockgen@v1.6.0
 ```
+Make sure (by configuring your shell interpreter) that the directory with Go binaries (usually `~/go/bin` by default) is included in the `PATH` environment variable.
+On a default Ubuntu Linux system, for example, this can be achieved by running
+```shell
+echo 'PATH=$PATH:~/go/bin' >> ~/.profile
+```
+and restarting the terminal.
 
-Once installed, the generated sources can be updated by executing `go generate ./...` in the root directory.
+Once the dependencies are ready, the generated sources can be updated by executing `go generate ./...` in the root directory.
 
 ## Documentation
 
