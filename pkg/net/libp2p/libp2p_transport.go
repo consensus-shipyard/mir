@@ -228,7 +228,7 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 	defer wg.Done()
 
 	if t.isConnectionToNodeInProgress(node) {
-		t.logger.Log(logging.LevelDebug, "connecting to node is in progress", "id", node)
+		t.logger.Log(logging.LevelDebug, "connecting to node is in progress", "src", t.ownID, "dst", node)
 		return
 	}
 
@@ -274,10 +274,10 @@ func (t *Transport) openStream(ctx context.Context, p peer.ID) (network.Stream, 
 
 		if i >= noLoggingErrorAttempts {
 			t.logger.Log(
-				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()))
+				logging.LevelError, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()), "src", t.ownID)
 		} else {
 			t.logger.Log(
-				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()))
+				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s, retry in %s", p, retryTimeout.String()), "src", t.ownID)
 		}
 
 		delay := time.NewTimer(retryTimeout)
