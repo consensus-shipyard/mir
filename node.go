@@ -234,7 +234,15 @@ func (n *Node) processWAL(ctx context.Context) error {
 func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
-	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
+
+	// Wait for all worker threads (started by n.StartModules()) to finish when processing is done.
+	// Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
+	defer wg.Wait()
+
+	// Make sure that the event importing goroutines do not get stuck if input is paused due to full buffers.
+	// This defer statement must go after waiting for the worker goroutines to finish (wg.Wait() above).
+	// so it is executed before wg.Wait() (since defers are stacked). Otherwise, we get into a deadlock.
+	defer n.resumeInput()
 
 	// Start processing module events.
 	n.startModules(ctx, &wg)
@@ -397,7 +405,6 @@ func (n *Node) importEvents(
 	for {
 
 		n.waitForInputEnabled()
-		// TODO: Make sure that waitForInputEnabled() returns when the context is canceled or a work error occurred.
 
 		// First, try to read events from the input.
 		select {
