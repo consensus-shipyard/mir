@@ -215,6 +215,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 	require.Equal(t, nodeC, c.ownID)
+	require.Equal(t, nodeD, d.ownID)
 
 	t.Log(">>> connecting nodes")
 
