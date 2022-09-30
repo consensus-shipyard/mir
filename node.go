@@ -299,13 +299,16 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 		// create a selectCase for writing those events to the module's work channel.
 
 		for moduleID, buffer := range n.workItems.buffers {
-			if numEvents := buffer.Len(); numEvents > 0 {
+			if buffer.Len() > 0 {
+
+				eventBatch := buffer.Head(n.Config.MaxEventBatchSize)
+				numEvents := eventBatch.Len()
 
 				// Create case for writing in the work channel.
 				selectCases = append(selectCases, reflect.SelectCase{
 					Dir:  reflect.SelectSend,
 					Chan: reflect.ValueOf(n.workChans[moduleID]),
-					Send: reflect.ValueOf(buffer),
+					Send: reflect.ValueOf(eventBatch),
 				})
 
 				// Create a copy of moduleID to use in the reaction function.
@@ -316,7 +319,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
-					n.workItems.buffers[mID] = events.EmptyList()
+					n.workItems.buffers[mID].RemoveFront(numEvents)
 
 					// Keep track of the size of the event buffer.
 					// Whenever it drops below the ResumeInputThreshold, resume input.
