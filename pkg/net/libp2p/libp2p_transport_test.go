@@ -219,6 +219,8 @@ func TestLibp2p_Sending(t *testing.T) {
 	t.Log(">>> connecting nodes")
 
 	initialNodes := m.Membership(nodeA, nodeB, nodeC, nodeD)
+	t.Log("membership")
+	t.Log(initialNodes)
 
 	a.Connect(ctx, initialNodes)
 	b.Connect(ctx, initialNodes)
@@ -287,6 +289,8 @@ func TestLibp2p_Connecting(t *testing.T) {
 	defer m.StopAll()
 
 	t.Log(">>> connecting nodes")
+	t.Log("membership")
+	t.Log(m.membership)
 
 	initialNodes := m.Membership(nodeA, nodeB, nodeC)
 
@@ -298,8 +302,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeA, nodeD))
 
 	t.Log(">>> reconfigure nodes")
-
 	newNodes := m.Membership(nodeA, nodeB, nodeD)
+	t.Log("new membership")
+	t.Log(newNodes)
 
 	a.Connect(ctx, newNodes)
 	a.CloseOldConnections(newNodes)

@@ -22,7 +22,7 @@ jobs:
       - name: Test
         run: make test
         env:
-          GOFLAGS: "-short -v -count=1"
+          GOFLAGS: "-short -v -count=1 -race"
 
       - name: Retain event logs of failed tests
         if: failure()
@@ -45,7 +45,7 @@ jobs:
       - name: Test
         run: make test
         env:
-          GOFLAGS: "-short -v -count=1"
+          GOFLAGS: "-short -v -count=1 -race"
 
       - name: Retain event logs of failed tests
         if: failure()
