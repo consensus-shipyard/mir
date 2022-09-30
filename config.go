@@ -18,6 +18,9 @@ type NodeConfig struct {
 	// Logger provides the logging functions.
 	Logger logging.Logger
 
+	// MaxEventBatchSize is the maximum number of events that can be dispatched to a module in a single batch.
+	MaxEventBatchSize int
+
 	// PauseInputThreshold is the number of events in the node's internal event buffer that triggers the disabling
 	// of further external input (i.e. events emitted by active modules). Events emitted by passive modules are
 	// not affected. The processing of external events is resumed when the number of events in the buffer drops
@@ -36,8 +39,9 @@ type NodeConfig struct {
 func DefaultNodeConfig() *NodeConfig {
 	return &NodeConfig{
 		Logger:               logging.ConsoleInfoLogger,
-		PauseInputThreshold:  1024,
-		ResumeInputThreshold: 512,
+		MaxEventBatchSize:    512,
+		PauseInputThreshold:  8192,
+		ResumeInputThreshold: 6144,
 	}
 }
 
