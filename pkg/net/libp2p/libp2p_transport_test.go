@@ -186,11 +186,11 @@ func (m *mockLibp2pCommunication) testNoConnectionBetweenNodesEventually(nodeID1
 		case <-timeout:
 			return fmt.Errorf("%v has connection to %v", nodeID1, nodeID2)
 		case <-checkTicker.C:
-			m.t.Logf("%v checks connections to %v\n", nodeID1, nodeID2)
 			if len(n1.host.Network().ConnsToPeer(n2.host.ID())) == 0 {
 				m.t.Logf("%v not connected to %v\n", nodeID1, nodeID2)
 				return nil
 			}
+			m.t.Logf("%v checks connections to %v: connected\n", nodeID1, nodeID2)
 		}
 	}
 }
