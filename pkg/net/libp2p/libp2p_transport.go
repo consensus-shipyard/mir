@@ -49,16 +49,6 @@ type nodeInfo struct {
 	IsOpening bool
 }
 
-type Transport struct {
-	host             host.Host
-	ownID            types.NodeID
-	connWg           *sync.WaitGroup
-	incomingMessages chan *events.EventList
-	logger           logging.Logger
-	nodes            map[types.NodeID]*nodeInfo
-	nodesLock        sync.RWMutex
-}
-
 type nodeInfoError struct {
 	DestNode types.NodeID
 }
@@ -73,6 +63,16 @@ type streamInfoError struct {
 
 func (e *streamInfoError) Error() string {
 	return fmt.Sprintf("no open stream for node %s", e.DestNode)
+}
+
+type Transport struct {
+	host             host.Host
+	ownID            types.NodeID
+	connWg           *sync.WaitGroup
+	incomingMessages chan *events.EventList
+	logger           logging.Logger
+	nodes            map[types.NodeID]*nodeInfo
+	nodesLock        sync.RWMutex
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -292,8 +292,10 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
+	var err error
 	var nodeErr *nodeInfoError
 	var streamErr *streamInfoError
+
 	s, err := t.getNodeStream(dest)
 	if errors.As(err, &nodeErr) {
 		return err
@@ -323,9 +325,7 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 	w := bufio.NewWriter(s)
 	_, err = w.Write(buf.Bytes())
 	if err == nil {
-		if err = w.Flush(); err != nil {
-			return fmt.Errorf("failed to flush: %w", err)
-		}
+		err = w.Flush()
 	}
 	// If we cannot write to the stream, or we don't have a connection to that peer then try to
 	// connect to the peer.
@@ -400,7 +400,8 @@ func (t *Transport) getNodeStream(nodeID types.NodeID) (network.Stream, error) {
 	}
 
 	node, found := t.nodes[nodeID]
-	if !found || node.Stream == nil {
+	if !found ||
+		node.Stream == nil {
 		return nil, &streamInfoError{nodeID}
 	}
 	return node.Stream, nil

@@ -2,11 +2,12 @@ package libp2p
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -60,6 +61,9 @@ func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
 	dst := m.getTransport(dstNode)
 
 	err := src.host.Network().ClosePeer(dst.host.ID())
+	require.NoError(m.t, err)
+
+	err = dst.host.Network().ClosePeer(src.host.ID())
 	require.NoError(m.t, err)
 
 	err = dst.host.Network().ClosePeer(src.host.ID())
@@ -122,7 +126,7 @@ func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Trans
 	return ts[0], ts[1], ts[2], ts[3]
 }
 
-func (m *mockLibp2pCommunication) sendEventually(ctx context.Context, srcNode, dstNode types.NodeID, msg *messagepb.Message) error {
+func (m *mockLibp2pCommunication) testSentEventually(ctx context.Context, srcNode, dstNode types.NodeID, msg *messagepb.Message) error {
 	src := m.getTransport(srcNode)
 
 	timeout := time.After(5 * time.Second)
@@ -144,55 +148,26 @@ func (m *mockLibp2pCommunication) sendEventually(ctx context.Context, srcNode, d
 	}
 }
 
-func (m *mockLibp2pCommunication) testConnectedToNodesEventually(node types.NodeID, nodes ...types.NodeID) error {
-	src := m.getTransport(node)
+func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 types.NodeID) {
+	src := m.getTransport(nodeID1)
+	dst := m.getTransport(nodeID2)
 
-	timeout := time.After(10 * time.Second)
-	checkTicker := time.NewTicker(1000 * time.Millisecond)
-	defer checkTicker.Stop()
-
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("%v is not connected to %v", node, nodes)
-		case <-checkTicker.C:
-			connections := 0
-			m.t.Logf("%v checks connections to %v\n", node, nodes)
-			for i := range nodes {
-				dst := m.transports[nodes[i]]
-				m.t.Logf("%v/%v connection: %v\n", node, nodes[i], src.host.Network().ConnsToPeer(dst.host.ID()))
-				if len(src.host.Network().ConnsToPeer(dst.host.ID())) != 0 {
-					connections++
-				}
-			}
-			if connections == len(nodes) {
-				m.t.Logf("%v connected to %v\n", node, nodes)
-				return nil
-			}
-		}
-	}
+	require.Eventually(m.t,
+		func() bool {
+			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
+		},
+		5*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testNoConnectionBetweenNodesEventually(nodeID1, nodeID2 types.NodeID) error {
-	n1 := m.getTransport(nodeID1)
-	n2 := m.getTransport(nodeID2)
+func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types.NodeID) {
+	src := m.getTransport(nodeID1)
+	dst := m.getTransport(nodeID2)
 
-	timeout := time.After(10 * time.Second)
-	checkTicker := time.NewTicker(1000 * time.Millisecond)
-	defer checkTicker.Stop()
-
-	for {
-		select {
-		case <-timeout:
-			return fmt.Errorf("%v has connection to %v", nodeID1, nodeID2)
-		case <-checkTicker.C:
-			if len(n1.host.Network().ConnsToPeer(n2.host.ID())) == 0 {
-				m.t.Logf("%v not connected to %v\n", nodeID1, nodeID2)
-				return nil
-			}
-			m.t.Logf("%v checks connections to %v: connected\n", nodeID1, nodeID2)
-		}
-	}
+	require.Eventually(m.t,
+		func() bool {
+			return network.Connected == src.host.Network().Connectedness(dst.host.ID())
+		},
+		3*time.Second, 100*time.Millisecond)
 }
 
 func TestLibp2p_Sending(t *testing.T) {
@@ -205,6 +180,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	nodeB := types.NodeID("b")
 	nodeC := types.NodeID("c")
 	nodeD := types.NodeID("d")
+	nodeE := types.NodeID("e")
 
 	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
@@ -220,6 +196,9 @@ func TestLibp2p_Sending(t *testing.T) {
 	t.Log(">>> connecting nodes")
 
 	initialNodes := m.Membership(nodeA, nodeB, nodeC, nodeD)
+	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
+	require.NoError(t, err)
+	initialNodes[nodeE] = eAddr
 	t.Log("membership")
 	t.Log(initialNodes)
 
@@ -228,9 +207,21 @@ func TestLibp2p_Sending(t *testing.T) {
 	c.Connect(ctx, initialNodes)
 	d.Connect(ctx, initialNodes)
 
+	m.testEventuallyConnected(nodeA, nodeD)
+	m.testEventuallyConnected(nodeB, nodeC)
+	m.testEventuallyConnected(nodeA, nodeC)
+
+	m.disconnect(nodeA, nodeD)
+	m.testEventuallyNotConnected(nodeA, nodeD)
+
 	t.Log(">>> sending messages")
-	err := m.sendEventually(ctx, nodeA, "unknownNode", &messagepb.Message{})
-	require.Error(t, err)
+	var nodeErr *nodeInfoError
+	err = a.Send(ctx, "unknownNode", &messagepb.Message{})
+	require.ErrorAs(t, err, &nodeErr)
+
+	var streamErr *streamInfoError
+	err = a.Send(ctx, nodeE, &messagepb.Message{})
+	require.ErrorAs(t, err, &streamErr)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
@@ -251,23 +242,21 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
 	require.Equal(t, 2, len(b.host.Network().Peers()))
 
 	t.Log(">>> sending messages after disconnection")
-	err = m.sendEventually(ctx, nodeA, nodeB, &messagepb.Message{})
+	err = m.testSentEventually(ctx, nodeA, nodeB, &messagepb.Message{})
 	require.NoError(t, err)
+	nodeBEvents = <-nodeBEventsChan
+	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
 	err = a.Send(ctx, nodeC, &messagepb.Message{})
 	require.NoError(t, err)
 	nodeCEvents = <-nodeCEventsChan
 	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
-
-	err = a.Send(ctx, nodeB, &messagepb.Message{})
-	require.NoError(t, err)
-	nodeBEvents = <-nodeBEventsChan
-	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 }
@@ -299,8 +288,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	b.Connect(ctx, initialNodes)
 	c.Connect(ctx, initialNodes)
 
-	require.NoError(t, m.testConnectedToNodesEventually(nodeA, nodeB, nodeC))
-	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeA, nodeD))
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeA, nodeC)
+	m.testEventuallyNotConnected(nodeA, nodeD)
 
 	t.Log(">>> reconfigure nodes")
 	newNodes := m.Membership(nodeA, nodeB, nodeD)
@@ -316,10 +306,12 @@ func TestLibp2p_Connecting(t *testing.T) {
 	d.Connect(ctx, newNodes)
 	d.CloseOldConnections(newNodes)
 
-	require.NoError(t, m.testConnectedToNodesEventually(nodeA, nodeB, nodeD))
-	require.NoError(t, m.testConnectedToNodesEventually(nodeB, nodeA, nodeD))
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeA, nodeD)
+	m.testEventuallyConnected(nodeB, nodeA)
+	m.testEventuallyConnected(nodeB, nodeD)
 
-	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeA, nodeC))
-	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeB, nodeC))
-	require.NoError(t, m.testNoConnectionBetweenNodesEventually(nodeD, nodeC))
+	m.testEventuallyNotConnected(nodeA, nodeC)
+	m.testEventuallyNotConnected(nodeB, nodeC)
+	m.testEventuallyNotConnected(nodeD, nodeC)
 }
