@@ -167,7 +167,7 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 		func() bool {
 			return network.Connected == src.host.Network().Connectedness(dst.host.ID())
 		},
-		3*time.Second, 100*time.Millisecond)
+		5*time.Second, 100*time.Millisecond)
 }
 
 func TestLibp2p_Sending(t *testing.T) {
@@ -207,9 +207,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	c.Connect(ctx, initialNodes)
 	d.Connect(ctx, initialNodes)
 
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeA, nodeC)
 	m.testEventuallyConnected(nodeA, nodeD)
 	m.testEventuallyConnected(nodeB, nodeC)
-	m.testEventuallyConnected(nodeA, nodeC)
+	m.testEventuallyConnected(nodeB, nodeD)
 
 	m.disconnect(nodeA, nodeD)
 	m.testEventuallyNotConnected(nodeA, nodeD)
