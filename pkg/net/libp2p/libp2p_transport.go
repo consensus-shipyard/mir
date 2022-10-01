@@ -57,12 +57,13 @@ func (e *nodeInfoError) Error() string {
 	return fmt.Sprintf("failed to get info for node %s on sending", e.DestNode)
 }
 
-type streamInfoError struct {
+type nilStreamError struct {
+	SrcNode  types.NodeID
 	DestNode types.NodeID
 }
 
-func (e *streamInfoError) Error() string {
-	return fmt.Sprintf("no open stream for node %s", e.DestNode)
+func (e *nilStreamError) Error() string {
+	return fmt.Sprintf("%s has nil stream to node %s", e.SrcNode, e.DestNode)
 }
 
 type Transport struct {
@@ -188,11 +189,11 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 }
 
 func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
-	t.logger.Log(logging.LevelDebug, "started connecting nodes")
+	t.logger.Log(logging.LevelDebug, "started connecting nodes", "src", t.ownID)
 
 	defer t.connWg.Done()
 	defer func() {
-		t.logger.Log(logging.LevelDebug, "finished connecting nodes")
+		t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
 	}()
 
 	wg := &sync.WaitGroup{}
@@ -206,7 +207,7 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 		}
 
 		if t.streamExists(nodeID) {
-			t.logger.Log(logging.LevelInfo, "stream to node already exists", "dst", nodeID)
+			t.logger.Log(logging.LevelInfo, "stream to node already exists", "src", t.ownID, "dst", nodeID)
 			wg.Done()
 			continue
 		}
@@ -294,7 +295,7 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
 	var err error
 	var nodeErr *nodeInfoError
-	var streamErr *streamInfoError
+	var streamErr *nilStreamError
 
 	s, err := t.getNodeStream(dest)
 	if errors.As(err, &nodeErr) {
@@ -377,6 +378,7 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 
 	node, found := t.nodes[nodeID]
 	if !found {
+		t.logger.Log(logging.LevelWarn, "addOutboundStream: failed to find the node", "src", t.ownID, "dst", nodeID)
 		return
 	}
 	node.Stream = s
@@ -402,7 +404,7 @@ func (t *Transport) getNodeStream(nodeID types.NodeID) (network.Stream, error) {
 	node, found := t.nodes[nodeID]
 	if !found ||
 		node.Stream == nil {
-		return nil, &streamInfoError{nodeID}
+		return nil, &nilStreamError{SrcNode: t.ownID, DestNode: nodeID}
 	}
 	return node.Stream, nil
 }
