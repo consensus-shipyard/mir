@@ -323,7 +323,9 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 	w := bufio.NewWriter(s)
 	_, err = w.Write(buf.Bytes())
 	if err == nil {
-		w.Flush()
+		if err = w.Flush(); err != nil {
+			return fmt.Errorf("failed to flush: %w", err)
+		}
 	}
 	// If we cannot write to the stream, or we don't have a connection to that peer then try to
 	// connect to the peer.
