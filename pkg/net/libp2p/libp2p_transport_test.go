@@ -2,7 +2,6 @@ package libp2p
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -144,7 +143,6 @@ func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 ty
 
 	require.Eventually(m.t,
 		func() bool {
-			fmt.Println(222, src.host.Network().ConnsToPeer(dst.host.ID()))
 			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
 		},
 		5*time.Second, 300*time.Millisecond)

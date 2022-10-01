@@ -28,7 +28,7 @@ import (
 
 const (
 	ProtocolID             = "/mir/0.0.1"
-	maxConnectingTimeout   = 400 * time.Millisecond
+	maxConnectingTimeout   = 700 * time.Millisecond
 	retryTimeout           = 2 * time.Second
 	retryAttempts          = 20
 	noLoggingErrorAttempts = 2
