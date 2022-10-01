@@ -28,9 +28,9 @@ import (
 
 const (
 	ProtocolID             = "/mir/0.0.1"
-	maxConnectingTimeout   = 700 * time.Millisecond
-	retryTimeout           = 2 * time.Second
-	retryAttempts          = 20
+	maxConnectingTimeout   = 1000 * time.Millisecond
+	maxRetryTimeout        = 2 * time.Second
+	maxRetries             = 20
 	noLoggingErrorAttempts = 2
 	PermanentAddrTTL       = math.MaxInt64 - iota
 )
@@ -259,26 +259,29 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 	// https://github.com/libp2p/go-libp2p/blob/7828f3e0797e0a7b7033fa5e8be9b94f57a4c173/p2p/net/swarm/swarm.go#L358
 	t.logger.Log(logging.LevelDebug, "opening stream to peer", "src", t.ownID, "dst", dest)
 
-	var streamErr error
-	for i := 0; i < retryAttempts; i++ {
+	// The implementation is based on the openStream() function from the RemoteTracer:
+	// https://github.com/libp2p/go-libp2p-pubsub/blob/cbb7bfc1f182e0b765d2856f6a0ea73e34d93602/tracer.go#L280
+	var s network.Stream
+	var err error
+	for i := 0; i < maxRetries; i++ {
 		sctx, cancel := context.WithTimeout(ctx, maxConnectingTimeout)
 
-		s, streamErr := t.host.NewStream(sctx, dest, ProtocolID)
+		s, err = t.host.NewStream(sctx, dest, ProtocolID)
 		cancel()
 
-		if streamErr == nil {
+		if err == nil {
 			return s, nil
 		}
 
 		if i >= noLoggingErrorAttempts {
 			t.logger.Log(
-				logging.LevelError, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, streamErr))
+				logging.LevelError, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, err))
 		} else {
 			t.logger.Log(
-				logging.LevelInfo, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, streamErr))
+				logging.LevelInfo, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, err))
 		}
 
-		delay := time.NewTimer(retryTimeout)
+		delay := time.NewTimer(maxRetryTimeout)
 		select {
 		case <-delay.C:
 			continue
@@ -289,7 +292,7 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 			return nil, fmt.Errorf("%s opening stream to %s: context closed", t.ownID, dest)
 		}
 	}
-	return nil, fmt.Errorf("%s failed to open stream to %s: %w", t.ownID, dest, streamErr)
+	return nil, fmt.Errorf("%s failed to open stream to %s: %w", t.ownID, dest, err)
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
@@ -333,7 +336,7 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 	if err != nil || len(t.host.Network().ConnsToPeer(s.Conn().RemotePeer())) == 0 {
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
-		return fmt.Errorf("%s failed to write data to stream for %s, reopening", t.ownID, dest)
+		return fmt.Errorf("%s failed to write data to stream for %s: reopening", t.ownID, dest)
 	}
 
 	return nil
