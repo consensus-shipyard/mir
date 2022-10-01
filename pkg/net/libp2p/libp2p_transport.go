@@ -1,4 +1,4 @@
-// Package libp2p implements libp2p-based transport for Mir protocol framework.
+// Package libp2p implements the Mir transport interface using libp2p.
 package libp2p
 
 //go:generate go run ./gen/gen.go
@@ -88,12 +88,6 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 		ownID:            ownID,
 		host:             h,
 	}, nil
-}
-
-func (t *Transport) ImplementsModule() {}
-
-func (t *Transport) EventsOut() <-chan *events.EventList {
-	return t.incomingMessages
 }
 
 func (t *Transport) Start() error {
@@ -236,7 +230,7 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, node))
 
-	addr, found := t.getAddr(node)
+	addr, found := t.getNodeAddr(node)
 	if !found {
 		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
 		return
@@ -260,6 +254,10 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 }
 
 func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Stream, error) {
+	//  We need the simplest retry mechanism due to the fact that the underlying libp2p's NewStream function dials once:
+	// https://github.com/libp2p/go-libp2p/blob/7828f3e0797e0a7b7033fa5e8be9b94f57a4c173/p2p/net/swarm/swarm.go#L358
+	t.logger.Log(logging.LevelDebug, "opening stream to peer", "src", t.ownID, "dst", dest)
+
 	var streamErr error
 	for i := 0; i < retryAttempts; i++ {
 		sctx, cancel := context.WithTimeout(ctx, maxConnectingTimeout)
@@ -273,10 +271,10 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 
 		if i >= noLoggingErrorAttempts {
 			t.logger.Log(
-				logging.LevelError, fmt.Sprintf("failed to open stream to %s: %v", dest, streamErr), "src", t.ownID)
+				logging.LevelError, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, streamErr))
 		} else {
 			t.logger.Log(
-				logging.LevelInfo, fmt.Sprintf("failed to open stream to %s: %v", dest, streamErr), "src", t.ownID)
+				logging.LevelInfo, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, streamErr))
 		}
 
 		delay := time.NewTimer(retryTimeout)
@@ -287,16 +285,16 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 			if !delay.Stop() {
 				<-delay.C
 			}
-			return nil, fmt.Errorf("libp2p opening stream: context closed")
+			return nil, fmt.Errorf("%s opening stream to %s: context closed", t.ownID, dest)
 		}
 	}
-	return nil, fmt.Errorf("failed to open stream to %s: %w", dest, streamErr)
+	return nil, fmt.Errorf("%s failed to open stream to %s: %w", t.ownID, dest, streamErr)
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
 	var nodeErr *nodeInfoError
 	var streamErr *streamInfoError
-	s, err := t.getStream(dest)
+	s, err := t.getNodeStream(dest)
 	if errors.As(err, &nodeErr) {
 		return err
 	}
@@ -332,21 +330,21 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 	if err != nil || len(t.host.Network().ConnsToPeer(s.Conn().RemotePeer())) == 0 {
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
-		return fmt.Errorf("failed to write data to stream, reopening")
+		return fmt.Errorf("%s failed to write data to stream for %s, reopening", t.ownID, dest)
 	}
 
 	return nil
 }
 
 func (t *Transport) mirHandler(s network.Stream) {
-	t.logger.Log(logging.LevelDebug, "mir handler started", "streamID", s.ID())
-	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "streamID", s.ID())
+	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", s.ID())
+	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", s.ID())
 
 	defer func() {
-		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "streamID", s.ID())
+		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "src", t.ownID, "dst", s.ID())
 		err := s.Close()
 		if err != nil {
-			t.logger.Log(logging.LevelError, "closing stream", "streamID", s.ID(), "err", err)
+			t.logger.Log(logging.LevelError, "closing stream", "src", t.ownID, "dst", s.ID(), "err", err)
 		}
 	}() // nolint
 
@@ -354,14 +352,14 @@ func (t *Transport) mirHandler(s network.Stream) {
 		var msg TransportMessage
 		err := msg.UnmarshalCBOR(s)
 		if err != nil {
-			t.logger.Log(logging.LevelError, "failed to read mir transport request", "err", err)
+			t.logger.Log(logging.LevelError, "failed to read mir request", "src", t.ownID, "dst", s.ID(), "err", err)
 			return
 		}
 
 		var payload messagepb.Message
 
 		if err := proto.Unmarshal(msg.Payload, &payload); err != nil {
-			t.logger.Log(logging.LevelError, "failed to unmarshall mir transport request", "err", err)
+			t.logger.Log(logging.LevelError, "failed to unmarshall mir request", "src", t.ownID, "dst", s.ID(), "err", err)
 			return
 		}
 
@@ -375,11 +373,11 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 	t.nodesLock.Lock()
 	defer t.nodesLock.Unlock()
 
-	v, found := t.nodes[nodeID]
+	node, found := t.nodes[nodeID]
 	if !found {
 		return
 	}
-	v.Stream = s
+	node.Stream = s
 }
 
 func (t *Transport) streamExists(nodeID types.NodeID) bool {
@@ -390,7 +388,7 @@ func (t *Transport) streamExists(nodeID types.NodeID) bool {
 	return found && v.Stream != nil
 }
 
-func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, error) {
+func (t *Transport) getNodeStream(nodeID types.NodeID) (network.Stream, error) {
 	t.nodesLock.RLock()
 	defer t.nodesLock.RUnlock()
 
@@ -399,22 +397,22 @@ func (t *Transport) getStream(nodeID types.NodeID) (network.Stream, error) {
 		return nil, &nodeInfoError{nodeID}
 	}
 
-	v, found := t.nodes[nodeID]
-	if !found || v.Stream == nil {
+	node, found := t.nodes[nodeID]
+	if !found || node.Stream == nil {
 		return nil, &streamInfoError{nodeID}
 	}
-	return v.Stream, nil
+	return node.Stream, nil
 }
 
-func (t *Transport) getAddr(nodeID types.NodeID) (types.NodeAddress, bool) {
+func (t *Transport) getNodeAddr(nodeID types.NodeID) (types.NodeAddress, bool) {
 	t.nodesLock.RLock()
 	defer t.nodesLock.RUnlock()
 
-	v, found := t.nodes[nodeID]
+	node, found := t.nodes[nodeID]
 	if !found {
 		return nil, false
 	}
-	return v.Addr, true
+	return node.Addr, true
 }
 
 func (t *Transport) isConnectionToNodeInProgress(nodeID types.NodeID) bool {
@@ -445,6 +443,12 @@ func (t *Transport) clearConnectionInProgress(nodeID types.NodeID) {
 		return
 	}
 	info.IsOpening = false
+}
+
+func (t *Transport) ImplementsModule() {}
+
+func (t *Transport) EventsOut() <-chan *events.EventList {
+	return t.incomingMessages
 }
 
 func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
@@ -480,7 +484,7 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 				}
 			}
 		default:
-			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
+			return fmt.Errorf("unexpected event: %T", event.Type)
 		}
 	}
 
