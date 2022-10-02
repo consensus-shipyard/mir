@@ -17,9 +17,9 @@ type eventBuffer struct {
 }
 
 // newEventBuffer allocates and returns a pointer to a new eventBuffer object.
-func newEventBuffer(modules modules.Modules) *eventBuffer {
+func newEventBuffer(modules modules.Modules) eventBuffer {
 
-	wi := &eventBuffer{
+	wi := eventBuffer{
 		buffers:     make(map[t.ModuleID]*events.EventList),
 		totalEvents: 0,
 	}
@@ -35,6 +35,8 @@ func newEventBuffer(modules modules.Modules) *eventBuffer {
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
 // When AddEvents returns a non-nil error, any subset of the events may have been added.
 func (wi *eventBuffer) AddEvents(events *events.EventList) error {
+	// Note that this MUST be a pointer receiver.
+	// Otherwise, we'd increment a copy of the event counter rather than the counter itself.
 	iter := events.Iterator()
 
 	// For each incoming event
