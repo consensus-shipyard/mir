@@ -65,9 +65,6 @@ func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
 
 	err = dst.host.Network().ClosePeer(src.host.ID())
 	require.NoError(m.t, err)
-
-	err = dst.host.Network().ClosePeer(src.host.ID())
-	require.NoError(m.t, err)
 }
 
 func (m *mockLibp2pCommunication) Nodes() map[types.NodeID]types.NodeAddress {
@@ -132,6 +129,7 @@ func (m *mockLibp2pCommunication) testEventuallySentMsg(ctx context.Context, src
 	require.Eventually(m.t,
 		func() bool {
 			err := src.Send(ctx, dstNode, msg)
+			m.t.Log(err)
 			return err == nil
 		},
 		5*time.Second, 300*time.Millisecond)
@@ -206,13 +204,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyConnected(nodeC, nodeD)
 
 	t.Log(">>> sending messages")
-	var nodeErr *nodeInfoError
 	err = a.Send(ctx, "unknownNode", &messagepb.Message{})
-	require.ErrorAs(t, err, &nodeErr)
+	require.ErrorIs(t, err, ErrUnknownNode)
 
-	var streamErr *nilStreamError
 	err = a.Send(ctx, nodeE, &messagepb.Message{})
-	require.ErrorAs(t, err, &streamErr)
+	require.ErrorAs(t, err, &ErrUnknownNode)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
@@ -234,7 +230,6 @@ func TestLibp2p_Sending(t *testing.T) {
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
 	m.testEventuallyNotConnected(nodeA, nodeB)
-	require.Equal(t, 2, len(b.host.Network().Peers()))
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
@@ -306,4 +301,44 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyNotConnected(nodeA, nodeC)
 	m.testEventuallyNotConnected(nodeB, nodeC)
 	m.testEventuallyNotConnected(nodeD, nodeC)
+}
+
+func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
+	src := m.getTransport(nodeID)
+
+	require.Never(m.t,
+		func() bool {
+			return len(src.nodes) > 1
+		},
+		10*time.Second, 300*time.Millisecond)
+}
+
+// Test we don't get two elements in the node table corresponding to the same node.
+func TestLibp2p_OneConnectionInProgress(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeE := types.NodeID("e")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA}, logger)
+
+	a := m.transports[nodeA]
+	m.StartAll()
+	defer m.StopAll()
+
+	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
+	require.NoError(t, err)
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA)
+	initialNodes[nodeE] = eAddr
+
+	a.Connect(ctx, initialNodes)
+	a.Send(ctx, nodeE, &messagepb.Message{})
+
+	m.testNeverMoreThanOneConnectionInProgress(nodeA)
 }
