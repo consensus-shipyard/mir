@@ -1,8 +1,10 @@
 package bcbpbtypes
 
 import (
+	types1 "github.com/filecoin-project/mir/codegen/generators/types-gen/types"
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
+	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -262,22 +264,26 @@ func (*EchoMessage) MirReflect() mirreflect.Type {
 
 type FinalMessage struct {
 	Data       []uint8
-	Signers    []string
+	Signers    []types.NodeID
 	Signatures [][]uint8
 }
 
 func FinalMessageFromPb(pb *bcbpb.FinalMessage) *FinalMessage {
 	return &FinalMessage{
-		Data:       pb.Data,
-		Signers:    pb.Signers,
+		Data: pb.Data,
+		Signers: types1.ConvertSlice(pb.Signers, func(t string) types.NodeID {
+			return (types.NodeID)(t)
+		}),
 		Signatures: pb.Signatures,
 	}
 }
 
 func (m *FinalMessage) Pb() *bcbpb.FinalMessage {
 	return &bcbpb.FinalMessage{
-		Data:       m.Data,
-		Signers:    m.Signers,
+		Data: m.Data,
+		Signers: types1.ConvertSlice(m.Signers, func(t types.NodeID) string {
+			return (string)(t)
+		}),
 		Signatures: m.Signatures,
 	}
 }

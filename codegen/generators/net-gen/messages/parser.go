@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/params"
 	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/util/params"
 	"github.com/filecoin-project/mir/pkg/pb/net"
 )
 
@@ -83,11 +83,12 @@ func (p *Parser) parseNetMessageNodeRecursively(
 			continue
 		}
 
-		uniqueName := params.UniqueName(field.LowercaseName(),
-			accumulatedConstructorParameters, thisNodeConstructorParameters)
-		thisNodeConstructorParameters = thisNodeConstructorParameters.UncheckedAppend(uniqueName, field)
-		accumulatedConstructorParameters = accumulatedConstructorParameters.UncheckedAppend(uniqueName, field.Type)
+		originalName := field.LowercaseName()
+		uniqueName := params.UniqueName(originalName, accumulatedConstructorParameters, thisNodeConstructorParameters)
+		thisNodeConstructorParameters = thisNodeConstructorParameters.UncheckedAppend(originalName, uniqueName, field)
 	}
+	accumulatedConstructorParameters =
+		accumulatedConstructorParameters.UncheckedAppendAll(thisNodeConstructorParameters.FunctionParamList())
 
 	// Check if this is a net message class.
 	if typeOneof, ok := getTypeOneof(fields); ok {

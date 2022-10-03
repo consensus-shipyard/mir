@@ -8,7 +8,7 @@ import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
 
 // ============================================================
-// Messages
+// Events
 // ============================================================
 
 message Event {
@@ -33,6 +33,10 @@ message Deliver {
 
   bytes data = 1;
 }
+
+// ============================================================
+// Net Messages
+// ============================================================
 
 message Message {
   option (net.message_class) = true;
@@ -62,6 +66,6 @@ message FinalMessage {
   option (net.message) = true;
 
   bytes data = 1;
-  repeated string signers = 2;
+  repeated string signers = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes signatures = 3;
 }

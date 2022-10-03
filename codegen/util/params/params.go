@@ -11,13 +11,19 @@ import (
 
 // FunctionParam represents a parameter of a function.
 type FunctionParam struct {
-	paramName string
-	type_     types.Type
+	originalName string
+	uniqueName   string
+	type_        types.Type
 }
 
-// ParamName returns the lowercase name of the function parameter.
-func (p FunctionParam) ParamName() string {
-	return p.paramName
+// OriginalName return the original name of the function parameter.
+func (p FunctionParam) OriginalName() string {
+	return p.originalName
+}
+
+// Name returns the name of the function parameter after it has been made unique.
+func (p FunctionParam) Name() string {
+	return p.uniqueName
 }
 
 // Type returns the type of the function parameter.
@@ -27,7 +33,7 @@ func (p FunctionParam) Type() types.Type {
 
 // MirCode returns the code for the parameter that can be used in a function declaration using Mir-generated
 func (p FunctionParam) MirCode() jen.Code {
-	return jen.Id(p.ParamName()).Add(p.Type().MirType())
+	return jen.Id(p.Name()).Add(p.Type().MirType())
 }
 
 // ConstructorParam represents a parameter in a constructor of a message.
@@ -57,9 +63,9 @@ func FunctionParamListOf(params ...FunctionParam) FunctionParamList {
 }
 
 // UncheckedAppend returns a new FunctionParamList with an item appended to it.
-// It is assumed that the name is different from all the parameters already in the list.
-func (l FunctionParamList) UncheckedAppend(name string, tp types.Type) FunctionParamList {
-	param := FunctionParam{paramName: name, type_: tp}
+// uniqueName must be different from all the parameters already in the list.
+func (l FunctionParamList) UncheckedAppend(originalName, uniqueName string, tp types.Type) FunctionParamList {
+	param := FunctionParam{originalName, uniqueName, tp}
 
 	return FunctionParamList{append(l.Slice(), param)}
 }
@@ -67,7 +73,7 @@ func (l FunctionParamList) UncheckedAppend(name string, tp types.Type) FunctionP
 // Append returns a new FunctionParamList with an item appended to it.
 // If a parameter with the same name is already in the list, it will change the name to make it unique.
 func (l FunctionParamList) Append(name string, tp types.Type) FunctionParamList {
-	return l.UncheckedAppend(UniqueName(name, l), tp)
+	return l.UncheckedAppend(name, UniqueName(name, l), tp)
 }
 
 // UncheckedAppendAll adds all parameters to the list.
@@ -76,7 +82,7 @@ func (l FunctionParamList) Append(name string, tp types.Type) FunctionParamList 
 func (l FunctionParamList) UncheckedAppendAll(other FunctionParamList) FunctionParamList {
 	res := l
 	for _, param := range other.Slice() {
-		res = res.UncheckedAppend(param.ParamName(), param.Type())
+		res = res.UncheckedAppend(param.OriginalName(), param.Name(), param.Type())
 	}
 
 	return res
@@ -86,7 +92,18 @@ func (l FunctionParamList) UncheckedAppendAll(other FunctionParamList) FunctionP
 func (l FunctionParamList) AppendAll(other FunctionParamList) FunctionParamList {
 	res := l
 	for _, param := range other.Slice() {
-		res = res.Append(param.ParamName(), param.Type())
+		res = res.Append(param.OriginalName(), param.Type())
+	}
+
+	return res
+}
+
+// Adapt returns a new list that has no name collisions with any of the parameter in any of the provided lists.
+func (l FunctionParamList) Adapt(others ...interface{ Names() []string }) FunctionParamList {
+	res := FunctionParamList{}
+	for _, param := range l.Slice() {
+		uniqueName := UniqueName(param.OriginalName(), append(others, res)...)
+		res = res.UncheckedAppend(param.OriginalName(), uniqueName, param.Type())
 	}
 
 	return res
@@ -97,14 +114,19 @@ func (l FunctionParamList) MirCode() []jen.Code {
 	return sliceutil.Transform(l.Slice(), func(_ int, p FunctionParam) jen.Code { return p.MirCode() })
 }
 
-// IDs returns the slice of ParamName of the parameters as jen.Code IDs.
+// IDs returns the slice of the names of the parameters as jen.Code.
 func (l FunctionParamList) IDs() []jen.Code {
-	return sliceutil.Transform(l.Slice(), func(_ int, p FunctionParam) jen.Code { return jen.Id(p.ParamName()) })
+	return sliceutil.Transform(l.Slice(), func(_ int, p FunctionParam) jen.Code { return jen.Id(p.Name()) })
 }
 
-// ParamNames returns the list of names of the parameters.
-func (l FunctionParamList) ParamNames() []string {
-	return sliceutil.Transform(l.Slice(), func(_ int, p FunctionParam) string { return p.ParamName() })
+// Names returns the slice of the names of the parameters as string.
+func (l FunctionParamList) Names() []string {
+	return sliceutil.Transform(l.Slice(), func(_ int, p FunctionParam) string { return p.Name() })
+}
+
+// Sublist returns a FunctionParamList corresponding to a slice of the original list.
+func (l FunctionParamList) Sublist(first, afterLast int) FunctionParamList {
+	return FunctionParamList{slice: l.slice[first:afterLast]}
 }
 
 // ConstructorParamList represents a list of parameters of a constructor function of a message.
@@ -118,10 +140,10 @@ func (l ConstructorParamList) Slice() []ConstructorParam {
 }
 
 // UncheckedAppend returns a new FunctionParamList with an item appended to it.
-// It is assumed that the name is different from all the parameters already in the list.
-func (l ConstructorParamList) UncheckedAppend(name string, field *types.Field) ConstructorParamList {
+// uniqueName must be different from all the parameters already in the list.
+func (l ConstructorParamList) UncheckedAppend(originalName, uniqueName string, field *types.Field) ConstructorParamList {
 	param := ConstructorParam{
-		FunctionParam: FunctionParam{paramName: name, type_: field.Type},
+		FunctionParam: FunctionParam{originalName, uniqueName, field.Type},
 		field:         field,
 	}
 
@@ -130,7 +152,7 @@ func (l ConstructorParamList) UncheckedAppend(name string, field *types.Field) C
 
 // Append adds a parameter to the list, making sure that all parameters have unique names.
 func (l ConstructorParamList) Append(name string, field *types.Field) ConstructorParamList {
-	return l.UncheckedAppend(UniqueName(name, l), field)
+	return l.UncheckedAppend(name, UniqueName(name, l), field)
 }
 
 // UncheckedAppendAll adds all parameters to the list.
@@ -139,7 +161,7 @@ func (l ConstructorParamList) Append(name string, field *types.Field) Constructo
 func (l ConstructorParamList) UncheckedAppendAll(other ConstructorParamList) ConstructorParamList {
 	res := l
 	for _, param := range other.Slice() {
-		res = res.UncheckedAppend(param.ParamName(), param.Field())
+		res = res.UncheckedAppend(param.OriginalName(), param.Name(), param.Field())
 	}
 
 	return res
@@ -149,7 +171,18 @@ func (l ConstructorParamList) UncheckedAppendAll(other ConstructorParamList) Con
 func (l ConstructorParamList) AppendAll(other ConstructorParamList) ConstructorParamList {
 	res := l
 	for _, param := range other.Slice() {
-		res = res.Append(param.ParamName(), param.Field())
+		res = res.Append(param.OriginalName(), param.Field())
+	}
+
+	return res
+}
+
+// Adapt returns a new list that has no name collisions with any of the parameter in any of the provided lists.
+func (l ConstructorParamList) Adapt(others ...interface{ Names() []string }) ConstructorParamList {
+	res := ConstructorParamList{}
+	for _, param := range l.Slice() {
+		uniqueName := UniqueName(param.OriginalName(), append(others, res)...)
+		res = res.UncheckedAppend(param.OriginalName(), uniqueName, param.Field())
 	}
 
 	return res
@@ -160,36 +193,36 @@ func (l ConstructorParamList) MirCode() []jen.Code {
 	return sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) jen.Code { return p.MirCode() })
 }
 
-// IDs returns the slice of ParamName of the parameters as jen.Code IDs.
+// IDs returns the slice of the names of the parameters as jen.Code.
 func (l ConstructorParamList) IDs() []jen.Code {
-	return sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) jen.Code { return jen.Id(p.ParamName()) })
+	return sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) jen.Code { return jen.Id(p.Name()) })
+}
+
+// Names returns the slice of the names of the parameters as string.
+func (l ConstructorParamList) Names() []string {
+	return sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) string { return p.Name() })
+}
+
+// Sublist returns a ConstructorParamList corresponding to a slice of the original list.
+func (l ConstructorParamList) Sublist(first, afterLast int) ConstructorParamList {
+	return ConstructorParamList{slice: l.slice[first:afterLast]}
 }
 
 // FunctionParamList transforms ConstructorParamList to FunctionParamList.
 func (l ConstructorParamList) FunctionParamList() FunctionParamList {
 	return FunctionParamList{
-		sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) FunctionParam {
-			return p.FunctionParam
-		}),
+		slice: sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) FunctionParam { return p.FunctionParam }),
 	}
 }
 
-// ParamNames returns the slice of names of the parameters.
-func (l ConstructorParamList) ParamNames() []string {
-	return sliceutil.Transform(l.Slice(), func(_ int, p ConstructorParam) string { return p.ParamName() })
-}
-
-type hasParamNames interface {
-	ParamNames() []string
-}
-
-// UniqueName returns modifies originalName in such a way that it is different from all names in the list l.
-func UniqueName(originalName string, ls ...hasParamNames) string {
+// UniqueName returns originalName modified in such a way that it is different
+// from all the names in the provided parameter lists.
+func UniqueName(originalName string, ls ...interface{ Names() []string }) string {
 	suffixNumber := int64(-1)
 	nameWithSuffix := originalName
 
 	for _, l := range ls {
-		for _, paramName := range l.ParamNames() {
+		for _, paramName := range l.Names() {
 			if nameWithSuffix == paramName {
 				suffixNumber += 1
 				nameWithSuffix = originalName + strconv.FormatInt(suffixNumber, 10)

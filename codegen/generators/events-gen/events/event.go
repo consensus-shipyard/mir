@@ -6,8 +6,8 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/params"
 	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/util/params"
 )
 
 func PackagePath(sourcePackagePath string) string {
@@ -91,13 +91,13 @@ func (ev *EventNode) Parent() *EventNode {
 
 // AllConstructorParameters returns the accumulated parameters for the constructor function.
 // The parameters include all the fields of all the ancestors in the hierarchy except those marked with
-// [(mir.omit_in_constructor) = true] and the Type oneofs.
+// [(mir.omit_in_events_constructor) = true] and the Type oneofs.
 func (ev *EventNode) AllConstructorParameters() params.FunctionParamList {
 	return ev.allConstructorParameters
 }
 
 // ThisNodeConstructorParameters returns a suffix of AllConstructorParameters() that corresponds to the fields
-// only of this in the hierarchy, without the fields accumulated from the ancestors.
+// only of this in the hierarchy, without the parameters accumulated from the ancestors.
 func (ev *EventNode) ThisNodeConstructorParameters() params.ConstructorParamList {
 	return ev.thisNodeConstructorParameters
 }

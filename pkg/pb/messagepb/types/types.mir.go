@@ -3,17 +3,18 @@ package messagepbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
-	types "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
 type Message struct {
-	DestModule string
+	DestModule types.ModuleID
 	Type       Message_Type
 }
 
@@ -33,7 +34,7 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	case *messagepb.Message_Iss:
 		return &Message_Iss{Iss: pb.Iss}
 	case *messagepb.Message_Bcb:
-		return &Message_Bcb{Bcb: types.MessageFromPb(pb.Bcb)}
+		return &Message_Bcb{Bcb: types1.MessageFromPb(pb.Bcb)}
 	case *messagepb.Message_MultisigCollector:
 		return &Message_MultisigCollector{MultisigCollector: pb.MultisigCollector}
 	case *messagepb.Message_Pingpong:
@@ -65,12 +66,12 @@ func (*Message_Iss) MirReflect() mirreflect.Type {
 }
 
 type Message_Bcb struct {
-	Bcb *types.Message
+	Bcb *types1.Message
 }
 
 func (*Message_Bcb) isMessage_Type() {}
 
-func (w *Message_Bcb) Unwrap() *types.Message {
+func (w *Message_Bcb) Unwrap() *types1.Message {
 	return w.Bcb
 }
 
@@ -156,14 +157,14 @@ func (*Message_SbMessage) MirReflect() mirreflect.Type {
 
 func MessageFromPb(pb *messagepb.Message) *Message {
 	return &Message{
-		DestModule: pb.DestModule,
+		DestModule: (types.ModuleID)(pb.DestModule),
 		Type:       Message_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Message) Pb() *messagepb.Message {
 	return &messagepb.Message{
-		DestModule: m.DestModule,
+		DestModule: (string)(m.DestModule),
 		Type:       (m.Type).Pb(),
 	}
 }

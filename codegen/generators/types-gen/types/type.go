@@ -35,7 +35,7 @@ type Type interface {
 
 // Same is used when the same type is used by protoc-generated code and Mir-generated code.
 type Same struct {
-	tp jen.Code
+	Type jen.Code
 }
 
 func (t Same) Same() bool {
@@ -43,11 +43,11 @@ func (t Same) Same() bool {
 }
 
 func (t Same) PbType() *jen.Statement {
-	return jen.Add(t.tp)
+	return jen.Add(t.Type)
 }
 
 func (t Same) MirType() *jen.Statement {
-	return jen.Add(t.tp)
+	return jen.Add(t.Type)
 }
 
 func (t Same) ToMir(code jen.Code) *jen.Statement {
