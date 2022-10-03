@@ -296,11 +296,11 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 	// If we cannot write to the stream then close the connection and reconnect.
 	if err != nil {
 		if err := t.host.Network().ClosePeer(info.ID); err != nil {
-			t.logger.Log(logging.LevelError, "send: could not close the connection to node", "src", t.ownID, "dst", dest, "err", err)
+			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", dest, "err", err)
 		}
 		t.connWg.Add(1)
 		go t.connectToNode(ctx, dest, t.connWg)
-		return fmt.Errorf("%s failed to write data to stream for %s: reconnecting", t.ownID, dest)
+		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
 	}
 
 	return nil
@@ -449,9 +449,8 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 					}()
 				} else {
 					// Send message to another node.
-					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
-						//       Also, this violates the non-blocking operation of ApplyEvents method. Fix it.
+					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil {
+						t.logger.Log(logging.LevelError, "failed to send a message", "err", err)
 					}
 				}
 			}

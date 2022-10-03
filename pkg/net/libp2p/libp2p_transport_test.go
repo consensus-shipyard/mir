@@ -338,7 +338,7 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	initialNodes[nodeE] = eAddr
 
 	a.Connect(ctx, initialNodes)
-	a.Send(ctx, nodeE, &messagepb.Message{})
+	a.Send(ctx, nodeE, &messagepb.Message{}) // nolint
 
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
 }
