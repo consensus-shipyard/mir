@@ -1,8 +1,8 @@
 package bcbpbtypes
 
 import (
-	types1 "github.com/filecoin-project/mir/codegen/generators/types-gen/types"
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"

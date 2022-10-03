@@ -1,8 +1,8 @@
 package eventpbtypes
 
 import (
-	types7 "github.com/filecoin-project/mir/codegen/generators/types-gen/types"
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types7 "github.com/filecoin-project/mir/codegen/model/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
@@ -879,12 +879,12 @@ type NodeSigsVerified struct {
 func NodeSigsVerifiedFromPb(pb *eventpb.NodeSigsVerified) *NodeSigsVerified {
 	return &NodeSigsVerified{
 		Origin: pb.Origin,
-		NodeIds: types5.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
+		NodeIds: types7.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
 		Valid: pb.Valid,
-		Errors: types5.ConvertSlice(pb.Errors, func(t string) error {
-			return types5.StringToError(t)
+		Errors: types7.ConvertSlice(pb.Errors, func(t string) error {
+			return types7.StringToError(t)
 		}),
 		AllOk: pb.AllOk,
 	}
@@ -893,12 +893,12 @@ func NodeSigsVerifiedFromPb(pb *eventpb.NodeSigsVerified) *NodeSigsVerified {
 func (m *NodeSigsVerified) Pb() *eventpb.NodeSigsVerified {
 	return &eventpb.NodeSigsVerified{
 		Origin: m.Origin,
-		NodeIds: types5.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+		NodeIds: types7.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
 			return (string)(t)
 		}),
 		Valid: m.Valid,
-		Errors: types5.ConvertSlice(m.Errors, func(t error) string {
-			return types5.ErrorToString(t)
+		Errors: types7.ConvertSlice(m.Errors, func(t error) string {
+			return types7.ErrorToString(t)
 		}),
 		AllOk: m.AllOk,
 	}
@@ -909,14 +909,14 @@ func (*NodeSigsVerified) MirReflect() mirreflect.Type {
 }
 
 type SendMessage struct {
-	Msg          *types6.Message
+	Msg          *types8.Message
 	Destinations []types.NodeID
 }
 
 func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 	return &SendMessage{
-		Msg: types6.MessageFromPb(pb.Msg),
-		Destinations: types5.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
+		Msg: types8.MessageFromPb(pb.Msg),
+		Destinations: types7.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
 	}
@@ -925,7 +925,7 @@ func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 func (m *SendMessage) Pb() *eventpb.SendMessage {
 	return &eventpb.SendMessage{
 		Msg: (m.Msg).Pb(),
-		Destinations: types5.ConvertSlice(m.Destinations, func(t types.NodeID) string {
+		Destinations: types7.ConvertSlice(m.Destinations, func(t types.NodeID) string {
 			return (string)(t)
 		}),
 	}

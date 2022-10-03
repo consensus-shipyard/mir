@@ -5,9 +5,9 @@ import (
 	"reflect"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/events-gen/events"
+	"github.com/filecoin-project/mir/codegen/model/events"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 

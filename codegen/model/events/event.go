@@ -6,7 +6,7 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/params"
 )
 

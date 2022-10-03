@@ -8,10 +8,10 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/filecoin-project/mir/codegen/generators/events-gen/events"
 	eventsgenerator "github.com/filecoin-project/mir/codegen/generators/events-gen/generator"
 	netgenerator "github.com/filecoin-project/mir/codegen/generators/net-gen/generator"
-	"github.com/filecoin-project/mir/codegen/generators/net-gen/messages"
+	"github.com/filecoin-project/mir/codegen/model/events"
+	"github.com/filecoin-project/mir/codegen/model/messages"
 )
 
 type DslGenerator struct{}

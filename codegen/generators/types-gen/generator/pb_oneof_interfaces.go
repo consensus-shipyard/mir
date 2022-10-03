@@ -4,7 +4,7 @@ import (
 	"github.com/dave/jennifer/jen"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/types"
 )
 
 func generateOneofInterface(g *jen.File, oneof *types.Oneof) error {

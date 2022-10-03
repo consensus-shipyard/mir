@@ -3,9 +3,10 @@ package generator
 import (
 	"github.com/dave/jennifer/jen"
 
+	"github.com/filecoin-project/mir/codegen/model/messages"
+
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/net-gen/messages"
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/codegen/util/params"
 	t "github.com/filecoin-project/mir/pkg/types"
