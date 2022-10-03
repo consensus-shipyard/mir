@@ -248,6 +248,12 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 	// Check if the field has (mir.type) option specified.
 	protoFieldOptions := protoField.Options().(*descriptorpb.FieldOptions)
 	mirTypeOption := proto.GetExtension(protoFieldOptions, mir.E_Type).(string)
+
+	// Special case for string fields annotated with [(mir.type) = "error"].
+	if goType.Kind() == reflect.String && mirTypeOption == "error" {
+		return Error{}, nil
+	}
+
 	if mirTypeOption != "" {
 		sepIdx := strings.LastIndex(mirTypeOption, ".")
 		return Castable{

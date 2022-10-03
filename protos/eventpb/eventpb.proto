@@ -157,10 +157,12 @@ message VerifyNodeSigs {
 }
 
 message NodeSigsVerified {
+  option (mir.event) = true;
+
   SigVerOrigin    origin   = 1;
-  repeated string node_ids = 2;
+  repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bool   valid    = 3;
-  repeated string errors   = 4;
+  repeated string errors   = 4 [(mir.type) = "error"];
   bool            all_ok   = 5;
 }
 
