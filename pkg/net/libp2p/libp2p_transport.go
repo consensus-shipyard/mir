@@ -396,8 +396,8 @@ func (t *Transport) streamExists(nodeID types.NodeID) bool {
 }
 
 func (t *Transport) getNodeStream(nodeID types.NodeID) (network.Stream, error) {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
+	t.nodesLock.Lock()
+	defer t.nodesLock.Unlock()
 
 	_, found := t.nodes[nodeID]
 	if !found {
