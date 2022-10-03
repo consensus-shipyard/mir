@@ -5,6 +5,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -37,7 +38,13 @@ func (wi eventBuffer) AddEvents(events *events.EventList) error {
 		if buffer, ok := wi[t.ModuleID(event.DestModule).Top()]; ok {
 			buffer.PushBack(event)
 		} else {
-			return errors.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
+			if _, ok := event.Type.(*eventpb.Event_MessageReceived); !ok {
+				// If the event is a MessageReceived event, we don't need to return an error, because
+				// the message may have been sent by a faulty node.
+				// MessageReceived events with non-existent module destinations are thus dropped,
+				// without it being considered an error at the local node.
+				return errors.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
+			}
 		}
 	}
 	return nil
