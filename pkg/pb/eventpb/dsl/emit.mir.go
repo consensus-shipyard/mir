@@ -2,12 +2,17 @@ package eventpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
+
+func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *eventpb.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
+	dsl.EmitMirEvent(m, events.NodeSigsVerified(destModule, origin, nodeIds, valid, errors, allOk))
+}
 
 func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types1.Message, destinations []types.NodeID) {
 	dsl.EmitMirEvent(m, events.SendMessage(destModule, msg, destinations))

@@ -81,14 +81,6 @@ func (m *Message) ToPb(code jen.Code) *jen.Statement {
 	return jen.Parens(code).Dot("Pb").Call()
 }
 
-//func (m *Message) ConstructorName() string {
-//	return "New" + m.Name()
-//}
-//
-//func (m *Message) Constructor() *jen.Statement {
-//	return jen.Qual(m.MirPkgPath(), m.ConstructorName())
-//}
-
 // LowercaseName returns the name of the message in lowercase.
 func (m *Message) LowercaseName() string {
 	return astutil.ToUnexported(m.Name())
@@ -98,22 +90,6 @@ func (m *Message) LowercaseName() string {
 func (m *Message) ProtoDesc() protoreflect.MessageDescriptor {
 	return m.protoDesc
 }
-
-//func (m *Message) FuncParamPbType() *jen.Statement {
-//	return jen.Id(m.LowercaseName()).Add(m.PbType())
-//}
-//
-//func (m *Message) FuncParamMirType() *jen.Statement {
-//	return jen.Id(m.LowercaseName()).Add(m.MirType())
-//}
-//
-//func (m *Message) StructParamPbType() *jen.Statement {
-//	return jen.Id(m.Name()).Add(m.PbType())
-//}
-//
-//func (m *Message) StructParamMirType() *jen.Statement {
-//	return jen.Id(m.Name()).Add(m.MirType())
-//}
 
 func (m *Message) IsMirEvent() bool {
 	return codegen.IsMirEvent(m.protoDesc)

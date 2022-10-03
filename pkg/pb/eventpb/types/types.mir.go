@@ -63,7 +63,7 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_VerifyNodeSigs:
 		return &Event_VerifyNodeSigs{VerifyNodeSigs: pb.VerifyNodeSigs}
 	case *eventpb.Event_NodeSigsVerified:
-		return &Event_NodeSigsVerified{NodeSigsVerified: pb.NodeSigsVerified}
+		return &Event_NodeSigsVerified{NodeSigsVerified: NodeSigsVerifiedFromPb(pb.NodeSigsVerified)}
 	case *eventpb.Event_RequestReady:
 		return &Event_RequestReady{RequestReady: pb.RequestReady}
 	case *eventpb.Event_SendMessage:
@@ -323,17 +323,17 @@ func (*Event_VerifyNodeSigs) MirReflect() mirreflect.Type {
 }
 
 type Event_NodeSigsVerified struct {
-	NodeSigsVerified *eventpb.NodeSigsVerified
+	NodeSigsVerified *NodeSigsVerified
 }
 
 func (*Event_NodeSigsVerified) isEvent_Type() {}
 
-func (w *Event_NodeSigsVerified) Unwrap() *eventpb.NodeSigsVerified {
+func (w *Event_NodeSigsVerified) Unwrap() *NodeSigsVerified {
 	return w.NodeSigsVerified
 }
 
 func (w *Event_NodeSigsVerified) Pb() eventpb.Event_Type {
-	return &eventpb.Event_NodeSigsVerified{NodeSigsVerified: w.NodeSigsVerified}
+	return &eventpb.Event_NodeSigsVerified{NodeSigsVerified: (w.NodeSigsVerified).Pb()}
 }
 
 func (*Event_NodeSigsVerified) MirReflect() mirreflect.Type {
@@ -866,6 +866,46 @@ func (m *Event) Pb() *eventpb.Event {
 
 func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event]()}
+}
+
+type NodeSigsVerified struct {
+	Origin  *eventpb.SigVerOrigin
+	NodeIds []types.NodeID
+	Valid   []bool
+	Errors  []error
+	AllOk   bool
+}
+
+func NodeSigsVerifiedFromPb(pb *eventpb.NodeSigsVerified) *NodeSigsVerified {
+	return &NodeSigsVerified{
+		Origin: pb.Origin,
+		NodeIds: types5.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
+			return (types.NodeID)(t)
+		}),
+		Valid: pb.Valid,
+		Errors: types5.ConvertSlice(pb.Errors, func(t string) error {
+			return types5.StringToError(t)
+		}),
+		AllOk: pb.AllOk,
+	}
+}
+
+func (m *NodeSigsVerified) Pb() *eventpb.NodeSigsVerified {
+	return &eventpb.NodeSigsVerified{
+		Origin: m.Origin,
+		NodeIds: types5.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+			return (string)(t)
+		}),
+		Valid: m.Valid,
+		Errors: types5.ConvertSlice(m.Errors, func(t error) string {
+			return types5.ErrorToString(t)
+		}),
+		AllOk: m.AllOk,
+	}
+}
+
+func (*NodeSigsVerified) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.NodeSigsVerified]()}
 }
 
 type SendMessage struct {
