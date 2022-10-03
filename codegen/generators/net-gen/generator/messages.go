@@ -24,7 +24,7 @@ func generateMessageConstructorsRecursively(
 					msgNode.Message().NewMirType().ValuesFunc(func(group *jen.Group) {
 						// Initialize fields other than the message type.
 						for _, param := range msgNode.ThisNodeConstructorParameters().Slice() {
-							group.Line().Id(param.Field().Name).Op(":").Id(param.ParamName())
+							group.Line().Id(param.Field().Name).Op(":").Id(param.Name())
 						}
 
 						// Initialize the Type field
@@ -65,7 +65,7 @@ func generateMessageConstructorsRecursively(
 		jen.Return(constructParent(
 			msgNode.Message().NewMirType().ValuesFunc(func(group *jen.Group) {
 				for _, param := range msgNode.ThisNodeConstructorParameters().Slice() {
-					group.Line().Id(param.Field().Name).Op(":").Id(param.ParamName())
+					group.Line().Id(param.Field().Name).Op(":").Id(param.Name())
 				}
 				group.Line()
 			}),

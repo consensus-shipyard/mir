@@ -6,8 +6,8 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/params"
 	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/util/params"
 )
 
 func PackagePath(sourcePackagePath string) string {
@@ -97,7 +97,7 @@ func (ev *NetMessageNode) AllConstructorParameters() params.FunctionParamList {
 }
 
 // ThisNodeConstructorParameters returns a suffix of AllConstructorParameters() that corresponds to the fields
-// only of this in the hierarchy, without the fields accumulated from the ancestors.
+// only of this in the hierarchy, without the parameters accumulated from the ancestors.
 func (ev *NetMessageNode) ThisNodeConstructorParameters() params.ConstructorParamList {
 	return ev.thisNodeConstructorParameters
 }

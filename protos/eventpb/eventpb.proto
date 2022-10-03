@@ -27,7 +27,7 @@ import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
 
 import "mir/codegen_extensions.proto";
-import "mir/dsl/codegen_extensions.proto";
+import "dsl/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -91,7 +91,7 @@ message Event {
   // and the next field would contain the message sending event.
   repeated Event next = 100 [(mir.omit_in_events_constructor) = true];
 
-  string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID", (mir.dsl.omit_in_handler) = true];
+  string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID", (dsl.omit_in_handler) = true];
 }
 
 message Init {}
@@ -180,8 +180,10 @@ message RequestReady {
 }
 
 message SendMessage {
-  repeated string destinations = 1;
-  messagepb.Message msg = 2;
+  option (mir.event) = true;
+
+  messagepb.Message msg = 1;
+  repeated string destinations = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message MessageReceived {

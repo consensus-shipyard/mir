@@ -15,7 +15,8 @@ import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
 
-import "mir/dsl/codegen_extensions.proto";
+import "mir/codegen_extensions.proto";
+import "dsl/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
@@ -23,7 +24,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 message Message {
   option (net.message_root) = true;
 
-  string dest_module = 1 [(mir.dsl.omit_in_handler) = true];
+  string dest_module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID", (dsl.omit_in_handler) = true];
 
   oneof type {
     option (net.message_type) = true;

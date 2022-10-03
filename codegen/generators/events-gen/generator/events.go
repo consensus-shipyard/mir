@@ -24,7 +24,7 @@ func generateEventConstructorsRecursively(
 					eventNode.Message().NewMirType().ValuesFunc(func(group *jen.Group) {
 						// Initialize fields other than the event type.
 						for _, param := range eventNode.ThisNodeConstructorParameters().Slice() {
-							group.Line().Id(param.Field().Name).Op(":").Id(param.ParamName())
+							group.Line().Id(param.Field().Name).Op(":").Id(param.Name())
 						}
 
 						// Initialize the Type field
@@ -65,7 +65,7 @@ func generateEventConstructorsRecursively(
 		jen.Return(constructParent(
 			eventNode.Message().NewMirType().ValuesFunc(func(group *jen.Group) {
 				for _, param := range eventNode.ThisNodeConstructorParameters().Slice() {
-					group.Line().Id(param.Field().Name).Op(":").Id(param.ParamName())
+					group.Line().Id(param.Field().Name).Op(":").Id(param.Name())
 				}
 				group.Line()
 			}),

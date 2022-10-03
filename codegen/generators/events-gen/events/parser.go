@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/params"
 	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/util/params"
 	"github.com/filecoin-project/mir/pkg/pb/mir"
 )
 
@@ -79,15 +79,16 @@ func (p *Parser) parseEventNodeRecursively(
 
 	thisNodeConstructorParameters := params.ConstructorParamList{}
 	for _, field := range fields {
-		if IsEventTypeOneof(field) {
+		if IsEventTypeOneof(field) || OmitInEventConstructor(field) {
 			continue
 		}
 
-		uniqueName := params.UniqueName(field.LowercaseName(),
-			accumulatedConstructorParameters, thisNodeConstructorParameters)
-		thisNodeConstructorParameters = thisNodeConstructorParameters.UncheckedAppend(uniqueName, field)
-		accumulatedConstructorParameters = accumulatedConstructorParameters.UncheckedAppend(uniqueName, field.Type)
+		originalName := field.LowercaseName()
+		uniqueName := params.UniqueName(originalName, accumulatedConstructorParameters, thisNodeConstructorParameters)
+		thisNodeConstructorParameters = thisNodeConstructorParameters.UncheckedAppend(originalName, uniqueName, field)
 	}
+	accumulatedConstructorParameters =
+		accumulatedConstructorParameters.UncheckedAppendAll(thisNodeConstructorParameters.FunctionParamList())
 
 	// Check if this is an event class.
 	if typeOneof, ok := getTypeOneof(fields); ok {
@@ -161,4 +162,13 @@ func IsEventTypeOneof(field *types.Field) bool {
 	}
 
 	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.OneofOptions), mir.E_EventType).(bool)
+}
+
+func OmitInEventConstructor(field *types.Field) bool {
+	oneofDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
+	if !ok {
+		return false
+	}
+
+	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.FieldOptions), mir.E_OmitInEventsConstructor).(bool)
 }

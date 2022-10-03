@@ -10,7 +10,7 @@ package protos
 
 // Generate the code for codegen extensions.
 //go:generate protoc-basic mir/codegen_extensions.proto
-//go:generate protoc-basic mir/dsl/codegen_extensions.proto
+//go:generate protoc-basic dsl/codegen_extensions.proto
 //go:generate protoc-basic net/codegen_extensions.proto
 
 // Build the protoc plugin.
