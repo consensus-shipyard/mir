@@ -184,38 +184,37 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 	}
 	t.nodesLock.Unlock()
 
-	t.connWg.Add(1)
-	go t.connect(ctx, nodes)
+	t.connect(ctx, nodes)
 }
 
 func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
-	t.logger.Log(logging.LevelDebug, "started connecting nodes", "src", t.ownID)
-
+	t.connWg.Add(1)
 	defer t.connWg.Done()
-	defer func() {
-		t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
+
+	go func() {
+		t.logger.Log(logging.LevelDebug, "started connecting nodes", "src", t.ownID)
+		defer t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
+
+		wg := &sync.WaitGroup{}
+		wg.Add(len(nodes))
+
+		for nodeID := range nodes {
+			if nodeID == t.ownID {
+				// Do not establish a real connection with own node.
+				wg.Done()
+				continue
+			}
+
+			if t.streamExists(nodeID) {
+				t.logger.Log(logging.LevelInfo, "stream to node already exists", "src", t.ownID, "dst", nodeID)
+				wg.Done()
+				continue
+			}
+
+			go t.connectToNode(ctx, nodeID, wg)
+		}
+		wg.Wait()
 	}()
-
-	wg := &sync.WaitGroup{}
-	wg.Add(len(nodes))
-
-	for nodeID := range nodes {
-		if nodeID == t.ownID {
-			// Do not establish a real connection with own node.
-			wg.Done()
-			continue
-		}
-
-		if t.streamExists(nodeID) {
-			t.logger.Log(logging.LevelInfo, "stream to node already exists", "src", t.ownID, "dst", nodeID)
-			wg.Done()
-			continue
-		}
-
-		go t.connectToNode(ctx, nodeID, wg)
-	}
-
-	wg.Wait()
 }
 
 func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sync.WaitGroup) {
