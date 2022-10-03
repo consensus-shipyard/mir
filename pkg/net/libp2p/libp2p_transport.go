@@ -259,16 +259,30 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 	return nil, fmt.Errorf("%s failed to open stream to %s: %w", t.ownID, dest, err)
 }
 
-func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
-	var err error
+func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
+	t.nodesLock.RLock()
+	defer t.nodesLock.RUnlock()
 
 	// There are two cases when we get an error:
 	// 1. We don't have the node ID in the nodes table. E.g. we didn't call Connect().
 	// 2. We created an entry for the node but have not opened a connection.
 	// But if we added the node via Connect, then it should open the connection.
 	// It doesn't make sense to open a new one here.
-	s, info, err := t.getNodeStreamAndInfo(dest)
+	s, err := t.getNodeStreamAndInfoWithoutLock(dest)
 	if err != nil {
+		return err
+	}
+
+	w := bufio.NewWriter(s)
+	_, err = w.Write(payload)
+	if err == nil {
+		err = w.Flush()
+	}
+	return err
+}
+
+func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 
@@ -279,27 +293,23 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messag
 
 	msg := TransportMessage{t.ownID.Pb(), outBytes}
 	buf := new(bytes.Buffer)
-	err = msg.MarshalCBOR(buf)
-	if err != nil {
+	if err = msg.MarshalCBOR(buf); err != nil {
 		return fmt.Errorf("failed to CBOR marshal message: %w", err)
 	}
 
-	if ctx.Err() != nil {
-		return err
-	}
-
-	w := bufio.NewWriter(s)
-	_, err = w.Write(buf.Bytes())
-	if err == nil {
-		err = w.Flush()
-	}
-	// If we cannot write to the stream then close the connection and reconnect.
+	err = t.sendPayload(dest, buf.Bytes())
 	if err != nil {
-		if err := t.host.Network().ClosePeer(info.ID); err != nil {
-			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", dest, "err", err)
+		info, found := t.getNodeAddrInfo(dest)
+		if !found {
+			t.logger.Log(logging.LevelError, "%s failed to get address of %s", t.ownID, dest)
+		} else {
+			if err := t.host.Network().ClosePeer(info.ID); err != nil {
+				t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", dest, "err", err)
+			}
+			t.connWg.Add(1)
+			go t.connectToNode(ctx, dest, t.connWg)
 		}
-		t.connWg.Add(1)
-		go t.connectToNode(ctx, dest, t.connWg)
+
 		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
 	}
 
@@ -359,21 +369,16 @@ func (t *Transport) streamExists(nodeID types.NodeID) bool {
 	return found && v.Stream != nil
 }
 
-func (t *Transport) getNodeStreamAndInfo(nodeID types.NodeID) (network.Stream, *peer.AddrInfo, error) {
-	t.nodesLock.Lock()
-	defer t.nodesLock.Unlock()
-
-	_, found := t.nodes[nodeID]
-	if !found {
-		return nil, nil, ErrUnknownNode
-	}
-
+func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (network.Stream, error) {
 	node, found := t.nodes[nodeID]
-	if !found ||
-		node.Stream == nil {
-		return nil, nil, ErrNilStream
+	if !found {
+		return nil, ErrUnknownNode
 	}
-	return node.Stream, node.AddrInfo, nil
+
+	if node.Stream == nil {
+		return nil, ErrNilStream
+	}
+	return node.Stream, nil
 }
 
 func (t *Transport) getNodeAddrInfo(nodeID types.NodeID) (*peer.AddrInfo, bool) {
