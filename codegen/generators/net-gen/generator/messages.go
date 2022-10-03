@@ -4,7 +4,7 @@ import (
 	"github.com/dave/jennifer/jen"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/net-gen/messages"
+	"github.com/filecoin-project/mir/codegen/model/messages"
 )
 
 func generateMessageConstructorsRecursively(

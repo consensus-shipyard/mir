@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/params"
 	"github.com/filecoin-project/mir/pkg/pb/net"
 )

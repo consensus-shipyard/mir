@@ -4,8 +4,8 @@ import (
 	"github.com/dave/jennifer/jen"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
 	"github.com/filecoin-project/mir/codegen/mirreflect"
+	"github.com/filecoin-project/mir/codegen/model/types"
 
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"

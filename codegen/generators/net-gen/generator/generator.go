@@ -5,8 +5,9 @@ import (
 	"reflect"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/net-gen/messages"
-	"github.com/filecoin-project/mir/codegen/generators/types-gen/types"
+	"github.com/filecoin-project/mir/codegen/model/messages"
+
+	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 

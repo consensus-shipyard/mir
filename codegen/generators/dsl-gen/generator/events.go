@@ -4,7 +4,7 @@ import (
 	"github.com/dave/jennifer/jen"
 
 	"github.com/filecoin-project/mir/codegen"
-	"github.com/filecoin-project/mir/codegen/generators/events-gen/events"
+	"github.com/filecoin-project/mir/codegen/model/events"
 )
 
 func GenerateDslFunctionsForEvents(eventRoot *events.EventNode) error {
