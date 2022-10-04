@@ -46,9 +46,7 @@ var _ mirnet.Transport = &Transport{}
 var ErrUnknownNode = errors.New("unknown node")
 var ErrNilStream = errors.New("stream has not been opened")
 
-type nodeInfo struct {
-	ID        types.NodeID
-	Addr      types.NodeAddress
+type connInfo struct {
 	AddrInfo  *peer.AddrInfo
 	Stream    network.Stream
 	IsOpening bool
@@ -60,8 +58,8 @@ type Transport struct {
 	connWg           *sync.WaitGroup
 	incomingMessages chan *events.EventList
 	logger           logging.Logger
-	nodes            map[types.NodeID]*nodeInfo
-	nodesLock        sync.RWMutex
+	conns            map[types.NodeID]*connInfo
+	connsLock        sync.RWMutex
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -72,7 +70,7 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 	return &Transport{
 		connWg:           &sync.WaitGroup{},
 		incomingMessages: make(chan *events.EventList),
-		nodes:            make(map[types.NodeID]*nodeInfo),
+		conns:            make(map[types.NodeID]*connInfo),
 		logger:           logger,
 		ownID:            ownID,
 		host:             h,
@@ -80,22 +78,25 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 }
 
 func (t *Transport) Start() error {
-	t.logger.Log(logging.LevelDebug, "mir handler is starting", "ownID", t.ownID, "listen", t.host.Addrs())
+	t.logger.Log(logging.LevelDebug, "starting libp2p transport", "ownID", t.ownID, "listen", t.host.Addrs())
 	t.host.SetStreamHandler(ProtocolID, t.mirHandler)
 	return nil
 }
 
 func (t *Transport) Stop() {
-	t.logger.Log(logging.LevelDebug, "Stopping libp2p transport.", "ownID", t.ownID)
-	defer t.logger.Log(logging.LevelDebug, "Stopping libp2p transport finished.", "ownID", t.ownID)
+	t.logger.Log(logging.LevelDebug, "stopping libp2p transport", "ownID", t.ownID)
+	defer t.logger.Log(logging.LevelDebug, "stopping libp2p transport finished.", "ownID", t.ownID)
 
 	t.host.RemoveStreamHandler(ProtocolID)
 
-	if err := t.host.Close(); err != nil {
-		t.logger.Log(logging.LevelError, "Could not close libp2p", "ownID", t.ownID, "err", err)
-	} else {
-		t.logger.Log(logging.LevelDebug, "libp2p host closed", "ownID", t.ownID)
+	t.connsLock.Lock()
+	for nodeID, addr := range t.conns {
+		if err := t.host.Network().ClosePeer(addr.AddrInfo.ID); err != nil {
+			t.logger.Log(logging.LevelError, "could not close old connection to node", "src", t.ownID, "dst", nodeID, "err", err)
+			continue
+		}
 	}
+	t.connsLock.Unlock()
 
 	t.connWg.Wait()
 }
@@ -106,20 +107,20 @@ func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddr
 	go func() {
 		defer t.connWg.Done()
 
-		t.nodesLock.Lock()
-		defer t.nodesLock.Unlock()
+		t.connsLock.Lock()
+		defer t.connsLock.Unlock()
 
-		for nodeID, dest := range t.nodes {
+		for nodeID, dest := range t.conns {
 			// Close an old connection to a node if we don't need to connect to it further.
 			if _, foundInNewNodes := newNodes[nodeID]; !foundInNewNodes {
-				t.logger.Log(logging.LevelDebug, "Closing old connection", "src", t.ownID, "dst", nodeID)
+				t.logger.Log(logging.LevelDebug, "closing old connection", "src", t.ownID, "dst", nodeID)
 
 				if err := t.host.Network().ClosePeer(dest.AddrInfo.ID); err != nil {
-					t.logger.Log(logging.LevelError, "Could not close old connection to node", "src", t.ownID, "dst", nodeID, "err", err)
+					t.logger.Log(logging.LevelError, "could not close old connection to node", "src", t.ownID, "dst", nodeID, "err", err)
 					continue
 				}
 
-				delete(t.nodes, nodeID)
+				delete(t.conns, nodeID)
 			}
 		}
 	}()
@@ -131,21 +132,19 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		return
 	}
 
-	t.nodesLock.Lock()
+	t.connsLock.Lock()
 	for nodeID, addr := range nodes {
 		if nodeID == t.ownID {
 			continue
 		}
-		_, found := t.nodes[nodeID]
+		_, found := t.conns[nodeID]
 		if !found {
 			info, err := peer.AddrInfoFromP2pAddr(addr)
 			if err != nil {
 				t.logger.Log(logging.LevelWarn, "connect: failed to parse addr", "src", t.ownID, "dest", nodeID, "addr", addr, "err", err)
 				continue
 			}
-			t.nodes[nodeID] = &nodeInfo{
-				ID:        nodeID,
-				Addr:      addr,
+			t.conns[nodeID] = &connInfo{
 				AddrInfo:  info,
 				IsOpening: false,
 				Stream:    nil,
@@ -153,16 +152,81 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 
 		}
 	}
-	t.nodesLock.Unlock()
+	t.connsLock.Unlock()
 
 	t.connect(ctx, nodes)
 }
 
+func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	out, err := t.encode(msg)
+	if err != nil {
+		return err
+	}
+
+	err = t.sendPayload(dest, out)
+	if err != nil {
+		t.reconnect(ctx, dest)
+		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
+	}
+
+	return nil
+}
+
+func (t *Transport) ImplementsModule() {}
+
+func (t *Transport) EventsOut() <-chan *events.EventList {
+	return t.incomingMessages
+}
+
+func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
+	iter := eventList.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		switch e := event.Type.(type) {
+		case *eventpb.Event_Init:
+			// no actions on init
+		case *eventpb.Event_SendMessage:
+			for _, destID := range e.SendMessage.Destinations {
+				if types.NodeID(destID) == t.ownID {
+					// Send message to myself bypassing the network.
+					// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
+					// (Processing of input events must be non-blocking.)
+					receivedEvent := events.MessageReceived(
+						types.ModuleID(e.SendMessage.Msg.DestModule),
+						t.ownID,
+						e.SendMessage.Msg,
+					)
+					go func() {
+						select {
+						case t.incomingMessages <- events.ListOf(receivedEvent):
+						case <-ctx.Done():
+						}
+					}()
+				} else {
+					// Send message to another node.
+					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil {
+						t.logger.Log(logging.LevelError, "failed to send a message", "err", err)
+					}
+				}
+			}
+		default:
+			return fmt.Errorf("unexpected event: %T", event.Type)
+		}
+	}
+
+	return nil
+}
+
 func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
 	t.connWg.Add(1)
-	defer t.connWg.Done()
 
 	go func() {
+		defer t.connWg.Done()
+
 		t.logger.Log(logging.LevelDebug, "started connecting nodes", "src", t.ownID)
 		defer t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
 
@@ -201,22 +265,22 @@ func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
 	}
 }
 
-func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sync.WaitGroup) {
+func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if t.isConnectionToNodeInProgress(node) {
-		t.logger.Log(logging.LevelDebug, "connecting to node is in progress", "src", t.ownID, "dst", node)
+	if t.isConnectionInProgress(nodeID) {
+		t.logger.Log(logging.LevelDebug, "connection is in progress or ready", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
-	t.setConnectionInProgress(node)
-	defer t.clearConnectionInProgress(node)
+	t.setConnectionInProgress(nodeID)
+	defer t.clearConnectionInProgress(nodeID)
 
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, node))
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
 
-	info, found := t.getNodeAddrInfo(node)
+	info, found := t.getNodeAddrInfo(nodeID)
 	if !found {
-		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
+		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
@@ -224,12 +288,12 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 
 	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
-		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", node, "err", err)
+		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
 		return
 	}
 
-	t.addOutboundStream(node, s)
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), node.Pb()))
+	t.addOutboundStream(nodeID, s)
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 }
 
 func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Stream, error) {
@@ -274,8 +338,8 @@ func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Strea
 }
 
 func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
+	t.connsLock.RLock()
+	defer t.connsLock.RUnlock()
 
 	// There are two cases when we get an error:
 	// 1. We don't have the node ID in the nodes table. E.g. we didn't call Connect().
@@ -322,25 +386,6 @@ func (t *Transport) decode(s io.Reader) (*messagepb.Message, types.NodeID, error
 	return &msg, types.NodeID(tm.Sender), nil
 }
 
-func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	out, err := t.encode(msg)
-	if err != nil {
-		return err
-	}
-
-	err = t.sendPayload(dest, out)
-	if err != nil {
-		t.reconnect(ctx, dest)
-		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
-	}
-
-	return nil
-}
-
 func (t *Transport) mirHandler(s network.Stream) {
 	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", s.ID())
 	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", s.ID())
@@ -356,7 +401,21 @@ func (t *Transport) mirHandler(s network.Stream) {
 	for {
 		msg, sender, err := t.decode(s)
 		if err != nil {
-			t.logger.Log(logging.LevelError, "failed to read mir request", "src", t.ownID, "sender", sender, "err", err)
+			t.logger.Log(logging.LevelError, "failed to read mir message", "src", t.ownID, "sender", sender, "err", err)
+			return
+		}
+		t.connsLock.RLock()
+		senderNode, ok := t.conns[sender]
+		t.connsLock.RUnlock()
+		if !ok {
+			return
+		}
+		senderNodeID := senderNode.AddrInfo.ID.String()
+		senderPeerID := s.Conn().RemotePeer().String()
+		if senderNodeID != senderPeerID {
+			t.logger.Log(logging.LevelWarn,
+				"failed to validate sender",
+				"src", t.ownID, "sender", sender, "senderNodeID", senderNodeID, "senderPeerID", senderPeerID)
 			return
 		}
 		t.incomingMessages <- events.ListOf(
@@ -366,10 +425,10 @@ func (t *Transport) mirHandler(s network.Stream) {
 }
 
 func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
-	t.nodesLock.Lock()
-	defer t.nodesLock.Unlock()
+	t.connsLock.Lock()
+	defer t.connsLock.Unlock()
 
-	node, found := t.nodes[nodeID]
+	node, found := t.conns[nodeID]
 	if !found {
 		t.logger.Log(logging.LevelWarn, "addOutboundStream: failed to find the node", "src", t.ownID, "node", nodeID)
 		return
@@ -378,15 +437,15 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 }
 
 func (t *Transport) streamExists(nodeID types.NodeID) bool {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
+	t.connsLock.RLock()
+	defer t.connsLock.RUnlock()
 
-	v, found := t.nodes[nodeID]
-	return found && v.Stream != nil
+	conn, found := t.conns[nodeID]
+	return found && conn.Stream != nil
 }
 
 func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (network.Stream, error) {
-	node, found := t.nodes[nodeID]
+	node, found := t.conns[nodeID]
 	if !found {
 		return nil, ErrUnknownNode
 	}
@@ -398,29 +457,29 @@ func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (networ
 }
 
 func (t *Transport) getNodeAddrInfo(nodeID types.NodeID) (*peer.AddrInfo, bool) {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
+	t.connsLock.RLock()
+	defer t.connsLock.RUnlock()
 
-	node, found := t.nodes[nodeID]
+	node, found := t.conns[nodeID]
 	if !found {
 		return nil, false
 	}
 	return node.AddrInfo, true
 }
 
-func (t *Transport) isConnectionToNodeInProgress(nodeID types.NodeID) bool {
-	t.nodesLock.RLock()
-	defer t.nodesLock.RUnlock()
+func (t *Transport) isConnectionInProgress(nodeID types.NodeID) bool {
+	t.connsLock.RLock()
+	defer t.connsLock.RUnlock()
 
-	info, found := t.nodes[nodeID]
-	return found && info.IsOpening
+	conn, found := t.conns[nodeID]
+	return found && conn.IsOpening
 }
 
 func (t *Transport) setConnectionInProgress(nodeID types.NodeID) {
-	t.nodesLock.Lock()
-	defer t.nodesLock.Unlock()
+	t.connsLock.Lock()
+	defer t.connsLock.Unlock()
 
-	info, found := t.nodes[nodeID]
+	info, found := t.conns[nodeID]
 	if !found {
 		return
 	}
@@ -428,57 +487,12 @@ func (t *Transport) setConnectionInProgress(nodeID types.NodeID) {
 }
 
 func (t *Transport) clearConnectionInProgress(nodeID types.NodeID) {
-	t.nodesLock.Lock()
-	defer t.nodesLock.Unlock()
+	t.connsLock.Lock()
+	defer t.connsLock.Unlock()
 
-	info, found := t.nodes[nodeID]
+	info, found := t.conns[nodeID]
 	if !found {
 		return
 	}
 	info.IsOpening = false
-}
-
-func (t *Transport) ImplementsModule() {}
-
-func (t *Transport) EventsOut() <-chan *events.EventList {
-	return t.incomingMessages
-}
-
-func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	iter := eventList.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if types.NodeID(destID) == t.ownID {
-					// Send message to myself bypassing the network.
-					// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
-					// (Processing of input events must be non-blocking.)
-					receivedEvent := events.MessageReceived(
-						types.ModuleID(e.SendMessage.Msg.DestModule),
-						t.ownID,
-						e.SendMessage.Msg,
-					)
-					go func() {
-						select {
-						case t.incomingMessages <- events.ListOf(receivedEvent):
-						case <-ctx.Done():
-						}
-					}()
-				} else {
-					// Send message to another node.
-					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil {
-						t.logger.Log(logging.LevelError, "failed to send a message", "err", err)
-					}
-				}
-			}
-		default:
-			return fmt.Errorf("unexpected event: %T", event.Type)
-		}
-	}
-
-	return nil
 }

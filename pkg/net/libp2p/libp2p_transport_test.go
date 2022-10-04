@@ -74,12 +74,14 @@ func (m *mockLibp2pCommunication) Nodes() map[types.NodeID]types.NodeAddress {
 func (m *mockLibp2pCommunication) Stop(transports ...*Transport) {
 	for _, v := range transports {
 		v.Stop()
+		v.host.Close()
 	}
 }
 
 func (m *mockLibp2pCommunication) StopAll(transports ...*Transport) {
 	for _, v := range m.transports {
 		v.Stop()
+		v.host.Close()
 	}
 }
 
@@ -308,7 +310,7 @@ func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeI
 
 	require.Never(m.t,
 		func() bool {
-			return len(src.nodes) > 1
+			return len(src.conns) > 1
 		},
 		10*time.Second, 300*time.Millisecond)
 }
