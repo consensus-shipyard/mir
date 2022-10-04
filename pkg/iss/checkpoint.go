@@ -14,12 +14,13 @@ package iss
 import (
 	"bytes"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -63,7 +64,7 @@ type checkpointTracker struct {
 	confirmations map[t.NodeID]struct{}
 
 	// Set of Checkpoint messages that were received ahead of time.
-	pendingMessages map[t.NodeID]*isspb.Checkpoint
+	pendingMessages map[t.NodeID]*checkpointpb.Checkpoint
 
 	// Time interval for repeated retransmission of checkpoint messages.
 	resendPeriod t.TimeDuration
@@ -87,7 +88,7 @@ func newCheckpointTracker(
 		resendPeriod:    resendPeriod,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
-		pendingMessages: make(map[t.NodeID]*isspb.Checkpoint),
+		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
 		// the membership field will be set later by iss.startCheckpoint
 		// the stateSnapshot field will be set by ProcessStateSnapshot
 	}
@@ -157,7 +158,7 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	walEvent := events.WALAppend(ct.moduleConfig.Wal, persistEvent, t.RetentionIndex(ct.epoch))
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	m := CheckpointMessage(ct.epoch, ct.seqNr, ct.stateSnapshotHash, signature)
+	m := protobufs.CheckpointMessage(ct.moduleConfig.Self, ct.epoch, ct.seqNr, ct.stateSnapshotHash, signature)
 	walEvent.FollowUp(events.TimerRepeat(
 		"timer",
 		[]*eventpb.Event{events.SendMessage(ct.moduleConfig.Net, m, ct.membership)},
@@ -181,7 +182,7 @@ func (ct *checkpointTracker) ProcessCheckpointSignResult(signature []byte) *even
 	return events.ListOf(walEvent)
 }
 
-func (ct *checkpointTracker) applyMessage(msg *isspb.Checkpoint, source t.NodeID) *events.EventList {
+func (ct *checkpointTracker) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
 
 	// If checkpoint is already stable, ignore message.
 	if ct.stable() {
@@ -253,7 +254,7 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 	}
 
 	// Create a stable checkpoint object.
-	stableCheckpoint := &isspb.StableCheckpoint{
+	stableCheckpoint := &checkpointpb.StableCheckpoint{
 		Sn:       ct.seqNr.Pb(),
 		Snapshot: ct.stateSnapshot,
 		Cert:     cert,
@@ -265,6 +266,6 @@ func (ct *checkpointTracker) announceStable() *events.EventList {
 		PersistStableCheckpointEvent(ct.moduleConfig.Self, stableCheckpoint),
 		t.RetentionIndex(ct.epoch),
 	)
-	persistEvent.FollowUp(StableCheckpointEvent(ct.moduleConfig.Self, stableCheckpoint))
+	persistEvent.FollowUp(protobufs.StableCheckpointEvent(ct.moduleConfig.Self, stableCheckpoint))
 	return events.ListOf(persistEvent)
 }
