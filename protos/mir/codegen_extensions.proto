@@ -15,10 +15,13 @@ extend google.protobuf.MessageOptions {
 
 extend google.protobuf.OneofOptions {
   bool event_type = 60000;
+  bool origin_type = 60001;
 }
 
 extend google.protobuf.FieldOptions {
   string type = 60000;
   bool ignore = 60001;
   bool omit_in_events_constructor = 60002;
+  bool origin_request = 60003;
+  bool origin_response = 60004;
 }

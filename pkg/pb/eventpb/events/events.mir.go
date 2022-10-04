@@ -7,6 +7,30 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
+func SignRequest(destModule types.ModuleID, data [][]uint8, origin *types1.SignOrigin) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_SignRequest{
+			SignRequest: &types1.SignRequest{
+				Data:   data,
+				Origin: origin,
+			},
+		},
+	}
+}
+
+func SignResult(destModule types.ModuleID, signature []uint8, origin *types1.SignOrigin) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_SignResult{
+			SignResult: &types1.SignResult{
+				Signature: signature,
+				Origin:    origin,
+			},
+		},
+	}
+}
+
 func NodeSigsVerified(destModule types.ModuleID, origin *eventpb.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,

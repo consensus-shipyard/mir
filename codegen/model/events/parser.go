@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/filecoin-project/mir/codegen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/filecoin-project/mir/codegen"
 
 	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/params"
@@ -90,24 +91,26 @@ func (p *Parser) parseEventNodeRecursively(
 	accumulatedConstructorParameters =
 		accumulatedConstructorParameters.UncheckedAppendAll(thisNodeConstructorParameters.FunctionParamList())
 
+	node = &EventNode{
+		message:                       msg,
+		oneofOption:                   optionInParentOneof,
+		originRequestField:            getOriginRequestField(fields),
+		originResponseField:           getOriginResponseField(fields),
+		typeOneof:                     getTypeOneof(fields),
+		children:                      nil, // to be filled separately
+		parent:                        parent,
+		allConstructorParameters:      accumulatedConstructorParameters,
+		thisNodeConstructorParameters: thisNodeConstructorParameters,
+	}
+
 	// Check if this is an event class.
-	if typeOneof, ok := getTypeOneof(fields); ok {
+	if node.typeOneof != nil {
 		if !codegen.IsMirEventClass(msg.ProtoDesc()) && parent != nil {
 			return nil, fmt.Errorf("message %v contains a oneof marked with option (mir.event_type) = true, "+
 				"but is not marked with option (mir.event_class) = true", msg.PbReflectType())
 		}
 
-		node := &EventNode{
-			message:                       msg,
-			oneofOption:                   optionInParentOneof,
-			typeOneof:                     typeOneof,
-			children:                      nil, // to be filled separately
-			parent:                        parent,
-			allConstructorParameters:      accumulatedConstructorParameters,
-			thisNodeConstructorParameters: thisNodeConstructorParameters,
-		}
-
-		for _, opt := range typeOneof.Options {
+		for _, opt := range node.typeOneof.Options {
 			childMsg, ok := opt.Field.Type.(*types.Message)
 			if !ok {
 				return nil, fmt.Errorf("non-message type in the event hierarchy: %v", opt.Name())
@@ -125,36 +128,44 @@ func (p *Parser) parseEventNodeRecursively(
 
 			node.children = append(node.children, childNode)
 		}
-
-		return node, nil
 	}
 
-	if !codegen.IsMirEvent(msg.ProtoDesc()) {
+	// If this is not an event class, it must be marked as a leaf (i.e. an event).
+	if node.typeOneof == nil && !codegen.IsMirEvent(msg.ProtoDesc()) {
 		return nil, fmt.Errorf("message %v should be marked with option (mir.event) = true", msg.PbReflectType())
 	}
 
-	return &EventNode{
-		message:                       msg,
-		oneofOption:                   optionInParentOneof,
-		typeOneof:                     nil,
-		children:                      nil,
-		parent:                        parent,
-		allConstructorParameters:      accumulatedConstructorParameters,
-		thisNodeConstructorParameters: thisNodeConstructorParameters,
-	}, nil
+	return node, nil
 }
 
-func getTypeOneof(fields types.Fields) (*types.Oneof, bool) {
+func getTypeOneof(fields types.Fields) *types.Oneof {
 	for _, field := range fields {
-		// Recursively call the generator on all subtypes.
 		if IsEventTypeOneof(field) {
-			return field.Type.(*types.Oneof), true
+			return field.Type.(*types.Oneof)
 		}
 	}
-	return nil, false
+	return nil
 }
 
-// IsEventTypeOneof returns true iff the field is marked with `option (mir.event_type) = true`.
+func getOriginRequestField(fields types.Fields) *types.Field {
+	for _, field := range fields {
+		if IsOriginRequestField(field) {
+			return field
+		}
+	}
+	return nil
+}
+
+func getOriginResponseField(fields types.Fields) *types.Field {
+	for _, field := range fields {
+		if IsOriginResponseField(field) {
+			return field
+		}
+	}
+	return nil
+}
+
+// IsEventTypeOneof returns true iff the field is a oneof and is marked with option (mir.event_type) = true.
 func IsEventTypeOneof(field *types.Field) bool {
 	oneofDesc, ok := field.ProtoDesc.(protoreflect.OneofDescriptor)
 	if !ok {
@@ -164,6 +175,27 @@ func IsEventTypeOneof(field *types.Field) bool {
 	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.OneofOptions), mir.E_EventType).(bool)
 }
 
+// IsOriginRequestField returns true iff the field is marked with [(mir.origin_request) = true].
+func IsOriginRequestField(field *types.Field) bool {
+	fieldDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
+	if !ok {
+		return false
+	}
+
+	return proto.GetExtension(fieldDesc.Options().(*descriptorpb.FieldOptions), mir.E_OriginRequest).(bool)
+}
+
+// IsOriginResponseField returns true iff the field is marked with [(mir.origin_response) = true].
+func IsOriginResponseField(field *types.Field) bool {
+	fieldDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
+	if !ok {
+		return false
+	}
+
+	return proto.GetExtension(fieldDesc.Options().(*descriptorpb.FieldOptions), mir.E_OriginResponse).(bool)
+}
+
+// OmitInEventConstructor returns true iff the field is marked with [(mir.omit_in_event_constructor) = true].
 func OmitInEventConstructor(field *types.Field) bool {
 	oneofDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
 	if !ok {

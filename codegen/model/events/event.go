@@ -30,6 +30,10 @@ type EventNode struct {
 	oneofOption *types.OneofOption
 	// The Type oneof field of the message (if present).
 	typeOneof *types.Oneof
+	// A field marked with [(mir.origin_request) = true] (if any).
+	originRequestField *types.Field
+	// A field marked with [(mir.origin_response) = true] (if any).
+	originResponseField *types.Field
 	// The children events in the hierarchy.
 	// NB: It may happen that an event class has no children.
 	children []*EventNode
@@ -102,6 +106,7 @@ func (ev *EventNode) ThisNodeConstructorParameters() params.ConstructorParamList
 	return ev.thisNodeConstructorParameters
 }
 
+// Constructor returns the code corresponding to the constructor function for this event.
 func (ev *EventNode) Constructor() *jen.Statement {
 	return jen.Qual(PackagePath(ev.Message().PbPkgPath()), ev.Name())
 }
