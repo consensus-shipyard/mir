@@ -191,7 +191,7 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
 	info, found := t.getNodeAddrInfo(node)
 	if !found {
-		t.logger.Log(logging.LevelError, "%s failed to get address of %s", t.ownID, node)
+		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
 	} else {
 		if err := t.host.Network().ClosePeer(info.ID); err != nil {
 			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", node, "err", err)
