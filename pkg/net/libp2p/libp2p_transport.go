@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"sync"
 	"time"
@@ -43,7 +44,7 @@ type TransportMessage struct {
 var _ mirnet.Transport = &Transport{}
 
 var ErrUnknownNode = errors.New("unknown node")
-var ErrNilStream = errors.New("Stream has not been opened")
+var ErrNilStream = errors.New("stream has not been opened")
 
 type nodeInfo struct {
 	ID        types.NodeID
@@ -187,6 +188,19 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 	}()
 }
 
+func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
+	info, found := t.getNodeAddrInfo(node)
+	if !found {
+		t.logger.Log(logging.LevelError, "%s failed to get address of %s", t.ownID, node)
+	} else {
+		if err := t.host.Network().ClosePeer(info.ID); err != nil {
+			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", node, "err", err)
+		}
+		t.connWg.Add(1)
+		go t.connectToNode(ctx, node, t.connWg)
+	}
+}
+
 func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -219,7 +233,7 @@ func (t *Transport) connectToNode(ctx context.Context, node types.NodeID, wg *sy
 }
 
 func (t *Transport) openStream(ctx context.Context, dest peer.ID) (network.Stream, error) {
-	//  We need the simplest retry mechanism due to the fact that the underlying libp2p's NewStream function dials once:
+	// We need the simplest retry mechanism due to the fact that the underlying libp2p's NewStream function dials once:
 	// https://github.com/libp2p/go-libp2p/blob/7828f3e0797e0a7b7033fa5e8be9b94f57a4c173/p2p/net/swarm/swarm.go#L358
 	t.logger.Log(logging.LevelDebug, "opening stream to peer", "src", t.ownID, "dst", dest)
 
@@ -268,48 +282,59 @@ func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
 	// 2. We created an entry for the node but have not opened a connection.
 	// But if we added the node via Connect, then it should open the connection.
 	// It doesn't make sense to open a new one here.
-	s, err := t.getNodeStreamAndInfoWithoutLock(dest)
+	stream, err := t.getNodeStreamAndInfoWithoutLock(dest)
 	if err != nil {
 		return err
 	}
 
-	w := bufio.NewWriter(s)
-	_, err = w.Write(payload)
-	if err == nil {
-		err = w.Flush()
+	w := bufio.NewWriter(stream)
+	if _, err = w.Write(payload); err != nil {
+		return err
 	}
-	return err
+	return w.Flush()
 }
 
-func (t *Transport) Send(ctx context.Context, dest types.NodeID, payload *messagepb.Message) error {
+func (t *Transport) encode(msg *messagepb.Message) ([]byte, error) {
+	p, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	tm := TransportMessage{t.ownID.Pb(), p}
+	buf := new(bytes.Buffer)
+	if err = tm.MarshalCBOR(buf); err != nil {
+		return nil, fmt.Errorf("failed to CBOR marshal message: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+func (t *Transport) decode(s io.Reader) (*messagepb.Message, types.NodeID, error) {
+	var tm TransportMessage
+	err := tm.UnmarshalCBOR(s)
+	if err != nil {
+		return nil, "", err
+	}
+
+	var msg messagepb.Message
+	if err := proto.Unmarshal(tm.Payload, &msg); err != nil {
+		return nil, "", err
+	}
+	return &msg, types.NodeID(tm.Sender), nil
+}
+
+func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	outBytes, err := proto.Marshal(payload)
+	out, err := t.encode(msg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal message: %w", err)
+		return err
 	}
 
-	msg := TransportMessage{t.ownID.Pb(), outBytes}
-	buf := new(bytes.Buffer)
-	if err = msg.MarshalCBOR(buf); err != nil {
-		return fmt.Errorf("failed to CBOR marshal message: %w", err)
-	}
-
-	err = t.sendPayload(dest, buf.Bytes())
+	err = t.sendPayload(dest, out)
 	if err != nil {
-		info, found := t.getNodeAddrInfo(dest)
-		if !found {
-			t.logger.Log(logging.LevelError, "%s failed to get address of %s", t.ownID, dest)
-		} else {
-			if err := t.host.Network().ClosePeer(info.ID); err != nil {
-				t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", dest, "err", err)
-			}
-			t.connWg.Add(1)
-			go t.connectToNode(ctx, dest, t.connWg)
-		}
-
+		t.reconnect(ctx, dest)
 		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
 	}
 
@@ -329,22 +354,13 @@ func (t *Transport) mirHandler(s network.Stream) {
 	}() // nolint
 
 	for {
-		var msg TransportMessage
-		err := msg.UnmarshalCBOR(s)
+		msg, sender, err := t.decode(s)
 		if err != nil {
-			t.logger.Log(logging.LevelError, "failed to read mir request", "src", t.ownID, "dst", s.ID(), "err", err)
+			t.logger.Log(logging.LevelError, "failed to read mir request", "src", t.ownID, "sender", sender, "err", err)
 			return
 		}
-
-		var payload messagepb.Message
-
-		if err := proto.Unmarshal(msg.Payload, &payload); err != nil {
-			t.logger.Log(logging.LevelError, "failed to unmarshall mir request", "src", t.ownID, "dst", s.ID(), "err", err)
-			return
-		}
-
 		t.incomingMessages <- events.ListOf(
-			events.MessageReceived(types.ModuleID(payload.DestModule), types.NodeID(msg.Sender), &payload),
+			events.MessageReceived(types.ModuleID(msg.DestModule), sender, msg),
 		)
 	}
 }
