@@ -838,6 +838,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 	// Set the new epoch number and re-initialize list of orderers.
 	epoch := newEpochInfo(
 		newEpoch,
+		iss.nextDeliveredSN,
 		membership,
 		leaderPolicy,
 	)
