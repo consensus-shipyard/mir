@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/filecoin-project/mir/codegen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/filecoin-project/mir/codegen"
 
 	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/params"
@@ -90,24 +91,24 @@ func (p *Parser) parseNetMessageNodeRecursively(
 	accumulatedConstructorParameters =
 		accumulatedConstructorParameters.UncheckedAppendAll(thisNodeConstructorParameters.FunctionParamList())
 
+	node = &NetMessageNode{
+		message:                       msg,
+		oneofOption:                   optionInParentOneof,
+		typeOneof:                     getTypeOneof(fields),
+		children:                      nil, // to be filled separately
+		parent:                        parent,
+		allConstructorParameters:      accumulatedConstructorParameters,
+		thisNodeConstructorParameters: thisNodeConstructorParameters,
+	}
+
 	// Check if this is a net message class.
-	if typeOneof, ok := getTypeOneof(fields); ok {
+	if node.typeOneof != nil {
 		if !codegen.IsNetMessageClass(msg.ProtoDesc()) && parent != nil {
 			return nil, fmt.Errorf("message %v contains a oneof marked with option (net.message_type) = true, "+
 				"but is not marked with option (net.message_class) = true", msg.PbReflectType())
 		}
 
-		node := &NetMessageNode{
-			message:                       msg,
-			oneofOption:                   optionInParentOneof,
-			typeOneof:                     typeOneof,
-			children:                      nil, // to be filled separately
-			parent:                        parent,
-			allConstructorParameters:      accumulatedConstructorParameters,
-			thisNodeConstructorParameters: thisNodeConstructorParameters,
-		}
-
-		for _, opt := range typeOneof.Options {
+		for _, opt := range node.typeOneof.Options {
 			childMsg, ok := opt.Field.Type.(*types.Message)
 			if !ok {
 				return nil, fmt.Errorf("non-message type in the net message hierarchy: %v", opt.Name())
@@ -129,29 +130,22 @@ func (p *Parser) parseNetMessageNodeRecursively(
 		return node, nil
 	}
 
-	if !codegen.IsNetMessage(msg.ProtoDesc()) {
+	// If this is not a net message class, it must be marked as a leaf (i.e. a net message).
+	if node.typeOneof == nil && !codegen.IsNetMessage(msg.ProtoDesc()) {
 		return nil, fmt.Errorf("message %v should be marked with option (net.message) = true", msg.PbReflectType())
 	}
 
-	return &NetMessageNode{
-		message:                       msg,
-		oneofOption:                   optionInParentOneof,
-		typeOneof:                     nil,
-		children:                      nil,
-		parent:                        parent,
-		allConstructorParameters:      accumulatedConstructorParameters,
-		thisNodeConstructorParameters: thisNodeConstructorParameters,
-	}, nil
+	return node, nil
 }
 
-func getTypeOneof(fields types.Fields) (*types.Oneof, bool) {
+func getTypeOneof(fields types.Fields) *types.Oneof {
 	for _, field := range fields {
 		// Recursively call the generator on all subtypes.
 		if IsMessageTypeOneof(field) {
-			return field.Type.(*types.Oneof), true
+			return field.Type.(*types.Oneof)
 		}
 	}
-	return nil, false
+	return nil
 }
 
 // IsMessageTypeOneof returns true iff the field is marked with `option (net.message_type) = true`.

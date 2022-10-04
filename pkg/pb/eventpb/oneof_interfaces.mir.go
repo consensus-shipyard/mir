@@ -6,6 +6,8 @@ import (
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
+	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
 	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
@@ -180,4 +182,27 @@ func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 
 func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 	return w.TestingUint
+}
+
+type SignOrigin_Type = isSignOrigin_Type
+
+type SignOrigin_TypeWrapper[T any] interface {
+	SignOrigin_Type
+	Unwrap() *T
+}
+
+func (w *SignOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
+	return w.ContextStore
+}
+
+func (w *SignOrigin_Dsl) Unwrap() *dslpb.Origin {
+	return w.Dsl
+}
+
+func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
+	return w.Checkpoint
+}
+
+func (w *SignOrigin_Sb) Unwrap() *ordererspb.SBInstanceSignOrigin {
+	return w.Sb
 }

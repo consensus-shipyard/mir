@@ -125,18 +125,26 @@ message HashOrigin {
 }
 
 message SignRequest {
+  option (mir.event) = true;
+
   repeated bytes data = 1;
-  SignOrigin origin = 2;
+  SignOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 message SignResult {
+  option (mir.event) = true;
+
   bytes signature = 1;
-  SignOrigin origin = 2;
+  SignOrigin origin = 2 [(mir.origin_response) = true];
 }
 
 message SignOrigin {
+  option (mir.struct) = true;
+
   string module = 1;
   oneof type {
+    option (mir.origin_type) = true;
+
     contextstorepb.Origin   context_store = 2;
     // isspb.ISSSignOrigin     iss           = 3;
     dslpb.Origin            dsl           = 4;

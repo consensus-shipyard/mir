@@ -48,3 +48,12 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 	}
 }
+
+func (*SignOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*SignOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*SignOrigin_Dsl)(nil)),
+		reflect.TypeOf((*SignOrigin_Checkpoint)(nil)),
+		reflect.TypeOf((*SignOrigin_Sb)(nil)),
+	}
+}
