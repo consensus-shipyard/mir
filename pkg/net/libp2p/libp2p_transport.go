@@ -353,7 +353,7 @@ func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
 	if _, err := stream.Write(payload); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 

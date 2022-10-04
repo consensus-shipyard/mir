@@ -69,6 +69,9 @@ type TestConfig struct {
 
 	// Logger to use for producing diagnostic messages.
 	Logger logging.Logger
+
+	// TransportLayer to work with network transport.
+	TransportLayer LocalTransportLayer
 }
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.

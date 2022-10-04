@@ -286,6 +286,8 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	deployment, err := newDeployment(conf)
 	require.NoError(tb, err)
 
+	defer deployment.TestConfig.TransportLayer.Close()
+
 	// Schedule shutdown of test deployment
 	if conf.Duration > 0 {
 		go func() {
@@ -454,6 +456,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	deployConf := &deploytest.TestConfig{
 		Info:                   conf.Info,
 		Simulation:             simulation,
+		TransportLayer:         transportLayer,
 		NodeIDs:                nodeIDs,
 		Nodes:                  transportLayer.Nodes(),
 		NodeModules:            nodeModules,

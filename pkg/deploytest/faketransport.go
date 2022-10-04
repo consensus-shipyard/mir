@@ -137,6 +137,8 @@ func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return membership
 }
 
+func (ft *FakeTransport) Close() {}
+
 func (fl *FakeLink) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {

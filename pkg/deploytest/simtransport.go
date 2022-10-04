@@ -56,6 +56,8 @@ func (st *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return membership
 }
 
+func (st *SimTransport) Close() {}
+
 type simTransportModule struct {
 	*SimTransport
 	*SimNode
