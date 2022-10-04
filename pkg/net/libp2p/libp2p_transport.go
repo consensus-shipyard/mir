@@ -4,7 +4,6 @@ package libp2p
 //go:generate go run ./gen/gen.go
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -351,11 +350,11 @@ func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
 		return err
 	}
 
-	w := bufio.NewWriter(stream)
-	if _, err = w.Write(payload); err != nil {
+	if _, err := stream.Write(payload); err != nil {
 		return err
 	}
-	return w.Flush()
+	
+	return nil
 }
 
 func (t *Transport) encode(msg *messagepb.Message) ([]byte, error) {
