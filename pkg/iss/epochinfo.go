@@ -13,6 +13,9 @@ type epochInfo struct {
 	// Epoch number.
 	Nr t.EpochNr
 
+	// The first sequence number that is part of this epoch.
+	FirstSN t.SeqNr
+
 	// IDs of nodes participating in the ordering protocol in this epoch.
 	Membership []t.NodeID
 
@@ -29,11 +32,13 @@ type epochInfo struct {
 
 func newEpochInfo(
 	nr t.EpochNr,
+	firstSN t.SeqNr,
 	membership []t.NodeID,
 	leaderPolicy LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{
 		Nr:             nr,
+		FirstSN:        firstSN,
 		Membership:     membership,
 		Orderers:       nil,
 		bucketOrderers: make(map[int]sbInstance),
