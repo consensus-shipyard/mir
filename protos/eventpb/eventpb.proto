@@ -24,6 +24,7 @@ import "availabilitypb/batchdbpb/batchdbpb.proto";
 import "batchfetcherpb/batchfetcherpb.proto";
 import "threshcryptopb/threshcryptopb.proto";
 import "pingpongpb/pingpongpb.proto";
+import "checkpointpb/checkpointpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -69,6 +70,7 @@ message Event {
     batchfetcherpb.Event    batch_fetcher           = 35;
     threshcryptopb.Event    thresh_crypto           = 36;
     pingpongpb.Event        ping_pong               = 37;
+    checkpointpb.Event      checkpoint              = 38;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;

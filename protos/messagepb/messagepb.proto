@@ -12,6 +12,7 @@ import "isspb/isspb.proto";
 import "bcbpb/bcbpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
 import "pingpongpb/pingpongpb.proto";
+import "checkpointpb/checkpointpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
@@ -21,6 +22,7 @@ message Message {
     isspb.ISSMessage             iss                = 2;
     bcbpb.Message                bcb                = 3;
     availabilitypb.mscpb.Message multisig_collector = 4;
-    pingpongpb.Message            pingpong           = 5;
+    pingpongpb.Message           pingpong           = 5;
+    checkpointpb.Message         checkpoint         = 6;
   }
 }

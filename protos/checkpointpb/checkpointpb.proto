@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package checkpointpb;
+
+import "commonpb/commonpb.proto";
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb";
+
+message Message {
+  oneof type {
+    Checkpoint checkpoint = 1;
+  }
+}
+
+message Checkpoint {
+  uint64 epoch        = 1;
+  uint64 sn           = 2;
+  bytes  snapshotHash = 3;
+  bytes  signature    = 4;
+}
+
+message Event {
+  oneof type {
+    StableCheckpoint stable_checkpoint = 1;
+  }
+}
+
+message StableCheckpoint {
+  uint64                 sn       = 1;
+  commonpb.StateSnapshot snapshot = 2;
+  map<string, bytes>     cert     = 3;
+}

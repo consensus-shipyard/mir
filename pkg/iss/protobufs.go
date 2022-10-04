@@ -17,6 +17,7 @@ package iss
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -65,22 +66,13 @@ func PersistCheckpointEvent(
 	)
 }
 
-func PersistStableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
+func PersistStableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
 	return Event(
 		ownModuleID,
 		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
 			PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
 				StableCheckpoint: stableCheckpoint,
 			},
-		}},
-	)
-}
-
-func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *isspb.StableCheckpoint) *eventpb.Event {
-	return Event(
-		ownModuleID,
-		&isspb.ISSEvent{Type: &isspb.ISSEvent_StableCheckpoint{
-			StableCheckpoint: stableCheckpoint,
 		}},
 	)
 }
@@ -145,7 +137,7 @@ func CheckpointSigVerOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.Si
 
 func StableCheckpointSigVerOrigin(
 	ownModuleID t.ModuleID,
-	stableCheckpoint *isspb.StableCheckpoint,
+	stableCheckpoint *checkpointpb.StableCheckpoint,
 ) *eventpb.SigVerOrigin {
 	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_StableCheckpoint{
 		StableCheckpoint: stableCheckpoint,
@@ -260,15 +252,6 @@ func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMe
 	}}})
 }
 
-func CheckpointMessage(epoch t.EpochNr, sn t.SeqNr, snapshotHash, signature []byte) *messagepb.Message {
-	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_Checkpoint{Checkpoint: &isspb.Checkpoint{
-		Epoch:        epoch.Pb(),
-		Sn:           sn.Pb(),
-		SnapshotHash: snapshotHash,
-		Signature:    signature,
-	}}})
-}
-
-func StableCheckpointMessage(stableCheckpoint *isspb.StableCheckpoint) *messagepb.Message {
+func StableCheckpointMessage(stableCheckpoint *checkpointpb.StableCheckpoint) *messagepb.Message {
 	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: stableCheckpoint}})
 }

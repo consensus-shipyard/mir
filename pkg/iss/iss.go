@@ -27,6 +27,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
@@ -185,7 +186,7 @@ type ISS struct {
 	// Stores the stable checkpoint with the highest sequence number observed so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
-	lastStableCheckpoint *isspb.StableCheckpoint
+	lastStableCheckpoint *checkpointpb.StableCheckpoint
 
 	// TODO: Finish and document this.
 	configurations []map[t.NodeID]t.NodeAddress
@@ -235,7 +236,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initi
 			params.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
-		lastStableCheckpoint: &isspb.StableCheckpoint{
+		lastStableCheckpoint: &checkpointpb.StableCheckpoint{
 			Sn:       0,
 			Snapshot: initialState,
 			Cert:     map[string][]byte{},
@@ -307,12 +308,17 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyAppSnapshot(e.AppSnapshot)
 	case *eventpb.Event_NewConfig:
 		return iss.applyNewConfig(e.NewConfig)
+	case *eventpb.Event_Checkpoint:
+		switch e := e.Checkpoint.Type.(type) {
+		case *checkpointpb.Event_StableCheckpoint:
+			return iss.applyStableCheckpoint(e.StableCheckpoint)
+		default:
+			return nil, fmt.Errorf("unknown checkpoint event type: %T", e)
+		}
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
 			return iss.applySBEvent(issEvent.Sb)
-		case *isspb.ISSEvent_StableCheckpoint:
-			return iss.applyStableCheckpoint(issEvent.StableCheckpoint)
 		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
 			// TODO: Ignoring WAL loading for the moment.
 			return events.EmptyList(), nil
@@ -598,7 +604,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 }
 
-func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
@@ -688,21 +694,30 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
 
-	// ISS only accepts ISS messages. If another message is applied, the next line panics.
-	switch msg := message.Type.(*messagepb.Message_Iss).Iss.Type.(type) {
-	case *isspb.ISSMessage_Checkpoint:
-		return iss.applyCheckpointMessage(msg.Checkpoint, from), nil
-	case *isspb.ISSMessage_StableCheckpoint:
-		return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
-	case *isspb.ISSMessage_Sb:
-		return iss.applySBMessage(msg.Sb, from), nil
+	switch msg := message.Type.(type) {
+	case *messagepb.Message_Iss:
+		switch msg := msg.Iss.Type.(type) {
+		case *isspb.ISSMessage_StableCheckpoint:
+			return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
+		case *isspb.ISSMessage_Sb:
+			return iss.applySBMessage(msg.Sb, from), nil
+		default:
+			return nil, fmt.Errorf("unknown ISS message type: %T", msg)
+		}
+	case *messagepb.Message_Checkpoint:
+		switch msg := msg.Checkpoint.Type.(type) {
+		case *checkpointpb.Message_Checkpoint:
+			return iss.applyCheckpointMessage(msg.Checkpoint, from), nil
+		default:
+			return nil, fmt.Errorf("unknown ISS message type: %T", msg)
+		}
 	default:
-		return nil, fmt.Errorf("unknown ISS message type: %T", msg)
+		return nil, fmt.Errorf("unknown message type: %T", msg)
 	}
 }
 
 // applyCheckpointMessage relays a Checkpoint message received over the network to the appropriate CheckpointTracker.
-func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeID) *events.EventList {
+func (iss *ISS) applyCheckpointMessage(message *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
 
 	// Remember the highest epoch number for each node to detect
 	// later if the remote node is delayed too much and requires
@@ -735,7 +750,7 @@ func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeI
 // applyStableCheckpointMessage processes a received StableCheckpoint message
 // by creating a request for verifying the signatures in the included checkpoint certificate.
 // The actual processing then happens in applyStableCheckpointSigVerResult.
-func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
 	// Extract signatures and the signing node IDs from the received message.
 	// TODO: Using underlying protobuf type for node ID explicitly here (nodeID string).
@@ -768,7 +783,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 // applyStableCheckpointSigVerResult applies a StableCheckpoint message
 // the signature of which signature has been verified.
 // It checks the message and decides whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb.StableCheckpoint) *events.EventList {
+func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpointpb.StableCheckpoint) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// TODO: !!!! This is wrong !!!!
@@ -1101,7 +1116,7 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 			switch m := msg.(type) {
 			case *isspb.SBMessage:
 				eventsOut.PushBackList(iss.applySBMessage(m, source))
-			case *isspb.Checkpoint:
+			case *checkpointpb.Checkpoint:
 				eventsOut.PushBackList(iss.applyCheckpointMessage(m, source))
 			}
 
@@ -1125,7 +1140,7 @@ func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) message
 		default: // e > iss.epoch
 			return messagebuffer.Future
 		}
-	case *isspb.Checkpoint:
+	case *checkpointpb.Checkpoint:
 		// For Checkpoint messages, messages with current or older epoch number are considered,
 		// if they correspond to a more recent checkpoint than the last stable checkpoint stored locally at this node.
 		switch {
