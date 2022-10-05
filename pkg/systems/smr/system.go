@@ -65,6 +65,7 @@ func New(
 	// The ID of this node.
 	ownID t.NodeID,
 
+	// libp2p host to be used for the network transport module.
 	h host.Host,
 
 	// The initial membership of the system, containing the addresses of all participating nodes (including the own).

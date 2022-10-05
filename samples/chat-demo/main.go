@@ -116,7 +116,7 @@ func run() error {
 		initialMembership,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to create libp2p host: %s")
+		return errors.Wrap(err, "failed to create libp2p host")
 	}
 	smrSystem, err := smr.New(
 		args.OwnID,
