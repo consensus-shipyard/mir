@@ -54,9 +54,9 @@ type connInfo struct {
 type Transport struct {
 	host             host.Host
 	ownID            types.NodeID
-	connWg           *sync.WaitGroup
-	incomingMessages chan *events.EventList
 	logger           logging.Logger
+	incomingMessages chan *events.EventList
+	connWg           *sync.WaitGroup
 	conns            map[types.NodeID]*connInfo
 	connsLock        sync.RWMutex
 }
@@ -67,12 +67,12 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 	}
 
 	return &Transport{
-		connWg:           &sync.WaitGroup{},
-		incomingMessages: make(chan *events.EventList),
-		conns:            make(map[types.NodeID]*connInfo),
-		logger:           logger,
 		ownID:            ownID,
 		host:             h,
+		incomingMessages: make(chan *events.EventList),
+		logger:           logger,
+		connWg:           &sync.WaitGroup{},
+		conns:            make(map[types.NodeID]*connInfo),
 	}, nil
 }
 
@@ -110,7 +110,7 @@ func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddr
 		defer t.connsLock.Unlock()
 
 		for nodeID, dest := range t.conns {
-			// Close an old connection to a node if we don't need to connect to it further.
+			// Close the old connection to a node if we don't need to connect to it further.
 			if _, foundInNewNodes := newNodes[nodeID]; !foundInNewNodes {
 				t.logger.Log(logging.LevelDebug, "closing old connection", "src", t.ownID, "dst", nodeID)
 
@@ -131,24 +131,28 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		return
 	}
 
-	t.connsLock.Lock()
+	parsedAddrInfo := make(map[types.NodeID]*peer.AddrInfo)
 	for nodeID, addr := range nodes {
+		info, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			t.logger.Log(logging.LevelWarn, "connect: failed to parse addr", "src", t.ownID, "dest", nodeID, "addr", addr, "err", err)
+			continue
+		}
+		parsedAddrInfo[nodeID] = info
+	}
+
+	t.connsLock.Lock()
+	for nodeID := range parsedAddrInfo {
+		addrNotEqual := false
 		if nodeID == t.ownID {
 			continue
 		}
-		_, found := t.conns[nodeID]
-		if !found {
-			info, err := peer.AddrInfoFromP2pAddr(addr)
-			if err != nil {
-				t.logger.Log(logging.LevelWarn, "connect: failed to parse addr", "src", t.ownID, "dest", nodeID, "addr", addr, "err", err)
-				continue
-			}
-			t.conns[nodeID] = &connInfo{
-				AddrInfo:  info,
-				IsOpening: false,
-				Stream:    nil,
-			}
-
+		conn, found := t.conns[nodeID]
+		if found {
+			addrNotEqual = !(parsedAddrInfo[nodeID].ID.String() == conn.AddrInfo.ID.String())
+		}
+		if !found || addrNotEqual {
+			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], IsOpening: false, Stream: nil}
 		}
 	}
 	t.connsLock.Unlock()

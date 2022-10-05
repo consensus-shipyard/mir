@@ -312,7 +312,7 @@ func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeI
 		func() bool {
 			return len(src.conns) > 1
 		},
-		10*time.Second, 300*time.Millisecond)
+		5*time.Second, 300*time.Millisecond)
 }
 
 // Test we don't get two elements in the node table corresponding to the same node.
