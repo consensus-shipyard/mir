@@ -48,7 +48,7 @@ func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress) *ChatApp {
 	}
 }
 
-// applyProvideTransactions applies transactions received from the availability layer to the app state.
+// ApplyTXs applies transactions received from the availability layer to the app state.
 // In our case, it simply extends the message history
 // by appending the payload of each received request as a new chat message.
 // Each appended message is also printed to stdout.
@@ -123,7 +123,7 @@ func (chat *ChatApp) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return maputil.Copy(chat.newMembership), nil
 }
 
-// applySnapshotRequest produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
+// Snapshot produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
 // The snapshot is a binary representation of the application state that can be passed to applyRestoreState().
 func (chat *ChatApp) Snapshot() ([]byte, error) {
 	return chat.serializeMessages(), nil
