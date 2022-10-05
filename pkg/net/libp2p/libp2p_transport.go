@@ -143,15 +143,11 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 
 	t.connsLock.Lock()
 	for nodeID := range parsedAddrInfo {
-		addrNotEqual := false
 		if nodeID == t.ownID {
 			continue
 		}
-		conn, found := t.conns[nodeID]
-		if found {
-			addrNotEqual = !(parsedAddrInfo[nodeID].ID.String() == conn.AddrInfo.ID.String())
-		}
-		if !found || addrNotEqual {
+		_, found := t.conns[nodeID]
+		if !found {
 			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], IsOpening: false, Stream: nil}
 		}
 	}
@@ -230,6 +226,9 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 	go func() {
 		defer t.connWg.Done()
 
+		t.connsLock.Lock()
+		defer t.connsLock.Unlock()
+
 		t.logger.Log(logging.LevelDebug, "started connecting nodes", "src", t.ownID)
 		defer t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
 
@@ -237,19 +236,13 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 		wg.Add(len(nodes))
 
 		for nodeID := range nodes {
+			// Do not establish a real connection with own node.
 			if nodeID == t.ownID {
-				// Do not establish a real connection with own node.
 				wg.Done()
 				continue
 			}
 
-			if t.streamExists(nodeID) {
-				t.logger.Log(logging.LevelInfo, "stream to node already exists", "src", t.ownID, "dst", nodeID)
-				wg.Done()
-				continue
-			}
-
-			go t.connectToNode(ctx, nodeID, wg)
+			go t.connectToNodeWithoutLock(ctx, nodeID, wg)
 		}
 		wg.Wait()
 	}()
@@ -263,39 +256,47 @@ func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
 		if err := t.host.Network().ClosePeer(info.ID); err != nil {
 			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", node, "err", err)
 		}
+
 		t.connWg.Add(1)
-		go t.connectToNode(ctx, node, t.connWg)
+		go func() {
+			defer t.connWg.Done()
+
+			t.connsLock.Lock()
+			defer t.connsLock.Unlock()
+
+			t.connWg.Add(1)
+			t.connectToNodeWithoutLock(ctx, node, t.connWg)
+		}()
 	}
 }
 
-func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID, wg *sync.WaitGroup) {
+func (t *Transport) connectToNodeWithoutLock(ctx context.Context, nodeID types.NodeID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	if t.isConnectionInProgress(nodeID) {
-		t.logger.Log(logging.LevelDebug, "connection is in progress or ready", "src", t.ownID, "dst", nodeID)
+	conn, found := t.conns[nodeID]
+	if found &&
+		t.host.Network().Connectedness(t.conns[nodeID].AddrInfo.ID) == network.Connected {
+		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
-	t.setConnectionInProgress(nodeID)
-	defer t.clearConnectionInProgress(nodeID)
-
-	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
-
-	info, found := t.getNodeAddrInfo(nodeID)
 	if !found {
 		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
+	info := conn.AddrInfo
+
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 
+	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
 	s, err := t.openStream(ctx, info.ID)
 	if err != nil {
 		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
 		return
 	}
 
-	t.addOutboundStream(nodeID, s)
+	conn.Stream = s
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 }
 
@@ -437,14 +438,6 @@ func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
 		return
 	}
 	node.Stream = s
-}
-
-func (t *Transport) streamExists(nodeID types.NodeID) bool {
-	t.connsLock.RLock()
-	defer t.connsLock.RUnlock()
-
-	conn, found := t.conns[nodeID]
-	return found && conn.Stream != nil
 }
 
 func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (network.Stream, error) {
