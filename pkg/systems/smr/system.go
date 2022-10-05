@@ -87,7 +87,6 @@ func New(
 ) (*System, error) {
 
 	// Initialize the libp2p transport subsystem.
-	var transport *libp2pnet.Transport
 	addrIn := false
 	for _, addr := range h.Addrs() {
 		// sanity-check to see if the host is configured with the
