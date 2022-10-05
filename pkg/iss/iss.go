@@ -574,6 +574,15 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheck
 		)
 		iss.lastStableCheckpoint = stableCheckpoint
 
+		// Deliver the stable checkpoint (and potential batches committed in the meantime,
+		// but blocked from being delivered due to this missing checkpoint) to the application.
+		eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint))
+		pcResult, err := iss.processCommitted()
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(pcResult)
+
 		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
@@ -920,9 +929,14 @@ func (iss *ISS) initOrderers() *events.EventList {
 	return eventsOut
 }
 
-// epochFinished returns true when all the sequence numbers of the current epochs have been committed, otherwise false.
+func (iss *ISS) haveEpochCheckpoint() bool {
+	return t.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN
+}
+
+// epochFinished returns true when all the sequence numbers of the current epochs have been committed
+// and the starting checkpoint of the epoch is stable. Otherwise, returns false.
 func (iss *ISS) epochFinished() bool {
-	return iss.nextDeliveredSN == iss.newEpochSN
+	return iss.nextDeliveredSN == iss.newEpochSN && iss.haveEpochCheckpoint()
 }
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
@@ -931,6 +945,14 @@ func (iss *ISS) epochFinished() bool {
 // processCommitted also triggers other internal Events like epoch transitions and state checkpointing.
 func (iss *ISS) processCommitted() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
+
+	// Only deliver certificates if the current epoch's stable checkpoint has already been established.
+	// We require this, since stable checkpoints are also delivered to the application in addition to the certificates.
+	// The application may rely on the fact that each epoch starts by a stable checkpoint
+	// delivered before the epoch's batches.
+	if !iss.haveEpochCheckpoint() {
+		return eventsOut, nil
+	}
 
 	// The iss.nextDeliveredSN variable always contains the lowest sequence number
 	// for which no certificate has been delivered yet.
