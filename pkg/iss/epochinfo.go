@@ -19,9 +19,6 @@ type epochInfo struct {
 	// Orderers associated with the epoch.
 	Orderers []sbInstance
 
-	// Checkpoint sub-protocol state.
-	Checkpoint *checkpointTracker
-
 	// Index of orderers based on the buckets they are assigned.
 	// For each bucket ID, this map stores the orderer to which the bucket is assigned in this epoch.
 	bucketOrderers map[int]sbInstance
@@ -33,14 +30,12 @@ type epochInfo struct {
 func newEpochInfo(
 	nr t.EpochNr,
 	membership []t.NodeID,
-	ct *checkpointTracker,
 	leaderPolicy LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{
 		Nr:             nr,
 		Membership:     membership,
 		Orderers:       nil,
-		Checkpoint:     ct,
 		bucketOrderers: make(map[int]sbInstance),
 		leaderPolicy:   leaderPolicy,
 	}

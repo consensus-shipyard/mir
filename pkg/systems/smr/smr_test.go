@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+
 	"github.com/filecoin-project/mir/pkg/iss"
 
 	"github.com/filecoin-project/mir"
@@ -396,6 +398,12 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}
 
+		checkpointing := checkpoint.Factory(
+			checkpoint.DefaultModuleConfig(),
+			nodeID,
+			logging.Decorate(logger, "CHKP: "),
+		)
+
 		transport, err := transportLayer.Link(nodeID)
 		if err != nil {
 			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
@@ -438,6 +446,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"app":          fakeApp,
 			"crypto":       cryptoSystem.Module(nodeID),
 			"iss":          issProtocol,
+			"checkpoint":   checkpointing,
 			"batchfetcher": batchFetcher,
 			"net":          transport,
 			"mempool":      mempool,

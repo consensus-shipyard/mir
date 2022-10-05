@@ -81,8 +81,7 @@ message RequestHashOrigin {
 
 message ISSSignOrigin {
   oneof type {
-    SBSignOrigin sb               = 1;
-    uint64       checkpoint_epoch = 2;
+    SBSignOrigin sb = 1;
   }
 }
 

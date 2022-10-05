@@ -21,7 +21,8 @@ message Checkpoint {
 
 message Event {
   oneof type {
-    StableCheckpoint stable_checkpoint = 1;
+    commonpb.EpochConfig epoch_config      = 1;
+    StableCheckpoint     stable_checkpoint = 2;
   }
 }
 
@@ -29,4 +30,17 @@ message StableCheckpoint {
   uint64                 sn       = 1;
   commonpb.StateSnapshot snapshot = 2;
   map<string, bytes>     cert     = 3;
+}
+
+message HashOrigin {}
+
+message SignOrigin {}
+
+message SigVerOrigin {}
+
+message InstanceParams {
+  repeated string     node_ids      = 1;
+  uint64              epoch         = 2;
+  uint64              seq_nr        = 3;
+  uint64              resend_period = 4; // in milliseconds
 }

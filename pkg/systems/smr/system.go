@@ -6,6 +6,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
@@ -132,6 +134,9 @@ func New(
 		return nil, errors.Wrap(err, "error creating ISS protocol module")
 	}
 
+	// Factory module with instances of the checkpointing protocol.
+	checkpointing := checkpoint.Factory(checkpoint.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
+
 	// Use a simple mempool for incoming requests.
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{
@@ -175,6 +180,7 @@ func New(
 		issModuleConfig.Self:         issProtocol,
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
+		issModuleConfig.Checkpoint:   checkpointing,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),

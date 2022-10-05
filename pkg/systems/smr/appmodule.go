@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -61,6 +62,13 @@ func (m *AppModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		return m.applyAppRestoreState(e.AppRestoreState)
 	case *eventpb.Event_NewEpoch:
 		return m.applyNewEpoch(e.NewEpoch)
+	case *eventpb.Event_Checkpoint:
+		switch e := e.Checkpoint.Type.(type) {
+		case *checkpointpb.Event_StableCheckpoint:
+			return m.applyStableCheckpoint(e.StableCheckpoint)
+		default:
+			return nil, fmt.Errorf("unexpected checkpoint event type: %T", e)
+		}
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}
@@ -89,9 +97,8 @@ func (m *AppModule) applyAppSnapshotRequest(snapshotRequest *eventpb.AppSnapshot
 		return nil, err
 	}
 	return events.ListOf(events.AppSnapshotResponse(
-		t.ModuleID(snapshotRequest.Module),
+		t.ModuleID(snapshotRequest.ReplyTo),
 		snapshot,
-		snapshotRequest.Origin,
 	)), nil
 }
 
@@ -119,4 +126,11 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	m.transport.Connect(context.TODO(), membership) // TODO: Make this function not use a context (and not block).
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 	return events.ListOf(events.NewConfig(m.protocolModule, membership)), nil
+}
+
+func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheckpoint) (*events.EventList, error) {
+	if err := m.appLogic.Checkpoint(stableCheckpoint); err != nil {
+		return nil, fmt.Errorf("error handling StableCheckpoint event: %w", err)
+	}
+	return events.EmptyList(), nil
 }

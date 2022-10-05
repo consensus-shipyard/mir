@@ -2,7 +2,9 @@ package protobufs
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -14,6 +16,15 @@ func Event(destModule t.ModuleID, event *checkpointpb.Event) *eventpb.Event {
 			Checkpoint: event,
 		},
 	}
+}
+
+func EpochConfigEvent(destModule t.ModuleID, epochConfig *commonpb.EpochConfig) *eventpb.Event {
+	return Event(
+		destModule,
+		&checkpointpb.Event{Type: &checkpointpb.Event_EpochConfig{
+			EpochConfig: epochConfig,
+		}},
+	)
 }
 
 func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
@@ -50,4 +61,41 @@ func CheckpointMessage(
 			},
 		}},
 	)
+}
+
+func HashOrigin(module t.ModuleID) *eventpb.HashOrigin {
+	return &eventpb.HashOrigin{
+		Module: module.Pb(),
+		Type:   &eventpb.HashOrigin_Checkpoint{Checkpoint: &checkpointpb.HashOrigin{}},
+	}
+}
+
+func SignOrigin(module t.ModuleID) *eventpb.SignOrigin {
+	return &eventpb.SignOrigin{
+		Module: module.Pb(),
+		Type:   &eventpb.SignOrigin_Checkpoint{Checkpoint: &checkpointpb.SignOrigin{}},
+	}
+}
+
+func SigVerOrigin(module t.ModuleID) *eventpb.SigVerOrigin {
+	return &eventpb.SigVerOrigin{
+		Module: module.Pb(),
+		Type:   &eventpb.SigVerOrigin_Checkpoint{Checkpoint: &checkpointpb.SigVerOrigin{}},
+	}
+}
+
+func InstanceParams(
+	nodeIDs []t.NodeID,
+	epoch t.EpochNr,
+	seqNr t.SeqNr,
+	resendPeriod t.TimeDuration,
+) *factorymodulepb.GeneratorParams {
+	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_Checkpoint{
+		Checkpoint: &checkpointpb.InstanceParams{
+			NodeIds:      t.NodeIDSlicePb(nodeIDs),
+			Epoch:        epoch.Pb(),
+			SeqNr:        seqNr.Pb(),
+			ResendPeriod: resendPeriod.Pb(),
+		},
+	}}
 }
