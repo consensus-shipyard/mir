@@ -79,7 +79,7 @@ func runNode() error {
 		initialMembership,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create libp2p host: %s", err)
+		return fmt.Errorf("failed to create libp2p host: %w", err)
 	}
 
 	benchApp, err := smr.New(

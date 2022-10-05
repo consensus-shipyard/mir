@@ -5,7 +5,6 @@ import (
 	mrand "math/rand"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/core/crypto"
 	libp2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -16,12 +15,12 @@ import (
 
 // NewDummyHostWithPrivKey creates new dummy libp2p host with an identity
 // determined by the private key given as an input.
-func NewDummyHostWithPrivKey(ownID t.NodeID, privKey crypto.PrivKey,
+func NewDummyHostWithPrivKey(ownID t.NodeID, privKey libp2pcrypto.PrivKey,
 	initialMembership map[t.NodeID]t.NodeAddress) (host.Host, error) {
 
 	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(initialMembership[ownID])
 	if err != nil {
-		return nil, fmt.Errorf("failed to get own libp2p addr info: %s", err)
+		return nil, fmt.Errorf("failed to get own libp2p addr info: %w", err)
 	}
 	return libp2p.New(
 		libp2p.Identity(privKey),
