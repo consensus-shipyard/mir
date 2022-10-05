@@ -91,7 +91,7 @@ func New(
 	for _, addr := range h.Addrs() {
 		// sanity-check to see if the host is configured with the
 		// right multiaddr.
-		if addr == initialMembership[ownID] {
+		if addr.Equal(initialMembership[ownID]) {
 			addrIn = true
 			break
 		}
