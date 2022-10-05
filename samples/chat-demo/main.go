@@ -110,9 +110,17 @@ func run() error {
 	// ================================================================================
 
 	// Create a Mir SMR system.
-	smrSystem, err := smr.New(
+	h, err := libp2p.NewDummyHostWithPrivKey(
 		args.OwnID,
 		libp2p.NewDummyHostKey(ownNumericID),
+		initialMembership,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to create libp2p host")
+	}
+	smrSystem, err := smr.New(
+		args.OwnID,
+		h,
 		initialMembership,
 		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 		NewChatApp(initialMembership),
