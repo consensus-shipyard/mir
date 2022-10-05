@@ -428,18 +428,6 @@ func (t *Transport) mirHandler(s network.Stream) {
 	}
 }
 
-func (t *Transport) addOutboundStream(nodeID types.NodeID, s network.Stream) {
-	t.connsLock.Lock()
-	defer t.connsLock.Unlock()
-
-	node, found := t.conns[nodeID]
-	if !found {
-		t.logger.Log(logging.LevelWarn, "addOutboundStream: failed to find the node", "src", t.ownID, "node", nodeID)
-		return
-	}
-	node.Stream = s
-}
-
 func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (network.Stream, error) {
 	node, found := t.conns[nodeID]
 	if !found {
@@ -461,34 +449,4 @@ func (t *Transport) getNodeAddrInfo(nodeID types.NodeID) (*peer.AddrInfo, bool) 
 		return nil, false
 	}
 	return node.AddrInfo, true
-}
-
-func (t *Transport) isConnectionInProgress(nodeID types.NodeID) bool {
-	t.connsLock.RLock()
-	defer t.connsLock.RUnlock()
-
-	conn, found := t.conns[nodeID]
-	return found && conn.IsOpening
-}
-
-func (t *Transport) setConnectionInProgress(nodeID types.NodeID) {
-	t.connsLock.Lock()
-	defer t.connsLock.Unlock()
-
-	info, found := t.conns[nodeID]
-	if !found {
-		return
-	}
-	info.IsOpening = true
-}
-
-func (t *Transport) clearConnectionInProgress(nodeID types.NodeID) {
-	t.connsLock.Lock()
-	defer t.connsLock.Unlock()
-
-	info, found := t.conns[nodeID]
-	if !found {
-		return
-	}
-	info.IsOpening = false
 }
