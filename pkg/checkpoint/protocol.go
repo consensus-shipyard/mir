@@ -322,11 +322,8 @@ func (p *Protocol) announceStable() *events.EventList {
 		Cert:     cert,
 	}
 
-	// Announce the stable checkpoint to both the application and the ordering protocol.
-	return events.ListOf(
-		protobufs.StableCheckpointEvent(p.moduleConfig.App, stableCheckpoint),
-		protobufs.StableCheckpointEvent(p.moduleConfig.Ord, stableCheckpoint),
-	)
+	// Announce the stable checkpoint to the ordering protocol.
+	return events.ListOf(protobufs.StableCheckpointEvent(p.moduleConfig.Ord, stableCheckpoint))
 }
 
 func maxFaulty(n int) int {
