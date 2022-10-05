@@ -3,9 +3,7 @@ package smr
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p"
-	lp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
@@ -67,8 +65,7 @@ func New(
 	// The ID of this node.
 	ownID t.NodeID,
 
-	// The libp2p private key to use for communicating over libp2p.
-	ownKey lp2pcrypto.PrivKey,
+	h host.Host,
 
 	// The initial membership of the system, containing the addresses of all participating nodes (including the own).
 	initialMembership map[t.NodeID]t.NodeAddress,
@@ -90,15 +87,13 @@ func New(
 
 	// Initialize the libp2p transport subsystem.
 	var transport *libp2pnet.Transport
-	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(initialMembership[ownID])
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get own libp2p addr info")
+	for _, addr := range h.Addrs() {
+		if addr == initialMembership[ownID] {
+			break
+		}
+		return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
 	}
-	h, err := libp2p.New(libp2p.Identity(ownKey), libp2p.DefaultTransports, libp2p.ListenAddrs(libp2pPeerID.Addrs[0]))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create libp2p host")
-	}
-	transport, err = libp2pnet.NewTransport(h, ownID, logger)
+	transport, err := libp2pnet.NewTransport(h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
 	}
