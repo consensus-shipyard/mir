@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -53,9 +54,8 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		}
 	case *eventpb.Event_AppSnapshotRequest:
 		return events.ListOf(events.AppSnapshotResponse(
-			t.ModuleID(e.AppSnapshotRequest.Module),
+			t.ModuleID(e.AppSnapshotRequest.ReplyTo),
 			fa.Snapshot(),
-			e.AppSnapshotRequest.Origin,
 		)), nil
 	case *eventpb.Event_AppRestoreState:
 		if err := fa.RestoreState(e.AppRestoreState.Snapshot); err != nil {
@@ -63,6 +63,13 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		}
 	case *eventpb.Event_NewEpoch:
 		return events.ListOf(events.NewConfig(fa.ProtocolModule, fa.Membership)), nil
+	case *eventpb.Event_Checkpoint:
+		switch e := e.Checkpoint.Type.(type) {
+		case *checkpointpb.Event_StableCheckpoint:
+			return events.EmptyList(), nil // Ignore checkpoints.
+		default:
+			return nil, fmt.Errorf("unexpected checkpoint event type: %T", e)
+		}
 	default:
 		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
 	}

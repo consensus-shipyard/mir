@@ -18,6 +18,8 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -172,5 +174,10 @@ func (chat *ChatApp) restoreChat(data []byte) {
 
 func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
 	chat.newMembership = t.Membership(config.Memberships[len(config.Memberships)-1])
+	return nil
+}
+
+func (chat *ChatApp) Checkpoint(_ *checkpointpb.StableCheckpoint) error {
+	// Ignore checkpoints.
 	return nil
 }

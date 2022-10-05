@@ -117,24 +117,6 @@ func SBHashOrigin(ownModuleID t.ModuleID,
 	}}})
 }
 
-func StateSnapshotHashOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.HashOrigin {
-	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_StateSnapshotEpoch{
-		StateSnapshotEpoch: epoch.Pb(),
-	}})
-}
-
-func CheckpointSignOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.SignOrigin {
-	return SignOrigin(ownModuleID, &isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_CheckpointEpoch{
-		CheckpointEpoch: epoch.Pb(),
-	}})
-}
-
-func CheckpointSigVerOrigin(ownModuleID t.ModuleID, epoch t.EpochNr) *eventpb.SigVerOrigin {
-	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_CheckpointEpoch{
-		CheckpointEpoch: epoch.Pb()}},
-	)
-}
-
 func StableCheckpointSigVerOrigin(
 	ownModuleID t.ModuleID,
 	stableCheckpoint *checkpointpb.StableCheckpoint,

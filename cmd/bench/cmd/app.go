@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -36,5 +37,9 @@ func (a *App) Snapshot() ([]byte, error) {
 }
 
 func (a *App) RestoreState(appData []byte, epochConfig *commonpb.EpochConfig) error {
+	return nil
+}
+
+func (a *App) Checkpoint(_ *checkpointpb.StableCheckpoint) error {
 	return nil
 }
