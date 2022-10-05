@@ -3,7 +3,7 @@ package smr
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
