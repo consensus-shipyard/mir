@@ -348,7 +348,7 @@ func (t *Transport) sendPayload(dest types.NodeID, payload []byte) error {
 	// 2. We created an entry for the node but have not opened a connection.
 	// But if we added the node via Connect, then it should open the connection.
 	// It doesn't make sense to open a new one here.
-	stream, err := t.getNodeStreamAndInfoWithoutLock(dest)
+	stream, err := t.getNodeStreamWithoutLock(dest)
 	if err != nil {
 		return err
 	}
@@ -426,7 +426,7 @@ func (t *Transport) mirHandler(s network.Stream) {
 	}
 }
 
-func (t *Transport) getNodeStreamAndInfoWithoutLock(nodeID types.NodeID) (network.Stream, error) {
+func (t *Transport) getNodeStreamWithoutLock(nodeID types.NodeID) (network.Stream, error) {
 	node, found := t.conns[nodeID]
 	if !found {
 		return nil, ErrUnknownNode
