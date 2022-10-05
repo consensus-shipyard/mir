@@ -46,9 +46,8 @@ var ErrUnknownNode = errors.New("unknown node")
 var ErrNilStream = errors.New("stream has not been opened")
 
 type connInfo struct {
-	AddrInfo  *peer.AddrInfo
-	Stream    network.Stream
-	IsOpening bool
+	AddrInfo *peer.AddrInfo
+	Stream   network.Stream
 }
 
 type Transport struct {
@@ -148,7 +147,7 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 		}
 		_, found := t.conns[nodeID]
 		if !found {
-			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], IsOpening: false, Stream: nil}
+			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], Stream: nil}
 		}
 	}
 	t.connsLock.Unlock()
@@ -274,14 +273,13 @@ func (t *Transport) connectToNodeWithoutLock(ctx context.Context, nodeID types.N
 	defer wg.Done()
 
 	conn, found := t.conns[nodeID]
-	if found &&
-		t.host.Network().Connectedness(t.conns[nodeID].AddrInfo.ID) == network.Connected {
-		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
+	if !found {
+		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
-	if !found {
-		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", nodeID)
+	if t.host.Network().Connectedness(t.conns[nodeID].AddrInfo.ID) == network.Connected {
+		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
