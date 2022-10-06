@@ -93,6 +93,7 @@ func (t *Transport) Stop() {
 			t.logger.Log(logging.LevelError, "could not close old connection to node", "src", t.ownID, "dst", nodeID, "err", err)
 			continue
 		}
+		delete(t.conns, nodeID)
 	}
 	t.connsLock.Unlock()
 

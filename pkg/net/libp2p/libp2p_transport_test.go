@@ -159,6 +159,12 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 		10*time.Second, 100*time.Millisecond)
 }
 
+func (m *mockLibp2pCommunication) testConnsEmpty() {
+	for _, v := range m.transports {
+		require.Equal(m.t, 0, len(v.conns))
+	}
+}
+
 func TestLibp2p_Sending(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -263,7 +269,6 @@ func TestLibp2p_Connecting(t *testing.T) {
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAll()
-	defer m.StopAll()
 
 	t.Log(">>> connecting nodes")
 	t.Log("membership")
@@ -303,6 +308,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyNotConnected(nodeA, nodeC)
 	m.testEventuallyNotConnected(nodeB, nodeC)
 	m.testEventuallyNotConnected(nodeD, nodeC)
+
+	m.StopAll()
+	m.testConnsEmpty()
 }
 
 func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
