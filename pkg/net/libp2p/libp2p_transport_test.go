@@ -74,14 +74,26 @@ func (m *mockLibp2pCommunication) Nodes() map[types.NodeID]types.NodeAddress {
 func (m *mockLibp2pCommunication) Stop(transports ...*Transport) {
 	for _, v := range transports {
 		v.Stop()
-		v.host.Close()
 	}
 }
 
-func (m *mockLibp2pCommunication) StopAll(transports ...*Transport) {
+func (m *mockLibp2pCommunication) StopAll() {
 	for _, v := range m.transports {
 		v.Stop()
-		v.host.Close()
+	}
+}
+
+func (m *mockLibp2pCommunication) CloseHost(transports ...*Transport) {
+	for _, v := range transports {
+		err := v.host.Close()
+		require.NoError(m.t, err)
+	}
+}
+
+func (m *mockLibp2pCommunication) CloseHostAll() {
+	for _, v := range m.transports {
+		err := v.host.Close()
+		require.NoError(m.t, err)
 	}
 }
 
@@ -165,6 +177,13 @@ func (m *mockLibp2pCommunication) testConnsEmpty() {
 	}
 }
 
+func (m *mockLibp2pCommunication) testNoConnections() {
+	for _, v := range m.transports {
+		require.Equal(m.t, 0, len(v.host.Network().Conns()))
+	}
+
+}
+
 func TestLibp2p_Sending(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -181,6 +200,8 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAll()
+
+	defer m.CloseHostAll()
 	defer m.StopAll()
 
 	require.Equal(t, nodeA, a.ownID)
@@ -310,7 +331,11 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyNotConnected(nodeD, nodeC)
 
 	m.StopAll()
+
 	m.testConnsEmpty()
+	m.testNoConnections()
+
+	m.CloseHostAll()
 }
 
 func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
