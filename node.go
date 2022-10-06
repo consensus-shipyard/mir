@@ -12,6 +12,8 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -92,8 +94,18 @@ func NewNode(
 	wal wal.WAL,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
-	// Make sure that the logger can be accessed concurrently.
-	config.Logger = logging.Synchronize(config.Logger)
+
+	// Check that a valid configuration has been provided.
+	if err := config.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid node configuration")
+	}
+
+	// Make sure that the logger can be accessed concurrently (if there is any logger).
+	if config.Logger == nil {
+		config.Logger = logging.NilLogger
+	} else {
+		config.Logger = logging.Synchronize(config.Logger)
+	}
 
 	// Return a new Node.
 	return &Node{
