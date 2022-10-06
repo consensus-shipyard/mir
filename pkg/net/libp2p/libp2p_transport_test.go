@@ -201,9 +201,6 @@ func TestLibp2p_Sending(t *testing.T) {
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAll()
 
-	defer m.CloseHostAll()
-	defer m.StopAll()
-
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 	require.Equal(t, nodeC, c.ownID)
@@ -273,6 +270,13 @@ func TestLibp2p_Sending(t *testing.T) {
 	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+
+	m.StopAll()
+
+	m.testConnsEmpty()
+	m.testNoConnections()
+
+	m.CloseHostAll()
 }
 
 func TestLibp2p_Connecting(t *testing.T) {
