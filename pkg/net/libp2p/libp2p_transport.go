@@ -252,22 +252,22 @@ func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
 	info, found := t.getNodeAddrInfo(node)
 	if !found {
 		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
-	} else {
-		if err := t.host.Network().ClosePeer(info.ID); err != nil {
-			t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", node, "err", err)
-		}
+		return
+	}
+	if err := t.host.Network().ClosePeer(info.ID); err != nil {
+		t.logger.Log(logging.LevelError, "could not close the connection to node", "src", t.ownID, "dst", node, "err", err)
+	}
+
+	t.connWg.Add(1)
+	go func() {
+		defer t.connWg.Done()
+
+		t.connsLock.Lock()
+		defer t.connsLock.Unlock()
 
 		t.connWg.Add(1)
-		go func() {
-			defer t.connWg.Done()
-
-			t.connsLock.Lock()
-			defer t.connsLock.Unlock()
-
-			t.connWg.Add(1)
-			t.connectToNodeWithoutLock(ctx, node, t.connWg)
-		}()
-	}
+		t.connectToNodeWithoutLock(ctx, node, t.connWg)
+	}()
 }
 
 func (t *Transport) connectToNodeWithoutLock(ctx context.Context, nodeID types.NodeID, wg *sync.WaitGroup) {
@@ -390,14 +390,15 @@ func (t *Transport) decode(s io.Reader) (*messagepb.Message, types.NodeID, error
 }
 
 func (t *Transport) mirHandler(s network.Stream) {
-	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", s.ID())
-	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", s.ID())
+	peerID := s.Conn().RemotePeer().String()
+	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", peerID)
+	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", peerID)
 
 	defer func() {
-		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "src", t.ownID, "dst", s.ID())
+		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "src", t.ownID, "dst", peerID)
 		err := s.Close()
 		if err != nil {
-			t.logger.Log(logging.LevelError, "closing stream", "src", t.ownID, "dst", s.ID(), "err", err)
+			t.logger.Log(logging.LevelError, "closing stream", "src", t.ownID, "dst", peerID, "err", err)
 		}
 	}() // nolint
 
