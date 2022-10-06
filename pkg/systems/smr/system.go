@@ -40,6 +40,14 @@ func (sys *System) Modules() modules.Modules {
 	return sys.modules
 }
 
+// WithModule associates the given module ID within the SMR system with the given module.
+// If a module with the given ID already exists, it is replaced.
+// WithModule returns the SMR system itself (not a copy of it), so calls can be chained.
+func (sys *System) WithModule(moduleID t.ModuleID, module modules.Module) *System {
+	sys.modules[moduleID] = module
+	return sys
+}
+
 // Start starts the operation of the modules of the SMR system.
 // It starts the network transport and connects to the initial members of the system.
 func (sys *System) Start(ctx context.Context) error {
