@@ -383,7 +383,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	nodeModules := make(map[t.NodeID]modules.Modules)
 
 	for i, nodeID := range nodeIDs {
-
+		nodeLogger := logging.Decorate(logger, fmt.Sprintf("Node %d: ", i))
 		// Dummy application
 		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
@@ -400,7 +400,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		issProtocol, err := iss.New(
 			nodeID,
 			iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
-			logging.Decorate(logger, "ISS: "),
+			logging.Decorate(nodeLogger, "ISS: "),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
@@ -409,7 +409,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		checkpointing := checkpoint.Factory(
 			checkpoint.DefaultModuleConfig(),
 			nodeID,
-			logging.Decorate(logger, "CHKP: "),
+			logging.Decorate(nodeLogger, "CHKP: "),
 		)
 
 		transport, err := transportLayer.Link(nodeID)
@@ -445,7 +445,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 				Crypto:  "crypto",
 			},
 			nodeID,
-			logger,
+			nodeLogger,
 		)
 
 		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
