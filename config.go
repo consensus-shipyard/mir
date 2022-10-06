@@ -8,7 +8,11 @@ Refactored: 1
 
 package mir
 
-import "github.com/filecoin-project/mir/pkg/logging"
+import (
+	"github.com/pkg/errors"
+
+	"github.com/filecoin-project/mir/pkg/logging"
+)
 
 // The NodeConfig struct represents configuration parameters of the node
 // that are independent of the protocol the Node is executing.
@@ -45,8 +49,29 @@ func DefaultNodeConfig() *NodeConfig {
 	}
 }
 
-func (nc *NodeConfig) WithLogger(logger logging.Logger) *NodeConfig {
-	newConfig := *nc
+func (c *NodeConfig) Validate() error {
+	if c.MaxEventBatchSize <= 0 {
+		return errors.Errorf("MaxEventBatchSize must be greater than 0, got %d", c.MaxEventBatchSize)
+	}
+
+	if c.PauseInputThreshold <= 0 {
+		return errors.Errorf("PauseInputThreshold must be greater than 0, got %d", c.PauseInputThreshold)
+	}
+
+	if c.ResumeInputThreshold < 0 {
+		return errors.Errorf("ResumeInputThreshold must be greater than or equal to 0, got %d", c.ResumeInputThreshold)
+	}
+
+	if c.PauseInputThreshold < c.ResumeInputThreshold {
+		return errors.Errorf("PauseInputThreshold (%d) must be greater than or equal to ResumeInputThreshold (%d)",
+			c.PauseInputThreshold, c.ResumeInputThreshold)
+	}
+
+	return nil
+}
+
+func (c *NodeConfig) WithLogger(logger logging.Logger) *NodeConfig {
+	newConfig := *c
 	newConfig.Logger = logger
 	return &newConfig
 }

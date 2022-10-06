@@ -21,6 +21,34 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
+func TestNode_Config(t *testing.T) {
+
+	// Convenience variable
+	noModules := make(map[types.ModuleID]modules.Module)
+
+	c := DefaultNodeConfig()
+	assert.NoError(t, c.Validate(), "default config is not valid")
+
+	c.Logger = nil
+	_, err := NewNode("testnode", c, noModules, nil, nil)
+	assert.NoError(t, err, "must support nil logger")
+
+	faultyConfig := &NodeConfig{
+		Logger:               nil,
+		MaxEventBatchSize:    0,
+		PauseInputThreshold:  10,
+		ResumeInputThreshold: 5,
+	}
+	assert.Error(t, faultyConfig.Validate(), "invalid config (event batch size) not recognized")
+
+	faultyConfig.PauseInputThreshold = 5
+	faultyConfig.ResumeInputThreshold = 10
+	assert.Error(t, faultyConfig.Validate(), "invalid config (pause input threshold) not recognized")
+
+	_, err = NewNode("testnode", faultyConfig, noModules, nil, nil)
+	assert.Error(t, err, "node must not be created with invalid config")
+}
+
 func TestNode_Run(t *testing.T) {
 	testCases := map[string]func(t *testing.T) (m modules.Modules, done <-chan struct{}){
 		"InitEvents": func(t *testing.T) (modules.Modules, <-chan struct{}) {
