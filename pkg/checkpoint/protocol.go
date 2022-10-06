@@ -226,7 +226,7 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 	p.Log(logging.LevelDebug, "Sending checkpoint message",
 		"epoch", p.epoch,
 		"dataLen", len(p.stateSnapshot.AppData),
-		"numNodes", len(p.stateSnapshot.Configuration.Memberships),
+		"memberships", len(p.stateSnapshot.Configuration.Memberships),
 	)
 
 	// Apply pending Checkpoint messages
