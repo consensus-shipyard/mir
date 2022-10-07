@@ -60,10 +60,10 @@ func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
 	src := m.getTransport(srcNode)
 	dst := m.getTransport(dstNode)
 
-	err := src.host.Network().ClosePeer(dst.host.ID())
-	require.NoError(m.t, err)
+	// err := src.host.Network().ClosePeer(dst.host.ID())
+	// require.NoError(m.t, err)
 
-	err = dst.host.Network().ClosePeer(src.host.ID())
+	err := src.host.Network().ClosePeer(dst.host.ID())
 	require.NoError(m.t, err)
 }
 
@@ -143,7 +143,9 @@ func (m *mockLibp2pCommunication) testEventuallySentMsg(ctx context.Context, src
 	require.Eventually(m.t,
 		func() bool {
 			err := src.Send(ctx, dstNode, msg)
-			m.t.Log(err)
+			if err != nil {
+				m.t.Log(err)
+			}
 			return err == nil
 		},
 		5*time.Second, 300*time.Millisecond)
@@ -158,6 +160,40 @@ func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 ty
 			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
 		},
 		5*time.Second, 300*time.Millisecond)
+}
+
+func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID2 types.NodeID) {
+	src := m.getTransport(nodeID1)
+	dst := m.getTransport(nodeID2)
+
+	require.Eventually(m.t,
+		func() bool {
+			n := 0
+			conns := src.host.Network().Conns()
+			for _, conn := range conns {
+				if conn.RemotePeer() == dst.host.ID() {
+					for _, s := range conn.GetStreams() {
+						if s.Protocol() == ProtocolID {
+							n++
+						}
+					}
+				}
+
+			}
+			return n == 0
+		},
+		10*time.Second, 300*time.Millisecond)
+}
+
+func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
+	v := m.getTransport(nodeID)
+
+	require.Eventually(m.t,
+		func() bool {
+
+			return m.getNumberOfStreams(v) == 0
+		},
+		10*time.Second, 300*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types.NodeID) {
@@ -181,7 +217,19 @@ func (m *mockLibp2pCommunication) testNoConnections() {
 	for _, v := range m.transports {
 		require.Equal(m.t, 0, len(v.host.Network().Conns()))
 	}
+}
 
+func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
+	n := 0
+	conns := v.host.Network().Conns()
+	for _, c := range conns {
+		for _, s := range c.GetStreams() {
+			if s.Protocol() == ProtocolID {
+				n++
+			}
+		}
+	}
+	return n
 }
 
 func TestLibp2p_Sending(t *testing.T) {
@@ -272,11 +320,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
 	m.StopAll()
-
+	m.testEventuallyNoStreams(nodeA)
 	m.testConnsEmpty()
-	m.testNoConnections()
 
 	m.CloseHostAll()
+	m.testNoConnections()
 }
 
 func TestLibp2p_Connecting(t *testing.T) {
@@ -330,16 +378,80 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyConnected(nodeA, nodeD)
 	m.testEventuallyConnected(nodeB, nodeD)
 
-	m.testEventuallyNotConnected(nodeA, nodeC)
-	m.testEventuallyNotConnected(nodeB, nodeC)
-	m.testEventuallyNotConnected(nodeD, nodeC)
+	m.testEventuallyNoStreamsBetween(nodeA, nodeC)
+	m.testEventuallyNoStreamsBetween(nodeB, nodeC)
+	m.testEventuallyNoStreamsBetween(nodeD, nodeC)
 
 	m.StopAll()
-
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testConnsEmpty()
-	m.testNoConnections()
 
 	m.CloseHostAll()
+	m.testNoConnections()
+}
+
+func TestLibp2p_Sending2Nodes(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	m.StartAll()
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	t.Log("membership")
+	t.Log(initialNodes)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> sending messages")
+
+	nodeBEventsChan := b.EventsOut()
+
+	err := a.Send(ctx, nodeB, &messagepb.Message{})
+
+	require.NoError(t, err)
+	nodeBEvents := <-nodeBEventsChan
+	msg, valid := nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+
+	t.Log(">>> disconnecting nodes")
+	m.disconnect(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
+
+	t.Log(">>> sending messages after disconnection")
+	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
+
+	nodeBEvents = <-nodeBEventsChan
+	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(t, true, valid)
+	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+
+	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
 }
 
 func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
@@ -380,4 +492,39 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	a.Send(ctx, nodeE, &messagepb.Message{}) // nolint
 
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
+}
+
+func TestLibp2p_TwoNodes(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	m.StartAll()
+
+	t.Log(">>> connecting nodes")
+	t.Log("membership")
+	t.Log(m.membership)
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	m.StopAll()
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
 }
