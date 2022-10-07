@@ -208,6 +208,12 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 	p.signatures[p.ownID] = result.Signature
 	p.confirmations[p.ownID] = struct{}{}
 
+	// In case the node's own signature is enough to reach quorum, announce the stable checkpoint.
+	// This can happen in a small system where no failures are tolerated.
+	if p.stable() {
+		eventsOut.PushBackList(p.announceStable())
+	}
+
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	chkpMessage := protobufs.CheckpointMessage(p.moduleConfig.Self, p.epoch, p.seqNr, p.stateSnapshotHash, result.Signature)
 	eventsOut.PushBack(events.TimerRepeat(
