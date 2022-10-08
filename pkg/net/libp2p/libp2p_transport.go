@@ -428,14 +428,3 @@ func (t *Transport) getNodeStreamWithoutLock(nodeID types.NodeID) (network.Strea
 	}
 	return node.Stream, nil
 }
-
-func (t *Transport) getNodeAddrInfo(nodeID types.NodeID) (*peer.AddrInfo, bool) {
-	t.connsLock.RLock()
-	defer t.connsLock.RUnlock()
-
-	node, found := t.conns[nodeID]
-	if !found {
-		return nil, false
-	}
-	return node.AddrInfo, true
-}
