@@ -133,6 +133,27 @@ We also keep a log of [Architecture Decision Records (ADRs)](/docs/architecture-
 
 For a small demo application, see [/samples/chat-demo](/samples/chat-demo)
 
+### Getting started
+
+To get started using (and contributing to) Mir, in addition to this README, we recommend the following:
+1. Watch the first [introductory video](https://github.com/filecoin-project/mir/issues/245) (under on (1) Introduction)*
+2. Read the [Mir Library Overview](/docs)
+3. Watch the second [introductory video](https://github.com/filecoin-project/mir/issues/245) (under on (2) Ping-Pong)*
+4. Check out the [chat-demo](/samples/chat-demo) sample application to learn how to use Mir for state machine replication.
+5. To see an example of using a DSL module (allowing to write pseudocode-like code for the protocol logic),
+   look at the [implementation of Byzantine Consistent Broadcast (BCB)](/pkg/bcb)
+   being used in the corresponding [sample application](/samples/bcb-demo).
+   Original pseudocode can also be found in
+   [these lecture notes](https://dcl.epfl.ch/site/_media/education/sdc_byzconsensus.pdf)
+   (Algorithm 4 (Echo broadcast [Rei94])).
+6. A more complex example of DSL code is the implementation of the [SMR availability layer](/pkg/availability)
+   (concretely the `multisigcollector`).
+
+(*) Videos will be moved to YouTube soon and the proper link will appear here.
+
+To learn about the first complex system being built on mir,
+have a look at [Implementation of Eudico's Ordering Layer](https://hackmd.io/P59lk4hnSBKN5ki5OblSFg?view).
+
 ## Contributing
 
 **Contributions are more than welcome!**
