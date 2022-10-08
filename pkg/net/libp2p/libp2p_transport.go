@@ -383,12 +383,10 @@ func (t *Transport) mirHandler(s network.Stream) {
 	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", peerID)
 
 	go func() {
-		select {
-		case <-t.stopChan:
-			t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
-			if err := s.Reset(); err != nil {
-				t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
-			}
+		<-t.stopChan
+		t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
+		if err := s.Reset(); err != nil {
+			t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
 		}
 	}()
 
