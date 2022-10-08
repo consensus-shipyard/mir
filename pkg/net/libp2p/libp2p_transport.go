@@ -24,6 +24,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -151,7 +152,7 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 	}
 	t.connsLock.Unlock()
 
-	t.connect(ctx, nodes)
+	t.connect(ctx, maputil.GetKeys(parsedAddrInfo))
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
@@ -166,7 +167,7 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.
 
 	err = t.sendPayload(dest, out)
 	if err != nil {
-		t.reconnect(ctx, dest)
+		t.connect(ctx, []types.NodeID{dest})
 		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
 	}
 
@@ -218,7 +219,7 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 	return nil
 }
 
-func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+func (t *Transport) connect(ctx context.Context, nodesID []types.NodeID) {
 	t.connWg.Add(1)
 
 	go func() {
@@ -231,37 +232,18 @@ func (t *Transport) connect(ctx context.Context, nodes map[types.NodeID]types.No
 		defer t.logger.Log(logging.LevelDebug, "finished connecting nodes", "src", t.ownID)
 
 		wg := &sync.WaitGroup{}
-		wg.Add(len(nodes))
+		wg.Add(len(nodesID))
 
-		for nodeID := range nodes {
+		for i := range nodesID {
 			// Do not establish a real connection with own node.
-			if nodeID == t.ownID {
+			if nodesID[i] == t.ownID {
 				wg.Done()
 				continue
 			}
 
-			go t.connectToNodeWithoutLock(ctx, nodeID, wg)
+			go t.connectToNodeWithoutLock(ctx, nodesID[i], wg)
 		}
 		wg.Wait()
-	}()
-}
-
-func (t *Transport) reconnect(ctx context.Context, node types.NodeID) {
-	_, found := t.getNodeAddrInfo(node)
-	if !found {
-		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", node)
-		return
-	}
-
-	t.connWg.Add(1)
-	go func() {
-		defer t.connWg.Done()
-
-		t.connsLock.Lock()
-		defer t.connsLock.Unlock()
-
-		t.connWg.Add(1)
-		t.connectToNodeWithoutLock(ctx, node, t.connWg)
 	}()
 }
 
