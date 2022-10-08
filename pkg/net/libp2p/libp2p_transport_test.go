@@ -60,10 +60,10 @@ func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
 	src := m.getTransport(srcNode)
 	dst := m.getTransport(dstNode)
 
-	// err := src.host.Network().ClosePeer(dst.host.ID())
-	// require.NoError(m.t, err)
-
 	err := src.host.Network().ClosePeer(dst.host.ID())
+	require.NoError(m.t, err)
+
+	err = dst.host.Network().ClosePeer(src.host.ID())
 	require.NoError(m.t, err)
 }
 

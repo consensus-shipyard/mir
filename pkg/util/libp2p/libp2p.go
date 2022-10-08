@@ -40,8 +40,8 @@ func NewFreeHostAddr() (m multiaddr.Multiaddr) {
 		var l *net.TCPListener
 		if l, err = net.ListenTCP("tcp", a); err == nil {
 			defer l.Close() // nolint
-			addr := l.Addr().(*net.TCPAddr).Port
-			m, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", addr))
+			p := l.Addr().(*net.TCPAddr).Port
+			m, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", p))
 			if err != nil {
 				panic(err)
 			}
