@@ -5,8 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // ********************************************************************************
+//                                                                               //
 //         Chat demo application for demonstrating the usage of Mir              //
 //                            (application logic)                                //
+//                                                                               //
 // ********************************************************************************
 
 package main
@@ -28,12 +30,11 @@ import (
 
 // ChatApp and its methods implement the application logic of the small chat demo application
 // showcasing the usage of the Mir library.
-// An initialized instance of this struct needs to be passed to the mir.NewNode() method of all nodes
-// for the system to run the chat demo app.
+// An initialized instance of this struct needs to be passed to the smr.New() method when instantiating an SMR system.
 type ChatApp struct {
 
 	// The only state of the application is the chat message history,
-	// to which each delivered request appends one message.
+	// to which each delivered transaction appends one message.
 	messages []string
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
@@ -41,25 +42,25 @@ type ChatApp struct {
 }
 
 // NewChatApp returns a new instance of the chat demo application.
-// The reqStore must be the same request store that is passed to the mir.NewNode() function as a module.
+// The initialMembership argument describes the initial set of nodes that are part of the system.
+// The application needs to keep track of the membership, as it will be deciding about when and how it changes.
 func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress) *ChatApp {
-
 	return &ChatApp{
 		messages:      make([]string, 0),
 		newMembership: initialMembership,
 	}
 }
 
-// ApplyTXs applies transactions received from the availability layer to the app state.
+// ApplyTXs applies ordered transactions received from the SMR system to the app state.
 // In our case, it simply extends the message history
-// by appending the payload of each received request as a new chat message.
+// by appending the payload of each received transaction as a new chat message.
 // Each appended message is also printed to stdout.
 // Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
 func (chat *ChatApp) ApplyTXs(txs []*requestpb.Request) error {
-	// For each request in the batch
+	// For each transaction in the batch
 	for _, req := range txs {
 
-		// Convert request payload to chat message.
+		// Convert transaction payload to chat message.
 		msgString := string(req.Data)
 
 		// Print content of chat message.
@@ -74,23 +75,30 @@ func (chat *ChatApp) ApplyTXs(txs []*requestpb.Request) error {
 		// If this is a config message, treat it correspondingly.
 		if len(msgString) > len("Config: ") && msgString[:len("Config: ")] == "Config: " {
 			configMsg := msgString[len("Config: "):]
-			chat.applyConfigMsg(configMsg)
+			chat.applyConfigTX(configMsg)
 		}
 	}
 
 	return nil
 }
 
-func (chat *ChatApp) applyConfigMsg(configMsg string) {
-	tokens := strings.Fields(configMsg)
+// applyConfigMsg parses and applies a special configuration transaction.
+// The supported configuration transactions are:
+// - Config: add-node <nodeID> <nodeAddress>
+// - Config: remove-node <nodeID>
+// The membership change is communicated to the SMR system the next time NewEpoch() is called
+// and takes effect after a pre-configured number of epochs (using the system's default for simplicity).
+func (chat *ChatApp) applyConfigTX(configMsg string) {
 
+	// Split config message into whitespace-separated tokens.
+	tokens := strings.Fields(configMsg)
 	if len(tokens) == 0 {
 		fmt.Printf("Ignoring empty config message.\n")
 	}
 
+	// Parse config message and execute the appropriate action.
 	switch tokens[0] {
 	case "add-node":
-
 		if len(tokens) < 3 {
 			fmt.Printf("Ignoring config message: %s (tokens: %v). Need 3 tokens.\n", configMsg, tokens)
 		}
@@ -102,6 +110,7 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 			fmt.Printf("Adding node failed. Invalid address: %v\n", err)
 		}
 
+		// Add the node to the next membership.
 		fmt.Printf("Adding node: %v (%v)\n", nodeID, nodeAddr)
 		if _, ok := chat.newMembership[nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
@@ -109,6 +118,7 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 			chat.newMembership[nodeID] = nodeAddr
 		}
 	case "remove-node":
+		// Parse out the node ID and remove it from the next membership.
 		nodeID := t.NodeID(tokens[1])
 		fmt.Printf("Removing node: %v\n", nodeID)
 		if _, ok := chat.newMembership[nodeID]; !ok {
@@ -121,24 +131,23 @@ func (chat *ChatApp) applyConfigMsg(configMsg string) {
 	}
 }
 
+// NewEpoch callback is invoked by the SMR system when it transitions to a new epoch.
+// The membership returned from NewEpoch will eventually be used by the system.
 func (chat *ChatApp) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return maputil.Copy(chat.newMembership), nil
 }
 
 // Snapshot produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
 // The snapshot is a binary representation of the application state that can be passed to applyRestoreState().
+// In our case, it only serializes the chat message history.
 func (chat *ChatApp) Snapshot() ([]byte, error) {
-	return chat.serializeMessages(), nil
-}
-
-func (chat *ChatApp) serializeMessages() []byte {
 	data := make([]byte, 0)
 	for _, msg := range chat.messages {
-		data = append(data, []byte(msg)...)
-		data = append(data, 0)
+		data = append(data, []byte(msg)...) // message data
+		data = append(data, 0)              // zero byte as separator
 	}
 
-	return data
+	return data, nil
 }
 
 // RestoreState restores the application's state to the one represented by the passed argument.
@@ -163,6 +172,7 @@ func (chat *ChatApp) RestoreState(appData []byte, epochConfig *commonpb.EpochCon
 	return nil
 }
 
+// restoreChat deserializes the chat history from the passed byte slice.
 func (chat *ChatApp) restoreChat(data []byte) {
 	chat.messages = make([]string, 0)
 	if len(data) > 0 {
@@ -172,12 +182,13 @@ func (chat *ChatApp) restoreChat(data []byte) {
 	}
 }
 
+// restoreConfiguration saves the system membership, so it can be further updated by subsequent config transactions.
 func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
 	chat.newMembership = t.Membership(config.Memberships[len(config.Memberships)-1])
 	return nil
 }
 
+// Checkpoint does nothing in our case. The sample application does not handle checkpoints.
 func (chat *ChatApp) Checkpoint(_ *checkpointpb.StableCheckpoint) error {
-	// Ignore checkpoints.
 	return nil
 }
