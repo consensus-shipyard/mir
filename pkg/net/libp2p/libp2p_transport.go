@@ -59,6 +59,7 @@ type Transport struct {
 	connWg           *sync.WaitGroup
 	conns            map[types.NodeID]*connInfo
 	connsLock        sync.RWMutex
+	stopChan         chan struct{}
 }
 
 func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -73,6 +74,7 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 		logger:           logger,
 		connWg:           &sync.WaitGroup{},
 		conns:            make(map[types.NodeID]*connInfo),
+		stopChan:         make(chan struct{}),
 	}, nil
 }
 
@@ -86,6 +88,7 @@ func (t *Transport) Stop() {
 	t.logger.Log(logging.LevelDebug, "stopping libp2p transport", "ownID", t.ownID)
 	defer t.logger.Log(logging.LevelDebug, "stopping libp2p transport finished", "ownID", t.ownID)
 
+	close(t.stopChan)
 	t.connWg.Wait()
 
 	t.host.RemoveStreamHandler(ProtocolID)
@@ -360,6 +363,7 @@ func (t *Transport) encode(msg *messagepb.Message) ([]byte, error) {
 }
 
 func (t *Transport) readAndDecode(s io.Reader) (*messagepb.Message, types.NodeID, error) {
+	fmt.Println(t.ownID, "readAndDecode")
 	var tm TransportMessage
 	err := tm.UnmarshalCBOR(s)
 	if err != nil {
@@ -388,6 +392,13 @@ func (t *Transport) mirHandler(s network.Stream) {
 	}() // nolint
 
 	for {
+		select {
+		case <-t.stopChan:
+			t.logger.Log(logging.LevelDebug, "mir handler received stop signal", "src", t.ownID)
+			return
+		default:
+
+		}
 		msg, sender, err := t.readAndDecode(s)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
