@@ -319,6 +319,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
+	t.Log(">>> cleaning")
 	m.StopAll()
 	m.testEventuallyNoStreams(nodeA)
 	m.testConnsEmpty()
@@ -382,6 +383,7 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyNoStreamsBetween(nodeB, nodeC)
 	m.testEventuallyNoStreamsBetween(nodeD, nodeC)
 
+	t.Log(">>> cleaning")
 	m.StopAll()
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testConnsEmpty()
@@ -444,6 +446,7 @@ func TestLibp2p_Sending2Nodes(t *testing.T) {
 	require.Equal(t, true, valid)
 	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
 
+	t.Log(">>> cleaning")
 	m.StopAll()
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testEventuallyNoStreams(nodeA)
@@ -517,14 +520,13 @@ func TestLibp2p_TwoNodes(t *testing.T) {
 
 	a.Connect(ctx, initialNodes)
 	b.Connect(ctx, initialNodes)
-
 	m.testEventuallyConnected(nodeA, nodeB)
 
+	t.Log(">>> cleaning")
 	m.StopAll()
 	m.testEventuallyNoStreams(nodeA)
 	m.testEventuallyNoStreams(nodeB)
 	m.testConnsEmpty()
-
 	m.CloseHostAll()
 	m.testNoConnections()
 }

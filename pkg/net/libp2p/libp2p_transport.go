@@ -362,8 +362,7 @@ func (t *Transport) encode(msg *messagepb.Message) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (t *Transport) readAndDecode(s io.Reader) (*messagepb.Message, types.NodeID, error) {
-	fmt.Println(t.ownID, "readAndDecode")
+func (t *Transport) readAndDecode(s network.Stream) (*messagepb.Message, types.NodeID, error) {
 	var tm TransportMessage
 	err := tm.UnmarshalCBOR(s)
 	if err != nil {
@@ -383,22 +382,17 @@ func (t *Transport) mirHandler(s network.Stream) {
 	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", peerID)
 	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", peerID)
 
-	defer func() {
-		t.logger.Log(logging.LevelDebug, "mir handler is closing stream", "src", t.ownID, "dst", peerID)
-		err := s.Close()
-		if err != nil {
-			t.logger.Log(logging.LevelError, "closing stream", "src", t.ownID, "dst", peerID, "err", err)
-		}
-	}() // nolint
-
-	for {
+	go func() {
 		select {
 		case <-t.stopChan:
-			t.logger.Log(logging.LevelDebug, "mir handler received stop signal", "src", t.ownID)
-			return
-		default:
-
+			t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
+			if err := s.Reset(); err != nil {
+				t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
+			}
 		}
+	}()
+
+	for {
 		msg, sender, err := t.readAndDecode(s)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
