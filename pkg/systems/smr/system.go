@@ -97,18 +97,19 @@ func New(
 ) (*System, error) {
 
 	// Initialize the libp2p transport subsystem.
-	addrIn := false
-	for _, addr := range h.Addrs() {
-		// sanity-check to see if the host is configured with the
-		// right multiaddr.
-		if addr.Equal(initialMembership[ownID]) {
-			addrIn = true
-			break
-		}
-	}
-	if !addrIn {
-		return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
-	}
+	// TODO: Re-enable this check!
+	//addrIn := false
+	//for _, addr := range h.Addrs() {
+	//	// sanity-check to see if the host is configured with the
+	//	// right multiaddr.
+	//	if addr.Equal(initialMembership[ownID]) {
+	//		addrIn = true
+	//		break
+	//	}
+	//}
+	//if !addrIn {
+	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
+	//}
 	transport, err := libp2pnet.NewTransport(h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
