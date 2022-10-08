@@ -414,9 +414,12 @@ func (t *Transport) mirHandler(s network.Stream) {
 			return
 		}
 
-		t.incomingMessages <- events.ListOf(
+		select {
+		case t.incomingMessages <- events.ListOf(
 			events.MessageReceived(types.ModuleID(msg.DestModule), sender, msg),
-		)
+		):
+		case <-t.stopChan:
+		}
 	}
 }
 

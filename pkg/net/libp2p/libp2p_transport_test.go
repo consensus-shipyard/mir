@@ -10,6 +10,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -196,6 +197,13 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
 		10*time.Second, 300*time.Millisecond)
 }
 
+func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
+	msg, valid := events.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+	require.Equal(m.t, true, valid)
+	require.Equal(m.t, msg.MessageReceived.From, nodeID.Pb())
+
+}
+
 func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
@@ -217,6 +225,16 @@ func (m *mockLibp2pCommunication) testNoConnections() {
 	for _, v := range m.transports {
 		require.Equal(m.t, 0, len(v.host.Network().Conns()))
 	}
+}
+
+func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
+	src := m.getTransport(nodeID)
+
+	require.Never(m.t,
+		func() bool {
+			return len(src.conns) > 1
+		},
+		5*time.Second, 300*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
@@ -289,17 +307,11 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	err = a.Send(ctx, nodeB, &messagepb.Message{})
 	require.NoError(t, err)
-	nodeBEvents := <-nodeBEventsChan
-	msg, valid := nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	err = a.Send(ctx, nodeC, &messagepb.Message{})
 	require.NoError(t, err)
-	nodeCEvents := <-nodeCEventsChan
-	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
@@ -307,17 +319,9 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
-
-	nodeBEvents = <-nodeBEventsChan
-	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
-
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 	m.testEventuallySentMsg(ctx, nodeA, nodeC, &messagepb.Message{})
-	nodeCEvents = <-nodeCEventsChan
-	msg, valid = nodeCEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
 	t.Log(">>> cleaning")
 	m.StopAll()
@@ -429,10 +433,8 @@ func TestLibp2p_Sending2Nodes(t *testing.T) {
 	err := a.Send(ctx, nodeB, &messagepb.Message{})
 
 	require.NoError(t, err)
-	nodeBEvents := <-nodeBEventsChan
-	msg, valid := nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
@@ -441,10 +443,7 @@ func TestLibp2p_Sending2Nodes(t *testing.T) {
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
 
-	nodeBEvents = <-nodeBEventsChan
-	msg, valid = nodeBEvents.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(t, true, valid)
-	require.Equal(t, msg.MessageReceived.From, nodeA.Pb())
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	t.Log(">>> cleaning")
 	m.StopAll()
@@ -457,14 +456,69 @@ func TestLibp2p_Sending2Nodes(t *testing.T) {
 	m.testNoConnections()
 }
 
-func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
-	src := m.getTransport(nodeID)
+func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	require.Never(m.t,
-		func() bool {
-			return len(src.conns) > 1
-		},
-		5*time.Second, 300*time.Millisecond)
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	m.StartAll()
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	t.Log("membership")
+	t.Log(initialNodes)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> send a message")
+	err := a.Send(ctx, nodeB, &messagepb.Message{})
+	require.NoError(t, err)
+
+	nodeBEventsChan := b.incomingMessages
+
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
+
+	t.Log(">>> blocking message")
+
+	go func() {
+		b.incomingMessages <- events.ListOf(
+			events.MessageReceived(types.ModuleID("1"), "blocker", &messagepb.Message{}),
+		)
+		b.incomingMessages <- events.ListOf(
+			events.MessageReceived(types.ModuleID("1"), "blocker", &messagepb.Message{}),
+		)
+	}()
+	err = a.Send(ctx, nodeB, &messagepb.Message{})
+	time.Sleep(5 * time.Second)
+	require.NoError(t, err)
+
+	t.Log(">>> cleaning")
+	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
+
+	m.testThatSenderIs(<-nodeBEventsChan, "blocker")
+	m.testThatSenderIs(<-nodeBEventsChan, "blocker")
 }
 
 // Test we don't get two elements in the node table corresponding to the same node.
@@ -497,7 +551,7 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
 }
 
-func TestLibp2p_TwoNodes(t *testing.T) {
+func TestLibp2p_TwoNodesBasic(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
