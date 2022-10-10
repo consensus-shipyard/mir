@@ -1,7 +1,6 @@
 linters:
   enable:
     - asciicheck
-    - deadcode
     - dogsled
     - dupl
     - errcheck
@@ -21,11 +20,9 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - structcheck
     - stylecheck
     - unconvert
     - unused
-    - varcheck
 
 linters-settings:
   goimports:

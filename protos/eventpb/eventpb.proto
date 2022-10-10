@@ -22,6 +22,9 @@ import "availabilitypb/availabilitypb.proto";
 import "factorymodulepb/factorymodulepb.proto";
 import "availabilitypb/batchdbpb/batchdbpb.proto";
 import "batchfetcherpb/batchfetcherpb.proto";
+import "threshcryptopb/threshcryptopb.proto";
+import "pingpongpb/pingpongpb.proto";
+import "checkpointpb/checkpointpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -65,6 +68,9 @@ message Event {
     factorymodulepb.Factory factory                 = 33;
     batchdbpb.Event         batch_db                = 34;
     batchfetcherpb.Event    batch_fetcher           = 35;
+    threshcryptopb.Event    thresh_crypto           = 36;
+    pingpongpb.Event        ping_pong               = 37;
+    checkpointpb.Event      checkpoint              = 38;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -103,10 +109,11 @@ message HashResult {
 message HashOrigin {
   string module = 1;
   oneof type {
-    contextstorepb.Origin context_store = 2;
-    requestpb.Request     request       = 3;
-    isspb.ISSHashOrigin   iss           = 4;
-    dslpb.Origin          dsl           = 5;
+    contextstorepb.Origin   context_store = 2;
+    requestpb.Request       request       = 3;
+    isspb.ISSHashOrigin     iss           = 4;
+    dslpb.Origin            dsl           = 5;
+    checkpointpb.HashOrigin checkpoint    = 6;
   }
 }
 
@@ -123,9 +130,10 @@ message SignResult {
 message SignOrigin {
   string module = 1;
   oneof type {
-    contextstorepb.Origin context_store = 2;
-    isspb.ISSSignOrigin   iss           = 3;
-    dslpb.Origin          dsl           = 4;
+    contextstorepb.Origin   context_store = 2;
+    isspb.ISSSignOrigin     iss           = 3;
+    dslpb.Origin            dsl           = 4;
+    checkpointpb.SignOrigin checkpoint    = 5;
   }
 }
 
@@ -151,9 +159,10 @@ message NodeSigsVerified {
 message SigVerOrigin {
   string module = 1;
   oneof type {
-    contextstorepb.Origin context_store = 2;
-    isspb.ISSSigVerOrigin iss           = 3;
-    dslpb.Origin          dsl           = 4;
+    contextstorepb.Origin     context_store = 2;
+    isspb.ISSSigVerOrigin     iss           = 3;
+    dslpb.Origin              dsl           = 4;
+    checkpointpb.SigVerOrigin checkpoint    = 5;
   }
 }
 
@@ -210,13 +219,11 @@ message StoreVerifiedRequest {
 }
 
 message AppSnapshotRequest {
-  string                module = 1;
-  contextstorepb.Origin origin = 2;
+  string reply_to = 1;
 }
 
 message AppSnapshot {
   bytes                 app_data = 1;
-  contextstorepb.Origin origin   = 2;
 }
 
 message AppRestoreState {

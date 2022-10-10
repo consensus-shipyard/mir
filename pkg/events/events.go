@@ -9,10 +9,8 @@ package events
 import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -284,12 +282,11 @@ func DeliverCert(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *
 }
 
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
-func AppSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID, contextID contextstore.ItemID) *eventpb.Event {
+func AppSnapshotRequest(destModule t.ModuleID, replyTo t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
-			Module: srcModule.Pb(),
-			Origin: contextstore.Origin(contextID),
+			ReplyTo: replyTo.Pb(),
 		}},
 	}
 }
@@ -300,22 +297,12 @@ func AppSnapshotRequest(destModule t.ModuleID, srcModule t.ModuleID, contextID c
 func AppSnapshotResponse(
 	destModule t.ModuleID,
 	appData []byte,
-	origin *contextstorepb.Origin,
 ) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
 			AppData: appData,
-			Origin:  origin,
 		}},
-	}
-}
-
-// StateSnapshot is a constructor for the StateSnapshot protobuf object.
-func StateSnapshot(appData []byte, configuration *commonpb.EpochConfig) *commonpb.StateSnapshot {
-	return &commonpb.StateSnapshot{
-		AppData:       appData,
-		Configuration: configuration,
 	}
 }
 

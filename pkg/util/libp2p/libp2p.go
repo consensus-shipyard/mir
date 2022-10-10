@@ -14,6 +14,22 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
+// NewDummyHostWithPrivKey creates new dummy libp2p host with an identity
+// determined by the private key given as an input.
+func NewDummyHostWithPrivKey(ownID t.NodeID, privKey libp2pcrypto.PrivKey,
+	initialMembership map[t.NodeID]t.NodeAddress) (host.Host, error) {
+
+	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(initialMembership[ownID])
+	if err != nil {
+		return nil, fmt.Errorf("failed to get own libp2p addr info: %w", err)
+	}
+	return libp2p.New(
+		libp2p.Identity(privKey),
+		libp2p.DefaultTransports,
+		libp2p.ListenAddrs(libp2pPeerID.Addrs[0]),
+	)
+}
+
 // NewDummyHost creates an insecure libp2p host for test and demonstration purposes.
 func NewDummyHost(numericID int, sourceAddr t.NodeAddress) host.Host {
 	// sourceMultiAddr, priv := NewDummyHostID(id, basePort)

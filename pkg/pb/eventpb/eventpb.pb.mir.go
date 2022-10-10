@@ -7,9 +7,12 @@ import (
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
+	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 )
 
 type Event_Type = isEvent_Type
@@ -153,6 +156,18 @@ func (p *Event_BatchDb) Unwrap() *batchdbpb.Event {
 
 func (p *Event_BatchFetcher) Unwrap() *batchfetcherpb.Event {
 	return p.BatchFetcher
+}
+
+func (p *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
+	return p.ThreshCrypto
+}
+
+func (p *Event_PingPong) Unwrap() *pingpongpb.Event {
+	return p.PingPong
+}
+
+func (p *Event_Checkpoint) Unwrap() *checkpointpb.Event {
+	return p.Checkpoint
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {

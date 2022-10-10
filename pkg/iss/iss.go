@@ -19,6 +19,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
@@ -27,6 +29,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
@@ -53,6 +56,7 @@ type ModuleConfig struct {
 	Crypto       t.ModuleID
 	Timer        t.ModuleID
 	Availability t.ModuleID
+	Checkpoint   t.ModuleID
 }
 
 func DefaultModuleConfig() *ModuleConfig {
@@ -65,6 +69,7 @@ func DefaultModuleConfig() *ModuleConfig {
 		Crypto:       "crypto",
 		Timer:        "timer",
 		Availability: "availability",
+		Checkpoint:   "checkpoint",
 	}
 }
 
@@ -185,9 +190,15 @@ type ISS struct {
 	// Stores the stable checkpoint with the highest sequence number observed so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
-	lastStableCheckpoint *isspb.StableCheckpoint
+	lastStableCheckpoint *checkpointpb.StableCheckpoint
 
-	// TODO: Finish and document this.
+	// The epoch number to which the first entry of iss.configurations corresponds.
+	configEpoch t.EpochNr
+
+	// Epoch configurations.
+	// The first entry in this slice (configurations[0]) corresponds to the configuration of epoch iss.configEpoch.
+	// The following params.configOffset entries correspond to the configurations of the following epochs.
+	// configurations always contains params.configOffset + 1 entries.
 	configurations []map[t.NodeID]t.NodeAddress
 
 	// Stores the context of request-response type invocations of other modules.
@@ -235,7 +246,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initi
 			params.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
-		lastStableCheckpoint: &isspb.StableCheckpoint{
+		lastStableCheckpoint: &checkpointpb.StableCheckpoint{
 			Sn:       0,
 			Snapshot: initialState,
 			Cert:     map[string][]byte{},
@@ -246,6 +257,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initi
 			// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
 			//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
 		},
+		configEpoch:    0,
 		configurations: memberships,
 
 		contextStore: contextstore.NewSequentialContextStore[any](),
@@ -265,17 +277,14 @@ func InitialStateSnapshot(
 	params *ModuleParams,
 ) *commonpb.StateSnapshot {
 
-	memberships := make([]*commonpb.Membership, params.ConfigOffset+1)
+	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
 	for i := 0; i < params.ConfigOffset+1; i++ {
-		memberships[i] = t.MembershipPb(params.InitialMembership)
+		memberships[i] = params.InitialMembership
 	}
 
 	return &commonpb.StateSnapshot{
-		AppData: appState,
-		Configuration: &commonpb.EpochConfig{
-			EpochNr:     0,
-			Memberships: memberships,
-		},
+		AppData:       appState,
+		Configuration: events.EpochConfig(0, memberships),
 	}
 }
 
@@ -303,19 +312,19 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
-	case *eventpb.Event_AppSnapshot:
-		return iss.applyAppSnapshot(e.AppSnapshot)
 	case *eventpb.Event_NewConfig:
 		return iss.applyNewConfig(e.NewConfig)
+	case *eventpb.Event_Checkpoint:
+		switch e := e.Checkpoint.Type.(type) {
+		case *checkpointpb.Event_StableCheckpoint:
+			return iss.applyStableCheckpoint(e.StableCheckpoint)
+		default:
+			return nil, fmt.Errorf("unknown checkpoint event type: %T", e)
+		}
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_Sb:
 			return iss.applySBEvent(issEvent.Sb)
-		case *isspb.ISSEvent_StableCheckpoint:
-			return iss.applyStableCheckpoint(issEvent.StableCheckpoint)
-		case *isspb.ISSEvent_PersistCheckpoint, *isspb.ISSEvent_PersistStableCheckpoint:
-			// TODO: Ignoring WAL loading for the moment.
-			return events.EmptyList(), nil
 		case *isspb.ISSEvent_PushCheckpoint:
 			return iss.applyPushCheckpoint()
 		default:
@@ -352,8 +361,8 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// Initialize the availability modules.
-	for epochNr, configuration := range iss.configurations {
-		eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(epochNr), t.MembershipPb(configuration)))
+	for i, configuration := range iss.configurations {
+		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), t.MembershipPb(configuration)))
 	}
 
 	// Trigger an Init event at all orderers.
@@ -391,9 +400,6 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
-	case *isspb.ISSHashOrigin_StateSnapshotEpoch:
-		// Hash originates from delivering an event of the application creating a state snapshot
-		return iss.applyStateSnapshotHashResult(result.Digests[0], t.EpochNr(origin.StateSnapshotEpoch))
 	default:
 		return nil, fmt.Errorf("unknown origin of hash result: %T", origin)
 	}
@@ -423,8 +429,6 @@ func (iss *ISS) applySignResult(result *eventpb.SignResult) (*events.EventList, 
 			instance,
 			SBSignResultEvent(result.Signature, origin.Sb.Origin),
 		))
-	case *isspb.ISSSignOrigin_CheckpointEpoch:
-		return iss.applyCheckpointSignResult(result.Signature, t.EpochNr(origin.CheckpointEpoch)), nil
 	default:
 		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
 	}
@@ -455,14 +459,6 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 			origin.Sb.Origin,
 			result.AllOk,
 		)))
-	case *isspb.ISSSigVerOrigin_CheckpointEpoch:
-		// A checkpoint only has one signature and thus each slice of the result only contains one element.
-		return iss.applyCheckpointSigVerResult(
-			result.Valid[0],
-			result.Errors[0],
-			t.NodeID(result.NodeIds[0]),
-			t.EpochNr(origin.CheckpointEpoch),
-		), nil
 	case *isspb.ISSSigVerOrigin_StableCheckpoint:
 		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint), nil
 	default:
@@ -470,43 +466,35 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 	}
 }
 
-// applyAppSnapshot applies the event of the application creating a state snapshot.
-// It passes the snapshot to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.EventList, error) {
-
-	//events.StateSnapshot(, events.EpochConfig(chat.currentEpoch, chat.memberships)),
-
-	snapshotEpoch := iss.contextStore.RecoverAndDispose(contextstore.ItemID(appSnapshot.Origin.ItemID)).(t.EpochNr)
-
-	if epoch, ok := iss.epochs[snapshotEpoch]; ok {
-		return epoch.Checkpoint.ProcessStateSnapshot(events.StateSnapshot(
-			appSnapshot.AppData,
-			events.EpochConfig(epoch.Nr, iss.configurations[:int(snapshotEpoch)+iss.params.ConfigOffset+1]),
-			// TODO: Make sure that all the necessary configurations have been received through the NewConfig event.
-		)), nil
-	}
-
-	iss.logger.Log(logging.LevelWarn, "Snapshot epoch mismatch.",
-		"curEpoch", iss.epoch.Nr, "snapshotEpoch", snapshotEpoch)
-	return events.EmptyList(), nil
-}
-
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	// Convenience variable.
+	// Convenience variables.
 	newMembership := t.Membership(config.Membership)
-
-	// Initialize the new availability module
-	eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(len(iss.configurations)), config.Membership))
+	newConfigEpoch := iss.configEpoch + t.EpochNr(len(iss.configurations)) - 1
 
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
-		"forEpoch", len(iss.configurations),
+		"forEpoch", newConfigEpoch,
 		"currentEpoch", iss.epoch.Nr,
 		"newConfigNodes", maputil.GetSortedKeys(newMembership))
 
 	// Save the new configuration.
 	iss.configurations = append(iss.configurations, newMembership)
+	iss.configurations = iss.configurations[1:]
+	iss.configEpoch++
+
+	// Initialize the new availability module
+	eventsOut.PushBack(iss.initAvailabilityModule(
+		newConfigEpoch,
+		config.Membership,
+	))
+
+	// Submit configurations to the corresponding instance of the checkpoint protocol.
+	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.configEpoch)))
+	eventsOut.PushBack(chkpprotos.EpochConfigEvent(
+		chkpModuleID,
+		events.EpochConfig(iss.configEpoch, iss.configurations),
+	))
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
@@ -536,32 +524,6 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) (*eve
 	// is the first sequence number not yet delivered to the application.
 	return iss.processCommitted()
 
-}
-
-// applyStateSnapshotHashResult applies the event of receiving the digest of a delivered event of the application creating a state snapshot.
-// It passes the snapshot hash to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyStateSnapshotHashResult(digest []byte, epoch t.EpochNr) (*events.EventList, error) {
-	if iss.epoch.Nr != epoch {
-		return events.EmptyList(), nil
-	}
-	return iss.epoch.Checkpoint.ProcessStateSnapshotHash(digest)
-}
-
-// applyCheckpointSignResult applies the event of receiving the Checkpoint message signature.
-// It passes the signature to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyCheckpointSignResult(signature []byte, epoch t.EpochNr) *events.EventList {
-	if iss.epoch.Nr != epoch {
-		return events.EmptyList()
-	}
-	return iss.epoch.Checkpoint.ProcessCheckpointSignResult(signature)
-}
-
-// It passes the signature verification result to the appropriate CheckpointTracker (identified by the event's associated epoch number).
-func (iss *ISS) applyCheckpointSigVerResult(valid bool, err string, node t.NodeID, epoch t.EpochNr) *events.EventList {
-	if iss.epoch.Nr != epoch {
-		return events.EmptyList()
-	}
-	return iss.epoch.Checkpoint.ProcessSigVerified(valid, err, node)
 }
 
 // applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),
@@ -598,7 +560,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 }
 
-func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
@@ -612,6 +574,15 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		)
 		iss.lastStableCheckpoint = stableCheckpoint
 
+		// Deliver the stable checkpoint (and potential batches committed in the meantime,
+		// but blocked from being delivered due to this missing checkpoint) to the application.
+		eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint))
+		pcResult, err := iss.processCommitted()
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(pcResult)
+
 		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
@@ -619,9 +590,14 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *isspb.StableCheckpoint) 
 		pruneIndex := int(stableCheckpoint.Snapshot.Configuration.EpochNr) - iss.params.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
-			// Prune WAL and Timer
-			eventsOut.PushBack(events.WALTruncate(iss.moduleConfig.Wal, t.RetentionIndex(pruneIndex)))
-			eventsOut.PushBack(events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)))
+			// Prune WAL, timer, and checkpointing and availability protocols.
+			eventsOut.PushBackSlice([]*eventpb.Event{
+				events.WALTruncate(iss.moduleConfig.Wal, t.RetentionIndex(pruneIndex)),
+				events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
+				factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
+				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
+			})
+			// TODO: Make EventList.PushBack accept a variable number of arguments and use it here.
 
 			// Prune epoch state.
 			for epoch := range iss.epochs {
@@ -666,14 +642,14 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// catching up with state transfer.
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := t.EpochNr(iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr)
-	for _, n := range maputil.GetKeys(iss.configurations[iss.epoch.Nr]) {
+	for _, n := range iss.epoch.Membership {
 		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.params.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
 	}
 
 	iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
-		"delayed", delayed, "numNodes", len(iss.configurations[iss.epoch.Nr]), "nodeEpochMap", iss.nodeEpochMap)
+		"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
 
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
 	return events.ListOf(events.SendMessage(iss.moduleConfig.Net, m, delayed)), nil
@@ -688,54 +664,25 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
 
-	// ISS only accepts ISS messages. If another message is applied, the next line panics.
-	switch msg := message.Type.(*messagepb.Message_Iss).Iss.Type.(type) {
-	case *isspb.ISSMessage_Checkpoint:
-		return iss.applyCheckpointMessage(msg.Checkpoint, from), nil
-	case *isspb.ISSMessage_StableCheckpoint:
-		return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
-	case *isspb.ISSMessage_Sb:
-		return iss.applySBMessage(msg.Sb, from), nil
+	switch msg := message.Type.(type) {
+	case *messagepb.Message_Iss:
+		switch msg := msg.Iss.Type.(type) {
+		case *isspb.ISSMessage_StableCheckpoint:
+			return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
+		case *isspb.ISSMessage_Sb:
+			return iss.applySBMessage(msg.Sb, from), nil
+		default:
+			return nil, fmt.Errorf("unknown ISS message type: %T", msg)
+		}
 	default:
-		return nil, fmt.Errorf("unknown ISS message type: %T", msg)
+		return nil, fmt.Errorf("unknown message type: %T", msg)
 	}
-}
-
-// applyCheckpointMessage relays a Checkpoint message received over the network to the appropriate CheckpointTracker.
-func (iss *ISS) applyCheckpointMessage(message *isspb.Checkpoint, source t.NodeID) *events.EventList {
-
-	// Remember the highest epoch number for each node to detect
-	// later if the remote node is delayed too much and requires
-	// assistance in order to catch up through state transfer.
-	epochNr := t.EpochNr(message.Epoch)
-	if iss.nodeEpochMap[source] < epochNr {
-		iss.nodeEpochMap[source] = epochNr
-	}
-
-	if epochNr > iss.epoch.Nr {
-		// If the message is for a future epoch,
-		// it might have been sent by a node that already transitioned to a newer epoch,
-		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
-		// In such case, save the message in a backlog (if there is buffer space) for later processing.
-		iss.messageBuffers[source].Store(message)
-
-		return events.EmptyList()
-	}
-
-	// If the message is for a known epoch, check its validity and
-	// apply it to the corresponding checkpoint tracker instance.
-	if epoch, ok := iss.epochs[epochNr]; ok {
-		return epoch.Checkpoint.applyMessage(message, source)
-	}
-
-	// Otherwise, ignore message (in this case it must be from a garbage-collectd epoch).
-	return events.EmptyList()
 }
 
 // applyStableCheckpointMessage processes a received StableCheckpoint message
 // by creating a request for verifying the signatures in the included checkpoint certificate.
 // The actual processing then happens in applyStableCheckpointSigVerResult.
-func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
 	// Extract signatures and the signing node IDs from the received message.
 	// TODO: Using underlying protobuf type for node ID explicitly here (nodeID string).
@@ -768,7 +715,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *isspb.StableCheckpoint, _ t.N
 // applyStableCheckpointSigVerResult applies a StableCheckpoint message
 // the signature of which signature has been verified.
 // It checks the message and decides whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb.StableCheckpoint) *events.EventList {
+func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpointpb.StableCheckpoint) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// TODO: !!!! This is wrong !!!!
@@ -810,15 +757,16 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *isspb
 	// snapshot from the new stable checkpoint.
 
 	// Save the configurations obtained in the checkpoint
+	iss.configEpoch = chkpEpoch
 	iss.configurations = make([]map[t.NodeID]t.NodeAddress, len(chkp.Snapshot.Configuration.Memberships))
 	for i, m := range chkp.Snapshot.Configuration.Memberships {
 		iss.configurations[i] = t.Membership(m)
-		eventsOut.PushBack(iss.initAvailabilityModule(t.EpochNr(i), m))
+		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), m))
 	}
 
 	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkpEpoch, maputil.GetSortedKeys(iss.configurations[chkpEpoch]))
+	iss.initEpoch(chkpEpoch, maputil.GetSortedKeys(iss.configurations[0]))
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -899,15 +847,8 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
 	// Set the new epoch number and re-initialize list of orderers.
 	epoch := newEpochInfo(
 		newEpoch,
+		iss.nextDeliveredSN,
 		membership,
-		newCheckpointTracker(
-			iss.moduleConfig,
-			iss.ownID,
-			iss.nextDeliveredSN,
-			newEpoch,
-			t.TimeDuration(iss.params.CheckpointResendPeriod),
-			logging.Decorate(iss.logger, "CT: ", "epoch", newEpoch),
-		),
 		leaderPolicy,
 	)
 
@@ -988,9 +929,14 @@ func (iss *ISS) initOrderers() *events.EventList {
 	return eventsOut
 }
 
-// epochFinished returns true when all the sequence numbers of the current epochs have been committed, otherwise false.
+func (iss *ISS) haveEpochCheckpoint() bool {
+	return t.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN
+}
+
+// epochFinished returns true when all the sequence numbers of the current epochs have been committed
+// and the starting checkpoint of the epoch is stable. Otherwise, returns false.
 func (iss *ISS) epochFinished() bool {
-	return iss.nextDeliveredSN == iss.newEpochSN
+	return iss.nextDeliveredSN == iss.newEpochSN && iss.haveEpochCheckpoint()
 }
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
@@ -999,6 +945,14 @@ func (iss *ISS) epochFinished() bool {
 // processCommitted also triggers other internal Events like epoch transitions and state checkpointing.
 func (iss *ISS) processCommitted() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
+
+	// Only deliver certificates if the current epoch's stable checkpoint has already been established.
+	// We require this, since stable checkpoints are also delivered to the application in addition to the certificates.
+	// The application may rely on the fact that each epoch starts by a stable checkpoint
+	// delivered before the epoch's batches.
+	if !iss.haveEpochCheckpoint() {
+		return eventsOut, nil
+	}
 
 	// The iss.nextDeliveredSN variable always contains the lowest sequence number
 	// for which no certificate has been delivered yet.
@@ -1050,14 +1004,16 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 		"numConfigs", len(iss.configurations),
 	)
 
-	if !(len(iss.configurations) > int(newEpochNr)) {
+	// Check whether the configuration of the next epoch has already been submitted by the application.
+	configIdx := int(newEpochNr - iss.configEpoch)
+	if configIdx >= len(iss.configurations) {
 		iss.logger.Log(logging.LevelWarn, "Cannot advance to epoch yet. Waiting for configuration.",
 			"newEpoch", newEpochNr)
 		return eventsOut
 	}
 
 	// Initialize the internal data structures for the new epoch.
-	iss.initEpoch(newEpochNr, maputil.GetSortedKeys(iss.configurations[newEpochNr]))
+	iss.initEpoch(newEpochNr, maputil.GetSortedKeys(iss.configurations[configIdx]))
 
 	// Signal the new epoch to the application.
 	// This must happen before starting the checkpoint protocol, since the application
@@ -1065,18 +1021,32 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	// emitted by the checkpoint sub-protocol.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, newEpochNr))
 
-	// Look up a (or create a new) checkpoint tracker and start the checkpointing protocol.
+	// Create a new checkpoint tracker to start the checkpointing protocol.
 	// This must happen after initialization of the new epoch,
 	// as the sequence number the checkpoint will be associated with (iss.nextDeliveredSN)
 	// is already part of the new epoch.
-	// The checkpoint tracker might already exist if a corresponding message has been already received.
 	// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
 	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
 	// The membership used for the checkpoint tracker still must be the old membership.
-	eventsOut.PushBackList(iss.epoch.Checkpoint.Start(
-		maputil.GetSortedKeys(iss.configurations[oldEpochNr]),
-		iss.contextStore.Store(newEpochNr),
+	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", newEpochNr)))
+	eventsOut.PushBack(factoryevents.NewModule(
+		iss.moduleConfig.Checkpoint,
+		chkpModuleID,
+		t.RetentionIndex(newEpochNr),
+		chkpprotos.InstanceParams(
+			maputil.GetSortedKeys(iss.configurations[configIdx-1]), // Use the old configuration.
+			newEpochNr,
+			iss.nextDeliveredSN,
+			checkpoint.DefaultResendPeriod,
+		),
 	))
+
+	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.
+	// Note that the new instance of the checkpoint protocol is not yet created at this moment,
+	// but it is guaranteed to be created before the application's response.
+	// This is because the NewModule event will already be enqueued for the checkpoint factory
+	// when the application receives the snapshot request.
+	eventsOut.PushBack(events.AppSnapshotRequest(iss.moduleConfig.App, chkpModuleID))
 
 	// Give the init signals to the newly instantiated orderers.
 	eventsOut.PushBackList(iss.initOrderers())
@@ -1101,8 +1071,6 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 			switch m := msg.(type) {
 			case *isspb.SBMessage:
 				eventsOut.PushBackList(iss.applySBMessage(m, source))
-			case *isspb.Checkpoint:
-				eventsOut.PushBackList(iss.applyCheckpointMessage(m, source))
 			}
 
 		})
@@ -1123,17 +1091,6 @@ func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) message
 		case e == iss.epoch.Nr:
 			return messagebuffer.Current
 		default: // e > iss.epoch
-			return messagebuffer.Future
-		}
-	case *isspb.Checkpoint:
-		// For Checkpoint messages, messages with current or older epoch number are considered,
-		// if they correspond to a more recent checkpoint than the last stable checkpoint stored locally at this node.
-		switch {
-		case msg.Sn <= iss.lastStableCheckpoint.Sn:
-			return messagebuffer.Past
-		case t.EpochNr(msg.Epoch) <= iss.epoch.Nr:
-			return messagebuffer.Current
-		default: // message from future epoch
 			return messagebuffer.Future
 		}
 	default:

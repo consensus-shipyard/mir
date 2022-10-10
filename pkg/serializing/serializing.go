@@ -18,7 +18,6 @@ import (
 // TODO: Write doc.
 
 func RequestForHash(req *requestpb.Request) [][]byte {
-
 	// Encode integer fields.
 	clientIDBuf := []byte(req.ClientId)
 	reqNoBuf := make([]byte, 8)

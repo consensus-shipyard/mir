@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+
 	"github.com/filecoin-project/mir/pkg/iss"
 
 	"github.com/filecoin-project/mir"
@@ -182,7 +184,15 @@ func testIntegrationWithISS(t *testing.T) {
 				Directory:       "mirbft-deployment-test",
 				Duration:        4 * time.Second,
 			}},
-		15: {"Submit 100 fake requests with 4 nodes in simulation, one of them slow",
+		15: {"Submit 100 fake requests with 1 node in simulation",
+			&TestConfig{
+				NumReplicas:     1,
+				NumClients:      0,
+				Transport:       "sim",
+				NumFakeRequests: 100,
+				Duration:        20 * time.Second,
+			}},
+		16: {"Submit 100 fake requests with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,
@@ -375,7 +385,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	nodeModules := make(map[t.NodeID]modules.Modules)
 
 	for i, nodeID := range nodeIDs {
-
+		nodeLogger := logging.Decorate(logger, fmt.Sprintf("Node %d: ", i))
 		// Dummy application
 		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
@@ -392,11 +402,17 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		issProtocol, err := iss.New(
 			nodeID,
 			iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
-			logging.Decorate(logger, "ISS: "),
+			logging.Decorate(nodeLogger, "ISS: "),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating ISS protocol module: %w", err)
 		}
+
+		checkpointing := checkpoint.Factory(
+			checkpoint.DefaultModuleConfig(),
+			nodeID,
+			logging.Decorate(nodeLogger, "CHKP: "),
+		)
 
 		transport, err := transportLayer.Link(nodeID)
 		if err != nil {
@@ -431,7 +447,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 				Crypto:  "crypto",
 			},
 			nodeID,
-			logger,
+			nodeLogger,
 		)
 
 		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
@@ -440,6 +456,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			"app":          fakeApp,
 			"crypto":       cryptoSystem.Module(nodeID),
 			"iss":          issProtocol,
+			"checkpoint":   checkpointing,
 			"batchfetcher": batchFetcher,
 			"net":          transport,
 			"mempool":      mempool,

@@ -49,13 +49,14 @@ type parsedArgs struct {
 	// If set, print trace output to stdout.
 	Trace bool
 
-	// Network transport.
+	// Network transport type
 	Net string
 
 	// Name of the file containing the initial membership for joining nodes.
 	InitMembershipFile string
 }
 
+// main is just the wrapper for executing the run() and printing a potential error.
 func main() {
 	if err := run(); err != nil {
 		errstack.Println(err)
@@ -63,12 +64,19 @@ func main() {
 	}
 }
 
+// run is the actual code of the program.
 func run() error {
-	// Parse command-line parameters.
-	_ = parseArgs(os.Args)
-	args := parseArgs(os.Args)
 
+	// ================================================================================
+	// Basic initialization and configuration
+	// ================================================================================
+
+	// Convenience variables
 	var err error
+	ctx := context.Background()
+
+	// Parse command-line parameters.
+	args := parseArgs(os.Args)
 
 	// Initialize logger that will be used throughout the code to print log messages.
 	var logger logging.Logger
@@ -79,8 +87,6 @@ func run() error {
 	} else {
 		logger = logging.ConsoleWarnLogger // Only print errors and warnings by default.
 	}
-
-	ctx := context.Background()
 
 	fmt.Println("Initializing...")
 
@@ -109,10 +115,20 @@ func run() error {
 	// Instantiate the Mir node with the appropriate set of modules.
 	// ================================================================================
 
+	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
+	h, err := libp2p.NewDummyHostWithPrivKey(
+		args.OwnID,
+		libp2p.NewDummyHostKey(ownNumericID),
+		initialMembership,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to create libp2p host")
+	}
+
 	// Create a Mir SMR system.
 	smrSystem, err := smr.New(
 		args.OwnID,
-		libp2p.NewDummyHostKey(ownNumericID),
+		h,
 		initialMembership,
 		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 		NewChatApp(initialMembership),
@@ -122,23 +138,26 @@ func run() error {
 		return errors.Wrap(err, "could not create SMR system")
 	}
 
-	if err := smrSystem.Start(ctx); err != nil {
-		return errors.Wrap(err, "could not start SMR system")
-	}
-
-	node, err := mir.NewNode(args.OwnID, &mir.NodeConfig{Logger: logger}, smrSystem.Modules(), nil, nil)
+	// Create a Mir node, passing it all the modules of the SMR system.
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}
 
 	// ================================================================================
-	// Start the Node by establishing network connections and launching necessary processing threads
+	// Start the Node by launching necessary processing threads.
 	// ================================================================================
 
-	// Initialize variables to synchronize Node startup and shutdown.
-	var nodeErr error // The error returned from running the Node will be stored here.
+	// Start the SMR system.
+	// This will start all the goroutines that need to run within the modules of the SMR system.
+	// For example, the network module will start listening for incoming connections and create outgoing ones.
+	// The modules will become ready to be used by the node (but the node itself is not yet started).
+	if err := smrSystem.Start(ctx); err != nil {
+		return errors.Wrap(err, "could not start SMR system")
+	}
 
 	// Start the node in a separate goroutine
+	var nodeErr error // The error returned from running the Node will be stored here.
 	go func() {
 		nodeErr = node.Run(ctx)
 	}()
@@ -156,7 +175,7 @@ func run() error {
 	nextReqNo := t.ReqNo(0)
 	for scanner.Scan() {
 
-		// Submit the chat message as request payload.
+		// Submit the chat message as request payload to the mempool module.
 		err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
 			"mempool",
 			[]*requestpb.Request{events.ClientRequest(t.ClientID(args.OwnID), nextReqNo, scanner.Bytes())})),
@@ -200,7 +219,6 @@ func parseArgs(args []string) *parsedArgs {
 	trace := app.Flag("trace", "Very verbose mode.").Bool()
 	// Currently, the type of the node ID is defined as uint64 by the /pkg/types package.
 	// In case that changes, this line will need to be updated.
-	n := app.Flag("net", "Network transport.").Short('n').Default("libp2p").String()
 	ownID := app.Arg("id", "ID of this node").Required().String()
 	initMembershipFile := app.Flag("init-membership", "File containing the initial system membership.").
 		Short('i').Required().String()
@@ -213,7 +231,6 @@ func parseArgs(args []string) *parsedArgs {
 		OwnID:              t.NodeID(*ownID),
 		Verbose:            *verbose,
 		Trace:              *trace,
-		Net:                *n,
 		InitMembershipFile: *initMembershipFile,
 	}
 }

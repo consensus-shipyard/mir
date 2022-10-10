@@ -9,36 +9,32 @@ As the library matures, the application can be extended to support state transfe
 
 ## Running the application
 
-4 nodes need to be started on the local machine, e.g. in 4 different terminal windows (from the root repository directory):
+Running a chat node requires 2 arguments to be passed on the command line:
+- the membership file containing the IDs and network addresses of all the nodes in the system and
+- the node's own ID.
+
+Sample membership files for different system sizes running all no the local machine are provided as `membership-*`.
+For example, 4 nodes can to be started on the local machine,
+e.g. in 4 different terminal windows, as follows (from the root repository directory):
 
 ```bash
-go run ./samples/chat-demo 0
-go run ./samples/chat-demo 1
-go run ./samples/chat-demo 2
-go run ./samples/chat-demo 3
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 0
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 1
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 2
+go run ./samples/chat-demo -i samples/chat-demo/membership-4 3
 ```
 
-If you have `tmux` you can run the nodes by the following command:
+If you have `tmux` installed you can run the nodes using the `run.sh` script:
 ```bash
 ./samples/chat-demo/run.sh
 ```
-
 and then stop them using this command:
 ```bash
 tmux kill-session -t demo
 ```
 
-This version of the application, even it uses network communication over the loopback interfase,
-can only be run locally, because the network addresses of all nodes are hard-coded to be `127.0.0.1`.
-It is trivial though to modify it for communication over the actual network by either changing the
-addresses to something else or to make them command-line parameters.
-
-The application creates a `chat-demo-wal` wal directory where the nodes persist their state.
-In case this directory is present after previous runs,
-it can (and shoud) be deleted before starting the demo chat application.
-
 When all 4 nodes are started, it may take a moment until they connect to each other.
 Once all four nodes print a prompt the user to type their messages, the demo app can be used.
 The processes read from standard input line by line
-and all messages should be replicated across all four processes, using this library.
+and replicate, in the same order, all messages across all processes.
 The process stops after reading EOF.

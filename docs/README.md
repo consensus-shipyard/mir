@@ -1,208 +1,223 @@
-# Mir Library Architecture
+# Mir Library Overview
 
-Mir is a framework for implementing, debugging, and analyzing distributed protocols implemented as a library.
-This document describes the architecture and inner workings of the library
-and is intended for its developers rather than for its users.
+Mir is a framework for implementing, debugging, and analyzing distributed protocols.
+This document describes the architecture and inner workings of the Mir library implementing the framework.
 We also keep a [log of design choices](/docs/architecture-decision-records) using Architecture Decision Records (ADRs).
+In a nutshell, Mir presents the abstractino of an *Node* containing several *Modules*
+that interact with each other by producing and consuming *Events*.
+A group of modules configured to work together is called a *System*.
+
+## Node
+
+The top-level component of the library is the [Node](/node.go).
+The user of the library instantiates a `Node` object which serves as the interface to the Mir library.
+Here we focus on the inner workings of a node.
+A node contains named [modules](#modules) (specified at node instantiation)
+that interact through events (borrowing concepts from the actor model).
+The node implements an event loop that orchestrates the processing of those events.
 
 
-## _Node_
+## Events
 
-The top-level component of the library is the [_Node_](/node.go).
-The user of the library instantiates a _Node_ object which serves as the interface to the Mir library.
-Here we focus on the inner workings of a _Node_.
-A _Node_ contains several [`modules`](/pkg/modules) that,
-inspired by the architecture of [etcdraft](https://github.com/etcd-io/etcd/tree/master/raft),
-interact through [_Events_](/protos/eventpb/eventpb.proto), also borrowing concepts from the actor model.
-Unlike etcdraft, however, the _Node_ also implements an event loop that orchestrates the processing of those _Events_.
-
-
-## _Events_
-
-_Events_ are serializable objects (implemented using Protocol Buffers) that internally serve as messages
-(not to be confused with [protocol messages](/protos/messagepb/messagepb.proto)) passed between the _Node_'s modules.
-_Events_ are created either by the _Node_ itself when external events occur
-(the library user calling some of the _Node_'s methods) or by the _Node_'s modules.
-The _Node_'s modules, independently of each other, take _Events_ as input, process them,
-and produce new _Events_ as output.
-In this sense, each event constitutes a "work item" that needs to be processed by some module.
-All created events are stored in the [_WorkItems_](/workitems.go) buffer,
+`Event`s are serializable objects (implemented using Protocol Buffers) that internally serve as messages
+(not to be confused with [protocol messages](/protos/messagepb/messagepb.proto)) passed between the node's modules.
+Events are created either by the node itself upon input from outside
+(the library user calling the `Node.InjectEvent()` method) or by the node's modules.
+Each event has a `DestModule` field containing the identifier of the module that should process it.
+The node's modules, independently of each other, take events as input, process them,
+and produce new events as output.
+All created events are stored in the [`EventBuffer`](/eventbuffer.go) within the node
+(the `EventBuffer` contains a separate FIFO queue for each module present in the node),
 from where they are dispatched (by the `Node.process()` method) to the appropriate module for processing.
-This processing creates new _Events_ which are in turn added to the _WorkItems_, and so on.
+This processing creates new events which are in turn added to the `EventBuffer`, and so on.
 
-For debugging purposes, all _Events_ can be recorded using an event _Interceptor_ ([see below](#interceptor))
+For debugging purposes, all events can be recorded using an event Interceptor ([see below](#interceptor))
 and inspected or replayed in debug mode using the [mircat](/cmd/mircat/) utility.
 
-### Follow-up _Events_
+### Follow-up events
 
-In certain cases, it is necessary that certain _Events_ are processed only after other _Events_ have been processed.
+In certain cases, it is necessary that certain events are processed only after other events have been processed.
 For example, before sending a protocol message and delivering a request batch to the application,
-the protocol state might need to be persisted in the WAL to prevent unwanted behavior in case of a crash and recovery.
-In such a case, the protocol module creates three _Events_: one for persisting the protocol state
+the protocol state might need to be persisted in a write-ahead log (WAL)
+to prevent unwanted behavior in case of a crash and recovery.
+In such a case, the protocol module creates three event: one for persisting the protocol state
 (to be processed by the WAL module), one for sending a protocol message (to be processed by the Net module),
 and one for delivering the protocol batch to the application (to be processed by the App module).
 Since the WAL, the Net, and the App modules work independently and in parallel,
-there is no guarantee about which of those modules will be the first to process _Events_.
+there is no guarantee about which of those modules will be the first to process events.
 
-An _Event_ thus contains a `Next` field, pointing to a slice of follow-up _Events_
-that can only be processed after the _Event_ itself has been processed by the appropriate module.
-In the example above, the _Events_ for the Net and App module would be included (as a 2-element list)
-in the `Next` field of the "parent" WAL _Event_.
+An `Event` thus contains a `Next` field, pointing to a slice of follow-up events
+that can only be processed after the event itself has been processed by the appropriate module.
+In the example above, the events for the Net and App module would be included (as a 2-element list)
+in the `Next` field of the "parent" WAL event.
 
-When a module (the WAL module in this case) processes an _Event_, it strips off all follow-up _Events_ and
-only processes the parent _Event_.
-It then adds all follow-up _Events_ to its output, as if they resulted from processing the parent _Event_.
-In the example case, the _Events_ for the Net and App modules will be added to the WorkItems buffer at the same time,
+When a module (the WAL module in this case) processes an event, it strips off all follow-up events and
+only processes the parent event.
+It then adds all follow-up events to its output, as if they resulted from processing the parent event.
+In the example case, the events for the Net and App modules will be added to the event buffer at the same time,
 without any guarantee about the order of their processing.
-Follow-up _Events_ can be arbitrarily nested to express more complex dependency trees.
+Follow-up events can be arbitrarily nested to express more complex dependency trees.
 
+Note that a follow-up event is not guaranteed to be processed immediately after the parent event.
+Mir does not even guarantee that a follow-up event will be processed before other events emitted by the same module.
 
-## _Modules_
+### Event representation
 
----
-> **The modules section is outdated and will be updated soon to reflect the new generalized module architecture according to [ADR-0003](https://github.com/filecoin-project/mir/blob/main/docs/architecture-decision-records/0003-generalize-modules.md) and [ADR-0004](https://github.com/filecoin-project/mir/blob/main/docs/architecture-decision-records/0004-generalize-event-dispatching.md).**
----
+Mir uses Protocol Buffers (Protobuf) to represent events.
+Protobuf definitions are located in the [/protos](/protos) directory,
+with the `Event` object ("message" in protobuf terminology)
+defined in [/protos/eventpb/eventpb.proto](/protos/eventpb/eventpb.proto).
 
-Modules are components of the system, each responsible for a part of the library's implementation.
-Each module is defined in the [`modules`](/pkg/modules) package by the tasks it has to perform.
-The interface of each module is task-specific.
+The various types of events are defined in the `Event` object using the `oneof` construct.
+Whenever new event types are introduced, the `Event` object definition must be updated accordingly.
+If new `.proto` files are added, corresponding lines must be added to [/protos/generate.go](/protos/generate.go).
 
-Multiple implementations of a module can exist.
-When instantiating a _Node_, the library user chooses which module implementations to use.
-This is done by means of the [_Modules_](/pkg/modules/modules.go) object passed to the `mir.NewNode()` function.
-The user instantiates the desired modules, groups them in a _Modules_ object and passes this object to `mir.NewNode()`.
-The library provides default implementations of some modules for the user to use out of the box,
-but the user is free to supply its own ones.
+Whenever any Protobuf definitions are updated or added, the corresponding Go code must be regenerated
+(by running `make generate` from Mir the root directory).
 
-The following modules constitute the Mir implementation (not all of them are implemented yet).
-- [Net](/pkg/modules/net.go) sends messages produced by Mir through the network.
-- [Hasher](/pkg/modules/hasher.go) computes hashes of requests and other data.
-- [Crypto](/pkg/modules/crypto.go) performs cryptographic operations (except for computing hashes).
-- [App](/pkg/modules/app.go) implements the user application logic. The user is expected to provide this module.
-- [WAL](/pkg/modules/wal.go) implements a persistent write-ahead log for the case of crashes and restarts.
-- [ClientTracker](/pkg/modules/clienttracker.go) keeps the state related to clients and validates submitted requests.
-- [RequestStore](/pkg/modules/requeststore.go) provides persistent storage for request data.
-- [Protocol](/pkg/modules/protocol.go) implements the logic of the distributed protocol.
-- [Interceptor](/pkg/modules/eventinterceptor.go) intercepts and logs all internal _Events_ for debugging purposes.
+> Note: This approach is not ideal, as adding new event types requires modifying the `Event` object
+> defined in the Mir library codebase.
+> Moreover, for historical reasons, there is no clean approach to defining event types in general.
+> This is likely to change in the future.
 
-### Net
+## Modules
 
-The [Net](/pkg/modules/net.go) module provides a simple interface for a node to exchange messages with other nodes.
-Currently, it only deals with numeric node IDs
-that it has to translate to network addresses based on some (static) initial configuration
-provided by the user at instantiation.
-The messages the Net module sends can either be received by user code on the other end of the line
-and manually injected to the _Node_ using the `Node.Step()` function,
-or received by the corresponding remote Net module that in turn makes them available to the remote _Node_.
+A module is a component of the node that consumes, processes, and produces events.
+It has to implement the [`Module`](/pkg/modules/modules.go) interface and, depending on its type,
+the [`PassiveModule`](/pkg/modules/passivemodule.go) or [`AcingModule`](/pkg/modules/activemodule.go) interface.
+The two types of modules are described in more detail later in this section.
 
-### Hasher
+At node instantiation, the user (i.e. the programmer using Mir)
+specifies a set of named modules that will make up the node in a [`Modules`](/pkg/modules/modules.go) map, e.g.:
+```go
+    // Example Node instantiation 
+	node, err := mir.NewNode(
+		&modules.Modules{
+			// ...
+			"app":      NewChatApp(),
+			"protocol": TOBProtocol,
+			"net":      grpcNetworking,
+			"crypto":   ecdsaCrypto,
+		}, 
+		/* some more technical arguments ... */
+	)
+```
+Here the `NewChatApp()`, `TOBProtocol`, `grpcNetworking`, and `ecdsaCrypto` are instances of modules
+associated with the IDs "app", "protocol", "net", and "crypto", respectively.
+The user is free to provide own implementations of these modules,
+but Mir already comes bundled with several module implementations out of the box.
 
-The [Hasher](/pkg/modules/hasher.go) module computes hashes of requests and other data.
-It accepts hash request _Events_ and produces hash result _Events_.
-Whenever any module needs to compute a hash,
-instead of computing the hash directly inside the implementation of that module,
-the module produces a hash request _Event_.
-This _Event_ will be inserted in the [_WorkItems_](/workitems.go) buffer and
-routed to the Hasher module by the `Node.process()` method.
-When the Hasher computes the digest, a hash result event will be routed (usually) back to the requesting module
-using metadata (`HashOrigin`) attached to the _Event_.
-The interface of the Hasher corresponds to Go's built-in hashing interface, e.g. `crypto.SHA256`,
-so Go's built-in hashers can be used directly.
+### Module IDs
 
-### Crypto
+Each module is identified by a unique [`ModuleID`](/pkg/types/moduleid.go)
+(currently represented as a string) within its node.
+Note however, that it is common that two different instances of a module exist under the same ID on two different nodes.
+A module ID is composed of a top-level identifier (itself a valid `ModuleID`) and an optional suffix.
+When routing an event to a module, the node implementation only considers the top-level identifier
+in the event's `DestModule` field and ignores the suffix.
+This allows for implementation of submodules (modules within modules),
+where the top-level module can decide to further dispatch an event based on the suffix of the ID.
+See [`ModuleID`](/pkg/types/moduleid.go) for details on constructing module IDs and accessing their different parts.
 
-The [Crypto](/pkg/modules/crypto.go) module is responsible for producing and verifying cryptographic signatures.
-It internally stores information about which clients and nodes are associated with which public keys.
-This information can be updated by the Node through appropriate _Events_.
-(TODO: Not yet implemented. Say which Events once implemented.)
-The Crypto module also processes _Events_ related to signature computation and verification, e.g. `VerifyRequestSig`,
-and produces corresponding result _Events_, e.g. `RequestSigVerified`.
+### Module configuration
 
+While the configuration of a modules is entirely module-specific, the convention is to use two separate data structures:
+- `ModuleConfig` only specifies identifiers of other modules 
+  that the module interacts with or otherwise needs to be aware of.
+  E.g., a module implementing the logic of a protocol that needs to interact with a crypto module
+  for the computation of signatures might include a `Crypto` field it its `ModuleConfig`
+  that needs to be set to the ID of a module to which events requesting signature computation can be sent.
+  Each module implementation defines its own `ModuleConfig` struct in its package, containing the appropriate fields.
+- `ModuleParams` defines all parameters specific to the module's implemented logic
+  such as various buffer capacities or timeouts for protocol-specific actions.
 
-### App
+> Note: Even some (legacy) modules within the Mir library itself might not follow this convention.
 
-The [App](/pkg/modules/app.go) module implements the user application logic
-and is expected to always be provided by the user.
-An ordered sequence of request batches is delivered to the App module by this library.
-The application needs to be able to serialize its state and restore it from a serialized representation.
-The library will periodically (at checkpoints) create a snapshot of the application state and may, if necessary,
-reset the application state using a snapshot (this happens when state transfer is necessary).
+### Passive and active modules
 
-### Write-Ahead Log (WAL)
+#### Passive module
 
-The [WAL](/pkg/modules/wal.go) module implements a persistent write-ahead log for the case of crashes and restarts.
-Whenever any module needs to append a persistent entry to the write-ahead log,
-it outputs an _Event_ to be processed by the WAL module.
-The WAL module will simply persist (a serialized form of) this _Event_.
-On _Node_ startup (e.g. after restarting), the write-ahead log might be non-empty.
-In such a case, before processing any external _Events_, the _Node_ loads all _Events_ stored in the WAL
-and adds them to the WorkItems buffer.
+The `PassiveModule` is the simpler type of module.
+It defines logic for transforming input events into output events.
+It passively waits to be invoked by the node (by the node calling the `PassiveModule.ApplyEvents` method)
+with a list of events to process.
+When invoked, it processes the given events, possibly updating its internal state,
+and returns a (potentially empty) list of new events.
+
+Passive modules are useful for stateless logic, e.g., computation of hashes and signatures.
+They are also useful for holding state and performing transformations on it in response to external events,
+such as the protocol logic.
+
+#### Active module
+
+An `ActiveModule` also consumes, processes, and produces events.
+However, unlike the `PassiveModule` which only produces output events synchronously as a reaction to input events,
+an `ActiveModule` can also produce output events on its own, without being triggered by an input event.
+Instead of returning events from an invocation of the `ActiveModule.ApplyEvents` method,
+the `ActiveModule` exposes a channel to which new events can be written any time.
+
+Active modules are useful for receiving input from the outside world such as network messages, user input, or timeouts.
+
+#### Example: usage of active and passive modules
+
+1. The implementation of a networking module (active) receives a message over the network.
+2. The networking module (spontaneously, from the point of view of the node)
+   writes a `MessageReceived` event to its output channel.
+3. The node implementation reads the event from the channel
+   and dispatches it to the corresponding protocol module (passive).
+4. The protocol module (as a reaction to the `MessageReceived` event)
+   emits a `TimeoutRequest` event to the timer module (active).
+5. The timer module implementation sets up an internal timeout using the operating system's timer mechanism.
+6. After the timer expires, the timer module (spontaneously, from the point of view of the node)
+   writes a `Timeout` event to its output channel.
+7. The node implementation reads the event from the channel and dispatches it to the protocol module
+   which can react to it and possibly (synchronously) emits other events.
+
+### Special modules
+
+There are two special modules that are treated differently than other modules by the node:
+the write-ahead log (WAL) and the interceptor.
+
+#### Write-ahead log (WAL)
+
+The WAL module implements a persistent write-ahead log for the case of crashes and restarts.
+It has the interface of a regular passive module, but has a distinguished role in the node.
+At node instantiation, the WAL is not passed together with the other modules, but as a separate argument to `NewNode()`.
+
+The WAL can persist events to stable storage and be used during crash-recovery to restore the state of the node's modules
+by emitting all the stored events at node startup.
+More precisely, whenever any module needs to append a persistent entry to the write-ahead log,
+it outputs an event destined to the WAL module.
+The WAL module simply persists (a serialized form of) this event.
+On node startup, if a non-empty write-ahead log is passed to the node at instantiation,
+the node loads all events stored in the WAL and adds them to the event buffer.
+before it processes events from any other module.
 It is then up to the individual modules to re-initialize their state
-based on the stored _Events_ they receive as first input.
+based on the events received this way.
 
-TODO: Implement and describe truncation of the WAL.
+#### Interceptor
 
-### ClientTracker
+The interceptor is technically not a module, but a special component of the node
+specified separately at node instantiation.
 
-The [ClientTracker](/pkg/modules/clienttracker.go) module manages the state related to clients.
-It is the first module to handle incoming client requests.
-It makes sure that the payload of a request is persisted, the request is authenticated
-and fulfills protocol-specific criteria.
-Only then the client module passes on a reference to the request to the ordering protocol.
+The interceptor intercepts events in the same order as they are being passed to modules by the node implementation.
+The default interceptor implementation provided by Mir logs all events to disk, producing what we call the event log.
+This allows to inspect and replay the event log later on using the [`mircat` utility](/cmd/mircat).
 
-TODO: Give a brief explanation of client watermarks when implemented.
-
-### RequestStore
-
-The [RequestStore](/pkg/modules/requeststore.go) module is a persistent key-value store
-that stores request payload data and request authentication metadata.
-This way, the protocol need not care about the authenticity, validity and durability of client request data.
-It will probably be the ClientTracker module to interact most with the RequestStore,
-making sure that the received requests are persisted and authenticated before handing them over to the protocol.
-
-TODO: Implement and document garbage collection of old requests included in a checkpointed state.
-
-### Protocol
-
-The [Protocol](/pkg/modules/protocol.go) module implements the logic of the distributed protocol
-executed by the library.
-It consumes and produces a large variety of _Events_.
-
-The Protocol module (similarly to the expected implementation of the App module) implements a state machine.
-Processing of _Events_ by the Protocol module is sequential
-and, if possible, should be implemented in a deterministic way (watch out for iteration over maps!).
-If the Protocol module is implemented deterministically, the same sequence of input _Events_
-will always result in the same protocol state and the same sequence of output _Events_,
-which is useful for debugging (see [`mircat`](/cmd/mircat)).
-
-For performance reasons, the processing of each _Event_ should be simple, fast, and non-blocking.
-All "expensive" operations should be delegated to the other modules, which exist for this purpose.
-For example, instead of computing a cryptographic hash inside the Protocol module,
-the module should rather output a hash request event, have it processed by the Hasher module,
-and wait for a hash result event (while sequentially processing other incoming events).
-
-### Interceptor
-
-The [Interceptor](/pkg/modules/eventinterceptor.go) intercepts and logs all internal _Events_ for debugging purposes,
-producing what we call the event log.
-When the `Node.process()` method dispatches a list of events
-from the WorkItems buffer to the appropriate module for processing,
-the Interceptor appends this list to its log.
-Thus, events are always intercepted in the exact order as they are dispatched to their corresponding modules,
-in order to be able to faithfully reproduce what happened during a run.
-The log can then later be inspected or replayed.
 The Interceptor module is not essential and would probably be disabled in a production environment,
-but it is priceless for debugging.
+but it is priceless for debugging. The user can use a custom interceptor by implementing the
+[`Interceptor`](/pkg/eventlog/interceptor.go) interface and passing the corresponding object to `mir.NewNode()`.
+E.g., a custom interceptor might only log certain events of interest
+or perform a different action on the intercepted events.
 
-#### Difference between the _WAL_ and the _Interceptor_
+#### Difference between the WAL and the (default) interceptor
 
-Note that both the Write-Ahead Log (WAL) and the Interceptor produce logs of _Events_ in stable storage.
+Note that both the Write-Ahead Log (WAL) and the Interceptor produce logs of Events in stable storage.
 Their purposes, however, are very different and largely orthogonal.
 
 **_The WAL_** produces the **_write-ahead log_**
-and is crucial for protocol correctness during recovery after restarting a _Node_.
-It is explicitly used by other modules (mostly the _Protocol_ module) that creates WALAppend events
-for persisting **_only certain events_** that are crucial for recovery.
+and is crucial for protocol correctness during recovery after restarting a Node.
+It is explicitly used by other modules for persisting **_only certain events_** that are crucial for recovery.
 The implementation of these modules (e.g., the protocol logic) decides what to store there
 and the same logic must be capable to reinitialize itself when those stored events are played back to it on restart.
 
@@ -211,3 +226,25 @@ This is a list of **_all events_** that occurred and is meant only for debugging
 The _Node_'s modules have no influence on what is intercepted.
 The event log is intended to be processed by the [`mircat` utility](/cmd/mircat)
 to gain more insight into what exactly is happening inside the _Node_.
+
+### Module operation
+
+Each module operates independently of the other modules and only interacts with them through events.
+The logic of each module is evaluated concurrently by a separate goroutine.
+The implementation of the module can, in principle, execute any code, including spawning additional goroutines.
+
+It is good practice, however, that processing one event by the module implementation
+is atomic with respect to the processing of other events.
+If in addition, event processing is deterministic for all modules,
+the interceptor combined with the [`mircat` utility](/cmd/mircat) become a very powerful debugging tool.
+
+## Systems
+
+A system is a collection of modules that are logically related and configured to work together.
+For example, the [state machine replication (SMR) system](/pkg/systems/smr) that comes bundled with Mir
+can be instantiated as a single abstraction in a user-friendly way.
+The `System.Modules()` method then returns a set of named configured modules
+that can directly be passed to `mir.NewNode()`.
+
+> Note: At the time of writing, Mir only comes with a single system - the SMR system.
+> Even this system is likely to evolve in the future.

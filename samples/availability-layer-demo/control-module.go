@@ -78,7 +78,7 @@ func (m *controlModule) readConsole() error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Println("Type in the command ('createBatch', 'readBatch')")
+		fmt.Println("Type in the command ('createBatch', 'readBatch', 'exit')")
 		scanner.Scan()
 		if scanner.Err() != nil {
 			return fmt.Errorf("error reading from console: %w", scanner.Err())
@@ -102,6 +102,9 @@ func (m *controlModule) readConsole() error {
 				return err
 			}
 			<-m.readyForNextCommand
+
+		case "exit":
+			return nil
 
 		default:
 			fmt.Println("Unknown command: ", cmd)

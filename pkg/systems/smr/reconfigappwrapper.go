@@ -1,6 +1,7 @@
 package smr
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -32,4 +33,9 @@ func (ra *reconfigurableAppLogic) Snapshot() ([]byte, error) {
 // RestoreState only delegates to the static app logic, ignoring the epoch config.
 func (ra *reconfigurableAppLogic) RestoreState(snapshot []byte, _ *commonpb.EpochConfig) error {
 	return ra.staticAppLogic.RestoreState(snapshot)
+}
+
+// Checkpoint only delegates to the static app logic, ignoring the epoch config.
+func (ra *reconfigurableAppLogic) Checkpoint(checkpoint *checkpointpb.StableCheckpoint) error {
+	return ra.staticAppLogic.Checkpoint(checkpoint)
 }

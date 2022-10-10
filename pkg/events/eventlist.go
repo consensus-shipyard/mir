@@ -83,6 +83,43 @@ func (el *EventList) PushBackList(newEvents *EventList) *EventList {
 	return el
 }
 
+// Head returns the first up to n events in the list as a new list.
+// The original list is not modified.
+func (el *EventList) Head(n int) *EventList {
+	if el.list == nil {
+		return EmptyList()
+	}
+
+	result := EmptyList()
+	iter := el.Iterator()
+	for i := 0; i < n; i++ {
+		event := iter.Next()
+		if event == nil {
+			break
+		}
+		result.PushBack(event)
+	}
+	return result
+}
+
+// RemoveFront removes the first up to n events from the list.
+// Returns the number of events actually removed.
+func (el *EventList) RemoveFront(n int) int {
+	if el.list == nil {
+		return 0
+	}
+
+	for i := 0; i < n; i++ {
+		if first := el.list.Front(); first != nil {
+			el.list.Remove(first)
+		} else {
+			return i
+		}
+	}
+
+	return n
+}
+
 // Slice returns a slice representation of the current state of the list.
 // The returned slice only contains pointers to the events in this list, no deep copying is performed.
 // Any modifications performed on the events will affect the contents of both the EventList and the returned slice.

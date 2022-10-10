@@ -12,6 +12,8 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -53,7 +55,7 @@ type Node struct {
 
 	// A buffer for storing outstanding events that need to be processed by the node.
 	// It contains a separate sub-buffer for each type of event.
-	workItems workItems
+	workItems eventBuffer
 
 	// Channels for routing work items between modules.
 	// Whenever workItems contains events, those events will be written (by the process() method)
@@ -64,6 +66,13 @@ type Node struct {
 
 	// Used to synchronize the exit of the node's worker go routines.
 	workErrNotifier *workErrNotifier
+
+	// When true, importing events from ActiveModules is disabled.
+	// This value is set to true when the internal event buffer exceeds a certain threshold
+	// and reset to false when the buffer is drained under a certain threshold.
+	inputPaused bool
+
+	inputPausedCond *sync.Cond
 
 	// If set to true, the node is in debug mode.
 	// Only events received through the Step method are applied.
@@ -85,8 +94,18 @@ func NewNode(
 	wal wal.WAL,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
-	// Make sure that the logger can be accessed concurrently.
-	config.Logger = logging.Synchronize(config.Logger)
+
+	// Check that a valid configuration has been provided.
+	if err := config.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid node configuration")
+	}
+
+	// Make sure that the logger can be accessed concurrently (if there is any logger).
+	if config.Logger == nil {
+		config.Logger = logging.NilLogger
+	} else {
+		config.Logger = logging.Synchronize(config.Logger)
+	}
 
 	// Return a new Node.
 	return &Node{
@@ -101,8 +120,11 @@ func NewNode(
 		wal:         wal,
 		interceptor: interceptor,
 
-		workItems:       newWorkItems(m),
+		workItems:       newEventBuffer(m),
 		workErrNotifier: newWorkErrNotifier(),
+
+		inputPaused:     false,
+		inputPausedCond: sync.NewCond(&sync.Mutex{}),
 
 		stopped: make(chan struct{}),
 	}, nil
@@ -208,7 +230,7 @@ func (n *Node) processWAL(ctx context.Context) error {
 		return fmt.Errorf("could not load WAL events: %w", err)
 	}
 
-	// Enqueue all events to the workItems buffers.
+	// Enqueue all events to the eventBuffer buffers.
 	if err = n.workItems.AddEvents(storedEvents); err != nil {
 		return fmt.Errorf("could not enqueue WAL events for processing: %w", err)
 	}
@@ -224,7 +246,15 @@ func (n *Node) processWAL(ctx context.Context) error {
 func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
-	defer wg.Wait()       // Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
+
+	// Wait for all worker threads (started by n.StartModules()) to finish when processing is done.
+	// Watch out! If process() terminates unexpectedly (e.g. by panicking), this might get stuck!
+	defer wg.Wait()
+
+	// Make sure that the event importing goroutines do not get stuck if input is paused due to full buffers.
+	// This defer statement must go after waiting for the worker goroutines to finish (wg.Wait() above).
+	// so it is executed before wg.Wait() (since defers are stacked). Otherwise, we get into a deadlock.
+	defer n.resumeInput()
 
 	// Start processing module events.
 	n.startModules(ctx, &wg)
@@ -248,7 +278,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			n.workErrNotifier.Fail(ErrStopped)
 		})
 
-		// Add events produced by modules and debugger to the workItems buffers and handle logical time.
+		// Add events produced by modules and debugger to the eventBuffer buffers and handle logical time.
 
 		selectCases = append(selectCases, reflect.SelectCase{
 			Dir:  reflect.SelectRecv,
@@ -258,6 +288,12 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			newEvents := newEventsVal.Interface().(*events.EventList)
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
+			}
+
+			// Keep track of the size of the input buffer.
+			// When it exceeds the PauseInputThreshold, pause the input from active modules.
+			if n.workItems.totalEvents > n.Config.PauseInputThreshold {
+				n.pauseInput()
 			}
 		})
 
@@ -271,17 +307,20 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			returnErr = n.workErrNotifier.Err()
 		})
 
-		// For each generic event buffer in workItems that contains events to be submitted to its corresponding module,
+		// For each generic event buffer in eventBuffer that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
 
-		for moduleID, buffer := range n.workItems {
+		for moduleID, buffer := range n.workItems.buffers {
 			if buffer.Len() > 0 {
+
+				eventBatch := buffer.Head(n.Config.MaxEventBatchSize)
+				numEvents := eventBatch.Len()
 
 				// Create case for writing in the work channel.
 				selectCases = append(selectCases, reflect.SelectCase{
 					Dir:  reflect.SelectSend,
 					Chan: reflect.ValueOf(n.workChans[moduleID]),
-					Send: reflect.ValueOf(buffer),
+					Send: reflect.ValueOf(eventBatch),
 				})
 
 				// Create a copy of moduleID to use in the reaction function.
@@ -292,7 +331,14 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
-					n.workItems[mID] = events.EmptyList()
+					n.workItems.buffers[mID].RemoveFront(numEvents)
+
+					// Keep track of the size of the event buffer.
+					// Whenever it drops below the ResumeInputThreshold, resume input.
+					n.workItems.totalEvents -= numEvents
+					if n.workItems.totalEvents <= n.Config.ResumeInputThreshold {
+						n.resumeInput()
+					}
 				})
 			}
 		}
@@ -373,6 +419,8 @@ func (n *Node) importEvents(
 ) {
 	for {
 
+		n.waitForInputEnabled()
+
 		// First, try to read events from the input.
 		select {
 		case newEvents, ok := <-eventSource:
@@ -415,6 +463,27 @@ func (n *Node) interceptEvents(events *events.EventList) {
 			n.workErrNotifier.Fail(err)
 		}
 	}
+}
+
+func (n *Node) pauseInput() {
+	n.inputPausedCond.L.Lock()
+	n.inputPaused = true
+	n.inputPausedCond.L.Unlock()
+}
+
+func (n *Node) resumeInput() {
+	n.inputPausedCond.L.Lock()
+	n.inputPaused = false
+	n.inputPausedCond.Broadcast()
+	n.inputPausedCond.L.Unlock()
+}
+
+func (n *Node) waitForInputEnabled() {
+	n.inputPausedCond.L.Lock()
+	for n.inputPaused {
+		n.inputPausedCond.Wait()
+	}
+	n.inputPausedCond.L.Unlock()
 }
 
 func createInitEvents(m modules.Modules) *events.EventList {

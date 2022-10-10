@@ -12,6 +12,7 @@ import "commonpb/commonpb.proto";
 import "isspbftpb/isspbftpb.proto";
 import "requestpb/requestpb.proto";
 import "availabilitypb/availabilitypb.proto";
+import "checkpointpb/checkpointpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
@@ -21,10 +22,9 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
 message ISSMessage {
   oneof type {
-    SBMessage          sb                  = 1;
-    Checkpoint         checkpoint          = 2;
-    StableCheckpoint   stable_checkpoint   = 3;
-    RetransmitRequests retransmit_requests = 4;
+    SBMessage                       sb                  = 1;
+    checkpointpb.StableCheckpoint   stable_checkpoint   = 3;
+    RetransmitRequests              retransmit_requests = 4;
   }
 }
 
@@ -36,13 +36,6 @@ message SBMessage {
   uint64 epoch = 1;
   uint64 instance = 2;
   SBInstanceMessage msg = 3;
-}
-
-message Checkpoint {
-  uint64 epoch        = 1;
-  uint64 sn           = 2;
-  bytes  snapshotHash = 3;
-  bytes  signature    = 4;
 }
 
 message SBInstanceMessage {
@@ -67,7 +60,6 @@ message SBInstanceMessage {
 message ISSEvent {
   oneof type {
     PersistCheckpoint       persist_checkpoint        = 1;
-    StableCheckpoint        stable_checkpoint         = 2;
     PersistStableCheckpoint persist_stable_checkpoint = 3;
     SBEvent                 sb                        = 4;
     PushCheckpoint          push_checkpoint           = 5;
@@ -89,16 +81,15 @@ message RequestHashOrigin {
 
 message ISSSignOrigin {
   oneof type {
-    SBSignOrigin sb               = 1;
-    uint64       checkpoint_epoch = 2;
+    SBSignOrigin sb = 1;
   }
 }
 
 message ISSSigVerOrigin {
   oneof type {
-    SBSigVerOrigin   sb                = 1;
-    uint64           checkpoint_epoch  = 2;
-    StableCheckpoint stable_checkpoint = 3;
+    SBSigVerOrigin                sb                = 1;
+    uint64                        checkpoint_epoch  = 2;
+    checkpointpb.StableCheckpoint stable_checkpoint = 3;
   }
 }
 
@@ -109,17 +100,11 @@ message PersistCheckpoint {
   bytes                  signature           = 4;
 }
 
-message StableCheckpoint {
-  uint64                 sn       = 2;
-  commonpb.StateSnapshot snapshot = 3;
-  map<string, bytes>     cert     = 4;
-}
-
 // PersistStableCheckpoint needs to be a separate Event from StableCheckpoint, since both are ISSEvents,
 // but, the protocol must differentiate between them. While the former will be applied on recovery from the WAL,
 // the latter serves as a notification to the ISS protocol when a stable checkpoint has been persisted.
 message PersistStableCheckpoint {
-  StableCheckpoint stable_checkpoint = 1;
+  checkpointpb.StableCheckpoint stable_checkpoint = 1;
 }
 
 message PushCheckpoint {

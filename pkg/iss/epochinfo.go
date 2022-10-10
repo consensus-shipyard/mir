@@ -13,14 +13,14 @@ type epochInfo struct {
 	// Epoch number.
 	Nr t.EpochNr
 
+	// The first sequence number that is part of this epoch.
+	FirstSN t.SeqNr
+
 	// IDs of nodes participating in the ordering protocol in this epoch.
 	Membership []t.NodeID
 
 	// Orderers associated with the epoch.
 	Orderers []sbInstance
-
-	// Checkpoint sub-protocol state.
-	Checkpoint *checkpointTracker
 
 	// Index of orderers based on the buckets they are assigned.
 	// For each bucket ID, this map stores the orderer to which the bucket is assigned in this epoch.
@@ -32,15 +32,15 @@ type epochInfo struct {
 
 func newEpochInfo(
 	nr t.EpochNr,
+	firstSN t.SeqNr,
 	membership []t.NodeID,
-	ct *checkpointTracker,
 	leaderPolicy LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{
 		Nr:             nr,
+		FirstSN:        firstSN,
 		Membership:     membership,
 		Orderers:       nil,
-		Checkpoint:     ct,
 		bucketOrderers: make(map[int]sbInstance),
 		leaderPolicy:   leaderPolicy,
 	}

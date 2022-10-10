@@ -3,10 +3,10 @@ package smr
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p"
-	lp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
+
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
@@ -42,6 +42,14 @@ func (sys *System) Modules() modules.Modules {
 	return sys.modules
 }
 
+// WithModule associates the given module ID within the SMR system with the given module.
+// If a module with the given ID already exists, it is replaced.
+// WithModule returns the SMR system itself (not a copy of it), so calls can be chained.
+func (sys *System) WithModule(moduleID t.ModuleID, module modules.Module) *System {
+	sys.modules[moduleID] = module
+	return sys
+}
+
 // Start starts the operation of the modules of the SMR system.
 // It starts the network transport and connects to the initial members of the system.
 func (sys *System) Start(ctx context.Context) error {
@@ -67,8 +75,8 @@ func New(
 	// The ID of this node.
 	ownID t.NodeID,
 
-	// The libp2p private key to use for communicating over libp2p.
-	ownKey lp2pcrypto.PrivKey,
+	// libp2p host to be used for the network transport module.
+	h host.Host,
 
 	// The initial membership of the system, containing the addresses of all participating nodes (including the own).
 	initialMembership map[t.NodeID]t.NodeAddress,
@@ -89,16 +97,20 @@ func New(
 ) (*System, error) {
 
 	// Initialize the libp2p transport subsystem.
-	var transport *libp2pnet.Transport
-	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(initialMembership[ownID])
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get own libp2p addr info")
-	}
-	h, err := libp2p.New(libp2p.Identity(ownKey), libp2p.DefaultTransports, libp2p.ListenAddrs(libp2pPeerID.Addrs[0]))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create libp2p host")
-	}
-	transport, err = libp2pnet.NewTransport(h, ownID, logger)
+	// TODO: Re-enable this check!
+	//addrIn := false
+	//for _, addr := range h.Addrs() {
+	//	// sanity-check to see if the host is configured with the
+	//	// right multiaddr.
+	//	if addr.Equal(initialMembership[ownID]) {
+	//		addrIn = true
+	//		break
+	//	}
+	//}
+	//if !addrIn {
+	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
+	//}
+	transport, err := libp2pnet.NewTransport(h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
 	}
@@ -122,6 +134,9 @@ func New(
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating ISS protocol module")
 	}
+
+	// Factory module with instances of the checkpointing protocol.
+	checkpointing := checkpoint.Factory(checkpoint.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
 
 	// Use a simple mempool for incoming requests.
 	mempool := simplemempool.NewModule(
@@ -166,6 +181,7 @@ func New(
 		issModuleConfig.Self:         issProtocol,
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
+		issModuleConfig.Checkpoint:   checkpointing,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
