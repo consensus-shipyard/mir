@@ -310,6 +310,7 @@ func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 	}
 
 	if conn.Connecting {
+		t.connsLock.Unlock()
 		t.logger.Log(logging.LevelError, "already connecting", "src", t.ownID, "dst", nodeID)
 		return
 	}

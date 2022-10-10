@@ -58,7 +58,6 @@ func (sys *System) Start(ctx context.Context) error {
 		return errors.Wrap(err, "could not start network transport")
 	}
 	sys.transport.Connect(ctx, sys.initialMembership)
-	sys.transport.WaitFor(len(sys.initialMembership))
 	return nil
 }
 
