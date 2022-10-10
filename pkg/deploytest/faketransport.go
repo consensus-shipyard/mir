@@ -56,7 +56,7 @@ func (fl *FakeLink) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := fl.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
+					if err := fl.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
 						// TODO: Handle sending errors (and remove "nolint" comment above).
 					}
 				}
@@ -72,8 +72,8 @@ func (fl *FakeLink) ApplyEvents(
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fl *FakeLink) ImplementsModule() {}
 
-func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
-	fl.FakeTransport.Send(fl.Source, dest, msg)
+func (fl *FakeLink) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
+	fl.FakeTransport.Send(ctx, fl.Source, dest, msg)
 	return nil
 }
 
@@ -108,7 +108,7 @@ func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
 	}
 }
 
-func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
+func (ft *FakeTransport) Send(ctx context.Context, source, dest t.NodeID, msg *messagepb.Message) {
 	select {
 	case ft.Buffers[source][dest] <- events.ListOf(
 		events.MessageReceived(t.ModuleID(msg.DestModule), source, msg),
@@ -137,7 +137,9 @@ func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return membership
 }
 
-func (fl *FakeLink) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {}
+func (ft *FakeTransport) Close() {}
+
+func (fl *FakeLink) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]

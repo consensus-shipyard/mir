@@ -56,6 +56,8 @@ func (st *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return membership
 }
 
+func (st *SimTransport) Close() {}
+
 type simTransportModule struct {
 	*SimTransport
 	*SimNode
@@ -86,12 +88,12 @@ func (m *simTransportModule) Stop() {
 	close(m.stopChan)
 }
 
-func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
-	m.sendMessage(context.Background(), msg, dest)
+func (m *simTransportModule) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
+	m.sendMessage(ctx, msg, dest)
 	return nil
 }
 
-func (m *simTransportModule) CloseOldConnections(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 }
 
 func (m *simTransportModule) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {

@@ -55,3 +55,9 @@ func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 func (t *LocalLibp2pTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return t.membership
 }
+
+func (t *LocalLibp2pTransport) Close() {
+	for _, h := range t.hosts {
+		h.Close() // nolint
+	}
+}

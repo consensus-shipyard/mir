@@ -123,7 +123,7 @@ func (gt *Transport) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := gt.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
+					if err := gt.Send(context.TODO(), t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
 						// TODO: Handle sending errors (and remove "nolint" comment above).
 						//       Also, this violates the non-blocking operation of ApplyEvents method. Fix it.
 					}
@@ -139,7 +139,7 @@ func (gt *Transport) ApplyEvents(
 
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (gt *Transport) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
 	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 
@@ -257,14 +257,14 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
-func (gt *Transport) CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress) {
+func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 	for id, connection := range gt.connections {
 		if connection == nil {
 			continue
 		}
 
 		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := nextNodes[id]; !newConn {
+		if _, newConn := newNodes[id]; !newConn {
 			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
 
 			if err := connection.CloseSend(); err != nil {

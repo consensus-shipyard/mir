@@ -47,3 +47,5 @@ func (t *LocalGrpcTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 func (t *LocalGrpcTransport) Nodes() map[t.NodeID]t.NodeAddress {
 	return t.membership
 }
+
+func (t *LocalGrpcTransport) Close() {}

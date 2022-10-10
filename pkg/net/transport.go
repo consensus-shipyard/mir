@@ -18,11 +18,11 @@ type Transport interface {
 	Stop()
 
 	// Send sends msg to the node with ID dest.
-	Send(dest t.NodeID, msg *messagepb.Message) error
+	Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error
 
 	// Connect establishes (in parallel) network connections to the provided nodes.
 	Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress)
 
 	// CloseOldConnections closes connections to the nodes that don't needed.
-	CloseOldConnections(ctx context.Context, nextNodes map[t.NodeID]t.NodeAddress)
+	CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress)
 }

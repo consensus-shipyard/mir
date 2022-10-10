@@ -23,7 +23,7 @@ clean:
 
 .PHONY: test
 test:
-	go test -race ./...
+	go test -v -count=1 -race ./...
 
 .PHONY: format
 format:

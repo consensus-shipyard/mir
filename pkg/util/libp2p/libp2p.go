@@ -3,6 +3,7 @@ package libp2p
 import (
 	"fmt"
 	mrand "math/rand"
+	"net"
 
 	"github.com/libp2p/go-libp2p"
 	libp2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -31,7 +32,7 @@ func NewDummyHostWithPrivKey(ownID t.NodeID, privKey libp2pcrypto.PrivKey,
 
 // NewDummyHost creates an insecure libp2p host for test and demonstration purposes.
 func NewDummyHost(numericID int, sourceAddr t.NodeAddress) host.Host {
-	//sourceMultiAddr, priv := NewDummyHostID(id, basePort)
+	// sourceMultiAddr, priv := NewDummyHostID(id, basePort)
 
 	h, err := libp2p.New(
 		// Use the keypair we generated
@@ -45,6 +46,24 @@ func NewDummyHost(numericID int, sourceAddr t.NodeAddress) host.Host {
 	}
 
 	return h
+}
+
+func NewFreeHostAddr() (m multiaddr.Multiaddr) {
+	var a *net.TCPAddr
+	var err error
+	a, err = net.ResolveTCPAddr("tcp", "localhost:0")
+	if err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close() // nolint
+			p := l.Addr().(*net.TCPAddr).Port
+			m, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", p))
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	return
 }
 
 // NewDummyHostAddr generates a libp2p host address for test and demonstration purposes.
