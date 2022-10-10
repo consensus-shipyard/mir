@@ -47,8 +47,9 @@ var ErrUnknownNode = errors.New("unknown node")
 var ErrNilStream = errors.New("stream has not been opened")
 
 type connInfo struct {
-	AddrInfo *peer.AddrInfo
-	Stream   network.Stream
+	Connecting bool
+	AddrInfo   *peer.AddrInfo
+	Stream     network.Stream
 }
 
 type newStream struct {
@@ -247,6 +248,7 @@ func (t *Transport) runStreamUpdater() {
 					}
 				}
 				conn.Stream = one.Stream
+				conn.Connecting = false
 				t.connsLock.Unlock()
 				t.logger.Log(logging.LevelDebug, "updated stream", "src", t.ownID, "nodeID", nodeID)
 			}
@@ -265,24 +267,30 @@ func (t *Transport) connect(ctx context.Context, nodesID []types.NodeID) {
 }
 
 func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
-	t.connsLock.RLock()
+	t.connsLock.Lock()
 	conn, found := t.conns[nodeID]
 	if !found {
-		t.connsLock.RUnlock()
+		t.connsLock.Unlock()
 		t.logger.Log(logging.LevelError, "failed to get node address", "src", t.ownID, "dst", nodeID)
+		return
+	}
+
+	if conn.Connecting {
+		t.logger.Log(logging.LevelError, "already connecting", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
 	if conn.Stream != nil &&
 		t.host.Network().Connectedness(conn.AddrInfo.ID) == network.Connected {
-		t.connsLock.RUnlock()
+		t.connsLock.Unlock()
 		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
 	info := conn.AddrInfo
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
-	t.connsLock.RUnlock()
+	conn.Connecting = true
+	t.connsLock.Unlock()
 
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
 	s, err := t.openStream(ctx, nodeID, info.ID)
