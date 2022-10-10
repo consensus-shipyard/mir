@@ -430,6 +430,7 @@ func TestLibp2p_Sending2Nodes(t *testing.T) {
 
 	nodeBEventsChan := b.EventsOut()
 
+	a.WaitFor(2)
 	err := a.Send(ctx, nodeB, &messagepb.Message{})
 
 	require.NoError(t, err)
@@ -484,6 +485,7 @@ func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
 	a.Connect(ctx, initialNodes)
 	b.Connect(ctx, initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
+	a.WaitFor(2)
 
 	t.Log(">>> send a message")
 	err := a.Send(ctx, nodeB, &messagepb.Message{})
