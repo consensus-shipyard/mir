@@ -385,7 +385,7 @@ func (t *Transport) mirHandler(s network.Stream) {
 	go func() {
 		<-t.stopChan
 		t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
-		if err := s.Reset(); err != nil {
+		if err := s.Close(); err != nil {
 			t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
 		}
 	}()
@@ -419,6 +419,7 @@ func (t *Transport) mirHandler(s network.Stream) {
 			events.MessageReceived(types.ModuleID(msg.DestModule), sender, msg),
 		):
 		case <-t.stopChan:
+			return
 		}
 	}
 }
