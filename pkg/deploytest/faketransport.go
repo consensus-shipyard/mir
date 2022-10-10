@@ -178,6 +178,13 @@ func (fl *FakeLink) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddres
 	}
 }
 
+// WaitFor returns immediately.
+// It does not need to wait for anything, since the Connect() function already waits for all the connections.
+// TODO: Technically this does not properly implement the semantics, as calling WaitFor without having called Connect
+// should block. Fix this.
+func (fl *FakeLink) WaitFor(n int) {
+}
+
 func (fl *FakeLink) Stop() {
 	close(fl.DoneC)
 }

@@ -34,6 +34,7 @@ const (
 	maxRetries             = 20
 	noLoggingErrorAttempts = 2
 	PermanentAddrTTL       = math.MaxInt64 - iota
+	connWaitPollInterval   = 100 * time.Millisecond
 )
 
 type TransportMessage struct {
@@ -50,6 +51,10 @@ type connInfo struct {
 	Connecting bool
 	AddrInfo   *peer.AddrInfo
 	Stream     network.Stream
+}
+
+func (ci *connInfo) isConnected(h host.Host) bool {
+	return ci.Stream != nil && h.Network().Connectedness(ci.AddrInfo.ID) == network.Connected
 }
 
 type newStream struct {
@@ -156,6 +161,35 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 	t.connsLock.Unlock()
 
 	t.connect(ctx, maputil.GetKeys(parsedAddrInfo))
+}
+
+// WaitFor polls the current connection state and returns when at least n connections have been established.
+func (t *Transport) WaitFor(n int) {
+	for {
+		t.connsLock.RLock()
+		numConnections := 0
+		for _, ci := range t.conns {
+			if ci.isConnected(t.host) {
+				numConnections++
+			}
+		}
+		t.connsLock.RUnlock()
+
+		// We subtract one, as we always assume to be connected to ourselves
+		// and the connection to self does not appear in t.conns.
+		if numConnections >= n-1 {
+			return
+		}
+		time.Sleep(connWaitPollInterval)
+	}
+}
+
+// ConnectSync is a convenience method that triggers the connection process
+// and waits for n connections to be established before returning.
+// Equivalent to calling Connect and WaitFor.
+func (t *Transport) ConnectSync(ctx context.Context, nodes map[types.NodeID]types.NodeAddress, n int) {
+	t.Connect(ctx, nodes)
+	t.WaitFor(n)
 }
 
 func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
@@ -280,8 +314,7 @@ func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 		return
 	}
 
-	if conn.Stream != nil &&
-		t.host.Network().Connectedness(conn.AddrInfo.ID) == network.Connected {
+	if conn.isConnected(t.host) {
 		t.connsLock.Unlock()
 		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
 		return

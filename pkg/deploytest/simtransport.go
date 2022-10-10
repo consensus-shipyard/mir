@@ -100,6 +100,10 @@ func (m *simTransportModule) Connect(ctx context.Context, nodes map[t.NodeID]t.N
 	go m.handleOutChan(ctx, m.SimTransport.Simulation.Spawn())
 }
 
+// WaitFor returns immediately, since the simulated transport does not need to wait for anything.
+func (m *simTransportModule) WaitFor(n int) {
+}
+
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
 	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpb.Event) (*events.EventList, error) {
 		return events.EmptyList(), m.applyEvent(ctx, e)
