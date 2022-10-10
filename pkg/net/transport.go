@@ -20,8 +20,13 @@ type Transport interface {
 	// Send sends msg to the node with ID dest.
 	Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error
 
-	// Connect establishes (in parallel) network connections to the provided nodes.
+	// Connect initiates the establishing of network connections to the provided nodes.
+	// When Connect returns, the connections might not yet have been established though (see WaitFor).
 	Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress)
+
+	// WaitFor waits until at least n connections (including the potentially virtual connection to self)
+	// have been established and returns.
+	WaitFor(n int)
 
 	// CloseOldConnections closes connections to the nodes that don't needed.
 	CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress)

@@ -327,6 +327,11 @@ func (gt *Transport) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddre
 	wg.Wait()
 }
 
+func (gt *Transport) WaitFor(n int) {
+	// TODO: We return immediately here, as the Connect() function already waits for all connections to be established.
+	//       This is not right and should be done as in the libp2p transport.
+}
+
 // Establishes a connection to a single node at address addrString.
 func (gt *Transport) connectToNode(ctx context.Context, addrString string) (GrpcTransport_ListenClient, error) {
 

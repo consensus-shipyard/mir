@@ -6,6 +6,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
+	"github.com/filecoin-project/mir/pkg/net"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
@@ -16,7 +18,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net"
 	libp2pnet "github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -57,6 +58,7 @@ func (sys *System) Start(ctx context.Context) error {
 		return errors.Wrap(err, "could not start network transport")
 	}
 	sys.transport.Connect(ctx, sys.initialMembership)
+	sys.transport.WaitFor(len(sys.initialMembership))
 	return nil
 }
 
