@@ -236,15 +236,19 @@ func (t *Transport) runStreamUpdater() {
 				t.logger.Log(logging.LevelError, "stream updater received stop signal", "src", t.ownID)
 				return
 			case one := <-t.streamChan:
+				nodeID := one.NodeID
 				t.connsLock.Lock()
-				conn, found := t.conns[one.NodeID]
-				if !found {
-					t.connsLock.Unlock()
-					continue
+				conn, found := t.conns[nodeID]
+				if found {
+					if conn.Stream != nil {
+						if err := conn.Stream.Close(); err != nil {
+							t.logger.Log(logging.LevelError, "could not close stream to node", "src", t.ownID, "dst", nodeID, "err", err)
+						}
+					}
 				}
 				conn.Stream = one.Stream
 				t.connsLock.Unlock()
-				t.logger.Log(logging.LevelDebug, "updated stream", "src", t.ownID, "nodeID", one.NodeID)
+				t.logger.Log(logging.LevelDebug, "updated stream", "src", t.ownID, "nodeID", nodeID)
 			}
 		}
 	}()
@@ -256,11 +260,11 @@ func (t *Transport) connect(ctx context.Context, nodesID []types.NodeID) {
 		if nodesID[i] == t.ownID {
 			continue
 		}
-		go t.connectToNodeWithoutLock(ctx, nodesID[i])
+		go t.connectToNode(ctx, nodesID[i])
 	}
 }
 
-func (t *Transport) connectToNodeWithoutLock(ctx context.Context, nodeID types.NodeID) {
+func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 	t.connsLock.RLock()
 	conn, found := t.conns[nodeID]
 	if !found {
@@ -276,24 +280,16 @@ func (t *Transport) connectToNodeWithoutLock(ctx context.Context, nodeID types.N
 		return
 	}
 
-	if conn.Stream != nil && t.host.Network().Connectedness(conn.AddrInfo.ID) == network.NotConnected {
-		if err := conn.Stream.Close(); err != nil {
-			t.logger.Log(logging.LevelError, "could not close stream to node", "src", t.ownID, "dst", nodeID, "err", err)
-		}
-	}
-
 	info := conn.AddrInfo
-
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
+	t.connsLock.RUnlock()
 
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
 	s, err := t.openStream(ctx, nodeID, info.ID)
 	if err != nil {
-		t.connsLock.RUnlock()
 		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
 		return
 	}
-	t.connsLock.RUnlock()
 
 	t.streamChan <- &newStream{nodeID, s}
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
