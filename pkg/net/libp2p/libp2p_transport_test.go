@@ -396,7 +396,67 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_Sending2Nodes(t *testing.T) {
+func TestLibp2p_SendingWithNodes(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	m.StartAll()
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	t.Log("membership")
+	t.Log(initialNodes)
+
+	a.Connect(ctx, initialNodes)
+	b.Connect(ctx, initialNodes)
+
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> sending messages")
+
+	nodeBEventsChan := b.EventsOut()
+
+	err := a.Send(ctx, nodeB, &messagepb.Message{})
+
+	require.NoError(t, err)
+
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
+
+	t.Log(">>> disconnecting nodes")
+	m.disconnect(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
+
+	t.Log(">>> sending messages after disconnection")
+	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
+
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
+
+	t.Log(">>> cleaning")
+	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
+}
+
+func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
