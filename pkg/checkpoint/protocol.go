@@ -150,9 +150,17 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 func (p *Protocol) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.EventList, error) {
 
+	// Treat nil data as an empty byte slice.
+	var appData []byte
+	if appSnapshot.AppData != nil {
+		appData = appSnapshot.AppData
+	} else {
+		appData = []byte{}
+	}
+
 	// Save the received app snapshot if there is none yet.
 	if p.stateSnapshot.AppData == nil {
-		p.stateSnapshot.AppData = appSnapshot.AppData
+		p.stateSnapshot.AppData = appData
 		if p.snapshotReady() {
 			return p.processStateSnapshot()
 		}
