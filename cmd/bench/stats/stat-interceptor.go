@@ -26,19 +26,20 @@ func NewStatInterceptor(s *Stats, txConsumer t.ModuleID) *StatInterceptor {
 
 func (i *StatInterceptor) Intercept(events *events.EventList) error {
 	it := events.Iterator()
-	for e := it.Next(); e != nil; e = it.Next() {
+	for evt := it.Next(); evt != nil; evt = it.Next() {
 
-		// Skip events destined to other modules than the one consuming the transactions.
-		if t.ModuleID(e.DestModule) != i.txConsumerModule {
-			continue
-		}
-
-		switch e := e.Type.(type) {
+		switch e := evt.Type.(type) {
 		case *eventpb.Event_NewRequests:
 			for _, req := range e.NewRequests.Requests {
 				i.Stats.NewRequest(req)
 			}
 		case *eventpb.Event_BatchFetcher:
+
+			// Skip events destined to other modules than the one consuming the transactions.
+			if t.ModuleID(evt.DestModule) != i.txConsumerModule {
+				continue
+			}
+
 			switch e := e.BatchFetcher.Type.(type) {
 			case *bfpb.Event_NewOrderedBatch:
 				for _, req := range e.NewOrderedBatch.Txs {
