@@ -1,0 +1,43 @@
+---
+- name: Initialize Mir benchmark VM
+  hosts: all
+  become: False
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/go/bin:"
+  tasks:
+    - name: "Install Go"
+      become: True
+      community.general.snap:
+        name:
+          - go
+        classic: True
+        channel: 1.18/stable
+        state: present
+    - name: "Install snaps"
+      become: True
+      community.general.snap:
+        name:
+          - tmux
+          - protobuf
+        classic: True
+        state: present
+    - name: "Install apt"
+      become: True
+      ansible.builtin.apt:
+        name:
+          - make
+        state: present
+    - name: Get the Mir code from GitHub
+      ansible.builtin.git:
+        repo: https://github.com/matejpavlovic/mir.git
+        dest: ~/mir
+        single_branch: yes
+        version: bench
+        force: True
+    - name: Build the default target
+      make:
+        chdir: ~/mir
+        target: bin/bench
+    - name: "Run setup script"
+      ansible.builtin.script: scripts/setup.sh
+...
