@@ -248,7 +248,7 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 				} else {
 					// Send message to another node.
 					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil {
-						t.logger.Log(logging.LevelError, "failed to send a message", "err", err)
+						t.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
 			}
