@@ -86,7 +86,7 @@ func runNode() error {
 		h,
 		initialMembership,
 		localCrypto.Crypto(ownID),
-		&App{Logger: logger, Membership: nodeAddrs},
+		&App{Logger: logger, Membership: initialMembership},
 		logger,
 	)
 	if err != nil {
