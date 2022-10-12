@@ -81,12 +81,16 @@ func runNode() error {
 		return fmt.Errorf("failed to create libp2p host: %w", err)
 	}
 
+	smrParams := smr.DefaultParams(initialMembership)
+	smrParams.Mempool.MaxTransactionsInBatch = 1024
+
 	benchApp, err := smr.New(
 		ownID,
 		h,
 		initialMembership,
 		localCrypto.Crypto(ownID),
 		&App{Logger: logger, Membership: initialMembership},
+		smrParams,
 		logger,
 	)
 	if err != nil {

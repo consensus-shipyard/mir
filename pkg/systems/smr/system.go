@@ -93,6 +93,9 @@ func New(
 	// using AppLogicFromStatic.
 	app AppLogic,
 
+	// Parameters of the SMR system, like batch size or batch timeout.
+	params Params,
+
 	// The logger to which the system will pass all its log messages.
 	logger logging.Logger,
 ) (*System, error) {
@@ -126,10 +129,9 @@ func New(
 	// We use the ISS' default module configuration (the expected IDs of modules it interacts with)
 	// also to configure other modules of the system.
 	issModuleConfig := iss.DefaultModuleConfig()
-	issParams := iss.DefaultParams(initialMembership)
 	issProtocol, err := iss.New(
 		ownID,
-		issModuleConfig, issParams, iss.InitialStateSnapshot(initialSnapshot, issParams),
+		issModuleConfig, params.Iss, iss.InitialStateSnapshot(initialSnapshot, params.Iss),
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -145,9 +147,7 @@ func New(
 			Self:   "mempool",
 			Hasher: issModuleConfig.Hasher,
 		},
-		&simplemempool.ModuleParams{
-			MaxTransactionsInBatch: 10,
-		},
+		params.Mempool,
 	)
 
 	// Use fake batch database that only stores batches in memory and does not persist them to disk.
