@@ -26,6 +26,12 @@ func DefaultModuleConfig() *ModuleConfig {
 	}
 }
 
+func DefaultModuleParams() *ModuleParams {
+	return &ModuleParams{
+		MaxTransactionsInBatch: 10,
+	}
+}
+
 // NewModule creates a new instance of a simple mempool module implementation. It passively waits for
 // eventpb.NewRequests events and stores them in a local map.
 //

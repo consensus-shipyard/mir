@@ -131,6 +131,7 @@ func run() error {
 		initialMembership,
 		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
 		NewChatApp(initialMembership),
+		smr.DefaultParams(initialMembership),
 		logger,
 	)
 	if err != nil {

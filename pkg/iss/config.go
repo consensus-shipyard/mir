@@ -171,26 +171,35 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
-	// TODO: Adapt this if needed when PBFT configuration is specified separately.
-	maxProposeDelay := time.Second
-	segmentLength := 4
 
-	return &ModuleParams{
-		InitialMembership:            initialMembership,
-		ConfigOffset:                 2,
-		SegmentLength:                segmentLength,
-		MaxProposeDelay:              maxProposeDelay,
-		NumBuckets:                   len(initialMembership),
-		LeaderPolicy:                 &SimpleLeaderPolicy{Membership: maputil.GetSortedKeys(initialMembership)},
-		RequestNAckTimeout:           16,
-		MsgBufCapacity:               32 * 1024 * 1024, // 32 MiB
-		RetainedEpochs:               1,
-		CatchUpTimerPeriod:           maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
-		PBFTDoneResendPeriod:         maxProposeDelay,
-		PBFTCatchUpDelay:             maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
-		CheckpointResendPeriod:       maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
-		PBFTViewChangeSNTimeout:      4 * maxProposeDelay,
-		PBFTViewChangeSegmentTimeout: 2 * time.Duration(segmentLength) * maxProposeDelay,
-		PBFTViewChangeResendPeriod:   maxProposeDelay, // maxProposeDelay is picked quite arbitrarily, could be anything
-	}
+	return (&ModuleParams{
+		InitialMembership:  initialMembership,
+		ConfigOffset:       2,
+		SegmentLength:      4,
+		NumBuckets:         len(initialMembership),
+		LeaderPolicy:       &SimpleLeaderPolicy{Membership: maputil.GetSortedKeys(initialMembership)},
+		RequestNAckTimeout: 16,
+		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
+		RetainedEpochs:     1,
+	}).AdjustSpeed(time.Second)
+}
+
+// AdjustSpeed sets multiple ISS parameters (e.g. view change timeouts)
+// to their default values relative to maxProposeDelay.
+// It can be useful to make the whole protocol run faster or slower.
+// For example, for a large maxProposeDelay, the view change timeouts must be increased correspondingly,
+// otherwise the view change can kick in before a node makes a proposal.
+// AdjustSpeed makes these adjustments automatically.
+func (mp *ModuleParams) AdjustSpeed(maxProposeDelay time.Duration) *ModuleParams {
+	mp.MaxProposeDelay = maxProposeDelay
+	mp.CatchUpTimerPeriod = maxProposeDelay
+	mp.PBFTDoneResendPeriod = maxProposeDelay
+	mp.PBFTCatchUpDelay = maxProposeDelay
+	mp.CheckpointResendPeriod = maxProposeDelay
+	mp.PBFTViewChangeSNTimeout = 4 * maxProposeDelay
+	mp.PBFTViewChangeSegmentTimeout = 2 * time.Duration(mp.SegmentLength) * maxProposeDelay
+	mp.PBFTViewChangeResendPeriod = maxProposeDelay
+	// TODO: Adapt this if needed when PBFT configuration is specified separately.
+
+	return mp
 }
