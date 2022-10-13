@@ -46,24 +46,30 @@ generate:
 
 cmd: $(targetdir)/bench $(targetdir)/mircat
 
+.PHONY: $(targetdir)/bench
 $(targetdir)/bench:
 	go build -o $(targetdir)/bench ./cmd/bench
 
+.PHONY: $(targetdir)/mircat
 $(targetdir)/mircat:
 	go build -o $(targetdir)/mircat ./cmd/mircat
 
 
 samples: $(targetdir)/chat-demo $(targetdir)/availability-layer-demo $(targetdir)/bcb-demo $(targetdir)/pingpong
 
+.PHONY: $(targetdir)/chat-demo
 $(targetdir)/chat-demo:
 	go build -o $(targetdir)/chat-demo ./samples/chat-demo
 
+.PHONY: $(targetdir)/availability-layer-demo
 $(targetdir)/availability-layer-demo:
 	go build -o $(targetdir)/availability-layer-demo ./samples/availability-layer-demo
 
+.PHONY: $(targetdir)/bcb-demo
 $(targetdir)/bcb-demo:
 	go build -o $(targetdir)/bcb-demo ./samples/bcb-demo
 
+.PHONY: $(targetdir)/pingpong
 $(targetdir)/pingpong:
 	go build -o $(targetdir)/pingpong ./samples/pingpong
 
