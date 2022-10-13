@@ -21,7 +21,7 @@
           - protobuf
         classic: True
         state: present
-    - name: "Install apt"
+    - name: "Install apt packages"
       become: True
       ansible.builtin.apt:
         name:
