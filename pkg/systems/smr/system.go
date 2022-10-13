@@ -73,6 +73,8 @@ func (sys *System) Stop() {
 // The returned system's Stop method should be called when the system is no longer needed.
 // The returned system's Modules method can be used to obtain the Mir modules to be passed to mir.NewNode.
 func New(
+	ctx context.Context,
+
 	// The ID of this node.
 	ownID t.NodeID,
 
@@ -99,18 +101,18 @@ func New(
 
 	// Initialize the libp2p transport subsystem.
 	// TODO: Re-enable this check!
-	//addrIn := false
-	//for _, addr := range h.Addrs() {
+	// addrIn := false
+	// for _, addr := range h.Addrs() {
 	//	// sanity-check to see if the host is configured with the
 	//	// right multiaddr.
 	//	if addr.Equal(initialMembership[ownID]) {
 	//		addrIn = true
 	//		break
 	//	}
-	//}
-	//if !addrIn {
+	// }
+	// if !addrIn {
 	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
-	//}
+	// }
 	transport, err := libp2pnet.NewTransport(h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
@@ -185,7 +187,7 @@ func New(
 		issModuleConfig.Checkpoint:   checkpointing,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
-		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
+		"app":                        NewAppModule(ctx, app, transport, issModuleConfig.Self),
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")

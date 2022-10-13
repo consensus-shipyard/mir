@@ -202,9 +202,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 			))
 
 			if err := node.InjectEvents(ctx, eventList); err != nil {
-
-				// TODO (Jason), failing on err causes flakes in the teardown,
-				// so just returning for now, we should address later
+				tr.Config.Logger.Log(logging.LevelError, "failed to inject events", "err", err)
 				break
 			}
 

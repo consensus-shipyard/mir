@@ -77,7 +77,6 @@ func (vcState *pbftViewChangeState) AddSignedViewChange(svc *isspbftpb.SignedVie
 
 // TODO: Make sure this procedure is fully deterministic (map iterations etc...)
 func (vcState *pbftViewChangeState) updateReproposals() {
-
 	pSets, qSets := reconstructPSetQSet(vcState.signedViewChanges)
 
 	for sn, r := range vcState.reproposals {

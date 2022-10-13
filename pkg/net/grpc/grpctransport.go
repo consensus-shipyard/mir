@@ -123,9 +123,8 @@ func (gt *Transport) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := gt.Send(context.TODO(), t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
-						//       Also, this violates the non-blocking operation of ApplyEvents method. Fix it.
+					if err := gt.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil {
+						gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
 			}
@@ -140,6 +139,9 @@ func (gt *Transport) ApplyEvents(
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *Transport) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 

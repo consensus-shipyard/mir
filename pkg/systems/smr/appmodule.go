@@ -15,6 +15,7 @@ import (
 
 // AppModule is the module within the SMR system that handles the application logic.
 type AppModule struct {
+	ctx context.Context
 
 	// appLogic is the user-provided application logic.
 	appLogic AppLogic
@@ -30,8 +31,9 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule.
-func NewAppModule(appLogic AppLogic, transport net.Transport, protocolModule t.ModuleID) *AppModule {
+func NewAppModule(ctx context.Context, appLogic AppLogic, transport net.Transport, protocolModule t.ModuleID) *AppModule {
 	return &AppModule{
+		ctx:            ctx,
 		appLogic:       appLogic,
 		transport:      transport,
 		protocolModule: protocolModule,
@@ -123,7 +125,7 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	if err != nil {
 		return nil, fmt.Errorf("error handling NewEpoch event: %w", err)
 	}
-	m.transport.Connect(context.TODO(), membership) // TODO: Make this function not use a context (and not block).
+	m.transport.Connect(m.ctx, membership) // TODO: Make this function not use a context (and not block).
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 	return events.ListOf(events.NewConfig(m.protocolModule, membership)), nil
 }

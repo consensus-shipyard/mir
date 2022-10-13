@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -56,8 +57,8 @@ func (fl *FakeLink) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := fl.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
+					if err := fl.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil {
+						fl.FakeTransport.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
 			}
@@ -86,6 +87,7 @@ type FakeTransport struct {
 	Buffers   map[t.NodeID]map[t.NodeID]chan *events.EventList
 	NodeSinks map[t.NodeID]chan *events.EventList
 	WaitGroup sync.WaitGroup
+	logger    logging.Logger
 }
 
 func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
@@ -105,6 +107,7 @@ func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
 	return &FakeTransport{
 		Buffers:   buffers,
 		NodeSinks: nodeSinks,
+		logger:    logging.ConsoleErrorLogger,
 	}
 }
 
