@@ -74,9 +74,8 @@ func runNode() error {
 	ownID := t.NodeID(id)
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		ownID,
+		initialMembership[ownID],
 		libp2p.NewDummyHostKey(ownNumericID),
-		initialMembership,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create libp2p host: %w", err)

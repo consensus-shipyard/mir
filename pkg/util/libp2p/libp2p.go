@@ -16,10 +16,9 @@ import (
 
 // NewDummyHostWithPrivKey creates new dummy libp2p host with an identity
 // determined by the private key given as an input.
-func NewDummyHostWithPrivKey(ownID t.NodeID, privKey libp2pcrypto.PrivKey,
-	initialMembership map[t.NodeID]t.NodeAddress) (host.Host, error) {
+func NewDummyHostWithPrivKey(listenAddr t.NodeAddress, privKey libp2pcrypto.PrivKey) (host.Host, error) {
 
-	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(initialMembership[ownID])
+	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(listenAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get own libp2p addr info: %w", err)
 	}
