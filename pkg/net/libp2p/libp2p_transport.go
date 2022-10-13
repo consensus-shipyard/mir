@@ -311,13 +311,13 @@ func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 
 	if conn.Connecting {
 		t.connsLock.Unlock()
-		t.logger.Log(logging.LevelError, "already connecting", "src", t.ownID, "dst", nodeID)
+		t.logger.Log(logging.LevelWarn, "already connecting", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
 	if conn.isConnected(t.host) {
 		t.connsLock.Unlock()
-		t.logger.Log(logging.LevelInfo, "connection to node already exists", "src", t.ownID, "dst", nodeID)
+		t.logger.Log(logging.LevelWarn, "connection to node already exists", "src", t.ownID, "dst", nodeID)
 		return
 	}
 
