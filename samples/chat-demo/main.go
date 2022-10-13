@@ -117,9 +117,8 @@ func run() error {
 
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		args.OwnID,
+		initialMembership[args.OwnID],
 		libp2p.NewDummyHostKey(ownNumericID),
-		initialMembership,
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p host")
