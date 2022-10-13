@@ -1,0 +1,10 @@
+---
+- name: Run Mir benchmark nodes
+  hosts: all
+  become: False
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/mir/bin:"
+  tasks:
+    - name: "Create membership file"
+      ansible.builtin.shell: "tmux kill-server"
+...
