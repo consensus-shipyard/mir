@@ -6,6 +6,7 @@ package stats
 
 import (
 	"encoding/csv"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -93,7 +94,7 @@ func (s *Stats) WriteCSVRecord(w *csv.Writer, d time.Duration) {
 	record := []string{
 		strconv.Itoa(s.deliveredRequests),
 		strconv.Itoa(int(tps)),
-		strconv.FormatFloat(s.avgLatency, 'f', 0, 64),
+		fmt.Sprintf("%.2f", time.Duration(s.avgLatency).Seconds()),
 	}
 	_ = w.Write(record)
 }
