@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
-	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
@@ -103,6 +103,7 @@ func runNode() error {
 
 	smrParams := smr.DefaultParams(initialMembership)
 	smrParams.Mempool.MaxTransactionsInBatch = 1024
+	smrParams.AdjustSpeed(100 * time.Millisecond)
 
 	benchApp, err := smr.New(
 		ownID,
