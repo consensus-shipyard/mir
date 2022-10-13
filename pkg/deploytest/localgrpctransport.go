@@ -22,6 +22,9 @@ type LocalGrpcTransport struct {
 }
 
 func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpcTransport {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := make(map[t.NodeID]t.NodeAddress)

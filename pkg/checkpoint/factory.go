@@ -11,6 +11,9 @@ import (
 )
 
 func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 	return factorymodule.New(
 		mc.Self,
 		factorymodule.DefaultParams(

@@ -212,6 +212,9 @@ type ISS struct {
 //     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
 func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 
 	// Check whether the passed configuration is valid.
 	if err := CheckParams(params); err != nil {
@@ -722,12 +725,12 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	//       The snapshot first has to be hashed and only then the signatures can be verified.
 	//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
 
-	//// Ignore checkpoint with in valid or insufficiently many signatures.
-	//// TODO: Make sure this code still works when reconfiguration is implemented.
-	//if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
+	// // Ignore checkpoint with in valid or insufficiently many signatures.
+	// // TODO: Make sure this code still works when reconfiguration is implemented.
+	// if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
 	//	iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
 	//	return eventsOut
-	//}
+	// }
 
 	// Convenience variable
 	chkpEpoch := t.EpochNr(chkp.Snapshot.Configuration.EpochNr)

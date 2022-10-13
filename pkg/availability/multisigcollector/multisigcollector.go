@@ -54,6 +54,9 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules
 }
 
 func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.Logger) modules.PassiveModule {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 	return factorymodule.New(
 		mc.Self,
 		factorymodule.DefaultParams(

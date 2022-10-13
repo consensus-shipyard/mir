@@ -29,6 +29,9 @@ type FactoryModule struct {
 }
 
 func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModule {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 
 	// Zero value of the t.NodeID type.
 	// This is used as a dummy value, as for now the node ID is ignored by the message buffer.

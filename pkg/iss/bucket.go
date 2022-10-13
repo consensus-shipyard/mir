@@ -58,6 +58,9 @@ type RequestBucket struct {
 
 // newRequestBucket returns a new initialized request bucket with ID `id`.
 func newRequestBucket(id int, logger logging.Logger) *RequestBucket {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 	return &RequestBucket{
 		ID:      id,
 		reqMap:  make(map[string]*list.Element),
