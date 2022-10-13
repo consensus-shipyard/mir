@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
@@ -66,11 +67,7 @@ func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) 
 }
 
 func GetIDs(membership map[t.NodeID]t.NodeAddress) []t.NodeID {
-	ids := make([]t.NodeID, 0, len(membership))
-	for nodeID := range membership {
-		ids = append(ids, nodeID)
-	}
-	return ids
+	return maputil.GetSortedKeys(membership)
 }
 
 // DummyMultiAddrs returns a set of libp2p multiaddresses based on the given membership,
