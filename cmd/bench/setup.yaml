@@ -3,7 +3,7 @@
   hosts: all
   become: False
   environment:
-    PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/go/bin:"
+    PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/go/bin"
   tasks:
     - name: "Install Go"
       become: True
@@ -26,18 +26,21 @@
       ansible.builtin.apt:
         name:
           - make
+          - python3
         state: present
     - name: Get the Mir code from GitHub
       ansible.builtin.git:
         repo: https://github.com/matejpavlovic/mir.git
         dest: ~/mir
-        single_branch: yes
+        single_branch: True
         version: bench
         force: True
-    - name: Build the default target
+    - name: compile Mir benchmark
       make:
         chdir: ~/mir
         target: bin/bench
     - name: "Run setup script"
-      ansible.builtin.script: scripts/setup.sh
+      ansible.builtin.script:
+        # Single quotes are important here (https://github.com/ansible/ansible/issues/44897)
+        cmd: scripts/setup.sh
 ...

@@ -2,6 +2,8 @@
 
 user=$(whoami)
 
+echo "$1" > firstarg
+
 # Install Go dependencies for code generation
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install github.com/golang/mock/mockgen@v1.6.0
