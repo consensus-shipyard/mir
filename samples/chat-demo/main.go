@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -30,7 +31,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 
 	"github.com/filecoin-project/mir"
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
@@ -139,12 +139,15 @@ func run() error {
 		return errors.Wrap(err, "failed to create libp2p host")
 	}
 
+	// Create a dummy crypto implementation that locally generates all keys in a pseudo-random manner.
+	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
+
 	// Create a Mir SMR system.
 	smrSystem, err := smr.New(
 		args.OwnID,
 		h,
 		initialMembership,
-		&mirCrypto.DummyCrypto{DummySig: []byte{0}},
+		localCrypto.Crypto(args.OwnID),
 		NewChatApp(initialMembership),
 		smr.DefaultParams(initialMembership),
 		logger,
