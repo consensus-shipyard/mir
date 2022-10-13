@@ -8,10 +8,13 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
@@ -58,6 +61,7 @@ func runNode() error {
 
 	ctx := context.Background()
 
+	// Load system membership.
 	nodeAddrs, err := membership.FromFileName(membershipFile)
 	if err != nil {
 		return fmt.Errorf("could not load membership: %w", err)
@@ -67,6 +71,7 @@ func runNode() error {
 		return fmt.Errorf("could not create dummy multiaddrs: %w", err)
 	}
 
+	// Parse own ID.
 	ownNumericID, err := strconv.Atoi(id)
 	if err != nil {
 		return fmt.Errorf("unable to convert node ID: %w", err)
@@ -74,14 +79,27 @@ func runNode() error {
 		return fmt.Errorf("ID must be in [0, %d]", len(initialMembership)-1)
 	}
 	ownID := t.NodeID(id)
-	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
+
+	// Assemble listening address.
+	// In this benchmark code, we always listen on tha address 0.0.0.0.
+	portStr, err := getPortStr(initialMembership[ownID])
+	if err != nil {
+		return fmt.Errorf("could not parse port from own address: %w", err)
+	}
+	addrStr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", portStr)
+	listenAddr, err := multiaddr.NewMultiaddr(addrStr)
+	if err != nil {
+		return fmt.Errorf("could not create listen address: %w", err)
+	}
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		initialMembership[ownID],
+		t.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
 		libp2p.NewDummyHostKey(ownNumericID),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create libp2p host: %w", err)
 	}
+
+	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
 	smrParams := smr.DefaultParams(initialMembership)
 	smrParams.Mempool.MaxTransactionsInBatch = 1024
@@ -153,4 +171,18 @@ func runNode() error {
 
 	defer node.Stop()
 	return node.Run(ctx)
+}
+
+func getPortStr(address t.NodeAddress) (string, error) {
+	_, addrStr, err := manet.DialArgs(address)
+	if err != nil {
+		return "", err
+	}
+
+	_, portStr, err := net.SplitHostPort(addrStr)
+	if err != nil {
+		return "", err
+	}
+
+	return portStr, nil
 }
