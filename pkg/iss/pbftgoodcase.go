@@ -92,7 +92,7 @@ func (pbft *pbftInstance) requestNewCert() *events.EventList {
 
 // applyCertReady processes a new availability certificate ready to be proposed.
 // This event is triggered by ISS in response to the CertRequest event produced by this orderer.
-func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventList {
+func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// Clear flag that was set in requestNewCert(), so that new certificates can be requested if necessary.
@@ -101,26 +101,29 @@ func (pbft *pbftInstance) applyCertReady(cert *isspb.SBCertReady) *events.EventL
 	if pbft.proposal.certRequestedView == pbft.view {
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
-		eventsOut.PushBackList(pbft.propose(cert.Cert))
+		l, err := pbft.propose(cert.Cert)
+		if err != nil {
+			return nil, fmt.Errorf("failed to propose: %w", err)
+		}
+		eventsOut.PushBackList(l)
 	} else { // nolint:staticcheck
 		// If the PBFT view advanced since the certificate was requested,
 		// do not propose the certificate and resurrect the requests it contains.
-		//eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
+		// eventsOut.PushBack(pbft.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
 		// TODO: Implement resurrection!
 	}
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 // propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT orderer allows sending a new proposal
 // and does not perform any checks in this regard.
-func (pbft *pbftInstance) propose(cert *availabilitypb.Cert) *events.EventList {
+func (pbft *pbftInstance) propose(cert *availabilitypb.Cert) (*events.EventList, error) {
 
 	certBytes, err := proto.Marshal(cert)
 	if err != nil {
-		// TODO: Use proper error propagation.
-		panic(fmt.Errorf("error marshalling certificate: %w", err))
+		return nil, fmt.Errorf("error marshalling certificate: %w", err)
 	}
 
 	// Update proposal counter.
@@ -153,7 +156,7 @@ func (pbft *pbftInstance) propose(cert *availabilitypb.Cert) *events.EventList {
 
 	// First the preprepare needs to be persisted to the WAL, and only then it can be sent to the network.
 	persistEvent.Next = []*eventpb.Event{msgSendEvent, timerEvent}
-	return events.ListOf(persistEvent)
+	return events.ListOf(persistEvent), nil
 }
 
 // applyMsgPreprepare applies a received preprepare message.

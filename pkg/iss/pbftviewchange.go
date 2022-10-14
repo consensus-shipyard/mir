@@ -375,7 +375,7 @@ func (pbft *pbftInstance) applyNewViewHashResult(digests [][]byte, newView *issp
 
 	// Create a temporary view change state object
 	// to use for reconstructing the re-proposals from the obtained view change messages.
-	vcState := newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership)
+	vcState := newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership, pbft.logger)
 
 	// Feed all obtained ViewChange messages to the view chnage state.
 	for i, signedViewChange := range newView.SignedViewChanges {
@@ -443,7 +443,7 @@ func (pbft *pbftInstance) getViewChangeState(view t.PBFTViewNr) *pbftViewChangeS
 	}
 
 	// If no view change state is yet associated with this view, allocate a new one and return it.
-	pbft.viewChangeStates[view] = newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership)
+	pbft.viewChangeStates[view] = newPbftViewChangeState(pbft.segment.SeqNrs, pbft.segment.Membership, pbft.logger)
 
 	return pbft.viewChangeStates[view]
 }
@@ -577,6 +577,7 @@ func reconstructQSet(entries []*isspbftpb.QSetEntry) (viewChangeQSet, error) {
 
 func reconstructPSetQSet(
 	signedViewChanges map[t.NodeID]*isspbftpb.SignedViewChange,
+	logger logging.Logger,
 ) (map[t.NodeID]viewChangePSet, map[t.NodeID]viewChangeQSet) {
 	pSets := make(map[t.NodeID]viewChangePSet)
 	qSets := make(map[t.NodeID]viewChangeQSet)
@@ -588,13 +589,13 @@ func reconstructPSetQSet(
 
 		pSet, err = reconstructPSet(svc.ViewChange.PSet)
 		if err != nil {
-			// TODO: Log warning here
+			logger.Log(logging.LevelWarn, "reconstruct P set err", "err", err)
 			continue
 		}
 
 		qSet, err = reconstructQSet(svc.ViewChange.QSet)
 		if err != nil {
-			// TODO: Log warning here
+			logger.Log(logging.LevelWarn, "reconstruct Q set err", "err", err)
 			continue
 		}
 
