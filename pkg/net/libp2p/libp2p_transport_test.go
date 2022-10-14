@@ -415,15 +415,13 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 	b.Connect(initialNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeB, nodeA)
 
 	t.Log(">>> sending messages")
 
 	nodeBEventsChan := b.EventsOut()
 
-	err := a.Send(nodeB, &messagepb.Message{})
-
-	require.NoError(t, err)
-
+	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	t.Log(">>> disconnecting nodes")
@@ -479,7 +477,6 @@ func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 
 	a.WaitFor(2)
 	err := a.Send(nodeB, &messagepb.Message{})
-
 	require.NoError(t, err)
 
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
