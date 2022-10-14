@@ -448,6 +448,7 @@ func (t *Transport) mirHandler(s network.Stream) {
 	go func() {
 		select {
 		case <-ctx.Done():
+			return
 		case <-t.stopChan:
 			t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
 			if err := s.Close(); err != nil {
