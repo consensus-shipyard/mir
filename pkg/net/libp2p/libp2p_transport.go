@@ -24,7 +24,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -149,6 +148,7 @@ func (t *Transport) Connect(nodes map[types.NodeID]types.NodeAddress) {
 	}
 
 	t.connsLock.Lock()
+	toConnect := make([]types.NodeID, 0, len(parsedAddrInfo))
 	for nodeID := range parsedAddrInfo {
 		if nodeID == t.ownID {
 			continue
@@ -156,11 +156,15 @@ func (t *Transport) Connect(nodes map[types.NodeID]types.NodeAddress) {
 		_, found := t.conns[nodeID]
 		if !found {
 			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], Stream: nil}
+			toConnect = append(toConnect, nodeID)
 		}
 	}
 	t.connsLock.Unlock()
 
-	t.connect(maputil.GetKeys(parsedAddrInfo))
+	if len(toConnect) > 0 {
+		t.logger.Log(logging.LevelDebug, "connecting to new nodes", "src", t.ownID, "ids", toConnect)
+		t.connect(toConnect)
+	}
 }
 
 // WaitFor polls the current connection state and returns when at least n connections have been established.
@@ -313,12 +317,6 @@ func (t *Transport) connectToNode(nodeID types.NodeID) {
 		return
 	}
 
-	if conn.isConnected(t.host) {
-		t.connsLock.Unlock()
-		t.logger.Log(logging.LevelWarn, "connection to node already exists", "src", t.ownID, "dst", nodeID)
-		return
-	}
-
 	info := conn.AddrInfo
 	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
 	conn.Connecting = true
@@ -461,6 +459,7 @@ func (t *Transport) mirHandler(s network.Stream) {
 		msg, sender, err := t.readAndDecode(s)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				t.logger.Log(logging.LevelDebug, "connection handler received EOF", "src", t.ownID, "dst", peerID)
 				return
 			}
 			t.logger.Log(logging.LevelError, "failed to read mir message", "src", t.ownID, "err", err)
