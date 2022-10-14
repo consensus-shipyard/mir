@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"sync"
 	"time"
 
@@ -24,16 +23,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
-)
-
-const (
-	ProtocolID             = "/mir/0.0.1"
-	maxConnectingTimeout   = 1000 * time.Millisecond
-	maxRetryTimeout        = 2 * time.Second
-	maxRetries             = 20
-	noLoggingErrorAttempts = 2
-	PermanentAddrTTL       = math.MaxInt64 - iota
-	connWaitPollInterval   = 100 * time.Millisecond
 )
 
 type TransportMessage struct {
@@ -62,6 +51,7 @@ type newStream struct {
 }
 
 type Transport struct {
+	params           Params
 	host             host.Host
 	ownID            types.NodeID
 	logger           logging.Logger
@@ -72,12 +62,13 @@ type Transport struct {
 	streamChan       chan *newStream
 }
 
-func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
+func NewTransport(params Params, h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 
 	return &Transport{
+		params:           params,
 		ownID:            ownID,
 		host:             h,
 		incomingMessages: make(chan *events.EventList),
@@ -91,7 +82,7 @@ func NewTransport(h host.Host, ownID types.NodeID, logger logging.Logger) (*Tran
 func (t *Transport) Start() error {
 	t.logger.Log(logging.LevelDebug, "starting libp2p transport", "src", t.ownID, "listen", t.host.Addrs())
 	t.runStreamUpdater()
-	t.host.SetStreamHandler(ProtocolID, t.mirHandler)
+	t.host.SetStreamHandler(t.params.ProtocolID, t.mirHandler)
 	return nil
 }
 
@@ -101,7 +92,7 @@ func (t *Transport) Stop() {
 
 	close(t.stopChan)
 
-	t.host.RemoveStreamHandler(ProtocolID)
+	t.host.RemoveStreamHandler(t.params.ProtocolID)
 
 	t.connsLock.Lock()
 	for nodeID, c := range t.conns {
@@ -184,7 +175,7 @@ func (t *Transport) WaitFor(n int) {
 		if numConnections >= n-1 {
 			return
 		}
-		time.Sleep(connWaitPollInterval)
+		time.Sleep(t.params.ConnWaitPollInterval)
 	}
 }
 
@@ -318,7 +309,7 @@ func (t *Transport) connectToNode(nodeID types.NodeID) {
 	}
 
 	info := conn.AddrInfo
-	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, PermanentAddrTTL)
+	t.host.Peerstore().AddAddrs(info.ID, info.Addrs, t.params.PermanentAddrTTL)
 	conn.Connecting = true
 	t.connsLock.Unlock()
 
@@ -354,21 +345,21 @@ func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, er
 	// https://github.com/libp2p/go-libp2p-pubsub/blob/cbb7bfc1f182e0b765d2856f6a0ea73e34d93602/tracer.go#L280
 	var s network.Stream
 	var err error
-	for i := 0; i < maxRetries; i++ {
+	for i := 0; i < t.params.MaxRetries; i++ {
 		select {
 		case <-t.stopChan:
 			return nil, fmt.Errorf("%s opening stream to %s: stop chan closed", t.ownID, dest)
 		default:
 		}
-		sctx, scancel := context.WithTimeout(ctx, maxConnectingTimeout)
+		sctx, scancel := context.WithTimeout(ctx, t.params.MaxConnectingTimeout)
 
-		s, err = t.host.NewStream(sctx, p, ProtocolID)
+		s, err = t.host.NewStream(sctx, p, t.params.ProtocolID)
 		scancel()
 		if err == nil {
 			return s, nil
 		}
 
-		if i >= noLoggingErrorAttempts {
+		if i >= t.params.NoLoggingErrorAttempts {
 			t.logger.Log(
 				logging.LevelError, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, err))
 		} else {
@@ -376,7 +367,7 @@ func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, er
 				logging.LevelInfo, fmt.Sprintf("%s failed to open stream to %s: %v", t.ownID, dest, err))
 		}
 
-		delay := time.NewTimer(maxRetryTimeout)
+		delay := time.NewTimer(t.params.MaxRetryTimeout)
 		select {
 		case <-delay.C:
 			continue
