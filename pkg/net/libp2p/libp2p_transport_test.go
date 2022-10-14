@@ -396,7 +396,7 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_SendingWithNodes(t *testing.T) {
+func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -456,7 +456,7 @@ func TestLibp2p_SendingWithNodes(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
+func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
