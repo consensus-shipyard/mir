@@ -124,6 +124,7 @@ func (gt *Transport) ApplyEvents(
 				} else {
 					// Send message to another node.
 					if err := gt.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil {
+						// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
 						gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
