@@ -18,7 +18,6 @@ package simplewal
 import (
 	"context"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -146,12 +145,12 @@ func (w *WAL) loadAll(forEach func(index t.RetentionIndex, p *eventpb.Event)) er
 
 	lastIndex, err := w.log.LastIndex()
 	if err != nil {
-		return errors.WithMessage(err, "could not read first index")
+		return errors.WithMessage(err, "could not read last index")
 	}
 
 	for i := firstIndex; i <= lastIndex; i++ {
 		data, err := w.log.Read(i)
-		if err != nil && !errors.Is(err, io.EOF) {
+		if err != nil {
 			return errors.WithMessagef(err, "could not read index %d", i)
 		}
 
