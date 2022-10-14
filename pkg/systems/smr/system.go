@@ -57,7 +57,7 @@ func (sys *System) Start(ctx context.Context) error {
 	if err := sys.transport.Start(); err != nil {
 		return errors.Wrap(err, "could not start network transport")
 	}
-	sys.transport.Connect(ctx, sys.initialMembership)
+	sys.transport.Connect(sys.initialMembership)
 	return nil
 }
 
@@ -73,8 +73,6 @@ func (sys *System) Stop() {
 // The returned system's Stop method should be called when the system is no longer needed.
 // The returned system's Modules method can be used to obtain the Mir modules to be passed to mir.NewNode.
 func New(
-	ctx context.Context,
-
 	// The ID of this node.
 	ownID t.NodeID,
 
@@ -187,7 +185,7 @@ func New(
 		issModuleConfig.Checkpoint:   checkpointing,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
-		"app":                        NewAppModule(ctx, app, transport, issModuleConfig.Self),
+		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")

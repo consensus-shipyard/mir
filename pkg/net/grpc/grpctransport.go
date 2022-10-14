@@ -123,7 +123,7 @@ func (gt *Transport) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := gt.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil {
+					if err := gt.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil {
 						// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
 						gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
@@ -139,10 +139,7 @@ func (gt *Transport) ApplyEvents(
 
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *Transport) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
+func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 
@@ -286,7 +283,7 @@ func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
-func (gt *Transport) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+func (gt *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
 
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
@@ -310,7 +307,7 @@ func (gt *Transport) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddre
 			defer wg.Done()
 
 			// Create and store connection
-			connection, err := gt.connectToNode(ctx, addr) // May take long time, execute before acquiring the lock.
+			connection, err := gt.connectToNode(addr) // May take long time, execute before acquiring the lock.
 			lock.Lock()
 			gt.connections[id] = connection
 			lock.Unlock()
@@ -336,7 +333,7 @@ func (gt *Transport) WaitFor(n int) {
 }
 
 // Establishes a connection to a single node at address addrString.
-func (gt *Transport) connectToNode(ctx context.Context, addrString string) (GrpcTransport_ListenClient, error) {
+func (gt *Transport) connectToNode(addrString string) (GrpcTransport_ListenClient, error) {
 
 	gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 
@@ -358,7 +355,7 @@ func (gt *Transport) connectToNode(ctx context.Context, addrString string) (Grpc
 
 	// Remotely invoke the Listen function on the other node's gRPC server.
 	// As this is "stream of requests"-type RPC, it returns a message sink.
-	msgSink, err := client.Listen(ctx)
+	msgSink, err := client.Listen(context.Background())
 	if err != nil {
 		if cerr := conn.Close(); cerr != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Failed to close connection: %v", cerr))

@@ -132,7 +132,7 @@ func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddr
 	}
 }
 
-func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.NodeAddress) {
+func (t *Transport) Connect(nodes map[types.NodeID]types.NodeAddress) {
 	if len(nodes) == 0 {
 		t.logger.Log(logging.LevelWarn, "no nodes to connect to")
 		return
@@ -160,7 +160,7 @@ func (t *Transport) Connect(ctx context.Context, nodes map[types.NodeID]types.No
 	}
 	t.connsLock.Unlock()
 
-	t.connect(ctx, maputil.GetKeys(parsedAddrInfo))
+	t.connect(maputil.GetKeys(parsedAddrInfo))
 }
 
 // WaitFor polls the current connection state and returns when at least n connections have been established.
@@ -187,15 +187,13 @@ func (t *Transport) WaitFor(n int) {
 // ConnectSync is a convenience method that triggers the connection process
 // and waits for n connections to be established before returning.
 // Equivalent to calling Connect and WaitFor.
-func (t *Transport) ConnectSync(ctx context.Context, nodes map[types.NodeID]types.NodeAddress, n int) {
-	t.Connect(ctx, nodes)
+func (t *Transport) ConnectSync(nodes map[types.NodeID]types.NodeAddress, n int) {
+	t.Connect(nodes)
 	t.WaitFor(n)
 }
 
-func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.Message) error {
+func (t *Transport) Send(dest types.NodeID, msg *messagepb.Message) error {
 	select {
-	case <-ctx.Done():
-		return ctx.Err()
 	case <-t.stopChan:
 		return fmt.Errorf("transport stopped")
 	default:
@@ -208,7 +206,7 @@ func (t *Transport) Send(ctx context.Context, dest types.NodeID, msg *messagepb.
 
 	err = t.sendPayload(dest, out)
 	if err != nil {
-		t.connect(ctx, []types.NodeID{dest})
+		t.connect([]types.NodeID{dest})
 		return errors.Wrapf(err, "%s failed to send data to %s", t.ownID, dest)
 	}
 
@@ -247,7 +245,7 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 					}()
 				} else {
 					// Send message to another node.
-					if err := t.Send(ctx, types.NodeID(destID), e.SendMessage.Msg); err != nil {
+					if err := t.Send(types.NodeID(destID), e.SendMessage.Msg); err != nil {
 						t.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
@@ -290,17 +288,17 @@ func (t *Transport) runStreamUpdater() {
 	}()
 }
 
-func (t *Transport) connect(ctx context.Context, nodesID []types.NodeID) {
+func (t *Transport) connect(nodesID []types.NodeID) {
 	for i := range nodesID {
 		// Do not establish a real connection with own node.
 		if nodesID[i] == t.ownID {
 			continue
 		}
-		go t.connectToNode(ctx, nodesID[i])
+		go t.connectToNode(nodesID[i])
 	}
 }
 
-func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
+func (t *Transport) connectToNode(nodeID types.NodeID) {
 	t.connsLock.Lock()
 	conn, found := t.conns[nodeID]
 	if !found {
@@ -327,7 +325,7 @@ func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 	t.connsLock.Unlock()
 
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
-	s, err := t.openStream(ctx, nodeID, info.ID)
+	s, err := t.openStream(nodeID, info.ID)
 	if err != nil {
 		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
 		return
@@ -337,10 +335,22 @@ func (t *Transport) connectToNode(ctx context.Context, nodeID types.NodeID) {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %s has connected to node %s", t.ownID.Pb(), nodeID.Pb()))
 }
 
-func (t *Transport) openStream(ctx context.Context, dest types.NodeID, p peer.ID) (network.Stream, error) {
+func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, error) {
 	// We need the simplest retry mechanism due to the fact that the underlying libp2p's NewStream function dials once:
 	// https://github.com/libp2p/go-libp2p/blob/7828f3e0797e0a7b7033fa5e8be9b94f57a4c173/p2p/net/swarm/swarm.go#L358
 	t.logger.Log(logging.LevelDebug, "opening stream to peer", "src", t.ownID, "dst", dest)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.stopChan:
+			cancel()
+		}
+	}()
 
 	// The implementation is based on the openStream() function from the RemoteTracer:
 	// https://github.com/libp2p/go-libp2p-pubsub/blob/cbb7bfc1f182e0b765d2856f6a0ea73e34d93602/tracer.go#L280
@@ -352,11 +362,10 @@ func (t *Transport) openStream(ctx context.Context, dest types.NodeID, p peer.ID
 			return nil, fmt.Errorf("%s opening stream to %s: stop chan closed", t.ownID, dest)
 		default:
 		}
-		sctx, cancel := context.WithTimeout(ctx, maxConnectingTimeout)
+		sctx, scancel := context.WithTimeout(ctx, maxConnectingTimeout)
 
 		s, err = t.host.NewStream(sctx, p, ProtocolID)
-		cancel()
-
+		scancel()
 		if err == nil {
 			return s, nil
 		}
@@ -373,11 +382,11 @@ func (t *Transport) openStream(ctx context.Context, dest types.NodeID, p peer.ID
 		select {
 		case <-delay.C:
 			continue
-		case <-ctx.Done():
+		case <-t.stopChan:
 			if !delay.Stop() {
 				<-delay.C
 			}
-			return nil, fmt.Errorf("%s opening stream to %s: context closed", t.ownID, dest)
+			return nil, fmt.Errorf("%s opening stream to %s: stop chan closed", t.ownID, dest)
 		}
 	}
 	return nil, fmt.Errorf("%s failed to open stream to %s: %w", t.ownID, dest, err)
@@ -433,11 +442,17 @@ func (t *Transport) mirHandler(s network.Stream) {
 	t.logger.Log(logging.LevelDebug, "mir handler started", "src", t.ownID, "dst", peerID)
 	defer t.logger.Log(logging.LevelDebug, "mir handler stopped", "src", t.ownID, "dst", peerID)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go func() {
-		<-t.stopChan
-		t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
-		if err := s.Close(); err != nil {
-			t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
+		select {
+		case <-ctx.Done():
+		case <-t.stopChan:
+			t.logger.Log(logging.LevelDebug, "mir handler stop signal received", "src", t.ownID)
+			if err := s.Close(); err != nil {
+				t.logger.Log(logging.LevelError, "stream reset", "src", t.ownID)
+			}
 		}
 	}()
 

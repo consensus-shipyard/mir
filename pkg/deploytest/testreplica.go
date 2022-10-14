@@ -153,7 +153,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error starting the network link: %w", err)
 		}
-		transport.Connect(ctx, tr.Nodes)
+		transport.Connect(tr.Nodes)
 		defer transport.Stop()
 	}
 

@@ -83,7 +83,7 @@ func run() error {
 	if err := transport.Start(); err != nil {
 		return fmt.Errorf("could not start network transport: %w", err)
 	}
-	transport.Connect(context.Background(), nodeAddrs)
+	transport.Connect(nodeAddrs)
 
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{

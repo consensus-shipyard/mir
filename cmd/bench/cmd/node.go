@@ -85,7 +85,6 @@ func runNode() error {
 	}
 
 	benchApp, err := smr.New(
-		ctx,
 		ownID,
 		h,
 		initialMembership,
