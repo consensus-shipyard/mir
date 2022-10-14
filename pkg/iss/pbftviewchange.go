@@ -589,13 +589,13 @@ func reconstructPSetQSet(
 
 		pSet, err = reconstructPSet(svc.ViewChange.PSet)
 		if err != nil {
-			logger.Log(logging.LevelWarn, "reconstruct P set err", "err", err)
+			logger.Log(logging.LevelWarn, "could not reconstruct PSet for PBFT view change", "err", err)
 			continue
 		}
 
 		qSet, err = reconstructQSet(svc.ViewChange.QSet)
 		if err != nil {
-			logger.Log(logging.LevelWarn, "reconstruct Q set err", "err", err)
+			logger.Log(logging.LevelWarn, "could not reconstruct QSet for PBFT view change", "err", err)
 			continue
 		}
 
