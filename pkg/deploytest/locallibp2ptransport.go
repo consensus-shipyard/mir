@@ -46,6 +46,7 @@ func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	}
 
 	return libp2p.NewTransport(
+		libp2p.DefaultParams(),
 		t.hosts[sourceID],
 		sourceID,
 		t.logger,

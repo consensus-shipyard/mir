@@ -114,7 +114,7 @@ func New(
 	// if !addrIn {
 	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
 	// }
-	transport, err := libp2pnet.NewTransport(h, ownID, logger)
+	transport, err := libp2pnet.NewTransport(params.Net, h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
 	}
