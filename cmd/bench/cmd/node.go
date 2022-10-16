@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
