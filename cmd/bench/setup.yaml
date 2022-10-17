@@ -28,7 +28,11 @@
           - make
           - python3
         state: present
-    - name: Get the Mir code from GitHub
+    - name: Clone Mir repo from GitHub
+      ansible.builtin.git:
+        repo: https://github.com/matejpavlovic/mir.git
+        dest: ~/mir
+    - name: Check out the bench branch in the Mir repo
       ansible.builtin.git:
         repo: https://github.com/matejpavlovic/mir.git
         dest: ~/mir
@@ -39,6 +43,10 @@
       make:
         chdir: ~/mir
         target: bin/bench
+    - name: compile Chat demo
+      make:
+        chdir: ~/mir
+        target: bin/chat-demo
     - name: "Run setup script"
       ansible.builtin.script:
         # Single quotes are important here (https://github.com/ansible/ansible/issues/44897)
