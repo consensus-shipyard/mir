@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"

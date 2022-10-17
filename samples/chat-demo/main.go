@@ -21,11 +21,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/filecoin-project/mir/pkg/deploytest"
 
 	"github.com/filecoin-project/mir/pkg/systems/smr"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
