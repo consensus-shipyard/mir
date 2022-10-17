@@ -1,8 +1,6 @@
 package net
 
 import (
-	"context"
-
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -18,11 +16,11 @@ type Transport interface {
 	Stop()
 
 	// Send sends msg to the node with ID dest.
-	Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error
+	Send(dest t.NodeID, msg *messagepb.Message) error
 
 	// Connect initiates the establishing of network connections to the provided nodes.
 	// When Connect returns, the connections might not yet have been established though (see WaitFor).
-	Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress)
+	Connect(nodes map[t.NodeID]t.NodeAddress)
 
 	// WaitFor waits until at least n connections (including the potentially virtual connection to self)
 	// have been established and returns.

@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -56,8 +57,8 @@ func (fl *FakeLink) ApplyEvents(
 					}()
 				} else {
 					// Send message to another node.
-					if err := fl.Send(ctx, t.NodeID(destID), e.SendMessage.Msg); err != nil { // nolint
-						// TODO: Handle sending errors (and remove "nolint" comment above).
+					if err := fl.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil {
+						fl.FakeTransport.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
 			}
@@ -72,8 +73,8 @@ func (fl *FakeLink) ApplyEvents(
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fl *FakeLink) ImplementsModule() {}
 
-func (fl *FakeLink) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
-	fl.FakeTransport.Send(ctx, fl.Source, dest, msg)
+func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
+	fl.FakeTransport.Send(fl.Source, dest, msg)
 	return nil
 }
 
@@ -86,6 +87,7 @@ type FakeTransport struct {
 	Buffers   map[t.NodeID]map[t.NodeID]chan *events.EventList
 	NodeSinks map[t.NodeID]chan *events.EventList
 	WaitGroup sync.WaitGroup
+	logger    logging.Logger
 }
 
 func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
@@ -105,10 +107,11 @@ func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
 	return &FakeTransport{
 		Buffers:   buffers,
 		NodeSinks: nodeSinks,
+		logger:    logging.ConsoleErrorLogger,
 	}
 }
 
-func (ft *FakeTransport) Send(ctx context.Context, source, dest t.NodeID, msg *messagepb.Message) {
+func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
 	case ft.Buffers[source][dest] <- events.ListOf(
 		events.MessageReceived(t.ModuleID(msg.DestModule), source, msg),
@@ -149,7 +152,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
+func (fl *FakeLink) Connect(nodes map[t.NodeID]t.NodeAddress) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	for destID, buffer := range sourceBuffers {
@@ -163,13 +166,9 @@ func (fl *FakeLink) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddres
 				case msg := <-buffer:
 					select {
 					case fl.FakeTransport.NodeSinks[destID] <- msg:
-					case <-ctx.Done():
-						return
 					case <-fl.DoneC:
 						return
 					}
-				case <-ctx.Done():
-					return
 				case <-fl.DoneC:
 					return
 				}

@@ -2,6 +2,7 @@ package iss
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -30,9 +31,11 @@ type pbftViewChangeState struct {
 	preprepares map[t.SeqNr]*isspbftpb.Preprepare
 
 	prepreparedIDs map[t.SeqNr][]t.NodeID
+
+	logger logging.Logger
 }
 
-func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID) *pbftViewChangeState {
+func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID, logger logging.Logger) *pbftViewChangeState {
 	reproposals := make(map[t.SeqNr][]byte)
 	preprepares := make(map[t.SeqNr]*isspbftpb.Preprepare)
 	for _, sn := range seqNrs {
@@ -46,6 +49,7 @@ func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID) *pbftViewCh
 		reproposals:       reproposals,
 		prepreparedIDs:    make(map[t.SeqNr][]t.NodeID),
 		preprepares:       preprepares,
+		logger:            logger,
 	}
 }
 
@@ -77,8 +81,7 @@ func (vcState *pbftViewChangeState) AddSignedViewChange(svc *isspbftpb.SignedVie
 
 // TODO: Make sure this procedure is fully deterministic (map iterations etc...)
 func (vcState *pbftViewChangeState) updateReproposals() {
-
-	pSets, qSets := reconstructPSetQSet(vcState.signedViewChanges)
+	pSets, qSets := reconstructPSetQSet(vcState.signedViewChanges, vcState.logger)
 
 	for sn, r := range vcState.reproposals {
 		if r == nil {

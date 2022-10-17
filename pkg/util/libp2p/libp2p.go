@@ -54,9 +54,16 @@ func NewFreeHostAddr() (m multiaddr.Multiaddr) {
 	if err == nil {
 		var l *net.TCPListener
 		if l, err = net.ListenTCP("tcp", a); err == nil {
-			defer l.Close() // nolint
-			p := l.Addr().(*net.TCPAddr).Port
-			m, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", p))
+			defer func() {
+				if err := l.Close(); err != nil {
+					panic(err)
+				}
+			}()
+			addr, ok := l.Addr().(*net.TCPAddr)
+			if !ok {
+				panic("TCPAddr type assertion failed")
+			}
+			m, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", addr.Port))
 			if err != nil {
 				panic(err)
 			}

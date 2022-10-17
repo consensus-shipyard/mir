@@ -88,16 +88,16 @@ func (m *simTransportModule) Stop() {
 	close(m.stopChan)
 }
 
-func (m *simTransportModule) Send(ctx context.Context, dest t.NodeID, msg *messagepb.Message) error {
-	m.sendMessage(ctx, msg, dest)
+func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
+	m.sendMessage(msg, dest)
 	return nil
 }
 
 func (m *simTransportModule) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 }
 
-func (m *simTransportModule) Connect(ctx context.Context, nodes map[t.NodeID]t.NodeAddress) {
-	go m.handleOutChan(ctx, m.SimTransport.Simulation.Spawn())
+func (m *simTransportModule) Connect(nodes map[t.NodeID]t.NodeAddress) {
+	go m.handleOutChan(m.SimTransport.Simulation.Spawn())
 }
 
 // WaitFor returns immediately, since the simulated transport does not need to wait for anything.
@@ -127,17 +127,16 @@ func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) e
 
 func (m *simTransportModule) multicastMessage(ctx context.Context, msg *messagepb.Message, targets []t.NodeID) {
 	for _, target := range targets {
-		m.sendMessage(ctx, msg, target)
+		m.sendMessage(msg, target)
 	}
 }
 
-func (m *simTransportModule) sendMessage(ctx context.Context, msg *messagepb.Message, target t.NodeID) {
+func (m *simTransportModule) sendMessage(msg *messagepb.Message, target t.NodeID) {
 	proc := m.SimTransport.Simulation.Spawn()
 
 	done := make(chan struct{})
 	go func() {
 		select {
-		case <-ctx.Done():
 		case <-m.stopChan:
 		case <-done:
 			return
@@ -167,12 +166,9 @@ func (m *simTransportModule) EventsOut() <-chan *events.EventList {
 	return m.outChan
 }
 
-func (m *simTransportModule) handleOutChan(ctx context.Context, proc *testsim.Process) {
+func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 	go func() {
-		select {
-		case <-m.stopChan:
-		case <-ctx.Done():
-		}
+		<-m.stopChan
 		proc.Kill()
 	}()
 

@@ -57,7 +57,7 @@ func (sys *System) Start(ctx context.Context) error {
 	if err := sys.transport.Start(); err != nil {
 		return errors.Wrap(err, "could not start network transport")
 	}
-	sys.transport.Connect(ctx, sys.initialMembership)
+	sys.transport.Connect(sys.initialMembership)
 	return nil
 }
 
@@ -102,18 +102,18 @@ func New(
 
 	// Initialize the libp2p transport subsystem.
 	// TODO: Re-enable this check!
-	//addrIn := false
-	//for _, addr := range h.Addrs() {
+	// addrIn := false
+	// for _, addr := range h.Addrs() {
 	//	// sanity-check to see if the host is configured with the
 	//	// right multiaddr.
 	//	if addr.Equal(initialMembership[ownID]) {
 	//		addrIn = true
 	//		break
 	//	}
-	//}
-	//if !addrIn {
+	// }
+	// if !addrIn {
 	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
-	//}
+	// }
 	transport, err := libp2pnet.NewTransport(h, ownID, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create libp2p transport")

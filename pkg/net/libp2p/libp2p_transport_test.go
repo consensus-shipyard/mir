@@ -1,7 +1,6 @@
 package libp2p
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -138,12 +137,12 @@ func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Trans
 	return ts[0], ts[1], ts[2], ts[3]
 }
 
-func (m *mockLibp2pCommunication) testEventuallySentMsg(ctx context.Context, srcNode, dstNode types.NodeID, msg *messagepb.Message) {
+func (m *mockLibp2pCommunication) testEventuallySentMsg(srcNode, dstNode types.NodeID, msg *messagepb.Message) {
 	src := m.getTransport(srcNode)
 
 	require.Eventually(m.t,
 		func() bool {
-			err := src.Send(ctx, dstNode, msg)
+			err := src.Send(dstNode, msg)
 			if err != nil {
 				m.t.Log(err)
 			}
@@ -251,9 +250,6 @@ func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
 }
 
 func TestLibp2p_Sending(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -283,10 +279,10 @@ func TestLibp2p_Sending(t *testing.T) {
 	t.Log("membership")
 	t.Log(initialNodes)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
-	c.Connect(ctx, initialNodes)
-	d.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	c.Connect(initialNodes)
+	d.Connect(initialNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
 	m.testEventuallyConnected(nodeA, nodeC)
@@ -296,20 +292,20 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyConnected(nodeC, nodeD)
 
 	t.Log(">>> sending messages")
-	err = a.Send(ctx, "unknownNode", &messagepb.Message{})
+	err = a.Send("unknownNode", &messagepb.Message{})
 	require.ErrorIs(t, err, ErrUnknownNode)
 
-	err = a.Send(ctx, nodeE, &messagepb.Message{})
+	err = a.Send(nodeE, &messagepb.Message{})
 	require.ErrorAs(t, err, &ErrUnknownNode)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
 
-	err = a.Send(ctx, nodeB, &messagepb.Message{})
+	err = a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
-	err = a.Send(ctx, nodeC, &messagepb.Message{})
+	err = a.Send(nodeC, &messagepb.Message{})
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
@@ -318,9 +314,9 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
+	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
-	m.testEventuallySentMsg(ctx, nodeA, nodeC, &messagepb.Message{})
+	m.testEventuallySentMsg(nodeA, nodeC, &messagepb.Message{})
 	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
 	t.Log(">>> cleaning")
@@ -333,9 +329,6 @@ func TestLibp2p_Sending(t *testing.T) {
 }
 
 func TestLibp2p_Connecting(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -354,9 +347,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 
 	initialNodes := m.Membership(nodeA, nodeB, nodeC)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
-	c.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	c.Connect(initialNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
 	m.testEventuallyConnected(nodeA, nodeC)
@@ -370,13 +363,13 @@ func TestLibp2p_Connecting(t *testing.T) {
 	t.Log("new membership")
 	t.Log(newNodes)
 
-	a.Connect(ctx, newNodes)
+	a.Connect(newNodes)
 	a.CloseOldConnections(newNodes)
 
-	b.Connect(ctx, newNodes)
+	b.Connect(newNodes)
 	b.CloseOldConnections(newNodes)
 
-	d.Connect(ctx, newNodes)
+	d.Connect(newNodes)
 	d.CloseOldConnections(newNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
@@ -396,10 +389,7 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_SendingWithNodes(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -421,19 +411,17 @@ func TestLibp2p_SendingWithNodes(t *testing.T) {
 	t.Log("membership")
 	t.Log(initialNodes)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeB, nodeA)
 
 	t.Log(">>> sending messages")
 
 	nodeBEventsChan := b.EventsOut()
 
-	err := a.Send(ctx, nodeB, &messagepb.Message{})
-
-	require.NoError(t, err)
-
+	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	t.Log(">>> disconnecting nodes")
@@ -441,7 +429,7 @@ func TestLibp2p_SendingWithNodes(t *testing.T) {
 	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
+	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
 
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -456,10 +444,7 @@ func TestLibp2p_SendingWithNodes(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -481,8 +466,8 @@ func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
 	t.Log("membership")
 	t.Log(initialNodes)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
 
 	m.testEventuallyConnected(nodeA, nodeB)
 
@@ -491,8 +476,7 @@ func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
 	nodeBEventsChan := b.EventsOut()
 
 	a.WaitFor(2)
-	err := a.Send(ctx, nodeB, &messagepb.Message{})
-
+	err := a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
 
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
@@ -502,7 +486,7 @@ func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
 	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(ctx, nodeA, nodeB, &messagepb.Message{})
+	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
 
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -518,9 +502,6 @@ func TestLibp2p_SendingWithNodesSyncMode(t *testing.T) {
 }
 
 func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -542,13 +523,13 @@ func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
 	t.Log("membership")
 	t.Log(initialNodes)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
 	a.WaitFor(2)
 
 	t.Log(">>> send a message")
-	err := a.Send(ctx, nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
 
 	nodeBEventsChan := b.incomingMessages
@@ -565,7 +546,7 @@ func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
 			events.MessageReceived(types.ModuleID("1"), "blocker", &messagepb.Message{}),
 		)
 	}()
-	err = a.Send(ctx, nodeB, &messagepb.Message{})
+	err = a.Send(nodeB, &messagepb.Message{})
 	time.Sleep(5 * time.Second)
 	require.NoError(t, err)
 
@@ -585,9 +566,6 @@ func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
 
 // Test we don't get two elements in the node table corresponding to the same node.
 func TestLibp2p_OneConnectionInProgress(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -607,16 +585,13 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	initialNodes := m.Membership(nodeA)
 	initialNodes[nodeE] = eAddr
 
-	a.Connect(ctx, initialNodes)
-	a.Send(ctx, nodeE, &messagepb.Message{}) // nolint
+	a.Connect(initialNodes)
+	a.Send(nodeE, &messagepb.Message{}) // nolint
 
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
 }
 
 func TestLibp2p_TwoNodesBasic(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -634,8 +609,8 @@ func TestLibp2p_TwoNodesBasic(t *testing.T) {
 
 	initialNodes := m.Membership(nodeA, nodeB)
 
-	a.Connect(ctx, initialNodes)
-	b.Connect(ctx, initialNodes)
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
 
 	t.Log(">>> cleaning")

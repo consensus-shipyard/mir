@@ -1,7 +1,6 @@
 package smr
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -15,7 +14,6 @@ import (
 
 // AppModule is the module within the SMR system that handles the application logic.
 type AppModule struct {
-
 	// appLogic is the user-provided application logic.
 	appLogic AppLogic
 
@@ -123,7 +121,7 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	if err != nil {
 		return nil, fmt.Errorf("error handling NewEpoch event: %w", err)
 	}
-	m.transport.Connect(context.TODO(), membership) // TODO: Make this function not use a context (and not block).
+	m.transport.Connect(membership) // TODO: Make this function not use a context (and not block).
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 	return events.ListOf(events.NewConfig(m.protocolModule, membership)), nil
 }

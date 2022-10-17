@@ -145,7 +145,7 @@ func (w *WAL) loadAll(forEach func(index t.RetentionIndex, p *eventpb.Event)) er
 
 	lastIndex, err := w.log.LastIndex()
 	if err != nil {
-		return errors.WithMessage(err, "could not read first index")
+		return errors.WithMessage(err, "could not read last index")
 	}
 
 	for i := firstIndex; i <= lastIndex; i++ {

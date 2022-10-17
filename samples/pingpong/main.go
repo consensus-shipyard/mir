@@ -36,7 +36,7 @@ func main() {
 	if err := tranport.Start(); err != nil {
 		panic(err)
 	}
-	tranport.Connect(context.Background(), addrs)
+	tranport.Connect(addrs)
 
 	node, err := mir.NewNode(
 		ownID,

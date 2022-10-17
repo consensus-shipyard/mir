@@ -75,6 +75,9 @@ type MessageBuffer struct {
 
 // New returns a newly allocated and initialized MessageBuffer for the given nodeID and with the given initial capacity.
 func New(nodeID t.NodeID, capacity int, logger logging.Logger) *MessageBuffer {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 	return &MessageBuffer{
 		nodeID:   nodeID,
 		logger:   logger,
@@ -91,6 +94,9 @@ func New(nodeID t.NodeID, capacity int, logger logging.Logger) *MessageBuffer {
 // disregarding the overhead of the buffer implementation itself.
 // The returned buffers are stored in a map, indexed by node IDs.
 func NewBuffers(nodeIDs []t.NodeID, totalCapacity int, logger logging.Logger) map[t.NodeID]*MessageBuffer {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 
 	// Allocate a new map for storing the buffers.
 	buffers := make(map[t.NodeID]*MessageBuffer)

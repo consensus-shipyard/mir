@@ -83,7 +83,7 @@ func run() error {
 	if err := transportModule.Start(); err != nil {
 		return fmt.Errorf("could not start network transport: %w", err)
 	}
-	transportModule.Connect(context.Background(), nodeAddrs)
+	transportModule.Connect(nodeAddrs)
 
 	bcbModule := bcb.NewModule(
 		&bcb.ModuleConfig{

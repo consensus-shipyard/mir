@@ -56,6 +56,8 @@ func runNode() error {
 		logger = logging.ConsoleWarnLogger
 	}
 
+	ctx := context.Background()
+
 	nodeAddrs, err := membership.FromFileName(membershipFile)
 	if err != nil {
 		return fmt.Errorf("could not load membership: %w", err)
@@ -105,8 +107,6 @@ func runNode() error {
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}
-
-	ctx := context.Background()
 
 	reqReceiver := requestreceiver.NewRequestReceiver(node, "mempool", logger)
 	if err := reqReceiver.Start(ReqReceiverBasePort + ownNumericID); err != nil {

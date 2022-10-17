@@ -212,6 +212,9 @@ type ISS struct {
 //     see the documentation of the ModuleParams type for details.
 //   - logger: Logger the ISS implementation uses to output log messages.
 func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
 
 	// Check whether the passed configuration is valid.
 	if err := CheckParams(params); err != nil {
@@ -460,7 +463,7 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 			result.AllOk,
 		)))
 	case *isspb.ISSSigVerOrigin_StableCheckpoint:
-		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint), nil
+		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint)
 	default:
 		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
 	}
@@ -498,7 +501,11 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
-		eventsOut.PushBackList(iss.advanceEpoch())
+		l, err := iss.advanceEpoch()
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(l)
 	}
 
 	return eventsOut, nil
@@ -550,7 +557,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	} else if epoch, ok := iss.epochs[epochNr]; ok {
 		// If the event is from a known epoch, apply it in relation to the corresponding orderer instance.
 		// Since the event is locally generated, we do not need to check whether the orderer exists in the epoch.
-		return iss.applySBInstanceEvent(event.Event, epoch.Orderers[event.Instance]), nil
+		return iss.applySBInstanceEvent(event.Event, epoch.Orderers[event.Instance])
 	} else {
 		// If the event is from an old epoch, ignore it.
 		// This might potentially happen if the epoch advanced while the event has been waiting in some buffer.
@@ -670,7 +677,7 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 		case *isspb.ISSMessage_StableCheckpoint:
 			return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
 		case *isspb.ISSMessage_Sb:
-			return iss.applySBMessage(msg.Sb, from), nil
+			return iss.applySBMessage(msg.Sb, from)
 		default:
 			return nil, fmt.Errorf("unknown ISS message type: %T", msg)
 		}
@@ -715,19 +722,19 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint
 // applyStableCheckpointSigVerResult applies a StableCheckpoint message
 // the signature of which signature has been verified.
 // It checks the message and decides whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpointpb.StableCheckpoint) *events.EventList {
+func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpointpb.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// TODO: !!!! This is wrong !!!!
 	//       The snapshot first has to be hashed and only then the signatures can be verified.
 	//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
 
-	//// Ignore checkpoint with in valid or insufficiently many signatures.
-	//// TODO: Make sure this code still works when reconfiguration is implemented.
-	//if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
+	// // Ignore checkpoint with in valid or insufficiently many signatures.
+	// // TODO: Make sure this code still works when reconfiguration is implemented.
+	// if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
 	//	iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
 	//	return eventsOut
-	//}
+	// }
 
 	// Convenience variable
 	chkpEpoch := t.EpochNr(chkp.Snapshot.Configuration.EpochNr)
@@ -737,7 +744,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	if chkpEpoch <= iss.epoch.Nr+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	}
 
 	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkpEpoch)
@@ -783,9 +790,13 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 
 	// Apply any message buffered for the new epoch and append any
 	// emitted event to the returns event list.
-	eventsOut.PushBackList(iss.applyBufferedMessages())
+	l, err := iss.applyBufferedMessages()
+	if err != nil {
+		return nil, err
+	}
+	eventsOut.PushBackList(l)
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.Membership) *eventpb.Event {
@@ -800,7 +811,7 @@ func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.M
 }
 
 // applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
-func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.EventList {
+func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) (*events.EventList, error) {
 
 	epochNr := t.EpochNr(message.Epoch)
 	if epochNr > iss.epoch.Nr {
@@ -809,14 +820,14 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
 		// In such case, save the message in a backlog (if there is buffer space) for later processing.
 		iss.messageBuffers[from].Store(message)
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	} else if epoch, ok := iss.epochs[epochNr]; ok {
 		// If the message is for the current epoch, check its validity and
 		// apply it to the corresponding orderer in form of an SBMessageReceived event.
 		if err := epoch.validateSBMessage(message, from); err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
 				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err, "epoch", epochNr)
-			return events.EmptyList()
+			return events.EmptyList(), nil
 		}
 
 		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), epoch.Orderers[message.Instance])
@@ -824,7 +835,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) *events.
 		// Ignore old messages
 		iss.logger.Log(logging.LevelDebug, "Ignoring message from old epoch.",
 			"from", from, "epoch", epochNr, "type", fmt.Sprintf("%T", message.Msg.Type))
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	}
 }
 
@@ -923,7 +934,11 @@ func (iss *ISS) initOrderers() *events.EventList {
 
 	sbInit := SBInitEvent()
 	for _, orderer := range iss.epoch.Orderers {
-		eventsOut.PushBackList(orderer.ApplyEvent(sbInit))
+		l, err := orderer.ApplyEvent(sbInit)
+		if err != nil {
+			continue
+		}
+		eventsOut.PushBackList(l)
 	}
 
 	return eventsOut
@@ -985,13 +1000,17 @@ func (iss *ISS) processCommitted() (*events.EventList, error) {
 
 	// If the epoch is finished, transition to the next epoch.
 	if iss.epochFinished() {
-		eventsOut.PushBackList(iss.advanceEpoch())
+		l, err := iss.advanceEpoch()
+		if err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(l)
 	}
 
 	return eventsOut, nil
 }
 
-func (iss *ISS) advanceEpoch() *events.EventList {
+func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// Convenience variables
@@ -1009,7 +1028,7 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	if configIdx >= len(iss.configurations) {
 		iss.logger.Log(logging.LevelWarn, "Cannot advance to epoch yet. Waiting for configuration.",
 			"newEpoch", newEpochNr)
-		return eventsOut
+		return eventsOut, nil
 	}
 
 	// Initialize the internal data structures for the new epoch.
@@ -1052,15 +1071,19 @@ func (iss *ISS) advanceEpoch() *events.EventList {
 	eventsOut.PushBackList(iss.initOrderers())
 
 	// Process backlog of buffered SB messages.
-	eventsOut.PushBackList(iss.applyBufferedMessages())
+	l, err := iss.applyBufferedMessages()
+	if err != nil {
+		return nil, err
+	}
+	eventsOut.PushBackList(l)
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 // applyBufferedMessages applies all SB messages destined to the current epoch
 // that have been buffered during past epochs.
 // This function is always called directly after initializing a new epoch, except for epoch 0.
-func (iss *ISS) applyBufferedMessages() *events.EventList {
+func (iss *ISS) applyBufferedMessages() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// Iterate over the all messages in all buffers, selecting those that can be applied.
@@ -1070,13 +1093,17 @@ func (iss *ISS) applyBufferedMessages() *events.EventList {
 			// Apply all messages selected by the filter.
 			switch m := msg.(type) {
 			case *isspb.SBMessage:
-				eventsOut.PushBackList(iss.applySBMessage(m, source))
+				l, err := iss.applySBMessage(m, source)
+				if err != nil {
+					return
+				}
+				eventsOut.PushBackList(l)
 			}
 
 		})
 	}
 
-	return eventsOut
+	return eventsOut, nil
 }
 
 // bufferedMessageFilter decides, given a message, whether it is appropriate to apply the message, discard it,

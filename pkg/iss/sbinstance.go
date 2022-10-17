@@ -28,7 +28,7 @@ type sbInstance interface {
 	// The isspb.SBInstanceEvent type defines the events that can be exchanged between an SB instance and ISS.
 	// The events returned from ApplyEvent must be produced by an sbEventService
 	// injected to the SB instance at creation.
-	ApplyEvent(event *isspb.SBInstanceEvent) *events.EventList
+	ApplyEvent(event *isspb.SBInstanceEvent) (*events.EventList, error)
 
 	// Segment returns the segment assigned to this SB instance.
 	Segment() *segment
@@ -47,12 +47,12 @@ type sbInstance interface {
 func (iss *ISS) applySBInstanceEvent(
 	event *isspb.SBInstanceEvent,
 	instance sbInstance,
-) *events.EventList {
+) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *isspb.SBInstanceEvent_Deliver:
-		return iss.applySBInstDeliver(instance, e.Deliver)
+		return iss.applySBInstDeliver(instance, e.Deliver), nil
 	case *isspb.SBInstanceEvent_CertRequest:
-		return iss.applySBInstCertRequest(instance)
+		return iss.applySBInstCertRequest(instance), nil
 	default:
 		return instance.ApplyEvent(event)
 	}
@@ -111,5 +111,5 @@ func (iss *ISS) applyNewCert(newCert *availabilitypb.NewCert) (*events.EventList
 	)
 	instance := iss.contextStore.RecoverAndDispose(csID).(sbInstance)
 
-	return instance.ApplyEvent(SBCertReadyEvent(newCert.Cert)), nil
+	return instance.ApplyEvent(SBCertReadyEvent(newCert.Cert))
 }

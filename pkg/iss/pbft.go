@@ -126,38 +126,36 @@ func newPbftInstance(
 
 // ApplyEvent receives one event and applies it to the PBFT orderer state machine, potentially altering its state
 // and producing a (potentially empty) list of more events.
-func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) *events.EventList {
+func (pbft *pbftInstance) ApplyEvent(event *isspb.SBInstanceEvent) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-
 	case *isspb.SBInstanceEvent_Init:
-		return pbft.applyInit()
+		return pbft.applyInit(), nil
 	case *isspb.SBInstanceEvent_PbftProposeTimeout:
-		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout))
+		return pbft.applyProposeTimeout(int(e.PbftProposeTimeout)), nil
 	case *isspb.SBInstanceEvent_PbftViewChangeSnTimeout:
-		return pbft.applyViewChangeSNTimeout(e.PbftViewChangeSnTimeout)
+		return pbft.applyViewChangeSNTimeout(e.PbftViewChangeSnTimeout), nil
 	case *isspb.SBInstanceEvent_PbftViewChangeSegTimeout:
-		return pbft.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout))
+		return pbft.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout)), nil
 	case *isspb.SBInstanceEvent_CertReady:
 		return pbft.applyCertReady(e.CertReady)
 	case *isspb.SBInstanceEvent_HashResult:
-		return pbft.applyHashResult(e.HashResult)
+		return pbft.applyHashResult(e.HashResult), nil
 	case *isspb.SBInstanceEvent_SignResult:
-		return pbft.applySignResult(e.SignResult)
+		return pbft.applySignResult(e.SignResult), nil
 	case *isspb.SBInstanceEvent_NodeSigsVerified:
-		return pbft.applyNodeSigsVerified(e.NodeSigsVerified)
+		return pbft.applyNodeSigsVerified(e.NodeSigsVerified), nil
 	case *isspb.SBInstanceEvent_PbftPersistPreprepare:
-		return pbft.applyPbftPersistPreprepare(e.PbftPersistPreprepare)
+		return pbft.applyPbftPersistPreprepare(e.PbftPersistPreprepare), nil
 	case *isspb.SBInstanceEvent_MessageReceived:
-		return pbft.applyMessageReceived(e.MessageReceived.Msg, t.NodeID(e.MessageReceived.From))
+		return pbft.applyMessageReceived(e.MessageReceived.Msg, t.NodeID(e.MessageReceived.From)), nil
 	case *isspb.SBInstanceEvent_PbftPersistPrepare,
 		*isspb.SBInstanceEvent_PbftPersistCommit,
 		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
 		*isspb.SBInstanceEvent_PbftPersistNewView:
 		// TODO: Ignoring WAL loading for the moment.
-		return events.EmptyList()
+		return events.EmptyList(), nil
 	default:
-		// Panic if message type is not known.
-		panic(fmt.Sprintf("unknown PBFT SB instance event type: %T", event.Type))
+		return nil, fmt.Errorf("unknown PBFT SB instance event type: %T", event.Type)
 	}
 }
 

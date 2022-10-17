@@ -114,6 +114,10 @@ type Recorder struct {
 }
 
 func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...RecorderOpt) (*Recorder, error) {
+	if logger == nil {
+		logger = logging.ConsoleErrorLogger
+	}
+
 	startTime := time.Now()
 
 	if err := os.MkdirAll(path, 0700); err != nil {

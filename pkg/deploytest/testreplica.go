@@ -153,7 +153,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error starting the network link: %w", err)
 		}
-		transport.Connect(ctx, tr.Nodes)
+		transport.Connect(tr.Nodes)
 		defer transport.Stop()
 	}
 
@@ -202,9 +202,7 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 			))
 
 			if err := node.InjectEvents(ctx, eventList); err != nil {
-
-				// TODO (Jason), failing on err causes flakes in the teardown,
-				// so just returning for now, we should address later
+				tr.Config.Logger.Log(logging.LevelError, "failed to inject events", "err", err)
 				break
 			}
 
