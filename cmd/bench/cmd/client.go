@@ -73,6 +73,11 @@ func runClient() error {
 			return fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 		}
 		reqReceiverAddrs[nodeID] = net.JoinHostPort(nodeIP, fmt.Sprintf("%d", ReqReceiverBasePort+numericID))
+
+		// The break statement causes the client to send its transactions to only one single node.
+		// Remove it for the client to send its transactions to all nodes.
+		// TODO: Make this properly configurable and remove the hack.
+		break
 	}
 
 	ctx, stop := context.WithCancel(context.Background())
