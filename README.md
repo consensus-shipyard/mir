@@ -133,6 +133,8 @@ We also keep a log of [Architecture Decision Records (ADRs)](/docs/architecture-
 
 For a small demo application, see [/samples/chat-demo](/samples/chat-demo)
 
+For an automated deployment of Mir on a set of remote machines, see the [remote deployment instructions](/deployment).
+
 ### Getting started
 
 To get started using (and contributing to) Mir, in addition to this README, we recommend the following:

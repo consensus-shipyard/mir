@@ -38,3 +38,8 @@ Once all four nodes print a prompt the user to type their messages, the demo app
 The processes read from standard input line by line
 and replicate, in the same order, all messages across all processes.
 The process stops after reading EOF.
+
+## Remote deployment
+
+For an automated deployment of the chat demo application on a set of remote machines,
+see the [remote deployment instructions](/deployment).
