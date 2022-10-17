@@ -1,0 +1,9 @@
+---
+- name: Stop nodes
+  hosts: all
+  gather_facts: False
+  become: False
+  tasks:
+    - name: "Kill tmux servers"
+      ansible.builtin.shell: "tmux kill-server"
+...

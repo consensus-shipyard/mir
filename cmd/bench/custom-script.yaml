@@ -1,0 +1,10 @@
+---
+- name: Run custom script
+  hosts: all
+  gather_facts: False
+  become: False
+  tasks:
+    - name: "Run custom script"
+      ansible.builtin.script:
+        cmd: scripts/custom.sh
+...
