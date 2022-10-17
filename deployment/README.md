@@ -17,7 +17,7 @@ everything else happens automatically.
 
 To install Mir and its dependencies on the remote machines, run (from this directory)
 ```bash
-ansible-playbook -i hosts setup.yaml --extra-vars
+ansible-playbook -i hosts setup.yaml
 ```
 The above command assumes that the remote nodes' IP addresses are stored in `hosts`.
 Any file can, however, be used for this purpose.
