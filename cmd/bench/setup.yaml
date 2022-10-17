@@ -1,6 +1,7 @@
 ---
 - name: Initialize Mir benchmark VM
   hosts: all
+  gather_facts: False
   become: False
   environment:
     PATH: "{{ ansible_env.PATH }}:/home/{{ ansible_user }}/go/bin"
@@ -32,12 +33,12 @@
       ansible.builtin.git:
         repo: https://github.com/matejpavlovic/mir.git
         dest: ~/mir
-    - name: Check out the bench branch in the Mir repo
+    - name: "Check out the selected code version: {{ git_version }}"
       ansible.builtin.git:
         repo: https://github.com/matejpavlovic/mir.git
         dest: ~/mir
         single_branch: True
-        version: bench
+        version: "{{ git_version }}"
         force: True
     - name: compile Mir benchmark
       make:
