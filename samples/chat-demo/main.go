@@ -17,9 +17,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 
+	"github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -115,9 +118,21 @@ func run() error {
 	// Instantiate the Mir node with the appropriate set of modules.
 	// ================================================================================
 
+	// Assemble listening address.
+	// In this demo code, we always listen on tha address 0.0.0.0.
+	portStr, err := getPortStr(initialMembership[args.OwnID])
+	if err != nil {
+		return fmt.Errorf("could not parse port from own address: %w", err)
+	}
+	addrStr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", portStr)
+	listenAddr, err := multiaddr.NewMultiaddr(addrStr)
+	if err != nil {
+		return fmt.Errorf("could not create listen address: %w", err)
+	}
+
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		initialMembership[args.OwnID],
+		t.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
 		libp2p.NewDummyHostKey(ownNumericID),
 	)
 	if err != nil {
@@ -233,4 +248,18 @@ func parseArgs(args []string) *parsedArgs {
 		Trace:              *trace,
 		InitMembershipFile: *initMembershipFile,
 	}
+}
+
+func getPortStr(address t.NodeAddress) (string, error) {
+	_, addrStr, err := manet.DialArgs(address)
+	if err != nil {
+		return "", err
+	}
+
+	_, portStr, err := net.SplitHostPort(addrStr)
+	if err != nil {
+		return "", err
+	}
+
+	return portStr, nil
 }
