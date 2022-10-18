@@ -1,11 +1,12 @@
 # SSH key for ansible to use when logging in the remote machines.
-ansible_ssh_private_key_file: ~/.ssh/matej-pl-aws-key.cer
+ansible_ssh_private_key_file: ~/.ssh/matej-pl-aws-key.cer # Meaningless example value. Set to your own ssh key location.
+========================================================================================================================
 
 # Version of the code to check out from the Mir repository at setup. This can be a branch name, a commit hash, etc...
-git_version: "bench"
+git_version: "main" # Meaningless example value. Set to desired code version to check out from Git.
 
 # Username to use when logging in the remote machines.
-ansible_user: ubuntu
+ansible_user: ubuntu # Example value (default on EC2 Ubuntu virtual machines)
 
 # Other variables Ansible might use, probably no need to touch those...
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
