@@ -16,6 +16,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -169,11 +170,19 @@ func run() error {
 	smrParams := smr.DefaultParams(initialMembership)
 
 	if args.InitChkpFile != "" {
+
 		// Load starting checkpoint from file if given.
 		genesis, err = loadStableCheckpoint(args.InitChkpFile)
 		if err != nil {
 			return errors.Wrap(err, "could not load starting checkpoint from file")
 		}
+
+		// Verify that the starting checkpoint is valid.
+		err = genesis.VerifyCert(crypto.SHA256, localCrypto.Crypto(args.OwnID), smrParams.Iss.InitialMembership)
+		if err != nil {
+			return errors.Wrap(err, "starting checkpoint invalid")
+		}
+
 	} else {
 		// If no starting checkpoint is given, we create a new one from the initial membership.
 		initialSnapshot, err := chatApp.Snapshot()
