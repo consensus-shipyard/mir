@@ -15,7 +15,8 @@ everything else happens automatically.
 
 ## Remote setup
 
-To install Mir and its dependencies on the remote machines, run (from this directory)
+First, make sure that all remote machines allow passwordless root (sudo) access for the configured user account.
+Then, to install Mir and its dependencies on the remote machines, run (from this directory)
 ```bash
 ansible-playbook -i hosts setup.yaml
 ```
