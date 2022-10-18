@@ -246,8 +246,7 @@ func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 
 			proc.Yield() // wait until any other process blocks
 		} else {
-			proc.Exit()
-			return
+			panic(out.err)
 		}
 	}
 }
