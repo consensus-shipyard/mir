@@ -1,7 +1,7 @@
 package smr
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -32,7 +32,7 @@ type AppLogic interface {
 	// A checkpoint contains the state of the application at a particular point in time
 	// from which the system can recover, including the configuration of the system at that point in time
 	// and a certificate of validity of the checkpoint.
-	Checkpoint(checkpoint *checkpointpb.StableCheckpoint) error
+	Checkpoint(checkpoint *checkpoint.StableCheckpoint) error
 }
 
 // StaticAppLogic represents the logic of an application that is not reconfigurable.
@@ -52,7 +52,7 @@ type StaticAppLogic interface {
 	// A checkpoint contains the state of the application at a particular point in time
 	// from which the system can recover, including the configuration of the system at that point in time
 	// and a certificate of validity of the checkpoint.
-	Checkpoint(checkpoint *checkpointpb.StableCheckpoint) error
+	Checkpoint(checkpoint *checkpoint.StableCheckpoint) error
 }
 
 // AppLogicFromStatic augments the static application logic with a default implementation of the reconfiguration logic

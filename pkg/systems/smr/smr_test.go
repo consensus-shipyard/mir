@@ -401,7 +401,9 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		// ISS instantiation
 		issProtocol, err := iss.New(
 			nodeID,
-			iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot(fakeApp.Snapshot(), issConfig),
+			iss.DefaultModuleConfig(),
+			issConfig,
+			checkpoint.Genesis(iss.InitialStateSnapshot(fakeApp.Snapshot(), issConfig)),
 			logging.Decorate(nodeLogger, "ISS: "),
 		)
 		if err != nil {
@@ -450,7 +452,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			nodeLogger,
 		)
 
-		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
+		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig(), 0)
 
 		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 			"app":          fakeApp,

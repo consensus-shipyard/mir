@@ -17,6 +17,9 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/iss"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/deploytest"
@@ -108,7 +111,7 @@ func runNode() error {
 	benchApp, err := smr.New(
 		ownID,
 		h,
-		initialMembership,
+		checkpoint.Genesis(iss.InitialStateSnapshot([]byte{}, smrParams.Iss)),
 		localCrypto.Crypto(ownID),
 		&App{Logger: logger, Membership: initialMembership},
 		smrParams,
@@ -133,7 +136,7 @@ func runNode() error {
 	}
 	defer reqReceiver.Stop()
 
-	if err := benchApp.Start(ctx); err != nil {
+	if err := benchApp.Start(); err != nil {
 		return fmt.Errorf("could not start bench app: %w", err)
 	}
 	defer benchApp.Stop()
