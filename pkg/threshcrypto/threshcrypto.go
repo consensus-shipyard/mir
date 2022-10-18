@@ -34,7 +34,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
+		return nil, fmt.Errorf("unexpected type of event in threshcrypto MirModule: %T", event.Type)
 	}
 }
 
@@ -84,7 +84,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 		), nil
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of MirModule threshcrypto event: %T", event.Type)
+		return nil, fmt.Errorf("unexpected type of threshcrypto event in threshcrypto MirModule: %T", event.Type)
 	}
 }
 
