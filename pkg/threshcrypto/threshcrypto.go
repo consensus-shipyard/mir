@@ -57,30 +57,45 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 		// Verify signature share
 
 		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, t.NodeID(e.VerifyShare.NodeId))
+
 		ok := err == nil
+		var errStr string
+		if err != nil {
+			errStr = err.Error()
+		}
 
 		return events.ListOf(
-			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, err.Error(), e.VerifyShare.Origin),
+			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, errStr, e.VerifyShare.Origin),
 		), nil
 
 	case *threshcryptopb.Event_VerifyFull:
 		// Verify full signature
 
 		err := c.threshCrypto.VerifyFull(e.VerifyFull.Data, e.VerifyFull.FullSignature)
+
 		ok := err == nil
+		var errStr string
+		if err != nil {
+			errStr = err.Error()
+		}
 
 		return events.ListOf(
-			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, err.Error(), e.VerifyFull.Origin),
+			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, errStr, e.VerifyFull.Origin),
 		), nil
 
 	case *threshcryptopb.Event_Recover:
 		// Recover full signature from shares
 
 		fullSig, err := c.threshCrypto.Recover(e.Recover.Data, e.Recover.SignatureShares)
+
 		ok := err == nil
+		var errStr string
+		if err != nil {
+			errStr = err.Error()
+		}
 
 		return events.ListOf(
-			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, err.Error(), e.Recover.Origin),
+			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, errStr, e.Recover.Origin),
 		), nil
 	default:
 		// Complain about all other incoming event types.
