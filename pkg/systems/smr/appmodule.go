@@ -3,6 +3,7 @@ package smr
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -63,7 +64,7 @@ func (m *AppModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 	case *eventpb.Event_Checkpoint:
 		switch e := e.Checkpoint.Type.(type) {
 		case *checkpointpb.Event_StableCheckpoint:
-			return m.applyStableCheckpoint(e.StableCheckpoint)
+			return m.applyStableCheckpoint((*checkpoint.StableCheckpoint)(e.StableCheckpoint))
 		default:
 			return nil, fmt.Errorf("unexpected checkpoint event type: %T", e)
 		}
@@ -126,7 +127,7 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	return events.ListOf(events.NewConfig(m.protocolModule, membership)), nil
 }
 
-func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheckpoint) (*events.EventList, error) {
+func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	if err := m.appLogic.Checkpoint(stableCheckpoint); err != nil {
 		return nil, fmt.Errorf("error handling StableCheckpoint event: %w", err)
 	}

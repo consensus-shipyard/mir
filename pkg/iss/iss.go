@@ -190,7 +190,7 @@ type ISS struct {
 	// Stores the stable checkpoint with the highest sequence number observed so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
-	lastStableCheckpoint *checkpointpb.StableCheckpoint
+	lastStableCheckpoint *checkpoint.StableCheckpoint
 
 	// The epoch number to which the first entry of iss.configurations corresponds.
 	configEpoch t.EpochNr
@@ -207,11 +207,13 @@ type ISS struct {
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 // Arguments:
-//   - ownID:  the ID of the node being instantiated with ISS.
-//   - params: ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
+//   - ownID:        the ID of the node being instantiated with ISS.
+//   - moduleConfig: the IDs of the modules ISS interacts with.
+//   - params:       ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
 //     see the documentation of the ModuleParams type for details.
-//   - logger: Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initialState *commonpb.StateSnapshot, logger logging.Logger) (*ISS, error) {
+//   - startingChkp: the stable checkpoint defining the initial state of the protocol.
+//   - logger:       Logger the ISS implementation uses to output log messages.
+func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, startingChkp *checkpoint.StableCheckpoint, logger logging.Logger) (*ISS, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -219,11 +221,6 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initi
 	// Check whether the passed configuration is valid.
 	if err := CheckParams(params); err != nil {
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
-	}
-
-	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
-	for i := 0; i < params.ConfigOffset+1; i++ {
-		memberships[i] = t.Membership(initialState.Configuration.Memberships[i])
 	}
 
 	// Initialize a new ISS object.
@@ -241,35 +238,27 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, initi
 		// Fields modified throughout an epoch
 		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
 		unhashedLogEntries: make(map[t.SeqNr]*CommitLogEntry),
-		nextDeliveredSN:    0,
-		newEpochSN:         0,
+		nextDeliveredSN:    startingChkp.SeqNr(),
+		newEpochSN:         startingChkp.SeqNr(),
 		messageBuffers: messagebuffer.NewBuffers(
 			// Create a message buffer for everyone except for myself.
 			removeNodeID(maputil.GetSortedKeys(params.InitialMembership), ownID),
 			params.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
-		lastStableCheckpoint: &checkpointpb.StableCheckpoint{
-			Sn:       0,
-			Snapshot: initialState,
-			Cert:     map[string][]byte{},
-			// TODO: When the storing of actual application state is implemented, some encoding of "initial state"
-			//       will have to be set here. E.g., an empty byte slice could be defined as "initial state" and
-			//       the application required to interpret it as such.
-
-			// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
-			//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
-		},
-		configEpoch:    0,
-		configurations: memberships,
+		lastStableCheckpoint: startingChkp,
+		// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
+		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
+		configEpoch:    startingChkp.Epoch(),
+		configurations: startingChkp.Memberships(),
 
 		contextStore: contextstore.NewSequentialContextStore[any](),
 	}
 
-	// Initialize the first epoch (epoch 0).
-	// If the starting epoch is different (e.g. because the node is restarting),
-	// the corresponding state (including epoch number) must be loaded through applying Events read from the WAL.
-	iss.initEpoch(0, maputil.GetSortedKeys(params.InitialMembership))
+	// Initialize the first epoch.
+	// The corresponding application state will be loaded upon init.
+	// TODO: Make leader policy part of checkpoint.
+	iss.initEpoch(startingChkp.Epoch(), maputil.GetSortedKeys(startingChkp.Memberships()[0]), params.LeaderPolicy)
 
 	// Return the initialized protocol module.
 	return iss, nil
@@ -320,7 +309,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_Checkpoint:
 		switch e := e.Checkpoint.Type.(type) {
 		case *checkpointpb.Event_StableCheckpoint:
-			return iss.applyStableCheckpoint(e.StableCheckpoint)
+			return iss.applyStableCheckpoint((*checkpoint.StableCheckpoint)(e.StableCheckpoint))
 		default:
 			return nil, fmt.Errorf("unknown checkpoint event type: %T", e)
 		}
@@ -370,6 +359,9 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 
 	// Trigger an Init event at all orderers.
 	eventsOut.PushBackList(iss.initOrderers())
+
+	// Initialize application state according to the initial checkpoint.
+	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.StateSnapshot()))
 
 	return eventsOut, nil
 }
@@ -463,7 +455,10 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 			result.AllOk,
 		)))
 	case *isspb.ISSSigVerOrigin_StableCheckpoint:
-		return iss.applyStableCheckpointSigVerResult(result.AllOk, origin.StableCheckpoint)
+		return iss.applyStableCheckpointSigVerResult(
+			result.AllOk,
+			(*checkpoint.StableCheckpoint)(origin.StableCheckpoint),
+		)
 	default:
 		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
 	}
@@ -567,23 +562,23 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 }
 
-func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheckpoint) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	if stableCheckpoint.Sn > iss.lastStableCheckpoint.Sn {
+	if stableCheckpoint.SeqNr() > iss.lastStableCheckpoint.SeqNr() {
 		// If this is the most recent checkpoint observed, save it.
 		iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
-			"epoch", stableCheckpoint.Snapshot.Configuration.EpochNr,
-			"sn", stableCheckpoint.Sn,
-			"replacingEpoch", iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr,
-			"replacingSn", iss.lastStableCheckpoint.Sn,
-			"numMemberships", len(stableCheckpoint.Snapshot.Configuration.Memberships),
+			"epoch", stableCheckpoint.Epoch(),
+			"sn", stableCheckpoint.SeqNr(),
+			"replacingEpoch", iss.lastStableCheckpoint.Epoch(),
+			"replacingSn", iss.lastStableCheckpoint.SeqNr(),
+			"numMemberships", len(stableCheckpoint.Memberships()),
 		)
 		iss.lastStableCheckpoint = stableCheckpoint
 
 		// Deliver the stable checkpoint (and potential batches committed in the meantime,
 		// but blocked from being delivered due to this missing checkpoint) to the application.
-		eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint))
+		eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint.Pb()))
 		pcResult, err := iss.processCommitted()
 		if err != nil {
 			return nil, err
@@ -594,7 +589,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheck
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		pruneIndex := int(stableCheckpoint.Snapshot.Configuration.EpochNr) - iss.params.RetainedEpochs
+		pruneIndex := int(stableCheckpoint.Epoch()) - iss.params.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL, timer, and checkpointing and availability protocols.
@@ -630,7 +625,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpointpb.StableCheck
 
 		}
 	} else {
-		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.Sn)
+		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.SeqNr())
 	}
 
 	return eventsOut, nil
@@ -722,7 +717,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint
 // applyStableCheckpointSigVerResult applies a StableCheckpoint message
 // the signature of which signature has been verified.
 // It checks the message and decides whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpointpb.StableCheckpoint) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// TODO: !!!! This is wrong !!!!
@@ -736,18 +731,14 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	//	return eventsOut
 	// }
 
-	// Convenience variable
-	chkpEpoch := t.EpochNr(chkp.Snapshot.Configuration.EpochNr)
-
-	// Check how far is the received stable checkpoint ahead of
-	// the local node's state.
-	if chkpEpoch <= iss.epoch.Nr+1 {
+	// Check how far the received stable checkpoint is ahead of the local node's state.
+	if chkp.Epoch() <= iss.epoch.Nr+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
 		return events.EmptyList(), nil
 	}
 
-	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkpEpoch)
+	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkp.Epoch())
 
 	// Clean up global ISS state that belongs to the current epoch
 	// instance that local replica got stuck with.
@@ -755,7 +746,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// iss.epoch = nil // This will be overwritten by initEpoch anyway.
 	iss.commitLog = make(map[t.SeqNr]*CommitLogEntry)
 	iss.unhashedLogEntries = make(map[t.SeqNr]*CommitLogEntry)
-	iss.nextDeliveredSN = t.SeqNr(chkp.Sn)
+	iss.nextDeliveredSN = chkp.SeqNr()
 	iss.newEpochSN = iss.nextDeliveredSN
 
 	// Initialize a new ISS epoch instance for the new stable
@@ -764,16 +755,16 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// snapshot from the new stable checkpoint.
 
 	// Save the configurations obtained in the checkpoint
-	iss.configEpoch = chkpEpoch
-	iss.configurations = make([]map[t.NodeID]t.NodeAddress, len(chkp.Snapshot.Configuration.Memberships))
-	for i, m := range chkp.Snapshot.Configuration.Memberships {
-		iss.configurations[i] = t.Membership(m)
-		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), m))
+	// and initialize the corresponding availability submodules.
+	iss.configEpoch = chkp.Epoch()
+	iss.configurations = chkp.Memberships()
+	for i, m := range iss.configurations {
+		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), t.MembershipPb(m)))
 	}
 
 	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkpEpoch, maputil.GetSortedKeys(iss.configurations[0]))
+	iss.initEpoch(chkp.Epoch(), maputil.GetSortedKeys(iss.configurations[0]), iss.params.LeaderPolicy)
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -781,7 +772,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Snapshot))
+	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.StateSnapshot()))
 
 	// Activate SB instances of the new epoch which will deliver
 	// availability certificates after the application module has restored the state
@@ -844,14 +835,7 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) (*events
 // ============================================================
 
 // initEpoch initializes a new ISS epoch with the given epoch number.
-func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID) {
-
-	var leaderPolicy LeaderSelectionPolicy
-	if newEpoch == 0 {
-		leaderPolicy = iss.params.LeaderPolicy
-	} else {
-		leaderPolicy = iss.epoch.leaderPolicy.Reconfigure(membership)
-	}
+func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolicy LeaderSelectionPolicy) {
 
 	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpoch, "numNodes", len(membership))
 
@@ -1032,7 +1016,8 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	}
 
 	// Initialize the internal data structures for the new epoch.
-	iss.initEpoch(newEpochNr, maputil.GetSortedKeys(iss.configurations[configIdx]))
+	nodeIDs := maputil.GetSortedKeys(iss.configurations[configIdx])
+	iss.initEpoch(newEpochNr, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
 
 	// Signal the new epoch to the application.
 	// This must happen before starting the checkpoint protocol, since the application

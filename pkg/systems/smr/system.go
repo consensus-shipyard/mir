@@ -1,8 +1,6 @@
 package smr
 
 import (
-	"context"
-
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
@@ -33,8 +31,9 @@ type System struct {
 	// (at startup and after reconfiguration).
 	transport net.Transport
 
-	// initialMembership is the initial membership of the system specified at creation of the system.
-	initialMembership map[t.NodeID]t.NodeAddress
+	// initialMemberships is a slice of initial memberships of the system specified at creation of the system.
+	// They correspond to the starting epoch of the system and configOffset subsequent epochs.
+	initialMemberships []map[t.NodeID]t.NodeAddress
 }
 
 // Modules returns the Mir modules that make up the system.
@@ -53,11 +52,13 @@ func (sys *System) WithModule(moduleID t.ModuleID, module modules.Module) *Syste
 
 // Start starts the operation of the modules of the SMR system.
 // It starts the network transport and connects to the initial members of the system.
-func (sys *System) Start(ctx context.Context) error {
+func (sys *System) Start() error {
 	if err := sys.transport.Start(); err != nil {
 		return errors.Wrap(err, "could not start network transport")
 	}
-	sys.transport.Connect(sys.initialMembership)
+	for _, membership := range sys.initialMemberships {
+		sys.transport.Connect(membership)
+	}
 	return nil
 }
 
@@ -79,8 +80,9 @@ func New(
 	// libp2p host to be used for the network transport module.
 	h host.Host,
 
-	// The initial membership of the system, containing the addresses of all participating nodes (including the own).
-	initialMembership map[t.NodeID]t.NodeAddress,
+	// Initial checkpoint of the application state and configuration.
+	// The SMR system will continue operating from this checkpoint.
+	startingCheckpoint *checkpoint.StableCheckpoint,
 
 	// Implementation of the cryptographic primitives to be used for signing and verifying protocol messages.
 	crypto mircrypto.Crypto,
@@ -119,19 +121,15 @@ func New(
 		return nil, errors.Wrap(err, "failed to create libp2p transport")
 	}
 
-	// Obtain initial app snapshot.
-	initialSnapshot, err := app.Snapshot()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not obtain initial app snapshot")
-	}
-
 	// Instantiate the ISS ordering protocol with default configuration.
 	// We use the ISS' default module configuration (the expected IDs of modules it interacts with)
 	// also to configure other modules of the system.
 	issModuleConfig := iss.DefaultModuleConfig()
 	issProtocol, err := iss.New(
 		ownID,
-		issModuleConfig, params.Iss, iss.InitialStateSnapshot(initialSnapshot, params.Iss),
+		issModuleConfig,
+		params.Iss,
+		startingCheckpoint,
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -172,7 +170,7 @@ func New(
 
 	// Instantiate the batch fetcher module that transforms availability certificates ordered by ISS
 	// into batches of transactions that can be applied to the replicated application.
-	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig())
+	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig(), startingCheckpoint.Epoch())
 
 	// Let the ISS implementation complete the module set by adding default implementations of helper modules
 	// that it needs but that have not been specified explicitly.
@@ -192,8 +190,8 @@ func New(
 	}
 
 	return &System{
-		modules:           modulesWithDefaults,
-		transport:         transport,
-		initialMembership: initialMembership,
+		modules:            modulesWithDefaults,
+		transport:          transport,
+		initialMemberships: startingCheckpoint.Memberships(),
 	}, nil
 }

@@ -41,6 +41,14 @@ func Membership(membershipPb *commonpb.Membership) map[NodeID]NodeAddress {
 	return membership
 }
 
+func MembershipSlice(membershipsPb []*commonpb.Membership) []map[NodeID]NodeAddress {
+	memberships := make([]map[NodeID]NodeAddress, len(membershipsPb))
+	for i, membershipPb := range membershipsPb {
+		memberships[i] = Membership(membershipPb)
+	}
+	return memberships
+}
+
 // ================================================================================
 
 // NodeID represents the ID of a node.

@@ -16,11 +16,13 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/multiformats/go-multiaddr"
+	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -39,15 +41,20 @@ type ChatApp struct {
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
 	newMembership map[t.NodeID]t.NodeAddress
+
+	// Name of the directory in which to store the checkpoint files.
+	chkpDir string
 }
 
 // NewChatApp returns a new instance of the chat demo application.
 // The initialMembership argument describes the initial set of nodes that are part of the system.
 // The application needs to keep track of the membership, as it will be deciding about when and how it changes.
-func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress) *ChatApp {
+// If chkpDir is not an empty string, it will be interpreted as a path to the directory to store checkpoint files.
+func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, chkpDir string) *ChatApp {
 	return &ChatApp{
 		messages:      make([]string, 0),
 		newMembership: initialMembership,
+		chkpDir:       chkpDir,
 	}
 }
 
@@ -189,6 +196,43 @@ func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
 }
 
 // Checkpoint does nothing in our case. The sample application does not handle checkpoints.
-func (chat *ChatApp) Checkpoint(_ *checkpointpb.StableCheckpoint) error {
+func (chat *ChatApp) Checkpoint(chkp *checkpoint.StableCheckpoint) (retErr error) {
+
+	// If no checkpoint destination was provided, do nothing.
+	if chat.chkpDir == "" {
+		return nil
+	}
+
+	// Create checkpoint directory if it does not exist.
+	if err := os.MkdirAll(chat.chkpDir, 0700); err != nil {
+		return fmt.Errorf("failed to create checkpoint directory: %w", err)
+	}
+
+	// Name the file according to the epoch number and sequence number.
+	fileName := fmt.Sprintf("%s/checkpoint-%04d-%05d", chat.chkpDir, chkp.Epoch(), chkp.SeqNr())
+
+	// Create checkpoint file.
+	f, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("failed to create checkpoint file: %w", err)
+	}
+
+	// Defer closing file.
+	defer func() {
+		retErr = f.Close()
+	}()
+
+	// Serialize checkpoint data.
+	data, err := proto.Marshal(chkp.Pb())
+	if err != nil {
+		return fmt.Errorf("failed to serialize checkpoint: %w", err)
+	}
+
+	// Write checkpoint data to file.
+	if _, err := f.Write(data); err != nil {
+		return fmt.Errorf("failed to write checkpoint data to file: %w", err)
+	}
+
+	fmt.Printf("Wrote checkpoint to file: %s\n", fileName)
 	return nil
 }

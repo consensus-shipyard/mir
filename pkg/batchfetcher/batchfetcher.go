@@ -20,11 +20,13 @@ import (
 // that it obtains from the availability layer.
 // It keeps track of the current epoch (by observing the relayed NewEpoch events)
 // and automatically requests the transactions from the correct instance of the availability module.
-func NewModule(mc *ModuleConfig) modules.Module {
+// TODO: Implement proper state initialization and transfer,
+// comprising not just the epoch number, but also the client watermarks.
+func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	// The current epoch number, as announced by the ordering protocol.
-	epochNr := t.EpochNr(0)
+	epochNr := epoch
 
 	// Map of delivered requests that is used to filter duplicates.
 	// TODO: Implement compaction (client watermarks) so that this map does not grow indefinitely.

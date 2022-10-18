@@ -16,6 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 package iss
 
 import (
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
@@ -234,6 +235,6 @@ func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMe
 	}}})
 }
 
-func StableCheckpointMessage(stableCheckpoint *checkpointpb.StableCheckpoint) *messagepb.Message {
-	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: stableCheckpoint}})
+func StableCheckpointMessage(stableCheckpoint *checkpoint.StableCheckpoint) *messagepb.Message {
+	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: stableCheckpoint.Pb()}})
 }

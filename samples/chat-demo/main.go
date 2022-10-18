@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -24,19 +25,22 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/filecoin-project/mir/pkg/deploytest"
-
-	"github.com/filecoin-project/mir/pkg/systems/smr"
-	"github.com/filecoin-project/mir/pkg/util/errstack"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/systems/smr"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
@@ -58,6 +62,12 @@ type parsedArgs struct {
 
 	// Name of the file containing the initial membership for joining nodes.
 	InitMembershipFile string
+
+	// Name of the file containing the initial state checkpoint to start from.
+	InitChkpFile string
+
+	// Name of the directory to store checkpoint files in.
+	ChkpDir string
 }
 
 // main is just the wrapper for executing the run() and printing a potential error.
@@ -143,14 +153,44 @@ func run() error {
 	// Create a dummy crypto implementation that locally generates all keys in a pseudo-random manner.
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
+	// Assemble checkpoint directory name and instantiate the chat app logic.
+	chkpDir := ""
+	if args.ChkpDir != "" {
+		chkpDir = args.ChkpDir + "/" + string(args.OwnID)
+	}
+	chatApp := NewChatApp(initialMembership, chkpDir)
+
+	// genesis is s stable checkpoint (as given to the app's Checkpoint callback)
+	// defining the initial state and configuration of the system.
+	var genesis *checkpoint.StableCheckpoint
+
+	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
+	// always the very first membership at sequence number 0. It is part of the system configuration.
+	smrParams := smr.DefaultParams(initialMembership)
+
+	if args.InitChkpFile != "" {
+		// Load starting checkpoint from file if given.
+		genesis, err = loadStableCheckpoint(args.InitChkpFile)
+		if err != nil {
+			return errors.Wrap(err, "could not load starting checkpoint from file")
+		}
+	} else {
+		// If no starting checkpoint is given, we create a new one from the initial membership.
+		initialSnapshot, err := chatApp.Snapshot()
+		if err != nil {
+			return errors.Wrap(err, "could not create initial snapshot")
+		}
+		genesis = checkpoint.Genesis(iss.InitialStateSnapshot(initialSnapshot, smrParams.Iss))
+	}
+
 	// Create a Mir SMR system.
 	smrSystem, err := smr.New(
 		args.OwnID,
 		h,
-		initialMembership,
+		genesis,
 		localCrypto.Crypto(args.OwnID),
-		NewChatApp(initialMembership),
-		smr.DefaultParams(initialMembership),
+		chatApp,
+		smrParams,
 		logger,
 	)
 	if err != nil {
@@ -171,7 +211,7 @@ func run() error {
 	// This will start all the goroutines that need to run within the modules of the SMR system.
 	// For example, the network module will start listening for incoming connections and create outgoing ones.
 	// The modules will become ready to be used by the node (but the node itself is not yet started).
-	if err := smrSystem.Start(ctx); err != nil {
+	if err := smrSystem.Start(); err != nil {
 		return errors.Wrap(err, "could not start SMR system")
 	}
 
@@ -241,6 +281,8 @@ func parseArgs(args []string) *parsedArgs {
 	ownID := app.Arg("id", "ID of this node").Required().String()
 	initMembershipFile := app.Flag("init-membership", "File containing the initial system membership.").
 		Short('i').Required().String()
+	initChkpFile := app.Flag("checkpoint", "Initial state checkpoint to start from.").Short('c').String()
+	chkpDir := app.Flag("checkpoint-dir", "Directory to store checkpoints in.").Short('d').String()
 
 	if _, err := app.Parse(args[1:]); err != nil { // Skip args[0], which is the name of the program, not an argument.
 		app.FatalUsage("could not parse arguments: %v\n", err)
@@ -251,6 +293,8 @@ func parseArgs(args []string) *parsedArgs {
 		Verbose:            *verbose,
 		Trace:              *trace,
 		InitMembershipFile: *initMembershipFile,
+		InitChkpFile:       *initChkpFile,
+		ChkpDir:            *chkpDir,
 	}
 }
 
@@ -266,4 +310,26 @@ func getPortStr(address t.NodeAddress) (string, error) {
 	}
 
 	return portStr, nil
+}
+
+func loadStableCheckpoint(filename string) (chkp *checkpoint.StableCheckpoint, retErr error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not open checkpoint file file: %s", filename)
+	}
+	defer func() {
+		retErr = file.Close()
+	}()
+
+	chkpBytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var chkpPb checkpointpb.StableCheckpoint
+	if err := proto.Unmarshal(chkpBytes, &chkpPb); err != nil {
+		return nil, err
+	}
+
+	return (*checkpoint.StableCheckpoint)(&chkpPb), nil
 }

@@ -10,6 +10,8 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+
 	"github.com/filecoin-project/mir"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/deploytest"
@@ -123,7 +125,13 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
 	issConfig := iss.DefaultParams(membership)
-	protocol, err := iss.New(id, iss.DefaultModuleConfig(), issConfig, iss.InitialStateSnapshot([]byte{}, issConfig), logging.Decorate(logger, "ISS: "))
+	protocol, err := iss.New(
+		id,
+		iss.DefaultModuleConfig(),
+		issConfig,
+		checkpoint.Genesis(iss.InitialStateSnapshot([]byte{}, issConfig)),
+		logging.Decorate(logger, "ISS: "),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}

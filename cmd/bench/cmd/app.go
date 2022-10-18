@@ -7,8 +7,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -40,6 +40,6 @@ func (a *App) RestoreState(appData []byte, epochConfig *commonpb.EpochConfig) er
 	return nil
 }
 
-func (a *App) Checkpoint(_ *checkpointpb.StableCheckpoint) error {
+func (a *App) Checkpoint(_ *checkpoint.StableCheckpoint) error {
 	return nil
 }
