@@ -86,7 +86,9 @@ func ApplyEventsConcurrently(
 		//            as they are being written by the worker goroutines, otherwise the system gets stuck.
 
 		// Read results from common channel and add it to the accumulator.
-		eventsOut.PushBackList(<-results[i])
+		if evList := <-results[i]; evList != nil {
+			eventsOut.PushBackList(evList)
+		}
 
 		// Read error from common channel.
 		// We only consider the first error, as ApplyEventsConcurrently only returns a single error.
