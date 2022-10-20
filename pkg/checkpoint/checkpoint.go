@@ -13,6 +13,20 @@ import (
 // StableCheckpoint represents a stable checkpoint.
 type StableCheckpoint checkpointpb.StableCheckpoint
 
+// NewStableCheckpoint creates a new StableCheckpoint from its individual components.
+func NewStableCheckpoint(sn t.SeqNr, snapshot *commonpb.StateSnapshot, cert map[t.NodeID][]byte) *StableCheckpoint {
+	certPb := make(map[string][]byte)
+	for nodeID, sig := range cert {
+		certPb[nodeID.Pb()] = sig
+	}
+
+	return (*StableCheckpoint)(&checkpointpb.StableCheckpoint{
+		Sn:       sn.Pb(),
+		Snapshot: snapshot,
+		Cert:     certPb,
+	})
+}
+
 // SeqNr returns the sequence number of the stable checkpoint.
 // It is defined as the number of sequence numbers comprised in the checkpoint, or, in other words,
 // the first (i.e., lowest) sequence number not included in the checkpoint.
@@ -65,7 +79,7 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	// Check if there is enough signatures.
 	n := len(membership)
 	f := (n - 1) / 3
-	if len(sc.Cert) <= f+1 {
+	if len(sc.Cert) < f+1 {
 		return fmt.Errorf("not enough signatures in certificate: got %d, expected more than %d",
 			len(sc.Cert), f+1)
 	}
@@ -92,6 +106,9 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	return nil
 }
 
+// Genesis returns a stable checkpoint that serves as the starting checkpoint of the first epoch (epoch 0).
+// Its certificate is empty and is always considered valid,
+// as there is no previous epoch's membership to verify it against.
 func Genesis(initialStateSnapshot *commonpb.StateSnapshot) *StableCheckpoint {
 	return &StableCheckpoint{
 		Sn:       0,
