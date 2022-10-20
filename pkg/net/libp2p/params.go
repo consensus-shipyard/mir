@@ -26,7 +26,7 @@ func DefaultParams() Params {
 
 		ProtocolID:             "/mir/0.0.1",
 		MaxConnectingTimeout:   10 * time.Second,
-		MaxRetryTimeout:        20 * time.Second,
+		MaxRetryTimeout:        1 * time.Second,
 		MaxRetries:             10,
 		NoLoggingErrorAttempts: 2,
 		PermanentAddrTTL:       DefaultPermanentAddrTTL,
