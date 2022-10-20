@@ -51,24 +51,26 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 	// from the availability layer.
 	// TODO: Make sure the certificate has been verified by the producer of this event.
 	dsl.UponEvent[*eventpb.Event_DeliverCert](m, func(cert *eventpb.DeliverCert) error {
-		// Skip padding certificates. DeliverCert events with nil certificates are considered noops.
-		if cert.Cert.Type == nil {
-			return nil
-		}
-
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.
 		item := outputItem{event: nil}
 		output.Enqueue(&item)
 
-		// Request transactions from the availability layer.
-		availabilitydsl.RequestTransactions(
-			m,
-			mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-			cert.Cert,
-			&txRequestContext{queueItem: &item},
-		)
+		if cert.Cert.Type == nil {
+			// Skip fetching transactions for padding certificates.
+			// Directly deliver an empty batch instead.
+			item.event = bfevents.NewOrderedBatch(mc.Destination, []*requestpb.Request{})
+			output.Flush(m)
+		} else {
+			// If this is a proper certificate, request transactions from the availability layer.
+			availabilitydsl.RequestTransactions(
+				m,
+				mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+				cert.Cert,
+				&txRequestContext{queueItem: &item},
+			)
+		}
 
 		return nil
 	})
