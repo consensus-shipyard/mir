@@ -96,8 +96,10 @@ func (t *Transport) Stop() {
 
 	t.connsLock.Lock()
 	for nodeID, c := range t.conns {
-		if err := c.Stream.Close(); err != nil {
-			t.logger.Log(logging.LevelError, "could not close stream", "src", t.ownID, "dst", nodeID, "err", err)
+		if c.Stream != nil {
+			if err := c.Stream.Close(); err != nil {
+				t.logger.Log(logging.LevelError, "could not close stream", "src", t.ownID, "dst", nodeID, "err", err)
+			}
 		}
 		delete(t.conns, nodeID)
 	}
