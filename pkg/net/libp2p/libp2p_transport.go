@@ -113,8 +113,10 @@ func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddr
 		if _, foundInNewNodes := newNodes[nodeID]; !foundInNewNodes {
 			t.logger.Log(logging.LevelDebug, "closing old connection", "src", t.ownID, "dst", nodeID)
 
-			if err := c.Stream.Close(); err != nil {
-				t.logger.Log(logging.LevelError, "could not close old stream to node", "src", t.ownID, "dst", nodeID, "err", err)
+			if c.Stream != nil {
+				if err := c.Stream.Close(); err != nil {
+					t.logger.Log(logging.LevelError, "could not close old stream to node", "src", t.ownID, "dst", nodeID, "err", err)
+				}
 			}
 
 			delete(t.conns, nodeID)
