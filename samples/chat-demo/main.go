@@ -26,10 +26,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 	"gopkg.in/alecthomas/kingpin.v2"
-
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -321,7 +318,7 @@ func getPortStr(address t.NodeAddress) (string, error) {
 	return portStr, nil
 }
 
-func loadStableCheckpoint(filename string) (chkp *checkpoint.StableCheckpoint, retErr error) {
+func loadStableCheckpoint(filename string) (retChkp *checkpoint.StableCheckpoint, retErr error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not open checkpoint file file: %s", filename)
@@ -335,10 +332,10 @@ func loadStableCheckpoint(filename string) (chkp *checkpoint.StableCheckpoint, r
 		return nil, err
 	}
 
-	var chkpPb checkpointpb.StableCheckpoint
-	if err := proto.Unmarshal(chkpBytes, &chkpPb); err != nil {
+	var chkp *checkpoint.StableCheckpoint
+	if chkp, err = checkpoint.DeserializeStableCheckpoint(chkpBytes); err != nil {
 		return nil, err
 	}
 
-	return (*checkpoint.StableCheckpoint)(&chkpPb), nil
+	return chkp, nil
 }

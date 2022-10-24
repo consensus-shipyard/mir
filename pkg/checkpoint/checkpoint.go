@@ -3,6 +3,8 @@ package checkpoint
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
@@ -25,6 +27,16 @@ func NewStableCheckpoint(sn t.SeqNr, snapshot *commonpb.StateSnapshot, cert map[
 		Snapshot: snapshot,
 		Cert:     certPb,
 	})
+}
+
+// DeserializeStableCheckpoint creates a StableCheckpoint from its serialized representation
+// previously returned from StableCheckpoint.Serialize.
+func DeserializeStableCheckpoint(data []byte) (*StableCheckpoint, error) {
+	var sc checkpointpb.StableCheckpoint
+	if err := proto.Unmarshal(data, &sc); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal stable checkpoint: %w", err)
+	}
+	return (*StableCheckpoint)(&sc), nil
 }
 
 // SeqNr returns the sequence number of the stable checkpoint.
@@ -54,6 +66,13 @@ func (sc *StableCheckpoint) StateSnapshot() *commonpb.StateSnapshot {
 // Pb returns a protobuf representation of the stable checkpoint.
 func (sc *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 	return (*checkpointpb.StableCheckpoint)(sc)
+}
+
+// Serialize returns the stable checkpoint serialized as a byte slice.
+// It is the inverse of DeserializeStableCheckpoint,
+// to which the returned byte slice can be passed to restore the checkpoint.
+func (sc *StableCheckpoint) Serialize() ([]byte, error) {
+	return proto.Marshal(sc.Pb())
 }
 
 // VerifyCert verifies the certificate of the stable checkpoint using the provided hash implementation and verifier.
