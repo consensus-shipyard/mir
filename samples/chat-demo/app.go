@@ -20,10 +20,8 @@ import (
 	"strings"
 
 	"github.com/multiformats/go-multiaddr"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -223,7 +221,7 @@ func (chat *ChatApp) Checkpoint(chkp *checkpoint.StableCheckpoint) (retErr error
 	}()
 
 	// Serialize checkpoint data.
-	data, err := proto.Marshal(chkp.Pb())
+	data, err := chkp.Serialize()
 	if err != nil {
 		return fmt.Errorf("failed to serialize checkpoint: %w", err)
 	}
