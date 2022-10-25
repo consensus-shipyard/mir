@@ -32,7 +32,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -186,7 +185,7 @@ func run() error {
 		if err != nil {
 			return errors.Wrap(err, "could not create initial snapshot")
 		}
-		genesis = checkpoint.Genesis(iss.InitialStateSnapshot(initialSnapshot, smrParams.Iss))
+		genesis = smr.GenesisCheckpoint(initialSnapshot, smrParams)
 	}
 
 	// Create a Mir SMR system.
