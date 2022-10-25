@@ -321,6 +321,9 @@ func (t *Transport) connectToNode(nodeID types.NodeID) {
 	s, err := t.openStream(nodeID, info.ID)
 	if err != nil {
 		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
+		t.connsLock.Lock()
+		conn.Connecting = false
+		t.connsLock.Unlock()
 		return
 	}
 
@@ -358,6 +361,7 @@ func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, er
 		sctx, scancel := context.WithTimeout(ctx, t.params.MaxConnectingTimeout)
 
 		s, err = t.host.NewStream(sctx, p, t.params.ProtocolID)
+
 		scancel()
 		if err == nil {
 			return s, nil
