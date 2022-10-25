@@ -27,6 +27,20 @@ func EpochConfigEvent(destModule t.ModuleID, epochConfig *commonpb.EpochConfig) 
 	)
 }
 
+func EpochProgressEvent(
+	destModule t.ModuleID,
+	nodeID t.NodeID,
+	epochNr t.EpochNr,
+) *eventpb.Event {
+	return Event(
+		destModule,
+		&checkpointpb.Event{Type: &checkpointpb.Event_EpochProgress{EpochProgress: &checkpointpb.EpochProgress{
+			NodeId: nodeID.Pb(),
+			Epoch:  epochNr.Pb(),
+		}}},
+	)
+}
+
 func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
 	return Event(
 		ownModuleID,
