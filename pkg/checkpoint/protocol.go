@@ -249,21 +249,27 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 }
 
 func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
+	eventsOut := events.EmptyList()
+
+	// Notify the protocol about the progress of the source node.
+	// If no progress is made for a configured number of epochs,
+	// the node is considered to be a straggler and is sent a stable checkpoint to catch up.
+	eventsOut.PushBack(protobufs.EpochProgressEvent(p.moduleConfig.Ord, source, t.EpochNr(msg.Epoch)))
 
 	// If checkpoint is already stable, ignore message.
 	if p.stable() {
-		return events.EmptyList()
+		return eventsOut
 	}
 
 	// Check snapshot hash
 	if p.stateSnapshotHash == nil {
 		// The message is received too early, put it aside
 		p.pendingMessages[source] = msg
-		return events.EmptyList()
+		return eventsOut
 	} else if !bytes.Equal(p.stateSnapshotHash, msg.SnapshotHash) {
 		// Snapshot hash mismatch
 		p.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "source", source)
-		return events.EmptyList()
+		return eventsOut
 	}
 
 	// TODO: Only accept messages from nodes in membership.
@@ -271,21 +277,21 @@ func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *
 
 	// Ignore duplicate messages.
 	if _, ok := p.signatures[source]; ok {
-		return events.EmptyList()
+		return eventsOut
 	}
 	p.signatures[source] = msg.Signature
 
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
-	verifySigEvent := events.VerifyNodeSigs(
+	eventsOut.PushBack(events.VerifyNodeSigs(
 		p.moduleConfig.Crypto,
 		[][][]byte{sigData},
 		[][]byte{msg.Signature},
 		[]t.NodeID{source},
 		protobufs.SigVerOrigin(p.moduleConfig.Self),
-	)
+	))
 
-	return events.ListOf(verifySigEvent)
+	return eventsOut
 }
 
 func (p *Protocol) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events.EventList, error) {
