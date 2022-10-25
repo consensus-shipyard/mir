@@ -308,6 +308,8 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyNewConfig(e.NewConfig)
 	case *eventpb.Event_Checkpoint:
 		switch e := e.Checkpoint.Type.(type) {
+		case *checkpointpb.Event_EpochProgress:
+			return iss.applyEpochProgress(e.EpochProgress)
 		case *checkpointpb.Event_StableCheckpoint:
 			return iss.applyStableCheckpoint((*checkpoint.StableCheckpoint)(e.StableCheckpoint))
 		default:
@@ -562,6 +564,20 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 }
 
+func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*events.EventList, error) {
+
+	// Remember the highest epoch number for each node to detect
+	// later if the remote node is delayed too much and requires
+	// assistance in order to catch up through state transfer.
+	epochNr := t.EpochNr(epochProgress.Epoch)
+	nodeID := t.NodeID(epochProgress.NodeId)
+	if iss.nodeEpochMap[nodeID] < epochNr {
+		iss.nodeEpochMap[nodeID] = epochNr
+	}
+
+	return events.EmptyList(), nil
+}
+
 func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
@@ -643,7 +659,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// and needs the stable checkpoint in order to start
 	// catching up with state transfer.
 	var delayed []t.NodeID
-	lastStableCheckpointEpoch := t.EpochNr(iss.lastStableCheckpoint.Snapshot.Configuration.EpochNr)
+	lastStableCheckpointEpoch := iss.lastStableCheckpoint.Epoch()
 	for _, n := range iss.epoch.Membership {
 		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.params.RetainedEpochs) {
 			delayed = append(delayed, n)
