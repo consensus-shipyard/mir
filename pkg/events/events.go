@@ -308,13 +308,23 @@ func AppSnapshotResponse(
 }
 
 // EpochConfig represents the configuration of the system during one epoch
-func EpochConfig(epochNr t.EpochNr, memberships []map[t.NodeID]t.NodeAddress) *commonpb.EpochConfig {
+func EpochConfig(
+	epochNr t.EpochNr,
+	firstSn t.SeqNr,
+	length int,
+	memberships []map[t.NodeID]t.NodeAddress,
+) *commonpb.EpochConfig {
 	m := make([]*commonpb.Membership, len(memberships))
 	for i, membership := range memberships {
 		m[i] = t.MembershipPb(membership)
 	}
 
-	return &commonpb.EpochConfig{EpochNr: epochNr.Pb(), Memberships: m}
+	return &commonpb.EpochConfig{
+		EpochNr:     epochNr.Pb(),
+		FirstSn:     firstSn.Pb(),
+		Length:      uint64(length),
+		Memberships: m,
+	}
 }
 
 // AppRestoreState returns an event representing the protocol module asking the application
