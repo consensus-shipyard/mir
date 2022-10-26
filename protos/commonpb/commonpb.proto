@@ -9,13 +9,15 @@ message HashData {
 }
 
 message StateSnapshot {
-  bytes       app_data      = 2;
-  EpochConfig configuration = 3;
+  bytes       app_data      = 1;
+  EpochConfig configuration = 2;
 }
 
 message EpochConfig {
-  uint64              epoch_nr    = 1;
-  repeated Membership memberships = 2;
+  uint64              epoch_nr               = 1;
+  uint64              first_sn               = 2;
+  uint64              length                 = 3;
+  repeated Membership memberships            = 4;
 }
 
 message Membership {
