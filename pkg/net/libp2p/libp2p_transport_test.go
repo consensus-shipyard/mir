@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -162,9 +163,9 @@ func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 ty
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
 
-	require.Eventually(m.t,
+	require.Never(m.t,
 		func() bool {
-			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
+			return network.Connected == src.host.Network().Connectedness(dst.host.ID())
 		},
 		5*time.Second, 300*time.Millisecond)
 }
@@ -197,7 +198,6 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
 
 	require.Eventually(m.t,
 		func() bool {
-
 			return m.getNumberOfStreams(v) == 0
 		},
 		10*time.Second, 300*time.Millisecond)
@@ -596,6 +596,51 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	a.Send(nodeE, &messagepb.Message{}) // nolint
 
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
+}
+
+// Test that when a node fails to connect first time it will be trying to connect.
+func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+
+	bBadAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/100/p2p/%s", b.host.ID()))
+	require.NoError(t, err)
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	initialNodes := m.Membership(nodeA)
+	initialNodes[nodeB] = bBadAddr
+	t.Log(initialNodes)
+
+	t.Log(">>> connecting to a failed node")
+	err = a.Start()
+	require.NoError(t, err)
+	a.Connect(initialNodes)
+	m.testEventuallyNotConnected(nodeA, nodeB)
+
+	t.Log(">>> connecting to the restarted node")
+	initialNodes = m.Membership(nodeA, nodeB)
+	require.NoError(t, err)
+	a.Connect(initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> cleaning")
+	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
 }
 
 func TestLibp2p_TwoNodesBasic(t *testing.T) {

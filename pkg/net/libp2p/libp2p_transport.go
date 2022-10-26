@@ -148,16 +148,17 @@ func (t *Transport) Connect(nodes map[types.NodeID]types.NodeAddress) {
 		if nodeID == t.ownID {
 			continue
 		}
-		_, found := t.conns[nodeID]
-		if !found {
+		conn, found := t.conns[nodeID]
+		if !found || conn.Stream == nil {
 			t.conns[nodeID] = &connInfo{AddrInfo: parsedAddrInfo[nodeID], Stream: nil}
 			toConnect = append(toConnect, nodeID)
 		}
+
 	}
 	t.connsLock.Unlock()
 
 	if len(toConnect) > 0 {
-		t.logger.Log(logging.LevelDebug, "connecting to new nodes", "src", t.ownID, "ids", toConnect)
+		t.logger.Log(logging.LevelDebug, "connecting to new nodes", "src", t.ownID, "to", toConnect)
 		t.connect(toConnect)
 	}
 }
@@ -361,7 +362,6 @@ func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, er
 		sctx, scancel := context.WithTimeout(ctx, t.params.MaxConnectingTimeout)
 
 		s, err = t.host.NewStream(sctx, p, t.params.ProtocolID)
-
 		scancel()
 		if err == nil {
 			return s, nil
