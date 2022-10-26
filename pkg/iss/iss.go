@@ -153,6 +153,17 @@ type ISS struct {
 	// Highest epoch numbers indicated in Checkpoint messages from each node.
 	nodeEpochMap map[t.NodeID]t.EpochNr
 
+	// The memberships for the current epoch and the params.ConfigOffset - 1 following epochs
+	// (totalling params.ConfigOffset memberships).
+	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, and 7.
+	memberships []map[t.NodeID]t.NodeAddress
+
+	// The latest new membership obtained from the application.
+	// To be included as last of the list of membership in the next new configuration.
+	// The epoch number this membership corresponds to is the current epoch number + params.ConfigOffset.
+	// At epoch initialization, this is set to nil. We then set it to the next membership announced by the application.
+	nextNewMembership map[t.NodeID]t.NodeAddress
+
 	// --------------------------------------------------------------------------------
 	// These fields are modified throughout an epoch.
 	// TODO: Move them into `epochInfo`?
@@ -192,15 +203,6 @@ type ISS struct {
 	// corresponding to the initial state and associated with sequence number 0.
 	lastStableCheckpoint *checkpoint.StableCheckpoint
 
-	// The epoch number to which the first entry of iss.configurations corresponds.
-	configEpoch t.EpochNr
-
-	// Epoch configurations.
-	// The first entry in this slice (configurations[0]) corresponds to the configuration of epoch iss.configEpoch.
-	// The following params.configOffset entries correspond to the configurations of the following epochs.
-	// configurations always contains params.configOffset + 1 entries.
-	configurations []map[t.NodeID]t.NodeAddress
-
 	// Stores the context of request-response type invocations of other modules.
 	contextStore contextstore.ContextStore[any]
 }
@@ -223,6 +225,8 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
+	// TODO: Make sure that startingChkp is consistent with params.
+
 	// Initialize a new ISS object.
 	iss := &ISS{
 		// Static fields
@@ -231,9 +235,11 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 		logger:       logger,
 
 		// Fields modified only by initEpoch
-		params:       params,
-		epochs:       make(map[t.EpochNr]*epochInfo),
-		nodeEpochMap: make(map[t.NodeID]t.EpochNr),
+		params:            params,
+		epochs:            make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap:      make(map[t.NodeID]t.EpochNr),
+		memberships:       startingChkp.Memberships()[:len(startingChkp.Memberships())-1], // all but the last item
+		nextNewMembership: startingChkp.Memberships()[len(startingChkp.Memberships())-1],  // just the last item
 
 		// Fields modified throughout an epoch
 		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
@@ -249,8 +255,6 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 		lastStableCheckpoint: startingChkp,
 		// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
 		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
-		configEpoch:    startingChkp.Epoch(),
-		configurations: startingChkp.Memberships(),
 
 		contextStore: contextstore.NewSequentialContextStore[any](),
 	}
@@ -258,7 +262,12 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 	// Initialize the first epoch.
 	// The corresponding application state will be loaded upon init.
 	// TODO: Make leader policy part of checkpoint.
-	iss.initEpoch(startingChkp.Epoch(), maputil.GetSortedKeys(startingChkp.Memberships()[0]), params.LeaderPolicy)
+	iss.initEpoch(
+		startingChkp.Epoch(),
+		startingChkp.SeqNr(),
+		maputil.GetSortedKeys(startingChkp.Memberships()[0]),
+		params.LeaderPolicy,
+	)
 
 	// Return the initialized protocol module.
 	return iss, nil
@@ -274,9 +283,12 @@ func InitialStateSnapshot(
 		memberships[i] = params.InitialMembership
 	}
 
+	// TODO: This assumes the simple leader selection policy. Generalize!
+	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
+
 	return &commonpb.StateSnapshot{
 		AppData:       appState,
-		Configuration: events.EpochConfig(0, memberships),
+		Configuration: events.EpochConfig(0, 0, firstEpochLength, memberships),
 	}
 }
 
@@ -354,10 +366,7 @@ func (iss *ISS) ImplementsModule() {}
 func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	// Initialize the availability modules.
-	for i, configuration := range iss.configurations {
-		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), t.MembershipPb(configuration)))
-	}
+	eventsOut.PushBackList(iss.bootstrapAvailability())
 
 	// Trigger an Init event at all orderers.
 	eventsOut.PushBackList(iss.initOrderers())
@@ -469,19 +478,21 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	// Convenience variables.
-	newMembership := t.Membership(config.Membership)
-	newConfigEpoch := iss.configEpoch + t.EpochNr(len(iss.configurations)) - 1
+	// Sanity check.
+	if iss.nextNewMembership != nil {
+		return nil, fmt.Errorf("already have a new membership")
+	}
+
+	// Convenience variable.
+	newConfigEpoch := iss.epoch.Nr() + t.EpochNr(len(iss.memberships))
+
+	// Save the new configuration.
+	iss.nextNewMembership = t.Membership(config.Membership)
 
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
 		"forEpoch", newConfigEpoch,
-		"currentEpoch", iss.epoch.Nr,
-		"newConfigNodes", maputil.GetSortedKeys(newMembership))
-
-	// Save the new configuration.
-	iss.configurations = append(iss.configurations, newMembership)
-	iss.configurations = iss.configurations[1:]
-	iss.configEpoch++
+		"currentEpoch", iss.epoch.Nr(),
+		"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
 
 	// Initialize the new availability module
 	eventsOut.PushBack(iss.initAvailabilityModule(
@@ -490,10 +501,15 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 	))
 
 	// Submit configurations to the corresponding instance of the checkpoint protocol.
-	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.configEpoch)))
+	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	eventsOut.PushBack(chkpprotos.EpochConfigEvent(
 		chkpModuleID,
-		events.EpochConfig(iss.configEpoch, iss.configurations),
+		events.EpochConfig(
+			iss.epoch.Nr(),
+			iss.epoch.FirstSN(),
+			iss.epoch.Len(),
+			append(iss.memberships, iss.nextNewMembership),
+		),
 	))
 
 	// Advance to the next epoch if this configuration was the last missing bit.
@@ -547,7 +563,7 @@ func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
 	}
 
 	epochNr := t.EpochNr(event.Epoch)
-	if epochNr > iss.epoch.Nr {
+	if epochNr > iss.epoch.Nr() {
 		// Events coming from future epochs should never occur (as, unlike messages, events are all generated locally.)
 		return nil, fmt.Errorf("ISS event (type %T, instance %d) from future epoch: %d",
 			event.Event.Type, event.Instance, event.Epoch)
@@ -660,14 +676,14 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// catching up with state transfer.
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := iss.lastStableCheckpoint.Epoch()
-	for _, n := range iss.epoch.Membership {
+	for n := range iss.epoch.nodeIDs {
 		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.params.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
 	}
 
 	iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
-		"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
+		"delayed", delayed, "numNodes", len(iss.epoch.nodeIDs), "nodeEpochMap", iss.nodeEpochMap)
 
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
 	return events.ListOf(events.SendMessage(iss.moduleConfig.Net, m, delayed)), nil
@@ -748,7 +764,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// }
 
 	// Check how far the received stable checkpoint is ahead of the local node's state.
-	if chkp.Epoch() <= iss.epoch.Nr+1 {
+	if chkp.Epoch() <= iss.epoch.Nr()+1 {
 		// Ignore stable checkpoints that are not far enough
 		// ahead of the current state of the local node.
 		return events.EmptyList(), nil
@@ -772,15 +788,13 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
-	iss.configEpoch = chkp.Epoch()
-	iss.configurations = chkp.Memberships()
-	for i, m := range iss.configurations {
-		eventsOut.PushBack(iss.initAvailabilityModule(iss.configEpoch+t.EpochNr(i), t.MembershipPb(m)))
-	}
+	iss.memberships = chkp.Memberships()[:len(chkp.Memberships())-1]      // all but the last item
+	iss.nextNewMembership = chkp.Memberships()[len(chkp.Memberships())-1] // just the last item
+	eventsOut.PushBackList(iss.bootstrapAvailability())
 
 	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkp.Epoch(), maputil.GetSortedKeys(iss.configurations[0]), iss.params.LeaderPolicy)
+	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.params.LeaderPolicy)
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -806,6 +820,23 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	return eventsOut, nil
 }
 
+func (iss *ISS) bootstrapAvailability() *events.EventList {
+	eventsOut := events.EmptyList()
+
+	// Initialize the availability modules.
+	for i, membership := range iss.memberships {
+		eventsOut.PushBack(iss.initAvailabilityModule(iss.epoch.Nr()+t.EpochNr(i), t.MembershipPb(membership)))
+	}
+	// At bootstrapping, the next new membership is assumed to have been announced already
+	// (since it is necessary to produce the checkpoint we are bootstrapping from).
+	eventsOut.PushBack(iss.initAvailabilityModule(
+		iss.epoch.Nr()+t.EpochNr(iss.params.ConfigOffset),
+		t.MembershipPb(iss.nextNewMembership),
+	))
+
+	return eventsOut
+}
+
 func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.Membership) *eventpb.Event {
 	return factoryevents.NewModule(
 		iss.moduleConfig.Availability,
@@ -821,7 +852,7 @@ func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.M
 func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) (*events.EventList, error) {
 
 	epochNr := t.EpochNr(message.Epoch)
-	if epochNr > iss.epoch.Nr {
+	if epochNr > iss.epoch.Nr() {
 		// If the message is for a future epoch,
 		// it might have been sent by a node that already transitioned to a newer epoch,
 		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
@@ -851,19 +882,15 @@ func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) (*events
 // ============================================================
 
 // initEpoch initializes a new ISS epoch with the given epoch number.
-func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolicy LeaderSelectionPolicy) {
+// TODO: Make leader policy (including its state) part of epoch config.
+func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.NodeID, leaderPolicy LeaderSelectionPolicy) {
 
-	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpoch, "numNodes", len(membership))
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
 
 	// Set the new epoch number and re-initialize list of orderers.
-	epoch := newEpochInfo(
-		newEpoch,
-		iss.nextDeliveredSN,
-		membership,
-		leaderPolicy,
-	)
+	epoch := newEpochInfo(newEpochNr, firstSN, nodeIDs, leaderPolicy)
 
-	iss.epochs[newEpoch] = &epoch
+	iss.epochs[newEpochNr] = &epoch
 	iss.epoch = &epoch
 
 	// TODO: DIRTY TRICK to get some capacity of any message buffer and copy it
@@ -879,7 +906,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolic
 	// Add new message buffers if not already present.
 	// TODO: Implement garbage collection of old ones.
 	//       Also, this is very dirty code. Fix!
-	for _, nodeID := range membership {
+	for _, nodeID := range nodeIDs {
 		if _, ok := iss.messageBuffers[nodeID]; nodeID != iss.ownID && !ok {
 			iss.messageBuffers[nodeID] = messagebuffer.New(
 				nodeID,
@@ -892,7 +919,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolic
 	// Compute the set of leaders for the new epoch.
 	// Note that leader policy is stateful, choosing leaders deterministically based on the state of the system.
 	// Its state must be consistent across all nodes when calling Leaders() on it.
-	leaders := iss.epoch.leaderPolicy.Leaders(newEpoch)
+	leaders := iss.epoch.leaderPolicy.Leaders(newEpochNr)
 
 	// Create new segments of the commit log, one per leader selected by the leader selection policy.
 	// Instantiate one orderer (SB instance) for each segment.
@@ -901,7 +928,7 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolic
 		// Create segment.
 		seg := &segment{
 			Leader:     leader,
-			Membership: membership,
+			Membership: nodeIDs,
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),
@@ -916,11 +943,11 @@ func (iss *ISS) initEpoch(newEpoch t.EpochNr, membership []t.NodeID, leaderPolic
 			seg,
 			newPBFTConfig(
 				iss.params,
-				membership,
-				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epoch.Nr))),
+				nodeIDs,
+				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epoch.Nr()))),
 			),
-			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpoch, instance: t.SBInstanceNr(i)},
-			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpoch, "instance", i))
+			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpochNr, instance: t.SBInstanceNr(i)},
+			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpochNr, "instance", i))
 
 		// Add the orderer to the list of orderers.
 		iss.epoch.Orderers = append(iss.epoch.Orderers, sbInst)
@@ -945,7 +972,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 }
 
 func (iss *ISS) haveEpochCheckpoint() bool {
-	return t.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN
+	return t.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN()
 }
 
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed
@@ -1014,26 +1041,30 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
 	// Convenience variables
-	oldEpochNr := iss.epoch.Nr
-	newEpochNr := iss.epoch.Nr + 1
+	oldEpochNr := iss.epoch.Nr()
+	newEpochNr := oldEpochNr + 1
 
 	iss.logger.Log(logging.LevelDebug, "Advancing epoch.",
 		"epoch", oldEpochNr,
 		"nextSN", iss.nextDeliveredSN,
-		"numConfigs", len(iss.configurations),
+		"numConfigs", len(iss.memberships),
 	)
 
 	// Check whether the configuration of the next epoch has already been submitted by the application.
-	configIdx := int(newEpochNr - iss.configEpoch)
-	if configIdx >= len(iss.configurations) {
+	if iss.nextNewMembership == nil {
 		iss.logger.Log(logging.LevelWarn, "Cannot advance to epoch yet. Waiting for configuration.",
 			"newEpoch", newEpochNr)
 		return eventsOut, nil
 	}
 
+	// Advance the membership pipeline
+	oldNodeIDs := maputil.GetSortedKeys(iss.memberships[0])
+	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
+	iss.nextNewMembership = nil
+
 	// Initialize the internal data structures for the new epoch.
-	nodeIDs := maputil.GetSortedKeys(iss.configurations[configIdx])
-	iss.initEpoch(newEpochNr, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
+	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
+	iss.initEpoch(newEpochNr, iss.nextDeliveredSN, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
 
 	// Signal the new epoch to the application.
 	// This must happen before starting the checkpoint protocol, since the application
@@ -1054,7 +1085,7 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 		chkpModuleID,
 		t.RetentionIndex(newEpochNr),
 		chkpprotos.InstanceParams(
-			maputil.GetSortedKeys(iss.configurations[configIdx-1]), // Use the old configuration.
+			oldNodeIDs,
 			newEpochNr,
 			iss.nextDeliveredSN,
 			checkpoint.DefaultResendPeriod,
@@ -1114,9 +1145,9 @@ func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) message
 	case *isspb.SBMessage:
 		// For SB messages, filter based on the epoch number of the message.
 		switch e := t.EpochNr(msg.Epoch); {
-		case e < iss.epoch.Nr:
+		case e < iss.epoch.Nr():
 			return messagebuffer.Past
-		case e == iss.epoch.Nr:
+		case e == iss.epoch.Nr():
 			return messagebuffer.Current
 		default: // e > iss.epoch
 			return messagebuffer.Future
@@ -1148,23 +1179,6 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(req *requestpb.HashedRequest) string {
 	return fmt.Sprintf("%v-%d.%v", req.Req.ClientId, req.Req.ReqNo, req.Digest)
-}
-
-// membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.
-// The returned map is effectively a set representation of the given list,
-// useful for testing whether any given node ID is in the set.
-func membershipSet(membership []t.NodeID) map[t.NodeID]struct{} {
-
-	// Allocate a new map representing a set of node IDs
-	set := make(map[t.NodeID]struct{})
-
-	// Add an empty struct for each node ID in the list.
-	for _, nodeID := range membership {
-		set[nodeID] = struct{}{}
-	}
-
-	// Return the resulting set of node IDs.
-	return set
 }
 
 // Returns a configuration of a new PBFT instance based on the current ISS configuration.
