@@ -1,7 +1,9 @@
 package libp2p
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -459,6 +461,120 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 
 	m.CloseHostAll()
 	m.testNoConnections()
+}
+
+func TestLibp2p_Messaging(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	require.Equal(t, nodeA, a.ownID)
+	b := m.transports[nodeB]
+	require.Equal(t, nodeB, b.ownID)
+	m.StartAll()
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	t.Log("membership")
+	t.Log(initialNodes)
+
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeB, nodeA)
+
+	t.Log(">>> sending messages")
+	nodeBEventsChan := b.EventsOut()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+
+	go func(ctx context.Context) {
+		wg.Add(1)
+		defer wg.Done()
+
+		<-ctx.Done()
+
+		t.Log(">>> cleaning")
+		m.StopAll()
+		m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+		m.testEventuallyNoStreams(nodeA)
+		m.testEventuallyNoStreams(nodeB)
+		m.testConnsEmpty()
+
+		m.CloseHostAll()
+		m.testNoConnections()
+	}(ctx)
+
+	sent := 0
+	sentBeforeDisconnect := 0
+	received := 0
+	disconnect := make(chan struct{})
+
+	testTime := time.Duration(15)
+	testTimer := time.NewTimer(testTime * time.Second)
+	disconnectTimer := time.NewTimer(testTime / 3 * time.Second)
+
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+
+		<-disconnect
+		t.Log(">>> disconnecting")
+		m.disconnect(nodeA, nodeB)
+	}()
+
+	send := time.NewTicker(300 * time.Millisecond)
+	defer send.Stop()
+
+	go func(ctx context.Context) {
+		wg.Add(1)
+		defer wg.Done()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-disconnectTimer.C:
+				t.Log("disconnect nodes")
+				sentBeforeDisconnect = sent
+				disconnect <- struct{}{}
+			case <-send.C:
+				err := a.Send(nodeB, &messagepb.Message{})
+				if err != nil {
+					m.t.Log(err)
+				} else {
+					sent++
+				}
+			}
+		}
+	}(ctx)
+
+	for {
+		select {
+		case msg := <-nodeBEventsChan:
+			m.testThatSenderIs(msg, nodeA)
+			received++
+		case <-testTimer.C:
+			cancel()
+			wg.Wait()
+			if received <= sentBeforeDisconnect+(sent-sentBeforeDisconnect)/2 {
+				t.Fail()
+			}
+			t.Log("sent before disconnect: ", sentBeforeDisconnect)
+			t.Log("sent: ", sent)
+			t.Log("received: ", received)
+			return
+		}
+	}
+
 }
 
 func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
