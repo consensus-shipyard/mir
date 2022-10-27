@@ -286,8 +286,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, nodeC, c.ownID)
 	require.Equal(t, nodeD, d.ownID)
 
-	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0/p2p/12D3KooWL3XJ9EMCyZvmmGXL2LMiVBtrVa2BuESsJiXkSj7333Jw")
-	require.NoError(t, err)
+	eAddr := libp2putil.NewFakeMultiaddr(100, 0)
 
 	t.Log(">>> connecting nodes")
 
@@ -310,7 +309,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyConnected(nodeC, nodeD)
 
 	t.Log(">>> sending messages")
-	err = a.Send("unknownNode", &messagepb.Message{})
+	err := a.Send("unknownNode", &messagepb.Message{})
 	require.ErrorIs(t, err, ErrUnknownNode)
 
 	err = a.Send(nodeE, &messagepb.Message{})
