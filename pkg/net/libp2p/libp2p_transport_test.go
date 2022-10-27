@@ -623,10 +623,15 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 	t.Log(">>> connecting to a failed node")
 	err = a.Start()
 	require.NoError(t, err)
+	a.params.MaxRetries = 1
+	a.params.MaxConnectingTimeout = 1 * time.Second
+	a.params.MaxRetryTimeout = 0
 	a.Connect(initialNodes)
 	m.testNeverNotConnected(nodeA, nodeB)
 
 	t.Log(">>> connecting to the restarted node")
+	err = b.Start()
+	require.NoError(t, err)
 	initialNodes = m.Membership(nodeA, nodeB)
 	require.NoError(t, err)
 	a.Connect(initialNodes)
