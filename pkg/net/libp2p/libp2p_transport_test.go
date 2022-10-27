@@ -496,8 +496,8 @@ func TestLibp2p_Messaging(t *testing.T) {
 
 	var wg sync.WaitGroup
 
+	wg.Add(1)
 	go func(ctx context.Context) {
-		wg.Add(1)
 		defer wg.Done()
 
 		<-ctx.Done()
@@ -522,8 +522,8 @@ func TestLibp2p_Messaging(t *testing.T) {
 	testTimer := time.NewTimer(testTime * time.Second)
 	disconnectTimer := time.NewTimer(testTime / 3 * time.Second)
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 
 		<-disconnect
@@ -534,8 +534,8 @@ func TestLibp2p_Messaging(t *testing.T) {
 	send := time.NewTicker(300 * time.Millisecond)
 	defer send.Stop()
 
+	wg.Add(1)
 	go func(ctx context.Context) {
-		wg.Add(1)
 		defer wg.Done()
 
 		for {
