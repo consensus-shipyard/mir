@@ -159,7 +159,7 @@ func (m *mockLibp2pCommunication) testEventuallySentMsg(srcNode, dstNode types.N
 		5*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testNeverNotConnected(nodeID1, nodeID2 types.NodeID) {
+func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
 
@@ -318,7 +318,7 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverNotConnected(nodeA, nodeB)
+	m.testNeverConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
@@ -361,9 +361,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyConnected(nodeA, nodeB)
 	m.testEventuallyConnected(nodeA, nodeC)
 	m.testEventuallyConnected(nodeB, nodeC)
-	m.testNeverNotConnected(nodeA, nodeD)
-	m.testNeverNotConnected(nodeB, nodeD)
-	m.testNeverNotConnected(nodeC, nodeD)
+	m.testNeverConnected(nodeA, nodeD)
+	m.testNeverConnected(nodeB, nodeD)
+	m.testNeverConnected(nodeC, nodeD)
 
 	t.Log(">>> reconfigure nodes")
 	newNodes := m.Membership(nodeA, nodeB, nodeD)
@@ -433,7 +433,7 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverNotConnected(nodeA, nodeB)
+	m.testNeverConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
@@ -490,7 +490,7 @@ func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverNotConnected(nodeA, nodeB)
+	m.testNeverConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
@@ -627,7 +627,7 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 	a.params.MaxConnectingTimeout = 1 * time.Second
 	a.params.MaxRetryTimeout = 0
 	a.Connect(initialNodes)
-	m.testNeverNotConnected(nodeA, nodeB)
+	m.testNeverConnected(nodeA, nodeB)
 
 	t.Log(">>> connecting to the restarted node")
 	err = b.Start()
