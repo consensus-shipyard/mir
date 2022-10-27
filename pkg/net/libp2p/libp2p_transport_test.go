@@ -159,6 +159,17 @@ func (m *mockLibp2pCommunication) testEventuallySentMsg(srcNode, dstNode types.N
 		5*time.Second, 300*time.Millisecond)
 }
 
+func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 types.NodeID) {
+	src := m.getTransport(nodeID1)
+	dst := m.getTransport(nodeID2)
+
+	require.Eventually(m.t,
+		func() bool {
+			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
+		},
+		5*time.Second, 300*time.Millisecond)
+}
+
 func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
@@ -275,7 +286,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, nodeC, c.ownID)
 	require.Equal(t, nodeD, d.ownID)
 
-	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
+	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0/p2p/12D3KooWL3XJ9EMCyZvmmGXL2LMiVBtrVa2BuESsJiXkSj7333Jw")
 	require.NoError(t, err)
 
 	t.Log(">>> connecting nodes")
@@ -303,7 +314,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnknownNode)
 
 	err = a.Send(nodeE, &messagepb.Message{})
-	require.ErrorAs(t, err, &ErrUnknownNode)
+	require.ErrorIs(t, err, ErrNilStream)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
@@ -318,7 +329,7 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverConnected(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
@@ -361,9 +372,9 @@ func TestLibp2p_Connecting(t *testing.T) {
 	m.testEventuallyConnected(nodeA, nodeB)
 	m.testEventuallyConnected(nodeA, nodeC)
 	m.testEventuallyConnected(nodeB, nodeC)
-	m.testNeverConnected(nodeA, nodeD)
-	m.testNeverConnected(nodeB, nodeD)
-	m.testNeverConnected(nodeC, nodeD)
+	m.testEventuallyNotConnected(nodeA, nodeD)
+	m.testEventuallyNotConnected(nodeB, nodeD)
+	m.testEventuallyNotConnected(nodeC, nodeD)
 
 	t.Log(">>> reconfigure nodes")
 	newNodes := m.Membership(nodeA, nodeB, nodeD)
@@ -433,7 +444,7 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverConnected(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
@@ -490,7 +501,7 @@ func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 
 	t.Log(">>> disconnecting nodes")
 	m.disconnect(nodeA, nodeB)
-	m.testNeverConnected(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
