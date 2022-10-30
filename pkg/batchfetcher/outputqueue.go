@@ -7,6 +7,7 @@ import (
 
 type outputItem struct {
 	event *eventpb.Event
+	f     func(e *eventpb.Event)
 }
 
 type outputQueue struct {
@@ -19,7 +20,18 @@ func (oq *outputQueue) Enqueue(item *outputItem) {
 
 func (oq *outputQueue) Flush(m dsl.Module) {
 	for len(oq.items) > 0 && oq.items[0].event != nil {
-		dsl.EmitEvent(m, oq.items[0].event)
+		// Convenience variable.
+		item := oq.items[0]
+
+		// Execute event output hook.
+		if item.f != nil {
+			item.f(item.event)
+		}
+
+		// Emit queued event.
+		dsl.EmitEvent(m, item.event)
+
+		// Remove item from queue.
 		oq.items = oq.items[1:]
 	}
 }
