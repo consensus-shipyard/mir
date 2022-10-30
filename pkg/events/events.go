@@ -314,6 +314,7 @@ func EpochConfig(
 	length int,
 	memberships []map[t.NodeID]t.NodeAddress,
 ) *commonpb.EpochConfig {
+
 	m := make([]*commonpb.Membership, len(memberships))
 	for i, membership := range memberships {
 		m[i] = t.MembershipPb(membership)
