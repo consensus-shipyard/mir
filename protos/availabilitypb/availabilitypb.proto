@@ -19,7 +19,7 @@ message Event {
     option (mir.event_type) = true;
 
     RequestCert request_cert = 1;
-    NewCert      new_cert    = 2;
+    NewCert     new_cert     = 2;
 
     VerifyCert   verify_cert   = 3;
     CertVerified cert_verified = 4;
