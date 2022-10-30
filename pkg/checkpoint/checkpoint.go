@@ -5,7 +5,9 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
@@ -42,18 +44,22 @@ func (sc *StableCheckpoint) SeqNr() t.SeqNr {
 // Memberships returns the memberships configured for the epoch of this checkpoint
 // and potentially several subsequent ones.
 func (sc *StableCheckpoint) Memberships() []map[t.NodeID]t.NodeAddress {
-	return t.MembershipSlice(sc.Snapshot.Configuration.Memberships)
+	return t.MembershipSlice(sc.Snapshot.EpochData.EpochConfig.Memberships)
 }
 
 // Epoch returns the epoch associated with this checkpoint.
 // It is the epoch **started** by this checkpoint, **not** the last one included in it.
 func (sc *StableCheckpoint) Epoch() t.EpochNr {
-	return t.EpochNr(sc.Snapshot.Configuration.EpochNr)
+	return t.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
 }
 
 // StateSnapshot returns the serialized application state and system configuration associated with this checkpoint.
 func (sc *StableCheckpoint) StateSnapshot() *commonpb.StateSnapshot {
 	return sc.Snapshot
+}
+
+func (sc *StableCheckpoint) ClientProgress(logger logging.Logger) *clientprogress.ClientProgress {
+	return clientprogress.FromPb(sc.Snapshot.EpochData.ClientProgress, logger)
 }
 
 // Pb returns a protobuf representation of the stable checkpoint.
