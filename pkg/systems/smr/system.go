@@ -170,7 +170,11 @@ func New(
 
 	// Instantiate the batch fetcher module that transforms availability certificates ordered by ISS
 	// into batches of transactions that can be applied to the replicated application.
-	batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig(), startingCheckpoint.Epoch())
+	batchFetcher := batchfetcher.NewModule(
+		batchfetcher.DefaultModuleConfig(),
+		startingCheckpoint.Epoch(),
+		startingCheckpoint.ClientProgress(logger),
+	)
 
 	// Let the ISS implementation complete the module set by adding default implementations of helper modules
 	// that it needs but that have not been specified explicitly.

@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -287,8 +288,11 @@ func InitialStateSnapshot(
 	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
 
 	return &commonpb.StateSnapshot{
-		AppData:       appState,
-		Configuration: events.EpochConfig(0, 0, firstEpochLength, memberships),
+		AppData: appState,
+		EpochData: &commonpb.EpochData{
+			EpochConfig:    events.EpochConfig(0, 0, firstEpochLength, memberships),
+			ClientProgress: clientprogress.NewClientProgress(nil).Pb(),
+		},
 	}
 }
 
@@ -682,8 +686,10 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 		}
 	}
 
-	iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
-		"delayed", delayed, "numNodes", len(iss.epoch.nodeIDs), "nodeEpochMap", iss.nodeEpochMap)
+	if len(delayed) > 0 {
+		iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
+			"delayed", delayed, "numNodes", len(iss.epoch.nodeIDs), "nodeEpochMap", iss.nodeEpochMap)
+	}
 
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
 	return events.ListOf(events.SendMessage(iss.moduleConfig.Net, m, delayed)), nil
@@ -737,9 +743,11 @@ func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint
 		//       The snapshot first has to be hashed and only then the signatures can be verified.
 		//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
 
-		[][][]byte{
-			serializing.CheckpointForSig(t.EpochNr(chkp.Snapshot.Configuration.EpochNr), t.SeqNr(chkp.Sn), []byte{0}),
-		},
+		[][][]byte{serializing.CheckpointForSig(
+			t.EpochNr(chkp.Snapshot.EpochData.EpochConfig.EpochNr),
+			t.SeqNr(chkp.Sn),
+			[]byte{0},
+		)},
 		signatures,
 		nodeIDs,
 		StableCheckpointSigVerOrigin(iss.moduleConfig.Self, chkp),

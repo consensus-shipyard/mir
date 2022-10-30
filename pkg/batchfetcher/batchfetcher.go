@@ -5,6 +5,7 @@ import (
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -22,15 +23,8 @@ import (
 // and automatically requests the transactions from the correct instance of the availability module.
 // TODO: Implement proper state initialization and transfer,
 // comprising not just the epoch number, but also the client watermarks.
-func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
+func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress) modules.Module {
 	m := dsl.NewModule(mc.Self)
-
-	// The current epoch number, as announced by the ordering protocol.
-	epochNr := epoch
-
-	// Map of delivered requests that is used to filter duplicates.
-	// TODO: Implement compaction (client watermarks) so that this map does not grow indefinitely.
-	delivered := make(map[t.ClientID]map[t.ReqNo]struct{})
 
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
@@ -75,6 +69,32 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 		return nil
 	})
 
+	// The AppSnapshotRequest handler triggers a ClientProgress event (for the checkpointing protocol)
+	// and forwards the original snapshot request event to the output.
+	dsl.UponEvent[*eventpb.Event_AppSnapshotRequest](m, func(snapshotRequest *eventpb.AppSnapshotRequest) error {
+
+		// Save the number of the epoch when the AppSnapshotRequest has been received.
+		// This is necessary in case the epoch number changes
+		// by the time the AppSnapshotRequest event is output and the hook function (added below) executed.
+		epoch := epochNr
+
+		// Forward the original event to the output.
+		output.Enqueue(&outputItem{
+			event: events.AppSnapshotRequest(mc.Destination, t.ModuleID(snapshotRequest.ReplyTo)),
+
+			// At the time of forwarding, submit the client progress to the checkpointing protocol.
+			f: func(_ *eventpb.Event) {
+				dsl.EmitEvent(m, bfevents.ClientProgress(
+					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epoch))),
+					clientProgress.Pb(),
+				))
+			},
+		})
+		output.Flush(m)
+
+		return nil
+	})
+
 	// The ProvideTransactions handler filters the received transaction batch,
 	// removing all transactions that have been previously delivered,
 	// assigns the remaining transactions to the corresponding output item
@@ -92,15 +112,7 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 			reqNo := t.ReqNo(req.ReqNo)
 
 			// Only keep request if it has not yet been delivered.
-			// TODO: Make this more efficient by compacting the delivered set.
-			_, ok := delivered[clID]
-			if !ok {
-				// If this is the first transaction from this client, create a new entry for the ClientID.
-				delivered[clID] = make(map[t.ReqNo]struct{})
-			}
-			if _, ok := delivered[clID][reqNo]; !ok {
-				// If the transaction has not yet been delivered, record its delivery and append it to the output.
-				delivered[clID][reqNo] = struct{}{}
+			if clientProgress.Add(clID, reqNo) {
 				newTxs = append(newTxs, req)
 			}
 		}
