@@ -42,16 +42,16 @@ func DeliveredReqsFromPb(pb *commonpb.DeliveredReqs, logger logging.Logger) *Del
 // Add adds a request number that is considered delivered to the DeliveredReqs.
 // Returns true if the request number has been added now (after not being previously present).
 // Returns false if the request number has already been added before the call to Add.
-func (cwmt *DeliveredReqs) Add(reqNo t.ReqNo) bool {
+func (dr *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 
-	if reqNo < cwmt.lowWM {
-		cwmt.logger.Log(logging.LevelDebug, "Request sequence number below client's watermark window.",
-			"lowWM", cwmt.lowWM, "clId", cwmt.lowWM, "reqNo", reqNo)
+	if reqNo < dr.lowWM {
+		dr.logger.Log(logging.LevelDebug, "Request sequence number below client's watermark window.",
+			"lowWM", dr.lowWM, "clId", dr.lowWM, "reqNo", reqNo)
 		return false
 	}
 
-	_, alreadyPresent := cwmt.delivered[reqNo]
-	cwmt.delivered[reqNo] = struct{}{}
+	_, alreadyPresent := dr.delivered[reqNo]
+	dr.delivered[reqNo] = struct{}{}
 	return !alreadyPresent
 }
 
@@ -59,24 +59,24 @@ func (cwmt *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 // by deleting a contiguous prefix of delivered request numbers
 // and increasing the low watermark accordingly.
 // Returns the new low watermark.
-func (cwmt *DeliveredReqs) GarbageCollect() t.ReqNo {
+func (dr *DeliveredReqs) GarbageCollect() t.ReqNo {
 
-	for _, ok := cwmt.delivered[cwmt.lowWM]; ok; _, ok = cwmt.delivered[cwmt.lowWM] {
-		delete(cwmt.delivered, cwmt.lowWM)
-		cwmt.lowWM++
+	for _, ok := dr.delivered[dr.lowWM]; ok; _, ok = dr.delivered[dr.lowWM] {
+		delete(dr.delivered, dr.lowWM)
+		dr.lowWM++
 	}
 
-	return cwmt.lowWM
+	return dr.lowWM
 }
 
-func (cwmt *DeliveredReqs) Pb() *commonpb.DeliveredReqs {
-	delivered := make([]uint64, len(cwmt.delivered))
-	for i, reqNo := range maputil.GetSortedKeys(cwmt.delivered) {
+func (dr *DeliveredReqs) Pb() *commonpb.DeliveredReqs {
+	delivered := make([]uint64, len(dr.delivered))
+	for i, reqNo := range maputil.GetSortedKeys(dr.delivered) {
 		delivered[i] = reqNo.Pb()
 	}
 
 	return &commonpb.DeliveredReqs{
-		LowWm:     cwmt.lowWM.Pb(),
+		LowWm:     dr.lowWM.Pb(),
 		Delivered: delivered,
 	}
 }
