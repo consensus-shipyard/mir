@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -38,6 +39,19 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			event: events.NewEpoch(mc.Destination, t.EpochNr(newEpoch.EpochNr)),
 		})
 		output.Flush(m)
+		return nil
+	})
+
+	// The ClientProgress handler restores the module's view of the client progress.
+	// This happens when state is being loaded from a checkpoint.
+	dsl.UponEvent[*eventpb.Event_BatchFetcher](m, func(bfEvent *batchfetcherpb.Event) error {
+		// TODO: Write a batchfetcher DSL package and move the boilerplate there.
+		switch e := bfEvent.Type.(type) {
+		case *batchfetcherpb.Event_ClientProgress:
+			clientProgress.LoadPb(e.ClientProgress)
+		default:
+			return fmt.Errorf("unsupported batch fetcher event type: %T", e)
+		}
 		return nil
 	})
 
