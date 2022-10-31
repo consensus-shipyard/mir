@@ -278,9 +278,9 @@ func (t *Transport) runStreamUpdater() {
 							t.logger.Log(logging.LevelError, "could not close stream to node", "src", t.ownID, "dst", nodeID, "err", err)
 						}
 					}
+					conn.Stream = one.Stream
+					conn.Connecting = false
 				}
-				conn.Stream = one.Stream
-				conn.Connecting = false
 				t.connsLock.Unlock()
 				t.logger.Log(logging.LevelDebug, "updated stream", "src", t.ownID, "nodeID", nodeID)
 			}
