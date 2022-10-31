@@ -203,9 +203,15 @@ func newBlabber(batchSize uint64, period time.Duration) *blabber {
 // Once started, the babbler is unstoppable and keeps babbling forever.
 func (b *blabber) Go() {
 	b.wg.Add(1)
+
 	go func() {
 		defer b.wg.Done()
 		for {
+			select {
+			case <-b.stop:
+				return
+			default:
+			}
 			evts := events.ListOf(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
 			select {
 			case <-b.stop:
