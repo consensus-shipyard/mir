@@ -61,8 +61,9 @@ func (cwmt *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 // Returns the new low watermark.
 func (cwmt *DeliveredReqs) GarbageCollect() t.ReqNo {
 
-	for _, ok := cwmt.delivered[cwmt.lowWM]; ok; cwmt.lowWM++ {
+	for _, ok := cwmt.delivered[cwmt.lowWM]; ok; _, ok = cwmt.delivered[cwmt.lowWM] {
 		delete(cwmt.delivered, cwmt.lowWM)
+		cwmt.lowWM++
 	}
 
 	return cwmt.lowWM
