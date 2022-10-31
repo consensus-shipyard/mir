@@ -789,20 +789,16 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	iss.nextDeliveredSN = chkp.SeqNr()
 	iss.newEpochSN = iss.nextDeliveredSN
 
-	// Initialize a new ISS epoch instance for the new stable
-	// checkpoint to continue participating in the protocol
-	// starting with that epoch after installing the state
-	// snapshot from the new stable checkpoint.
+	// Initialize a new ISS epoch instance for the new stable checkpoint to continue participating in the protocol.
+	// TODO: Check if all the configurations are present in the checkpoint.
+	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
+	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.params.LeaderPolicy)
 
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
 	iss.memberships = chkp.Memberships()[:len(chkp.Memberships())-1]      // all but the last item
 	iss.nextNewMembership = chkp.Memberships()[len(chkp.Memberships())-1] // just the last item
-	eventsOut.PushBackList(iss.bootstrapAvailability())
-
-	// TODO: Check if all the configurations are present in the checkpoint.
-	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.params.LeaderPolicy)
+	eventsOut.PushBackList(iss.bootstrapAvailability())                   // (Must happen after epoch is initialized; uses current epoch.)
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
