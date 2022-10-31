@@ -42,6 +42,10 @@ lint:
 fuzz:
 	./fuzz.sh
 
+.PHONY: vulncheck
+vulncheck:
+	govulncheck -v ./...
+
 .PHONY: generate
 generate:
 	go generate ./protos # Generate basic protobufs first, as those might be necessary to generate the rest.
