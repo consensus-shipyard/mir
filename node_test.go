@@ -206,13 +206,12 @@ func (b *blabber) Go() {
 	go func() {
 		defer b.wg.Done()
 		for {
+			evts := events.ListOf(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
 			select {
 			case <-b.stop:
 				return
-			default:
+			case b.flood <- evts:
 			}
-			evts := events.ListOf(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
-			b.flood <- evts
 			atomic.AddUint64(&b.totalSubmitted, b.batchSize)
 			time.Sleep(b.period)
 		}
