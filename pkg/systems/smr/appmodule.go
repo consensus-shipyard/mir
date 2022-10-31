@@ -104,11 +104,8 @@ func (m *AppModule) applyAppSnapshotRequest(snapshotRequest *eventpb.AppSnapshot
 // applyRestoreState restores the application state from a snapshot.
 // The snapshot contains both the application state and the configuration corresponding to that version of the state.
 // applyRestoreState returns an empty event list.
-func (m *AppModule) applyAppRestoreState(state *eventpb.AppRestoreState) (*events.EventList, error) {
-	if err := m.appLogic.RestoreState(
-		state.Snapshot.AppData,
-		state.Snapshot.Configuration,
-	); err != nil {
+func (m *AppModule) applyAppRestoreState(restoreState *eventpb.AppRestoreState) (*events.EventList, error) {
+	if err := m.appLogic.RestoreState(checkpoint.StableCheckpointFromPb(restoreState.Checkpoint)); err != nil {
 		return nil, fmt.Errorf("app restore state error: %w", err)
 	}
 	return events.EmptyList(), nil

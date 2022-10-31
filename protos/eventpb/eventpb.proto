@@ -227,7 +227,7 @@ message AppSnapshot {
 }
 
 message AppRestoreState {
-  commonpb.StateSnapshot snapshot = 1;
+  checkpointpb.StableCheckpoint checkpoint = 1;
 }
 
 message TimerDelay {

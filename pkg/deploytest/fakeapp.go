@@ -14,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -58,7 +57,7 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			fa.Snapshot(),
 		)), nil
 	case *eventpb.Event_AppRestoreState:
-		if err := fa.RestoreState(e.AppRestoreState.Snapshot); err != nil {
+		if err := fa.RestoreState(e.AppRestoreState.Checkpoint); err != nil {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
 	case *eventpb.Event_NewEpoch:
@@ -94,8 +93,8 @@ func (fa *FakeApp) Snapshot() []byte {
 	return uint64ToBytes(fa.RequestsProcessed)
 }
 
-func (fa *FakeApp) RestoreState(snapshot *commonpb.StateSnapshot) error {
-	fa.RequestsProcessed = uint64FromBytes(snapshot.AppData)
+func (fa *FakeApp) RestoreState(checkpoint *checkpointpb.StableCheckpoint) error {
+	fa.RequestsProcessed = uint64FromBytes(checkpoint.Snapshot.AppData)
 	return nil
 }
 

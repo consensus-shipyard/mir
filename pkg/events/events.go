@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
@@ -318,11 +319,11 @@ func EpochConfig(epochNr t.EpochNr, memberships []map[t.NodeID]t.NodeAddress) *c
 
 // AppRestoreState returns an event representing the protocol module asking the application
 // for restoring its state from the snapshot.
-func AppRestoreState(destModule t.ModuleID, snapshot *commonpb.StateSnapshot) *eventpb.Event {
+func AppRestoreState(destModule t.ModuleID, checkpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_AppRestoreState{AppRestoreState: &eventpb.AppRestoreState{
-			Snapshot: snapshot,
+			Checkpoint: checkpoint,
 		}},
 	}
 }

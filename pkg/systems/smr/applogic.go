@@ -2,7 +2,6 @@ package smr
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -25,8 +24,8 @@ type AppLogic interface {
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)
 
-	// RestoreState restores the application state from a snapshot.
-	RestoreState(snapshot []byte, config *commonpb.EpochConfig) error
+	// RestoreState restores the application state from stable checkpoint.
+	RestoreState(checkpoint *checkpoint.StableCheckpoint) error
 
 	// Checkpoint is called by the SMR system when it produces a checkpoint.
 	// A checkpoint contains the state of the application at a particular point in time
@@ -46,7 +45,7 @@ type StaticAppLogic interface {
 	Snapshot() ([]byte, error)
 
 	// RestoreState restores the application state from a snapshot.
-	RestoreState(snapshot []byte) error
+	RestoreState(checkpoint *checkpoint.StableCheckpoint) error
 
 	// Checkpoint is called by the SMR system when it produces a checkpoint.
 	// A checkpoint contains the state of the application at a particular point in time
