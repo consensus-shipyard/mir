@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -452,7 +453,11 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			nodeLogger,
 		)
 
-		batchFetcher := batchfetcher.NewModule(batchfetcher.DefaultModuleConfig(), 0)
+		batchFetcher := batchfetcher.NewModule(
+			batchfetcher.DefaultModuleConfig(),
+			0,
+			clientprogress.NewClientProgress(nodeLogger),
+		)
 
 		modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 			"app":          fakeApp,
