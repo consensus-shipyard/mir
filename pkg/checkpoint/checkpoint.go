@@ -15,18 +15,11 @@ import (
 // StableCheckpoint represents a stable checkpoint.
 type StableCheckpoint checkpointpb.StableCheckpoint
 
-// NewStableCheckpoint creates a new StableCheckpoint from its individual components.
-func NewStableCheckpoint(sn t.SeqNr, snapshot *commonpb.StateSnapshot, cert map[t.NodeID][]byte) *StableCheckpoint {
-	certPb := make(map[string][]byte)
-	for nodeID, sig := range cert {
-		certPb[nodeID.Pb()] = sig
-	}
-
-	return (*StableCheckpoint)(&checkpointpb.StableCheckpoint{
-		Sn:       sn.Pb(),
-		Snapshot: snapshot,
-		Cert:     certPb,
-	})
+// StableCheckpointFromPb creates a new StableCheckpoint from its protobuf representation.
+// The given protobuf object is assumed to not be modified after calling StableCheckpointFromPb.
+// Modifying it may lead to undefined behavior.
+func StableCheckpointFromPb(checkpoint *checkpointpb.StableCheckpoint) *StableCheckpoint {
+	return (*StableCheckpoint)(checkpoint)
 }
 
 // DeserializeStableCheckpoint creates a StableCheckpoint from its serialized representation

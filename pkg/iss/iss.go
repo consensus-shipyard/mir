@@ -363,7 +363,7 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut.PushBackList(iss.initOrderers())
 
 	// Initialize application state according to the initial checkpoint.
-	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.StateSnapshot()))
+	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.Pb()))
 
 	return eventsOut, nil
 }
@@ -788,7 +788,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
-	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.StateSnapshot()))
+	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Pb()))
 
 	// Activate SB instances of the new epoch which will deliver
 	// availability certificates after the application module has restored the state

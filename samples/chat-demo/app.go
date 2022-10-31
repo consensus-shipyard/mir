@@ -158,13 +158,13 @@ func (chat *ChatApp) Snapshot() ([]byte, error) {
 // RestoreState restores the application's state to the one represented by the passed argument.
 // The argument is a binary representation of the application state returned from Snapshot().
 // After the chat history is restored, RestoreState prints the whole chat history to stdout.
-func (chat *ChatApp) RestoreState(appData []byte, epochConfig *commonpb.EpochConfig) error {
+func (chat *ChatApp) RestoreState(checkpoint *checkpoint.StableCheckpoint) error {
 
 	// Restore chat messages
-	chat.restoreChat(appData)
+	chat.restoreChat(checkpoint.Snapshot.AppData)
 
 	// Restore configuration
-	if err := chat.restoreConfiguration(epochConfig); err != nil {
+	if err := chat.restoreConfiguration(checkpoint.Snapshot.Configuration); err != nil {
 		return err
 	}
 
