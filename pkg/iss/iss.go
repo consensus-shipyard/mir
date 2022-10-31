@@ -17,11 +17,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"

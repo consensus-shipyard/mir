@@ -48,11 +48,11 @@ func (cwmt *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 		cwmt.logger.Log(logging.LevelDebug, "Request sequence number below client's watermark window.",
 			"lowWM", cwmt.lowWM, "clId", cwmt.lowWM, "reqNo", reqNo)
 		return false
-	} else {
-		_, alreadyPresent := cwmt.delivered[reqNo]
-		cwmt.delivered[reqNo] = struct{}{}
-		return !alreadyPresent
 	}
+
+	_, alreadyPresent := cwmt.delivered[reqNo]
+	cwmt.delivered[reqNo] = struct{}{}
+	return !alreadyPresent
 }
 
 // GarbageCollect reduces the memory footprint of the DeliveredReqs
