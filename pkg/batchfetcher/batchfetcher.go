@@ -123,6 +123,11 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		return nil
 	})
 
+	// Explicitly ignore Init event. This prevents forwarding it to the destination module.
+	dsl.UponEvent[*eventpb.Event_Init](m, func(_ *eventpb.Init) error {
+		return nil
+	})
+
 	// All other events simply pass through the batch fetcher unchanged (except their destination module).
 	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
 		output.Enqueue(&outputItem{
