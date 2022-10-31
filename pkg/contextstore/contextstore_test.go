@@ -4,9 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 func TestSequentialContextStoreImpl_RecoverAndDispose(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	cs := NewSequentialContextStore[string]()
 	helloID := cs.Store("Hello")
 	worldID := cs.Store("World")

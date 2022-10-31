@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
@@ -64,6 +65,8 @@ func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 }
 
 func TestFactoryModule(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	var echoFactory modules.PassiveModule
 	logger := testlogger.New()
 
