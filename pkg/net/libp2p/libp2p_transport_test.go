@@ -820,6 +820,7 @@ func TestLibp2p_TwoNodesBasic(t *testing.T) {
 
 	t.Log(">>> cleaning")
 	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testEventuallyNoStreams(nodeA)
 	m.testEventuallyNoStreams(nodeB)
 	m.testConnsEmpty()
