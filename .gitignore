@@ -23,3 +23,6 @@ protoc-plugin/protoc-gen-mir
 
 # Ignore backup files
 *~
+
+# Ignore coverage prifile files.
+coverage.out

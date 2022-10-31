@@ -23,7 +23,11 @@ clean:
 
 .PHONY: test
 test:
-	go test -v -count=1 -race ./...
+	go test -short -v -shuffle=on -count=1 -race -timeout 20m ./...
+
+.PHONY: test_cov
+test_cov:
+	go test -coverprofile coverage.out -v -count=1 -timeout 20m ./...
 
 .PHONY: format
 format:
