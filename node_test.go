@@ -192,7 +192,7 @@ type blabber struct {
 
 func newBlabber(batchSize uint64, period time.Duration) *blabber {
 	return &blabber{
-		flood:     make(chan *events.EventList, 1),
+		flood:     make(chan *events.EventList),
 		batchSize: batchSize,
 		period:    period,
 		stop:      make(chan struct{}),
