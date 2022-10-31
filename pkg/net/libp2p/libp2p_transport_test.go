@@ -1,6 +1,9 @@
 package libp2p
 
 import (
+	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -169,6 +172,17 @@ func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 ty
 		5*time.Second, 300*time.Millisecond)
 }
 
+func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.NodeID) {
+	src := m.getTransport(nodeID1)
+	dst := m.getTransport(nodeID2)
+
+	require.Never(m.t,
+		func() bool {
+			return network.Connected == src.host.Network().Connectedness(dst.host.ID())
+		},
+		5*time.Second, 300*time.Millisecond)
+}
+
 func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID2 types.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
@@ -197,7 +211,6 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
 
 	require.Eventually(m.t,
 		func() bool {
-
 			return m.getNumberOfStreams(v) == 0
 		},
 		10*time.Second, 300*time.Millisecond)
@@ -275,8 +288,7 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, nodeC, c.ownID)
 	require.Equal(t, nodeD, d.ownID)
 
-	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
-	require.NoError(t, err)
+	eAddr := libp2putil.NewFakeMultiaddr(100, 0)
 
 	t.Log(">>> connecting nodes")
 
@@ -299,11 +311,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyConnected(nodeC, nodeD)
 
 	t.Log(">>> sending messages")
-	err = a.Send("unknownNode", &messagepb.Message{})
+	err := a.Send("unknownNode", &messagepb.Message{})
 	require.ErrorIs(t, err, ErrUnknownNode)
 
 	err = a.Send(nodeE, &messagepb.Message{})
-	require.ErrorAs(t, err, &ErrUnknownNode)
+	require.ErrorIs(t, err, ErrNilStream)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
@@ -451,6 +463,120 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 	m.testNoConnections()
 }
 
+func TestLibp2p_Messaging(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	require.Equal(t, nodeA, a.ownID)
+	b := m.transports[nodeB]
+	require.Equal(t, nodeB, b.ownID)
+	m.StartAll()
+
+	t.Log(">>> connecting nodes")
+
+	initialNodes := m.Membership(nodeA, nodeB)
+
+	t.Log("membership")
+	t.Log(initialNodes)
+
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeB, nodeA)
+
+	t.Log(">>> sending messages")
+	nodeBEventsChan := b.EventsOut()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer wg.Done()
+
+		<-ctx.Done()
+
+		t.Log(">>> cleaning")
+		m.StopAll()
+		m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+		m.testEventuallyNoStreams(nodeA)
+		m.testEventuallyNoStreams(nodeB)
+		m.testConnsEmpty()
+
+		m.CloseHostAll()
+		m.testNoConnections()
+	}(ctx)
+
+	sent := 0
+	sentBeforeDisconnect := 0
+	received := 0
+	disconnect := make(chan struct{})
+
+	testTimeDuration := time.Duration(15)
+	testTimer := time.NewTimer(testTimeDuration * time.Second)
+	disconnectTimer := time.NewTimer(testTimeDuration / 3 * time.Second)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		<-disconnect
+		t.Log(">>> disconnecting")
+		m.disconnect(nodeA, nodeB)
+	}()
+
+	send := time.NewTicker(300 * time.Millisecond)
+	defer send.Stop()
+
+	wg.Add(1)
+	go func(ctx context.Context) {
+		defer wg.Done()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-disconnectTimer.C:
+				t.Log("disconnect nodes")
+				sentBeforeDisconnect = sent
+				disconnect <- struct{}{}
+			case <-send.C:
+				err := a.Send(nodeB, &messagepb.Message{})
+				if err != nil {
+					m.t.Log(err)
+				} else {
+					sent++
+				}
+			}
+		}
+	}(ctx)
+
+	for {
+		select {
+		case msg := <-nodeBEventsChan:
+			m.testThatSenderIs(msg, nodeA)
+			received++
+		case <-testTimer.C:
+			cancel()
+			wg.Wait()
+			if received <= sentBeforeDisconnect+(sent-sentBeforeDisconnect)/2 {
+				t.Fail()
+			}
+			t.Log("sent before disconnect: ", sentBeforeDisconnect)
+			t.Log("sent: ", sent)
+			t.Log("received: ", received)
+			return
+		}
+	}
+
+}
+
 func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
@@ -596,6 +722,56 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	a.Send(nodeE, &messagepb.Message{}) // nolint
 
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
+}
+
+// Test that when a node fails to connect first time it will be trying to connect.
+func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+
+	bBadAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/100/p2p/%s", b.host.ID()))
+	require.NoError(t, err)
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	initialNodes := m.Membership(nodeA)
+	initialNodes[nodeB] = bBadAddr
+	t.Log(initialNodes)
+
+	t.Log(">>> connecting to a failed node")
+	err = a.Start()
+	require.NoError(t, err)
+	a.params.MaxRetries = 1
+	a.params.MaxConnectingTimeout = 1 * time.Second
+	a.params.MaxRetryTimeout = 0
+	a.Connect(initialNodes)
+	m.testNeverConnected(nodeA, nodeB)
+
+	t.Log(">>> connecting to the restarted node")
+	err = b.Start()
+	require.NoError(t, err)
+	initialNodes = m.Membership(nodeA, nodeB)
+	require.NoError(t, err)
+	a.Connect(initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> cleaning")
+	m.StopAll()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnsEmpty()
+
+	m.CloseHostAll()
+	m.testNoConnections()
 }
 
 func TestLibp2p_TwoNodesBasic(t *testing.T) {

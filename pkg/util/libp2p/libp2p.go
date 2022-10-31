@@ -116,3 +116,29 @@ func NewDummyMultiaddr(numericID int, sourceAddr t.NodeAddress) multiaddr.Multia
 
 	return addrs[0]
 }
+
+// NewFakeMultiaddr generates a libp2p peer multiaddress for a non existed host.
+func NewFakeMultiaddr(numericID, port int) multiaddr.Multiaddr {
+
+	sourceAddr := NewDummyHostAddr(0, port)
+
+	peerID, err := peer.IDFromPrivateKey(NewDummyHostKey(numericID))
+	if err != nil {
+		panic(err)
+	}
+
+	peerInfo := peer.AddrInfo{
+		ID:    peerID,
+		Addrs: []multiaddr.Multiaddr{sourceAddr},
+	}
+	addrs, err := peer.AddrInfoToP2pAddrs(&peerInfo)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(addrs) != 1 {
+		panic(fmt.Errorf("wrong number of addresses %d", len(addrs)))
+	}
+
+	return addrs[0]
+}
