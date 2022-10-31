@@ -11,6 +11,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -270,6 +271,8 @@ func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
 }
 
 func TestLibp2p_Sending(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -348,6 +351,8 @@ func TestLibp2p_Sending(t *testing.T) {
 }
 
 func TestLibp2p_Connecting(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -409,6 +414,8 @@ func TestLibp2p_Connecting(t *testing.T) {
 }
 
 func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -464,6 +471,8 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 }
 
 func TestLibp2p_Messaging(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -574,10 +583,11 @@ func TestLibp2p_Messaging(t *testing.T) {
 			return
 		}
 	}
-
 }
 
 func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -635,6 +645,8 @@ func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 }
 
 func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -699,6 +711,8 @@ func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
 
 // Test we don't get two elements in the node table corresponding to the same node.
 func TestLibp2p_OneConnectionInProgress(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -708,7 +722,6 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 
 	a := m.transports[nodeA]
 	m.StartAll()
-	defer m.StopAll()
 
 	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
 	require.NoError(t, err)
@@ -718,14 +731,21 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 	initialNodes := m.Membership(nodeA)
 	initialNodes[nodeE] = eAddr
 
+	t.Log(">>> send a message")
 	a.Connect(initialNodes)
 	a.Send(nodeE, &messagepb.Message{}) // nolint
-
 	m.testNeverMoreThanOneConnectionInProgress(nodeA)
+
+	t.Log(">>> cleaning")
+	m.StopAll()
+	m.CloseHostAll()
+	m.testNoConnections()
 }
 
 // Test that when a node fails to connect first time it will be trying to connect.
 func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -775,6 +795,8 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 }
 
 func TestLibp2p_TwoNodesBasic(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")

@@ -29,11 +29,12 @@ const (
 // TODO: Update the comments around crypto, hasher, and request signing.
 
 type DummyClient struct {
-	ownID       t.ClientID
-	hasher      crypto.Hash
-	nextReqNo   t.ReqNo
-	connections map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
-	logger      logging.Logger
+	ownID     t.ClientID
+	hasher    crypto.Hash
+	nextReqNo t.ReqNo
+	conns     map[t.NodeID]*grpc.ClientConn
+	clients   map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
+	logger    logging.Logger
 }
 
 func NewDummyClient(
@@ -48,11 +49,12 @@ func NewDummyClient(
 	}
 
 	return &DummyClient{
-		ownID:       clientID,
-		hasher:      hasher,
-		nextReqNo:   0,
-		connections: make(map[t.NodeID]requestreceiver.RequestReceiver_ListenClient),
-		logger:      l,
+		ownID:     clientID,
+		hasher:    hasher,
+		nextReqNo: 0,
+		clients:   make(map[t.NodeID]requestreceiver.RequestReceiver_ListenClient),
+		conns:     make(map[t.NodeID]*grpc.ClientConn),
+		logger:    l,
 	}
 }
 
@@ -61,7 +63,6 @@ func NewDummyClient(
 // Only after Connect() returns, sending requests through this DummyClient is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
 func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]string) {
-
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
 	wg.Add(len(membership))
@@ -77,9 +78,10 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 			defer wg.Done()
 
 			// Create and store connection
-			connection, err := dc.connectToNode(ctx, addr) // May take long time, execute before acquiring the lock.
+			conn, sink, err := dc.connectToNode(ctx, addr) // May take long time, execute before acquiring the lock.
 			lock.Lock()
-			dc.connections[id] = connection
+			dc.conns[id] = conn
+			dc.clients[id] = sink
 			lock.Unlock()
 
 			// Print debug info.
@@ -112,8 +114,8 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 	var firstSndErr error               // The error produced by the first sending failure.
 
 	// Send the request to all nodes.
-	for nID, connection := range dc.connections {
-		if err := connection.Send(reqMsg); err != nil {
+	for nID, client := range dc.clients {
+		if err := client.Send(reqMsg); err != nil {
 
 			// If sending the request to a node fails, record that node's ID.
 			sendFailures = append(sendFailures, nID)
@@ -135,19 +137,26 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 // Disconnect closes all open connections to Mir nodes.
 func (dc *DummyClient) Disconnect() {
-
 	// Close connections to all nodes.
-	for id, connection := range dc.connections {
-		if connection == nil {
+	for id, client := range dc.clients {
+		if client == nil {
+			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("No gRPC client to close to node %v", id))
+		} else if _, err := client.CloseAndRecv(); err != nil {
+			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close gRPC client %v", id))
+		}
+	}
+
+	for id, conn := range dc.conns {
+		if conn == nil {
 			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("No connection to close to node %v", id))
-		} else if _, err := connection.CloseAndRecv(); err != nil {
+		} else if err := conn.Close(); err != nil {
 			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v", id))
 		}
 	}
 }
 
 // Establishes a connection to a single node at address addrString.
-func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (requestreceiver.RequestReceiver_ListenClient, error) {
+func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (*grpc.ClientConn, requestreceiver.RequestReceiver_ListenClient, error) {
 
 	dc.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 
@@ -161,7 +170,7 @@ func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (re
 	// Set up a gRPC connection.
 	conn, err := grpc.DialContext(ctx, addrString, dialOpts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Register client stub.
@@ -174,9 +183,9 @@ func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (re
 		if cerr := conn.Close(); cerr != nil {
 			dc.logger.Log(logging.LevelWarn, fmt.Sprintf("Failed to close connection: %v", cerr))
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Return the message sink connected to the node.
-	return msgSink, nil
+	return conn, msgSink, nil
 }

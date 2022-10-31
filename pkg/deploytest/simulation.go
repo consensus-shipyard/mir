@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -154,6 +155,7 @@ type simModule struct {
 	inChan  chan eventsIn
 	outChan chan eventsOut
 	simChan *testsim.Chan
+	wg      sync.WaitGroup
 }
 
 func newSimModule(n *SimNode, m modules.Module, simChan *testsim.Chan) *simModule {
@@ -184,6 +186,8 @@ func newSimModule(n *SimNode, m modules.Module, simChan *testsim.Chan) *simModul
 }
 
 func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
+	defer m.wg.Done()
+
 	origEvents := events.EmptyList()
 	for {
 		if origEvents.Len() == 0 {

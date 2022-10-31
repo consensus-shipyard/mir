@@ -11,6 +11,8 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
+var _ LocalTransportLayer = &LocalGrpcTransport{}
+
 type LocalGrpcTransport struct {
 	// Complete static membership of the system.
 	// Maps the node ID of each node in the system to a string representation of its network address.

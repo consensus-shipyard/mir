@@ -51,7 +51,10 @@ type Transport struct {
 	incomingMessages chan *events.EventList
 
 	// For each node ID, stores a gRPC message sink, calling the Send() method of which sends a message to that node.
-	connections map[t.NodeID]GrpcTransport_ListenClient
+	clients map[t.NodeID]GrpcTransport_ListenClient
+
+	// For each node ID, stores a gRPC connection to that node.
+	conns map[t.NodeID]*grpc.ClientConn
 
 	// The gRPC server used by this networking module.
 	grpcServer *grpc.Server
@@ -82,7 +85,8 @@ func NewTransport(id t.NodeID, addr t.NodeAddress, l logging.Logger) (*Transport
 		ownID:            id,
 		ownAddr:          addr,
 		incomingMessages: make(chan *events.EventList),
-		connections:      make(map[t.NodeID]GrpcTransport_ListenClient),
+		clients:          make(map[t.NodeID]GrpcTransport_ListenClient),
+		conns:            make(map[t.NodeID]*grpc.ClientConn),
 		logger:           l,
 	}, nil
 }
@@ -140,7 +144,7 @@ func (gt *Transport) ApplyEvents(
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
-	return gt.connections[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
+	return gt.clients[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
 }
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
@@ -231,13 +235,28 @@ func (gt *Transport) Stop() {
 	defer gt.logger.Log(logging.LevelDebug, "gRPC transport stopped.")
 
 	// Close connections to other nodes.
-	for id, connection := range gt.connections {
-		if connection == nil {
+	for id, client := range gt.clients {
+		if client == nil {
+			continue
+		}
+		gt.logger.Log(logging.LevelDebug, "Closing gRPC client", "to", id)
+
+		if err := client.CloseSend(); err != nil {
+			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close gRPC client to node %v: %v", id, err))
+			continue
+		}
+
+		gt.logger.Log(logging.LevelDebug, "Closed gRPC client", "to", id)
+	}
+
+	// Close connections to other nodes.
+	for id, conn := range gt.conns {
+		if conn == nil {
 			continue
 		}
 		gt.logger.Log(logging.LevelDebug, "Closing connection", "to", id)
 
-		if err := connection.CloseSend(); err != nil {
+		if err := conn.Close(); err != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Could not close connection to node %v: %v", id, err))
 			continue
 		}
@@ -258,8 +277,8 @@ func (gt *Transport) ServerError() error {
 }
 
 func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
-	for id, connection := range gt.connections {
-		if connection == nil {
+	for id, client := range gt.clients {
+		if client == nil {
 			continue
 		}
 
@@ -267,12 +286,31 @@ func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 		if _, newConn := newNodes[id]; !newConn {
 			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
 
-			if err := connection.CloseSend(); err != nil {
+			if err := client.CloseSend(); err != nil {
+				gt.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old client to node %v: %v", id, err))
+				continue
+			}
+
+			delete(gt.clients, id)
+
+			gt.logger.Log(logging.LevelDebug, "Closed old client", "to", id)
+		}
+	}
+	for id, conn := range gt.conns {
+		if conn == nil {
+			continue
+		}
+
+		// Close an old connection to a node if we don't need to connect to this node further.
+		if _, newConn := newNodes[id]; !newConn {
+			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
+
+			if err := conn.Close(); err != nil {
 				gt.logger.Log(logging.LevelError, fmt.Sprintf("Could not close old connection to node %v: %v", id, err))
 				continue
 			}
 
-			delete(gt.connections, id)
+			delete(gt.conns, id)
 
 			gt.logger.Log(logging.LevelDebug, "Closed old connection", "to", id)
 		}
@@ -307,9 +345,10 @@ func (gt *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
 			defer wg.Done()
 
 			// Create and store connection
-			connection, err := gt.connectToNode(addr) // May take long time, execute before acquiring the lock.
+			conn, client, err := gt.connectToNode(addr) // May take long time, execute before acquiring the lock.
 			lock.Lock()
-			gt.connections[id] = connection
+			gt.clients[id] = client
+			gt.conns[id] = conn
 			lock.Unlock()
 
 			// Print debug info.
@@ -333,7 +372,7 @@ func (gt *Transport) WaitFor(n int) {
 }
 
 // Establishes a connection to a single node at address addrString.
-func (gt *Transport) connectToNode(addrString string) (GrpcTransport_ListenClient, error) {
+func (gt *Transport) connectToNode(addrString string) (*grpc.ClientConn, GrpcTransport_ListenClient, error) {
 
 	gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 
@@ -347,7 +386,7 @@ func (gt *Transport) connectToNode(addrString string) (GrpcTransport_ListenClien
 	// Set up a gRPC connection.
 	conn, err := grpc.Dial(addrString, dialOpts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Register client stub.
@@ -360,9 +399,9 @@ func (gt *Transport) connectToNode(addrString string) (GrpcTransport_ListenClien
 		if cerr := conn.Close(); cerr != nil {
 			gt.logger.Log(logging.LevelWarn, fmt.Sprintf("Failed to close connection: %v", cerr))
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Return the message sink connected to the node.
-	return msgSink, nil
+	return conn, msgSink, nil
 }
