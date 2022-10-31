@@ -19,33 +19,33 @@ func NewClientProgress(logger logging.Logger) *ClientProgress {
 	}
 }
 
-func (wmt *ClientProgress) Add(clID t.ClientID, reqNo t.ReqNo) bool {
-	if _, ok := wmt.clientTrackers[clID]; !ok {
-		wmt.clientTrackers[clID] = EmptyDeliveredReqs(wmt.logger)
+func (cp *ClientProgress) Add(clID t.ClientID, reqNo t.ReqNo) bool {
+	if _, ok := cp.clientTrackers[clID]; !ok {
+		cp.clientTrackers[clID] = EmptyDeliveredReqs(cp.logger)
 	}
-	return wmt.clientTrackers[clID].Add(reqNo)
+	return cp.clientTrackers[clID].Add(reqNo)
 }
 
-func (wmt *ClientProgress) GarbageCollect() map[t.ClientID]t.ReqNo {
+func (cp *ClientProgress) GarbageCollect() map[t.ClientID]t.ReqNo {
 	lowWMs := make(map[t.ClientID]t.ReqNo)
-	for clientID, cwmt := range wmt.clientTrackers {
+	for clientID, cwmt := range cp.clientTrackers {
 		lowWMs[clientID] = cwmt.GarbageCollect()
 	}
 	return lowWMs
 }
 
-func (wmt *ClientProgress) Pb() *commonpb.ClientProgress {
-	cp := make(map[string]*commonpb.DeliveredReqs)
-	for clientID, clientTracker := range wmt.clientTrackers {
-		cp[clientID.Pb()] = clientTracker.Pb()
+func (cp *ClientProgress) Pb() *commonpb.ClientProgress {
+	pb := make(map[string]*commonpb.DeliveredReqs)
+	for clientID, clientTracker := range cp.clientTrackers {
+		pb[clientID.Pb()] = clientTracker.Pb()
 	}
-	return &commonpb.ClientProgress{Progress: cp}
+	return &commonpb.ClientProgress{Progress: pb}
 }
 
-func (wmt *ClientProgress) LoadPb(cp *commonpb.ClientProgress) {
-	wmt.clientTrackers = make(map[t.ClientID]*DeliveredReqs)
-	for clientID, deliveredReqs := range cp.Progress {
-		wmt.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(deliveredReqs, wmt.logger)
+func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
+	cp.clientTrackers = make(map[t.ClientID]*DeliveredReqs)
+	for clientID, deliveredReqs := range pb.Progress {
+		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(deliveredReqs, cp.logger)
 	}
 }
 
