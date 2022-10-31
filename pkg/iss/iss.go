@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
@@ -802,6 +803,9 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
+
+	// Update client progress tracked by the batch fetcher.
+	eventsOut.PushBack(bfevents.ClientProgress(iss.moduleConfig.App, chkp.Snapshot.EpochData.ClientProgress))
 
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new

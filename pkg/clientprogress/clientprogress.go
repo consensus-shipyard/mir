@@ -42,6 +42,13 @@ func (wmt *ClientProgress) Pb() *commonpb.ClientProgress {
 	return &commonpb.ClientProgress{Progress: cp}
 }
 
+func (wmt *ClientProgress) LoadPb(cp *commonpb.ClientProgress) {
+	wmt.clientTrackers = make(map[t.ClientID]*DeliveredReqs)
+	for clientID, deliveredReqs := range cp.Progress {
+		wmt.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(deliveredReqs, wmt.logger)
+	}
+}
+
 func FromPb(pb *commonpb.ClientProgress, logger logging.Logger) *ClientProgress {
 	cp := NewClientProgress(logger)
 	for clientID, deliveredReqs := range pb.Progress {
