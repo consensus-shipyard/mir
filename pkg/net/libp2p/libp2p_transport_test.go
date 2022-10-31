@@ -518,9 +518,9 @@ func TestLibp2p_Messaging(t *testing.T) {
 	received := 0
 	disconnect := make(chan struct{})
 
-	testTime := time.Duration(15)
-	testTimer := time.NewTimer(testTime * time.Second)
-	disconnectTimer := time.NewTimer(testTime / 3 * time.Second)
+	testTimeDuration := time.Duration(15)
+	testTimer := time.NewTimer(testTimeDuration * time.Second)
+	disconnectTimer := time.NewTimer(testTimeDuration / 3 * time.Second)
 
 	wg.Add(1)
 	go func() {
