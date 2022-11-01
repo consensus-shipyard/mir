@@ -49,6 +49,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/messagepb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/dslpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"

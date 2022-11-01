@@ -31,9 +31,9 @@ type EventNode struct {
 	// The Type oneof field of the message (if present).
 	typeOneof *types.Oneof
 	// A field marked with [(mir.origin_request) = true] (if any).
-	originRequestField *types.Field
+	originRequest *Origin
 	// A field marked with [(mir.origin_response) = true] (if any).
-	originResponseField *types.Field
+	originResponse *Origin
 	// The children events in the hierarchy.
 	// NB: It may happen that an event class has no children.
 	children []*EventNode
@@ -82,6 +82,16 @@ func (ev *EventNode) TypeOneof() *types.Oneof {
 	return ev.typeOneof
 }
 
+// OriginRequest returns a field marked with [(mir.origin_request) = true] (if any).
+func (ev *EventNode) OriginRequest() *Origin {
+	return ev.originRequest
+}
+
+// OriginResponse returns a field marked with [(mir.origin_response) = true] (if any).
+func (ev *EventNode) OriginResponse() *Origin {
+	return ev.originResponse
+}
+
 // Children returns the children events in the hierarchy.
 // NB: It may happen that an event class has no children.
 func (ev *EventNode) Children() []*EventNode {
@@ -95,7 +105,7 @@ func (ev *EventNode) Parent() *EventNode {
 
 // AllConstructorParameters returns the accumulated parameters for the constructor function.
 // The parameters include all the fields of all the ancestors in the hierarchy except those marked with
-// [(mir.omit_in_events_constructor) = true] and the Type oneofs.
+// [(mir.omit_in_event_constructors) = true] and the Type oneofs.
 func (ev *EventNode) AllConstructorParameters() params.FunctionParamList {
 	return ev.allConstructorParameters
 }

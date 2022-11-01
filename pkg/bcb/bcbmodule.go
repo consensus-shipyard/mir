@@ -8,6 +8,7 @@ import (
 	bcbpbdsl "github.com/filecoin-project/mir/pkg/pb/bcbpb/dsl"
 	bcbpbmsgs "github.com/filecoin-project/mir/pkg/pb/bcbpb/msgs"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
@@ -94,12 +95,12 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		if from == params.Leader && !state.sentEcho {
 			// σ := sign(self, bcb||self||ECHO||m);
 			sigMsg := [][]byte{params.InstanceUID, []byte("ECHO"), data}
-			dsl.SignRequest(m, mc.Crypto, sigMsg, &signStartMessageContext{})
+			eventpbdsl.SignRequest(m, mc.Crypto, sigMsg, &signStartMessageContext{})
 		}
 		return nil
 	})
 
-	dsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
+	eventpbdsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
 		if !state.sentEcho {
 			state.sentEcho = true
 			eventpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
@@ -141,13 +142,14 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	bcbpbdsl.UponFinalMessageReceived(m, func(from t.NodeID, data []byte, signers []t.NodeID, signatures [][]byte) error {
 		// if #({p ∈ Π | Σ[p] != ⊥ ∧ verifysig(p, bcb||p||ECHO||m, Σ[p])}) > (N+f)/2 and delivered = FALSE do
 		if len(signers) == len(signatures) && len(signers) > (params.GetN()+params.GetF())/2 && !state.delivered {
-			sigMsgs := sliceutil.Repeat([][]byte{params.InstanceUID, []byte("ECHO"), data}, len(signers))
-			dsl.VerifyNodeSigs(m, mc.Crypto, sigMsgs, signatures, signers, &verifyFinalContext{data})
+			signedMessage := [][]byte{params.InstanceUID, []byte("ECHO"), data}
+			sigMsgs := sliceutil.Repeat(&eventpbtypes.SigVerData{Data: signedMessage}, len(signers))
+			eventpbdsl.VerifyNodeSigs(m, mc.Crypto, sigMsgs, signatures, signers, &verifyFinalContext{data})
 		}
 		return nil
 	})
 
-	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *verifyFinalContext) error {
+	eventpbdsl.UponNodeSigsVerified(m, func(_ []t.NodeID, _ []bool, _ []error, allOK bool, context *verifyFinalContext) error {
 		if allOK && !state.delivered {
 			state.delivered = true
 			bcbpbdsl.Deliver(m, mc.Consumer, context.data)

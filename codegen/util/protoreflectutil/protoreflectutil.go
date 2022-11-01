@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"strings"
 
+	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 func IsProtoMessage(goStructPtr reflect.Type) bool {
@@ -26,7 +26,7 @@ func IsOneofOption(ptrType reflect.Type) bool {
 		return false
 	}
 
-	return sliceutil.Index(strings.Split(tag, ","), "oneof") != -1
+	return slices.Index(strings.Split(tag, ","), "oneof") != -1
 }
 
 func DescriptorForType(goStructPtr reflect.Type) (protoreflect.MessageDescriptor, bool) {

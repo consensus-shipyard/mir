@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
-	"github.com/filecoin-project/mir/codegen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+
+	"github.com/filecoin-project/mir/codegen"
 
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/codegen/util/protoreflectutil"
@@ -127,7 +128,7 @@ func (p *Parser) ParseOneofOption(message *Message, ptrType reflect.Type) (*Oneo
 	protoField := message.protoDesc.Fields().ByName(protoName)
 
 	// Parse the field information.
-	field, err := p.parseField(goField, protoField)
+	field, err := p.parseField(message, goField, protoField)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing oneof option %v: %w", ptrType.Name(), err)
 	}
@@ -156,8 +157,10 @@ func (p *Parser) ParseFields(m *Message) (fields Fields, err error) {
 	}()
 
 	if !m.ShouldGenerateMirType() {
-		return nil, fmt.Errorf("cannot parse field for message %v. "+
-			"Fields can only be parsed for messages with Mir-generated types", m.PbReflectType())
+		return nil, fmt.Errorf("cannot parse field for message %v in package '%v'. "+
+			"Fields can only be parsed for messages with Mir-generated types. "+
+			"Consider marking %v with a Mir annotation, e.g., option (mir.struct) = true",
+			m.Name(), m.PbPkgPath(), m.Name())
 	}
 
 	for i := 0; i < m.pbGoStructPtrReflect.Elem().NumField(); i++ {
@@ -191,6 +194,7 @@ func (p *Parser) ParseFields(m *Message) (fields Fields, err error) {
 					Parent:  m,
 					Options: options,
 				},
+				Parent:    m,
 				ProtoDesc: m.protoDesc.Oneofs().ByName(protoreflect.Name(oneofProtoName)),
 			})
 			continue
@@ -204,7 +208,7 @@ func (p *Parser) ParseFields(m *Message) (fields Fields, err error) {
 		protoField := m.protoDesc.Fields().ByName(protoName)
 
 		// Create the Field struct.
-		field, err := p.parseField(goField, protoField)
+		field, err := p.parseField(m, goField, protoField)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +221,12 @@ func (p *Parser) ParseFields(m *Message) (fields Fields, err error) {
 }
 
 // parseField extracts the information about the field necessary for code generation.
-func (p *Parser) parseField(goField reflect.StructField, protoField protoreflect.FieldDescriptor) (*Field, error) {
+func (p *Parser) parseField(
+	parent *Message,
+	goField reflect.StructField,
+	protoField protoreflect.FieldDescriptor,
+) (*Field, error) {
+
 	tp, err := p.getFieldType(goField.Type, protoField)
 	if err != nil {
 		return nil, err
@@ -226,6 +235,7 @@ func (p *Parser) parseField(goField reflect.StructField, protoField protoreflect
 	return &Field{
 		Name:      goField.Name,
 		Type:      tp,
+		Parent:    parent,
 		ProtoDesc: protoField,
 	}, nil
 }

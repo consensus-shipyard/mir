@@ -3,7 +3,7 @@ package threshcryptopbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -273,7 +273,7 @@ func SignShareOrigin_TypeFromPb(pb threshcryptopb.SignShareOrigin_Type) SignShar
 	case *threshcryptopb.SignShareOrigin_ContextStore:
 		return &SignShareOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.SignShareOrigin_Dsl:
-		return &SignShareOrigin_Dsl{Dsl: pb.Dsl}
+		return &SignShareOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -297,17 +297,17 @@ func (*SignShareOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type SignShareOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*SignShareOrigin_Dsl) isSignShareOrigin_Type() {}
 
-func (w *SignShareOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *SignShareOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *SignShareOrigin_Dsl) Pb() threshcryptopb.SignShareOrigin_Type {
-	return &threshcryptopb.SignShareOrigin_Dsl{Dsl: w.Dsl}
+	return &threshcryptopb.SignShareOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*SignShareOrigin_Dsl) MirReflect() mirreflect.Type {
@@ -408,7 +408,7 @@ func VerifyShareOrigin_TypeFromPb(pb threshcryptopb.VerifyShareOrigin_Type) Veri
 	case *threshcryptopb.VerifyShareOrigin_ContextStore:
 		return &VerifyShareOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.VerifyShareOrigin_Dsl:
-		return &VerifyShareOrigin_Dsl{Dsl: pb.Dsl}
+		return &VerifyShareOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -432,17 +432,17 @@ func (*VerifyShareOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyShareOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*VerifyShareOrigin_Dsl) isVerifyShareOrigin_Type() {}
 
-func (w *VerifyShareOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *VerifyShareOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *VerifyShareOrigin_Dsl) Pb() threshcryptopb.VerifyShareOrigin_Type {
-	return &threshcryptopb.VerifyShareOrigin_Dsl{Dsl: w.Dsl}
+	return &threshcryptopb.VerifyShareOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*VerifyShareOrigin_Dsl) MirReflect() mirreflect.Type {
@@ -540,7 +540,7 @@ func VerifyFullOrigin_TypeFromPb(pb threshcryptopb.VerifyFullOrigin_Type) Verify
 	case *threshcryptopb.VerifyFullOrigin_ContextStore:
 		return &VerifyFullOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.VerifyFullOrigin_Dsl:
-		return &VerifyFullOrigin_Dsl{Dsl: pb.Dsl}
+		return &VerifyFullOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -564,17 +564,17 @@ func (*VerifyFullOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyFullOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*VerifyFullOrigin_Dsl) isVerifyFullOrigin_Type() {}
 
-func (w *VerifyFullOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *VerifyFullOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *VerifyFullOrigin_Dsl) Pb() threshcryptopb.VerifyFullOrigin_Type {
-	return &threshcryptopb.VerifyFullOrigin_Dsl{Dsl: w.Dsl}
+	return &threshcryptopb.VerifyFullOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*VerifyFullOrigin_Dsl) MirReflect() mirreflect.Type {
@@ -675,7 +675,7 @@ func RecoverOrigin_TypeFromPb(pb threshcryptopb.RecoverOrigin_Type) RecoverOrigi
 	case *threshcryptopb.RecoverOrigin_ContextStore:
 		return &RecoverOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.RecoverOrigin_Dsl:
-		return &RecoverOrigin_Dsl{Dsl: pb.Dsl}
+		return &RecoverOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -699,17 +699,17 @@ func (*RecoverOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RecoverOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*RecoverOrigin_Dsl) isRecoverOrigin_Type() {}
 
-func (w *RecoverOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *RecoverOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *RecoverOrigin_Dsl) Pb() threshcryptopb.RecoverOrigin_Type {
-	return &threshcryptopb.RecoverOrigin_Dsl{Dsl: w.Dsl}
+	return &threshcryptopb.RecoverOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*RecoverOrigin_Dsl) MirReflect() mirreflect.Type {

@@ -89,7 +89,7 @@ message Event {
   // after the corresponding entry has been persisted in the write-ahead log (WAL).
   // In this case, the WAL append event would be this event
   // and the next field would contain the message sending event.
-  repeated Event next = 100 [(mir.omit_in_events_constructor) = true];
+  repeated Event next = 100 [(mir.omit_in_event_constructors) = true];
 
   string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID", (dsl.omit_in_handler) = true];
 }
@@ -113,7 +113,7 @@ message HashResult {
 }
 
 message HashOrigin {
-  string module = 1;
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin   context_store = 2;
     requestpb.Request       request       = 3;
@@ -141,10 +141,8 @@ message SignResult {
 message SignOrigin {
   option (mir.struct) = true;
 
-  string module = 1;
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
-    option (mir.origin_type) = true;
-
     contextstorepb.Origin   context_store = 2;
     // isspb.ISSSignOrigin     iss           = 3;
     dslpb.Origin            dsl           = 4;
@@ -154,20 +152,24 @@ message SignOrigin {
 }
 
 message SigVerData {
+  option (mir.struct) = true;
+
   repeated bytes data = 1;
 }
 
 message VerifyNodeSigs {
+  option (mir.event) = true;
+
   repeated SigVerData data       = 1;
   repeated bytes      signatures = 2;
-  SigVerOrigin        origin     = 3;
-  repeated string     node_ids   = 4;
+  SigVerOrigin        origin     = 3 [(mir.origin_request) = true];
+  repeated string     node_ids   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message NodeSigsVerified {
   option (mir.event) = true;
 
-  SigVerOrigin    origin   = 1;
+  SigVerOrigin    origin   = 1 [(mir.origin_response) = true];
   repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bool   valid    = 3;
   repeated string errors   = 4 [(mir.type) = "error"];
@@ -175,7 +177,10 @@ message NodeSigsVerified {
 }
 
 message SigVerOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+
   oneof type {
     contextstorepb.Origin     context_store = 2;
     isspb.ISSSigVerOrigin     iss           = 3;

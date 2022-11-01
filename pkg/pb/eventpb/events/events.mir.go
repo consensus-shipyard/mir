@@ -1,7 +1,6 @@
 package eventpbevents
 
 import (
-	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
@@ -31,7 +30,21 @@ func SignResult(destModule types.ModuleID, signature []uint8, origin *types1.Sig
 	}
 }
 
-func NodeSigsVerified(destModule types.ModuleID, origin *eventpb.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) *types1.Event {
+func VerifyNodeSigs(destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, origin *types1.SigVerOrigin, nodeIds []types.NodeID) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_VerifyNodeSigs{
+			VerifyNodeSigs: &types1.VerifyNodeSigs{
+				Data:       data,
+				Signatures: signatures,
+				Origin:     origin,
+				NodeIds:    nodeIds,
+			},
+		},
+	}
+}
+
+func NodeSigsVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_NodeSigsVerified{

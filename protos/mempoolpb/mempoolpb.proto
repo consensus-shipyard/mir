@@ -34,7 +34,7 @@ message Event {
 message RequestBatch {
   option (mir.event) = true;
 
-  RequestBatchOrigin origin = 1;
+  RequestBatchOrigin origin = 1 [(mir.origin_request) = true];
 }
 
 // NewBatch is a response to a RequestBatch event.
@@ -43,7 +43,7 @@ message NewBatch {
 
   repeated bytes             tx_ids = 1;
   repeated requestpb.Request txs    = 2;
-  RequestBatchOrigin         origin = 3;
+  RequestBatchOrigin         origin = 3 [(mir.origin_response) = true];
 }
 
 // RequestTransactions allows the availability layer to request transactions from the mempool by their IDs.
@@ -52,7 +52,7 @@ message RequestTransactions {
   option (mir.event) = true;
 
   repeated bytes            tx_ids = 1;
-  RequestTransactionsOrigin origin = 2;
+  RequestTransactionsOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // TransactionsResponse is a response to a RequestTransactions event.
@@ -61,7 +61,7 @@ message TransactionsResponse {
 
   repeated bool              present = 1;
   repeated requestpb.Request txs     = 2;
-  RequestTransactionsOrigin  origin  = 3;
+  RequestTransactionsOrigin  origin  = 3 [(mir.origin_response) = true];
 }
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.
@@ -70,7 +70,7 @@ message RequestTransactionIDs {
   option (mir.event) = true;
 
   repeated requestpb.Request  txs    = 1;
-  RequestTransactionIDsOrigin origin = 2;
+  RequestTransactionIDsOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // TransactionIDsResponse is a response to a RequestTransactionIDs event.
@@ -78,7 +78,7 @@ message TransactionIDsResponse {
   option (mir.event) = true;
 
   repeated bytes              tx_ids = 1;
-  RequestTransactionIDsOrigin origin = 2;
+  RequestTransactionIDsOrigin origin = 2 [(mir.origin_response) = true];
 }
 
 // RequestBatchID allows other modules to request the mempool module to compute the ID of a batch.
@@ -87,7 +87,7 @@ message RequestBatchID {
   option (mir.event) = true;
 
   repeated bytes        tx_ids = 1;
-  RequestBatchIDOrigin origin = 2;
+  RequestBatchIDOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // BatchIDResponse is a response to a RequestBatchID event.
@@ -95,7 +95,7 @@ message BatchIDResponse {
   option (mir.event) = true;
 
   bytes                batch_id = 1;
-  RequestBatchIDOrigin origin   = 2;
+  RequestBatchIDOrigin origin   = 2 [(mir.origin_response) = true];
 }
 
 // TODO: add events related to garbage collection.

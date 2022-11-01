@@ -26,9 +26,20 @@ func UponRequestBatch(m dsl.Module, handler func(origin *types.RequestBatchOrigi
 	})
 }
 
-func UponNewBatch(m dsl.Module, handler func(txIds [][]uint8, txs []*requestpb.Request, origin *types.RequestBatchOrigin) error) {
+func UponNewBatch[C any](m dsl.Module, handler func(txIds [][]uint8, txs []*requestpb.Request, context *C) error) {
 	UponEvent[*types.Event_NewBatch](m, func(ev *types.NewBatch) error {
-		return handler(ev.TxIds, ev.Txs, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.RequestBatchOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.TxIds, ev.Txs, context)
 	})
 }
 
@@ -38,9 +49,20 @@ func UponRequestTransactions(m dsl.Module, handler func(txIds [][]uint8, origin 
 	})
 }
 
-func UponTransactionsResponse(m dsl.Module, handler func(present []bool, txs []*requestpb.Request, origin *types.RequestTransactionsOrigin) error) {
+func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, txs []*requestpb.Request, context *C) error) {
 	UponEvent[*types.Event_TransactionsResponse](m, func(ev *types.TransactionsResponse) error {
-		return handler(ev.Present, ev.Txs, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.RequestTransactionsOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.Present, ev.Txs, context)
 	})
 }
 
@@ -50,9 +72,20 @@ func UponRequestTransactionIDs(m dsl.Module, handler func(txs []*requestpb.Reque
 	})
 }
 
-func UponTransactionIDsResponse(m dsl.Module, handler func(txIds [][]uint8, origin *types.RequestTransactionIDsOrigin) error) {
+func UponTransactionIDsResponse[C any](m dsl.Module, handler func(txIds [][]uint8, context *C) error) {
 	UponEvent[*types.Event_TransactionIdsResponse](m, func(ev *types.TransactionIDsResponse) error {
-		return handler(ev.TxIds, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.RequestTransactionIDsOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.TxIds, context)
 	})
 }
 
@@ -62,8 +95,19 @@ func UponRequestBatchID(m dsl.Module, handler func(txIds [][]uint8, origin *type
 	})
 }
 
-func UponBatchIDResponse(m dsl.Module, handler func(batchId []uint8, origin *types.RequestBatchIDOrigin) error) {
+func UponBatchIDResponse[C any](m dsl.Module, handler func(batchId []uint8, context *C) error) {
 	UponEvent[*types.Event_BatchIdResponse](m, func(ev *types.BatchIDResponse) error {
-		return handler(ev.BatchId, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.RequestBatchIDOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.BatchId, context)
 	})
 }

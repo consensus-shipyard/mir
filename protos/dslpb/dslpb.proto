@@ -4,10 +4,14 @@ package dslpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/dslpb";
 
+import "mir/codegen_extensions.proto";
+
 // ============================================================
 // Messages
 // ============================================================
 
 message Origin {
+  option (mir.struct) = true;
+
   uint64 contextID = 1;
 }
