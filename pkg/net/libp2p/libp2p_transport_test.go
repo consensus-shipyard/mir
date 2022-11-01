@@ -163,14 +163,15 @@ func (m *mockLibp2pCommunication) testEventuallySentMsg(srcNode, dstNode types.N
 }
 
 func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 types.NodeID) {
-	src := m.getTransport(nodeID1)
-	dst := m.getTransport(nodeID2)
+	n1 := m.getTransport(nodeID1)
+	n2 := m.getTransport(nodeID2)
 
 	require.Eventually(m.t,
 		func() bool {
-			return network.NotConnected == src.host.Network().Connectedness(dst.host.ID())
+			return network.NotConnected == n1.host.Network().Connectedness(n2.host.ID()) &&
+				!m.streamExist(n1, n2) && !m.streamExist(n2, n1)
 		},
-		5*time.Second, 300*time.Millisecond)
+		10*time.Second, 300*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.NodeID) {
@@ -626,43 +627,33 @@ func TestLibp2p_Messaging(t *testing.T) {
 	}
 }
 
-func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
+func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
-
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
-
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
-	m.StartAllTransports()
-
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
-
-	t.Log(">>> connecting nodes")
-
+	m.StartAllTransports()
 	initialNodes := m.Membership(nodeA, nodeB)
-
 	t.Log("membership")
 	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
-
+	a.WaitFor(2)
 	m.testEventuallyConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages")
-
 	nodeBEventsChan := b.EventsOut()
-
-	a.WaitFor(2)
 	err := a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
-
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
 	t.Log(">>> disconnecting nodes")
@@ -685,7 +676,7 @@ func TestLibp2p_SendingWithTwoNodesSyncMode(t *testing.T) {
 	m.testNoConnections()
 }
 
-func TestLibp2p_Sending2NodesNonBlock(t *testing.T) {
+func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	logger := logging.ConsoleDebugLogger

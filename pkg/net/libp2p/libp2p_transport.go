@@ -364,7 +364,6 @@ func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, er
 		s, err = t.host.NewStream(sctx, p, t.params.ProtocolID)
 		scancel()
 		if err == nil {
-			fmt.Println("new stream", s)
 			return s, nil
 		}
 
