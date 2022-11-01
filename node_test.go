@@ -200,7 +200,7 @@ func newBlabber(batchSize uint64, period time.Duration) *blabber {
 }
 
 // Go starts babbling, i.e., producing batches of dummy events at the rate configured at instantiation.
-// Once started, the babbler is unstoppable and keeps babbling forever.
+// Once started, the babbler keeps babbling until it stops via the stop channel.
 func (b *blabber) Go() {
 	b.wg.Add(1)
 
