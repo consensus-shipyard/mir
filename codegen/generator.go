@@ -28,7 +28,6 @@ import (
 // It is assumed to use reflection to inspect the input types.
 // All the types are from the same package and, thus, from the same folder.
 // To obtain the source folder, buildutil.GetSourceDirForPackage can be used.
-// Only the zero value
 type Generator interface {
 	Run(structTypes []reflect.Type) error
 }
@@ -103,7 +102,7 @@ import (
 )
 
 func main() {
-	generator := generator_.{{.GeneratorName}}{}
+	var generator generator_.{{.GeneratorName}}
 	err := generator.Run(
 		[]reflect.Type{
 			{{range .StructNames}}
