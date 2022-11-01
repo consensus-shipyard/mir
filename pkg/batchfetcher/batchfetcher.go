@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
+	bfdsl "github.com/filecoin-project/mir/pkg/batchfetcher/dsl"
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -22,8 +24,13 @@ import (
 // that it obtains from the availability layer.
 // It keeps track of the current epoch (by observing the relayed NewEpoch events)
 // and automatically requests the transactions from the correct instance of the availability module.
-// TODO: Implement proper state initialization and transfer,
-// comprising not just the epoch number, but also the client watermarks.
+//
+// The batch fetcher also deduplicates the transactions, guaranteeing that each transaction
+// is output only the first time it appears in a batch.
+// For this purpose, the batch fetcher maintains information about which transactions have been delivered
+// and provides it to the checkpoint module when relaying a state snapshot request to the application.
+// Analogously, when relaying a RestoreState event, it restores its state (including the delivered transactions)
+// using the relayed information.
 func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
@@ -44,14 +51,8 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The ClientProgress handler restores the module's view of the client progress.
 	// This happens when state is being loaded from a checkpoint.
-	dsl.UponEvent[*eventpb.Event_BatchFetcher](m, func(bfEvent *batchfetcherpb.Event) error {
-		// TODO: Write a batchfetcher DSL package and move the boilerplate there.
-		switch e := bfEvent.Type.(type) {
-		case *batchfetcherpb.Event_ClientProgress:
-			clientProgress.LoadPb(e.ClientProgress)
-		default:
-			return fmt.Errorf("unsupported batch fetcher event type: %T", e)
-		}
+	bfdsl.UponEvent[*bfpb.Event_ClientProgress](m, func(cp *commonpb.ClientProgress) error {
+		clientProgress.LoadPb(cp)
 		return nil
 	})
 
