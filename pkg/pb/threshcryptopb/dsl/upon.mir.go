@@ -26,9 +26,20 @@ func UponSignShare(m dsl.Module, handler func(data [][]uint8, origin *types.Sign
 	})
 }
 
-func UponSignShareResult(m dsl.Module, handler func(signatureShare []uint8, origin *types.SignShareOrigin) error) {
+func UponSignShareResult[C any](m dsl.Module, handler func(signatureShare []uint8, context *C) error) {
 	UponEvent[*types.Event_SignShareResult](m, func(ev *types.SignShareResult) error {
-		return handler(ev.SignatureShare, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.SignShareOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.SignatureShare, context)
 	})
 }
 
@@ -38,9 +49,20 @@ func UponVerifyShare(m dsl.Module, handler func(data [][]uint8, signatureShare [
 	})
 }
 
-func UponVerifyShareResult(m dsl.Module, handler func(ok bool, error string, origin *types.VerifyShareOrigin) error) {
+func UponVerifyShareResult[C any](m dsl.Module, handler func(ok bool, error string, context *C) error) {
 	UponEvent[*types.Event_VerifyShareResult](m, func(ev *types.VerifyShareResult) error {
-		return handler(ev.Ok, ev.Error, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.VerifyShareOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.Ok, ev.Error, context)
 	})
 }
 
@@ -50,9 +72,20 @@ func UponVerifyFull(m dsl.Module, handler func(data [][]uint8, fullSignature []u
 	})
 }
 
-func UponVerifyFullResult(m dsl.Module, handler func(ok bool, error string, origin *types.VerifyFullOrigin) error) {
+func UponVerifyFullResult[C any](m dsl.Module, handler func(ok bool, error string, context *C) error) {
 	UponEvent[*types.Event_VerifyFullResult](m, func(ev *types.VerifyFullResult) error {
-		return handler(ev.Ok, ev.Error, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.VerifyFullOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.Ok, ev.Error, context)
 	})
 }
 
@@ -62,8 +95,19 @@ func UponRecover(m dsl.Module, handler func(data [][]uint8, signatureShares [][]
 	})
 }
 
-func UponRecoverResult(m dsl.Module, handler func(fullSignature []uint8, ok bool, error string, origin *types.RecoverOrigin) error) {
+func UponRecoverResult[C any](m dsl.Module, handler func(fullSignature []uint8, ok bool, error string, context *C) error) {
 	UponEvent[*types.Event_RecoverResult](m, func(ev *types.RecoverResult) error {
-		return handler(ev.FullSignature, ev.Ok, ev.Error, ev.Origin)
+		originWrapper, ok := ev.Origin.Type.(*types.RecoverOrigin_Dsl)
+		if !ok {
+			return nil
+		}
+
+		contextRaw := m.DslHandle().RecoverAndCleanupContext(dsl.ContextID(originWrapper.Dsl.ContextID))
+		context, ok := contextRaw.(*C)
+		if !ok {
+			return nil
+		}
+
+		return handler(ev.FullSignature, ev.Ok, ev.Error, context)
 	})
 }

@@ -9,12 +9,12 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	types8 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
+	types9 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types9 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types10 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	types6 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
@@ -63,7 +63,7 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_SignResult:
 		return &Event_SignResult{SignResult: SignResultFromPb(pb.SignResult)}
 	case *eventpb.Event_VerifyNodeSigs:
-		return &Event_VerifyNodeSigs{VerifyNodeSigs: pb.VerifyNodeSigs}
+		return &Event_VerifyNodeSigs{VerifyNodeSigs: VerifyNodeSigsFromPb(pb.VerifyNodeSigs)}
 	case *eventpb.Event_NodeSigsVerified:
 		return &Event_NodeSigsVerified{NodeSigsVerified: NodeSigsVerifiedFromPb(pb.NodeSigsVerified)}
 	case *eventpb.Event_RequestReady:
@@ -307,17 +307,17 @@ func (*Event_SignResult) MirReflect() mirreflect.Type {
 }
 
 type Event_VerifyNodeSigs struct {
-	VerifyNodeSigs *eventpb.VerifyNodeSigs
+	VerifyNodeSigs *VerifyNodeSigs
 }
 
 func (*Event_VerifyNodeSigs) isEvent_Type() {}
 
-func (w *Event_VerifyNodeSigs) Unwrap() *eventpb.VerifyNodeSigs {
+func (w *Event_VerifyNodeSigs) Unwrap() *VerifyNodeSigs {
 	return w.VerifyNodeSigs
 }
 
 func (w *Event_VerifyNodeSigs) Pb() eventpb.Event_Type {
-	return &eventpb.Event_VerifyNodeSigs{VerifyNodeSigs: w.VerifyNodeSigs}
+	return &eventpb.Event_VerifyNodeSigs{VerifyNodeSigs: (w.VerifyNodeSigs).Pb()}
 }
 
 func (*Event_VerifyNodeSigs) MirReflect() mirreflect.Type {
@@ -917,7 +917,7 @@ func (*SignResult) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin struct {
-	Module string
+	Module types.ModuleID
 	Type   SignOrigin_Type
 }
 
@@ -937,7 +937,7 @@ func SignOrigin_TypeFromPb(pb eventpb.SignOrigin_Type) SignOrigin_Type {
 	case *eventpb.SignOrigin_ContextStore:
 		return &SignOrigin_ContextStore{ContextStore: types8.OriginFromPb(pb.ContextStore)}
 	case *eventpb.SignOrigin_Dsl:
-		return &SignOrigin_Dsl{Dsl: pb.Dsl}
+		return &SignOrigin_Dsl{Dsl: types9.OriginFromPb(pb.Dsl)}
 	case *eventpb.SignOrigin_Checkpoint:
 		return &SignOrigin_Checkpoint{Checkpoint: pb.Checkpoint}
 	case *eventpb.SignOrigin_Sb:
@@ -965,17 +965,17 @@ func (*SignOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types9.Origin
 }
 
 func (*SignOrigin_Dsl) isSignOrigin_Type() {}
 
-func (w *SignOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *SignOrigin_Dsl) Unwrap() *types9.Origin {
 	return w.Dsl
 }
 
 func (w *SignOrigin_Dsl) Pb() eventpb.SignOrigin_Type {
-	return &eventpb.SignOrigin_Dsl{Dsl: w.Dsl}
+	return &eventpb.SignOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*SignOrigin_Dsl) MirReflect() mirreflect.Type {
@@ -1020,14 +1020,14 @@ func (*SignOrigin_Sb) MirReflect() mirreflect.Type {
 
 func SignOriginFromPb(pb *eventpb.SignOrigin) *SignOrigin {
 	return &SignOrigin{
-		Module: pb.Module,
+		Module: (types.ModuleID)(pb.Module),
 		Type:   SignOrigin_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *SignOrigin) Pb() *eventpb.SignOrigin {
 	return &eventpb.SignOrigin{
-		Module: m.Module,
+		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
 	}
 }
@@ -1036,8 +1036,65 @@ func (*SignOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SignOrigin]()}
 }
 
+type SigVerData struct {
+	Data [][]uint8
+}
+
+func SigVerDataFromPb(pb *eventpb.SigVerData) *SigVerData {
+	return &SigVerData{
+		Data: pb.Data,
+	}
+}
+
+func (m *SigVerData) Pb() *eventpb.SigVerData {
+	return &eventpb.SigVerData{
+		Data: m.Data,
+	}
+}
+
+func (*SigVerData) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerData]()}
+}
+
+type VerifyNodeSigs struct {
+	Data       []*SigVerData
+	Signatures [][]uint8
+	Origin     *SigVerOrigin
+	NodeIds    []types.NodeID
+}
+
+func VerifyNodeSigsFromPb(pb *eventpb.VerifyNodeSigs) *VerifyNodeSigs {
+	return &VerifyNodeSigs{
+		Data: types7.ConvertSlice(pb.Data, func(t *eventpb.SigVerData) *SigVerData {
+			return SigVerDataFromPb(t)
+		}),
+		Signatures: pb.Signatures,
+		Origin:     SigVerOriginFromPb(pb.Origin),
+		NodeIds: types7.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
+			return (types.NodeID)(t)
+		}),
+	}
+}
+
+func (m *VerifyNodeSigs) Pb() *eventpb.VerifyNodeSigs {
+	return &eventpb.VerifyNodeSigs{
+		Data: types7.ConvertSlice(m.Data, func(t *SigVerData) *eventpb.SigVerData {
+			return (t).Pb()
+		}),
+		Signatures: m.Signatures,
+		Origin:     (m.Origin).Pb(),
+		NodeIds: types7.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+			return (string)(t)
+		}),
+	}
+}
+
+func (*VerifyNodeSigs) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.VerifyNodeSigs]()}
+}
+
 type NodeSigsVerified struct {
-	Origin  *eventpb.SigVerOrigin
+	Origin  *SigVerOrigin
 	NodeIds []types.NodeID
 	Valid   []bool
 	Errors  []error
@@ -1046,7 +1103,7 @@ type NodeSigsVerified struct {
 
 func NodeSigsVerifiedFromPb(pb *eventpb.NodeSigsVerified) *NodeSigsVerified {
 	return &NodeSigsVerified{
-		Origin: pb.Origin,
+		Origin: SigVerOriginFromPb(pb.Origin),
 		NodeIds: types7.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
@@ -1060,7 +1117,7 @@ func NodeSigsVerifiedFromPb(pb *eventpb.NodeSigsVerified) *NodeSigsVerified {
 
 func (m *NodeSigsVerified) Pb() *eventpb.NodeSigsVerified {
 	return &eventpb.NodeSigsVerified{
-		Origin: m.Origin,
+		Origin: (m.Origin).Pb(),
 		NodeIds: types7.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
 			return (string)(t)
 		}),
@@ -1076,14 +1133,154 @@ func (*NodeSigsVerified) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.NodeSigsVerified]()}
 }
 
+type SigVerOrigin struct {
+	Module types.ModuleID
+	Type   SigVerOrigin_Type
+}
+
+type SigVerOrigin_Type interface {
+	mirreflect.GeneratedType
+	isSigVerOrigin_Type()
+	Pb() eventpb.SigVerOrigin_Type
+}
+
+type SigVerOrigin_TypeWrapper[T any] interface {
+	SigVerOrigin_Type
+	Unwrap() *T
+}
+
+func SigVerOrigin_TypeFromPb(pb eventpb.SigVerOrigin_Type) SigVerOrigin_Type {
+	switch pb := pb.(type) {
+	case *eventpb.SigVerOrigin_ContextStore:
+		return &SigVerOrigin_ContextStore{ContextStore: types8.OriginFromPb(pb.ContextStore)}
+	case *eventpb.SigVerOrigin_Iss:
+		return &SigVerOrigin_Iss{Iss: pb.Iss}
+	case *eventpb.SigVerOrigin_Dsl:
+		return &SigVerOrigin_Dsl{Dsl: types9.OriginFromPb(pb.Dsl)}
+	case *eventpb.SigVerOrigin_Checkpoint:
+		return &SigVerOrigin_Checkpoint{Checkpoint: pb.Checkpoint}
+	case *eventpb.SigVerOrigin_Sb:
+		return &SigVerOrigin_Sb{Sb: pb.Sb}
+	}
+	return nil
+}
+
+type SigVerOrigin_ContextStore struct {
+	ContextStore *types8.Origin
+}
+
+func (*SigVerOrigin_ContextStore) isSigVerOrigin_Type() {}
+
+func (w *SigVerOrigin_ContextStore) Unwrap() *types8.Origin {
+	return w.ContextStore
+}
+
+func (w *SigVerOrigin_ContextStore) Pb() eventpb.SigVerOrigin_Type {
+	return &eventpb.SigVerOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
+}
+
+func (*SigVerOrigin_ContextStore) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_ContextStore]()}
+}
+
+type SigVerOrigin_Iss struct {
+	Iss *isspb.ISSSigVerOrigin
+}
+
+func (*SigVerOrigin_Iss) isSigVerOrigin_Type() {}
+
+func (w *SigVerOrigin_Iss) Unwrap() *isspb.ISSSigVerOrigin {
+	return w.Iss
+}
+
+func (w *SigVerOrigin_Iss) Pb() eventpb.SigVerOrigin_Type {
+	return &eventpb.SigVerOrigin_Iss{Iss: w.Iss}
+}
+
+func (*SigVerOrigin_Iss) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_Iss]()}
+}
+
+type SigVerOrigin_Dsl struct {
+	Dsl *types9.Origin
+}
+
+func (*SigVerOrigin_Dsl) isSigVerOrigin_Type() {}
+
+func (w *SigVerOrigin_Dsl) Unwrap() *types9.Origin {
+	return w.Dsl
+}
+
+func (w *SigVerOrigin_Dsl) Pb() eventpb.SigVerOrigin_Type {
+	return &eventpb.SigVerOrigin_Dsl{Dsl: (w.Dsl).Pb()}
+}
+
+func (*SigVerOrigin_Dsl) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_Dsl]()}
+}
+
+type SigVerOrigin_Checkpoint struct {
+	Checkpoint *checkpointpb.SigVerOrigin
+}
+
+func (*SigVerOrigin_Checkpoint) isSigVerOrigin_Type() {}
+
+func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
+	return w.Checkpoint
+}
+
+func (w *SigVerOrigin_Checkpoint) Pb() eventpb.SigVerOrigin_Type {
+	return &eventpb.SigVerOrigin_Checkpoint{Checkpoint: w.Checkpoint}
+}
+
+func (*SigVerOrigin_Checkpoint) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_Checkpoint]()}
+}
+
+type SigVerOrigin_Sb struct {
+	Sb *ordererspb.SBInstanceSigVerOrigin
+}
+
+func (*SigVerOrigin_Sb) isSigVerOrigin_Type() {}
+
+func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
+	return w.Sb
+}
+
+func (w *SigVerOrigin_Sb) Pb() eventpb.SigVerOrigin_Type {
+	return &eventpb.SigVerOrigin_Sb{Sb: w.Sb}
+}
+
+func (*SigVerOrigin_Sb) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_Sb]()}
+}
+
+func SigVerOriginFromPb(pb *eventpb.SigVerOrigin) *SigVerOrigin {
+	return &SigVerOrigin{
+		Module: (types.ModuleID)(pb.Module),
+		Type:   SigVerOrigin_TypeFromPb(pb.Type),
+	}
+}
+
+func (m *SigVerOrigin) Pb() *eventpb.SigVerOrigin {
+	return &eventpb.SigVerOrigin{
+		Module: (string)(m.Module),
+		Type:   (m.Type).Pb(),
+	}
+}
+
+func (*SigVerOrigin) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin]()}
+}
+
 type SendMessage struct {
-	Msg          *types9.Message
+	Msg          *types10.Message
 	Destinations []types.NodeID
 }
 
 func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 	return &SendMessage{
-		Msg: types9.MessageFromPb(pb.Msg),
+		Msg: types10.MessageFromPb(pb.Msg),
 		Destinations: types7.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
@@ -1105,13 +1302,13 @@ func (*SendMessage) MirReflect() mirreflect.Type {
 
 type MessageReceived struct {
 	From types.NodeID
-	Msg  *types9.Message
+	Msg  *types10.Message
 }
 
 func MessageReceivedFromPb(pb *eventpb.MessageReceived) *MessageReceived {
 	return &MessageReceived{
 		From: (types.NodeID)(pb.From),
-		Msg:  types9.MessageFromPb(pb.Msg),
+		Msg:  types10.MessageFromPb(pb.Msg),
 	}
 }
 

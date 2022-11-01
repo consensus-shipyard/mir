@@ -35,11 +35,14 @@ func Filter[T any](ts []T, f func(i int, t T) bool) []T {
 	return res
 }
 
-func Index[T comparable](slice []T, elem T) int {
-	for i, t := range slice {
-		if t == elem {
-			return i
-		}
+// Any returns an arbitrary element of the slice.
+// If the slice is not empty, the second return value is true.
+// Otherwise, Any returns the zero value of the slice's element type and false.
+func Any[T any](ts []T) (T, bool) {
+	if len(ts) == 0 {
+		var res T
+		return res, false
 	}
-	return -1
+
+	return ts[0], true
 }

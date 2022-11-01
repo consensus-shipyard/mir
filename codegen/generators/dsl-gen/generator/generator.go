@@ -75,6 +75,8 @@ var (
 	dslPackagePath = "github.com/filecoin-project/mir/pkg/dsl"
 
 	dslModule       jen.Code = jen.Qual(dslPackagePath, "Module")
+	dslContextID    jen.Code = jen.Qual(dslPackagePath, "ContextID")
+	dslMirOrigin    jen.Code = jen.Qual(dslPackagePath, "MirOrigin")
 	dslEmitMirEvent jen.Code = jen.Qual(dslPackagePath, "EmitMirEvent")
 	dslUponMirEvent jen.Code = jen.Qual(dslPackagePath, "UponMirEvent")
 )

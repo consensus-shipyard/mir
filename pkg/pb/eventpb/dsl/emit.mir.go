@@ -2,7 +2,6 @@ package eventpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -11,7 +10,14 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func SignRequest(m dsl.Module, destModule types.ModuleID, data [][]uint8, origin *types1.SignOrigin) {
+func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
+	contextID := m.DslHandle().StoreContext(context)
+
+	origin := &types1.SignOrigin{
+		Module: m.ModuleID(),
+		Type:   &types1.SignOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+	}
+
 	dsl.EmitMirEvent(m, events.SignRequest(destModule, data, origin))
 }
 
@@ -19,7 +25,18 @@ func SignResult(m dsl.Module, destModule types.ModuleID, signature []uint8, orig
 	dsl.EmitMirEvent(m, events.SignResult(destModule, signature, origin))
 }
 
-func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *eventpb.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
+func VerifyNodeSigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
+	contextID := m.DslHandle().StoreContext(context)
+
+	origin := &types1.SigVerOrigin{
+		Module: m.ModuleID(),
+		Type:   &types1.SigVerOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+	}
+
+	dsl.EmitMirEvent(m, events.VerifyNodeSigs(destModule, data, signatures, origin, nodeIds))
+}
+
+func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
 	dsl.EmitMirEvent(m, events.NodeSigsVerified(destModule, origin, nodeIds, valid, errors, allOk))
 }
 

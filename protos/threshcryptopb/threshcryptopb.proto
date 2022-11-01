@@ -29,14 +29,14 @@ message SignShare {
   option (mir.event) = true;
 
   repeated bytes  data   = 1;
-  SignShareOrigin origin = 2;
+  SignShareOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 message SignShareResult {
   option (mir.event) = true;
 
   bytes           signature_share = 1;
-  SignShareOrigin origin          = 2;
+  SignShareOrigin origin          = 2 [(mir.origin_response) = true];
 }
 
 message SignShareOrigin {
@@ -55,7 +55,7 @@ message VerifyShare {
   repeated bytes    data            = 1;
   bytes             signature_share = 2;
   string            node_id         = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  VerifyShareOrigin origin          = 4;
+  VerifyShareOrigin origin          = 4 [(mir.origin_request) = true];
 }
 
 message VerifyShareResult {
@@ -63,7 +63,7 @@ message VerifyShareResult {
 
   bool              ok     = 1;
   string            error  = 2;
-  VerifyShareOrigin origin = 3;
+  VerifyShareOrigin origin = 3 [(mir.origin_response) = true];
 }
 
 message VerifyShareOrigin {
@@ -81,7 +81,7 @@ message VerifyFull {
 
   repeated bytes   data           = 1;
   bytes            full_signature = 2;
-  VerifyFullOrigin origin         = 3;
+  VerifyFullOrigin origin         = 3 [(mir.origin_request) = true];
 }
 
 message VerifyFullResult {
@@ -89,7 +89,7 @@ message VerifyFullResult {
 
   bool             ok     = 1;
   string           error  = 2;
-  VerifyFullOrigin origin = 3;
+  VerifyFullOrigin origin = 3 [(mir.origin_response) = true];
 }
 
 message VerifyFullOrigin {
@@ -107,7 +107,7 @@ message Recover {
 
   repeated bytes data             = 1;
   repeated bytes signature_shares = 2;
-  RecoverOrigin  origin           = 3;
+  RecoverOrigin  origin           = 3 [(mir.origin_request) = true];
 }
 
 message RecoverResult {
@@ -116,7 +116,7 @@ message RecoverResult {
   bytes         full_signature = 1;
   bool          ok             = 2;
   string        error          = 3;
-  RecoverOrigin origin         = 4;
+  RecoverOrigin origin         = 4 [(mir.origin_response) = true];
 }
 
 message RecoverOrigin {

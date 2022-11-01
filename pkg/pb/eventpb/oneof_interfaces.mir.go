@@ -206,3 +206,30 @@ func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
 func (w *SignOrigin_Sb) Unwrap() *ordererspb.SBInstanceSignOrigin {
 	return w.Sb
 }
+
+type SigVerOrigin_Type = isSigVerOrigin_Type
+
+type SigVerOrigin_TypeWrapper[T any] interface {
+	SigVerOrigin_Type
+	Unwrap() *T
+}
+
+func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
+	return w.ContextStore
+}
+
+func (w *SigVerOrigin_Iss) Unwrap() *isspb.ISSSigVerOrigin {
+	return w.Iss
+}
+
+func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {
+	return w.Dsl
+}
+
+func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
+	return w.Checkpoint
+}
+
+func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
+	return w.Sb
+}

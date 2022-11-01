@@ -18,6 +18,9 @@ type Field struct {
 	// The information about the type of the field.
 	Type Type
 
+	// The type to which the field belongs.
+	Parent *Message
+
 	// The protobuf descriptor of the field.
 	// The descriptor can be either protoreflect.FieldDescriptor or protoreflect.OneofDescriptor.
 	ProtoDesc protoreflect.Descriptor
@@ -54,4 +57,14 @@ func (fs Fields) FuncParamsMirTypes() []jen.Code {
 // FuncParamsIDs returns a list of fields lowercase names as identifiers, without the types.
 func (fs Fields) FuncParamsIDs() []jen.Code {
 	return sliceutil.Transform(fs, func(i int, f *Field) jen.Code { return jen.Id(f.LowercaseName()) })
+}
+
+// ByName returns the field with the given name (or nil if there is no such field).
+func (fs Fields) ByName(name string) *Field {
+	for _, f := range fs {
+		if f.Name == name {
+			return f
+		}
+	}
+	return nil
 }

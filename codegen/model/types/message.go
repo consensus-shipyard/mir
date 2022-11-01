@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"github.com/filecoin-project/mir/codegen"
 	"github.com/filecoin-project/mir/codegen/util/astutil"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // Message contains the information needed to generate code for a protobuf message.
@@ -16,7 +17,11 @@ type Message struct {
 	shouldGenerateMirType bool
 	mirPkgPath            string
 
-	fields               Fields
+	// The cached value for the fields of the Message.
+	// The only way to access this variable is through parser.ParseFields(m) method.
+	// The fields of a message are not parsed by default when the message type itself is parsed.
+	fields Fields
+
 	pbStructType         jen.Code
 	mirStructType        jen.Code
 	protoDesc            protoreflect.MessageDescriptor

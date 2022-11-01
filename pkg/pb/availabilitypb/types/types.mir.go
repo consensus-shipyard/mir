@@ -4,7 +4,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -213,7 +213,7 @@ func RequestCertOrigin_TypeFromPb(pb availabilitypb.RequestCertOrigin_Type) Requ
 	case *availabilitypb.RequestCertOrigin_ContextStore:
 		return &RequestCertOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *availabilitypb.RequestCertOrigin_Dsl:
-		return &RequestCertOrigin_Dsl{Dsl: pb.Dsl}
+		return &RequestCertOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -237,17 +237,17 @@ func (*RequestCertOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestCertOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*RequestCertOrigin_Dsl) isRequestCertOrigin_Type() {}
 
-func (w *RequestCertOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *RequestCertOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *RequestCertOrigin_Dsl) Pb() availabilitypb.RequestCertOrigin_Type {
-	return &availabilitypb.RequestCertOrigin_Dsl{Dsl: w.Dsl}
+	return &availabilitypb.RequestCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*RequestCertOrigin_Dsl) MirReflect() mirreflect.Type {
@@ -293,7 +293,7 @@ func VerifyCertOrigin_TypeFromPb(pb availabilitypb.VerifyCertOrigin_Type) Verify
 	case *availabilitypb.VerifyCertOrigin_ContextStore:
 		return &VerifyCertOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *availabilitypb.VerifyCertOrigin_Dsl:
-		return &VerifyCertOrigin_Dsl{Dsl: pb.Dsl}
+		return &VerifyCertOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
@@ -317,17 +317,17 @@ func (*VerifyCertOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyCertOrigin_Dsl struct {
-	Dsl *dslpb.Origin
+	Dsl *types2.Origin
 }
 
 func (*VerifyCertOrigin_Dsl) isVerifyCertOrigin_Type() {}
 
-func (w *VerifyCertOrigin_Dsl) Unwrap() *dslpb.Origin {
+func (w *VerifyCertOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
 func (w *VerifyCertOrigin_Dsl) Pb() availabilitypb.VerifyCertOrigin_Type {
-	return &availabilitypb.VerifyCertOrigin_Dsl{Dsl: w.Dsl}
+	return &availabilitypb.VerifyCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
 func (*VerifyCertOrigin_Dsl) MirReflect() mirreflect.Type {

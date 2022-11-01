@@ -5,6 +5,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/dslpb"
+	dslpbtypes "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -14,6 +15,13 @@ import (
 // Origin creates a dslpb.Origin protobuf.
 func Origin(contextID ContextID) *dslpb.Origin {
 	return &dslpb.Origin{
+		ContextID: contextID.Pb(),
+	}
+}
+
+// MirOrigin creates a dslpb.Origin protobuf.
+func MirOrigin(contextID ContextID) *dslpbtypes.Origin {
+	return &dslpbtypes.Origin{
 		ContextID: contextID.Pb(),
 	}
 }

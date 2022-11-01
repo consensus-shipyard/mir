@@ -91,11 +91,21 @@ func (p *Parser) parseEventNodeRecursively(
 	accumulatedConstructorParameters =
 		accumulatedConstructorParameters.UncheckedAppendAll(thisNodeConstructorParameters.FunctionParamList())
 
+	originRequest, err := p.getoriginRequest(fields)
+	if err != nil {
+		return nil, err
+	}
+
+	originResponse, err := p.getoriginResponse(fields)
+	if err != nil {
+		return nil, err
+	}
+
 	node = &EventNode{
 		message:                       msg,
 		oneofOption:                   optionInParentOneof,
-		originRequestField:            getOriginRequestField(fields),
-		originResponseField:           getOriginResponseField(fields),
+		originRequest:                 originRequest,
+		originResponse:                originResponse,
 		typeOneof:                     getTypeOneof(fields),
 		children:                      nil, // to be filled separately
 		parent:                        parent,
@@ -147,22 +157,48 @@ func getTypeOneof(fields types.Fields) *types.Oneof {
 	return nil
 }
 
-func getOriginRequestField(fields types.Fields) *types.Field {
+func (p *Parser) getoriginRequest(fields types.Fields) (*Origin, error) {
 	for _, field := range fields {
-		if IsOriginRequestField(field) {
-			return field
+		if IsoriginRequest(field) {
+			return p.ParseOrigin(field)
 		}
 	}
-	return nil
+
+	return nil, nil
 }
 
-func getOriginResponseField(fields types.Fields) *types.Field {
+func (p *Parser) getoriginResponse(fields types.Fields) (*Origin, error) {
 	for _, field := range fields {
-		if IsOriginResponseField(field) {
-			return field
+		if IsoriginResponse(field) {
+			return p.ParseOrigin(field)
 		}
 	}
-	return nil
+	return nil, nil
+}
+
+func (p *Parser) ParseOrigin(field *types.Field) (*Origin, error) {
+	message, ok := field.Type.(*types.Message)
+	if !ok {
+		return nil, fmt.Errorf("field %v.%v marked as origin request/response field must be of message type",
+			field.Parent.Name(), field.Name)
+	}
+
+	fields, err := p.TypesParser().ParseFields(message)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(fields) != 2 {
+		return nil, fmt.Errorf("origin request/response message %v must have exactly 2 fields: Module and Type",
+			message.Name())
+	}
+
+	return &Origin{
+		Field:       field,
+		Message:     message,
+		ModuleField: fields.ByName("Module"),
+		TypeOneof:   fields.ByName("Type").Type.(*types.Oneof),
+	}, nil
 }
 
 // IsEventTypeOneof returns true iff the field is a oneof and is marked with option (mir.event_type) = true.
@@ -175,8 +211,8 @@ func IsEventTypeOneof(field *types.Field) bool {
 	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.OneofOptions), mir.E_EventType).(bool)
 }
 
-// IsOriginRequestField returns true iff the field is marked with [(mir.origin_request) = true].
-func IsOriginRequestField(field *types.Field) bool {
+// IsoriginRequest returns true iff the field is marked with [(mir.origin_request) = true].
+func IsoriginRequest(field *types.Field) bool {
 	fieldDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
 	if !ok {
 		return false
@@ -185,8 +221,8 @@ func IsOriginRequestField(field *types.Field) bool {
 	return proto.GetExtension(fieldDesc.Options().(*descriptorpb.FieldOptions), mir.E_OriginRequest).(bool)
 }
 
-// IsOriginResponseField returns true iff the field is marked with [(mir.origin_response) = true].
-func IsOriginResponseField(field *types.Field) bool {
+// IsoriginResponse returns true iff the field is marked with [(mir.origin_response) = true].
+func IsoriginResponse(field *types.Field) bool {
 	fieldDesc, ok := field.ProtoDesc.(protoreflect.FieldDescriptor)
 	if !ok {
 		return false
@@ -202,5 +238,5 @@ func OmitInEventConstructor(field *types.Field) bool {
 		return false
 	}
 
-	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.FieldOptions), mir.E_OmitInEventsConstructor).(bool)
+	return proto.GetExtension(oneofDesc.Options().(*descriptorpb.FieldOptions), mir.E_OmitInEventConstructors).(bool)
 }
