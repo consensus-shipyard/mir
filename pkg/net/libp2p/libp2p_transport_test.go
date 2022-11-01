@@ -83,18 +83,21 @@ func (m *mockLibp2pCommunication) Nodes() map[types.NodeID]types.NodeAddress {
 }
 
 func (m *mockLibp2pCommunication) StopTransports(transports ...*Transport) {
+	m.t.Log(">>> stop transports")
 	for _, v := range transports {
 		v.Stop()
 	}
 }
 
 func (m *mockLibp2pCommunication) StopAllTransports() {
+	m.t.Log(">>> stop transports")
 	for _, v := range m.transports {
 		v.Stop()
 	}
 }
 
-func (m *mockLibp2pCommunication) CloseHost(transports ...*Transport) {
+func (m *mockLibp2pCommunication) CloseHosts(transports ...*Transport) {
+	m.t.Log(">>> close hosts")
 	for _, v := range transports {
 		err := v.host.Close()
 		require.NoError(m.t, err)
@@ -102,6 +105,7 @@ func (m *mockLibp2pCommunication) CloseHost(transports ...*Transport) {
 }
 
 func (m *mockLibp2pCommunication) CloseAllHosts() {
+	m.t.Log(">>> close hosts")
 	for _, v := range m.transports {
 		err := v.host.Close()
 		require.NoError(m.t, err)
@@ -213,6 +217,7 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
 
 	require.Eventually(m.t,
 		func() bool {
+			m.printStreams(nodeID)
 			return m.getNumberOfStreams(v) == 0
 		},
 		10*time.Second, 300*time.Millisecond)
@@ -295,6 +300,18 @@ func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
 		}
 	}
 	return n
+}
+
+func (m *mockLibp2pCommunication) printStreams(node types.NodeID) { // nolint
+	v := m.getTransport(node)
+	conns := v.host.Network().Conns()
+	for _, c := range conns {
+		for _, s := range c.GetStreams() {
+			if s.Protocol() == m.params.ProtocolID {
+				fmt.Printf(">>>>> node %v streams: %v\n", node, c)
+			}
+		}
+	}
 }
 
 func (m *mockLibp2pCommunication) streamExist(src, dst *Transport) bool {
@@ -386,6 +403,9 @@ func TestLibp2p_Sending(t *testing.T) {
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
 	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testEventuallyNoStreams(nodeC)
+	m.testEventuallyNoStreams(nodeD)
 	m.testConnsEmpty()
 
 	m.CloseAllHosts()

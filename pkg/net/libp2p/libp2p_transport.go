@@ -60,6 +60,7 @@ type Transport struct {
 	connsLock        sync.RWMutex
 	stopChan         chan struct{}
 	streamChan       chan *newStream
+	wg               sync.WaitGroup
 }
 
 func NewTransport(params Params, h host.Host, ownID types.NodeID, logger logging.Logger) (*Transport, error) {
@@ -88,7 +89,7 @@ func (t *Transport) Start() error {
 
 func (t *Transport) Stop() {
 	t.logger.Log(logging.LevelDebug, "stopping libp2p transport", "src", t.ownID)
-	defer t.logger.Log(logging.LevelDebug, "libp2p transport stopped ", "src", t.ownID)
+	defer t.logger.Log(logging.LevelDebug, "libp2p transport stopped", "src", t.ownID)
 
 	close(t.stopChan)
 
@@ -104,6 +105,19 @@ func (t *Transport) Stop() {
 		delete(t.conns, nodeID)
 	}
 	t.connsLock.Unlock()
+
+	for _, c := range t.host.Network().Conns() {
+		for _, s := range c.GetStreams() {
+			if s.Protocol() == t.params.ProtocolID {
+				err := c.Close()
+				if err != nil {
+					t.logger.Log(logging.LevelError, "could not close connection", "src", t.ownID, "dst", c.RemotePeer().String(), "err", err)
+				}
+			}
+		}
+	}
+
+	t.wg.Wait()
 }
 
 func (t *Transport) CloseOldConnections(newNodes map[types.NodeID]types.NodeAddress) {
@@ -259,7 +273,10 @@ func (t *Transport) ApplyEvents(ctx context.Context, eventList *events.EventList
 }
 
 func (t *Transport) runStreamUpdater() {
+	t.wg.Add(1)
 	go func() {
+		defer t.wg.Done()
+
 		t.logger.Log(logging.LevelDebug, "stream updater started", "src", t.ownID)
 		defer t.logger.Log(logging.LevelDebug, "stream updater stopped", "src", t.ownID)
 
@@ -294,11 +311,15 @@ func (t *Transport) connect(nodesID []types.NodeID) {
 		if nodesID[i] == t.ownID {
 			continue
 		}
+
+		t.wg.Add(1)
 		go t.connectToNode(nodesID[i])
 	}
 }
 
 func (t *Transport) connectToNode(nodeID types.NodeID) {
+	defer t.wg.Done()
+
 	t.connsLock.Lock()
 	conn, found := t.conns[nodeID]
 	if !found {
@@ -321,7 +342,7 @@ func (t *Transport) connectToNode(nodeID types.NodeID) {
 	t.logger.Log(logging.LevelDebug, fmt.Sprintf("node %v is connecting to node %v", t.ownID, nodeID))
 	s, err := t.openStream(nodeID, info.ID)
 	if err != nil {
-		t.logger.Log(logging.LevelError, "failed to open stream to node", "addr", info, "node", nodeID, "err", err)
+		t.logger.Log(logging.LevelError, fmt.Sprintf("node %v failed to connect to node %v: %s", t.ownID, nodeID, err))
 		t.connsLock.Lock()
 		conn.Connecting = false
 		t.connsLock.Unlock()
@@ -335,7 +356,8 @@ func (t *Transport) connectToNode(nodeID types.NodeID) {
 func (t *Transport) openStream(dest types.NodeID, p peer.ID) (network.Stream, error) {
 	// We need the simplest retry mechanism due to the fact that the underlying libp2p's NewStream function dials once:
 	// https://github.com/libp2p/go-libp2p/blob/7828f3e0797e0a7b7033fa5e8be9b94f57a4c173/p2p/net/swarm/swarm.go#L358
-	t.logger.Log(logging.LevelDebug, "opening stream to peer", "src", t.ownID, "dst", dest)
+	t.logger.Log(logging.LevelDebug, "start opening stream to peer", "src", t.ownID, "dst", dest)
+	defer t.logger.Log(logging.LevelDebug, "stop opening stream to peer", "src", t.ownID, "dst", dest)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
