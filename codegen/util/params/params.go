@@ -13,7 +13,7 @@ import (
 type FunctionParam struct {
 	originalName string
 	uniqueName   string
-	type_        types.Type
+	typ          types.Type
 }
 
 // OriginalName return the original name of the function parameter.
@@ -28,7 +28,7 @@ func (p FunctionParam) Name() string {
 
 // Type returns the type of the function parameter.
 func (p FunctionParam) Type() types.Type {
-	return p.type_
+	return p.typ
 }
 
 // MirCode returns the code for the parameter that can be used in a function declaration using Mir-generated
@@ -324,7 +324,7 @@ func UniqueName(originalName string, ls ...interface{ Names() []string }) string
 	for _, l := range ls {
 		for _, paramName := range l.Names() {
 			if nameWithSuffix == paramName {
-				suffixNumber += 1
+				suffixNumber++
 				nameWithSuffix = originalName + strconv.FormatInt(suffixNumber, 10)
 			}
 		}

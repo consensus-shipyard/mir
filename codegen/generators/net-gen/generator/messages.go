@@ -73,9 +73,6 @@ func generateMessageConstructorsRecursively(
 	).Line()
 }
 
-// GenerateMessageConstructors generates functions of form:
-//
-//     func [SrcPkg]msgs.[MessageName]([MessageParams]...) [RootMessageType]
 func GenerateMessageConstructors(messageRoot *messages.NetMessageNode) error {
 	jenFileBySourcePackagePath := make(map[string]*jen.File)
 

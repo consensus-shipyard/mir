@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"path"
 	"strings"
 
@@ -17,7 +16,7 @@ func PackageName(sourcePackagePath string) string {
 }
 
 func OutputDir(sourceDir string) string {
-	return fmt.Sprintf(path.Join(sourceDir, "types"))
+	return path.Join(sourceDir, "types")
 }
 
 type Type interface {
@@ -61,8 +60,8 @@ func (t Same) ToPb(code jen.Code) *jen.Statement {
 // Castable is used when the types used by protoc-generated code and
 // Mir-generated code can be directly cast to one another.
 type Castable struct {
-	PbType_  jen.Code
-	MirType_ jen.Code
+	PbType_  jen.Code // nolint
+	MirType_ jen.Code // nolint
 }
 
 func (t Castable) Same() bool {

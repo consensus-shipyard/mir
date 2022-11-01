@@ -35,5 +35,5 @@ run:
 
 issues:
   exclude-rules:
-    - path: .*\.pb\.mir\.go
-      linters: [revive, stylecheck, goimports]
+    - path: .*\.mir\.go
+      linters: [revive, stylecheck, goimports, gocyclo]

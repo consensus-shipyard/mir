@@ -17,11 +17,6 @@ type Message struct {
 	shouldGenerateMirType bool
 	mirPkgPath            string
 
-	// The cached value for the fields of the Message.
-	// The only way to access this variable is through parser.ParseFields(m) method.
-	// The fields of a message are not parsed by default when the message type itself is parsed.
-	fields Fields
-
 	pbStructType         jen.Code
 	mirStructType        jen.Code
 	protoDesc            protoreflect.MessageDescriptor

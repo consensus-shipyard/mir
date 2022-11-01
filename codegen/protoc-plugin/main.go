@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/filecoin-project/mir/codegen"
 	"google.golang.org/protobuf/compiler/protogen"
+
+	"github.com/filecoin-project/mir/codegen"
 
 	"github.com/filecoin-project/mir/codegen/util/protogenutil"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
