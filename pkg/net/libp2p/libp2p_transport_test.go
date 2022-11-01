@@ -329,9 +329,13 @@ func (m *mockLibp2pCommunication) streamExist(src, dst *Transport) bool {
 	return false
 }
 
-func TestLibp2p_Sending(t *testing.T) {
-	defer goleak.VerifyNone(t)
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m,
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore"),
+	)
+}
 
+func TestLibp2p_Sending(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -352,14 +356,12 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	eAddr := libp2putil.NewFakeMultiaddr(100, 0)
 
-	t.Log(">>> connecting nodes")
-
+	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB, nodeC, nodeD)
 	initialNodes[nodeE] = eAddr
-
-	t.Log("membership")
 	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 	c.Connect(initialNodes)
@@ -413,8 +415,6 @@ func TestLibp2p_Sending(t *testing.T) {
 }
 
 func TestLibp2p_Connecting(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -427,12 +427,11 @@ func TestLibp2p_Connecting(t *testing.T) {
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAllTransports()
 
-	t.Log(">>> connecting nodes")
-	t.Log("membership")
-	t.Log(m.membership)
-
+	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB, nodeC)
+	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 	c.Connect(initialNodes)
@@ -476,8 +475,6 @@ func TestLibp2p_Connecting(t *testing.T) {
 }
 
 func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -492,13 +489,11 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 
-	t.Log(">>> connecting nodes")
-
+	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB)
-
-	t.Log("membership")
 	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 
@@ -533,8 +528,6 @@ func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
 }
 
 func TestLibp2p_Messaging(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -548,13 +541,11 @@ func TestLibp2p_Messaging(t *testing.T) {
 	require.Equal(t, nodeB, b.ownID)
 	m.StartAllTransports()
 
-	t.Log(">>> connecting nodes")
-
+	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB)
-
-	t.Log("membership")
 	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
@@ -648,8 +639,6 @@ func TestLibp2p_Messaging(t *testing.T) {
 }
 
 func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -661,7 +650,7 @@ func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 	require.Equal(t, nodeB, b.ownID)
 	m.StartAllTransports()
 	initialNodes := m.Membership(nodeA, nodeB)
-	t.Log("membership")
+	t.Log(">>> membership")
 	t.Log(initialNodes)
 
 	t.Log(">>> connecting nodes")
@@ -682,9 +671,8 @@ func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
-	m.testEventuallyConnected(nodeA, nodeB)
-
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
+	m.testEventuallyConnected(nodeA, nodeB)
 
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
@@ -698,8 +686,6 @@ func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 }
 
 func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -764,8 +750,6 @@ func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
 
 // Test we don't get two elements in the node table corresponding to the same node.
 func TestLibp2p_OneConnectionInProgress(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -797,8 +781,6 @@ func TestLibp2p_OneConnectionInProgress(t *testing.T) {
 
 // Test that when a node fails to connect first time it will be trying to connect.
 func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -848,25 +830,20 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 }
 
 func TestLibp2p_TwoNodesBasic(t *testing.T) {
-	defer goleak.VerifyNone(t)
-
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
-
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
-
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
 	m.StartAllTransports()
 
-	t.Log(">>> connecting nodes")
-	t.Log("membership")
-	t.Log(m.membership)
-
+	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB)
+	t.Log(initialNodes)
 
+	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
