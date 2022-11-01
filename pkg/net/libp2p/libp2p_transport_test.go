@@ -662,6 +662,7 @@ func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 
 	t.Log(">>> sending messages after disconnection")
 	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
+	m.testEventuallyConnected(nodeA, nodeB)
 
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
