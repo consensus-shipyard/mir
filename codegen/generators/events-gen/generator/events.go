@@ -73,11 +73,6 @@ func generateEventConstructorsRecursively(
 	).Line()
 }
 
-// GenerateEventConstructors generates functions of form:
-//
-//     func [SrcPkg]events.[EventName]([EventParams]...) [RootEventType]
-//
-// TODO: add an example.
 func GenerateEventConstructors(eventRoot *events.EventNode) error {
 	jenFileBySourcePackagePath := make(map[string]*jen.File)
 

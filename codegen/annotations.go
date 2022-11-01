@@ -12,13 +12,13 @@ import (
 // ShouldGenerateMirType returns true if the message is marked by one of the standard Mir annotations.
 // Namely, one of the following:
 //
-//    option (mir.struct) = true;
-//    option (mir.event_root) = true;
-//    option (mir.event_class) = true;
-//    option (mir.event) = true;
-//    option (net.message_root) = true;
-//    option (net.message_class) = true;
-//    option (net.message) = true;
+//	option (mir.struct) = true;
+//	option (mir.event_root) = true;
+//	option (mir.event_class) = true;
+//	option (mir.event) = true;
+//	option (net.message_root) = true;
+//	option (net.message_class) = true;
+//	option (net.message) = true;
 //
 // Among these, (mir.struct) is the only one that has no special meaning.
 func ShouldGenerateMirType(protoDesc protoreflect.MessageDescriptor) bool {

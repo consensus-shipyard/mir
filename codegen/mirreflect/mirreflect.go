@@ -13,10 +13,10 @@ type Type interface {
 }
 
 // TypeImpl is an implementation of the Type interface.
-// As functionality being added to the mirreflect package,
+// As new functionality is being added to the mirreflect package,
 // this type is likely to be removed and replaced by more specific types.
 type TypeImpl struct {
-	PbType_ reflect.Type
+	PbType_ reflect.Type // nolint
 }
 
 func (t TypeImpl) PbType() reflect.Type {

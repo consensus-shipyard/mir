@@ -137,7 +137,7 @@ func runInDir(program []byte, dir string) error {
 	// Create a temporary folder for the generator program.
 	tmpDir, err := ioutil.TempDir(dir, "proto_converter_tmp_")
 	if err != nil {
-		return fmt.Errorf("error creating a temporary directory in %v: %v", dir, err)
+		return fmt.Errorf("error creating a temporary directory in %v: %w", dir, err)
 	}
 
 	// Remove the temporary folder when finished.
@@ -172,7 +172,7 @@ func runInDir(program []byte, dir string) error {
 	}
 
 	// Run the program.
-	generatorCmd := exec.Command(path.Join(tmpDir, progBinary))
+	generatorCmd := exec.Command(path.Join(tmpDir, progBinary)) //nolint:gosec
 	generatorCmd.Stdout = os.Stdout
 	generatorCmd.Stderr = os.Stderr
 	return generatorCmd.Run()
@@ -189,7 +189,7 @@ func getAllTypesInAPackage(sourcePkgPath string) ([]string, error) {
 	fset := token.FileSet{}
 	pkgs, err := parser.ParseDir(&fset, sourceDir, nil, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse the package sources: %v", err)
+		return nil, fmt.Errorf("could not parse the package sources: %w", err)
 	}
 
 	// Get the ast of the target package.
