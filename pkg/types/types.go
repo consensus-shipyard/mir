@@ -194,6 +194,24 @@ func (cid ClientID) Pb() string {
 
 // ================================================================================
 
+// ClientWM represents the client request watermark.
+type ClientWM uint64
+
+// Pb converts a ClientWN to its underlying native type.
+func (cwm ClientWM) Pb() uint64 {
+	return uint64(cwm)
+}
+
+func ClientWMsPb(wms map[ClientID]ClientWM) map[string]uint64 {
+	m := make(map[string]uint64)
+	for k, v := range wms {
+		m[k.Pb()] = v.Pb()
+	}
+	return m
+}
+
+// ================================================================================
+
 // SeqNr represents the sequence number of a batch as assigned by the ordering protocol.
 type SeqNr uint64
 

@@ -9,15 +9,31 @@ message HashData {
 }
 
 message StateSnapshot {
-  bytes       app_data      = 2;
-  EpochConfig configuration = 3;
+  bytes     app_data   = 1;
+  EpochData epoch_data = 2;
+}
+
+message EpochData {
+  EpochConfig    epoch_config    = 1;
+  ClientProgress client_progress = 2;
 }
 
 message EpochConfig {
   uint64              epoch_nr    = 1;
-  repeated Membership memberships = 2;
+  uint64              first_sn    = 2;
+  uint64              length      = 3;
+  repeated Membership memberships = 4;
 }
 
 message Membership {
   map<string, string> membership = 1;
+}
+
+message ClientProgress {
+  map<string, DeliveredReqs> progress = 1;
+}
+
+message DeliveredReqs {
+  uint64          low_wm    = 1;
+  repeated uint64 delivered = 2;
 }

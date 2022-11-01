@@ -1,12 +1,3 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
-
-// TODO: Eventually make the checkpoint tracker a separate package.
-//       Then, use an EventService for producing Events.
-
 // TODO: Finish writing proper comments in this file.
 
 package checkpoint
@@ -21,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -100,8 +92,11 @@ func NewProtocol(
 		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
 		membership:      membership,
 		stateSnapshot: &commonpb.StateSnapshot{
-			AppData:       nil,
-			Configuration: nil,
+			AppData: nil,
+			EpochData: &commonpb.EpochData{
+				EpochConfig:    nil,
+				ClientProgress: nil,
+			},
 		},
 	}
 }
@@ -124,6 +119,13 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return p.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return p.applyNodeSigsVerified(e.NodeSigsVerified)
+	case *eventpb.Event_BatchFetcher:
+		switch e := e.BatchFetcher.Type.(type) {
+		case *batchfetcherpb.Event_ClientProgress:
+			return p.applyClientProgress(e.ClientProgress)
+		default:
+			return nil, errors.Errorf("unexpected batch fetcher event type: %T", e)
+		}
 	case *eventpb.Event_Checkpoint:
 		switch e := e.Checkpoint.Type.(type) {
 		case *checkpointpb.Event_EpochConfig:
@@ -171,8 +173,20 @@ func (p *Protocol) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.E
 func (p *Protocol) applyEpochConfig(epochConfig *commonpb.EpochConfig) (*events.EventList, error) {
 
 	// Save the received configuration if there is none yet.
-	if p.stateSnapshot.Configuration == nil {
-		p.stateSnapshot.Configuration = epochConfig
+	if p.stateSnapshot.EpochData.EpochConfig == nil {
+		p.stateSnapshot.EpochData.EpochConfig = epochConfig
+		if p.snapshotReady() {
+			return p.processStateSnapshot()
+		}
+	}
+	return events.EmptyList(), nil
+}
+
+func (p *Protocol) applyClientProgress(clientProgress *commonpb.ClientProgress) (*events.EventList, error) {
+
+	// Save the received client progress if there is none yet.
+	if p.stateSnapshot.EpochData.ClientProgress == nil {
+		p.stateSnapshot.EpochData.ClientProgress = clientProgress
 		if p.snapshotReady() {
 			return p.processStateSnapshot()
 		}
@@ -181,7 +195,9 @@ func (p *Protocol) applyEpochConfig(epochConfig *commonpb.EpochConfig) (*events.
 }
 
 func (p *Protocol) snapshotReady() bool {
-	return p.stateSnapshot.AppData != nil && p.stateSnapshot.Configuration != nil
+	return p.stateSnapshot.AppData != nil &&
+		p.stateSnapshot.EpochData.EpochConfig != nil &&
+		p.stateSnapshot.EpochData.ClientProgress != nil
 }
 
 func (p *Protocol) processStateSnapshot() (*events.EventList, error) {
@@ -234,7 +250,7 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 	p.Log(logging.LevelDebug, "Sending checkpoint message",
 		"epoch", p.epoch,
 		"dataLen", len(p.stateSnapshot.AppData),
-		"memberships", len(p.stateSnapshot.Configuration.Memberships),
+		"memberships", len(p.stateSnapshot.EpochData.EpochConfig.Memberships),
 	)
 
 	// Apply pending Checkpoint messages

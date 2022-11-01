@@ -4,10 +4,14 @@ import (
 	"fmt"
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
+	bfdsl "github.com/filecoin-project/mir/pkg/batchfetcher/dsl"
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -20,17 +24,15 @@ import (
 // that it obtains from the availability layer.
 // It keeps track of the current epoch (by observing the relayed NewEpoch events)
 // and automatically requests the transactions from the correct instance of the availability module.
-// TODO: Implement proper state initialization and transfer,
-// comprising not just the epoch number, but also the client watermarks.
-func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
+//
+// The batch fetcher also deduplicates the transactions, guaranteeing that each transaction
+// is output only the first time it appears in a batch.
+// For this purpose, the batch fetcher maintains information about which transactions have been delivered
+// and provides it to the checkpoint module when relaying a state snapshot request to the application.
+// Analogously, when relaying a RestoreState event, it restores its state (including the delivered transactions)
+// using the relayed information.
+func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress) modules.Module {
 	m := dsl.NewModule(mc.Self)
-
-	// The current epoch number, as announced by the ordering protocol.
-	epochNr := epoch
-
-	// Map of delivered requests that is used to filter duplicates.
-	// TODO: Implement compaction (client watermarks) so that this map does not grow indefinitely.
-	delivered := make(map[t.ClientID]map[t.ReqNo]struct{})
 
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
@@ -44,6 +46,13 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 			event: events.NewEpoch(mc.Destination, t.EpochNr(newEpoch.EpochNr)),
 		})
 		output.Flush(m)
+		return nil
+	})
+
+	// The ClientProgress handler restores the module's view of the client progress.
+	// This happens when state is being loaded from a checkpoint.
+	bfdsl.UponEvent[*bfpb.Event_ClientProgress](m, func(cp *commonpb.ClientProgress) error {
+		clientProgress.LoadPb(cp)
 		return nil
 	})
 
@@ -75,6 +84,33 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 		return nil
 	})
 
+	// The AppSnapshotRequest handler triggers a ClientProgress event (for the checkpointing protocol)
+	// and forwards the original snapshot request event to the output.
+	dsl.UponEvent[*eventpb.Event_AppSnapshotRequest](m, func(snapshotRequest *eventpb.AppSnapshotRequest) error {
+
+		// Save the number of the epoch when the AppSnapshotRequest has been received.
+		// This is necessary in case the epoch number changes
+		// by the time the AppSnapshotRequest event is output and the hook function (added below) executed.
+		epoch := epochNr
+
+		// Forward the original event to the output.
+		output.Enqueue(&outputItem{
+			event: events.AppSnapshotRequest(mc.Destination, t.ModuleID(snapshotRequest.ReplyTo)),
+
+			// At the time of forwarding, submit the client progress to the checkpointing protocol.
+			f: func(_ *eventpb.Event) {
+				clientProgress.GarbageCollect()
+				dsl.EmitEvent(m, bfevents.ClientProgress(
+					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epoch))),
+					clientProgress.Pb(),
+				))
+			},
+		})
+		output.Flush(m)
+
+		return nil
+	})
+
 	// The ProvideTransactions handler filters the received transaction batch,
 	// removing all transactions that have been previously delivered,
 	// assigns the remaining transactions to the corresponding output item
@@ -92,21 +128,18 @@ func NewModule(mc *ModuleConfig, epoch t.EpochNr) modules.Module {
 			reqNo := t.ReqNo(req.ReqNo)
 
 			// Only keep request if it has not yet been delivered.
-			// TODO: Make this more efficient by compacting the delivered set.
-			_, ok := delivered[clID]
-			if !ok {
-				// If this is the first transaction from this client, create a new entry for the ClientID.
-				delivered[clID] = make(map[t.ReqNo]struct{})
-			}
-			if _, ok := delivered[clID][reqNo]; !ok {
-				// If the transaction has not yet been delivered, record its delivery and append it to the output.
-				delivered[clID][reqNo] = struct{}{}
+			if clientProgress.Add(clID, reqNo) {
 				newTxs = append(newTxs, req)
 			}
 		}
 
 		context.queueItem.event = bfevents.NewOrderedBatch(mc.Destination, newTxs)
 		output.Flush(m)
+		return nil
+	})
+
+	// Explicitly ignore Init event. This prevents forwarding it to the destination module.
+	dsl.UponEvent[*eventpb.Event_Init](m, func(_ *eventpb.Init) error {
 		return nil
 	})
 

@@ -164,7 +164,7 @@ func (chat *ChatApp) RestoreState(checkpoint *checkpoint.StableCheckpoint) error
 	chat.restoreChat(checkpoint.Snapshot.AppData)
 
 	// Restore configuration
-	if err := chat.restoreConfiguration(checkpoint.Snapshot.Configuration); err != nil {
+	if err := chat.restoreConfiguration(checkpoint.Snapshot.EpochData.EpochConfig); err != nil {
 		return err
 	}
 

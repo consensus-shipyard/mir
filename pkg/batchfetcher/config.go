@@ -6,6 +6,7 @@ import t "github.com/filecoin-project/mir/pkg/types"
 type ModuleConfig struct {
 	Self         t.ModuleID // Own ID.
 	Availability t.ModuleID // ID of the factory module containing the availability modules.
+	Checkpoint   t.ModuleID // ID of the checkpoint factory module to which to submit client progress.
 	Destination  t.ModuleID // ID of the module to deliver the produced event stream to (usually the application).
 }
 
@@ -13,6 +14,7 @@ func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
 		Self:         "batchfetcher",
 		Availability: "availability",
+		Checkpoint:   "checkpoint",
 		Destination:  "app",
 	}
 }

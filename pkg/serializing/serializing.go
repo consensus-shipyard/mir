@@ -54,23 +54,58 @@ func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]b
 }
 
 func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
+	return append(EpochDataForHash(snapshot.EpochData), snapshot.AppData)
+}
 
-	// Append epoch and app data
+func EpochDataForHash(epochData *commonpb.EpochData) [][]byte {
+	return append(EpochConfigForHash(epochData.EpochConfig), ClientProgressForHash(epochData.ClientProgress)...)
+}
+
+func EpochConfigForHash(epochConfig *commonpb.EpochConfig) [][]byte {
+
+	// Add simple values.
 	data := [][]byte{
-		t.EpochNr(snapshot.Configuration.EpochNr).Bytes(),
-		snapshot.AppData,
+		t.EpochNr(epochConfig.EpochNr).Bytes(),
+		Uint64ToBytes(epochConfig.Length),
+		Uint64ToBytes(epochConfig.FirstSn),
 	}
 
-	// Append membership.
+	// Append memberships.
+	data = append(data, MembershipsForHash(epochConfig.Memberships)...)
+
+	return data
+}
+
+func MembershipsForHash(memberships []*commonpb.Membership) [][]byte {
+	var data [][]byte
+
 	// Each string representing an ID and an address is explicitly terminated with a zero byte.
 	// This ensures that the last byte of an ID and the first byte of an address are not interchangeable.
-	for _, membership := range snapshot.Configuration.Memberships {
+	for _, membership := range memberships {
 		maputil.IterateSorted(membership.Membership, func(id string, addr string) bool {
 			data = append(data, []byte(id), []byte{0}, []byte(addr), []byte{0})
 			return true
 		})
 	}
 
+	return data
+}
+
+func ClientProgressForHash(clientProgress *commonpb.ClientProgress) [][]byte {
+	var data [][]byte
+	maputil.IterateSorted(
+		clientProgress.Progress,
+		func(clientID string, deliveredReqs *commonpb.DeliveredReqs) (cont bool) {
+			// Append client ID and low watermark.
+			data = append(data, []byte(t.ClientID(clientID).Pb()), Uint64ToBytes(deliveredReqs.LowWm))
+
+			// Append all request numbers delivered after the watermark.
+			for _, reqNo := range deliveredReqs.Delivered {
+				data = append(data, Uint64ToBytes(reqNo))
+			}
+			return true
+		},
+	)
 	return data
 }
 
