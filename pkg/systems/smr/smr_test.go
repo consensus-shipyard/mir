@@ -13,6 +13,7 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
@@ -35,6 +36,10 @@ const (
 )
 
 func TestIntegration(t *testing.T) {
+	defer goleak.VerifyNone(t,
+		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/deploytest.newSimModule"),
+		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/testsim.(*Chan).recv"),
+	)
 	t.Run("ISS", testIntegrationWithISS)
 }
 
@@ -61,7 +66,6 @@ func testIntegrationWithISS(t *testing.T) {
 		Desc   string // test description
 		Config *TestConfig
 	}{
-
 		0: {"Do nothing with 1 node",
 			&TestConfig{
 				NumReplicas: 1,
@@ -118,7 +122,6 @@ func testIntegrationWithISS(t *testing.T) {
 				NumNetRequests: 10,
 				Duration:       4 * time.Second,
 			}},
-
 		7: {"Submit 10 requests with 4 nodes and gRPC networking",
 			&TestConfig{
 				Info:           "grpc 10 requests and 4 nodes",
@@ -159,6 +162,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Transport:   "sim",
 				Duration:    4 * time.Second,
 			}},
+
 		12: {"Do nothing with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,

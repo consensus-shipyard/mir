@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestNode_Config(t *testing.T) {
+	defer goleak.VerifyNone(t)
 
 	// Convenience variable
 	noModules := make(map[types.ModuleID]modules.Module)
@@ -50,6 +52,8 @@ func TestNode_Config(t *testing.T) {
 }
 
 func TestNode_Run(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	testCases := map[string]func(t *testing.T) (m modules.Modules, done <-chan struct{}){
 		"InitEvents": func(t *testing.T) (modules.Modules, <-chan struct{}) {
 			ctrl := gomock.NewController(t)
@@ -117,6 +121,9 @@ func TestNode_Run(t *testing.T) {
 }
 
 func TestNode_Backpressure(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	ctx := context.Background()
 
 	nodeConfig := DefaultNodeConfig()
 
@@ -143,11 +150,12 @@ func TestNode_Backpressure(t *testing.T) {
 
 	// Start a flood of dummy events.
 	blabberModule.Go()
+	defer blabberModule.Close()
 
 	// Start the node.
 	nodeError := make(chan error)
 	go func() {
-		nodeError <- n.Run(context.Background())
+		nodeError <- n.Run(ctx)
 	}()
 
 	// Run for 5 seconds, then stop the node.
@@ -166,7 +174,6 @@ func TestNode_Backpressure(t *testing.T) {
 		uint64(nodeConfig.MaxEventBatchSize) + // Events in the consumer's processing queue
 		2*blabberModule.batchSize // one batch of overshooting, one batch waiting in the babbler's output channel.
 	assert.LessOrEqual(t, totalSubmitted, expectSubmitted, "too many events submitted (node event buffer overflow)")
-
 }
 
 // =================================================================================================
@@ -179,6 +186,8 @@ type blabber struct {
 	batchSize      uint64                 // Number of events output at once.
 	period         time.Duration          // Time between batches.
 	totalSubmitted uint64                 // Counter for total number of submitted events.
+	stop           chan struct{}          // Stop channel.
+	wg             sync.WaitGroup         // WaitGroup to control stopping of the goroutine.
 }
 
 func newBlabber(batchSize uint64, period time.Duration) *blabber {
@@ -186,20 +195,38 @@ func newBlabber(batchSize uint64, period time.Duration) *blabber {
 		flood:     make(chan *events.EventList),
 		batchSize: batchSize,
 		period:    period,
+		stop:      make(chan struct{}),
 	}
 }
 
 // Go starts babbling, i.e., producing batches of dummy events at the rate configured at instantiation.
-// Once started, the babbler is unstoppable and keeps babbling forever.
+// Once started, the babbler keeps babbling until it stops via the stop channel.
 func (b *blabber) Go() {
+	b.wg.Add(1)
+
 	go func() {
+		defer b.wg.Done()
 		for {
+			select {
+			case <-b.stop:
+				return
+			default:
+			}
 			evts := events.ListOf(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
-			b.flood <- evts
+			select {
+			case <-b.stop:
+				return
+			case b.flood <- evts:
+			}
 			atomic.AddUint64(&b.totalSubmitted, b.batchSize)
 			time.Sleep(b.period)
 		}
 	}()
+}
+
+func (b *blabber) Close() {
+	close(b.stop)
+	b.wg.Wait()
 }
 
 func (b *blabber) ImplementsModule() {}

@@ -27,6 +27,7 @@ type FakeLink struct {
 	FakeTransport *FakeTransport
 	Source        t.NodeID
 	DoneC         chan struct{}
+	wg            sync.WaitGroup
 }
 
 func (fl *FakeLink) ApplyEvents(
@@ -82,11 +83,12 @@ func (fl *FakeLink) EventsOut() <-chan *events.EventList {
 	return fl.FakeTransport.NodeSinks[fl.Source]
 }
 
+var _ LocalTransportLayer = &FakeTransport{}
+
 type FakeTransport struct {
 	// Buffers is source x dest
 	Buffers   map[t.NodeID]map[t.NodeID]chan *events.EventList
 	NodeSinks map[t.NodeID]chan *events.EventList
-	WaitGroup sync.WaitGroup
 	logger    logging.Logger
 }
 
@@ -155,12 +157,15 @@ func (fl *FakeLink) Start() error {
 func (fl *FakeLink) Connect(nodes map[t.NodeID]t.NodeAddress) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
+	fl.wg.Add(len(sourceBuffers))
+
 	for destID, buffer := range sourceBuffers {
 		if fl.Source == destID {
+			fl.wg.Done()
 			continue
 		}
-
 		go func(destID t.NodeID, buffer chan *events.EventList) {
+			defer fl.wg.Done()
 			for {
 				select {
 				case msg := <-buffer:
@@ -186,4 +191,5 @@ func (fl *FakeLink) WaitFor(n int) {
 
 func (fl *FakeLink) Stop() {
 	close(fl.DoneC)
+	fl.wg.Wait()
 }

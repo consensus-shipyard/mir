@@ -23,7 +23,7 @@ clean:
 
 .PHONY: test
 test:
-	go test -short -v -shuffle=on -count=1 -race -timeout 20m ./...
+	go test -v -shuffle=on -count=1 -race -timeout 20m ./...
 
 .PHONY: test_cov
 test_cov:
