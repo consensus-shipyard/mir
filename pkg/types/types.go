@@ -192,6 +192,10 @@ func (cid ClientID) Pb() string {
 	return string(cid)
 }
 
+func (cid ClientID) Bytes() []byte {
+	return []byte(cid)
+}
+
 // ================================================================================
 
 // ClientWM represents the client request watermark.
@@ -255,6 +259,11 @@ func (rn ReqNo) Pb() uint64 {
 	return uint64(rn)
 }
 
+// Bytes converts a ReqNo to a slice of bytes (useful for serialization).
+func (rn ReqNo) Bytes() []byte {
+	return uint64ToBytes(uint64(rn))
+}
+
 // ================================================================================
 
 // RetentionIndex represents an abstract notion of system progress used in garbage collection.
@@ -269,6 +278,11 @@ func (ri RetentionIndex) Pb() uint64 {
 	return uint64(ri)
 }
 
+// Bytes converts a RetentionIndex to a slice of bytes (useful for serialization).
+func (ri RetentionIndex) Bytes() []byte {
+	return uint64ToBytes(uint64(ri))
+}
+
 // ================================================================================
 
 // SBInstanceNr identifies the instance of Sequenced Broadcast (SB) within an epoch.
@@ -277,6 +291,10 @@ type SBInstanceNr uint64
 // Pb converts a SBInstanceNr to its underlying native type.
 func (i SBInstanceNr) Pb() uint64 {
 	return uint64(i)
+}
+
+func (i SBInstanceNr) Bytes() []byte {
+	return uint64ToBytes(uint64(i))
 }
 
 // ================================================================================
@@ -290,9 +308,7 @@ func (e EpochNr) Pb() uint64 {
 }
 
 func (e EpochNr) Bytes() []byte {
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, uint64(e))
-	return bytes
+	return uint64ToBytes(uint64(e))
 }
 
 // ================================================================================
@@ -303,6 +319,10 @@ type NumRequests uint64
 // Pb converts an EpochNr number to its underlying native type.
 func (nr NumRequests) Pb() uint64 {
 	return uint64(nr)
+}
+
+func (nr NumRequests) Bytes() []byte {
+	return uint64ToBytes(uint64(nr))
 }
 
 // ================================================================================
@@ -328,6 +348,10 @@ type TimeDuration time.Duration
 // Pb converts a TimeDuration to a type used in a Protobuf message.
 func (td TimeDuration) Pb() uint64 {
 	return uint64(td)
+}
+
+func (td TimeDuration) Bytes() []byte {
+	return uint64ToBytes(uint64(td))
 }
 
 // ================================================================================
