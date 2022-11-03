@@ -22,11 +22,12 @@ type eventMetadata struct {
 	index  uint64
 }
 
-// Returns the list of event names present in the given eventlog file,
+// Returns the list of event names and destinations present in the given eventlog file,
 // along with the total number of events present in the file.
-func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int, error) {
+func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, map[string]struct{}, int, error) {
 	events := make(map[string]struct{})
 	issEvents := make(map[string]struct{})
+	eventDests := make(map[string]struct{})
 
 	defer func(file *os.File, offset int64, whence int) {
 		_, _ = file.Seek(offset, whence) // resets the file offset for successive reading
@@ -34,7 +35,7 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 
 	reader, err := eventlog.NewReader(file)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	cnt := 0 // Counts the total number of events in the event log.
@@ -48,6 +49,7 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 
 			// Add the Event name to the set of known Events.
 			events[eventName(event)] = struct{}{}
+			eventDests[event.DestModule] = struct{}{}
 			switch e := event.Type.(type) {
 			case *eventpb.Event_Iss:
 				// For ISS Events, also add the type of the ISS event to a set of known ISS events.
@@ -56,10 +58,10 @@ func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, int,
 		}
 	}
 	if errors.Is(err, io.EOF) {
-		return events, issEvents, cnt, fmt.Errorf("failed reading event log: %w", err)
+		return events, issEvents, eventDests, cnt, fmt.Errorf("failed reading event log: %w", err)
 	}
 
-	return events, issEvents, cnt, nil
+	return events, issEvents, eventDests, cnt, nil
 }
 
 // eventName returns a string name of an Event.
