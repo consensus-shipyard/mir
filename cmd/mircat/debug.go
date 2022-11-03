@@ -89,7 +89,7 @@ func debug(args *arguments) error {
 
 			// If the event was selected by the user for inspection, pause before submitting it to the node.
 			// The processing continues after the user's interactive confirmation.
-			if selected(event, args.selectedEvents, args.selectedIssEvents) &&
+			if selected(event, args.selectedEventNames, args.selectedIssEventNames) &&
 				index >= args.offset &&
 				(args.limit == 0 || index < args.offset+args.limit) {
 

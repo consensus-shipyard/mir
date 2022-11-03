@@ -40,13 +40,16 @@ func displayEvents(args *arguments) error {
 		for _, event := range entry.Events {
 			metadata.index = uint64(index)
 
-			if _, ok := args.selectedEvents[eventName(event)]; ok && index >= args.offset && (args.limit == 0 || index < args.offset+args.limit) {
+			_, validEvent := args.selectedEventNames[eventName(event)]
+			_, validDest := args.selectedEventDests[event.DestModule]
+
+			if validEvent && validDest && index >= args.offset && (args.limit == 0 || index < args.offset+args.limit) {
 				// If event type has been selected for displaying
 
 				switch e := event.Type.(type) {
 				case *eventpb.Event_Iss:
 					// Only display selected sub-types of the ISS Event
-					if _, ok := args.selectedIssEvents[issEventName(e.Iss)]; ok {
+					if _, validIssEvent := args.selectedIssEventNames[issEventName(e.Iss)]; validIssEvent {
 						displayEvent(event, metadata)
 					}
 				default:
