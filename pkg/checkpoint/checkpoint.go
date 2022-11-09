@@ -3,7 +3,7 @@ package checkpoint
 import (
 	"fmt"
 
-	"google.golang.org/protobuf/proto"
+	"github.com/fxamacker/cbor/v2"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // StableCheckpoint represents a stable checkpoint.
@@ -24,14 +25,49 @@ func StableCheckpointFromPb(checkpoint *checkpointpb.StableCheckpoint) *StableCh
 	return (*StableCheckpoint)(checkpoint)
 }
 
-// DeserializeStableCheckpoint creates a StableCheckpoint from its serialized representation
-// previously returned from StableCheckpoint.Serialize.
-func DeserializeStableCheckpoint(data []byte) (*StableCheckpoint, error) {
-	var sc checkpointpb.StableCheckpoint
-	if err := proto.Unmarshal(data, &sc); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal stable checkpoint: %w", err)
+// Pb returns a protobuf representation of the stable checkpoint.
+func (sc *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
+	return (*checkpointpb.StableCheckpoint)(sc)
+}
+
+// Serialize returns the stable checkpoint serialized as a byte slice.
+// It is the inverse of Deserialize, to which the returned byte slice can be passed to restore the checkpoint.
+func (sc *StableCheckpoint) Serialize() ([]byte, error) {
+	em, err := cbor.CoreDetEncOptions().EncMode()
+	if err != nil {
+		return nil, err
 	}
-	return (*StableCheckpoint)(&sc), nil
+
+	return em.Marshal(sc)
+}
+
+// Deserialize populates its fields from the serialized representation
+// previously returned from StableCheckpoint.Serialize.
+func (sc *StableCheckpoint) Deserialize(data []byte) error {
+	if err := cbor.Unmarshal(data, sc); err != nil {
+		return fmt.Errorf("failed to CBOR unmarshal stable checkpoint: %w", err)
+	}
+	return nil
+}
+
+// StripCert returns a stable new stable checkpoint with the certificate stripped off.
+// The returned copy is a shallow one, sharing the data with the original.
+func (sc *StableCheckpoint) StripCert() *StableCheckpoint {
+	return StableCheckpointFromPb(&checkpointpb.StableCheckpoint{
+		Sn:       sc.Sn,
+		Snapshot: sc.Snapshot,
+		Cert:     nil,
+	})
+}
+
+// AttachCert returns a new stable checkpoint with the given certificate attached.
+// If the stable checkpoint already had a certificate attached, the old certificate is replaced by the new one.
+func (sc *StableCheckpoint) AttachCert(cert *Certificate) *StableCheckpoint {
+	return StableCheckpointFromPb(&checkpointpb.StableCheckpoint{
+		Sn:       sc.Sn,
+		Snapshot: sc.Snapshot,
+		Cert:     cert.Pb(),
+	})
 }
 
 // SeqNr returns the sequence number of the stable checkpoint.
@@ -62,16 +98,15 @@ func (sc *StableCheckpoint) ClientProgress(logger logging.Logger) *clientprogres
 	return clientprogress.FromPb(sc.Snapshot.EpochData.ClientProgress, logger)
 }
 
-// Pb returns a protobuf representation of the stable checkpoint.
-func (sc *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
-	return (*checkpointpb.StableCheckpoint)(sc)
-}
-
-// Serialize returns the stable checkpoint serialized as a byte slice.
-// It is the inverse of DeserializeStableCheckpoint,
-// to which the returned byte slice can be passed to restore the checkpoint.
-func (sc *StableCheckpoint) Serialize() ([]byte, error) {
-	return proto.Marshal(sc.Pb())
+func (sc *StableCheckpoint) Certificate() *Certificate {
+	m := maputil.Transform(sc.Cert,
+		func(k string) t.NodeID {
+			return t.NodeID(k)
+		}, func(v []byte) []byte {
+			return v
+		},
+	)
+	return (*Certificate)(&m)
 }
 
 // VerifyCert verifies the certificate of the stable checkpoint using the provided hash implementation and verifier.
@@ -131,7 +166,7 @@ func Genesis(initialStateSnapshot *commonpb.StateSnapshot) *StableCheckpoint {
 	return &StableCheckpoint{
 		Sn:       0,
 		Snapshot: initialStateSnapshot,
-		Cert:     map[string][]byte{},
+		Cert:     (&Certificate{}).Pb(),
 	}
 }
 

@@ -332,7 +332,7 @@ func loadStableCheckpoint(filename string) (retChkp *checkpoint.StableCheckpoint
 	}
 
 	var chkp *checkpoint.StableCheckpoint
-	if chkp, err = checkpoint.DeserializeStableCheckpoint(chkpBytes); err != nil {
+	if err := chkp.Deserialize(chkpBytes); err != nil {
 		return nil, err
 	}
 
