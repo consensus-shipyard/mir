@@ -365,16 +365,22 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 		go func(mID t.ModuleID, m modules.Module, workChan chan *events.EventList) {
 			defer wg.Done()
 
+			// Create a context that is passed to the module event application function
+			// and canceled when module processing is stopped (i.e. this function returns).
+			// This is to make sure that the event processing is properly aborted if needed.
+			processingCtx, cancelProcessing := context.WithCancel(ctx)
+			defer cancelProcessing()
+
 			var continueProcessing = true
 			var err error
 
 			for continueProcessing {
 				if n.debugMode {
 					// In debug mode, all produced events are routed to the debug output.
-					continueProcessing, err = n.processModuleEvents(ctx, m, workChan, n.debugOut)
+					continueProcessing, err = n.processModuleEvents(processingCtx, m, workChan, n.debugOut)
 				} else {
 					// During normal operation, feed all produced events back into the event loop.
-					continueProcessing, err = n.processModuleEvents(ctx, m, workChan, n.eventsIn)
+					continueProcessing, err = n.processModuleEvents(processingCtx, m, workChan, n.eventsIn)
 				}
 				if err != nil {
 					n.workErrNotifier.Fail(fmt.Errorf("could not process PassiveModule (%v) events: %w", mID, err))
