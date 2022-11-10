@@ -21,13 +21,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	t "github.com/filecoin-project/mir/pkg/types"
-
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Interceptor provides a way to gain insight into the internal operation of the node.
@@ -316,6 +317,20 @@ func (r *Reader) ReadEntry() (*recordingpb.Entry, error) {
 	r.buffer.Reset()
 
 	return re, nil
+}
+
+func (r *Reader) ReadAllEvents() ([]*eventpb.Event, error) {
+	allEvents := make([]*eventpb.Event, 0)
+
+	var entry *recordingpb.Entry
+	var err error
+	for entry, err = r.ReadEntry(); err == nil; entry, err = r.ReadEntry() {
+		allEvents = append(allEvents, entry.Events...)
+	}
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+	return allEvents, nil
 }
 
 func readSizePrefixedProto(reader *bufio.Reader, msg proto.Message, buffer *bytes.Buffer) error {
