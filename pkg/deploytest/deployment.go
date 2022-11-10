@@ -242,6 +242,14 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 	return nodeErrors, heapObjects, heapAlloc
 }
 
+func (d *Deployment) EventLogFiles() map[t.NodeID]string {
+	logFiles := make(map[t.NodeID]string)
+	for _, r := range d.TestReplicas {
+		logFiles[r.ID] = r.EventLogFile()
+	}
+	return logFiles
+}
+
 // localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns
 // an address map.
 // It is assumed that node ID strings must be parseable to decimal numbers.
