@@ -9,7 +9,7 @@ package crypto
 import (
 	"fmt"
 	"io"
-	prand "math/rand"
+	insecureRNG "math/rand"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -20,16 +20,16 @@ var (
 	DefaultPseudoSeed int64 = 12345
 )
 
-// NodePseudo returns a CryptoImpl module to be used by a Node, generating new keys in a pseudo-random manner.
+// InsecureCryptoForTestingOnly returns a CryptoImpl module to be used by a node, generating new keys in a pseudo-random manner.
 // It is initialized and populated deterministically, based on a given configuration and a random seed.
-// NodePseudo is not secure.
-// Intended for testing purposes and assuming a static membership known to all nodes,
-// NodePseudo can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
+// InsecureCryptoForTestingOnly is not secure and intended for testing purposes only.
+// It also assumes a static membership known to all nodes,
+// InsecureCryptoForTestingOnly can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func NodePseudo(nodes []t.NodeID, ownID t.NodeID, seed int64) (Crypto, error) { //nolint:dupl
+func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64) (Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
-	randomness := prand.New(prand.NewSource(seed)) //nolint:gosec
+	randomness := insecureRNG.New(insecureRNG.NewSource(seed)) //nolint:gosec
 
 	// Generate node keys.
 	// All private keys except the own one will be discarded.

@@ -25,7 +25,7 @@ func NewLocalCryptoSystem(cryptoType string, nodeIDs []t.NodeID, logger logging.
 }
 
 func (cs *localPseudoCryptoSystem) Crypto(id t.NodeID) mirCrypto.Crypto {
-	cryptoImpl, err := mirCrypto.NodePseudo(cs.nodeIDs, id, mirCrypto.DefaultPseudoSeed)
+	cryptoImpl, err := mirCrypto.InsecureCryptoForTestingOnly(cs.nodeIDs, id, mirCrypto.DefaultPseudoSeed)
 	if err != nil {
 		panic(fmt.Sprintf("error creating crypto module: %v", err))
 	}
