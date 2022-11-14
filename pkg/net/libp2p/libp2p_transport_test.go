@@ -330,9 +330,7 @@ func (m *mockLibp2pCommunication) streamExist(src, dst *Transport) bool {
 }
 
 func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m,
-		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p-asn-util.newIndirectAsnStore"),
-	)
+	goleak.VerifyTestMain(m)
 }
 
 func TestLibp2p_Sending(t *testing.T) {
