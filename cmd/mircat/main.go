@@ -184,7 +184,7 @@ func selectionArgs(events map[string]struct{}, issEvents map[string]struct{}, de
 	}
 
 	for _, dest := range toList(dests) {
-		argStr += " event-dest " + dest
+		argStr += " --event-dest " + dest
 	}
 
 	return argStr
