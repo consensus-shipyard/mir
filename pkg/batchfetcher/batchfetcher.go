@@ -4,14 +4,11 @@ import (
 	"fmt"
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
-	bfdsl "github.com/filecoin-project/mir/pkg/batchfetcher/dsl"
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -46,13 +43,6 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			event: events.NewEpoch(mc.Destination, t.EpochNr(newEpoch.EpochNr)),
 		})
 		output.Flush(m)
-		return nil
-	})
-
-	// The ClientProgress handler restores the module's view of the client progress.
-	// This happens when state is being loaded from a checkpoint.
-	bfdsl.UponEvent[*bfpb.Event_ClientProgress](m, func(cp *commonpb.ClientProgress) error {
-		clientProgress.LoadPb(cp)
 		return nil
 	})
 
