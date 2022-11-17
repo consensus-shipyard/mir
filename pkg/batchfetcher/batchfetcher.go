@@ -111,6 +111,26 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		return nil
 	})
 
+	// The AppRestoreState handler restores the batch fetcher's state from a checkpoint
+	// and forwards the event to the application, so it can restore its state too.
+	dsl.UponEvent[*eventpb.Event_AppRestoreState](m, func(restoreState *eventpb.AppRestoreState) error {
+
+		// Load client progress from checkpoint.
+		clientProgress.LoadPb(restoreState.Checkpoint.Snapshot.EpochData.ClientProgress)
+
+		// Reset output event queue.
+		// This is necessary to prune any pending output to the application
+		// that pertains to the epochs before this checkpoint.
+		output = outputQueue{}
+
+		// Forward the RestoreState event to the application.
+		// We can output it directly without passing through the queue,
+		// since we've just reset it and know this would be its first and only item.
+		dsl.EmitEvent(m, events.AppRestoreState(mc.Destination, restoreState.Checkpoint))
+
+		return nil
+	})
+
 	// The ProvideTransactions handler filters the received transaction batch,
 	// removing all transactions that have been previously delivered,
 	// assigns the remaining transactions to the corresponding output item
