@@ -138,9 +138,9 @@ For an automated deployment of Mir on a set of remote machines, see the [remote 
 ### Getting started
 
 To get started using (and contributing to) Mir, in addition to this README, we recommend the following:
-1. Watch the first [introductory video](https://github.com/filecoin-project/mir/issues/245) (under on (1) Introduction)*
+1. Watch the first [introductory video](https://www.youtube.com/watch?v=UZKpqrJtMxc)
 2. Read the [Mir Library Overview](/docs)
-3. Watch the second [introductory video](https://github.com/filecoin-project/mir/issues/245) (under on (2) Ping-Pong)*
+3. Watch the second [introductory video](https://www.youtube.com/watch?v=Vmt3ZeKIJIM). (Very low-level coding, this is **not** how Mir coding works in real life - it is for developers to understand how Mir internally works. Realistic coding videos will follow soon.)
 4. Check out the [chat-demo](/samples/chat-demo) sample application to learn how to use Mir for state machine replication.
 5. To see an example of using a DSL module (allowing to write pseudocode-like code for the protocol logic),
    look at the [implementation of Byzantine Consistent Broadcast (BCB)](/pkg/bcb)
@@ -151,10 +151,8 @@ To get started using (and contributing to) Mir, in addition to this README, we r
 6. A more complex example of DSL code is the implementation of the [SMR availability layer](/pkg/availability)
    (concretely the `multisigcollector`).
 
-(*) Videos will be moved to YouTube soon and the proper link will appear here.
-
-To learn about the first complex system being built on mir,
-have a look at [Implementation of Eudico's Ordering Layer](https://hackmd.io/P59lk4hnSBKN5ki5OblSFg?view).
+To learn about the first complex system being built on Mir,
+have a look at [Trantor](https://hackmd.io/P59lk4hnSBKN5ki5OblSFg?view), a complex SMR syste being implemented using Mir.
 
 ## Contributing
 
