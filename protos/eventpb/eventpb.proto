@@ -250,5 +250,6 @@ message NewEpoch {
 }
 
 message NewConfig {
-  commonpb.Membership membership = 1;
+  uint64              epoch_nr   = 1;
+  commonpb.Membership membership = 2;
 }

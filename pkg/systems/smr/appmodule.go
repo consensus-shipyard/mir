@@ -121,7 +121,7 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	}
 	m.transport.Connect(membership) // TODO: Make this function not use a context (and not block).
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
-	return events.ListOf(events.NewConfig(m.protocolModule, membership)), nil
+	return events.ListOf(events.NewConfig(m.protocolModule, t.EpochNr(newEpoch.EpochNr), membership)), nil
 }
 
 func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {

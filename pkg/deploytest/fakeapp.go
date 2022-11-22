@@ -61,7 +61,7 @@ func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return nil, fmt.Errorf("app restore state error: %w", err)
 		}
 	case *eventpb.Event_NewEpoch:
-		return events.ListOf(events.NewConfig(fa.ProtocolModule, fa.Membership)), nil
+		return events.ListOf(events.NewConfig(fa.ProtocolModule, t.EpochNr(e.NewEpoch.EpochNr), fa.Membership)), nil
 	case *eventpb.Event_Checkpoint:
 		switch e := e.Checkpoint.Type.(type) {
 		case *checkpointpb.Event_StableCheckpoint:
