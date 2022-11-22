@@ -380,10 +380,11 @@ func NewEpoch(destModule t.ModuleID, epochNr t.EpochNr) *eventpb.Event {
 	}
 }
 
-func NewConfig(destModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *eventpb.Event {
+func NewConfig(destModule t.ModuleID, epochNr t.EpochNr, membership map[t.NodeID]t.NodeAddress) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_NewConfig{NewConfig: &eventpb.NewConfig{
+			EpochNr:    epochNr.Pb(),
 			Membership: t.MembershipPb(membership),
 		}},
 	}

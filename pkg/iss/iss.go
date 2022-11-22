@@ -482,25 +482,40 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
+	iss.logger.Log(logging.LevelDebug, "Received new configuration.",
+		"numNodes", len(config.Membership.Membership), "epochNr", config.EpochNr, "currentEpoch", iss.epoch.Nr())
+
+	// Check whether this event is not outdated.
+	// This can (and did) happen in a corner case where the state gets restored from a checkpoint
+	// while a NewConfig event is already in the pipeline.
+	// Note that config.EpochNr is NOT the epoch where this new configuration is used,
+	// but it is the epoch in which this new configuration is supposed to be received
+	// (it will be used iss.params.ConfigOffset epochs later).
+	if t.EpochNr(config.EpochNr) < iss.epoch.Nr() {
+		iss.logger.Log(logging.LevelWarn, "Ignoring outdated membership.",
+			"notificationEpoch", config.EpochNr, "currentEpoch", iss.epoch.Nr())
+		return eventsOut, nil
+	}
+
 	// Sanity check.
 	if iss.nextNewMembership != nil {
 		return nil, fmt.Errorf("already have a new membership")
 	}
 
 	// Convenience variable.
-	newConfigEpoch := iss.epoch.Nr() + t.EpochNr(len(iss.memberships))
+	newMembershipEpoch := iss.epoch.Nr() + t.EpochNr(len(iss.memberships))
 
 	// Save the new configuration.
 	iss.nextNewMembership = t.Membership(config.Membership)
 
 	iss.logger.Log(logging.LevelDebug, "Adding configuration",
-		"forEpoch", newConfigEpoch,
+		"forEpoch", newMembershipEpoch,
 		"currentEpoch", iss.epoch.Nr(),
 		"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
 
 	// Initialize the new availability module
 	eventsOut.PushBack(iss.initAvailabilityModule(
-		newConfigEpoch,
+		newMembershipEpoch,
 		config.Membership,
 	))
 
