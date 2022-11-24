@@ -499,7 +499,7 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 
 	// Sanity check.
 	if iss.nextNewMembership != nil {
-		return nil, fmt.Errorf("already have a new membership")
+		return nil, fmt.Errorf("already have a new membership for epoch %v", iss.epoch.Nr())
 	}
 
 	// Convenience variable.
