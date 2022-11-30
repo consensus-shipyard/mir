@@ -29,7 +29,7 @@ Trantor implements TOB in 4 stages:
    each correct node outputs a batch of transactions (including payload).
 
 Trantor's high-level architecture is depicted in the figure below.
-![Trantor's high-level architecture](https://hackmd.io/_uploads/ry7WRvTri.png)
+![Trantor's high-level architecture](/pkg/systems/trantor/figures/architecture.png)
 
 
 > **Note on code snippets:** Code snippets in this document are intended
@@ -128,7 +128,7 @@ For simplicity of presentation, we omit events and modules related to reconfigur
 technical events like sending / receiving network messages or timer events.
 
 <!-- > TODO: Update the image -->
-![Trantor's Mir-based implementation schema](https://hackmd.io/_uploads/HkQKqI71o.png)
+![Trantor's Mir-based implementation schema](/pkg/systems/trantor/figures/components.png)
 
 We now describe the components and their workings in more detail.
 
@@ -397,7 +397,7 @@ and opaque application (Eudico) transactions and related components are in yello
 Green components do not distinguish between configuration and application.
 The taking and restoring of state snapshots is not depicted for simplicity of presentation.
 If it were, however, the corresponding events would also be part of the incoming event stream, just like `NewEpoch`.
-![State manager's internal operation](https://hackmd.io/_uploads/rydsAsQ1j.png)
+![State manager's internal operation](/pkg/systems/trantor/figures/state-manager.png)
 
 
 ### Merit (block reward)
