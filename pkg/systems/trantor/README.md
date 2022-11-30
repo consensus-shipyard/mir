@@ -1,4 +1,4 @@
-# Trantor: Modular Consensus<br />for (not only) Filecoin IPC
+# Trantor: Modular Consensus for (not only) Filecoin IPC
 
 This document describes the architecture of Trantor, a modular total-order broadcast (TOB) protocol, and its implementation using the [Mir framework](https://github.com/filecoin-project/mir).
 
