@@ -30,7 +30,7 @@ import (
 
 // ChatApp and its methods implement the application logic of the small chat demo application
 // showcasing the usage of the Mir library.
-// An initialized instance of this struct needs to be passed to the smr.New() method when instantiating an SMR system.
+// An initialized instance of this struct needs to be passed to the trantor.New() method when instantiating an SMR system.
 type ChatApp struct {
 
 	// The only state of the application is the chat message history,

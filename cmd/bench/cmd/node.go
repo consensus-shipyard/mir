@@ -23,7 +23,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/systems/smr"
+	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -101,14 +101,14 @@ func runNode() error {
 
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
-	smrParams := smr.DefaultParams(initialMembership)
+	smrParams := trantor.DefaultParams(initialMembership)
 	smrParams.Mempool.MaxTransactionsInBatch = 1024
 	smrParams.AdjustSpeed(100 * time.Millisecond)
 
-	benchApp, err := smr.New(
+	benchApp, err := trantor.New(
 		ownID,
 		h,
-		smr.GenesisCheckpoint([]byte{}, smrParams),
+		trantor.GenesisCheckpoint([]byte{}, smrParams),
 		localCrypto.Crypto(ownID),
 		&App{Logger: logger, Membership: initialMembership},
 		smrParams,

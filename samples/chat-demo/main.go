@@ -35,7 +35,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/systems/smr"
+	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -163,7 +163,7 @@ func run() error {
 
 	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
 	// always the very first membership at sequence number 0. It is part of the system configuration.
-	smrParams := smr.DefaultParams(initialMembership)
+	smrParams := trantor.DefaultParams(initialMembership)
 
 	if args.InitChkpFile != "" {
 
@@ -185,11 +185,11 @@ func run() error {
 		if err != nil {
 			return errors.Wrap(err, "could not create initial snapshot")
 		}
-		genesis = smr.GenesisCheckpoint(initialSnapshot, smrParams)
+		genesis = trantor.GenesisCheckpoint(initialSnapshot, smrParams)
 	}
 
 	// Create a Mir SMR system.
-	smrSystem, err := smr.New(
+	smrSystem, err := trantor.New(
 		args.OwnID,
 		h,
 		genesis,

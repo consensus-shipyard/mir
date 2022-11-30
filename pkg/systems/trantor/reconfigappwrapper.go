@@ -1,4 +1,4 @@
-package smr
+package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
