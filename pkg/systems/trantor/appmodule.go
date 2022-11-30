@@ -1,4 +1,4 @@
-package smr
+package trantor
 
 import (
 	"fmt"
