@@ -38,7 +38,7 @@ func (TypeGenerator) Run(pbGoStructTypes []reflect.Type) error {
 
 	parser := types.DefaultParser()
 
-	// For convenience, the parser operates on pointer to struct types and not struct types themselves.
+	// For convenience, the parser operates on pointers to struct types and not struct types themselves.
 	// The reason for this is that protobuf messages are always used as pointers in Go code.
 	ptrTypes := sliceutil.Transform(pbGoStructTypes, func(_ int, tp reflect.Type) reflect.Type {
 		return reflect.PointerTo(tp)
