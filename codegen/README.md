@@ -304,12 +304,15 @@ This list is likely to be not exhaustive and it is probably still possible to wr
 Hence, it is recommended to stay close to the existing examples in `codegen/generators`.
 
 The `Run` method is invoked on a zero value of the generator type.
+File `codgen/generator.go` contains the template code for the meta-code-generator.
+A similar approach is employed by [gomock](https://github.com/golang/mock) in the reflect mode.
+
 
 #### Example
 
 See `codegen/generators/types-gen/generator/generator.go` for an example of a generator and `codegen/generators/types-gen/main.go` for an example of how to run it.
 
-See `codegen/generators/mir-std-gen/generator/generator.go` and `codegen/generators/mir-std-gen/main.go` for an example of how multiple code generators can be composed into one.
+See `codegen/generators/mir-std-gen/generator/generator.go` and `codegen/generators/mir-std-gen/main.go` for an example of how multiple code generators can be combined into one.
 
 #### Dependencies
 
@@ -321,14 +324,83 @@ Code located in `codegen/model`.
 
 The first thing that a code generator should do is to parse the input and build a model for it.
 The most important part of the model and the parser for it are located in folder `codegen/model/types`.
+The model describes the relevant types. 
+Namely, the annotated proto messages and the types of their fields.
 
 Note that the parser is implemented using the [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern) and contains a cache for already processed data.
-This is done to avoid parsing the same data multiple times from multiple code generators.
+This is done to avoid parsing the same data multiple times from multiple code generators when they are composed (see `codegen/generators/mir-std-gen/generator/generator.go` for an example of a composed generator).
+
+Also note that, in order to prevent the parser from recursively processing irrelevant types, the fields of a proto message are not parsed when a proto message itself is parsed.
+Instead, one must explicitly call the method `ParseFields(msg)` on the parser.
+
+The remaining two parts of the model are located in `codegen/model/events` and `codegen/model/messages`, which describe the event and the network message hierarchies respectively.
+
+#### Dependencies
+
+`github.com/filecoin-project/mir/codegen` -- the parser uses the functions to inspect annotations.
+
+### Generating the code
+
+Code located in `codegen/generators`.
+
+The code generation is done with the help of [jennifer](https://github.com/dave/jennifer) with a collection of utility functions located in folder `codegen/util` and file `codegen/render.go`.
+
+#### Dependencies
+
+`github.com/filecoin-project/mir/codegen/model`
 
 ## Standard code generators
 
-TODO
+### Types generator
 
-## Creating a third-party code generator 
+Located in `codegen/generators/types-gen`.
 
-TODO
+Generates Mir types for the annotated protobuf messages and functions to easily convert them to/from their `protoc`-generated counterparts.
+
+#### Example:
+
+See `protos/bcbpb/bcbpb.proto` and `pkg/pb/bcbpb/types/types.mir.go`.
+
+### Events generator
+
+Located in `codegen/generators/events-gen`.
+
+Generates constructor Functions for Mir events.
+
+#### Example:
+
+See `protos/bcbpb/bcbpb.proto` and `pkg/pb/bcbpb/events/events.mir.go`.
+
+### Net generator
+
+Located in `codegen/generators/net-gen`.
+
+Generates constructor Functions for Mir network messages.
+
+#### Example:
+
+See `protos/bcbpb/bcbpb.proto` and `pkg/pb/bcbpb/msgs/msgs.mir.go`.
+
+### Dsl generator
+
+Located in `codegen/generators/dsl-gen`.
+
+Generates the functions for emitting and handling Mir events and for handling Mir network messages.
+
+#### Example:
+
+See `protos/bcbpb/bcbpb.proto` and the files in `pkg/pb/bcbpb/dsl`.
+
+### Mir-std generator
+
+Combines all the aforementioned generators into one.
+Not only it is more convenient to run just one code generator, it is also faster as the generators share the parser cache and, hence, never parse the same piece of input data twice.
+
+## Creating a third-party code generator
+
+Some low-level modules, such as the `net` module, may benefit from their own code generators.
+Hence, it should be possible for third-party modules to also benefit from it.
+For example, for the case when a third-party module provides a more elaborate communication primitive.
+
+To this end, the code is organised as a collection of small single-task generators rather than a single monolithic generator.
+This way, it is easier to create a new generator by analogy with the existing ones and to compose mir-std-gen with, potentially, multiple third-party generators into a single binary specific for a particular project.
