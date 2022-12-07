@@ -6,11 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-package isspbftpb;
+package ordererspbftpb;
 
 //import "availabilitypb/availabilitypb.proto";
 
-option go_package = "github.com/filecoin-project/mir/pkg/pb/isspbftpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererspbftpb";
 
 // ============================================================
 // Messages

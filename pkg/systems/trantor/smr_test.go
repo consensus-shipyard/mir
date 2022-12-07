@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/util/issutil"
+
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -399,7 +401,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		fakeApp := deploytest.NewFakeApp("iss", transportLayer.Nodes())
 
 		// ISS configuration
-		issConfig := iss.DefaultParams(transportLayer.Nodes())
+		issConfig := issutil.DefaultParams(transportLayer.Nodes())
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,

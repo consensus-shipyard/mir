@@ -4,6 +4,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
+	"github.com/filecoin-project/mir/pkg/orderers"
+
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
@@ -160,6 +162,9 @@ func New(
 	// Factory module with instances of the checkpointing protocol.
 	checkpointing := checkpoint.Factory(checkpoint.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
 
+	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
+	ordering := orderers.Factory(orderers.DefaultModuleConfig(), (*issProtocol).Params, ownID, logging.Decorate(logger, "PBFT: "))
+
 	// Use a simple mempool for incoming requests.
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{
@@ -206,6 +211,7 @@ func New(
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
 		issModuleConfig.Checkpoint:   checkpointing,
+		issModuleConfig.Ordering:     ordering,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),

@@ -23,6 +23,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
@@ -124,7 +125,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
-	issConfig := iss.DefaultParams(membership)
+	issConfig := issutil.DefaultParams(membership)
 	protocol, err := iss.New(
 		id,
 		iss.DefaultModuleConfig(),

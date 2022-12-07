@@ -36,7 +36,6 @@ func (tm *Timer) EventsOut() <-chan *events.EventList {
 func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
 		// Based on event type, invoke the appropriate Timer function.
 		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
 		// when they are later stripped off their follow-ups, as this happens potentially concurrently

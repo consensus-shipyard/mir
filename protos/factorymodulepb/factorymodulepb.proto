@@ -6,6 +6,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/factorymodulepb";
 
 import "availabilitypb/mscpb/mscpb.proto";
 import "checkpointpb/checkpointpb.proto";
+import "ordererspb/ordererspb.proto";
 
 message Factory {
   oneof type {
@@ -29,6 +30,7 @@ message GeneratorParams {
     availabilitypb.mscpb.InstanceParams multisig_collector = 1;
     checkpointpb.InstanceParams         checkpoint         = 2;
     EchoModuleParams                    echo_test_module   = 3;
+    ordererspb.PBFTModule               pbft_module        = 4;
   }
 }
 

@@ -1,6 +1,8 @@
 package eventpb
 
 import (
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
@@ -9,9 +11,9 @@ import (
 	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -167,6 +169,10 @@ func (p *Event_PingPong) Unwrap() *pingpongpb.Event {
 
 func (p *Event_Checkpoint) Unwrap() *checkpointpb.Event {
 	return p.Checkpoint
+}
+
+func (p *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
+	return p.SbEvent
 }
 
 func (p *Event_TestingString) Unwrap() *wrapperspb.StringValue {

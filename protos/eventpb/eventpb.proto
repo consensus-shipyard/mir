@@ -25,6 +25,7 @@ import "batchfetcherpb/batchfetcherpb.proto";
 import "threshcryptopb/threshcryptopb.proto";
 import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
+import "ordererspb/ordererspb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
 
@@ -71,6 +72,7 @@ message Event {
     threshcryptopb.Event    thresh_crypto           = 36;
     pingpongpb.Event        ping_pong               = 37;
     checkpointpb.Event      checkpoint              = 38;
+    ordererspb.SBInstanceEvent sb_event             = 39;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -114,6 +116,7 @@ message HashOrigin {
     isspb.ISSHashOrigin     iss           = 4;
     dslpb.Origin            dsl           = 5;
     checkpointpb.HashOrigin checkpoint    = 6;
+    ordererspb.SBInstanceHashOrigin sb    = 7;
   }
 }
 
@@ -131,9 +134,10 @@ message SignOrigin {
   string module = 1;
   oneof type {
     contextstorepb.Origin   context_store = 2;
-    isspb.ISSSignOrigin     iss           = 3;
+    // isspb.ISSSignOrigin     iss           = 3;
     dslpb.Origin            dsl           = 4;
     checkpointpb.SignOrigin checkpoint    = 5;
+    ordererspb.SBInstanceSignOrigin sb    = 6;
   }
 }
 
@@ -163,6 +167,7 @@ message SigVerOrigin {
     isspb.ISSSigVerOrigin     iss           = 3;
     dslpb.Origin              dsl           = 4;
     checkpointpb.SigVerOrigin checkpoint    = 5;
+    ordererspb.SBInstanceSigVerOrigin sb    = 6;
   }
 }
 

@@ -16,7 +16,7 @@ package protos
 //go:generate protoc-events recordingpb/recordingpb.proto
 //go:generate protoc-events isspb/isspb.proto
 //go:generate protoc-events bcbpb/bcbpb.proto
-//go:generate protoc-events isspbftpb/isspbftpb.proto
+//go:generate protoc-events ordererspbftpb/ordererspbftpb.proto
 //go:generate protoc-events contextstorepb/contextstorepb.proto
 //go:generate protoc-events dslpb/dslpb.proto
 //go:generate protoc-events mempoolpb/mempoolpb.proto
@@ -28,6 +28,7 @@ package protos
 //go:generate protoc-events threshcryptopb/threshcryptopb.proto
 //go:generate protoc-events pingpongpb/pingpongpb.proto
 //go:generate protoc-events checkpointpb/checkpointpb.proto
+//go:generate protoc-events ordererspb/ordererspb.proto
 
 //go:generate protoc --proto_path=. --go_out=:../pkg/ --go_opt=paths=source_relative simplewal/simplewal.proto
 //go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto

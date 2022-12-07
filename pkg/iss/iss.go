@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 // For the details of the protocol, see (TODO).
 // To use ISS, instantiate it by calling `iss.New` and use it as the Protocol module when instantiating a mir.Node.
 // A default configuration (to pass, among other arguments, to `iss.New`)
-// can be obtained from `iss.DefaultParams`.
+// can be obtained from `issutil.DefaultParams`.
 //
 // Current status: This package is currently being implemented and is not yet functional.
 package iss
@@ -16,6 +16,10 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
+
+	"github.com/filecoin-project/mir/pkg/orderers"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 
 	"google.golang.org/protobuf/proto"
 
@@ -58,6 +62,7 @@ type ModuleConfig struct {
 	Timer        t.ModuleID
 	Availability t.ModuleID
 	Checkpoint   t.ModuleID
+	Ordering     t.ModuleID
 }
 
 func DefaultModuleConfig() *ModuleConfig {
@@ -71,22 +76,8 @@ func DefaultModuleConfig() *ModuleConfig {
 		Timer:        "timer",
 		Availability: "availability",
 		Checkpoint:   "checkpoint",
+		Ordering:     "ordering",
 	}
-}
-
-// The segment type represents an ISS segment.
-// It is used to parametrize an orderer (i.e. the SB instance).
-type segment struct {
-
-	// The leader node of the orderer.
-	Leader t.NodeID
-
-	// List of all nodes executing the orderer implementation.
-	Membership []t.NodeID
-
-	// List of sequence numbers for which the orderer is responsible.
-	// This is the actual "segment" of the commit log.
-	SeqNrs []t.SeqNr
 }
 
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
@@ -140,10 +131,10 @@ type ISS struct {
 	// These fields might change from epoch to epoch. Modified only by initEpoch()
 	// --------------------------------------------------------------------------------
 
-	// The ISS configuration parameters (e.g. segment length, proposal frequency etc...)
+	// The ISS configuration parameters (e.g. Segment length, proposal frequency etc...)
 	// passed to New() when creating an ISS protocol instance.
 	// TODO: Make it possible to change this dynamically.
-	params *ModuleParams
+	Params *issutil.ModuleParams
 
 	// The current epoch instance.
 	epoch *epochInfo
@@ -213,16 +204,16 @@ type ISS struct {
 //   - ownID:        the ID of the node being instantiated with ISS.
 //   - moduleConfig: the IDs of the modules ISS interacts with.
 //   - params:       ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
-//     see the documentation of the ModuleParams type for details.
+//     see the documentation of the issutil.ModuleParams type for details.
 //   - startingChkp: the stable checkpoint defining the initial state of the protocol.
 //   - logger:       Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, startingChkp *checkpoint.StableCheckpoint, logger logging.Logger) (*ISS, error) {
+func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *issutil.ModuleParams, startingChkp *checkpoint.StableCheckpoint, logger logging.Logger) (*ISS, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 
 	// Check whether the passed configuration is valid.
-	if err := CheckParams(params); err != nil {
+	if err := issutil.CheckParams(params); err != nil {
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
@@ -236,7 +227,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 		logger:       logger,
 
 		// Fields modified only by initEpoch
-		params:            params,
+		Params:            params,
 		epochs:            make(map[t.EpochNr]*epochInfo),
 		nodeEpochMap:      make(map[t.NodeID]t.EpochNr),
 		memberships:       startingChkp.Memberships()[:len(startingChkp.Memberships())-1], // all but the last item
@@ -249,7 +240,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 		newEpochSN:         startingChkp.SeqNr(),
 		messageBuffers: messagebuffer.NewBuffers(
 			// Create a message buffer for everyone except for myself.
-			removeNodeID(maputil.GetSortedKeys(params.InitialMembership), ownID),
+			issutil.RemoveNodeID(maputil.GetSortedKeys(params.InitialMembership), ownID),
 			params.MsgBufCapacity,
 			logging.Decorate(logger, "Msgbuf: "),
 		),
@@ -276,7 +267,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *ModuleParams, start
 
 func InitialStateSnapshot(
 	appState []byte,
-	params *ModuleParams,
+	params *issutil.ModuleParams,
 ) *commonpb.StateSnapshot {
 
 	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
@@ -316,8 +307,6 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return iss.applyInit()
 	case *eventpb.Event_HashResult:
 		return iss.applyHashResult(e.HashResult)
-	case *eventpb.Event_SignResult:
-		return iss.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_NewConfig:
@@ -333,22 +322,13 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		}
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
-		case *isspb.ISSEvent_Sb:
-			return iss.applySBEvent(issEvent.Sb)
+		case *isspb.ISSEvent_SbDeliver:
+			return iss.applySBInstDeliver(issEvent.SbDeliver), nil
 		case *isspb.ISSEvent_PushCheckpoint:
 			return iss.applyPushCheckpoint()
 		default:
 			return nil, fmt.Errorf("unknown ISS event type: %T", issEvent)
 		}
-
-	case *eventpb.Event_Availability:
-		switch avEvent := e.Availability.Type.(type) {
-		case *availabilitypb.Event_NewCert:
-			return iss.applyNewCert(avEvent.NewCert)
-		default:
-			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
-		}
-
 	case *eventpb.Event_MessageReceived:
 		return iss.applyMessageReceived(e.MessageReceived)
 
@@ -393,20 +373,6 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 
 	// Further inspect the origin of the initial hash request and decide what to do with it.
 	switch origin := issOrigin.Type.(type) {
-	case *isspb.ISSHashOrigin_Sb:
-		// If the original hash request has been produced by an SB instance,
-		// create an appropriate SBEvent and apply it.
-		// Note: Note that this is quite inefficient, allocating unnecessary boilerplate objects inside SBEvent().
-		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
-		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
-		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(
-			iss.moduleConfig.Self,
-			epoch,
-			instance,
-			SBHashResultEvent(result.Digests, origin.Sb.Origin),
-		))
 	case *isspb.ISSHashOrigin_LogEntrySn:
 		// Hash originates from delivering a CommitLogEntry.
 		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
@@ -415,33 +381,36 @@ func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, 
 	}
 }
 
-// applySignResult applies the SignResult event to the state of the ISS protocol state machine.
-// A SignResult event means that a signature requested by this module has been computed by the Crypto module
-// and is now ready to be processed.
-func (iss *ISS) applySignResult(result *eventpb.SignResult) (*events.EventList, error) {
-	// We know already that the SignOrigin is of type ISS, since ISS produces no other types
-	// and all SignResults with a different origin would not have been routed here.
-	issOrigin := result.Origin.Type.(*eventpb.SignOrigin_Iss).Iss
+// applySBInstDeliver processes the event of an SB instance delivering a certificate (or the special abort value)
+// for a sequence number. It creates a corresponding commitLog entry and requests the computation of its hash.
+// Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
+// Operation continues on reception of the HashResult event.
+func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) *events.EventList {
 
-	// Further inspect the origin of the initial signing request and decide what to do with it.
-	switch origin := issOrigin.Type.(type) {
-	case *isspb.ISSSignOrigin_Sb:
-		// If the original sign request has been produced by an SB instance,
-		// create an appropriate SBEvent and apply it.
-		// Note: Note that this is quite inefficient, allocating unnecessary boilerplate objects inside SBEvent().
-		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
-		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
-		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(
-			iss.moduleConfig.Self,
-			epoch,
-			instance,
-			SBSignResultEvent(result.Signature, origin.Sb.Origin),
-		))
-	default:
-		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
+	// Create a new preliminary log entry based on the delivered certificate and hash it.
+	// Note that, although tempting, the hash used internally by the SB implementation cannot be re-used.
+	// Apart from making the SB abstraction extremely leaky (reason enough not to do it), it would also be incorrect.
+	// E.g., in PBFT, if the digest of the corresponding Preprepare message was used, the hashes at different nodes
+	// might mismatch, if they commit in different PBFT views (and thus using different Preprepares).
+	unhashedEntry := &CommitLogEntry{
+		Sn:       t.SeqNr(deliver.Sn),
+		CertData: deliver.CertData,
+		Digest:   nil,
+		Aborted:  deliver.Aborted,
+		Suspect:  t.NodeID(strconv.FormatUint(deliver.Leader, 10)),
 	}
+
+	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
+	iss.unhashedLogEntries[unhashedEntry.Sn] = unhashedEntry
+
+	// Create a HashRequest for the commit log entry with the newly delivered hash.
+	// The hash is required for state transfer.
+	// Only after the hash is computed, the log entry can be stored in the log (and potentially delivered to the App).
+	return events.ListOf(events.HashRequest(
+		iss.moduleConfig.Hasher,
+		[][][]byte{serializeLogEntryForHashing(unhashedEntry)},
+		LogEntryHashOrigin(iss.moduleConfig.Self, unhashedEntry.Sn),
+	))
 }
 
 // applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
@@ -454,21 +423,6 @@ func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events
 
 	// Further inspect the origin of the initial signature verification request and decide what to do with it.
 	switch origin := issOrigin.Type.(type) {
-	case *isspb.ISSSigVerOrigin_Sb:
-		// If the original verification request has been produced by an SB instance,
-		// create an appropriate SBEvent and apply it.
-		// Note: Note that this is quite inefficient, allocating unnecessary boilerplate objects inside SBEvent().
-		//       instead of calling iss.ApplyEvent(), one could directly call iss.applySBEvent()
-		//       with a manually created isspb.SBEvent. The inefficient approach is chosen for code readability.
-		epoch := t.EpochNr(origin.Sb.Epoch)
-		instance := t.SBInstanceNr(origin.Sb.Instance)
-		return iss.ApplyEvent(SBEvent(iss.moduleConfig.Self, epoch, instance, SBNodeSigsVerifiedEvent(
-			result.Valid,
-			result.Errors,
-			t.NodeIDSlice(result.NodeIds),
-			origin.Sb.Origin,
-			result.AllOk,
-		)))
 	case *isspb.ISSSigVerOrigin_StableCheckpoint:
 		return iss.applyStableCheckpointSigVerResult(
 			result.AllOk,
@@ -565,40 +519,6 @@ func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) (*eve
 
 }
 
-// applySBEvent applies an event triggered by or addressed to an orderer (i.e., instance of Sequenced Broadcast),
-// if that event belongs to the current epoch.
-// TODO: Update this comment when the TODO below is addressed.
-func (iss *ISS) applySBEvent(event *isspb.SBEvent) (*events.EventList, error) {
-
-	// Ignore persist events (their handling is not yet implemented).
-	// TODO: Deal with this when proper handlers are implemented.
-	switch event.Event.Type.(type) {
-	case *isspb.SBInstanceEvent_PbftPersistPreprepare,
-		*isspb.SBInstanceEvent_PbftPersistPrepare,
-		*isspb.SBInstanceEvent_PbftPersistCommit,
-		*isspb.SBInstanceEvent_PbftPersistSignedViewChange,
-		*isspb.SBInstanceEvent_PbftPersistNewView:
-		return events.EmptyList(), nil
-	}
-
-	epochNr := t.EpochNr(event.Epoch)
-	if epochNr > iss.epoch.Nr() {
-		// Events coming from future epochs should never occur (as, unlike messages, events are all generated locally.)
-		return nil, fmt.Errorf("ISS event (type %T, instance %d) from future epoch: %d",
-			event.Event.Type, event.Instance, event.Epoch)
-	} else if epoch, ok := iss.epochs[epochNr]; ok {
-		// If the event is from a known epoch, apply it in relation to the corresponding orderer instance.
-		// Since the event is locally generated, we do not need to check whether the orderer exists in the epoch.
-		return iss.applySBInstanceEvent(event.Event, epoch.Orderers[event.Instance])
-	} else {
-		// If the event is from an old epoch, ignore it.
-		// This might potentially happen if the epoch advanced while the event has been waiting in some buffer.
-		iss.logger.Log(logging.LevelDebug, "Ignoring old event.",
-			"epoch", epochNr, "type", fmt.Sprintf("%T", event.Event.Type))
-		return events.EmptyList(), nil
-	}
-}
-
 func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*events.EventList, error) {
 
 	// Remember the highest epoch number for each node to detect
@@ -640,7 +560,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
-		pruneIndex := int(stableCheckpoint.Epoch()) - iss.params.RetainedEpochs
+		pruneIndex := int(stableCheckpoint.Epoch()) - iss.Params.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 			// Prune WAL, timer, and checkpointing and availability protocols.
@@ -666,7 +586,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 			eventsOut.PushBack(events.TimerRepeat(
 				iss.moduleConfig.Timer,
 				[]*eventpb.Event{PushCheckpoint(iss.moduleConfig.Self)},
-				t.TimeDuration(iss.params.CatchUpTimerPeriod),
+				t.TimeDuration(iss.Params.CatchUpTimerPeriod),
 
 				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
 				// Using pruneIndex makes sure that the re-transmission is stopped
@@ -696,7 +616,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := iss.lastStableCheckpoint.Epoch()
 	for n := range iss.epoch.nodeIDs {
-		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.params.RetainedEpochs) {
+		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.Params.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
 	}
@@ -724,8 +644,6 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 		switch msg := msg.Iss.Type.(type) {
 		case *isspb.ISSMessage_StableCheckpoint:
 			return iss.applyStableCheckpointMessage(msg.StableCheckpoint, from)
-		case *isspb.ISSMessage_Sb:
-			return iss.applySBMessage(msg.Sb, from)
 		default:
 			return nil, fmt.Errorf("unknown ISS message type: %T", msg)
 		}
@@ -807,7 +725,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// Initialize a new ISS epoch instance for the new stable checkpoint to continue participating in the protocol.
 	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.params.LeaderPolicy)
+	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.Params.LeaderPolicy)
 
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
@@ -828,14 +746,6 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// from the snapshot.
 	eventsOut.PushBackList(iss.initOrderers())
 
-	// Apply any message buffered for the new epoch and append any
-	// emitted event to the returns event list.
-	l, err := iss.applyBufferedMessages()
-	if err != nil {
-		return nil, err
-	}
-	eventsOut.PushBackList(l)
-
 	return eventsOut, nil
 }
 
@@ -849,7 +759,7 @@ func (iss *ISS) bootstrapAvailability() *events.EventList {
 	// At bootstrapping, the next new membership is assumed to have been announced already
 	// (since it is necessary to produce the checkpoint we are bootstrapping from).
 	eventsOut.PushBack(iss.initAvailabilityModule(
-		iss.epoch.Nr()+t.EpochNr(iss.params.ConfigOffset),
+		iss.epoch.Nr()+t.EpochNr(iss.Params.ConfigOffset),
 		t.MembershipPb(iss.nextNewMembership),
 	))
 
@@ -867,42 +777,13 @@ func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.M
 	)
 }
 
-// applySBMessage applies a message destined for an orderer (i.e. a Sequenced Broadcast implementation).
-func (iss *ISS) applySBMessage(message *isspb.SBMessage, from t.NodeID) (*events.EventList, error) {
-
-	epochNr := t.EpochNr(message.Epoch)
-	if epochNr > iss.epoch.Nr() {
-		// If the message is for a future epoch,
-		// it might have been sent by a node that already transitioned to a newer epoch,
-		// but this node is slightly behind (still in an older epoch) and cannot process the message yet.
-		// In such case, save the message in a backlog (if there is buffer space) for later processing.
-		iss.messageBuffers[from].Store(message)
-		return events.EmptyList(), nil
-	} else if epoch, ok := iss.epochs[epochNr]; ok {
-		// If the message is for the current epoch, check its validity and
-		// apply it to the corresponding orderer in form of an SBMessageReceived event.
-		if err := epoch.validateSBMessage(message, from); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring invalid SB message.",
-				"type", fmt.Sprintf("%T", message.Msg.Type), "from", from, "error", err, "epoch", epochNr)
-			return events.EmptyList(), nil
-		}
-
-		return iss.applySBInstanceEvent(SBMessageReceivedEvent(message.Msg, from), epoch.Orderers[message.Instance])
-	} else {
-		// Ignore old messages
-		iss.logger.Log(logging.LevelDebug, "Ignoring message from old epoch.",
-			"from", from, "epoch", epochNr, "type", fmt.Sprintf("%T", message.Msg.Type))
-		return events.EmptyList(), nil
-	}
-}
-
 // ============================================================
 // Additional protocol logic
 // ============================================================
 
 // initEpoch initializes a new ISS epoch with the given epoch number.
 // TODO: Make leader policy (including its state) part of epoch config.
-func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.NodeID, leaderPolicy LeaderSelectionPolicy) {
+func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.NodeID, leaderPolicy issutil.LeaderSelectionPolicy) {
 
 	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
 
@@ -917,7 +798,7 @@ func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.Nod
 	var mbCapacity int
 	b, ok := maputil.Any(iss.messageBuffers)
 	if !ok {
-		mbCapacity = iss.params.MsgBufCapacity
+		mbCapacity = iss.Params.MsgBufCapacity
 	} else {
 		mbCapacity = b.Capacity()
 	}
@@ -934,57 +815,41 @@ func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.Nod
 			)
 		}
 	}
-
-	// Compute the set of leaders for the new epoch.
-	// Note that leader policy is stateful, choosing leaders deterministically based on the state of the system.
-	// Its state must be consistent across all nodes when calling Leaders() on it.
-	leaders := iss.epoch.leaderPolicy.Leaders(newEpochNr)
-
-	// Create new segments of the commit log, one per leader selected by the leader selection policy.
-	// Instantiate one orderer (SB instance) for each segment.
-	for i, leader := range leaders {
-
-		// Create segment.
-		seg := &segment{
-			Leader:     leader,
-			Membership: nodeIDs,
-			SeqNrs: sequenceNumbers(
-				iss.nextDeliveredSN+t.SeqNr(i),
-				t.SeqNr(len(leaders)),
-				iss.params.SegmentLength),
-		}
-		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
-
-		// Instantiate a new PBFT orderer.
-		// TODO: When more protocols are implemented, make this configurable, so other orderer types can be chosen.
-		sbInst := newPbftInstance(
-			iss.ownID,
-			seg,
-			newPBFTConfig(
-				iss.params,
-				nodeIDs,
-				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epoch.Nr()))),
-			),
-			&sbEventService{moduleConfig: iss.moduleConfig, epoch: newEpochNr, instance: t.SBInstanceNr(i)},
-			logging.Decorate(iss.logger, "PBFT: ", "epoch", newEpochNr, "instance", i))
-
-		// Add the orderer to the list of orderers.
-		iss.epoch.Orderers = append(iss.epoch.Orderers, sbInst)
-
-	}
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
 func (iss *ISS) initOrderers() *events.EventList {
+
 	eventsOut := events.EmptyList()
 
-	sbInit := SBInitEvent()
-	for _, orderer := range iss.epoch.Orderers {
-		l, err := orderer.ApplyEvent(sbInit)
-		if err != nil {
-			continue
+	leaders := iss.epoch.leaderPolicy.Leaders(iss.epoch.Nr())
+	for i, leader := range leaders {
+
+		// Create segment.
+		seg := &orderers.Segment{
+			Leader:     leader,
+			Membership: iss.epoch.getNodeIDs(),
+			SeqNrs: sequenceNumbers(
+				iss.nextDeliveredSN+t.SeqNr(i),
+				t.SeqNr(len(leaders)),
+				iss.Params.SegmentLength),
 		}
-		eventsOut.PushBackList(l)
+		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
+
+		// Instantiate a new PBFT orderer.
+		eventsOut.PushBack(factoryevents.NewModule(
+			iss.moduleConfig.Ordering,
+			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))), //TODO Alex add one more part to the id
+			t.RetentionIndex(iss.epoch.Nr()),
+			orderers.InstanceParams(
+				seg,
+				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+			),
+		))
+
+		//Add the orderer to the list of orderers.
+		iss.epoch.Segments = append(iss.epoch.Segments, seg)
+
 	}
 
 	return eventsOut
@@ -1121,61 +986,7 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	// Give the init signals to the newly instantiated orderers.
 	eventsOut.PushBackList(iss.initOrderers())
 
-	// Process backlog of buffered SB messages.
-	l, err := iss.applyBufferedMessages()
-	if err != nil {
-		return nil, err
-	}
-	eventsOut.PushBackList(l)
-
 	return eventsOut, nil
-}
-
-// applyBufferedMessages applies all SB messages destined to the current epoch
-// that have been buffered during past epochs.
-// This function is always called directly after initializing a new epoch, except for epoch 0.
-func (iss *ISS) applyBufferedMessages() (*events.EventList, error) {
-	eventsOut := events.EmptyList()
-
-	// Iterate over the all messages in all buffers, selecting those that can be applied.
-	for _, buffer := range iss.messageBuffers {
-		buffer.Iterate(iss.bufferedMessageFilter, func(source t.NodeID, msg proto.Message) {
-
-			// Apply all messages selected by the filter.
-			switch m := msg.(type) {
-			case *isspb.SBMessage:
-				l, err := iss.applySBMessage(m, source)
-				if err != nil {
-					return
-				}
-				eventsOut.PushBackList(l)
-			}
-
-		})
-	}
-
-	return eventsOut, nil
-}
-
-// bufferedMessageFilter decides, given a message, whether it is appropriate to apply the message, discard it,
-// or keep it in the buffer, returning the appropriate value of type messagebuffer.Applicable.
-func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) messagebuffer.Applicable {
-	switch msg := message.(type) {
-	case *isspb.SBMessage:
-		// For SB messages, filter based on the epoch number of the message.
-		switch e := t.EpochNr(msg.Epoch); {
-		case e < iss.epoch.Nr():
-			return messagebuffer.Past
-		case e == iss.epoch.Nr():
-			return messagebuffer.Current
-		default: // e > iss.epoch
-			return messagebuffer.Future
-		}
-	default:
-		panic(fmt.Errorf("cannot extract epoch from message type: %T", message))
-	}
-	// Note that validation is not performed here, as it is performed anyway when applying the message.
-	// Thus, the messagebuffer.Invalid option is not used.
 }
 
 // ============================================================
@@ -1184,7 +995,7 @@ func (iss *ISS) bufferedMessageFilter(_ t.NodeID, message proto.Message) message
 
 // sequenceNumbers returns a list of sequence numbers of length `length`,
 // starting with sequence number `start`, with the difference between two consecutive sequence number being `step`.
-// This function is used to compute the sequence numbers of a segment.
+// This function is used to compute the sequence numbers of a Segment.
 // When there is `step` segments, their interleaving creates a consecutive block of sequence numbers
 // that constitutes an epoch.
 func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
@@ -1198,43 +1009,6 @@ func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
 // reqStrKey takes a request reference and transforms it to a string for using as a map key.
 func reqStrKey(req *requestpb.HashedRequest) string {
 	return fmt.Sprintf("%v-%d.%v", req.Req.ClientId, req.Req.ReqNo, req.Digest)
-}
-
-// Returns a configuration of a new PBFT instance based on the current ISS configuration.
-func newPBFTConfig(issParams *ModuleParams, membership []t.NodeID, availabilityModuleID t.ModuleID) *PBFTConfig {
-
-	// Return a new PBFT configuration with selected values from the ISS configuration.
-	return &PBFTConfig{
-		Membership:               membership,
-		AvailabilityModuleID:     availabilityModuleID,
-		MaxProposeDelay:          issParams.MaxProposeDelay,
-		MsgBufCapacity:           issParams.MsgBufCapacity,
-		DoneResendPeriod:         issParams.PBFTDoneResendPeriod,
-		CatchUpDelay:             issParams.PBFTCatchUpDelay,
-		ViewChangeSNTimeout:      issParams.PBFTViewChangeSNTimeout,
-		ViewChangeSegmentTimeout: issParams.PBFTViewChangeSegmentTimeout,
-		ViewChangeResendPeriod:   issParams.PBFTViewChangeResendPeriod,
-	}
-}
-
-// removeNodeID emoves a node ID from a list of node IDs.
-// Takes a membership list and a Node ID and returns a new list of nodeIDs containing all IDs from the membership list,
-// except for (if present) the specified nID.
-// This is useful for obtaining the list of "other nodes" by removing the own ID from the membership.
-func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
-
-	// Allocate the new node list.
-	others := make([]t.NodeID, 0, len(membership))
-
-	// Add all membership IDs except for the specified one.
-	for _, nodeID := range membership {
-		if nodeID != nID {
-			others = append(others, nodeID)
-		}
-	}
-
-	// Return the new list.
-	return others
 }
 
 func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
@@ -1252,23 +1026,4 @@ func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 
 	// Put everything together in a slice and return it.
 	return [][]byte{snBuf, suspectBuf, {aborted}, entry.CertData}
-}
-
-func maxFaulty(n int) int {
-	// assuming n > 3f:
-	//   return max f
-	return (n - 1) / 3
-}
-
-func strongQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: 2q > n+f
-	f := maxFaulty(n)
-	return (n+f)/2 + 1
-}
-
-func weakQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: q > f
-	return maxFaulty(n) + 1
 }
