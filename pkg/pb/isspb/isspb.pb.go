@@ -12,15 +12,17 @@
 package isspb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	_ "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	_ "github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -251,7 +253,6 @@ type ISSEvent_PersistStableCheckpoint struct {
 }
 
 type ISSEvent_PushCheckpoint struct {
-	// SBEvent                 sb                        = 4;
 	PushCheckpoint *PushCheckpoint `protobuf:"bytes,5,opt,name=push_checkpoint,json=pushCheckpoint,proto3,oneof"`
 }
 
@@ -344,7 +345,6 @@ type isISSHashOrigin_Type interface {
 }
 
 type ISSHashOrigin_LogEntrySn struct {
-	// SBHashOrigin      sb                   = 1;
 	LogEntrySn uint64 `protobuf:"varint,2,opt,name=log_entry_sn,json=logEntrySn,proto3,oneof"`
 }
 
@@ -656,7 +656,7 @@ type SBDeliver struct {
 	Sn       uint64 `protobuf:"varint,1,opt,name=sn,proto3" json:"sn,omitempty"`
 	CertData []byte `protobuf:"bytes,2,opt,name=cert_data,json=certData,proto3" json:"cert_data,omitempty"`
 	Aborted  bool   `protobuf:"varint,3,opt,name=aborted,proto3" json:"aborted,omitempty"`
-	Leader   uint64 `protobuf:"varint,4,opt,name=leader,proto3" json:"leader,omitempty"`
+	Leader   string `protobuf:"bytes,4,opt,name=leader,proto3" json:"leader,omitempty"`
 }
 
 func (x *SBDeliver) Reset() {
@@ -712,11 +712,11 @@ func (x *SBDeliver) GetAborted() bool {
 	return false
 }
 
-func (x *SBDeliver) GetLeader() uint64 {
+func (x *SBDeliver) GetLeader() string {
 	if x != nil {
 		return x.Leader
 	}
-	return 0
+	return ""
 }
 
 var File_isspb_isspb_proto protoreflect.FileDescriptor
@@ -817,7 +817,7 @@ var file_isspb_isspb_proto_rawDesc = []byte{
 	0x5f, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x63, 0x65, 0x72,
 	0x74, 0x44, 0x61, 0x74, 0x61, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x62, 0x6f, 0x72, 0x74, 0x65, 0x64,
 	0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x61, 0x62, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x12,
-	0x16, 0x0a, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x16, 0x0a, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x42, 0x2e, 0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75,
 	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f, 0x69, 0x6e, 0x2d, 0x70,
 	0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70,

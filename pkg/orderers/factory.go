@@ -32,7 +32,7 @@ func Factory(mc *ModuleConfig, issParams *issutil.ModuleParams, ownID t.NodeID, 
 				// Get the segment parameters
 				membership := t.NodeIDSlice(p.Segment.Membership)
 				seqNrs := t.SeqNrSlice(p.Segment.SeqNrs)
-				leader := t.NewNodeIDFromInt(int(p.Segment.Leader))
+				leader := t.NodeID(p.Segment.Leader)
 
 				segment := &Segment{
 					Leader:     leader,

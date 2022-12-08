@@ -57,16 +57,6 @@ func (e *epochInfo) Len() int {
 	return l
 }
 
-func (e *epochInfo) getNodeIDs() []t.NodeID {
-	i := 0
-	keys := make([]t.NodeID, len(e.nodeIDs))
-	for k := range e.nodeIDs {
-		keys[i] = k
-		i++
-	}
-	return keys
-}
-
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.
 // The returned map is effectively a set representation of the given list,
 // useful for testing whether any given node ID is in the set.

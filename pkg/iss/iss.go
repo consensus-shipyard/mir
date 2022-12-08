@@ -16,7 +16,6 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
-	"strconv"
 
 	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/util/issutil"
@@ -397,7 +396,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) *events.EventList {
 		CertData: deliver.CertData,
 		Digest:   nil,
 		Aborted:  deliver.Aborted,
-		Suspect:  t.NodeID(strconv.FormatUint(deliver.Leader, 10)),
+		Suspect:  t.NodeID(deliver.Leader),
 	}
 
 	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
@@ -828,7 +827,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 		// Create segment.
 		seg := &orderers.Segment{
 			Leader:     leader,
-			Membership: iss.epoch.getNodeIDs(),
+			Membership: maputil.GetKeys(iss.epoch.nodeIDs),
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),
@@ -839,7 +838,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 		// Instantiate a new PBFT orderer.
 		eventsOut.PushBack(factoryevents.NewModule(
 			iss.moduleConfig.Ordering,
-			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))), //TODO Alex add one more part to the id
+			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))),
 			t.RetentionIndex(iss.epoch.Nr()),
 			orderers.InstanceParams(
 				seg,
@@ -847,7 +846,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 			),
 		))
 
-		//Add the orderer to the list of orderers.
+		//Add the segment to the list of segments.
 		iss.epoch.Segments = append(iss.epoch.Segments, seg)
 
 	}

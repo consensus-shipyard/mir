@@ -40,7 +40,6 @@ message ISSEvent {
   oneof type {
     PersistCheckpoint       persist_checkpoint        = 1;
     PersistStableCheckpoint persist_stable_checkpoint = 3;
-    // SBEvent                 sb                        = 4;
     PushCheckpoint          push_checkpoint           = 5;
     SBDeliver sb_deliver = 6;
   }
@@ -48,7 +47,6 @@ message ISSEvent {
 
 message ISSHashOrigin {
   oneof type {
-    // SBHashOrigin      sb                   = 1;
     uint64            log_entry_sn         = 2;
     uint64            state_snapshot_epoch = 3;
     RequestHashOrigin requests             = 4;
@@ -87,5 +85,5 @@ message SBDeliver{
   uint64          sn        = 1;
   bytes           cert_data = 2;
   bool            aborted   = 3;
-  uint64          leader    = 4;
+  string          leader    = 4;
 }

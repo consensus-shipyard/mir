@@ -58,12 +58,6 @@ func NewNodeIDFromInt(id int) NodeID {
 	return NodeID(strconv.Itoa(id))
 }
 
-func (id NodeID) NodeIDToUint64() uint64 {
-	idUint, _ := strconv.ParseUint(string(id), 10, 64)
-	// TODO Handle error
-	return idUint
-}
-
 // Pb converts a NodeID to its underlying native type.
 func (id NodeID) Pb() string {
 	return string(id)

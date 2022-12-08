@@ -148,7 +148,7 @@ message SBInstanceSigVerOrigin {
 }
 
 message PBFTSegment {
-  uint64 leader = 1;
+  string leader = 1;
   repeated string membership = 2;
   repeated uint64 seq_nrs = 3;
 }

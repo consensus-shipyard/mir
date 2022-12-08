@@ -65,7 +65,7 @@ func InstanceParams(
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_PbftModule{
 		PbftModule: &ordererspb.PBFTModule{
 			Segment: &ordererspb.PBFTSegment{
-				Leader:     segment.Leader.NodeIDToUint64(),
+				Leader:     segment.Leader.Pb(),
 				Membership: t.NodeIDSlicePb(segment.Membership),
 				SeqNrs:     t.SeqNrSlicePb(segment.SeqNrs),
 			},
@@ -83,6 +83,6 @@ func SBDeliverEvent(sn t.SeqNr, certData []byte, aborted bool, leader t.NodeID) 
 		Sn:       sn.Pb(),
 		CertData: certData,
 		Aborted:  aborted,
-		Leader:   leader.NodeIDToUint64(),
+		Leader:   leader.Pb(),
 	}}}
 }
