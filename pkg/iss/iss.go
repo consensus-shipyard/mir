@@ -827,7 +827,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 		// Create segment.
 		seg := &orderers.Segment{
 			Leader:     leader,
-			Membership: maputil.GetKeys(iss.epoch.nodeIDs),
+			Membership: maputil.GetSortedKeys(iss.epoch.nodeIDs),
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),

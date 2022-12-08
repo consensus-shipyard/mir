@@ -159,7 +159,7 @@ func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, e
 		orderer.moduleConfig.Self,
 		OrdererEvent(orderer.moduleConfig.Self,
 			PbftPersistPreprepare(preprepare)),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	)
 
 	// First the preprepare needs to be persisted to the WAL, and only then it can be sent to the network.
@@ -247,7 +247,7 @@ func (orderer *Orderer) sendPrepare(prepare *ordererspbftpb.Prepare) *events.Eve
 		OrdererEvent(
 			orderer.moduleConfig.Self,
 			PbftPersistPrepare(prepare)),
-		t.RetentionIndex(orderer.getEpoch()))
+		t.RetentionIndex(orderer.config.epochNr))
 
 	// Append send event as a follow-up.
 	// No need for periodic re-transmission.
@@ -300,7 +300,7 @@ func (orderer *Orderer) sendCommit(commit *ordererspbftpb.Commit) *events.EventL
 			orderer.moduleConfig.Self,
 			PbftPersistCommit(commit),
 		),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	)
 
 	// Append send event as a follow-up.

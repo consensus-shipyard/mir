@@ -164,7 +164,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 				orderer.moduleConfig.Self),
 			orderer.segment.Membership)},
 		t.TimeDuration(orderer.config.DoneResendPeriod),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	))
 }
 
@@ -197,7 +197,7 @@ func (orderer *Orderer) applyMsgDone(doneMsg *ordererspbftpb.Done, from t.NodeID
 			orderer.moduleConfig.Timer,
 			orderer.catchUpRequests(doneNodes, orderer.segmentCheckpoint.Digests()),
 			t.TimeDuration(orderer.config.CatchUpDelay),
-			t.RetentionIndex(orderer.getEpoch()))},
+			t.RetentionIndex(orderer.config.epochNr))},
 		t.TimeDuration(orderer.config.CatchUpDelay),
 	))
 

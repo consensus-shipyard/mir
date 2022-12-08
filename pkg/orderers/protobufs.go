@@ -27,7 +27,7 @@ func OrdererEvent(
 
 func (orderer *Orderer) requestCertOrigin() *events.EventList {
 	return events.ListOf(availabilityevents.RequestCert(
-		orderer.AvailabilityModuleID(),
+		orderer.moduleConfig.Ava,
 		&availabilitypb.RequestCertOrigin{
 			Module: orderer.moduleConfig.Self.Pb(),
 			Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{

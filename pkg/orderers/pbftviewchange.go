@@ -120,14 +120,14 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 			[]t.NodeID{primary},
 		)},
 		t.TimeDuration(orderer.config.ViewChangeResendPeriod),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	)
 	persistEvent := events.WALAppend(
 		orderer.moduleConfig.Wal,
 		OrdererEvent(
 			orderer.moduleConfig.Self,
 			PbftPersistSignedViewChange(signedViewChange)),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	)
 	persistEvent.FollowUp(repeatedSendEvent)
 	return events.ListOf(persistEvent)
@@ -356,7 +356,7 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 		OrdererEvent(
 			orderer.moduleConfig.Self,
 			PbftPersistNewView(newView)),
-		t.RetentionIndex(orderer.getEpoch()),
+		t.RetentionIndex(orderer.config.epochNr),
 	)
 	persistEvent.FollowUp(events.SendMessage(
 		orderer.moduleConfig.Net,

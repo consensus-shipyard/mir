@@ -4,9 +4,6 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-// TODO: Put the PBFT sub-protocol implementation in a separate package that the iss package imports.
-//       When doing that, split the code meaningfully in multiple files.
-
 package orderers
 
 import (
@@ -15,8 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/util/issutil"
-
-	"strconv"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -131,7 +126,7 @@ func NewOrdererModule(
 		},
 		messageBuffers: messagebuffer.NewBuffers(
 			issutil.RemoveNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
-			config.MsgBufCapacity,                          // TODO: Configure this separately for ISS buffers and PBFT buffers.
+			config.MsgBufCapacity,
 			//       Even better, share the same buffers with ISS.
 			logging.Decorate(logger, "Msgbuf: "),
 		),
@@ -142,12 +137,11 @@ func NewOrdererModule(
 	}
 }
 
-func newOrdererConfig(issParams *issutil.ModuleParams, membership []t.NodeID, availabilityModuleID t.ModuleID) *PBFTConfig {
+func newOrdererConfig(issParams *issutil.ModuleParams, membership []t.NodeID, epochNr t.EpochNr) *PBFTConfig {
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &PBFTConfig{
 		Membership:               membership,
-		AvailabilityModuleID:     availabilityModuleID,
 		MaxProposeDelay:          issParams.MaxProposeDelay,
 		MsgBufCapacity:           issParams.MsgBufCapacity,
 		DoneResendPeriod:         issParams.PBFTDoneResendPeriod,
@@ -155,6 +149,7 @@ func newOrdererConfig(issParams *issutil.ModuleParams, membership []t.NodeID, av
 		ViewChangeSNTimeout:      issParams.PBFTViewChangeSNTimeout,
 		ViewChangeSegmentTimeout: issParams.PBFTViewChangeSegmentTimeout,
 		ViewChangeResendPeriod:   issParams.PBFTViewChangeResendPeriod,
+		epochNr:                  epochNr,
 	}
 }
 
@@ -173,7 +168,7 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 	case *eventpb.Event_Availability:
 		switch avEvent := ev.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
-			return orderer.applyNewCert(avEvent.NewCert)
+			return orderer.applyCertReady(avEvent.NewCert.Cert)
 		default:
 			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
 		}
@@ -191,12 +186,6 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 			return orderer.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout)), nil
 		case *ordererspb.SBInstanceEvent_PbftPersistPreprepare:
 			return orderer.applyPbftPersistPreprepare(e.PbftPersistPreprepare), nil
-		case *ordererspb.SBInstanceEvent_PbftPersistPrepare,
-			*ordererspb.SBInstanceEvent_PbftPersistCommit,
-			*ordererspb.SBInstanceEvent_PbftPersistSignedViewChange,
-			*ordererspb.SBInstanceEvent_PbftPersistNewView:
-			// TODO: Ignoring WAL loading for the moment.
-			return events.EmptyList(), nil
 		default:
 			return nil, fmt.Errorf("unknown PBFT SB instance event type: %T", ev.SbEvent.Type)
 		}
@@ -211,10 +200,6 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 
 func (orderer *Orderer) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
 	return modules.ApplyEventsSequentially(evts, orderer.ApplyEvent)
-}
-
-func (orderer *Orderer) applyNewCert(newCert *availabilitypb.NewCert) (*events.EventList, error) {
-	return orderer.applyCertReady(newCert.Cert)
 }
 
 func (orderer *Orderer) applyHashResult(result *eventpb.Event_HashResult) *events.EventList {
@@ -323,12 +308,6 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 // Segment returns the segment associated with this Orderer.
 func (orderer *Orderer) Segment() *Segment {
 	return orderer.segment
-}
-
-// AvailabilityModuleID returns the ID of the availability module
-// from which this SB instance gets its availability certificates.
-func (orderer *Orderer) AvailabilityModuleID() t.ModuleID {
-	return orderer.config.AvailabilityModuleID
 }
 
 // ============================================================
@@ -504,11 +483,6 @@ func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (orderer *Orderer) ImplementsModule() {}
-
-func (orderer *Orderer) getEpoch() t.EpochNr {
-	epochNr, _ := strconv.Atoi(string(orderer.moduleConfig.Self.Sub()[0:1]))
-	return t.EpochNr(epochNr)
-}
 
 func strongQuorum(n int) int {
 	// assuming n > 3f:

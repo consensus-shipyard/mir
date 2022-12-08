@@ -11,6 +11,7 @@ type ModuleConfig struct {
 	Wal    t.ModuleID
 	Net    t.ModuleID
 	Ord    t.ModuleID
+	Ava    t.ModuleID
 }
 
 func DefaultModuleConfig() *ModuleConfig {
@@ -23,5 +24,6 @@ func DefaultModuleConfig() *ModuleConfig {
 		Wal:    "wal",
 		Net:    "net",
 		Ord:    "iss",
+		//Ava initially at runtime
 	}
 }
