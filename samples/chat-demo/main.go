@@ -33,6 +33,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
+	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -137,6 +138,10 @@ func run() error {
 		return fmt.Errorf("could not create listen address: %w", err)
 	}
 
+	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
+	// always the very first membership at sequence number 0. It is part of the system configuration.
+	smrParams := trantor.DefaultParams(initialMembership)
+
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(
 		t.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
@@ -144,6 +149,24 @@ func run() error {
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p host")
+	}
+	// Initialize the libp2p transport subsystem.
+	// TODO: Re-enable this check!
+	// addrIn := false
+	// for _, addr := range h.Addrs() {
+	//	// sanity-check to see if the host is configured with the
+	//	// right multiaddr.
+	//	if addr.Equal(initialMembership[ownID]) {
+	//		addrIn = true
+	//		break
+	//	}
+	// }
+	// if !addrIn {
+	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
+	// }
+	transport, err := libp2p2.NewTransport(smrParams.Net, h, args.OwnID, logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create libp2p transport")
 	}
 
 	// Create a dummy crypto implementation that locally generates all keys in a pseudo-random manner.
@@ -160,10 +183,6 @@ func run() error {
 	// genesis is s stable checkpoint (as given to the app's Checkpoint callback)
 	// defining the initial state and configuration of the system.
 	var genesis *checkpoint.StableCheckpoint
-
-	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
-	// always the very first membership at sequence number 0. It is part of the system configuration.
-	smrParams := trantor.DefaultParams(initialMembership)
 
 	if args.InitChkpFile != "" {
 
@@ -191,7 +210,7 @@ func run() error {
 	// Create a Mir SMR system.
 	smrSystem, err := trantor.New(
 		args.OwnID,
-		h,
+		transport,
 		genesis,
 		crypto,
 		chatApp,

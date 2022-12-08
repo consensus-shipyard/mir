@@ -72,6 +72,9 @@ type TestConfig struct {
 
 	// TransportLayer to work with network transport.
 	TransportLayer LocalTransportLayer
+
+	// Fake applications of all the test replicas. Required for checking results.
+	FakeApps map[t.NodeID]*FakeApp
 }
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.

@@ -10,11 +10,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/modules"
-	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -28,74 +25,31 @@ type FakeApp struct {
 	RequestsProcessed uint64
 }
 
-func NewFakeApp(protocolModule t.ModuleID, membership map[t.NodeID]t.NodeAddress) *FakeApp {
-	return &FakeApp{
-		ProtocolModule:    protocolModule,
-		Membership:        membership,
-		RequestsProcessed: 0,
-	}
-}
-
-func (fa *FakeApp) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
-	return modules.ApplyEventsSequentially(eventsIn, fa.ApplyEvent)
-}
-
-func (fa *FakeApp) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
-		// no actions on init
-	case *eventpb.Event_BatchFetcher:
-		switch e := e.BatchFetcher.Type.(type) {
-		case *bfpb.Event_NewOrderedBatch:
-			return fa.applyNewOrderedBatch(e.NewOrderedBatch)
-		default:
-			return nil, fmt.Errorf("unexpected availability event type: %T", e)
-		}
-	case *eventpb.Event_AppSnapshotRequest:
-		return events.ListOf(events.AppSnapshotResponse(
-			t.ModuleID(e.AppSnapshotRequest.ReplyTo),
-			fa.Snapshot(),
-		)), nil
-	case *eventpb.Event_AppRestoreState:
-		if err := fa.RestoreState(e.AppRestoreState.Checkpoint); err != nil {
-			return nil, fmt.Errorf("app restore state error: %w", err)
-		}
-	case *eventpb.Event_NewEpoch:
-		return events.ListOf(events.NewConfig(fa.ProtocolModule, t.EpochNr(e.NewEpoch.EpochNr), fa.Membership)), nil
-	case *eventpb.Event_Checkpoint:
-		switch e := e.Checkpoint.Type.(type) {
-		case *checkpointpb.Event_StableCheckpoint:
-			return events.EmptyList(), nil // Ignore checkpoints.
-		default:
-			return nil, fmt.Errorf("unexpected checkpoint event type: %T", e)
-		}
-	default:
-		return nil, fmt.Errorf("unexpected type of App event: %T", event.Type)
-	}
-
-	return events.EmptyList(), nil
-}
-
-// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (fa *FakeApp) ImplementsModule() {}
-
-// ApplyBatch applies a batch of transactions.
-func (fa *FakeApp) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.EventList, error) {
-
-	for _, req := range batch.Txs {
+func (fa *FakeApp) ApplyTXs(txs []*requestpb.Request) error {
+	for _, req := range txs {
 		fa.RequestsProcessed++
 		fmt.Printf("Received request: %q. Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
 	}
-	return events.EmptyList(), nil
+	return nil
 }
 
-func (fa *FakeApp) Snapshot() []byte {
-	return uint64ToBytes(fa.RequestsProcessed)
+func (fa *FakeApp) Snapshot() ([]byte, error) {
+	return uint64ToBytes(fa.RequestsProcessed), nil
 }
 
-func (fa *FakeApp) RestoreState(checkpoint *checkpointpb.StableCheckpoint) error {
+func (fa *FakeApp) RestoreState(checkpoint *checkpoint.StableCheckpoint) error {
 	fa.RequestsProcessed = uint64FromBytes(checkpoint.Snapshot.AppData)
 	return nil
+}
+
+func (fa *FakeApp) Checkpoint(_ *checkpoint.StableCheckpoint) error {
+	return nil
+}
+
+func NewFakeApp() *FakeApp {
+	return &FakeApp{
+		RequestsProcessed: 0,
+	}
 }
 
 func uint64ToBytes(value uint64) []byte {

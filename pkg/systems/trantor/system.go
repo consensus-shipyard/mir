@@ -1,7 +1,6 @@
 package trantor
 
 import (
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/orderers"
@@ -17,7 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	libp2pnet "github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -100,8 +98,8 @@ func New(
 	// The ID of this node.
 	ownID t.NodeID,
 
-	// libp2p host to be used for the network transport module.
-	h host.Host,
+	// Network transport system to be used by Trantor to send and receive messages.
+	transport net.Transport,
 
 	// Initial checkpoint of the application state and configuration.
 	// The SMR system will continue operating from this checkpoint.
@@ -124,25 +122,6 @@ func New(
 	// The logger to which the system will pass all its log messages.
 	logger logging.Logger,
 ) (*System, error) {
-
-	// Initialize the libp2p transport subsystem.
-	// TODO: Re-enable this check!
-	// addrIn := false
-	// for _, addr := range h.Addrs() {
-	//	// sanity-check to see if the host is configured with the
-	//	// right multiaddr.
-	//	if addr.Equal(initialMembership[ownID]) {
-	//		addrIn = true
-	//		break
-	//	}
-	// }
-	// if !addrIn {
-	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
-	// }
-	transport, err := libp2pnet.NewTransport(params.Net, h, ownID, logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create libp2p transport")
-	}
 
 	// Instantiate the ISS ordering protocol with default configuration.
 	// We use the ISS' default module configuration (the expected IDs of modules it interacts with)

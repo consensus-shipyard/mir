@@ -10,9 +10,8 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/filecoin-project/mir/pkg/checkpoint"
-
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/eventlog"
@@ -22,6 +21,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -137,12 +137,18 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)
 	}
 
+	nullTransport := &NullTransport{}
+
 	// Instantiate and return a minimal Mir Node.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		"net":    modules.NullActive{},
+		"net":    nullTransport,
 		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
-		"app":    deploytest.NewFakeApp("iss", nil),
-		"iss":    protocol,
+		"app": trantor.NewAppModule(
+			trantor.AppLogicFromStatic(deploytest.NewFakeApp(), map[t.NodeID]t.NodeAddress{}),
+			nullTransport,
+			"iss",
+		),
+		"iss": protocol,
 	}, iss.DefaultModuleConfig())
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
