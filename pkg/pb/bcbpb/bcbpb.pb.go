@@ -7,13 +7,11 @@
 package bcbpb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
+	_ "github.com/filecoin-project/mir/pkg/pb/mir"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
-	_ "github.com/filecoin-project/mir/pkg/pb/mir"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

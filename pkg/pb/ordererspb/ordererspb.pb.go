@@ -7,17 +7,15 @@
 package ordererspb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	_ "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	ordererspbftpb "github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
