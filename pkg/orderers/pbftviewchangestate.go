@@ -1,10 +1,11 @@
-package iss
+package orderers
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -13,7 +14,7 @@ import (
 // The transition from view 2 to view 3 will be tracked by a different instance of pbftViewChangeState.
 type pbftViewChangeState struct {
 	numNodes          int
-	signedViewChanges map[t.NodeID]*isspbftpb.SignedViewChange
+	signedViewChanges map[t.NodeID]*ordererspbftpb.SignedViewChange
 
 	// Digests of preprepares that need to be repropsed in a new view.
 	// At initialization, an explicit nil entry is created for each sequence number of the segment.
@@ -28,7 +29,7 @@ type pbftViewChangeState struct {
 	// a new Preprepare message to be re-proposed (with a correctly set view number).
 	// This also holds for sequence numbers for which nothing was prepared in the previous view,
 	// in which case the value is set to a Preprepare with an empty certificate and the "aborted" flag set.
-	preprepares map[t.SeqNr]*isspbftpb.Preprepare
+	preprepares map[t.SeqNr]*ordererspbftpb.Preprepare
 
 	prepreparedIDs map[t.SeqNr][]t.NodeID
 
@@ -37,7 +38,7 @@ type pbftViewChangeState struct {
 
 func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID, logger logging.Logger) *pbftViewChangeState {
 	reproposals := make(map[t.SeqNr][]byte)
-	preprepares := make(map[t.SeqNr]*isspbftpb.Preprepare)
+	preprepares := make(map[t.SeqNr]*ordererspbftpb.Preprepare)
 	for _, sn := range seqNrs {
 		reproposals[sn] = nil
 		preprepares[sn] = nil
@@ -45,7 +46,7 @@ func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID, logger logg
 
 	return &pbftViewChangeState{
 		numNodes:          len(membership),
-		signedViewChanges: make(map[t.NodeID]*isspbftpb.SignedViewChange),
+		signedViewChanges: make(map[t.NodeID]*ordererspbftpb.SignedViewChange),
 		reproposals:       reproposals,
 		prepreparedIDs:    make(map[t.SeqNr][]t.NodeID),
 		preprepares:       preprepares,
@@ -62,7 +63,7 @@ func (vcState *pbftViewChangeState) EnoughViewChanges() bool {
 	return true
 }
 
-func (vcState *pbftViewChangeState) AddSignedViewChange(svc *isspbftpb.SignedViewChange, from t.NodeID) {
+func (vcState *pbftViewChangeState) AddSignedViewChange(svc *ordererspbftpb.SignedViewChange, from t.NodeID) {
 
 	if vcState.EnoughViewChanges() {
 		return
@@ -137,7 +138,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) 
 	}
 }
 
-func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *pbftInstance, view t.PBFTViewNr) {
+func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view t.PBFTViewNr) {
 	for sn, digest := range vcState.reproposals {
 		if vcState.preprepares[sn] == nil && digest != nil && len(digest) > 0 {
 			if preprepare := pbft.lookUpPreprepare(sn, digest); preprepare != nil {
@@ -158,14 +159,18 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *pbftInstance, view
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message
 // and will be succeeded by another primary after another view change.
-func (vcState *pbftViewChangeState) askForMissingPreprepares(eventService *sbEventService) *events.EventList {
+func (vcState *pbftViewChangeState) askForMissingPreprepares(moduleConfig *ModuleConfig) *events.EventList {
 
 	eventsOut := events.EmptyList()
 	for sn, digest := range vcState.reproposals {
 		if len(digest) > 0 && vcState.preprepares[sn] == nil {
-			eventsOut.PushBack(eventService.SendMessage(
-				PbftPreprepareRequestSBMessage(pbftPreprepareRequestMsg(sn, digest)),
-				removeNodeID(vcState.prepreparedIDs[sn], "1"), // TODO be smarter about this eventually, not asking everyone at once.
+			eventsOut.PushBack(events.SendMessage(
+				moduleConfig.Net,
+				OrdererMessage(
+					PbftPreprepareRequestSBMessage(
+						pbftPreprepareRequestMsg(sn, digest)),
+					moduleConfig.Self),
+				issutil.RemoveNodeID(vcState.prepreparedIDs[sn], "1"), // TODO be smarter about this eventually, not asking everyone at once.
 			))
 		}
 	}

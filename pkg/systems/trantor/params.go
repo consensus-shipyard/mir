@@ -3,7 +3,8 @@ package trantor
 import (
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/iss"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
+
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -11,14 +12,14 @@ import (
 
 type Params struct {
 	Mempool *simplemempool.ModuleParams
-	Iss     *iss.ModuleParams
+	Iss     *issutil.ModuleParams
 	Net     libp2p.Params
 }
 
 func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) Params {
 	return Params{
 		Mempool: simplemempool.DefaultModuleParams(),
-		Iss:     iss.DefaultParams(initialMembership),
+		Iss:     issutil.DefaultParams(initialMembership),
 		Net:     libp2p.DefaultParams(),
 	}
 }

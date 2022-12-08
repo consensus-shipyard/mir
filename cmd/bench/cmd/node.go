@@ -15,6 +15,7 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
@@ -22,6 +23,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
+	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -80,6 +82,11 @@ func runNode() error {
 	}
 	ownID := t.NodeID(id)
 
+	// Set Trantor parameters.
+	smrParams := trantor.DefaultParams(initialMembership)
+	smrParams.Mempool.MaxTransactionsInBatch = 1024
+	smrParams.AdjustSpeed(100 * time.Millisecond)
+
 	// Assemble listening address.
 	// In this benchmark code, we always listen on tha address 0.0.0.0.
 	portStr, err := getPortStr(initialMembership[ownID])
@@ -98,16 +105,30 @@ func runNode() error {
 	if err != nil {
 		return fmt.Errorf("failed to create libp2p host: %w", err)
 	}
+	// Initialize the libp2p transport subsystem.
+	// TODO: Re-enable this check!
+	// addrIn := false
+	// for _, addr := range h.Addrs() {
+	//	// sanity-check to see if the host is configured with the
+	//	// right multiaddr.
+	//	if addr.Equal(initialMembership[ownID]) {
+	//		addrIn = true
+	//		break
+	//	}
+	// }
+	// if !addrIn {
+	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
+	// }
+	transport, err := libp2p2.NewTransport(smrParams.Net, h, ownID, logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create libp2p transport")
+	}
 
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 
-	smrParams := trantor.DefaultParams(initialMembership)
-	smrParams.Mempool.MaxTransactionsInBatch = 1024
-	smrParams.AdjustSpeed(100 * time.Millisecond)
-
 	benchApp, err := trantor.New(
 		ownID,
-		h,
+		transport,
 		trantor.GenesisCheckpoint([]byte{}, smrParams),
 		localCrypto.Crypto(ownID),
 		&App{Logger: logger, Membership: initialMembership},

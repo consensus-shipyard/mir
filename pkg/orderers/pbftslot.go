@@ -1,10 +1,12 @@
-package iss
+package orderers
 
 import (
 	"bytes"
 
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/isspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -13,22 +15,22 @@ import (
 type pbftSlot struct {
 
 	// The received preprepare message.
-	Preprepare *isspbftpb.Preprepare
+	Preprepare *ordererspbftpb.Preprepare
 
 	// Prepare messages received.
 	// A nil entry signifies that an invalid message has been discarded.
-	Prepares map[t.NodeID]*isspbftpb.Prepare
+	Prepares map[t.NodeID]*ordererspbftpb.Prepare
 
 	// Valid prepare messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidPrepares []*isspbftpb.Prepare
+	ValidPrepares []*ordererspbftpb.Prepare
 
 	// Commit messages received.
-	Commits map[t.NodeID]*isspbftpb.Commit
+	Commits map[t.NodeID]*ordererspbftpb.Commit
 
 	// Valid commit messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidCommits []*isspbftpb.Commit
+	ValidCommits []*ordererspbftpb.Commit
 
 	// The digest of the proposed (preprepared) certificate
 	Digest []byte
@@ -50,10 +52,10 @@ type pbftSlot struct {
 func newPbftSlot(numNodes int) *pbftSlot {
 	return &pbftSlot{
 		Preprepare:    nil,
-		Prepares:      make(map[t.NodeID]*isspbftpb.Prepare),
-		ValidPrepares: make([]*isspbftpb.Prepare, 0),
-		Commits:       make(map[t.NodeID]*isspbftpb.Commit),
-		ValidCommits:  make([]*isspbftpb.Commit, 0),
+		Prepares:      make(map[t.NodeID]*ordererspbftpb.Prepare),
+		ValidPrepares: make([]*ordererspbftpb.Prepare, 0),
+		Commits:       make(map[t.NodeID]*ordererspbftpb.Commit),
+		ValidCommits:  make([]*ordererspbftpb.Commit, 0),
 		Digest:        nil,
 		Preprepared:   false,
 		Prepared:      false,
@@ -78,7 +80,7 @@ func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr
 // advanceSlotState checks whether the state of the pbftSlot can be advanced.
 // If it can, advanceSlotState updates the state of the pbftSlot and returns a list of Events that result from it.
 // Requires the PBFT instance as an argument to use it to generate the proper events.
-func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.EventList {
+func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// If the slot just became prepared, send (and persist) the Commit message.
@@ -101,11 +103,23 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all certificates.
 		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
-			eventsOut.PushBack(pbft.eventService.TimerDelay(
+			eventsOut.PushBack(events.TimerDelay(
+				pbft.moduleConfig.Timer,
+				[]*eventpb.Event{OrdererEvent(pbft.moduleConfig.Self,
+					PbftViewChangeSNTimeout(
+						pbft.view,
+						pbft.numCommitted(pbft.view)))},
 				t.TimeDuration(pbft.config.ViewChangeSNTimeout),
-				pbft.eventService.SBEvent(PbftViewChangeSNTimeout(pbft.view, pbft.numCommitted(pbft.view))),
 			))
 		}
+		eventsOut.PushBack(events.TimerDelay(
+			pbft.moduleConfig.Timer,
+			[]*eventpb.Event{OrdererEvent(pbft.moduleConfig.Self,
+				PbftViewChangeSNTimeout(
+					pbft.view,
+					pbft.numCommitted(pbft.view)))},
+			t.TimeDuration(pbft.config.ViewChangeSNTimeout),
+		))
 
 		// If all certificates have been committed (i.e. this is the last certificate to commit),
 		// send a Done message to all other nodes.
@@ -116,11 +130,17 @@ func (slot *pbftSlot) advanceState(pbft *pbftInstance, sn t.SeqNr) *events.Event
 		}
 
 		// Deliver availability certificate.
-		eventsOut.PushBack(pbft.eventService.SBEvent(SBDeliverEvent(
-			sn,
-			slot.Preprepare.CertData,
-			slot.Preprepare.Aborted,
-		)))
+		eventsOut.PushBack(&eventpb.Event{
+			DestModule: pbft.moduleConfig.Ord.Pb(),
+			Type: &eventpb.Event_Iss{
+				Iss: SBDeliverEvent(
+					sn,
+					slot.Preprepare.CertData,
+					slot.Preprepare.Aborted,
+					pbft.segment.Leader,
+				),
+			},
+		})
 
 		// TODO: Do we need to persist anything here?
 	}
@@ -200,7 +220,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 	return len(slot.ValidCommits) >= strongQuorum(slot.numNodes)
 }
 
-func (slot *pbftSlot) getPreprepare(digest []byte) *isspbftpb.Preprepare {
+func (slot *pbftSlot) getPreprepare(digest []byte) *ordererspbftpb.Preprepare {
 	if slot.Preprepared && bytes.Equal(digest, slot.Digest) {
 		return slot.Preprepare
 	}
@@ -209,7 +229,7 @@ func (slot *pbftSlot) getPreprepare(digest []byte) *isspbftpb.Preprepare {
 }
 
 // Note: The Preprepare's view must match the view this slot is assigned to!
-func (slot *pbftSlot) catchUp(preprepare *isspbftpb.Preprepare, digest []byte) {
+func (slot *pbftSlot) catchUp(preprepare *ordererspbftpb.Preprepare, digest []byte) {
 	slot.Preprepare = preprepare
 	slot.Digest = digest
 	slot.Preprepared = true

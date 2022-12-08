@@ -1,10 +1,9 @@
 package iss
 
 import (
-	"fmt"
-
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	"github.com/filecoin-project/mir/pkg/orderers"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 )
 
 // epochInfo holds epoch-specific information that becomes irrelevant on advancing to the next epoch.
@@ -19,30 +18,24 @@ type epochInfo struct {
 	// The set of IDs of nodes in this epoch's membership.
 	nodeIDs map[t.NodeID]struct{}
 
-	// Orderers associated with the epoch.
-	Orderers []sbInstance
-
-	// Index of orderers based on the buckets they are assigned.
-	// For each bucket ID, this map stores the orderer to which the bucket is assigned in this epoch.
-	bucketOrderers map[int]sbInstance
+	// Orderers' segments associated with the epoch.
+	Segments []*orderers.Segment
 
 	// TODO: Comment.
-	leaderPolicy LeaderSelectionPolicy
+	leaderPolicy issutil.LeaderSelectionPolicy
 }
 
 func newEpochInfo(
 	nr t.EpochNr,
 	firstSN t.SeqNr,
 	nodeIDs []t.NodeID,
-	leaderPolicy LeaderSelectionPolicy,
+	leaderPolicy issutil.LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{
-		nr:             nr,
-		firstSN:        firstSN,
-		nodeIDs:        membershipSet(nodeIDs),
-		Orderers:       nil,
-		bucketOrderers: make(map[int]sbInstance),
-		leaderPolicy:   leaderPolicy,
+		nr:           nr,
+		firstSN:      firstSN,
+		nodeIDs:      membershipSet(nodeIDs),
+		leaderPolicy: leaderPolicy,
 	}
 
 	return ei
@@ -58,33 +51,10 @@ func (e *epochInfo) FirstSN() t.SeqNr {
 
 func (e *epochInfo) Len() int {
 	l := 0
-	for _, orderer := range e.Orderers {
-		l += len(orderer.Segment().SeqNrs)
+	for _, segment := range e.Segments {
+		l += len(segment.SeqNrs)
 	}
 	return l
-}
-
-// validateSBMessage checks whether an SBMessage is valid in this epoch.
-// Returns nil if validation succeeds.
-// If validation fails, returns the reason for which the message is considered invalid.
-func (e *epochInfo) validateSBMessage(message *isspb.SBMessage, from t.NodeID) error {
-
-	// Message must be destined for this epoch.
-	if t.EpochNr(message.Epoch) != e.Nr() {
-		return fmt.Errorf("invalid epoch: %v (expected %v)", message.Epoch, e.Nr())
-	}
-
-	// Message must refer to a valid SB instance.
-	if int(message.Instance) >= len(e.Orderers) {
-		return fmt.Errorf("invalid SB instance number: %d", message.Instance)
-	}
-
-	// Message must be sent by a node in the current membership.
-	if _, ok := e.nodeIDs[from]; !ok {
-		return fmt.Errorf("sender of SB message not in the membership: %v", from)
-	}
-
-	return nil
 }
 
 // membershipSet takes a list of node IDs and returns a map of empty structs with an entry for each node ID in the list.

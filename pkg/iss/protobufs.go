@@ -17,9 +17,7 @@ package iss
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -41,41 +39,8 @@ func HashOrigin(ownModuleID t.ModuleID, origin *isspb.ISSHashOrigin) *eventpb.Ha
 	return &eventpb.HashOrigin{Module: ownModuleID.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
 }
 
-func SignOrigin(ownModuleID t.ModuleID, origin *isspb.ISSSignOrigin) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{Module: ownModuleID.Pb(), Type: &eventpb.SignOrigin_Iss{Iss: origin}}
-}
-
 func SigVerOrigin(ownModuleID t.ModuleID, origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
 	return &eventpb.SigVerOrigin{Module: ownModuleID.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
-}
-
-func PersistCheckpointEvent(
-	ownModuleID t.ModuleID,
-	sn t.SeqNr,
-	stateSnapshot *commonpb.StateSnapshot,
-	appSnapshotHash,
-	signature []byte,
-) *eventpb.Event {
-	return Event(
-		ownModuleID,
-		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: &isspb.PersistCheckpoint{
-			Sn:                sn.Pb(),
-			StateSnapshot:     stateSnapshot,
-			StateSnapshotHash: appSnapshotHash,
-			Signature:         signature,
-		}}},
-	)
-}
-
-func PersistStableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
-	return Event(
-		ownModuleID,
-		&isspb.ISSEvent{Type: &isspb.ISSEvent_PersistStableCheckpoint{
-			PersistStableCheckpoint: &isspb.PersistStableCheckpoint{
-				StableCheckpoint: stableCheckpoint,
-			},
-		}},
-	)
 }
 
 func PushCheckpoint(ownModuleID t.ModuleID) *eventpb.Event {
@@ -84,38 +49,10 @@ func PushCheckpoint(ownModuleID t.ModuleID) *eventpb.Event {
 	}})
 }
 
-func SBEvent(
-	ownModuleID t.ModuleID,
-	epoch t.EpochNr,
-	instance t.SBInstanceNr,
-	event *isspb.SBInstanceEvent,
-) *eventpb.Event {
-	return Event(
-		ownModuleID,
-		&isspb.ISSEvent{Type: &isspb.ISSEvent_Sb{Sb: &isspb.SBEvent{
-			Epoch:    epoch.Pb(),
-			Instance: instance.Pb(),
-			Event:    event,
-		}}},
-	)
-}
-
 func LogEntryHashOrigin(ownModuleID t.ModuleID, logEntrySN t.SeqNr) *eventpb.HashOrigin {
 	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_LogEntrySn{
 		LogEntrySn: logEntrySN.Pb(),
 	}})
-}
-
-func SBHashOrigin(ownModuleID t.ModuleID,
-	epoch t.EpochNr,
-	instance t.SBInstanceNr,
-	origin *isspb.SBInstanceHashOrigin,
-) *eventpb.HashOrigin {
-	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_Sb{Sb: &isspb.SBHashOrigin{
-		Epoch:    epoch.Pb(),
-		Instance: instance.Pb(),
-		Origin:   origin,
-	}}})
 }
 
 func StableCheckpointSigVerOrigin(
@@ -127,112 +64,12 @@ func StableCheckpointSigVerOrigin(
 	}})
 }
 
-func SBSignOrigin(
-	ownModuleID t.ModuleID,
-	epoch t.EpochNr,
-	instance t.SBInstanceNr,
-	origin *isspb.SBInstanceSignOrigin,
-) *eventpb.SignOrigin {
-	return SignOrigin(ownModuleID, &isspb.ISSSignOrigin{Type: &isspb.ISSSignOrigin_Sb{Sb: &isspb.SBSignOrigin{
-		Epoch:    epoch.Pb(),
-		Instance: instance.Pb(),
-		Origin:   origin,
-	}}})
-}
-
-func SBSigVerOrigin(
-	ownModuleID t.ModuleID,
-	epoch t.EpochNr,
-	instance t.SBInstanceNr,
-	origin *isspb.SBInstanceSigVerOrigin,
-) *eventpb.SigVerOrigin {
-	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_Sb{Sb: &isspb.SBSigVerOrigin{
-		Epoch:    epoch.Pb(),
-		Instance: instance.Pb(),
-		Origin:   origin,
-	}}})
-}
-
-// ------------------------------------------------------------
-// SB Instance Events
-
-func SBInitEvent() *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Init{Init: &isspb.SBInit{}}}
-}
-
-func SBDeliverEvent(sn t.SeqNr, certData []byte, aborted bool) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_Deliver{
-		Deliver: &isspb.SBDeliver{
-			Sn:       sn.Pb(),
-			CertData: certData,
-			Aborted:  aborted,
-		},
-	}}
-}
-
-func SBMessageReceivedEvent(message *isspb.SBInstanceMessage, from t.NodeID) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_MessageReceived{
-		MessageReceived: &isspb.SBMessageReceived{
-			From: from.Pb(),
-			Msg:  message,
-		},
-	}}
-}
-
-func SBCertRequestEvent() *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CertRequest{CertRequest: &isspb.SBCertRequest{}}}
-}
-
-func SBCertReadyEvent(cert *availabilitypb.Cert) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_CertReady{CertReady: &isspb.SBCertReady{Cert: cert}}}
-}
-
-func SBHashResultEvent(digests [][]byte, origin *isspb.SBInstanceHashOrigin) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_HashResult{HashResult: &isspb.SBHashResult{
-		Digests: digests,
-		Origin:  origin,
-	}}}
-}
-
-func SBSignResultEvent(signature []byte, origin *isspb.SBInstanceSignOrigin) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_SignResult{SignResult: &isspb.SBSignResult{
-		Signature: signature,
-		Origin:    origin,
-	}}}
-}
-
-func SBNodeSigsVerifiedEvent(
-	valid []bool,
-	errors []string,
-	nodeIDs []t.NodeID,
-	origin *isspb.SBInstanceSigVerOrigin,
-	allOK bool,
-) *isspb.SBInstanceEvent {
-	return &isspb.SBInstanceEvent{Type: &isspb.SBInstanceEvent_NodeSigsVerified{
-		NodeSigsVerified: &isspb.SBNodeSigsVerified{
-			NodeIds: t.NodeIDSlicePb(nodeIDs),
-			Valid:   valid,
-			Errors:  errors,
-			Origin:  origin,
-			AllOk:   allOK,
-		},
-	}}
-}
-
 // ============================================================
 // Messages
 // ============================================================
 
 func Message(msg *isspb.ISSMessage) *messagepb.Message {
 	return &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{Iss: msg}}
-}
-
-func SBMessage(epoch t.EpochNr, instance t.SBInstanceNr, msg *isspb.SBInstanceMessage) *messagepb.Message {
-	return Message(&isspb.ISSMessage{Type: &isspb.ISSMessage_Sb{Sb: &isspb.SBMessage{
-		Epoch:    epoch.Pb(),
-		Instance: instance.Pb(),
-		Msg:      msg,
-	}}})
 }
 
 func StableCheckpointMessage(stableCheckpoint *checkpoint.StableCheckpoint) *messagepb.Message {

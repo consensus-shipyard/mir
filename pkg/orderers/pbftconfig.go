@@ -1,4 +1,4 @@
-package iss
+package orderers
 
 import (
 	"time"
@@ -13,9 +13,6 @@ type PBFTConfig struct {
 	// The IDs of all nodes that execute this instance of the protocol.
 	// Must not be empty.
 	Membership []t.NodeID
-
-	// ID of the availability module from which this PBFT instance gets its availability certificates.
-	AvailabilityModuleID t.ModuleID
 
 	// The maximum time duration between two proposals of new certificatees during normal operation.
 	// This parameter caps the waiting time in order to bound latency.
@@ -53,4 +50,7 @@ type PBFTConfig struct {
 	// ViewChange messages need to be resent periodically to preserve liveness.
 	// Otherwise, the system could get stuck if a ViewChange message is dropped by the network.
 	ViewChangeResendPeriod time.Duration
+
+	// The current epoch number
+	epochNr t.EpochNr
 }
