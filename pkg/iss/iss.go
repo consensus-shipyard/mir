@@ -17,6 +17,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/util/issutil"
 
@@ -119,6 +120,9 @@ type ISS struct {
 	// The ID of the node executing this instance of the protocol.
 	ownID t.NodeID
 
+	// Implementation of the hash function to use by ISS for computing all hashes.
+	hashImpl crypto.HashImpl
+
 	// Logger the ISS implementation uses to output log messages.
 	// This is mostly for debugging - not to be confused with the commit log.
 	logger logging.Logger
@@ -196,7 +200,14 @@ type ISS struct {
 //     see the documentation of the issutil.ModuleParams type for details.
 //   - startingChkp: the stable checkpoint defining the initial state of the protocol.
 //   - logger:       Logger the ISS implementation uses to output log messages.
-func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *issutil.ModuleParams, startingChkp *checkpoint.StableCheckpoint, logger logging.Logger) (*ISS, error) {
+func New(
+	ownID t.NodeID,
+	moduleConfig *ModuleConfig,
+	params *issutil.ModuleParams,
+	startingChkp *checkpoint.StableCheckpoint,
+	hashImpl crypto.HashImpl,
+	logger logging.Logger,
+) (*ISS, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -213,6 +224,7 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *issutil.ModuleParam
 		// Static fields
 		ownID:        ownID,
 		moduleConfig: moduleConfig,
+		hashImpl:     hashImpl,
 		logger:       logger,
 
 		// Fields modified only by initEpoch
@@ -288,8 +300,6 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return iss.applyInit()
-	case *eventpb.Event_HashResult:
-		return iss.applyHashResult(e.HashResult)
 	case *eventpb.Event_NodeSigsVerified:
 		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_NewConfig:
@@ -306,7 +316,7 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	case *eventpb.Event_Iss: // The ISS event type wraps all ISS-specific events.
 		switch issEvent := e.Iss.Type.(type) {
 		case *isspb.ISSEvent_SbDeliver:
-			return iss.applySBInstDeliver(issEvent.SbDeliver), nil
+			return iss.applySBInstDeliver(issEvent.SbDeliver)
 		case *isspb.ISSEvent_PushCheckpoint:
 			return iss.applyPushCheckpoint()
 		default:
@@ -345,38 +355,18 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	return eventsOut, nil
 }
 
-// applyHashResult applies the HashResult event to the state of the ISS protocol state machine.
-// A HashResult event means that a hash requested by this module has been computed by the Hasher module
-// and is now ready to be processed.
-func (iss *ISS) applyHashResult(result *eventpb.HashResult) (*events.EventList, error) {
-	// We know already that the hash origin is the HashOrigin is of type ISS, since ISS produces no other types
-	// and all HashResults with a different origin would not have been routed here.
-	issOrigin := result.Origin.Type.(*eventpb.HashOrigin_Iss).Iss
-
-	// TODO: Make event handlers return error as a second argument, instead of hard-coding nil here.
-
-	// Further inspect the origin of the initial hash request and decide what to do with it.
-	switch origin := issOrigin.Type.(type) {
-	case *isspb.ISSHashOrigin_LogEntrySn:
-		// Hash originates from delivering a CommitLogEntry.
-		return iss.applyLogEntryHashResult(result.Digests[0], t.SeqNr(origin.LogEntrySn))
-	default:
-		return nil, fmt.Errorf("unknown origin of hash result: %T", origin)
-	}
-}
-
 // applySBInstDeliver processes the event of an SB instance delivering a certificate (or the special abort value)
 // for a sequence number. It creates a corresponding commitLog entry and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
 // Operation continues on reception of the HashResult event.
-func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) *events.EventList {
+func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) (*events.EventList, error) {
 
 	// Create a new preliminary log entry based on the delivered certificate and hash it.
 	// Note that, although tempting, the hash used internally by the SB implementation cannot be re-used.
 	// Apart from making the SB abstraction extremely leaky (reason enough not to do it), it would also be incorrect.
 	// E.g., in PBFT, if the digest of the corresponding Preprepare message was used, the hashes at different nodes
 	// might mismatch, if they commit in different PBFT views (and thus using different Preprepares).
-	unhashedEntry := &CommitLogEntry{
+	logEntry := &CommitLogEntry{
 		Sn:       t.SeqNr(deliver.Sn),
 		CertData: deliver.CertData,
 		Digest:   nil,
@@ -384,17 +374,18 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) *events.EventList {
 		Suspect:  t.NodeID(deliver.Leader),
 	}
 
-	// Save the preliminary hash entry to a map where it can be looked up when the hash result arrives.
-	iss.unhashedLogEntries[unhashedEntry.Sn] = unhashedEntry
+	digest := iss.computeHash(serializeLogEntryForHashing(logEntry))
 
-	// Create a HashRequest for the commit log entry with the newly delivered hash.
-	// The hash is required for state transfer.
-	// Only after the hash is computed, the log entry can be stored in the log (and potentially delivered to the App).
-	return events.ListOf(events.HashRequest(
-		iss.moduleConfig.Hasher,
-		[][][]byte{serializeLogEntryForHashing(unhashedEntry)},
-		LogEntryHashOrigin(iss.moduleConfig.Self, unhashedEntry.Sn),
-	))
+	// Attach digest to entry.
+	logEntry.Digest = digest
+
+	// Insert the entry in the commitLog.
+	iss.commitLog[logEntry.Sn] = logEntry
+
+	// Deliver commitLog entries to the application in sequence number order.
+	// This is relevant in the case when the sequence number of the currently SB-delivered certificate
+	// is the first sequence number not yet delivered to the application.
+	return iss.processCommitted()
 }
 
 // applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
@@ -479,28 +470,6 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 	}
 
 	return eventsOut, nil
-}
-
-// applyLogEntryHashResult applies the event of receiving the digest of a delivered CommitLogEntry.
-// It attaches the digest to the entry and inserts the entry to the commit log.
-// Based on the state of the commitLog, it may trigger delivering certificates to the application.
-func (iss *ISS) applyLogEntryHashResult(digest []byte, logEntrySN t.SeqNr) (*events.EventList, error) {
-
-	// Remove pending CommitLogEntry from the "waiting room"
-	logEntry := iss.unhashedLogEntries[logEntrySN]
-	delete(iss.unhashedLogEntries, logEntrySN)
-
-	// Attach digest to entry.
-	logEntry.Digest = digest
-
-	// Insert the entry in the commitLog.
-	iss.commitLog[logEntry.Sn] = logEntry
-
-	// Deliver commitLog entries to the application in sequence number order.
-	// This is relevant in the case when the sequence number of the currently SB-delivered certificate
-	// is the first sequence number not yet delivered to the application.
-	return iss.processCommitted()
-
 }
 
 func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*events.EventList, error) {
@@ -957,6 +926,20 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	eventsOut.PushBackList(iss.initOrderers())
 
 	return eventsOut, nil
+}
+
+func (iss *ISS) computeHash(data [][]byte) []byte {
+
+	// One data item consists of potentially multiple byte slices.
+	// Add each of them to the hash function.
+	h := iss.hashImpl.New()
+	for _, d := range data {
+		h.Write(d)
+	}
+
+	// Return resulting digest.
+	return h.Sum(nil)
+
 }
 
 // ============================================================
