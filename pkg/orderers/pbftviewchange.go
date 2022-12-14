@@ -122,15 +122,7 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 		t.TimeDuration(orderer.config.ViewChangeResendPeriod),
 		t.RetentionIndex(orderer.config.epochNr),
 	)
-	persistEvent := events.WALAppend(
-		orderer.moduleConfig.Wal,
-		OrdererEvent(
-			orderer.moduleConfig.Self,
-			PbftPersistSignedViewChange(signedViewChange)),
-		t.RetentionIndex(orderer.config.epochNr),
-	)
-	persistEvent.FollowUp(repeatedSendEvent)
-	return events.ListOf(persistEvent)
+	return events.ListOf(repeatedSendEvent)
 }
 
 // applyMsgSignedViewChange applies a signed view change message.
@@ -347,26 +339,17 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 		return true
 	})
 
-	// Construct, persist and send the NewView message.
+	// Construct and send the NewView message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	newView := pbftNewViewMsg(view, viewChangeSenders, signedViewChanges, preprepareSeqNrs, preprepares)
-	persistEvent := events.WALAppend(
-		orderer.moduleConfig.Wal,
-		OrdererEvent(
-			orderer.moduleConfig.Self,
-			PbftPersistNewView(newView)),
-		t.RetentionIndex(orderer.config.epochNr),
-	)
-	persistEvent.FollowUp(events.SendMessage(
+	return events.ListOf(events.SendMessage(
 		orderer.moduleConfig.Net,
 		OrdererMessage(
 			PbftNewViewSBMessage(newView),
 			orderer.moduleConfig.Self,
 		),
 		orderer.segment.Membership))
-
-	return events.ListOf(persistEvent)
 }
 
 func (orderer *Orderer) applyMsgNewView(newView *ordererspbftpb.NewView, from t.NodeID) *events.EventList {

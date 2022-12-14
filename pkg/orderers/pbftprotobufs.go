@@ -26,38 +26,6 @@ import (
 // Events
 // ============================================================
 
-func PbftPersistPreprepare(preprepare *ordererspbftpb.Preprepare) *ordererspb.SBInstanceEvent {
-	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftPersistPreprepare{
-		PbftPersistPreprepare: preprepare,
-	}}
-}
-
-func PbftPersistPrepare(prepare *ordererspbftpb.Prepare) *ordererspb.SBInstanceEvent {
-	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftPersistPrepare{
-		PbftPersistPrepare: prepare,
-	}}
-}
-
-func PbftPersistCommit(commit *ordererspbftpb.Commit) *ordererspb.SBInstanceEvent {
-	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftPersistCommit{
-		PbftPersistCommit: commit,
-	}}
-}
-
-func PbftPersistSignedViewChange(signedViewChange *ordererspbftpb.SignedViewChange) *ordererspb.SBInstanceEvent {
-	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftPersistSignedViewChange{
-		PbftPersistSignedViewChange: signedViewChange,
-	}}
-}
-
-func PbftPersistNewView(newView *ordererspbftpb.NewView) *ordererspb.SBInstanceEvent {
-	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftPersistNewView{
-		PbftPersistNewView: newView,
-	}}
-}
-
-// TODO: Generalize the Preprepare, Prepare, Commit, etc... persist events to one (PersistMessage)
-
 func PbftProposeTimeout(numProposals uint64) *ordererspb.SBInstanceEvent {
 	return &ordererspb.SBInstanceEvent{Type: &ordererspb.SBInstanceEvent_PbftProposeTimeout{
 		PbftProposeTimeout: numProposals,

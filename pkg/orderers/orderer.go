@@ -184,14 +184,9 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 			return orderer.applyViewChangeSNTimeout(e.PbftViewChangeSnTimeout), nil
 		case *ordererspb.SBInstanceEvent_PbftViewChangeSegTimeout:
 			return orderer.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.PbftViewChangeSegTimeout)), nil
-		case *ordererspb.SBInstanceEvent_PbftPersistPreprepare:
-			return orderer.applyPbftPersistPreprepare(e.PbftPersistPreprepare), nil
 		default:
 			return nil, fmt.Errorf("unknown PBFT SB instance event type: %T", ev.SbEvent.Type)
 		}
-	case *eventpb.Event_WalAppend:
-		// TODO: Ignoring WAL loading for the moment.
-		return events.ListOf(ev.WalAppend.Event), nil
 	default:
 		return nil, fmt.Errorf("unknown Orderer event type: %T", event.Type)
 	}
@@ -342,6 +337,7 @@ func (orderer *Orderer) canPropose() bool {
 // applyInit takes all the actions resulting from the PBFT Orderer's initial state.
 // The Init event is expected to be the first event applied to the Orderer,
 // except for events read from the WAL at startup, which are expected to be applied even before the Init event.
+// (At this time, the WAL is not used. TODO: Update this when wal is implemented.)
 func (orderer *Orderer) applyInit() *events.EventList {
 
 	eventsOut := events.EmptyList()
