@@ -107,33 +107,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-
-		5: {"Submit 10 fake requests with 4 nodes and gRPC networking",
-			&TestConfig{
-				NumReplicas:     4,
-				NumClients:      1,
-				Transport:       "grpc",
-				NumFakeRequests: 10,
-				Duration:        4 * time.Second,
-			}},
-		6: {"Submit 10 requests with 1 node and gRPC networking",
-			&TestConfig{
-				NumReplicas:    1,
-				NumClients:     1,
-				Transport:      "grpc",
-				NumNetRequests: 10,
-				Duration:       4 * time.Second,
-			}},
-		7: {"Submit 10 requests with 4 nodes and gRPC networking",
-			&TestConfig{
-				Info:           "grpc 10 requests and 4 nodes",
-				NumReplicas:    4,
-				NumClients:     1,
-				Transport:      "grpc",
-				NumNetRequests: 10,
-				Duration:       4 * time.Second,
-			}},
-		8: {"Submit 10 fake requests with 4 nodes and libp2p networking",
+		5: {"Submit 10 fake requests with 4 nodes and libp2p networking",
 			&TestConfig{
 				NumReplicas:     4,
 				NumClients:      1,
@@ -141,7 +115,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumFakeRequests: 10,
 				Duration:        10 * time.Second,
 			}},
-		9: {"Submit 10 requests with 1 node and libp2p networking",
+		6: {"Submit 10 requests with 1 node and libp2p networking",
 			&TestConfig{
 				NumReplicas:    1,
 				NumClients:     1,
@@ -149,7 +123,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumNetRequests: 10,
 				Duration:       10 * time.Second,
 			}},
-		10: {"Submit 10 requests with 4 nodes and libp2p networking",
+		7: {"Submit 10 requests with 4 nodes and libp2p networking",
 			&TestConfig{
 				Info:           "libp2p 10 requests and 4 nodes",
 				NumReplicas:    4,
@@ -158,21 +132,21 @@ func testIntegrationWithISS(t *testing.T) {
 				NumNetRequests: 10,
 				Duration:       15 * time.Second,
 			}},
-		11: {"Do nothing with 1 node in simulation",
+		8: {"Do nothing with 1 node in simulation",
 			&TestConfig{
 				NumReplicas: 1,
 				Transport:   "sim",
 				Duration:    4 * time.Second,
 			}},
 
-		12: {"Do nothing with 4 nodes in simulation, one of them slow",
+		9: {"Do nothing with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,
 				Transport:           "sim",
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		13: {"Submit 10 fake requests with 1 node in simulation",
+		10: {"Submit 10 fake requests with 1 node in simulation",
 			&TestConfig{
 				NumReplicas:     1,
 				Transport:       "sim",
@@ -180,7 +154,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Directory:       "mirbft-deployment-test",
 				Duration:        4 * time.Second,
 			}},
-		14: {"Submit 10 fake requests with 1 node in simulation, loading WAL",
+		11: {"Submit 10 fake requests with 1 node in simulation, loading WAL",
 			&TestConfig{
 				NumReplicas:     1,
 				NumClients:      1,
@@ -189,7 +163,7 @@ func testIntegrationWithISS(t *testing.T) {
 				Directory:       "mirbft-deployment-test",
 				Duration:        4 * time.Second,
 			}},
-		15: {"Submit 100 fake requests with 1 node in simulation",
+		12: {"Submit 100 fake requests with 1 node in simulation",
 			&TestConfig{
 				NumReplicas:     1,
 				NumClients:      0,
@@ -197,7 +171,7 @@ func testIntegrationWithISS(t *testing.T) {
 				NumFakeRequests: 100,
 				Duration:        20 * time.Second,
 			}},
-		16: {"Submit 100 fake requests with 4 nodes in simulation, one of them slow",
+		13: {"Submit 100 fake requests with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,
