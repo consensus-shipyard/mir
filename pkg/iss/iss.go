@@ -29,7 +29,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
@@ -158,13 +157,6 @@ type ISS struct {
 	// TODO: Move them into `epochInfo`?
 	// --------------------------------------------------------------------------------
 
-	// Buffers representing a backlog of messages destined to future epochs.
-	// A node that already transitioned to a newer epoch might send messages,
-	// while this node is slightly behind (still in an older epoch) and cannot process these messages yet.
-	// Such messages end up in this buffer (if there is buffer space) for later processing.
-	// The buffer is checked after each epoch transition.
-	messageBuffers map[t.NodeID]*messagebuffer.MessageBuffer
-
 	// The final log of committed availability certificates.
 	// For each sequence number, it holds the committed certificate (or the special abort value).
 	// Each Deliver event of an orderer translates to inserting an entry in the commitLog.
@@ -231,16 +223,10 @@ func New(ownID t.NodeID, moduleConfig *ModuleConfig, params *issutil.ModuleParam
 		nextNewMembership: startingChkp.Memberships()[len(startingChkp.Memberships())-1],  // just the last item
 
 		// Fields modified throughout an epoch
-		commitLog:          make(map[t.SeqNr]*CommitLogEntry),
-		unhashedLogEntries: make(map[t.SeqNr]*CommitLogEntry),
-		nextDeliveredSN:    startingChkp.SeqNr(),
-		newEpochSN:         startingChkp.SeqNr(),
-		messageBuffers: messagebuffer.NewBuffers(
-			// Create a message buffer for everyone except for myself.
-			issutil.RemoveNodeID(maputil.GetSortedKeys(params.InitialMembership), ownID),
-			params.MsgBufCapacity,
-			logging.Decorate(logger, "Msgbuf: "),
-		),
+		commitLog:            make(map[t.SeqNr]*CommitLogEntry),
+		unhashedLogEntries:   make(map[t.SeqNr]*CommitLogEntry),
+		nextDeliveredSN:      startingChkp.SeqNr(),
+		newEpochSN:           startingChkp.SeqNr(),
 		lastStableCheckpoint: startingChkp,
 		// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
 		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
@@ -798,29 +784,6 @@ func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.Nod
 
 	iss.epochs[newEpochNr] = &epoch
 	iss.epoch = &epoch
-
-	// TODO: DIRTY TRICK to get some capacity of any message buffer and copy it
-	//       Implement proper adapting of buffer capacities when changing the number of message buffers.
-	var mbCapacity int
-	b, ok := maputil.Any(iss.messageBuffers)
-	if !ok {
-		mbCapacity = iss.Params.MsgBufCapacity
-	} else {
-		mbCapacity = b.Capacity()
-	}
-
-	// Add new message buffers if not already present.
-	// TODO: Implement garbage collection of old ones.
-	//       Also, this is very dirty code. Fix!
-	for _, nodeID := range nodeIDs {
-		if _, ok := iss.messageBuffers[nodeID]; nodeID != iss.ownID && !ok {
-			iss.messageBuffers[nodeID] = messagebuffer.New(
-				nodeID,
-				mbCapacity,
-				logging.Decorate(logging.Decorate(iss.logger, "Msgbuf: "), "", "source", nodeID),
-			)
-		}
-	}
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
