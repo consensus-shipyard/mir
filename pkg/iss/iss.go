@@ -55,7 +55,6 @@ type ModuleConfig struct {
 	Self         t.ModuleID
 	Net          t.ModuleID
 	App          t.ModuleID
-	Wal          t.ModuleID
 	Hasher       t.ModuleID
 	Crypto       t.ModuleID
 	Timer        t.ModuleID
@@ -69,7 +68,6 @@ func DefaultModuleConfig() *ModuleConfig {
 		Self:         "iss",
 		Net:          "net",
 		App:          "batchfetcher",
-		Wal:          "wal",
 		Hasher:       "hasher",
 		Crypto:       "crypto",
 		Timer:        "timer",
@@ -346,6 +344,7 @@ func (iss *ISS) ImplementsModule() {}
 // applyInit initializes the ISS protocol.
 // This event is only expected to be applied once at startup,
 // after all the events stored in the WAL have been applied and before any other event has been applied.
+// (At this time, the WAL is not used. TODO: Update this when wal is implemented.)
 func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
@@ -555,16 +554,15 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 		}
 		eventsOut.PushBackList(pcResult)
 
-		// Prune old entries from WAL, old periodic timers, and ISS state pertaining to old epochs.
+		// Prune the state of all related modules.
 		// The state to prune is determined according to the retention index
 		// which is derived from the epoch number the new
 		// stable checkpoint is associated with.
 		pruneIndex := int(stableCheckpoint.Epoch()) - iss.Params.RetainedEpochs
 		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
-			// Prune WAL, timer, and checkpointing and availability protocols.
+			// Prune timer, checkpointing, availability, and orderers.
 			eventsOut.PushBackSlice([]*eventpb.Event{
-				events.WALTruncate(iss.moduleConfig.Wal, t.RetentionIndex(pruneIndex)),
 				events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
 				factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
 				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
@@ -748,7 +746,6 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 
 	// Prune WAL, timer, and checkpointing and availability protocols.
 	eventsOut.PushBackSlice([]*eventpb.Event{
-		events.WALTruncate(iss.moduleConfig.Wal, t.RetentionIndex(chkp.Epoch())),
 		events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(chkp.Epoch())),

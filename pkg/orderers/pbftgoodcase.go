@@ -146,25 +146,15 @@ func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, e
 
 	// Set up a new timer for the next proposal.
 
-	event := OrdererEvent(orderer.moduleConfig.Self,
+	ordererEvent := OrdererEvent(orderer.moduleConfig.Self,
 		PbftProposeTimeout(uint64(orderer.proposal.proposalsMade+1)))
 
 	timerEvent := events.TimerDelay(orderer.moduleConfig.Timer,
-		[]*eventpb.Event{event},
+		[]*eventpb.Event{ordererEvent},
 		t.TimeDuration(orderer.config.MaxProposeDelay),
 	)
 
-	// Create a WAL entry and an event to persist it.
-	persistEvent := events.WALAppend(
-		orderer.moduleConfig.Self,
-		OrdererEvent(orderer.moduleConfig.Self,
-			PbftPersistPreprepare(preprepare)),
-		t.RetentionIndex(orderer.config.epochNr),
-	)
-
-	// First the preprepare needs to be persisted to the WAL, and only then it can be sent to the network.
-	persistEvent.Next = []*eventpb.Event{msgSendEvent, timerEvent}
-	return events.ListOf(persistEvent), nil
+	return events.ListOf(msgSendEvent, timerEvent), nil
 }
 
 // applyMsgPreprepare applies a received preprepare message.
@@ -226,7 +216,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *ord
 	slot.Digest = digest
 	slot.Preprepared = true
 
-	// Send (and persist) a Prepare message.
+	// Send a Prepare message.
 	eventsOut.PushBackList(orderer.sendPrepare(pbftPrepareMsg(sn, orderer.view, digest)))
 
 	// Advance the state of the pbftSlot even more if necessary
@@ -237,28 +227,16 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *ord
 	return eventsOut
 }
 
-// sendPrepare creates events for persisting and sending a Prepare message.
-// The created send event is dependent on (a follow-up event of) the persist event.
+// sendPrepare creates an event for sending a Prepare message.
 func (orderer *Orderer) sendPrepare(prepare *ordererspbftpb.Prepare) *events.EventList {
 
-	// Create persist event.
-	persistEvent := events.WALAppend(
-		orderer.moduleConfig.Wal,
-		OrdererEvent(
-			orderer.moduleConfig.Self,
-			PbftPersistPrepare(prepare)),
-		t.RetentionIndex(orderer.config.epochNr))
-
-	// Append send event as a follow-up.
+	// Return a list with a single element - the send event containing a PBFT prepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	persistEvent.FollowUp(events.SendMessage(orderer.moduleConfig.Net,
+	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
 		OrdererMessage(PbftPrepareSBMessage(prepare), orderer.moduleConfig.Self),
 		orderer.segment.Membership,
 	))
-
-	// Return a list with a single element - the persist event with the send event as a follow-up.
-	return events.ListOf(persistEvent)
 }
 
 // applyMsgPrepare applies a received prepare message.
@@ -289,29 +267,15 @@ func (orderer *Orderer) applyMsgPrepare(prepare *ordererspbftpb.Prepare, from t.
 	return slot.advanceState(orderer, sn)
 }
 
-// sendCommit creates events for persisting and sending a Commit message.
-// The created send event is dependent on (a follow-up event of) the persist event.
+// sendCommit creates an event for sending a Commit message.
 func (orderer *Orderer) sendCommit(commit *ordererspbftpb.Commit) *events.EventList {
 
-	// Create persist event.
-	persistEvent := events.WALAppend(
-		orderer.moduleConfig.Wal,
-		OrdererEvent(
-			orderer.moduleConfig.Self,
-			PbftPersistCommit(commit),
-		),
-		t.RetentionIndex(orderer.config.epochNr),
-	)
-
-	// Append send event as a follow-up.
+	// Emit a send event with a PBFT Commit message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	persistEvent.FollowUp(events.SendMessage(orderer.moduleConfig.Net,
+	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
 		OrdererMessage(PbftCommitSBMessage(commit), orderer.moduleConfig.Self),
 		orderer.segment.Membership))
-
-	// Return a list with a single element - the persist event with the send event as a follow-up.
-	return events.ListOf(persistEvent)
 }
 
 // applyMsgCommit applies a received commit message.

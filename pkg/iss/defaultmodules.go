@@ -50,11 +50,5 @@ func DefaultModules(orig modules.Modules, moduleConfig *ModuleConfig) (modules.M
 		return nil, errors.New("no default Net implementation")
 	}
 
-	// If the WAL is not specified, no write-ahead log will be written
-	// and the node will not be able to restart.
-	if m[moduleConfig.Wal] == nil {
-		m[moduleConfig.Wal] = modules.NullPassive{}
-	}
-
 	return m, nil
 }

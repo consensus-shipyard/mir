@@ -83,7 +83,7 @@ func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr
 func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
-	// If the slot just became prepared, send (and persist) the Commit message.
+	// If the slot just became prepared, send the Commit message.
 	if !slot.Prepared && slot.checkPrepared() {
 		slot.Prepared = true
 		eventsOut.PushBackList(pbft.sendCommit(pbftCommitMsg(sn, pbft.view, slot.Digest)))
@@ -141,8 +141,6 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 				),
 			},
 		})
-
-		// TODO: Do we need to persist anything here?
 	}
 
 	return eventsOut
