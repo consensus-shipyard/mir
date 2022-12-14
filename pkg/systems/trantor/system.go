@@ -1,9 +1,9 @@
 package trantor
 
 import (
-	"github.com/pkg/errors"
+	"crypto"
 
-	"github.com/filecoin-project/mir/pkg/orderers"
+	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
@@ -16,6 +16,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/orderers"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -106,7 +107,7 @@ func New(
 	startingCheckpoint *checkpoint.StableCheckpoint,
 
 	// Implementation of the cryptographic primitives to be used for signing and verifying protocol messages.
-	crypto mircrypto.Crypto,
+	cryptoImpl mircrypto.Crypto,
 
 	// The replicated application logic.
 	// This is what the user of the SMR system is expected to implement.
@@ -132,6 +133,7 @@ func New(
 		issModuleConfig,
 		params.Iss,
 		startingCheckpoint,
+		crypto.SHA256,
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -185,7 +187,7 @@ func New(
 	// that it needs but that have not been specified explicitly.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		issModuleConfig.App:          batchFetcher,
-		issModuleConfig.Crypto:       mircrypto.New(crypto),
+		issModuleConfig.Crypto:       mircrypto.New(cryptoImpl),
 		issModuleConfig.Self:         issProtocol,
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
