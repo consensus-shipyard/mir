@@ -568,6 +568,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 				events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
 				factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
 				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
+				factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex)),
 			})
 			// TODO: Make EventList.PushBack accept a variable number of arguments and use it here.
 
@@ -751,6 +752,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 		events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(chkp.Epoch())),
+		factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(chkp.Epoch())),
 	})
 
 	return eventsOut, nil
