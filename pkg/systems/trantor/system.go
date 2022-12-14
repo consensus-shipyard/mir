@@ -124,6 +124,9 @@ func New(
 	logger logging.Logger,
 ) (*System, error) {
 
+	// Hash function to be used by all modules of the system.
+	hashImpl := crypto.SHA256
+
 	// Instantiate the ISS ordering protocol with default configuration.
 	// We use the ISS' default module configuration (the expected IDs of modules it interacts with)
 	// also to configure other modules of the system.
@@ -133,7 +136,7 @@ func New(
 		issModuleConfig,
 		params.Iss,
 		startingCheckpoint,
-		crypto.SHA256,
+		hashImpl,
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -150,7 +153,7 @@ func New(
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{
 			Self:   "mempool",
-			Hasher: issModuleConfig.Hasher,
+			Hasher: "hasher",
 		},
 		params.Mempool,
 	)
@@ -196,6 +199,7 @@ func New(
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
+		"hasher":                     mircrypto.NewHasher(hashImpl),
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")

@@ -1,11 +1,8 @@
 package iss
 
 import (
-	"crypto"
-
 	"github.com/pkg/errors"
 
-	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -21,11 +18,6 @@ func DefaultModules(orig modules.Modules, moduleConfig *ModuleConfig) (modules.M
 	// Copy originally assigned modules
 	for moduleID, module := range orig {
 		m[moduleID] = module
-	}
-
-	// If no hasher module has been specified, use default SHA256 hasher.
-	if m[moduleConfig.Hasher] == nil {
-		m[moduleConfig.Hasher] = mirCrypto.NewHasher(crypto.SHA256)
 	}
 
 	if m[moduleConfig.App] == nil {

@@ -55,7 +55,6 @@ type ModuleConfig struct {
 	Self         t.ModuleID
 	Net          t.ModuleID
 	App          t.ModuleID
-	Hasher       t.ModuleID
 	Crypto       t.ModuleID
 	Timer        t.ModuleID
 	Availability t.ModuleID
@@ -68,7 +67,6 @@ func DefaultModuleConfig() *ModuleConfig {
 		Self:         "iss",
 		Net:          "net",
 		App:          "batchfetcher",
-		Hasher:       "hasher",
 		Crypto:       "crypto",
 		Timer:        "timer",
 		Availability: "availability",
@@ -170,12 +168,6 @@ type ISS struct {
 	// but they are delivered to the application in that order.
 	commitLog map[t.SeqNr]*CommitLogEntry
 
-	// CommitLogEntries for which the hash has been requested, but not yet computed.
-	// When an orderer delivers a certificate, ISS creates a CommitLogEntry with a nil Hash, stores it here,
-	// and creates a HashRequest. When the HashResult arrives, ISS removes the CommitLogEntry from unhashedLogEntries,
-	// fills in the missing hash, and inserts it to the commitLog.
-	unhashedLogEntries map[t.SeqNr]*CommitLogEntry
-
 	// The first undelivered sequence number in the commitLog.
 	// This field drives the in-order delivery of the log entries to the application.
 	nextDeliveredSN t.SeqNr
@@ -236,7 +228,6 @@ func New(
 
 		// Fields modified throughout an epoch
 		commitLog:            make(map[t.SeqNr]*CommitLogEntry),
-		unhashedLogEntries:   make(map[t.SeqNr]*CommitLogEntry),
 		nextDeliveredSN:      startingChkp.SeqNr(),
 		newEpochSN:           startingChkp.SeqNr(),
 		lastStableCheckpoint: startingChkp,
@@ -671,7 +662,6 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	iss.epochs = make(map[t.EpochNr]*epochInfo)
 	// iss.epoch = nil // This will be overwritten by initEpoch anyway.
 	iss.commitLog = make(map[t.SeqNr]*CommitLogEntry)
-	iss.unhashedLogEntries = make(map[t.SeqNr]*CommitLogEntry)
 	iss.nextDeliveredSN = chkp.SeqNr()
 	iss.newEpochSN = iss.nextDeliveredSN
 
