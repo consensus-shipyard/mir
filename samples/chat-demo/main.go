@@ -17,11 +17,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventlog"
 	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
+
+	"github.com/filecoin-project/mir/pkg/eventlog"
 
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -222,15 +223,52 @@ func run() error {
 		return errors.Wrap(err, "could not create SMR system")
 	}
 
-	ownIdInt, _ := strconv.Atoi(string(args.OwnID))
+	ownIDInt, _ := strconv.Atoi(string(args.OwnID))
+
+	eventCount := 0
+	eventLimit := 100
+	cutOffBound := func(eventTime eventlog.EventTime) *[]eventlog.EventTime {
+		// Create a slice to hold the slices of eventTime elements
+		var result []eventlog.EventTime
+		// Create a variable to hold the current chunk
+		currentChunk := &eventlog.EventTime{
+			Time:   eventTime.Time,
+			Events: events.EmptyList(),
+		}
+
+		// Iterate over the events in the input slice
+		for _, event := range eventTime.Events.Slice() {
+			// Add the current element to the current chunk
+			currentChunk.Events.PushBack(event)
+			eventCount++
+			// If the current chunk has the desired number of events, append it to the result and start a new chunk
+			if eventCount%eventLimit == 0 {
+				result = append(result, *currentChunk)
+				currentChunk = &eventlog.EventTime{
+					Time:   eventTime.Time,
+					Events: events.EmptyList(),
+				}
+			}
+		}
+
+		// If there is a remaining chunk with fewer than the desired number of events, append it to the result
+		if currentChunk.Events.Len() > 0 {
+			result = append(result, *currentChunk)
+		}
+
+		return &result
+	}
 
 	//Initialize recording of events
 	interceptor, err := eventlog.NewRecorder(args.OwnID,
-		fmt.Sprintf("node%d", ownIdInt),
+		fmt.Sprintf("node%d", ownIDInt),
 		logging.Decorate(logging.ConsoleTraceLogger, "Interceptor: "),
-		func(event eventlog.EventTime) *[]eventlog.EventTime { return &[]eventlog.EventTime{event} },
+		cutOffBound,
+		//(Legacy one file mode:) func(event eventlog.EventTime) *[]eventlog.EventTime { return &[]eventlog.EventTime{event} },
 	)
-
+	if err != nil {
+		return errors.Wrap(err, "could not create new recorder")
+	}
 	// Create a Mir node, passing it all the modules of the SMR system.
 	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, interceptor)
 	if err != nil {

@@ -58,7 +58,7 @@ type TestReplica struct {
 
 // EventLogFile returns the name of the file where the replica's event log is stored.
 func (tr *TestReplica) EventLogFile() string {
-	return filepath.Join(tr.Dir, "eventlog.gz")
+	return filepath.Join(tr.Dir, "eventlog0.gz")
 }
 
 // Run initializes all the required modules and starts the test replica.

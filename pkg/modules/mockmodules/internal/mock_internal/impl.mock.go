@@ -7,9 +7,10 @@ package mock_internal
 import (
 	reflect "reflect"
 
+	gomock "github.com/golang/mock/gomock"
+
 	events "github.com/filecoin-project/mir/pkg/events"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockModuleImpl is a mock of ModuleImpl interface.
