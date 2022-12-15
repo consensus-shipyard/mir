@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -123,6 +124,8 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	// Logger used by the node.
 	logger := logging.ConsoleDebugLogger
 
+	cryptoImpl := &mirCrypto.DummyCrypto{DummySig: []byte{0}}
+
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
 	issConfig := issutil.DefaultParams(membership)
@@ -131,6 +134,8 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		iss.DefaultModuleConfig(),
 		issConfig,
 		checkpoint.Genesis(iss.InitialStateSnapshot([]byte{}, issConfig)),
+		crypto.SHA256,
+		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -142,7 +147,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	// Instantiate and return a minimal Mir Node.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":    nullTransport,
-		"crypto": mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
+		"crypto": mirCrypto.New(cryptoImpl),
 		"app": trantor.NewAppModule(
 			trantor.AppLogicFromStatic(deploytest.NewFakeApp(), map[t.NodeID]t.NodeAddress{}),
 			nullTransport,

@@ -24,11 +24,6 @@ func DefaultModules(orig modules.Modules, moduleConfig *ModuleConfig) (modules.M
 		return nil, errors.New("no default ISS app implementation")
 	}
 
-	if m[moduleConfig.Crypto] == nil {
-		// TODO: Use default crypto once implemented and tested.
-		return nil, errors.New("no default crypto implementation")
-	}
-
 	if m[moduleConfig.Self] == nil {
 		return nil, errors.New("ISS protocol must be specified explicitly")
 	}
