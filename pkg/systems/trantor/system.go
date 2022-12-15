@@ -137,6 +137,7 @@ func New(
 		params.Iss,
 		startingCheckpoint,
 		hashImpl,
+		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),
 	)
 	if err != nil {
@@ -170,7 +171,7 @@ func New(
 		&multisigcollector.ModuleConfig{
 			Self:    issModuleConfig.Availability,
 			Net:     issModuleConfig.Net,
-			Crypto:  issModuleConfig.Crypto,
+			Crypto:  "crypto",
 			Mempool: "mempool",
 			BatchDB: "batchdb",
 		},
@@ -190,7 +191,6 @@ func New(
 	// that it needs but that have not been specified explicitly.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		issModuleConfig.App:          batchFetcher,
-		issModuleConfig.Crypto:       mircrypto.New(cryptoImpl),
 		issModuleConfig.Self:         issProtocol,
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
@@ -200,6 +200,7 @@ func New(
 		"mempool":                    mempool,
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
 		"hasher":                     mircrypto.NewHasher(hashImpl),
+		"crypto":                     mircrypto.New(cryptoImpl),
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")

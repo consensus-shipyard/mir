@@ -17,20 +17,18 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/crypto"
-	"github.com/filecoin-project/mir/pkg/orderers"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
-
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/contextstore"
+	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
@@ -40,8 +38,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -55,7 +53,6 @@ type ModuleConfig struct {
 	Self         t.ModuleID
 	Net          t.ModuleID
 	App          t.ModuleID
-	Crypto       t.ModuleID
 	Timer        t.ModuleID
 	Availability t.ModuleID
 	Checkpoint   t.ModuleID
@@ -67,7 +64,6 @@ func DefaultModuleConfig() *ModuleConfig {
 		Self:         "iss",
 		Net:          "net",
 		App:          "batchfetcher",
-		Crypto:       "crypto",
 		Timer:        "timer",
 		Availability: "availability",
 		Checkpoint:   "checkpoint",
@@ -120,6 +116,9 @@ type ISS struct {
 
 	// Implementation of the hash function to use by ISS for computing all hashes.
 	hashImpl crypto.HashImpl
+
+	// Verifier of received stable checkpoints. This is most likely going to be the crypto module used by the protocol.
+	chkpVerifier checkpoint.Verifier
 
 	// Logger the ISS implementation uses to output log messages.
 	// This is mostly for debugging - not to be confused with the commit log.
@@ -198,6 +197,7 @@ func New(
 	params *issutil.ModuleParams,
 	startingChkp *checkpoint.StableCheckpoint,
 	hashImpl crypto.HashImpl,
+	chkpVerifier checkpoint.Verifier,
 	logger logging.Logger,
 ) (*ISS, error) {
 	if logger == nil {
@@ -217,6 +217,7 @@ func New(
 		ownID:        ownID,
 		moduleConfig: moduleConfig,
 		hashImpl:     hashImpl,
+		chkpVerifier: chkpVerifier,
 		logger:       logger,
 
 		// Fields modified only by initEpoch
@@ -291,8 +292,6 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return iss.applyInit()
-	case *eventpb.Event_NodeSigsVerified:
-		return iss.applyNodeSigsVerified(e.NodeSigsVerified)
 	case *eventpb.Event_NewConfig:
 		return iss.applyNewConfig(e.NewConfig)
 	case *eventpb.Event_Checkpoint:
@@ -377,26 +376,6 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) (*events.EventList,
 	// This is relevant in the case when the sequence number of the currently SB-delivered certificate
 	// is the first sequence number not yet delivered to the application.
 	return iss.processCommitted()
-}
-
-// applyNodeSigVerified applies the NodeSigVerified event to the state of the ISS protocol state machine.
-// Such an event means that a signature verification requested by this module has been completed by the Crypto module
-// and is now ready to be processed.
-func (iss *ISS) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events.EventList, error) {
-	// We know already that the SigVerOrigin is of type ISS, since ISS produces no other types
-	// and all NodeSigVerified events with a different origin would not have been routed here.
-	issOrigin := result.Origin.Type.(*eventpb.SigVerOrigin_Iss).Iss
-
-	// Further inspect the origin of the initial signature verification request and decide what to do with it.
-	switch origin := issOrigin.Type.(type) {
-	case *isspb.ISSSigVerOrigin_StableCheckpoint:
-		return iss.applyStableCheckpointSigVerResult(
-			result.AllOk,
-			(*checkpoint.StableCheckpoint)(origin.StableCheckpoint),
-		)
-	default:
-		return nil, fmt.Errorf("unknown origin of sign result: %T", origin)
-	}
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
@@ -599,54 +578,31 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 // applyStableCheckpointMessage processes a received StableCheckpoint message
 // by creating a request for verifying the signatures in the included checkpoint certificate.
 // The actual processing then happens in applyStableCheckpointSigVerResult.
-func (iss *ISS) applyStableCheckpointMessage(chkp *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
+func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
-	// Extract signatures and the signing node IDs from the received message.
-	// TODO: Using underlying protobuf type for node ID explicitly here (nodeID string).
-	//       Modify the code to only use the abstract type.
-	nodeIDs := make([]t.NodeID, 0)
-	signatures := make([][]byte, 0)
-	maputil.IterateSorted(chkp.Cert, func(nodeID string, signature []byte) bool {
-		nodeIDs = append(nodeIDs, t.NodeID(nodeID))
-		signatures = append(signatures, signature)
-		return true
-	})
-
-	// Request verification of signatures in the checkpoint certificate
-	return events.ListOf(events.VerifyNodeSigs(
-		"crypto",
-
-		// TODO: !!!! This is wrong !!!!
-		//       The snapshot first has to be hashed and only then the signatures can be verified.
-		//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
-
-		[][][]byte{serializing.CheckpointForSig(
-			t.EpochNr(chkp.Snapshot.EpochData.EpochConfig.EpochNr),
-			t.SeqNr(chkp.Sn),
-			[]byte{0},
-		)},
-		signatures,
-		nodeIDs,
-		StableCheckpointSigVerOrigin(iss.moduleConfig.Self, chkp),
-	)), nil
-}
-
-// applyStableCheckpointSigVerResult applies a StableCheckpoint message
-// the signature of which signature has been verified.
-// It checks the message and decides whether to install the state snapshot from the message.
-func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	// TODO: !!!! This is wrong !!!!
-	//       The snapshot first has to be hashed and only then the signatures can be verified.
-	//       Using dummy value []byte{0} for state snapshot hash for now and skipping verification.
+	chkp := checkpoint.StableCheckpointFromPb(chkpPb)
 
-	// // Ignore checkpoint with in valid or insufficiently many signatures.
-	// // TODO: Make sure this code still works when reconfiguration is implemented.
-	// if !signaturesOK || len(chkp.Cert) < weakQuorum(len(iss.params.Membership)) {
-	//	iss.logger.Log(logging.LevelWarn, "Ignoring invalid stable checkpoint message.", "epoch", chkp.Epoch)
-	//	return eventsOut
-	// }
+	// TODO: Technically this is wrong.
+	//       The memberhips information in the checkpint is used to verify the checkpoint itself.
+	//       This makes it possible to construct an arbitrary valid checkpoint.
+	//       Use an independent local source of memberhip information instead.
+	if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkp.Memberships()[0]); err != nil {
+		iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Certificate don walid.",
+			"localEpoch", iss.epoch.Nr(),
+			"chkpEpoch", chkp.Epoch(),
+		)
+		return eventsOut, nil
+	}
+
+	// Check if checkpoint contains the configured number of configurations.
+	if len(chkp.Memberships()) != iss.Params.ConfigOffset+1 {
+		iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Membership configuration mismatch.",
+			"expectedNum", iss.Params.ConfigOffset+1,
+			"receivedNum", len(chkp.Memberships()))
+		return eventsOut, nil
+	}
 
 	// Check how far the received stable checkpoint is ahead of the local node's state.
 	if chkp.Epoch() <= iss.epoch.Nr()+1 {
@@ -666,7 +622,6 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	iss.newEpochSN = iss.nextDeliveredSN
 
 	// Initialize a new ISS epoch instance for the new stable checkpoint to continue participating in the protocol.
-	// TODO: Check if all the configurations are present in the checkpoint.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
 	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.Params.LeaderPolicy)
 
@@ -698,6 +653,7 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	})
 
 	return eventsOut, nil
+
 }
 
 func (iss *ISS) bootstrapAvailability() *events.EventList {
