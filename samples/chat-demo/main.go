@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"io/ioutil"
 	"net"
 	"os"
@@ -221,8 +222,17 @@ func run() error {
 		return errors.Wrap(err, "could not create SMR system")
 	}
 
+	ownIdInt, _ := strconv.Atoi(string(args.OwnID))
+
+	//Initialize recording of events
+	interceptor, err := eventlog.NewRecorder(args.OwnID,
+		fmt.Sprintf("node%d", ownIdInt),
+		logging.Decorate(logging.ConsoleTraceLogger, "Interceptor: "),
+		func(event eventlog.EventTime) *[]eventlog.EventTime { return &[]eventlog.EventTime{event} },
+	)
+
 	// Create a Mir node, passing it all the modules of the SMR system.
-	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, nil)
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, interceptor)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}

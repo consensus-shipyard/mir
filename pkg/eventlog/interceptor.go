@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -32,13 +33,13 @@ import (
 )
 
 // Interceptor provides a way to gain insight into the internal operation of the node.
-// Before being passed to the respective target modules, events can be intercepted and logged
+// Before being passed to the respective target modules, Events can be intercepted and logged
 // for later analysis or replaying.
 type Interceptor interface {
 
-	// Intercept is called each time events are passed to a module, if an Interceptor is present in the node.
-	// The expected behavior of Intercept is to add the intercepted events to a log for later analysis.
-	// TODO: In the comment, also refer to the way events can be analyzed or replayed.
+	// Intercept is called each Time Events are passed to a module, if an Interceptor is present in the node.
+	// The expected behavior of Intercept is to add the intercepted Events to a log for later analysis.
+	// TODO: In the comment, also refer to the way Events can be analyzed or replayed.
 	Intercept(events *events.EventList) error
 }
 
@@ -46,11 +47,11 @@ type RecorderOpt interface{}
 
 type timeSourceOpt func() int64
 
-// TimeSourceOpt can be used to override the default time source
+// TimeSourceOpt can be used to override the default Time source
 // for an interceptor.  This can be useful for changing the
 // granularity of the timestamps, or picking some externally
 // supplied sync point when trying to synchronize logs.
-// The default time source will timestamp with the time, in
+// The default Time source will timestamp with the Time, in
 // milliseconds since the interceptor was created.
 func TimeSourceOpt(source func() int64) RecorderOpt {
 	return timeSourceOpt(source)
@@ -83,7 +84,7 @@ func CompressionLevelOpt(level int) RecorderOpt {
 	return compressionLevelOpt(level)
 }
 
-// DefaultBufferSize is the number of unwritten state events which
+// DefaultBufferSize is the number of unwritten state Events which
 // may be held in queue before blocking.
 const DefaultBufferSize = 5000
 
@@ -91,14 +92,14 @@ type bufferSizeOpt int
 
 // BufferSizeOpt overrides the default buffer size of the
 // interceptor buffer.  Once the buffer overflows, the state
-// machine will be blocked from receiving new state events
+// machine will be blocked from receiving new state Events
 // until the buffer has room.
 func BufferSizeOpt(size int) RecorderOpt {
 	return bufferSizeOpt(size)
 }
 
 // Recorder is intended to be used as an imlementation of the
-// mir.EventInterceptor interface.  It receives state events,
+// mir.EventInterceptor interface.  It receives state Events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
 	nodeID            t.NodeID
@@ -106,15 +107,18 @@ type Recorder struct {
 	timeSource        func() int64
 	compressionLevel  int
 	retainRequestData bool
-	eventC            chan eventTime
+	eventC            chan EventTime
 	doneC             chan struct{}
 	exitC             chan struct{}
+	fileCount         int
+	newDests          func(EventTime) *[]EventTime
+	path              string
 
 	exitErr      error
 	exitErrMutex sync.Mutex
 }
 
-func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...RecorderOpt) (*Recorder, error) {
+func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, newDests func(EventTime) *[]EventTime, opts ...RecorderOpt) (*Recorder, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -125,7 +129,7 @@ func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...Re
 		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
 	}
 
-	dest, err := os.Create(filepath.Join(path, "eventlog.gz"))
+	dest, err := os.Create(filepath.Join(path, "eventlog0.gz"))
 	if err != nil {
 		return nil, fmt.Errorf("error creating event log file: %w", err)
 	}
@@ -137,9 +141,12 @@ func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...Re
 			return time.Since(startTime).Milliseconds()
 		},
 		compressionLevel: DefaultCompressionLevel,
-		eventC:           make(chan eventTime, DefaultBufferSize),
+		eventC:           make(chan EventTime, DefaultBufferSize),
 		doneC:            make(chan struct{}),
 		exitC:            make(chan struct{}),
+		fileCount:        1,
+		newDests:         newDests,
+		path:             path,
 	}
 
 	for _, opt := range opts {
@@ -151,7 +158,7 @@ func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...Re
 		case compressionLevelOpt:
 			i.compressionLevel = int(v)
 		case bufferSizeOpt:
-			i.eventC = make(chan eventTime, v)
+			i.eventC = make(chan EventTime, v)
 		}
 	}
 
@@ -167,9 +174,9 @@ func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, opts ...Re
 	return i, nil
 }
 
-type eventTime struct {
-	events *events.EventList
-	time   int64
+type EventTime struct {
+	Events *events.EventList
+	Time   int64
 }
 
 // Intercept takes an event and enqueues it into the event buffer.
@@ -178,9 +185,9 @@ type eventTime struct {
 // returns an error.
 func (i *Recorder) Intercept(events *events.EventList) error {
 	select {
-	case i.eventC <- eventTime{
-		events: events,
-		time:   i.timeSource(),
+	case i.eventC <- EventTime{
+		Events: events,
+		Time:   i.timeSource(),
 	}:
 		return nil
 	case <-i.exitC:
@@ -211,32 +218,61 @@ func (i *Recorder) Stop() error {
 var errStopped = fmt.Errorf("interceptor stopped at caller request")
 
 func (i *Recorder) run() (exitErr error) {
-	cnt := 0 // Counts total number of events written.
+	cnt := 0 // Counts total number of Events written.
 
 	defer func() {
 		i.exitErrMutex.Lock()
 		i.exitErr = exitErr
 		i.exitErrMutex.Unlock()
 		close(i.exitC)
-		fmt.Printf("Intercepted events written to event log: %d\n", cnt)
+		fmt.Printf("Intercepted Events written to event log: %d\n", cnt)
 	}()
 
-	gzWriter, err := gzip.NewWriterLevel(i.dest, i.compressionLevel)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := gzWriter.Close(); err != nil {
-			fmt.Printf("Error closing gzWriter: %v\n", err)
+	write := func(dest io.Writer, eventTime EventTime) error {
+
+		gzWriter, err := gzip.NewWriterLevel(dest, i.compressionLevel)
+		if err != nil {
+			return err
 		}
-	}()
+		defer func() {
+			if err := gzWriter.Close(); err != nil {
+				fmt.Printf("Error closing gzWriter: %v\n", err)
+			}
+		}()
 
-	write := func(eventTime eventTime) error {
 		return WriteRecordedEvent(gzWriter, &recordingpb.Entry{
 			NodeId: i.nodeID.Pb(),
-			Time:   eventTime.time,
-			Events: eventTime.events.Slice(),
+			Time:   eventTime.Time,
+			Events: eventTime.Events.Slice(),
 		})
+	}
+
+	writeInFiles := func(event EventTime) error {
+		eventByDests := i.newDests(event)
+		count := 0
+		for _, eventTime := range *eventByDests {
+			if count > 0 {
+				// newDest required
+				dest, err := os.Create(filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"))
+				if err != nil {
+					return err
+				}
+				err = i.dest.Close()
+				if err != nil {
+					return err
+				}
+				i.dest = dest
+				i.fileCount++
+			}
+
+			if eventTime.Events.Len() != 0 {
+				if err := write(i.dest, event); err != nil {
+					return err
+				}
+			}
+			count++
+		}
+		return nil
 	}
 
 	for {
@@ -246,7 +282,7 @@ func (i *Recorder) run() (exitErr error) {
 				select {
 				case event := <-i.eventC:
 
-					if err := write(event); err != nil {
+					if err := writeInFiles(event); err != nil {
 						return errors.WithMessage(err, "error serializing to stream")
 					}
 				default:
@@ -254,7 +290,7 @@ func (i *Recorder) run() (exitErr error) {
 				}
 			}
 		case event := <-i.eventC:
-			if err := write(event); err != nil {
+			if err := writeInFiles(event); err != nil {
 				return errors.WithMessage(err, "error serializing to stream")
 			}
 			cnt++
