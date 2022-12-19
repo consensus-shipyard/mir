@@ -5,6 +5,7 @@ import (
 
 	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -105,8 +106,14 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	// and forwards the event to the application, so it can restore its state too.
 	dsl.UponEvent[*eventpb.Event_AppRestoreState](m, func(restoreState *eventpb.AppRestoreState) error {
 
-		// Load client progress from checkpoint.
-		clientProgress.LoadPb(restoreState.Checkpoint.Snapshot.EpochData.ClientProgress)
+		// Load the checkpoint from the received event.
+		chkp := checkpoint.StableCheckpointFromPb(restoreState.Checkpoint)
+
+		// Update current epoch number.
+		epochNr = chkp.Epoch()
+
+		// Load client progress.
+		clientProgress.LoadPb(chkp.StateSnapshot().EpochData.ClientProgress)
 
 		// Reset output event queue.
 		// This is necessary to prune any pending output to the application
