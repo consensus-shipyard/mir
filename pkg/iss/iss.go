@@ -745,6 +745,14 @@ func (iss *ISS) applyStableCheckpointSigVerResult(signaturesOK bool, chkp *check
 	// from the snapshot.
 	eventsOut.PushBackList(iss.initOrderers())
 
+	// Prune WAL, timer, and checkpointing and availability protocols.
+	eventsOut.PushBackSlice([]*eventpb.Event{
+		events.WALTruncate(iss.moduleConfig.Wal, t.RetentionIndex(chkp.Epoch())),
+		events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(chkp.Epoch())),
+		factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(chkp.Epoch())),
+		factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(chkp.Epoch())),
+	})
+
 	return eventsOut, nil
 }
 
