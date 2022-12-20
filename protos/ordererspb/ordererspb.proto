@@ -6,7 +6,6 @@ import "commonpb/commonpb.proto";
 import "ordererspbftpb/ordererspbftpb.proto";
 import "requestpb/requestpb.proto";
 import "availabilitypb/availabilitypb.proto";
-import "checkpointpb/checkpointpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererspb";
 
