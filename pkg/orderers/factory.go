@@ -1,8 +1,6 @@
 package orderers
 
 import (
-	"strconv"
-
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -31,12 +29,8 @@ func Factory(mc *ModuleConfig, issParams *issutil.ModuleParams, ownID t.NodeID, 
 
 				availabilityID := t.ModuleID(p.AvailabilityId)
 				submc.Ava = availabilityID
-				epoch, err := strconv.ParseUint(string(submc.Self.Sub()[0:1]), 10, 64)
-				if err != nil {
-					return nil, err
-				}
 
-				epochNr := t.EpochNr(epoch)
+				epoch := t.EpochNr(p.Epoch)
 				// Get the segment parameters
 				membership := t.NodeIDSlice(p.Segment.Membership)
 				seqNrs := t.SeqNrSlice(p.Segment.SeqNrs)
@@ -55,7 +49,7 @@ func Factory(mc *ModuleConfig, issParams *issutil.ModuleParams, ownID t.NodeID, 
 					newOrdererConfig(
 						issParams,
 						membership,
-						epochNr,
+						epoch,
 					),
 
 					//TODO better logging here
