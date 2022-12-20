@@ -61,6 +61,7 @@ func SigVerOrigin(module t.ModuleID, origin *ordererspb.SBInstanceSigVerOrigin) 
 func InstanceParams(
 	segment *Segment,
 	availabilityID t.ModuleID,
+	epoch t.EpochNr,
 ) *factorymodulepb.GeneratorParams {
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_PbftModule{
 		PbftModule: &ordererspb.PBFTModule{
@@ -70,6 +71,7 @@ func InstanceParams(
 				SeqNrs:     t.SeqNrSlicePb(segment.SeqNrs),
 			},
 			AvailabilityId: availabilityID.Pb(),
+			Epoch:          epoch.Pb(),
 		},
 	}}
 }

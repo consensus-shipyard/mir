@@ -156,4 +156,5 @@ message PBFTSegment {
 message PBFTModule{
   PBFTSegment segment = 1;
   string availability_id = 2;
+  uint64 epoch = 3;
 }
