@@ -162,8 +162,10 @@ func TestFactoryModule(t *testing.T) {
 			evOut, err := echoFactory.ApplyEvents(events.ListOf(wrongEvent))
 			assert.NoError(t, err)
 			assert.Equal(t, 0, evOut.Len())
-			logger.CheckFirstEntry(t, logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
-				"moduleID", echoFactoryID.Then("non-existent-module"), "eventType", fmt.Sprintf("%T", wrongEvent.Type))
+			logger.CheckFirstEntry(t, logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
+				"moduleID", echoFactoryID.Then("non-existent-module"),
+				"eventType", fmt.Sprintf("%T", wrongEvent.Type),
+				"eventValue", fmt.Sprintf("%v", wrongEvent.Type))
 			logger.CheckEmpty(t)
 		},
 
@@ -184,6 +186,7 @@ func TestFactoryModule(t *testing.T) {
 					"Hi!"),
 				)
 			}
+			evSlice := evList.Slice()
 			evOut, err := echoFactory.ApplyEvents(evList)
 			assert.NoError(t, err)
 			assert.Equal(t, 3, evOut.Len())
@@ -196,12 +199,10 @@ func TestFactoryModule(t *testing.T) {
 			})
 
 			for i := 0; i < 3; i++ {
-				logger.CheckAnyEntry(t, logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
+				logger.CheckAnyEntry(t, logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
 					"moduleID", echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
-					"eventType", fmt.Sprintf("%T", events.TestingString(
-						echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
-						"Hi!",
-					).Type),
+					"eventType", fmt.Sprintf("%T", evSlice[i].Type),
+					"eventValue", fmt.Sprintf("%v", evSlice[i].Type),
 				)
 			}
 
