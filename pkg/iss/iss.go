@@ -343,9 +343,19 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	// Initialize application state according to the initial checkpoint.
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.Pb()))
 
+	// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
+	eventsOut.PushBackList(iss.startEpoch())
+
+	return eventsOut, nil
+}
+
+// startEpoch emits the events necessary for a new epoch to start operating.
+// This includes informing the application about the new epoch and initializing all the necessary external modules
+// such as availability and orderers.
+func (iss *ISS) startEpoch() *events.EventList {
+	eventsOut := events.EmptyList()
+
 	// Signal the new epoch to the application.
-	// This must happen after the state is restored,
-	// so the application has the correct state for returning the next configuration.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
 
 	// Initialize the new availability module.
@@ -354,7 +364,7 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	// Initialize the orderer modules for the current epoch.
 	eventsOut.PushBackList(iss.initOrderers())
 
-	return eventsOut, nil
+	return eventsOut
 }
 
 // applySBInstDeliver processes the event of an SB instance delivering a certificate (or the special abort value)
@@ -650,18 +660,10 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// stable checkpoint message.
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Pb()))
 
-	// Signal the new epoch to the application.
+	// Start executing the current epoch (the one the checkpoint corresponds to).
 	// This must happen after the state is restored,
 	// so the application has the correct state for returning the next configuration.
-	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, chkp.Epoch()))
-
-	// Initialize the new availability module.
-	eventsOut.PushBack(iss.initAvailability())
-
-	// Activate SB instances of the new epoch which will deliver
-	// availability certificates after the application module has restored the state
-	// from the snapshot.
-	eventsOut.PushBackList(iss.initOrderers())
+	eventsOut.PushBackList(iss.startEpoch())
 
 	// Prune WAL, timer, and checkpointing and availability protocols.
 	eventsOut.PushBackSlice([]*eventpb.Event{
@@ -827,11 +829,11 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	iss.epoch = &epoch
 	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
 
-	// Signal the new epoch to the application.
+	// Start executing the new epoch.
 	// This must happen before starting the checkpoint protocol, since the application
 	// must already be in the new epoch when processing the state snapshot request
 	// emitted by the checkpoint sub-protocol.
-	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, newEpochNr))
+	eventsOut.PushBackList(iss.startEpoch())
 
 	// Create a new checkpoint tracker to start the checkpointing protocol.
 	// This must happen after initialization of the new epoch,
@@ -859,12 +861,6 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	// This is because the NewModule event will already be enqueued for the checkpoint factory
 	// when the application receives the snapshot request.
 	eventsOut.PushBack(events.AppSnapshotRequest(iss.moduleConfig.App, chkpModuleID))
-
-	// Give the init signals to the newly instantiated orderers.
-	eventsOut.PushBackList(iss.initOrderers())
-
-	// Initialize the new availability module.
-	eventsOut.PushBack(iss.initAvailability())
 
 	return eventsOut, nil
 }
