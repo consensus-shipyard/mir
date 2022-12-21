@@ -177,8 +177,8 @@ func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, 
 func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
 	msg, ok := event.Type.(*eventpb.Event_MessageReceived)
 	if !ok {
-		fm.logger.Log(logging.LevelInfo, "Ignoring submodule event. Destination module not found.",
-			"moduleID", t.ModuleID(event.DestModule), "eventType", fmt.Sprintf("%T", event.Type))
+		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
+			"moduleID", t.ModuleID(event.DestModule), "eventType", fmt.Sprintf("%T", event.Type), "evt", event.Type)
 		return
 	}
 
