@@ -5,12 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 */
 
 // Package iss contains the implementation of the ISS protocol, the new generation of Mir.
-// For the details of the protocol, see (TODO).
+// For the details of the protocol, see README.md in this directory.
 // To use ISS, instantiate it by calling `iss.New` and use it as the Protocol module when instantiating a mir.Node.
 // A default configuration (to pass, among other arguments, to `iss.New`)
 // can be obtained from `issutil.DefaultParams`.
-//
-// Current status: This package is currently being implemented and is not yet functional.
 package iss
 
 import (
@@ -22,7 +20,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
-	"github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
@@ -43,76 +40,20 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
-// ============================================================
-// Auxiliary types
-// ============================================================
-
-// ModuleConfig contains the names of modules ISS depends on.
-// The corresponding modules are expected by ISS to be stored under these keys by the Node.
-type ModuleConfig struct {
-	Self         t.ModuleID
-	Net          t.ModuleID
-	App          t.ModuleID
-	Timer        t.ModuleID
-	Availability t.ModuleID
-	Checkpoint   t.ModuleID
-	Ordering     t.ModuleID
-}
-
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self:         "iss",
-		Net:          "net",
-		App:          "batchfetcher",
-		Timer:        "timer",
-		Availability: "availability",
-		Checkpoint:   "checkpoint",
-		Ordering:     "ordering",
-	}
-}
-
-// The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
-// Whenever an orderer delivers an availability certificate (or a special abort value),
-// it is inserted to the commit log in form of a commitLogEntry.
-type CommitLogEntry struct {
-	// Sequence number at which this entry has been ordered.
-	Sn t.SeqNr
-
-	// The delivered availability certificate data.
-	// TODO: Replace by actual certificate when deterministic serialization of certificates is implemented.
-	CertData []byte
-
-	// The digest (hash) of the entry.
-	Digest []byte
-
-	// A flag indicating whether this entry is an actual certificate (false)
-	// or whether the orderer delivered a special abort value (true).
-	Aborted bool
-
-	// In case Aborted is true, this field indicates the ID of the node
-	// that is suspected to be the reason for the orderer aborting (usually the leader).
-	// This information can be used by the leader selection policy at epoch transition.
-	Suspect t.NodeID
-}
-
-// ============================================================
-// ISS type and constructor
-// ============================================================
-
 // The ISS type represents the ISS protocol module to be used when instantiating a node.
 // The type should not be instantiated directly, but only properly initialized values
 // returned from the New() function should be used.
 type ISS struct {
 
-	// --------------------------------------------------------------------------------
-	// These fields should only be set at initialization and remain static
-	// --------------------------------------------------------------------------------
+	// The ID of the node executing this instance of the protocol.
+	ownID t.NodeID
 
 	// IDs of modules ISS interacts with.
 	moduleConfig *ModuleConfig
 
-	// The ID of the node executing this instance of the protocol.
-	ownID t.NodeID
+	// The ISS configuration parameters (e.g. Segment length, proposal frequency etc...)
+	// passed to New() when creating an ISS protocol instance.
+	Params *issutil.ModuleParams
 
 	// Implementation of the hash function to use by ISS for computing all hashes.
 	hashImpl crypto.HashImpl
@@ -123,15 +64,6 @@ type ISS struct {
 	// Logger the ISS implementation uses to output log messages.
 	// This is mostly for debugging - not to be confused with the commit log.
 	logger logging.Logger
-
-	// --------------------------------------------------------------------------------
-	// These fields might change from epoch to epoch. Modified only by initEpoch()
-	// --------------------------------------------------------------------------------
-
-	// The ISS configuration parameters (e.g. Segment length, proposal frequency etc...)
-	// passed to New() when creating an ISS protocol instance.
-	// TODO: Make it possible to change this dynamically.
-	Params *issutil.ModuleParams
 
 	// The current epoch instance.
 	epoch *epochInfo
@@ -153,11 +85,6 @@ type ISS struct {
 	// At epoch initialization, this is set to nil. We then set it to the next membership announced by the application.
 	nextNewMembership map[t.NodeID]t.NodeAddress
 
-	// --------------------------------------------------------------------------------
-	// These fields are modified throughout an epoch.
-	// TODO: Move them into `epochInfo`?
-	// --------------------------------------------------------------------------------
-
 	// The final log of committed availability certificates.
 	// For each sequence number, it holds the committed certificate (or the special abort value).
 	// Each Deliver event of an orderer translates to inserting an entry in the commitLog.
@@ -178,26 +105,32 @@ type ISS struct {
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
 	lastStableCheckpoint *checkpoint.StableCheckpoint
-
-	// Stores the context of request-response type invocations of other modules.
-	contextStore contextstore.ContextStore[any]
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
-// Arguments:
-//   - ownID:        the ID of the node being instantiated with ISS.
-//   - moduleConfig: the IDs of the modules ISS interacts with.
-//   - params:       ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
-//     see the documentation of the issutil.ModuleParams type for details.
-//   - startingChkp: the stable checkpoint defining the initial state of the protocol.
-//   - logger:       Logger the ISS implementation uses to output log messages.
 func New(
+
+	// ID of the node being instantiated with ISS.
 	ownID t.NodeID,
+
+	// IDs of the modules ISS interacts with.
 	moduleConfig *ModuleConfig,
+
+	// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
+	// See the documentation of the issutil.ModuleParams type for details.
 	params *issutil.ModuleParams,
+
+	// Stable checkpoint defining the initial state of the protocol.
 	startingChkp *checkpoint.StableCheckpoint,
+
+	// Hash implementation to use when computing hashes.
 	hashImpl crypto.HashImpl,
+
+	// Verifier of received stable checkpoints.
+	// This is most likely going to be the crypto module used by the protocol.
 	chkpVerifier checkpoint.Verifier,
+
+	// Logger the ISS implementation uses to output log messages.
 	logger logging.Logger,
 ) (*ISS, error) {
 	if logger == nil {
@@ -213,29 +146,23 @@ func New(
 
 	// Initialize a new ISS object.
 	iss := &ISS{
-		// Static fields
-		ownID:        ownID,
-		moduleConfig: moduleConfig,
-		hashImpl:     hashImpl,
-		chkpVerifier: chkpVerifier,
-		logger:       logger,
-
-		// Fields modified only by initEpoch
-		Params:            params,
-		epochs:            make(map[t.EpochNr]*epochInfo),
-		nodeEpochMap:      make(map[t.NodeID]t.EpochNr),
-		memberships:       startingChkp.Memberships(),
-		nextNewMembership: nil,
-
-		// Fields modified throughout an epoch
+		ownID:                ownID,
+		moduleConfig:         moduleConfig,
+		Params:               params,
+		hashImpl:             hashImpl,
+		chkpVerifier:         chkpVerifier,
+		logger:               logger,
+		epoch:                nil, // Initialized later.
+		epochs:               make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap:         make(map[t.NodeID]t.EpochNr),
+		memberships:          startingChkp.Memberships(),
+		nextNewMembership:    nil,
 		commitLog:            make(map[t.SeqNr]*CommitLogEntry),
 		nextDeliveredSN:      startingChkp.SeqNr(),
 		newEpochSN:           startingChkp.SeqNr(),
 		lastStableCheckpoint: startingChkp,
 		// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
 		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
-
-		contextStore: contextstore.NewSequentialContextStore[any](),
 	}
 
 	// Initialize the first epoch.
@@ -292,8 +219,6 @@ func (iss *ISS) ApplyEvents(eventsIn *events.EventList) (*events.EventList, erro
 // ApplyEvent receives one event and applies it to the ISS protocol state machine, potentially altering its state
 // and producing a (potentially empty) list of more events to be applied to other modules.
 func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
-
-	// TODO: Make event handlers return error as a second argument, instead of hard-coding nil here.
 
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
