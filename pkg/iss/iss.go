@@ -171,16 +171,6 @@ func New(
 	iss.logger.Log(logging.LevelInfo, "Initializing new epoch",
 		"epochNr", startingChkp.Epoch(), "numNodes", len(startingChkp.Memberships()[0]))
 
-	// Create the first epoch.
-	epoch := newEpochInfo(
-		startingChkp.Epoch(),
-		startingChkp.SeqNr(),
-		maputil.GetSortedKeys(startingChkp.Memberships()[0]),
-		params.LeaderPolicy,
-	)
-	iss.epochs[startingChkp.Epoch()] = &epoch
-	iss.epoch = &epoch
-
 	// Return the initialized protocol module.
 	return iss, nil
 }
@@ -269,27 +259,9 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.Pb()))
 
 	// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
-	eventsOut.PushBackList(iss.startEpoch())
+	eventsOut.PushBackList(iss.startEpoch(iss.lastStableCheckpoint.Epoch(), iss.Params.LeaderPolicy))
 
 	return eventsOut, nil
-}
-
-// startEpoch emits the events necessary for a new epoch to start operating.
-// This includes informing the application about the new epoch and initializing all the necessary external modules
-// such as availability and orderers.
-func (iss *ISS) startEpoch() *events.EventList {
-	eventsOut := events.EmptyList()
-
-	// Signal the new epoch to the application.
-	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
-
-	// Initialize the new availability module.
-	eventsOut.PushBack(iss.initAvailability())
-
-	// Initialize the orderer modules for the current epoch.
-	eventsOut.PushBackList(iss.initOrderers())
-
-	return eventsOut
 }
 
 // applySBInstDeliver processes the event of an SB instance delivering a certificate (or the special abort value)
@@ -564,14 +536,6 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	iss.nextDeliveredSN = chkp.SeqNr()
 	iss.newEpochSN = iss.nextDeliveredSN
 
-	// Initialize a new ISS epoch instance for the new stable checkpoint to continue participating in the protocol.
-	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
-	epoch := newEpochInfo(chkp.Epoch(), chkp.SeqNr(), nodeIDs, iss.Params.LeaderPolicy)
-	iss.epochs[chkp.Epoch()] = &epoch
-	iss.epoch = &epoch
-	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", chkp.Epoch(), "numNodes", len(nodeIDs))
-
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
 	iss.memberships = chkp.Memberships()
@@ -588,7 +552,8 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// Start executing the current epoch (the one the checkpoint corresponds to).
 	// This must happen after the state is restored,
 	// so the application has the correct state for returning the next configuration.
-	eventsOut.PushBackList(iss.startEpoch())
+	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
+	eventsOut.PushBackList(iss.startEpoch(chkp.Epoch(), iss.Params.LeaderPolicy))
 
 	// Prune WAL, timer, and checkpointing and availability protocols.
 	eventsOut.PushBackSlice([]*eventpb.Event{
@@ -616,6 +581,31 @@ func (iss *ISS) initAvailability() *eventpb.Event {
 // ============================================================
 // Additional protocol logic
 // ============================================================
+
+// startEpoch emits the events necessary for a new epoch to start operating.
+// This includes informing the application about the new epoch and initializing all the necessary external modules
+// such as availability and orderers.
+func (iss *ISS) startEpoch(epochNr t.EpochNr, leaderPolicy issutil.LeaderSelectionPolicy) *events.EventList {
+	eventsOut := events.EmptyList()
+
+	// Initialize the internal data structures for the new epoch.
+	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
+	epoch := newEpochInfo(epochNr, iss.newEpochSN, nodeIDs, leaderPolicy)
+	iss.epochs[epochNr] = &epoch
+	iss.epoch = &epoch
+	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", epochNr, "numNodes", len(nodeIDs))
+
+	// Signal the new epoch to the application.
+	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
+
+	// Initialize the new availability module.
+	eventsOut.PushBack(iss.initAvailability())
+
+	// Initialize the orderer modules for the current epoch.
+	eventsOut.PushBackList(iss.initOrderers())
+
+	return eventsOut
+}
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
 func (iss *ISS) initOrderers() *events.EventList {
@@ -747,18 +737,15 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
 
-	// Initialize the internal data structures for the new epoch.
-	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
-	epoch := newEpochInfo(newEpochNr, iss.newEpochSN, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
-	iss.epochs[newEpochNr] = &epoch
-	iss.epoch = &epoch
-	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
-
 	// Start executing the new epoch.
 	// This must happen before starting the checkpoint protocol, since the application
 	// must already be in the new epoch when processing the state snapshot request
-	// emitted by the checkpoint sub-protocol.
-	eventsOut.PushBackList(iss.startEpoch())
+	// emitted by the checkpoint sub-protocol
+	// (startEpoch emits an event for the application making it transition to the new epoch).
+	eventsOut.PushBackList(iss.startEpoch(
+		newEpochNr,
+		iss.epoch.leaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0])),
+	))
 
 	// Create a new checkpoint tracker to start the checkpointing protocol.
 	// This must happen after initialization of the new epoch,
