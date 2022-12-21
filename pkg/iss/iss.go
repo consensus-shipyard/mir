@@ -241,12 +241,18 @@ func New(
 	// Initialize the first epoch.
 	// The corresponding application state will be loaded upon init.
 	// TODO: Make leader policy part of checkpoint.
-	iss.initEpoch(
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch",
+		"epochNr", startingChkp.Epoch(), "numNodes", len(startingChkp.Memberships()[0]))
+
+	// Create the first epoch.
+	epoch := newEpochInfo(
 		startingChkp.Epoch(),
 		startingChkp.SeqNr(),
 		maputil.GetSortedKeys(startingChkp.Memberships()[0]),
 		params.LeaderPolicy,
 	)
+	iss.epochs[startingChkp.Epoch()] = &epoch
+	iss.epoch = &epoch
 
 	// Return the initialized protocol module.
 	return iss, nil
@@ -625,7 +631,11 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 
 	// Initialize a new ISS epoch instance for the new stable checkpoint to continue participating in the protocol.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	iss.initEpoch(chkp.Epoch(), chkp.SeqNr(), maputil.GetSortedKeys(iss.memberships[0]), iss.Params.LeaderPolicy)
+	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
+	epoch := newEpochInfo(chkp.Epoch(), chkp.SeqNr(), nodeIDs, iss.Params.LeaderPolicy)
+	iss.epochs[chkp.Epoch()] = &epoch
+	iss.epoch = &epoch
+	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", chkp.Epoch(), "numNodes", len(nodeIDs))
 
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
@@ -679,19 +689,6 @@ func (iss *ISS) initAvailability() *eventpb.Event {
 // ============================================================
 // Additional protocol logic
 // ============================================================
-
-// initEpoch initializes a new ISS epoch with the given epoch number.
-// TODO: Make leader policy (including its state) part of epoch config.
-func (iss *ISS) initEpoch(newEpochNr t.EpochNr, firstSN t.SeqNr, nodeIDs []t.NodeID, leaderPolicy issutil.LeaderSelectionPolicy) {
-
-	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
-
-	// Set the new epoch number and re-initialize list of orderers.
-	epoch := newEpochInfo(newEpochNr, firstSN, nodeIDs, leaderPolicy)
-
-	iss.epochs[newEpochNr] = &epoch
-	iss.epoch = &epoch
-}
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
 func (iss *ISS) initOrderers() *events.EventList {
@@ -825,7 +822,10 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 
 	// Initialize the internal data structures for the new epoch.
 	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
-	iss.initEpoch(newEpochNr, iss.nextDeliveredSN, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
+	epoch := newEpochInfo(newEpochNr, iss.newEpochSN, nodeIDs, iss.epoch.leaderPolicy.Reconfigure(nodeIDs))
+	iss.epochs[newEpochNr] = &epoch
+	iss.epoch = &epoch
+	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", newEpochNr, "numNodes", len(nodeIDs))
 
 	// Signal the new epoch to the application.
 	// This must happen before starting the checkpoint protocol, since the application
