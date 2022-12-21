@@ -224,8 +224,8 @@ func New(
 		Params:            params,
 		epochs:            make(map[t.EpochNr]*epochInfo),
 		nodeEpochMap:      make(map[t.NodeID]t.EpochNr),
-		memberships:       startingChkp.Memberships()[:len(startingChkp.Memberships())-1], // all but the last item
-		nextNewMembership: startingChkp.Memberships()[len(startingChkp.Memberships())-1],  // just the last item
+		memberships:       startingChkp.Memberships(),
+		nextNewMembership: nil,
 
 		// Fields modified throughout an epoch
 		commitLog:            make(map[t.SeqNr]*CommitLogEntry),
@@ -334,13 +334,19 @@ func (iss *ISS) ImplementsModule() {}
 func (iss *ISS) applyInit() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	eventsOut.PushBackList(iss.bootstrapAvailability())
-
-	// Trigger an Init event at all orderers.
-	eventsOut.PushBackList(iss.initOrderers())
-
 	// Initialize application state according to the initial checkpoint.
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, iss.lastStableCheckpoint.Pb()))
+
+	// Signal the new epoch to the application.
+	// This must happen after the state is restored,
+	// so the application has the correct state for returning the next configuration.
+	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
+
+	// Initialize the new availability module.
+	eventsOut.PushBack(iss.initAvailability())
+
+	// Initialize the orderer modules for the current epoch.
+	eventsOut.PushBackList(iss.initOrderers())
 
 	return eventsOut, nil
 }
@@ -412,23 +418,19 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 		"currentEpoch", iss.epoch.Nr(),
 		"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
 
-	// Initialize the new availability module
-	eventsOut.PushBack(iss.initAvailabilityModule(
-		newMembershipEpoch,
-		config.Membership,
-	))
-
 	// Submit configurations to the corresponding instance of the checkpoint protocol.
-	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
-	eventsOut.PushBack(chkpprotos.EpochConfigEvent(
-		chkpModuleID,
-		events.EpochConfig(
-			iss.epoch.Nr(),
-			iss.epoch.FirstSN(),
-			iss.epoch.Len(),
-			append(iss.memberships, iss.nextNewMembership),
-		),
-	))
+	if !iss.haveEpochCheckpoint() {
+		chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
+		eventsOut.PushBack(chkpprotos.EpochConfigEvent(
+			chkpModuleID,
+			events.EpochConfig(
+				iss.epoch.Nr(),
+				iss.epoch.FirstSN(),
+				iss.epoch.Len(),
+				iss.memberships,
+			),
+		))
+	}
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
@@ -627,9 +629,8 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 
 	// Save the configurations obtained in the checkpoint
 	// and initialize the corresponding availability submodules.
-	iss.memberships = chkp.Memberships()[:len(chkp.Memberships())-1]      // all but the last item
-	iss.nextNewMembership = chkp.Memberships()[len(chkp.Memberships())-1] // just the last item
-	eventsOut.PushBackList(iss.bootstrapAvailability())                   // (Must happen after epoch is initialized; uses current epoch.)
+	iss.memberships = chkp.Memberships()
+	iss.nextNewMembership = nil
 
 	// Update the last stable checkpoint stored in the global ISS structure.
 	iss.lastStableCheckpoint = chkp
@@ -638,6 +639,14 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Pb()))
+
+	// Signal the new epoch to the application.
+	// This must happen after the state is restored,
+	// so the application has the correct state for returning the next configuration.
+	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, chkp.Epoch()))
+
+	// Initialize the new availability module.
+	eventsOut.PushBack(iss.initAvailability())
 
 	// Activate SB instances of the new epoch which will deliver
 	// availability certificates after the application module has restored the state
@@ -656,30 +665,13 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 
 }
 
-func (iss *ISS) bootstrapAvailability() *events.EventList {
-	eventsOut := events.EmptyList()
-
-	// Initialize the availability modules.
-	for i, membership := range iss.memberships {
-		eventsOut.PushBack(iss.initAvailabilityModule(iss.epoch.Nr()+t.EpochNr(i), t.MembershipPb(membership)))
-	}
-	// At bootstrapping, the next new membership is assumed to have been announced already
-	// (since it is necessary to produce the checkpoint we are bootstrapping from).
-	eventsOut.PushBack(iss.initAvailabilityModule(
-		iss.epoch.Nr()+t.EpochNr(iss.Params.ConfigOffset),
-		t.MembershipPb(iss.nextNewMembership),
-	))
-
-	return eventsOut
-}
-
-func (iss *ISS) initAvailabilityModule(epochNr t.EpochNr, membership *commonpb.Membership) *eventpb.Event {
+func (iss *ISS) initAvailability() *eventpb.Event {
 	return factoryevents.NewModule(
 		iss.moduleConfig.Availability,
-		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-		t.RetentionIndex(epochNr),
+		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+		t.RetentionIndex(iss.epoch.Nr()),
 		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
-			MultisigCollector: &mscpb.InstanceParams{Membership: membership},
+			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0])},
 		}},
 	)
 }
@@ -870,6 +862,9 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 
 	// Give the init signals to the newly instantiated orderers.
 	eventsOut.PushBackList(iss.initOrderers())
+
+	// Initialize the new availability module.
+	eventsOut.PushBack(iss.initAvailability())
 
 	return eventsOut, nil
 }
