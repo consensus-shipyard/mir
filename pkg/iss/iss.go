@@ -175,11 +175,16 @@ func New(
 	return iss, nil
 }
 
+// InitialStateSnapshot creates and returns a default initial snapshot that can be used to instantiate ISS.
+// The created snapshot corresponds to epoch 0, without any committed transactions,
+// and with the initial membership (found in params and used for epoch 0)
+// repeated for all the params.ConfigOffset following epochs.
 func InitialStateSnapshot(
 	appState []byte,
 	params *issutil.ModuleParams,
 ) *commonpb.StateSnapshot {
 
+	// Create the first membership and all ConfigOffset following ones (by using the initial one).
 	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
 	for i := 0; i < params.ConfigOffset+1; i++ {
 		memberships[i] = params.InitialMembership
@@ -332,7 +337,7 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 		"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
 
 	// Submit configurations to the corresponding instance of the checkpoint protocol.
-	if !iss.haveEpochCheckpoint() {
+	if !iss.hasEpochCheckpoint() {
 		chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 		eventsOut.PushBack(chkpprotos.EpochConfigEvent(
 			chkpModuleID,
@@ -357,6 +362,9 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 	return eventsOut, nil
 }
 
+// applyEpochProgress handles the event informing ISS that a node reached a certain epoch.
+// This event can be, for example, emitted by the checkpoint protocol
+// when it detects a node having reached a checkpoint for a certain epoch.
 func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*events.EventList, error) {
 
 	// Remember the highest epoch number for each node to detect
@@ -371,6 +379,8 @@ func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*
 	return events.EmptyList(), nil
 }
 
+// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
+// It performs the necessary cleanup, mostly garbage-collecting state subsumed by the stable checkpoint.
 func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
@@ -440,6 +450,10 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 	return eventsOut, nil
 }
 
+// applyPushCheckpoint handles the periodic event of pushing the latest stable checkpoint
+// to nodes that seem to have fallen behind.
+// This event is produced periodically by the timer (with a configurable period).
+// Note that (in the good case), no node seems to have fallen behind and this handler does nothing.
 func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 
 	// Send the latest stable checkpoint to potentially
@@ -469,8 +483,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 }
 
 // applyMessageReceived applies a message received over the network.
-// Note that this is not the only place messages are applied.
-// Messages received "ahead of time" that have been buffered are applied in applyBufferedMessages.
+// Currently, only the stable checkpoint message (used for catching up) is used.
 func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (*events.EventList, error) {
 
 	// Convenience variables used for readability.
@@ -555,7 +568,9 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
 	eventsOut.PushBackList(iss.startEpoch(chkp.Epoch(), iss.Params.LeaderPolicy))
 
-	// Prune WAL, timer, and checkpointing and availability protocols.
+	// Prune the old state of all related modules.
+	// Since we are loading the complete state from a checkpoint,
+	// we prune all state related to anything before that checkpoint.
 	eventsOut.PushBackSlice([]*eventpb.Event{
 		events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(chkp.Epoch())),
@@ -564,18 +579,6 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	})
 
 	return eventsOut, nil
-
-}
-
-func (iss *ISS) initAvailability() *eventpb.Event {
-	return factoryevents.NewModule(
-		iss.moduleConfig.Availability,
-		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
-		t.RetentionIndex(iss.epoch.Nr()),
-		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
-			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0])},
-		}},
-	)
 }
 
 // ============================================================
@@ -605,6 +608,19 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr, leaderPolicy issutil.LeaderSelecti
 	eventsOut.PushBackList(iss.initOrderers())
 
 	return eventsOut
+}
+
+// initAvailability emits an event for the availability module to create a new submodule
+// corresponding to the current ISS epoch.
+func (iss *ISS) initAvailability() *eventpb.Event {
+	return factoryevents.NewModule(
+		iss.moduleConfig.Availability,
+		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+		t.RetentionIndex(iss.epoch.Nr()),
+		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
+			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0])},
+		}},
+	)
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
@@ -646,14 +662,16 @@ func (iss *ISS) initOrderers() *events.EventList {
 	return eventsOut
 }
 
-func (iss *ISS) haveEpochCheckpoint() bool {
+// hasEpochCheckpoint returns true if the current epoch's checkpoint protocol has already produced a stable checkpoint.
+func (iss *ISS) hasEpochCheckpoint() bool {
 	return t.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN()
 }
 
-// epochFinished returns true when all the sequence numbers of the current epochs have been committed
-// and the starting checkpoint of the epoch is stable. Otherwise, returns false.
+// epochFinished returns true when all the sequence numbers of the current epochs have been committed,
+// the starting checkpoint of the epoch is stable, and the next new membership has been announced.
+// Otherwise, returns false.
 func (iss *ISS) epochFinished() bool {
-	return iss.nextDeliveredSN == iss.newEpochSN && iss.haveEpochCheckpoint()
+	return iss.nextDeliveredSN == iss.newEpochSN && iss.hasEpochCheckpoint() && iss.nextNewMembership != nil
 }
 
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
@@ -667,7 +685,7 @@ func (iss *ISS) processCommitted() (*events.EventList, error) {
 	// We require this, since stable checkpoints are also delivered to the application in addition to the certificates.
 	// The application may rely on the fact that each epoch starts by a stable checkpoint
 	// delivered before the epoch's batches.
-	if !iss.haveEpochCheckpoint() {
+	if !iss.hasEpochCheckpoint() {
 		return eventsOut, nil
 	}
 
@@ -712,6 +730,9 @@ func (iss *ISS) processCommitted() (*events.EventList, error) {
 	return eventsOut, nil
 }
 
+// advanceEpoch transitions from the current epoch to the next one.
+// It must only be called when transitioning to the next epoch is possible,
+// i.e., when the current epoch is completely finished.
 func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
@@ -724,13 +745,6 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 		"nextSN", iss.nextDeliveredSN,
 		"numConfigs", len(iss.memberships),
 	)
-
-	// Check whether the configuration of the next epoch has already been submitted by the application.
-	if iss.nextNewMembership == nil {
-		iss.logger.Log(logging.LevelWarn, "Cannot advance to epoch yet. Waiting for configuration.",
-			"newEpoch", newEpochNr)
-		return eventsOut, nil
-	}
 
 	// Advance the membership pipeline
 	oldNodeIDs := maputil.GetSortedKeys(iss.memberships[0])
