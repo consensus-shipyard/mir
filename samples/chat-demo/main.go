@@ -229,7 +229,7 @@ func run() error {
 	interceptor, err := eventlog.NewRecorder(args.OwnID,
 		fmt.Sprintf("node%d", ownIDInt),
 		logging.Decorate(logging.ConsoleTraceLogger, "Interceptor: "),
-		eventlog.EventLimitLogger(100),
+		eventlog.EventNewLogFileLogger(),
 	)
 	if err != nil {
 		return errors.Wrap(err, "could not create new recorder")
