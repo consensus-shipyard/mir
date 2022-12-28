@@ -8,15 +8,16 @@ import (
 // Returns a file that splits an eventTime slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
 func EventNewLogFileLogger() func(time EventTime) *[]EventTime {
-	return EventTrackerLogger(func(event eventpb.Event) bool {
+	eventNewLogFileLogger := func(event *eventpb.Event) bool {
 		_, ok := event.Type.(*eventpb.Event_NewLogFile)
 		return ok
-	})
+	}
+	return EventTrackerLogger(eventNewLogFileLogger)
 }
 
 // eventTrackerLogger returns a function that tracks every single event of EventTime and
 // creates a new file for every event such that newFile(event) = True
-func EventTrackerLogger(newFile func(event eventpb.Event) bool) func(time EventTime) *[]EventTime {
+func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time EventTime) *[]EventTime {
 	return func(eventTime EventTime) *[]EventTime {
 		var result []EventTime
 		// Create a variable to hold the current chunk
@@ -26,11 +27,11 @@ func EventTrackerLogger(newFile func(event eventpb.Event) bool) func(time EventT
 		}
 
 		for _, event := range eventTime.Events.Slice() {
-			if newFile(*event) {
+			if newFile(event) {
 				result = append(result, *currentChunk)
 				currentChunk = &EventTime{
 					Time:   eventTime.Time,
-					Events: events.EmptyList(),
+					Events: events.EmptyList().PushBack(event),
 				}
 			} else {
 				currentChunk.Events.PushBack(event)
@@ -49,7 +50,7 @@ func EventTrackerLogger(newFile func(event eventpb.Event) bool) func(time EventT
 // EventLimitLogger returns a function for the interceptor that splits the logging file
 // every eventLimit number of events
 func EventLimitLogger(eventLimit int64) func(EventTime) *[]EventTime {
-	var eventCount int64 = 0
+	var eventCount int64
 	return func(eventTime EventTime) *[]EventTime {
 		// Create a slice to hold the slices of eventTime elements
 		var result []EventTime
