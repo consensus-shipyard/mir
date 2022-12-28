@@ -201,6 +201,7 @@ func New(
 		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
 		"hasher":                     mircrypto.NewHasher(hashImpl),
 		"crypto":                     mircrypto.New(cryptoImpl),
+		"null":                       modules.NullPassive{},
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")
