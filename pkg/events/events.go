@@ -396,3 +396,9 @@ func Factory(destModule t.ModuleID, evt *factorymodulepb.Factory) *eventpb.Event
 		DestModule: destModule.Pb(),
 	}
 }
+func NewLogFile() *eventpb.Event {
+	return &eventpb.Event{
+		Type:       &eventpb.Event_NewLogFile{},
+		DestModule: t.ModuleID("null").Pb(),
+	}
+}

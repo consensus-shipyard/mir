@@ -76,7 +76,7 @@ message Event {
     pingpongpb.Event        ping_pong               = 37;
     checkpointpb.Event      checkpoint              = 38;
     ordererspb.SBInstanceEvent sb_event             = 39;
-
+    NewLogFile              new_log_file            = 40;
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
     google.protobuf.UInt64Value testingUint   = 302;
@@ -279,4 +279,7 @@ message NewEpoch {
 message NewConfig {
   uint64              epoch_nr   = 1;
   commonpb.Membership membership = 2;
+}
+
+message NewLogFile{
 }

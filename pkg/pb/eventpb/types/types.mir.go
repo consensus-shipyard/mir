@@ -1,8 +1,6 @@
 package eventpbtypes
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types7 "github.com/filecoin-project/mir/codegen/model/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -22,6 +20,7 @@ import (
 	types6 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {
@@ -119,6 +118,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Checkpoint{Checkpoint: pb.Checkpoint}
 	case *eventpb.Event_SbEvent:
 		return &Event_SbEvent{SbEvent: pb.SbEvent}
+	case *eventpb.Event_NewLogFile:
+		return &Event_NewLogFile{NewLogFile: pb.NewLogFile}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
@@ -809,6 +810,24 @@ func (w *Event_SbEvent) Pb() eventpb.Event_Type {
 
 func (*Event_SbEvent) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_SbEvent]()}
+}
+
+type Event_NewLogFile struct {
+	NewLogFile *eventpb.NewLogFile
+}
+
+func (*Event_NewLogFile) isEvent_Type() {}
+
+func (w *Event_NewLogFile) Unwrap() *eventpb.NewLogFile {
+	return w.NewLogFile
+}
+
+func (w *Event_NewLogFile) Pb() eventpb.Event_Type {
+	return &eventpb.Event_NewLogFile{NewLogFile: w.NewLogFile}
+}
+
+func (*Event_NewLogFile) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewLogFile]()}
 }
 
 type Event_TestingString struct {

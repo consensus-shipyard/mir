@@ -751,6 +751,9 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
 
+	// Signal new log file requested for this new epoch
+	eventsOut.PushBack(events.NewLogFile())
+
 	// Start executing the new epoch.
 	// This must happen before starting the checkpoint protocol, since the application
 	// must already be in the new epoch when processing the state snapshot request
