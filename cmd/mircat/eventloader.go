@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -24,44 +26,62 @@ type eventMetadata struct {
 
 // Returns the list of event names and destinations present in the given eventlog file,
 // along with the total number of events present in the file.
-func getEventList(file *os.File) (map[string]struct{}, map[string]struct{}, map[string]struct{}, int, error) {
+func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}, map[string]struct{}, int, error) {
 	events := make(map[string]struct{})
 	issEvents := make(map[string]struct{})
 	eventDests := make(map[string]struct{})
 
-	defer func(file *os.File, offset int64, whence int) {
-		_, _ = file.Seek(offset, whence) // resets the file offset for successive reading
-	}(file, 0, 0)
+	totalCount := 0
+	for _, filename := range *filenames {
+		// Open the file
+		file, err := os.Open(filename)
+		if err != nil {
+			kingpin.Errorf("Error opening src file", filename, ": ", err)
+			fmt.Printf("\n\n!!!\nContinuing after error with new file. Event list might be incomplete!\n!!!\n\n")
+			continue
+		}
 
-	reader, err := eventlog.NewReader(file)
-	if err != nil {
-		return nil, nil, nil, 0, err
-	}
+		defer func(file *os.File, offset int64, whence int) {
+			_, _ = file.Seek(offset, whence) // resets the file offset for successive reading
+			if err = file.Close(); err != nil {
+				kingpin.Errorf("Error closing src file", filename, ": ", err)
+			}
+		}(file, 0, 0)
 
-	cnt := 0 // Counts the total number of events in the event log.
-	var entry *recordingpb.Entry
-	for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
-		// For each entry of the event log
+		reader, err := eventlog.NewReader(file)
+		if err != nil {
+			kingpin.Errorf("Error creating new reader of src file", filename, ": ", err)
+			fmt.Printf("\n\n!!!\nContinuing after error with new file. Event list might be incomplete!\n!!!\n\n")
+			continue
+		}
 
-		for _, event := range entry.Events {
-			// For each Event in the entry
-			cnt++
+		cnt := 0 // Counts the total number of events in the event log.
+		var entry *recordingpb.Entry
+		for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
+			// For each entry of the event log
 
-			// Add the Event name to the set of known Events.
-			events[eventName(event)] = struct{}{}
-			eventDests[event.DestModule] = struct{}{}
-			switch e := event.Type.(type) {
-			case *eventpb.Event_Iss:
-				// For ISS Events, also add the type of the ISS event to a set of known ISS events.
-				issEvents[issEventName(e.Iss)] = struct{}{}
+			for _, event := range entry.Events {
+				// For each Event in the entry
+				cnt++
+
+				// Add the Event name to the set of known Events.
+				events[eventName(event)] = struct{}{}
+				eventDests[event.DestModule] = struct{}{}
+				switch e := event.Type.(type) {
+				case *eventpb.Event_Iss:
+					// For ISS Events, also add the type of the ISS event to a set of known ISS events.
+					issEvents[issEventName(e.Iss)] = struct{}{}
+				}
 			}
 		}
-	}
-	if errors.Is(err, io.EOF) {
-		return events, issEvents, eventDests, cnt, fmt.Errorf("failed reading event log: %w", err)
+		if !errors.Is(err, io.EOF) {
+			kingpin.Errorf("Error reading src file", filename, ": ", err)
+			fmt.Printf("\n\n!!!\nContinuing after error. Event list might be incomplete!\n!!!\n\n")
+		}
+		totalCount += cnt
 	}
 
-	return events, issEvents, eventDests, cnt, nil
+	return events, issEvents, eventDests, totalCount, nil // TODO wrap non-blocking errors and return them here
 }
 
 // eventName returns a string name of an Event.

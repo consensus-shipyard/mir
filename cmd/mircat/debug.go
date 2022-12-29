@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -31,12 +34,6 @@ import (
 // debug extracts events from the event log entries and submits them to a node instance
 // that it creates for this purpose.
 func debug(args *arguments) error {
-
-	// Create a reader for the input event log file.
-	reader, err := eventlog.NewReader(args.srcFile)
-	if err != nil {
-		return err
-	}
 
 	// TODO: Empty addresses might not work here, as they will probably produce wrong snapshots.
 	membership := make(map[t.NodeID]t.NodeAddress)
@@ -71,51 +68,78 @@ func debug(args *arguments) error {
 	// Keep track of the position of events in the recorded log.
 	index := 0
 
-	// Process event log.
-	// Each entry can contain multiple events.
-	var entry *recordingpb.Entry
-	for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
+	filenames := strings.Split(*args.src, " ")
 
-		// Create event metadata structure and fill in fields that are common for all events in the log entry.
-		// This structure is modified several times and used as a value parameter.
-		metadata := eventMetadata{
-			nodeID: t.NodeID(entry.NodeId),
-			time:   entry.Time,
+	// Create a reader for the input event log file.
+	for _, filename := range filenames {
+		file, err := os.Open(filename)
+		if err != nil {
+			kingpin.Errorf("Error opening src file", filename, ": ", err)
+			continue
 		}
 
-		// Process each event in the entry.
-		for _, event := range entry.Events {
-
-			// Set the index of the event in the event log.
-			metadata.index = uint64(index)
-
-			// If the event was selected by the user for inspection, pause before submitting it to the node.
-			// The processing continues after the user's interactive confirmation.
-			if selected(event, args.selectedEventNames, args.selectedIssEventNames) &&
-				index >= args.offset &&
-				(args.limit == 0 || index < args.offset+args.limit) {
-
-				stopBeforeNext(event, metadata)
+		defer func(file *os.File, offset int64, whence int) {
+			_, _ = file.Seek(offset, whence) // resets the file offset for successive reading
+			if err = file.Close(); err != nil {
+				kingpin.Errorf("Error closing src file", filename, ": ", err)
 			}
+		}(file, 0, 0)
 
-			// Submit the event to the debugger node.
-			if err := node.InjectEvents(ctx, events.ListOf(event)); err != nil {
-				return fmt.Errorf("node step failed: %w", err)
-			}
-
-			// Increment position of the event in the log (to be used with the next event).
-			index++
+		reader, err := eventlog.NewReader(file)
+		if err != nil {
+			kingpin.Errorf("Error opening new reader for src file", filename, ": ", err)
+			fmt.Printf("\n\n!!!\nContinuing after error with next file\n!!!\n\n")
+			continue
 		}
-	}
+		// Process event log.
+		// Each entry can contain multiple events.
+		var entry *recordingpb.Entry
+		for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 
-	if errors.Is(err, io.EOF) {
-		return fmt.Errorf("error reading event log: %w", err)
+			// Create event metadata structure and fill in fields that are common for all events in the log entry.
+			// This structure is modified several times and used as a value parameter.
+			metadata := eventMetadata{
+				nodeID: t.NodeID(entry.NodeId),
+				time:   entry.Time,
+			}
+
+			// Process each event in the entry.
+			for _, event := range entry.Events {
+
+				// Set the index of the event in the event log.
+				metadata.index = uint64(index)
+
+				// If the event was selected by the user for inspection, pause before submitting it to the node.
+				// The processing continues after the user's interactive confirmation.
+				if selected(event, args.selectedEventNames, args.selectedIssEventNames) &&
+					index >= args.offset &&
+					(args.limit == 0 || index < args.offset+args.limit) {
+
+					stopBeforeNext(event, metadata)
+				}
+
+				// Submit the event to the debugger node.
+				if err := node.InjectEvents(ctx, events.ListOf(event)); err != nil {
+					kingpin.Errorf("Error injecting events of src file", filename, ": ", err)
+					fmt.Printf("\n\n!!!\nContinuing after error with next file\n!!!\n\n")
+					continue
+				}
+
+				// Increment position of the event in the log (to be used with the next event).
+				index++
+				if !errors.Is(err, io.EOF) {
+					kingpin.Errorf("Error reading event log for src file", filename, ": ", err)
+					fmt.Printf("\n\n!!!\nContinuing after error with next file\n!!!\n\n")
+					continue
+				}
+			}
+		}
 	}
 
 	fmt.Println("End of trace, done debugging. Press Enter to exit.")
 	bufio.NewScanner(os.Stdin).Scan()
 
-	return nil
+	return nil //TODO Wrap non-blocking errors and return here
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
