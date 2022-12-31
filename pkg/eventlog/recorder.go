@@ -29,70 +29,9 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Interceptor provides a way to gain insight into the internal operation of the node.
-// Before being passed to the respective target modules, Events can be intercepted and logged
-// for later analysis or replaying.
-type Interceptor interface {
-
-	// Intercept is called each Time Events are passed to a module, if an Interceptor is present in the node.
-	// The expected behavior of Intercept is to add the intercepted Events to a log for later analysis.
-	// TODO: In the comment, also refer to the way Events can be analyzed or replayed.
-	Intercept(events *events.EventList) error
-}
-
-type RecorderOpt interface{}
-
-type timeSourceOpt func() int64
-
-// TimeSourceOpt can be used to override the default Time source
-// for an interceptor.  This can be useful for changing the
-// granularity of the timestamps, or picking some externally
-// supplied sync point when trying to synchronize logs.
-// The default Time source will timestamp with the Time, in
-// milliseconds since the interceptor was created.
-func TimeSourceOpt(source func() int64) RecorderOpt {
-	return timeSourceOpt(source)
-}
-
-type retainRequestDataOpt struct{}
-
-// RetainRequestDataOpt indicates that the full request data should be
-// embedded into the logs.  Usually, this option is undesirable since although
-// request data is not actually needed to replay a log, the request data
-// increases the size of the log substantially and the request data
-// may be considered sensitive so is therefore unsuitable for
-// debug/service.  However, for debugging application code, sometimes,
-// having the complete logs is available, so this option may be set
-// to true.
-func RetainRequestDataOpt() RecorderOpt {
-	return retainRequestDataOpt{}
-}
-
-type compressionLevelOpt int
-
-// DefaultCompressionLevel is used for event capture when not overridden.
-// In empirical tests, best speed was only a few tenths of a percent
-// worse than best compression, but your results may vary.
-const DefaultCompressionLevel = gzip.BestSpeed
-
-// CompressionLevelOpt takes any of the compression levels supported
-// by the golang standard gzip package.
-func CompressionLevelOpt(level int) RecorderOpt {
-	return compressionLevelOpt(level)
-}
-
-// DefaultBufferSize is the number of unwritten state Events which
-// may be held in queue before blocking.
-const DefaultBufferSize = 5000
-
-type bufferSizeOpt int
-
-// BufferSizeOpt overrides the default buffer size of the
-// interceptor buffer.  Once the buffer overflows, the state
-// machine will be blocked from receiving new state Events
-// until the buffer has room.
-func BufferSizeOpt(size int) RecorderOpt {
-	return bufferSizeOpt(size)
+type EventRecord struct {
+	Events *events.EventList
+	Time   int64
 }
 
 // Recorder is intended to be used as an imlementation of the
@@ -177,11 +116,6 @@ func NewRecorder(
 	return i, nil
 }
 
-type EventRecord struct {
-	Events *events.EventList
-	Time   int64
-}
-
 // Intercept takes an event and enqueues it into the event buffer.
 // If there is no room in the buffer, it blocks.  If draining the buffer
 // to the output stream has completed (successfully or otherwise), Intercept
@@ -243,7 +177,7 @@ func (i *Recorder) run() (exitErr error) {
 			}
 		}()
 
-		return WriteRecordedEvent(gzWriter, &recordingpb.Entry{
+		return writeRecordedEvent(gzWriter, &recordingpb.Entry{
 			NodeId: i.nodeID.Pb(),
 			Time:   eventTime.Time,
 			Events: eventTime.Events.Slice(),
@@ -301,7 +235,7 @@ func (i *Recorder) run() (exitErr error) {
 	}
 }
 
-func WriteRecordedEvent(writer io.Writer, entry *recordingpb.Entry) error {
+func writeRecordedEvent(writer io.Writer, entry *recordingpb.Entry) error {
 	return writeSizePrefixedProto(writer, entry)
 }
 
