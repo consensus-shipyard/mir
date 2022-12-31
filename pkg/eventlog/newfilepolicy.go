@@ -7,7 +7,7 @@ import (
 
 // Returns a file that splits an eventTime slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
-func EventNewLogFileLogger() func(time EventTime) *[]EventTime {
+func EventNewLogFileLogger() func(time EventTime) []EventTime {
 	eventNewLogFileLogger := func(event *eventpb.Event) bool {
 		_, ok := event.Type.(*eventpb.Event_NewLogFile)
 		return ok
@@ -17,8 +17,8 @@ func EventNewLogFileLogger() func(time EventTime) *[]EventTime {
 
 // eventTrackerLogger returns a function that tracks every single event of EventTime and
 // creates a new file for every event such that newFile(event) = True
-func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time EventTime) *[]EventTime {
-	return func(eventTime EventTime) *[]EventTime {
+func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time EventTime) []EventTime {
+	return func(eventTime EventTime) []EventTime {
 		var result []EventTime
 		// Create a variable to hold the current chunk
 		currentChunk := &EventTime{
@@ -43,7 +43,7 @@ func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time Event
 			result = append(result, *currentChunk)
 		}
 
-		return &result
+		return result
 	}
 }
 
