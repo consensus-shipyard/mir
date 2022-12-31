@@ -111,14 +111,20 @@ type Recorder struct {
 	doneC             chan struct{}
 	exitC             chan struct{}
 	fileCount         int
-	newDests          func(EventTime) *[]EventTime
+	newDests          func(EventTime) []EventTime
 	path              string
 
 	exitErr      error
 	exitErrMutex sync.Mutex
 }
 
-func NewRecorder(nodeID t.NodeID, path string, logger logging.Logger, newDests func(EventTime) *[]EventTime, opts ...RecorderOpt) (*Recorder, error) {
+func NewRecorder(
+	nodeID t.NodeID,
+	path string,
+	logger logging.Logger,
+	newDests func(EventTime) []EventTime,
+	opts ...RecorderOpt,
+) (*Recorder, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -250,7 +256,7 @@ func (i *Recorder) run() (exitErr error) {
 	writeInFiles := func(event EventTime) error {
 		eventByDests := i.newDests(event)
 		count := 0
-		for _, eventTime := range *eventByDests {
+		for _, eventTime := range eventByDests {
 			if count > 0 {
 				// newDest required
 				dest, err := os.Create(filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"))
