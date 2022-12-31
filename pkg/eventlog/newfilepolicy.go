@@ -49,13 +49,13 @@ func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time Event
 
 // EventLimitLogger returns a function for the interceptor that splits the logging file
 // every eventLimit number of events
-func EventLimitLogger(eventLimit int64) func(EventRecord) *[]EventRecord {
+func EventLimitLogger(eventLimit int64) func(EventRecord) []EventRecord {
 	var eventCount int64
-	return func(eventTime EventRecord) *[]EventRecord {
+	return func(eventTime EventRecord) []EventRecord {
 		// Create a slice to hold the slices of eventTime elements
 		var result []EventRecord
 		// Create a variable to hold the current chunk
-		currentChunk := &EventRecord{
+		currentChunk := EventRecord{
 			Time:   eventTime.Time,
 			Events: events.EmptyList(),
 		}
@@ -67,8 +67,8 @@ func EventLimitLogger(eventLimit int64) func(EventRecord) *[]EventRecord {
 			eventCount++
 			// If the current chunk has the desired number of events, append it to the result and start a new chunk
 			if eventCount%eventLimit == 0 {
-				result = append(result, *currentChunk)
-				currentChunk = &EventRecord{
+				result = append(result, currentChunk)
+				currentChunk = EventRecord{
 					Time:   eventTime.Time,
 					Events: events.EmptyList(),
 				}
@@ -77,15 +77,15 @@ func EventLimitLogger(eventLimit int64) func(EventRecord) *[]EventRecord {
 
 		// If there is a remaining chunk with fewer than the desired number of events, append it to the result
 		if currentChunk.Events.Len() > 0 {
-			result = append(result, *currentChunk)
+			result = append(result, currentChunk)
 		}
 
-		return &result
+		return result
 	}
 }
 
-func OneFileLogger() func(EventRecord) *[]EventRecord {
-	return func(eventTime EventRecord) *[]EventRecord {
-		return &[]EventRecord{eventTime}
+func OneFileLogger() func(EventRecord) []EventRecord {
+	return func(record EventRecord) []EventRecord {
+		return []EventRecord{record}
 	}
 }
