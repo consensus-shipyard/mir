@@ -80,7 +80,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Initialize recording of events.
 	interceptor, err := eventlog.NewRecorder(tr.ID, tr.Dir, logging.Decorate(tr.Config.Logger, "Interceptor: "),
-		func(event eventlog.EventTime) []eventlog.EventTime { return []eventlog.EventTime{event} })
+		func(event eventlog.EventRecord) []eventlog.EventRecord { return []eventlog.EventRecord{event} })
 	if err != nil {
 		return fmt.Errorf("error creating interceptor: %w", err)
 	}

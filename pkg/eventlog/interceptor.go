@@ -107,11 +107,11 @@ type Recorder struct {
 	timeSource        func() int64
 	compressionLevel  int
 	retainRequestData bool
-	eventC            chan EventTime
+	eventC            chan EventRecord
 	doneC             chan struct{}
 	exitC             chan struct{}
 	fileCount         int
-	newDests          func(EventTime) []EventTime
+	newDests          func(EventRecord) []EventRecord
 	path              string
 
 	exitErr      error
@@ -122,7 +122,7 @@ func NewRecorder(
 	nodeID t.NodeID,
 	path string,
 	logger logging.Logger,
-	newDests func(EventTime) []EventTime,
+	newDests func(EventRecord) []EventRecord,
 	opts ...RecorderOpt,
 ) (*Recorder, error) {
 	if logger == nil {
@@ -147,7 +147,7 @@ func NewRecorder(
 			return time.Since(startTime).Milliseconds()
 		},
 		compressionLevel: DefaultCompressionLevel,
-		eventC:           make(chan EventTime, DefaultBufferSize),
+		eventC:           make(chan EventRecord, DefaultBufferSize),
 		doneC:            make(chan struct{}),
 		exitC:            make(chan struct{}),
 		fileCount:        1,
@@ -164,7 +164,7 @@ func NewRecorder(
 		case compressionLevelOpt:
 			i.compressionLevel = int(v)
 		case bufferSizeOpt:
-			i.eventC = make(chan EventTime, v)
+			i.eventC = make(chan EventRecord, v)
 		}
 	}
 
@@ -180,7 +180,7 @@ func NewRecorder(
 	return i, nil
 }
 
-type EventTime struct {
+type EventRecord struct {
 	Events *events.EventList
 	Time   int64
 }
@@ -191,7 +191,7 @@ type EventTime struct {
 // returns an error.
 func (i *Recorder) Intercept(events *events.EventList) error {
 	select {
-	case i.eventC <- EventTime{
+	case i.eventC <- EventRecord{
 		Events: events,
 		Time:   i.timeSource(),
 	}:
@@ -234,7 +234,7 @@ func (i *Recorder) run() (exitErr error) {
 		fmt.Printf("Intercepted Events written to event log: %d\n", cnt)
 	}()
 
-	write := func(dest io.Writer, eventTime EventTime) error {
+	write := func(dest io.Writer, eventTime EventRecord) error {
 
 		gzWriter, err := gzip.NewWriterLevel(dest, i.compressionLevel)
 		if err != nil {
@@ -253,7 +253,7 @@ func (i *Recorder) run() (exitErr error) {
 		})
 	}
 
-	writeInFiles := func(event EventTime) error {
+	writeInFiles := func(event EventRecord) error {
 		eventByDests := i.newDests(event)
 		count := 0
 		for _, eventTime := range eventByDests {
