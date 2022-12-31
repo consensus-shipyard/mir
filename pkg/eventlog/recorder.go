@@ -58,7 +58,6 @@ func NewRecorder(
 	nodeID t.NodeID,
 	path string,
 	logger logging.Logger,
-	newDests func(EventRecord) []EventRecord,
 	opts ...RecorderOpt,
 ) (*Recorder, error) {
 	if logger == nil {
@@ -87,7 +86,7 @@ func NewRecorder(
 		doneC:            make(chan struct{}),
 		exitC:            make(chan struct{}),
 		fileCount:        1,
-		newDests:         newDests,
+		newDests:         OneFileLogger(),
 		path:             path,
 	}
 
@@ -101,6 +100,8 @@ func NewRecorder(
 			i.compressionLevel = int(v)
 		case bufferSizeOpt:
 			i.eventC = make(chan EventRecord, v)
+		case fileSplitterOpt:
+			i.newDests = v
 		}
 	}
 

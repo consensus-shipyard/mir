@@ -56,3 +56,9 @@ type bufferSizeOpt int
 func BufferSizeOpt(size int) RecorderOpt {
 	return bufferSizeOpt(size)
 }
+
+type fileSplitterOpt func(EventRecord) []EventRecord
+
+func FileSplitterOpt(splitter func(EventRecord) []EventRecord) RecorderOpt {
+	return fileSplitterOpt(splitter)
+}
