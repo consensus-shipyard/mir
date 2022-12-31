@@ -226,10 +226,11 @@ func run() error {
 	ownIDInt, _ := strconv.Atoi(string(args.OwnID))
 
 	//Initialize recording of events
-	interceptor, err := eventlog.NewRecorder(args.OwnID,
+	interceptor, err := eventlog.NewRecorder(
+		args.OwnID,
 		fmt.Sprintf("node%d", ownIDInt),
 		logging.Decorate(logging.ConsoleTraceLogger, "Interceptor: "),
-		eventlog.EventNewLogFileLogger(),
+		eventlog.FileSplitterOpt(eventlog.EventNewLogFileLogger()),
 	)
 	if err != nil {
 		return errors.Wrap(err, "could not create new recorder")
