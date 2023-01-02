@@ -35,7 +35,7 @@ type EventRecord struct {
 	Time   int64
 }
 
-// Recorder is intended to be used as an imlementation of the
+// Recorder is intended to be used as an implementation of the
 // mir.EventInterceptor interface.  It receives state Events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
@@ -44,13 +44,15 @@ type Recorder struct {
 	timeSource        func() int64
 	compressionLevel  int
 	retainRequestData bool
-	eventC            chan EventRecord
-	doneC             chan struct{}
-	exitC             chan struct{}
-	fileCount         int
 	newDests          func(EventRecord) []EventRecord
 	path              string
 	filter            func(event *eventpb.Event) bool
+
+	logger    logging.Logger
+	eventC    chan EventRecord
+	doneC     chan struct{}
+	exitC     chan struct{}
+	fileCount int
 
 	exitErr      error
 	exitErrMutex sync.Mutex
@@ -94,6 +96,7 @@ func NewRecorder(
 			// Record all events by default.
 			return true
 		},
+		logger: logger,
 	}
 
 	for _, opt := range opts {
@@ -151,16 +154,22 @@ func (i *Recorder) Intercept(events *events.EventList) error {
 // Interceptor, and should only be invoked after the mir node has completely
 // exited.  The returned error
 func (i *Recorder) Stop() error {
+
+	// Send stop signal to writer thread and wait for it to stop.
 	close(i.doneC)
 	<-i.exitC
+
+	// Close destination file.
+	err := i.dest.Close()
+	if err != nil {
+		i.logger.Log(logging.LevelError, "Failed to close event recorder output stream.", "error", err)
+	}
+
+	// Return final error if it is different from the expected errStopped.
 	i.exitErrMutex.Lock()
 	defer i.exitErrMutex.Unlock()
 	if errors.Is(i.exitErr, errStopped) {
 		return nil
-	}
-	err := i.dest.Close()
-	if err != nil {
-		return err
 	}
 	return i.exitErr
 }
@@ -175,7 +184,7 @@ func (i *Recorder) run() (exitErr error) {
 		i.exitErr = exitErr
 		i.exitErrMutex.Unlock()
 		close(i.exitC)
-		fmt.Printf("Intercepted Events written to event log: %d\n", cnt)
+		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt)
 	}()
 
 	write := func(dest io.Writer, eventTime EventRecord) error {
@@ -186,7 +195,7 @@ func (i *Recorder) run() (exitErr error) {
 		}
 		defer func() {
 			if err := gzWriter.Close(); err != nil {
-				fmt.Printf("Error closing gzWriter: %v\n", err)
+				i.logger.Log(logging.LevelError, "Error closing gzWriter.", "err", err)
 			}
 		}()
 
