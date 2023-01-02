@@ -13,6 +13,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -139,8 +142,31 @@ func runNode() error {
 		return fmt.Errorf("could not create bench app: %w", err)
 	}
 
+	recorder, err := eventlog.NewRecorder(
+		ownID,
+		"benchlog.gz",
+		logging.Decorate(logger, "EVTLOG: "),
+		eventlog.EventFilterOpt(func(e *eventpb.Event) bool {
+			switch e := e.Type.(type) {
+			case *eventpb.Event_NewRequests:
+				return true
+			case *eventpb.Event_BatchFetcher:
+				switch e.BatchFetcher.Type.(type) {
+				case *batchfetcherpb.Event_NewOrderedBatch:
+					return true
+				}
+			}
+			return false
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("cannot create event recorder: %w", err)
+	}
 	stat := stats.NewStats()
-	interceptor := stats.NewStatInterceptor(stat, "app")
+	interceptor := eventlog.MultiInterceptor(
+		stats.NewStatInterceptor(stat, "app"),
+		recorder,
+	)
 
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
 	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), nil, interceptor)
