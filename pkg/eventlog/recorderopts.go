@@ -1,6 +1,10 @@
 package eventlog
 
-import "compress/gzip"
+import (
+	"compress/gzip"
+
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+)
 
 type RecorderOpt interface{}
 
@@ -61,4 +65,10 @@ type fileSplitterOpt func(EventRecord) []EventRecord
 
 func FileSplitterOpt(splitter func(EventRecord) []EventRecord) RecorderOpt {
 	return fileSplitterOpt(splitter)
+}
+
+type eventFilterOpt func(*eventpb.Event) bool
+
+func EventFilterOpt(filter func(event *eventpb.Event) bool) RecorderOpt {
+	return eventFilterOpt(filter)
 }

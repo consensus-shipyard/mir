@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -49,6 +50,7 @@ type Recorder struct {
 	fileCount         int
 	newDests          func(EventRecord) []EventRecord
 	path              string
+	filter            func(event *eventpb.Event) bool
 
 	exitErr      error
 	exitErrMutex sync.Mutex
@@ -88,6 +90,10 @@ func NewRecorder(
 		fileCount:        1,
 		newDests:         OneFileLogger(),
 		path:             path,
+		filter: func(event *eventpb.Event) bool {
+			// Record all events by default.
+			return true
+		},
 	}
 
 	for _, opt := range opts {
@@ -102,6 +108,12 @@ func NewRecorder(
 			i.eventC = make(chan EventRecord, v)
 		case fileSplitterOpt:
 			i.newDests = v
+		case eventFilterOpt:
+			oldFilter := i.filter
+			i.filter = func(e *eventpb.Event) bool {
+				// Apply the given filter on top of the existing one.
+				return oldFilter(e) && v(e)
+			}
 		}
 	}
 
@@ -181,7 +193,7 @@ func (i *Recorder) run() (exitErr error) {
 		return writeRecordedEvent(gzWriter, &recordingpb.Entry{
 			NodeId: i.nodeID.Pb(),
 			Time:   eventTime.Time,
-			Events: eventTime.Events.Slice(),
+			Events: filter(eventTime.Events, i.filter).Slice(),
 		})
 	}
 
@@ -257,4 +269,17 @@ func writeSizePrefixedProto(dest io.Writer, msg proto.Message) error {
 	}
 
 	return nil
+}
+
+func filter(evts *events.EventList, predicate func(event *eventpb.Event) bool) *events.EventList {
+	filtered := &events.EventList{}
+
+	iter := evts.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		if predicate(event) {
+			filtered.PushBack(event)
+		}
+	}
+
+	return filtered
 }
