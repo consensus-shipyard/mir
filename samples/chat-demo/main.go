@@ -152,20 +152,8 @@ func run() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p host")
 	}
+
 	// Initialize the libp2p transport subsystem.
-	// TODO: Re-enable this check!
-	// addrIn := false
-	// for _, addr := range h.Addrs() {
-	//	// sanity-check to see if the host is configured with the
-	//	// right multiaddr.
-	//	if addr.Equal(initialMembership[ownID]) {
-	//		addrIn = true
-	//		break
-	//	}
-	// }
-	// if !addrIn {
-	//	return nil, errors.New("libp2p host provided as input not listening to multiaddr specified for node")
-	// }
 	transport, err := libp2p2.NewTransport(smrParams.Net, h, args.OwnID, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p transport")
