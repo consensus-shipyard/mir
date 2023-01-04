@@ -10,24 +10,18 @@ SPDX-License-Identifier: Apache-2.0
 package eventlog
 
 import (
-	"compress/gzip"
-	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/pkg/errors"
 )
 
 type EventRecord struct {
@@ -35,12 +29,28 @@ type EventRecord struct {
 	Time   int64
 }
 
+func (record *EventRecord) Filter(predicate func(event *eventpb.Event) bool) EventRecord {
+	filtered := &events.EventList{}
+
+	iter := record.Events.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		if predicate(event) {
+			filtered.PushBack(event)
+		}
+	}
+
+	return EventRecord{
+		Events: filtered,
+		Time:   record.Time,
+	}
+}
+
 // Recorder is intended to be used as an implementation of the
 // mir.EventInterceptor interface.  It receives state Events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
 	nodeID            t.NodeID
-	dest              *os.File
+	dest              EventWriter
 	timeSource        func() int64
 	compressionLevel  int
 	retainRequestData bool
@@ -70,17 +80,7 @@ func NewRecorder(
 
 	startTime := time.Now()
 
-	if err := os.MkdirAll(path, 0700); err != nil {
-		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
-	}
-
-	dest, err := os.Create(filepath.Join(path, "eventlog0.gz"))
-	if err != nil {
-		return nil, fmt.Errorf("error creating event log file: %w", err)
-	}
-
 	i := &Recorder{
-		dest:   dest,
 		nodeID: nodeID,
 		timeSource: func() int64 {
 			return time.Since(startTime).Milliseconds()
@@ -119,6 +119,16 @@ func NewRecorder(
 			}
 		}
 	}
+
+	if err := os.MkdirAll(path, 0700); err != nil {
+		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
+	}
+
+	writer, err := NewGzipWriter(filepath.Join(path, "eventlog0.gz"), i.compressionLevel, nodeID, logger)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing event writer: %w", err)
+	}
+	i.dest = writer
 
 	go func() {
 		err := i.run()
@@ -162,7 +172,7 @@ func (i *Recorder) Stop() error {
 	// Close destination file.
 	err := i.dest.Close()
 	if err != nil {
-		i.logger.Log(logging.LevelError, "Failed to close event recorder output stream.", "error", err)
+		i.logger.Log(logging.LevelError, "Failed to close event writer.", "error", err)
 	}
 
 	// Return final error if it is different from the expected errStopped.
@@ -187,32 +197,18 @@ func (i *Recorder) run() (exitErr error) {
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt)
 	}()
 
-	write := func(record EventRecord) error {
-
-		gzWriter, err := gzip.NewWriterLevel(i.dest, i.compressionLevel)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := gzWriter.Close(); err != nil {
-				i.logger.Log(logging.LevelError, "Error closing gzWriter.", "err", err)
-			}
-		}()
-
-		return writeRecordedEvent(gzWriter, &recordingpb.Entry{
-			NodeId: i.nodeID.Pb(),
-			Time:   record.Time,
-			Events: filter(record.Events, i.filter).Slice(),
-		})
-	}
-
 	writeInFiles := func(record EventRecord) error {
 		eventByDests := i.newDests(record)
 		count := 0
 		for _, rec := range eventByDests {
 			if count > 0 {
 				// newDest required
-				dest, err := os.Create(filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"))
+				dest, err := NewGzipWriter(
+					filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"),
+					i.compressionLevel,
+					i.nodeID,
+					i.logger,
+				)
 				if err != nil {
 					return err
 				}
@@ -225,7 +221,7 @@ func (i *Recorder) run() (exitErr error) {
 			}
 
 			if rec.Events.Len() != 0 {
-				if err := write(rec); err != nil {
+				if err := i.dest.Write(rec.Filter(i.filter)); err != nil {
 					return err
 				}
 			}
@@ -255,40 +251,4 @@ func (i *Recorder) run() (exitErr error) {
 			cnt++
 		}
 	}
-}
-
-func writeRecordedEvent(writer io.Writer, entry *recordingpb.Entry) error {
-	return writeSizePrefixedProto(writer, entry)
-}
-
-func writeSizePrefixedProto(dest io.Writer, msg proto.Message) error {
-	msgBytes, err := proto.Marshal(msg)
-	if err != nil {
-		return errors.WithMessage(err, "could not marshal")
-	}
-
-	lenBuf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutVarint(lenBuf, int64(len(msgBytes)))
-	if _, err = dest.Write(lenBuf[:n]); err != nil {
-		return errors.WithMessage(err, "could not write length prefix")
-	}
-
-	if _, err = dest.Write(msgBytes); err != nil {
-		return errors.WithMessage(err, "could not write message")
-	}
-
-	return nil
-}
-
-func filter(evts *events.EventList, predicate func(event *eventpb.Event) bool) *events.EventList {
-	filtered := &events.EventList{}
-
-	iter := evts.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		if predicate(event) {
-			filtered.PushBack(event)
-		}
-	}
-
-	return filtered
 }
