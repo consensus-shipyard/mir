@@ -187,7 +187,7 @@ func (i *Recorder) run() (exitErr error) {
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt)
 	}()
 
-	write := func(dest io.Writer, eventTime EventRecord) error {
+	write := func(dest io.Writer, record EventRecord) error {
 
 		gzWriter, err := gzip.NewWriterLevel(dest, i.compressionLevel)
 		if err != nil {
@@ -201,15 +201,15 @@ func (i *Recorder) run() (exitErr error) {
 
 		return writeRecordedEvent(gzWriter, &recordingpb.Entry{
 			NodeId: i.nodeID.Pb(),
-			Time:   eventTime.Time,
-			Events: filter(eventTime.Events, i.filter).Slice(),
+			Time:   record.Time,
+			Events: filter(record.Events, i.filter).Slice(),
 		})
 	}
 
-	writeInFiles := func(event EventRecord) error {
-		eventByDests := i.newDests(event)
+	writeInFiles := func(record EventRecord) error {
+		eventByDests := i.newDests(record)
 		count := 0
-		for _, eventTime := range eventByDests {
+		for _, rec := range eventByDests {
 			if count > 0 {
 				// newDest required
 				dest, err := os.Create(filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"))
@@ -224,8 +224,8 @@ func (i *Recorder) run() (exitErr error) {
 				i.fileCount++
 			}
 
-			if eventTime.Events.Len() != 0 {
-				if err := write(i.dest, event); err != nil {
+			if rec.Events.Len() != 0 {
+				if err := write(i.dest, rec); err != nil {
 					return err
 				}
 			}
@@ -239,17 +239,17 @@ func (i *Recorder) run() (exitErr error) {
 		case <-i.doneC:
 			for {
 				select {
-				case event := <-i.eventC:
+				case record := <-i.eventC:
 
-					if err := writeInFiles(event); err != nil {
+					if err := writeInFiles(record); err != nil {
 						return errors.WithMessage(err, "error serializing to stream")
 					}
 				default:
 					return errStopped
 				}
 			}
-		case event := <-i.eventC:
-			if err := writeInFiles(event); err != nil {
+		case record := <-i.eventC:
+			if err := writeInFiles(record); err != nil {
 				return errors.WithMessage(err, "error serializing to stream")
 			}
 			cnt++
