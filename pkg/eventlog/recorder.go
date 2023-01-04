@@ -187,9 +187,9 @@ func (i *Recorder) run() (exitErr error) {
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt)
 	}()
 
-	write := func(dest io.Writer, record EventRecord) error {
+	write := func(record EventRecord) error {
 
-		gzWriter, err := gzip.NewWriterLevel(dest, i.compressionLevel)
+		gzWriter, err := gzip.NewWriterLevel(i.dest, i.compressionLevel)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (i *Recorder) run() (exitErr error) {
 			}
 
 			if rec.Events.Len() != 0 {
-				if err := write(i.dest, rec); err != nil {
+				if err := write(rec); err != nil {
 					return err
 				}
 			}
