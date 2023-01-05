@@ -22,7 +22,7 @@ type gzipWriter struct {
 }
 
 func NewGzipWriter(filename string, compressionLevel int, nodeID t.NodeID, logger logging.Logger) (EventWriter, error) {
-	dest, err := os.Create(filename)
+	dest, err := os.Create(filename + ".gz")
 	if err != nil {
 		return nil, fmt.Errorf("error creating event log file: %w", err)
 	}
