@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
+	_ "github.com/mattn/go-sqlite3" // Driver for the sql database
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
-	_ "github.com/mattn/go-sqlite3"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (

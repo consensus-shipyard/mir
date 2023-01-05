@@ -7,11 +7,12 @@ import (
 	"io"
 	"os"
 
+	"github.com/pkg/errors"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/proto"
 )
 
 type gzipWriter struct {
