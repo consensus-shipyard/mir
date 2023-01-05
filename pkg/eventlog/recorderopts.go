@@ -1,9 +1,9 @@
 package eventlog
 
 import (
-	"compress/gzip"
-
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type RecorderOpt interface{}
@@ -20,33 +20,6 @@ func TimeSourceOpt(source func() int64) RecorderOpt {
 	return timeSourceOpt(source)
 }
 
-type retainRequestDataOpt struct{}
-
-// RetainRequestDataOpt indicates that the full request data should be
-// embedded into the logs.  Usually, this option is undesirable since although
-// request data is not actually needed to replay a log, the request data
-// increases the size of the log substantially and the request data
-// may be considered sensitive so is therefore unsuitable for
-// debug/service.  However, for debugging application code, sometimes,
-// having the complete logs is available, so this option may be set
-// to true.
-func RetainRequestDataOpt() RecorderOpt {
-	return retainRequestDataOpt{}
-}
-
-type compressionLevelOpt int
-
-// DefaultCompressionLevel is used for event capture when not overridden.
-// In empirical tests, best speed was only a few tenths of a percent
-// worse than best compression, but your results may vary.
-const DefaultCompressionLevel = gzip.BestSpeed
-
-// CompressionLevelOpt takes any of the compression levels supported
-// by the golang standard gzip package.
-func CompressionLevelOpt(level int) RecorderOpt {
-	return compressionLevelOpt(level)
-}
-
 // DefaultBufferSize is the number of unwritten state Events which
 // may be held in queue before blocking.
 const DefaultBufferSize = 5000
@@ -61,6 +34,8 @@ func BufferSizeOpt(size int) RecorderOpt {
 	return bufferSizeOpt(size)
 }
 
+// TODO: Write documenting comments for the options below.
+
 type fileSplitterOpt func(EventRecord) []EventRecord
 
 func FileSplitterOpt(splitter func(EventRecord) []EventRecord) RecorderOpt {
@@ -71,4 +46,12 @@ type eventFilterOpt func(*eventpb.Event) bool
 
 func EventFilterOpt(filter func(event *eventpb.Event) bool) RecorderOpt {
 	return eventFilterOpt(filter)
+}
+
+type eventWriterOpt func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
+
+func EventWriterOpt(
+	factory func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error),
+) RecorderOpt {
+	return eventWriterOpt(factory)
 }

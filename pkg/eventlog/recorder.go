@@ -49,14 +49,13 @@ func (record *EventRecord) Filter(predicate func(event *eventpb.Event) bool) Eve
 // mir.EventInterceptor interface.  It receives state Events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
-	nodeID            t.NodeID
-	dest              EventWriter
-	timeSource        func() int64
-	compressionLevel  int
-	retainRequestData bool
-	newDests          func(EventRecord) []EventRecord
-	path              string
-	filter            func(event *eventpb.Event) bool
+	nodeID         t.NodeID
+	dest           EventWriter
+	timeSource     func() int64
+	newDests       func(EventRecord) []EventRecord
+	path           string
+	filter         func(event *eventpb.Event) bool
+	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
 
 	logger    logging.Logger
 	eventC    chan EventRecord
@@ -85,38 +84,36 @@ func NewRecorder(
 		timeSource: func() int64 {
 			return time.Since(startTime).Milliseconds()
 		},
-		compressionLevel: DefaultCompressionLevel,
-		eventC:           make(chan EventRecord, DefaultBufferSize),
-		doneC:            make(chan struct{}),
-		exitC:            make(chan struct{}),
-		fileCount:        1,
-		newDests:         OneFileLogger(),
-		path:             path,
+		eventC:    make(chan EventRecord, DefaultBufferSize),
+		doneC:     make(chan struct{}),
+		exitC:     make(chan struct{}),
+		fileCount: 1,
+		newDests:  OneFileLogger(),
+		path:      path,
 		filter: func(event *eventpb.Event) bool {
 			// Record all events by default.
 			return true
 		},
-		logger: logger,
+		newEventWriter: DefaultNewEventWriter,
+		logger:         logger,
 	}
 
 	for _, opt := range opts {
 		switch v := opt.(type) {
 		case timeSourceOpt:
 			i.timeSource = v
-		case retainRequestDataOpt:
-			i.retainRequestData = true
-		case compressionLevelOpt:
-			i.compressionLevel = int(v)
 		case bufferSizeOpt:
 			i.eventC = make(chan EventRecord, v)
 		case fileSplitterOpt:
 			i.newDests = v
 		case eventFilterOpt:
+			// Apply the given filter on top of the existing one.
 			oldFilter := i.filter
 			i.filter = func(e *eventpb.Event) bool {
-				// Apply the given filter on top of the existing one.
 				return oldFilter(e) && v(e)
 			}
+		case eventWriterOpt:
+			i.newEventWriter = v
 		}
 	}
 
@@ -124,7 +121,7 @@ func NewRecorder(
 		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
 	}
 
-	writer, err := NewGzipWriter(filepath.Join(path, "eventlog0.gz"), i.compressionLevel, nodeID, logger)
+	writer, err := i.newEventWriter(filepath.Join(path, "eventlog0"), nodeID, logger)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing event writer: %w", err)
 	}
@@ -203,9 +200,8 @@ func (i *Recorder) run() (exitErr error) {
 		for _, rec := range eventByDests {
 			if count > 0 {
 				// newDest required
-				dest, err := NewGzipWriter(
-					filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)+".gz"),
-					i.compressionLevel,
+				dest, err := i.newEventWriter(
+					filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)),
 					i.nodeID,
 					i.logger,
 				)

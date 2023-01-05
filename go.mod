@@ -31,6 +31,7 @@ require (
 	github.com/drand/kyber-bls12381 v0.2.3
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/ipfs/go-cid v0.1.0
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/multiformats/go-multiaddr v0.5.0
 	github.com/reactivex/rxgo/v2 v2.5.0
 	github.com/spf13/cobra v1.5.0
