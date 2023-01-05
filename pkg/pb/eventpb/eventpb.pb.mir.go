@@ -44,7 +44,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_PingPong)(nil)),
 		reflect.TypeOf((*Event_Checkpoint)(nil)),
 		reflect.TypeOf((*Event_SbEvent)(nil)),
-		reflect.TypeOf((*Event_NewLogFile)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 	}

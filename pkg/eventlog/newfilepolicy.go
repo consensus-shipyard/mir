@@ -2,15 +2,17 @@ package eventlog
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Returns a file that splits an record slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
-func EventNewLogFileLogger() func(record EventRecord) []EventRecord {
+func EventNewEpochLogger() func(record EventRecord) []EventRecord {
 	eventNewLogFileLogger := func(event *eventpb.Event) bool {
-		_, ok := event.Type.(*eventpb.Event_NewLogFile)
-		return ok
+		_, ok := event.Type.(*eventpb.Event_NewEpoch)
+		return ok && t.ModuleID(event.DestModule) == iss.DefaultModuleConfig().App
 	}
 	return EventTrackerLogger(eventNewLogFileLogger)
 }
