@@ -566,7 +566,10 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// This must happen after the state is restored,
 	// so the application has the correct state for returning the next configuration.
 	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	eventsOut.PushBackList(iss.startEpoch(chkp.Epoch(), iss.Params.LeaderPolicy))
+	eventsOut.PushBackList(iss.startEpoch(
+		chkp.Epoch(),
+		iss.Params.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0])),
+	))
 
 	// Prune the old state of all related modules.
 	// Since we are loading the complete state from a checkpoint,
@@ -596,7 +599,7 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr, leaderPolicy issutil.LeaderSelecti
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, nodeIDs, leaderPolicy)
 	iss.epochs[epochNr] = &epoch
 	iss.epoch = &epoch
-	iss.logger.Log(logging.LevelInfo, "Initialized new epoch", "epochNr", epochNr, "numNodes", len(nodeIDs))
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", epochNr, "nodes", nodeIDs, "leaders", leaderPolicy.Leaders(epochNr))
 
 	// Signal the new epoch to the application.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
