@@ -479,22 +479,3 @@ func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (orderer *Orderer) ImplementsModule() {}
-
-func strongQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: 2q > n+f
-	f := maxFaulty(n)
-	return (n+f)/2 + 1
-}
-
-func weakQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: q > f
-	return maxFaulty(n) + 1
-}
-
-func maxFaulty(n int) int {
-	// assuming n > 3f:
-	//   return max f
-	return (n - 1) / 3
-}

@@ -75,7 +75,7 @@ func (vcState *pbftViewChangeState) AddSignedViewChange(svc *ordererspbftpb.Sign
 
 	vcState.signedViewChanges[from] = svc
 
-	if len(vcState.signedViewChanges) >= strongQuorum(vcState.numNodes) {
+	if len(vcState.signedViewChanges) >= issutil.StrongQuorum(vcState.numNodes) {
 		vcState.updateReproposals()
 	}
 }

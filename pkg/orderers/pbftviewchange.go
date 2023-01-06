@@ -3,6 +3,7 @@ package orderers
 import (
 	"bytes"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"sort"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -737,7 +738,7 @@ func noPrepareConflictsA1(
 		}
 	}
 
-	return numNonConflicting >= strongQuorum(numNodes)
+	return numNonConflicting >= issutil.StrongQuorum(numNodes)
 }
 
 func enoughPrepreparesA2(
@@ -760,7 +761,7 @@ func enoughPrepreparesA2(
 		}
 	}
 
-	return numPrepares >= weakQuorum(numNodes), nodeIDs
+	return numPrepares >= issutil.WeakQuorum(numNodes), nodeIDs
 }
 
 func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn t.SeqNr, numNodes int) bool {
@@ -772,5 +773,5 @@ func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn t.SeqNr, numNodes in
 		}
 	}
 
-	return nothingPrepared >= strongQuorum(numNodes)
+	return nothingPrepared >= issutil.StrongQuorum(numNodes)
 }

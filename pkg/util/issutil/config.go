@@ -171,13 +171,13 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
-
+	leaderPolicy := NewBlackListLeaderPolicy(maputil.GetSortedKeys(initialMembership), StrongQuorum(len(initialMembership)))
 	return (&ModuleParams{
 		InitialMembership:  initialMembership,
 		ConfigOffset:       2,
 		SegmentLength:      4,
 		NumBuckets:         len(initialMembership),
-		LeaderPolicy:       NewBlackListLeaderPolicy(maputil.GetSortedKeys(initialMembership)),
+		LeaderPolicy:       leaderPolicy,
 		RequestNAckTimeout: 16,
 		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:     1,
@@ -202,4 +202,23 @@ func (mp *ModuleParams) AdjustSpeed(maxProposeDelay time.Duration) *ModuleParams
 	// TODO: Adapt this if needed when PBFT configuration is specified separately.
 
 	return mp
+}
+
+func StrongQuorum(n int) int {
+	// assuming n > 3f:
+	//   return min q: 2q > n+f
+	f := MaxFaulty(n)
+	return (n+f)/2 + 1
+}
+
+func WeakQuorum(n int) int {
+	// assuming n > 3f:
+	//   return min q: q > f
+	return MaxFaulty(n) + 1
+}
+
+func MaxFaulty(n int) int {
+	// assuming n > 3f:
+	//   return max f
+	return (n - 1) / 3
 }
