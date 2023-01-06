@@ -93,7 +93,7 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 		l.updated = true
 	}()
 
-	curLeaders := make([]t.NodeID, len(l.Membership), len(l.Membership))
+	curLeaders := make([]t.NodeID, 0, len(l.Membership))
 	for nodeID, _ := range l.Membership {
 		curLeaders = append(curLeaders, nodeID)
 	}
@@ -109,10 +109,10 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 
 		// If one node is suspected and the other is not, the suspected one comes last
 		if !oki && okj {
-			return false
+			return true
 		}
 		if oki && !okj {
-			return true
+			return false
 		}
 
 		// If both keys are in the suspected map, sort by value in the suspected map
@@ -135,7 +135,8 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 // if this one is more recent than the one it already has
 func (l *BlackListLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
-		//TODO error but cannot be returned
+		//TODO error but cannot be passed through
+		return
 	}
 
 	if epochNr, ok := l.Suspected[node]; !ok || epochNr < e {
