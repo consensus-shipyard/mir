@@ -17,7 +17,7 @@ import t "github.com/filecoin-project/mir/pkg/types"
 type LeaderSelectionPolicy interface {
 
 	// Leaders returns the (ordered) list of leaders based on the given epoch e and on the state of this policy object.
-	Leaders(e t.EpochNr) []t.NodeID
+	Leaders() []t.NodeID
 
 	// Suspect updates the state of the policy object by announcing it that node `node` has been suspected in epoch `e`.
 	Suspect(e t.EpochNr, node t.NodeID)
@@ -38,7 +38,7 @@ type SimpleLeaderPolicy struct {
 }
 
 // Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
-func (simple *SimpleLeaderPolicy) Leaders(e t.EpochNr) []t.NodeID {
+func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
 	// All nodes are always leaders.
 	return simple.Membership
 }
