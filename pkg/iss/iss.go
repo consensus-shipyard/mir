@@ -599,7 +599,7 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr, leaderPolicy issutil.LeaderSelecti
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, nodeIDs, leaderPolicy)
 	iss.epochs[epochNr] = &epoch
 	iss.epoch = &epoch
-	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", epochNr, "nodes", nodeIDs, "leaders", leaderPolicy.Leaders(epochNr))
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", epochNr, "nodes", nodeIDs, "leaders", leaderPolicy.Leaders())
 
 	// Signal the new epoch to the application.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
@@ -631,7 +631,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 
 	eventsOut := events.EmptyList()
 
-	leaders := iss.epoch.leaderPolicy.Leaders(iss.epoch.Nr())
+	leaders := iss.epoch.leaderPolicy.Leaders()
 	for i, leader := range leaders {
 
 		// Create segment.
