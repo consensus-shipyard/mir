@@ -177,7 +177,7 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 		ConfigOffset:       2,
 		SegmentLength:      4,
 		NumBuckets:         len(initialMembership),
-		LeaderPolicy:       &SimpleLeaderPolicy{Membership: maputil.GetSortedKeys(initialMembership)},
+		LeaderPolicy:       NewBlackListLeaderPolicy(maputil.GetSortedKeys(initialMembership)),
 		RequestNAckTimeout: 16,
 		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:     1,
