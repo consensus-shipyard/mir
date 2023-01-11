@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/fxamacker/cbor/v2"
-	"golang.org/x/exp/constraints"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -192,13 +191,9 @@ func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionP
 	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
 	suspected := make(map[t.NodeID]t.EpochNr, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
-		if sus, ok := l.Membership[nodeID]; ok {
-			membership[nodeID] = sus // keep former suspect as suspected
-			if epoch, ok := l.Suspected[nodeID]; ok {
-				suspected[nodeID] = epoch
-			}
-		} else {
-			membership[nodeID] = struct{}{}
+		membership[nodeID] = struct{}{}
+		if epoch, ok := l.Suspected[nodeID]; ok {
+			suspected[nodeID] = epoch
 		}
 	}
 
@@ -227,10 +222,4 @@ func BlacklistLeaderPolicyFromBytes(data []byte) (*BlacklistLeaderPolicy, error)
 		return nil, err
 	}
 	return b, nil
-}
-
-// keyValue is a struct that holds a key-value pair of a map
-type keyValue[K constraints.Ordered, V any] struct {
-	Key   K
-	Value V
 }

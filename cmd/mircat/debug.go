@@ -153,11 +153,15 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
 	issConfig := issutil.DefaultParams(membership)
+	stateSnapshotpb, err := iss.InitialStateSnapshot([]byte{}, issConfig, logger)
+	if err != nil {
+		return nil, err
+	}
 	protocol, err := iss.New(
 		id,
 		iss.DefaultModuleConfig(),
 		issConfig,
-		checkpoint.Genesis(iss.InitialStateSnapshot([]byte{}, issConfig)),
+		checkpoint.Genesis(stateSnapshotpb),
 		crypto.SHA256,
 		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),

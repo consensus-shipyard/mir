@@ -16,6 +16,7 @@ message StateSnapshot {
 message EpochData {
   EpochConfig    epoch_config    = 1;
   ClientProgress client_progress = 2;
+  bytes leader_policy = 3;
 }
 
 message EpochConfig {

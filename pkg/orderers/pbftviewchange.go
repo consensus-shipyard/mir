@@ -3,8 +3,9 @@ package orderers
 import (
 	"bytes"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"sort"
+
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 

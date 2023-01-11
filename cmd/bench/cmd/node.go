@@ -115,11 +115,14 @@ func runNode() error {
 	}
 
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
-
+	genesisCheckpoint, err := trantor.GenesisCheckpoint([]byte{}, smrParams, logger)
+	if err != nil {
+		return fmt.Errorf("could not create genesis checkpoint: %w", err)
+	}
 	benchApp, err := trantor.New(
 		ownID,
 		transport,
-		trantor.GenesisCheckpoint([]byte{}, smrParams),
+		genesisCheckpoint,
 		localCrypto.Crypto(ownID),
 		&App{Logger: logger, Membership: initialMembership},
 		smrParams,

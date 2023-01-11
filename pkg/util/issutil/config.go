@@ -11,7 +11,6 @@ import (
 	"time"
 
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -58,12 +57,6 @@ type ModuleParams struct {
 	// In each epoch, these buckets are re-distributed evenly among the orderers.
 	// Must be greater than 0.
 	NumBuckets int
-
-	// The logic for selecting leader nodes in each epoch.
-	// For details see the documentation of the LeaderSelectionPolicy type.
-	// ATTENTION: The leader selection policy is stateful!
-	// Must not be nil.
-	LeaderPolicy LeaderSelectionPolicy
 
 	// Number of logical time ticks to wait until demanding retransmission of missing requests.
 	// If a node receives a proposal containing requests that are not in the node's buckets,
@@ -139,11 +132,6 @@ func CheckParams(c *ModuleParams) error {
 		return fmt.Errorf("non-positive number of buckets: %d", c.NumBuckets)
 	}
 
-	// There must be a leader selection policy.
-	if c.LeaderPolicy == nil {
-		return fmt.Errorf("missing leader selection policy")
-	}
-
 	// RequestNackTimeout must be positive.
 	if c.RequestNAckTimeout <= 0 {
 		return fmt.Errorf("non-positive RequestNAckTimeout: %d", c.RequestNAckTimeout)
@@ -171,13 +159,11 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
-	leaderPolicy := NewBlackListLeaderPolicy(maputil.GetSortedKeys(initialMembership), StrongQuorum(len(initialMembership)))
 	return (&ModuleParams{
 		InitialMembership:  initialMembership,
 		ConfigOffset:       2,
 		SegmentLength:      4,
 		NumBuckets:         len(initialMembership),
-		LeaderPolicy:       leaderPolicy,
 		RequestNAckTimeout: 16,
 		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:     1,

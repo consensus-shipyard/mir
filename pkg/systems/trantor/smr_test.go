@@ -389,11 +389,15 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
 		}
+		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, issConfig, nodeLogger)
+		if err != nil {
+			return nil, fmt.Errorf("error initializing Mir state snapshot: %w", err)
+		}
 
 		system, err := New(
 			nodeID,
 			transport,
-			checkpoint.Genesis(iss.InitialStateSnapshot(initialSnapshot, issConfig)),
+			checkpoint.Genesis(stateSnapshotpb),
 			cryptoSystem.Crypto(nodeID),
 			AppLogicFromStatic(fakeApp, transportLayer.Nodes()),
 			Params{
