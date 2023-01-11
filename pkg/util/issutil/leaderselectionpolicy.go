@@ -102,9 +102,9 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 	sort.Slice(curLeaders, func(i, j int) bool {
 		_, oki := l.Suspected[curLeaders[i]]
 		_, okj := l.Suspected[curLeaders[j]]
-		// If both nodeIDs have never been suspected, then order does not matter (both will be leaders)
+		// If both nodeIDs have never been suspected, then lexicographical order (both will be leaders)
 		if !oki && !okj {
-			return i < j
+			return string(curLeaders[i]) < string(curLeaders[j])
 		}
 
 		// If one node is suspected and the other is not, the suspected one comes last
@@ -125,10 +125,8 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 		leadersSize = l.minLeaders // must at least return l.minLeaders
 	}
 
-	// assign the leadersSize least recently suspected nodes as currentLeaders
-	l.currentLeaders = curLeaders[:leadersSize]
-
-	return l.currentLeaders
+	// return the leadersSize least recently suspected nodes as currentLeaders
+	return curLeaders[:leadersSize]
 }
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
