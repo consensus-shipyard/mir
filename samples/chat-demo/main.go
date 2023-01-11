@@ -194,7 +194,10 @@ func run() error {
 		if err != nil {
 			return errors.Wrap(err, "could not create initial snapshot")
 		}
-		genesis = trantor.GenesisCheckpoint(initialSnapshot, smrParams)
+		genesis, err = trantor.GenesisCheckpoint(initialSnapshot, smrParams, logger)
+		if err != nil {
+			return errors.Wrap(err, "could not create genesis checkpoint")
+		}
 	}
 
 	// Create a Mir SMR system.

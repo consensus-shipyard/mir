@@ -2,6 +2,7 @@ package orderers
 
 import (
 	"bytes"
+
 	"github.com/filecoin-project/mir/pkg/util/issutil"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
