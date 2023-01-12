@@ -78,6 +78,8 @@ func NodeIDSlice(nids []string) []NodeID {
 	return nodeIDs
 }
 
+const NodeIDSeparator = Separator
+
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
 func NodeIDSlicePb(nids []NodeID) []string {
@@ -226,7 +228,7 @@ func (sn SeqNr) Pb() uint64 {
 
 // Bytes converts a SeqNr to a slice of bytes (useful for serialization).
 func (sn SeqNr) Bytes() []byte {
-	return uint64ToBytes(uint64(sn))
+	return Uint64ToBytes(uint64(sn))
 }
 
 // SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
@@ -261,7 +263,7 @@ func (rn ReqNo) Pb() uint64 {
 
 // Bytes converts a ReqNo to a slice of bytes (useful for serialization).
 func (rn ReqNo) Bytes() []byte {
-	return uint64ToBytes(uint64(rn))
+	return Uint64ToBytes(uint64(rn))
 }
 
 // ================================================================================
@@ -280,7 +282,7 @@ func (ri RetentionIndex) Pb() uint64 {
 
 // Bytes converts a RetentionIndex to a slice of bytes (useful for serialization).
 func (ri RetentionIndex) Bytes() []byte {
-	return uint64ToBytes(uint64(ri))
+	return Uint64ToBytes(uint64(ri))
 }
 
 // ================================================================================
@@ -294,7 +296,7 @@ func (i SBInstanceNr) Pb() uint64 {
 }
 
 func (i SBInstanceNr) Bytes() []byte {
-	return uint64ToBytes(uint64(i))
+	return Uint64ToBytes(uint64(i))
 }
 
 // ================================================================================
@@ -308,7 +310,7 @@ func (e EpochNr) Pb() uint64 {
 }
 
 func (e EpochNr) Bytes() []byte {
-	return uint64ToBytes(uint64(e))
+	return Uint64ToBytes(uint64(e))
 }
 
 // ================================================================================
@@ -322,7 +324,7 @@ func (nr NumRequests) Pb() uint64 {
 }
 
 func (nr NumRequests) Bytes() []byte {
-	return uint64ToBytes(uint64(nr))
+	return Uint64ToBytes(uint64(nr))
 }
 
 // ================================================================================
@@ -337,7 +339,7 @@ func (v PBFTViewNr) Pb() uint64 {
 
 // Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
 func (v PBFTViewNr) Bytes() []byte {
-	return uint64ToBytes(uint64(v))
+	return Uint64ToBytes(uint64(v))
 }
 
 // ================================================================================
@@ -351,7 +353,7 @@ func (td TimeDuration) Pb() uint64 {
 }
 
 func (td TimeDuration) Bytes() []byte {
-	return uint64ToBytes(uint64(td))
+	return Uint64ToBytes(uint64(td))
 }
 
 // ================================================================================
@@ -359,8 +361,12 @@ func (td TimeDuration) Bytes() []byte {
 // ================================================================================
 
 // Encode view number.
-func uint64ToBytes(n uint64) []byte {
+func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, n)
 	return buf
+}
+
+func Uint64FromBytes(bytes []byte) uint64 {
+	return binary.LittleEndian.Uint64(bytes)
 }

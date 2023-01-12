@@ -1,9 +1,12 @@
 package issutil
 
 import (
-	"github.com/filecoin-project/mir/pkg/types"
-	"github.com/stretchr/testify/require"
+	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/filecoin-project/mir/pkg/types"
 )
 
 func TestSimpleLeaderPolicy(t *testing.T) {
@@ -33,7 +36,7 @@ func TestSimpleLeaderPolicy(t *testing.T) {
 }
 
 func TestBlackListLeaderPolicy(t *testing.T) {
-	// Create a BlackListLeaderPolicy with 3 nodes and a minimum of 2 leaders
+	// Create a BlacklistLeaderPolicy with 3 nodes and a minimum of 2 leaders
 	nodes := []types.NodeID{"node1", "node2", "node3"}
 	policy := NewBlackListLeaderPolicy(nodes, 2)
 
@@ -46,17 +49,23 @@ func TestBlackListLeaderPolicy(t *testing.T) {
 	policy.Suspect(1, "node1")
 	expected = []types.NodeID{"node2", "node3"}
 	actual = policy.Leaders()
+	sort.Slice(expected, func(i, j int) bool {
+		return string(expected[i]) < string(expected[j])
+	})
+	sort.Slice(actual, func(i, j int) bool {
+		return string(actual[i]) < string(actual[j])
+	})
 	require.Equal(t, expected, actual)
 
 	// Suspect another node and check that it is not returned as a leader
-	policy.Suspect(1, "node2")
+	policy.Suspect(2, "node2")
 	expected = []types.NodeID{"node3", "node1"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 
 	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set
 	newNodes := []types.NodeID{"node4", "node5", "node6"}
-	policy, ok := policy.Reconfigure(newNodes).(*BlackListLeaderPolicy)
+	policy, ok := policy.Reconfigure(newNodes).(*BlacklistLeaderPolicy)
 	require.Equal(t, ok, true)
 	expected = newNodes
 	actual = policy.Leaders()
