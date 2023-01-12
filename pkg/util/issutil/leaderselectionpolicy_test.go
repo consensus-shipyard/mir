@@ -1,6 +1,7 @@
 package issutil
 
 import (
+	"github.com/stretchr/testify/assert"
 	"sort"
 	"testing"
 
@@ -70,4 +71,79 @@ func TestBlackListLeaderPolicy(t *testing.T) {
 	expected = newNodes
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
+}
+
+func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
+	policy := &BlacklistLeaderPolicy{
+		Membership: map[types.NodeID]struct{}{
+			"node1": {},
+			"node2": {},
+			"node3": {},
+		},
+		Suspected: map[types.NodeID]types.EpochNr{
+			"node1": 1,
+			"node2": 2,
+		},
+		MinLeaders: 2,
+	}
+	bytes, _ := policy.Bytes()
+	// check the first 8 bytes
+	policyType := types.Uint64FromBytes(bytes[0:8])
+	assert.Equal(t, uint64(Blacklist), policyType)
+
+	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
+	assert.NoError(t, err)
+	assert.IsType(t, &BlacklistLeaderPolicy{}, reconstitutedPolicy)
+	reconstitutedBlacklistPolicy := reconstitutedPolicy.(*BlacklistLeaderPolicy)
+	require.Equal(t, policy.Membership, reconstitutedBlacklistPolicy.Membership)
+	require.Equal(t, policy.Suspected, reconstitutedBlacklistPolicy.Suspected)
+	require.Equal(t, policy.MinLeaders, reconstitutedBlacklistPolicy.MinLeaders)
+	require.Equal(t, policy.Leaders(), reconstitutedBlacklistPolicy.Leaders())
+}
+
+func TestSimpleLeaderPolicy_OneNodeMembership(t *testing.T) {
+	simplePolicy := NewSimpleLeaderPolicy([]types.NodeID{"node1"})
+	// Verify that bytes() returns an error when membership is empty
+	bytes, _ := simplePolicy.Bytes()
+	// Verify that LeaderPolicyFromBytes() returns an error when passed an empty byte slice
+	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
+	reconstitutedSimpleLeaderPolicy := reconstitutedPolicy.(*SimpleLeaderPolicy)
+	assert.Equal(t, err, nil)
+	require.Equal(t, simplePolicy.Membership, reconstitutedSimpleLeaderPolicy.Membership)
+
+	blacklistPolicy := NewBlackListLeaderPolicy([]types.NodeID{"node1"}, 1)
+	bytes, _ = blacklistPolicy.Bytes()
+	// Verify that LeaderPolicyFromBytes() returns an error when passed an empty byte slice
+	reconstitutedPolicy, err = LeaderPolicyFromBytes(bytes)
+	reconstitutedBlacklistPolicy := reconstitutedPolicy.(*BlacklistLeaderPolicy)
+	assert.Equal(t, err, nil)
+	require.Equal(t, blacklistPolicy.Membership, reconstitutedBlacklistPolicy.Membership)
+	require.Equal(t, blacklistPolicy.Leaders(), reconstitutedBlacklistPolicy.Leaders())
+}
+
+func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
+	policy := &BlacklistLeaderPolicy{
+		Membership: map[types.NodeID]struct{}{
+			"node1": {},
+			"node2": {},
+			"node3": {},
+		},
+		Suspected:  map[types.NodeID]types.EpochNr{},
+		MinLeaders: 2,
+	}
+	bytes, _ := policy.Bytes()
+	// check the first 8 bytes
+	policyType := types.Uint64FromBytes(bytes[0:8])
+	assert.Equal(t, uint64(Blacklist), policyType)
+
+	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
+	assert.NoError(t, err)
+	assert.IsType(t, &BlacklistLeaderPolicy{}, reconstitutedPolicy)
+	reconstitutedBlacklistPolicy := reconstitutedPolicy.(*BlacklistLeaderPolicy)
+	assert.Equal(t, policy.Membership, reconstitutedBlacklistPolicy.Membership)
+	assert.Equal(t, policy.MinLeaders, reconstitutedBlacklistPolicy.MinLeaders)
+	assert.Equal(t, policy.Suspected, reconstitutedBlacklistPolicy.Suspected)
+	policyLeaders := policy.Leaders()
+	reconstitutedPolicyLeaders := policy.Leaders()
+	assert.Equal(t, policyLeaders, reconstitutedPolicyLeaders)
 }

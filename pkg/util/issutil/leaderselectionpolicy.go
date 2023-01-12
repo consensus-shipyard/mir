@@ -53,8 +53,6 @@ type LeaderSelectionPolicy interface {
 	// TODO: Use the whole configuration, not just the node IDs.
 	Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy
 
-	//// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
-	//Pb() commonpb.LeaderSelectionPolicy
 	Bytes() ([]byte, error)
 }
 
