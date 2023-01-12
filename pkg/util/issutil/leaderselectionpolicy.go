@@ -7,9 +7,32 @@ SPDX-License-Identifier: Apache-2.0
 package issutil
 
 import (
-	t "github.com/filecoin-project/mir/pkg/types"
+	"fmt"
 	"sort"
+	"sync"
+
+	"github.com/fxamacker/cbor/v2"
+	"golang.org/x/exp/constraints"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
+
+type LeaderPolicyType uint64
+
+const (
+	Simple LeaderPolicyType = iota
+	Blacklist
+)
+
+var encMode cbor.EncMode
+var once sync.Once
+
+func getEncMode() cbor.EncMode {
+	once.Do(func() {
+		encMode, _ = cbor.CoreDetEncOptions().EncMode()
+	})
+	return encMode
+}
 
 // A LeaderSelectionPolicy implements the algorithm for selecting a set of leaders in each ISS epoch.
 // In a nutshell, it gathers information about suspected leaders in the past epochs
@@ -30,7 +53,23 @@ type LeaderSelectionPolicy interface {
 	// TODO: Use the whole configuration, not just the node IDs.
 	Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy
 
-	// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
+	//// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
+	//Pb() commonpb.LeaderSelectionPolicy
+	Bytes() ([]byte, error)
+}
+
+func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
+	leaderPolicyType := t.Uint64FromBytes(bytes[0:8])
+
+	switch LeaderPolicyType(leaderPolicyType) {
+	case Simple:
+		return SimpleLeaderPolicyFromBytes(bytes[8:])
+	case Blacklist:
+		return BlacklistLeaderPolicyFromBytes(bytes[8:])
+	default:
+		return nil, fmt.Errorf("invalid LeaderSelectionPolicy type: %v", leaderPolicyType)
+	}
+
 }
 
 // The SimpleLeaderPolicy is a trivial leader selection policy.
@@ -38,6 +77,12 @@ type LeaderSelectionPolicy interface {
 // regardless of which nodes have been suspected. In other words, each node is leader each epoch with this policy.
 type SimpleLeaderPolicy struct {
 	Membership []t.NodeID
+}
+
+func NewSimpleLeaderPolicy(membership []t.NodeID) *SimpleLeaderPolicy {
+	return &SimpleLeaderPolicy{
+		membership,
+	}
 }
 
 // Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
@@ -58,43 +103,45 @@ func (simple *SimpleLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectio
 	return &newPolicy
 }
 
-type keyVal struct {
-}
-type BlackListLeaderPolicy struct {
-	Membership     map[t.NodeID]bool // this bool is not to check membership but if it was ever suspected
-	Suspected      map[t.NodeID]t.EpochNr
-	minLeaders     int
-	currentLeaders []t.NodeID
-	updated        bool
+func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
+	ser, err := getEncMode().Marshal(simple)
+	if err != nil {
+		return nil, err
+	}
+	out := t.Uint64ToBytes(uint64(Simple))
+	out = append(out, ser...)
+	return out, nil
 }
 
-func NewBlackListLeaderPolicy(members []t.NodeID, minLeaders int) *BlackListLeaderPolicy {
-	membership := make(map[t.NodeID]bool, len(members))
+func SimpleLeaderPolicyFromBytes(data []byte) (*SimpleLeaderPolicy, error) {
+	b := &SimpleLeaderPolicy{}
+	err := cbor.Unmarshal(data, b)
+	return b, err
+}
+
+type BlacklistLeaderPolicy struct {
+	Membership map[t.NodeID]struct{}
+	Suspected  map[t.NodeID]t.EpochNr
+	MinLeaders int
+}
+
+func NewBlackListLeaderPolicy(members []t.NodeID, MinLeaders int) *BlacklistLeaderPolicy {
+	membership := make(map[t.NodeID]struct{}, len(members))
 	for _, node := range members {
-		membership[node] = false // no one is suspected at first
+		membership[node] = struct{}{}
 	}
-	return &BlackListLeaderPolicy{
+	return &BlacklistLeaderPolicy{
 		membership,
 		make(map[t.NodeID]t.EpochNr, len(members)),
-		minLeaders,
-		members,
-		true,
+		MinLeaders,
 	}
 }
 
 // Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
-func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
-	// All nodes are always leaders.
-	if l.updated { //no need to recalculate, no changes since last time
-		return l.currentLeaders
-	}
-	// defer marking l.currentLeaders as updated
-	defer func() {
-		l.updated = true
-	}()
+func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 
 	curLeaders := make([]t.NodeID, 0, len(l.Membership))
-	for nodeID, _ := range l.Membership {
+	for nodeID := range l.Membership {
 		curLeaders = append(curLeaders, nodeID)
 	}
 
@@ -121,8 +168,8 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 
 	// Calculate number of leaders
 	leadersSize := len(l.Membership) - len(l.Suspected)
-	if leadersSize < l.minLeaders {
-		leadersSize = l.minLeaders // must at least return l.minLeaders
+	if leadersSize < l.MinLeaders {
+		leadersSize = l.MinLeaders // must at least return l.MinLeaders
 	}
 
 	// return the leadersSize least recently suspected nodes as currentLeaders
@@ -131,22 +178,20 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
 // if this one is more recent than the one it already has
-func (l *BlackListLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
 		//TODO error but cannot be passed through
 		return
 	}
 
 	if epochNr, ok := l.Suspected[node]; !ok || epochNr < e {
-		l.Membership[node] = true //mark suspected
-		l.updated = false         // mark that next call to Leaders() needs to recalculate the leaders
-		l.Suspected[node] = e     // update with latest epoch that node was suspected
+		l.Suspected[node] = e // update with latest epoch that node was suspected
 	}
 }
 
 // Reconfigure informs the leader selection policy about a change in the membership.
-func (l *BlackListLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
-	membership := make(map[t.NodeID]bool, len(nodeIDs))
+func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
+	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
 	suspected := make(map[t.NodeID]t.EpochNr, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		if sus, ok := l.Membership[nodeID]; ok {
@@ -155,17 +200,39 @@ func (l *BlackListLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionP
 				suspected[nodeID] = epoch
 			}
 		} else {
-			membership[nodeID] = false // new nodes are not suspected initially
+			membership[nodeID] = struct{}{}
 		}
 	}
 
-	newPolicy := BlackListLeaderPolicy{
+	newPolicy := BlacklistLeaderPolicy{
 		membership,
 		suspected,
-		l.minLeaders,
-		make([]t.NodeID, len(nodeIDs), len(nodeIDs)),
-		false,
+		l.MinLeaders,
 	}
 
 	return &newPolicy
+}
+
+func (l *BlacklistLeaderPolicy) Bytes() ([]byte, error) {
+	ser, err := getEncMode().Marshal(*l)
+	if err != nil {
+		return nil, err
+	}
+	out := t.Uint64ToBytes(uint64(Blacklist))
+	out = append(out, ser...)
+	return out, nil
+}
+
+func BlacklistLeaderPolicyFromBytes(data []byte) (*BlacklistLeaderPolicy, error) {
+	b := &BlacklistLeaderPolicy{}
+	if err := cbor.Unmarshal(data, b); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// keyValue is a struct that holds a key-value pair of a map
+type keyValue[K constraints.Ordered, V any] struct {
+	Key   K
+	Value V
 }
