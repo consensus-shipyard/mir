@@ -99,11 +99,11 @@ func FromSlices[K comparable, V any](keys []K, vals []V) map[K]V {
 	if len(keys) != len(vals) {
 		panic(fmt.Sprintf("number of keys (%d) and number of values (%d) must match", len(keys), len(vals)))
 	}
-	
+
 	m := make(map[K]V, len(keys))
 	for i, key := range keys {
 		m[key] = vals[i]
 	}
-	
+
 	return m
 }
