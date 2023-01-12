@@ -91,3 +91,18 @@ func Transform[Ki comparable, Vi any, Ko comparable, Vo any](mi map[Ki]Vi, kt fu
 	}
 	return mo
 }
+
+// FromSlices constructs and returns a map from two separate slices of keys and corresponding values.
+// FromSlices panics if the number of keys differs from the number of values.
+func FromSlices[K comparable, V any](keys []K, vals []V) map[K]V {
+	if len(keys) != len(vals) {
+		panic(fmt.Sprintf("number of keys (%d) and number of values (%d) must match", len(keys), len(vals)))
+	}
+	
+	m := make(map[K]V, len(keys))
+	for i, key := range keys {
+		m[key] = vals[i]
+	}
+	
+	return m
+}
