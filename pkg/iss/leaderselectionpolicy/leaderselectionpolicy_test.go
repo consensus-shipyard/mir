@@ -1,4 +1,4 @@
-package issutil
+package leaderselectionpolicy
 
 import (
 	"sort"

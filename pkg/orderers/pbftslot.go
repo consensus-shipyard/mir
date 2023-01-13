@@ -3,8 +3,7 @@ package orderers
 import (
 	"bytes"
 
-	"github.com/filecoin-project/mir/pkg/util/issutil"
-
+	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -159,7 +158,7 @@ func (slot *pbftSlot) checkPrepared() bool {
 
 	// Check if enough unique Prepare messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.Prepares) < issutil.StrongQuorum(slot.numNodes) {
+	if len(slot.Prepares) < config.StrongQuorum(slot.numNodes) {
 		return false
 	}
 
@@ -181,7 +180,7 @@ func (slot *pbftSlot) checkPrepared() bool {
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidPrepares) >= issutil.StrongQuorum(slot.numNodes)
+	return len(slot.ValidPrepares) >= config.StrongQuorum(slot.numNodes)
 }
 
 // checkCommitted evaluates whether the pbftSlot fulfills the conditions to be committed.
@@ -195,7 +194,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 
 	// Check if enough unique Commit messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.Commits) < issutil.StrongQuorum(slot.numNodes) {
+	if len(slot.Commits) < config.StrongQuorum(slot.numNodes) {
 		return false
 	}
 
@@ -217,7 +216,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidCommits) >= issutil.StrongQuorum(slot.numNodes)
+	return len(slot.ValidCommits) >= config.StrongQuorum(slot.numNodes)
 }
 
 func (slot *pbftSlot) getPreprepare(digest []byte) *ordererspbftpb.Preprepare {

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/filecoin-project/mir/pkg/util/issutil"
-
+	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -739,7 +738,7 @@ func noPrepareConflictsA1(
 		}
 	}
 
-	return numNonConflicting >= issutil.StrongQuorum(numNodes)
+	return numNonConflicting >= config.StrongQuorum(numNodes)
 }
 
 func enoughPrepreparesA2(
@@ -762,7 +761,7 @@ func enoughPrepreparesA2(
 		}
 	}
 
-	return numPrepares >= issutil.WeakQuorum(numNodes), nodeIDs
+	return numPrepares >= config.WeakQuorum(numNodes), nodeIDs
 }
 
 func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn t.SeqNr, numNodes int) bool {
@@ -774,5 +773,5 @@ func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn t.SeqNr, numNodes in
 		}
 	}
 
-	return nothingPrepared >= issutil.StrongQuorum(numNodes)
+	return nothingPrepared >= config.StrongQuorum(numNodes)
 }
