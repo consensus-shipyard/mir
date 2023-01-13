@@ -3,8 +3,9 @@ package leaderselectionpolicy
 import (
 	"sort"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/fxamacker/cbor/v2"
+
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type BlacklistLeaderPolicy struct {
