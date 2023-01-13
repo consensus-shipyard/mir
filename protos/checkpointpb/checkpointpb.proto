@@ -45,8 +45,9 @@ message SignOrigin {}
 message SigVerOrigin {}
 
 message InstanceParams {
-  repeated string     node_ids      = 1;
-  uint64              epoch         = 2;
-  uint64              seq_nr        = 3;
-  uint64              resend_period = 4; // in milliseconds
+  repeated string     node_ids           = 1;
+  uint64              epoch              = 2;
+  uint64              seq_nr             = 3;
+  uint64              resend_period      = 4; // in milliseconds
+  bytes               leader_policy_data = 5;
 }

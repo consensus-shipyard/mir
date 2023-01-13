@@ -1,8 +1,6 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
@@ -16,6 +14,7 @@ import (
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type

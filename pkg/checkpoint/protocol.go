@@ -77,6 +77,7 @@ func NewProtocol(
 	ownID t.NodeID,
 	sn t.SeqNr,
 	epoch t.EpochNr,
+	leaderPolicyData []byte,
 	resendPeriod t.TimeDuration,
 	logger logging.Logger,
 ) *Protocol {
@@ -96,6 +97,7 @@ func NewProtocol(
 			EpochData: &commonpb.EpochData{
 				EpochConfig:    nil,
 				ClientProgress: nil,
+				LeaderPolicy:   leaderPolicyData,
 			},
 		},
 	}

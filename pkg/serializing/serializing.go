@@ -58,7 +58,8 @@ func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
 }
 
 func EpochDataForHash(epochData *commonpb.EpochData) [][]byte {
-	return append(EpochConfigForHash(epochData.EpochConfig), ClientProgressForHash(epochData.ClientProgress)...)
+	data := append(EpochConfigForHash(epochData.EpochConfig), epochData.LeaderPolicy)
+	return append(data, ClientProgressForHash(epochData.ClientProgress)...)
 }
 
 func EpochConfigForHash(epochConfig *commonpb.EpochConfig) [][]byte {
