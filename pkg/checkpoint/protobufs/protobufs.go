@@ -103,13 +103,15 @@ func InstanceParams(
 	epoch t.EpochNr,
 	seqNr t.SeqNr,
 	resendPeriod t.TimeDuration,
+	leaderPolicyData []byte,
 ) *factorymodulepb.GeneratorParams {
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_Checkpoint{
 		Checkpoint: &checkpointpb.InstanceParams{
-			NodeIds:      t.NodeIDSlicePb(nodeIDs),
-			Epoch:        epoch.Pb(),
-			SeqNr:        seqNr.Pb(),
-			ResendPeriod: resendPeriod.Pb(),
+			NodeIds:          t.NodeIDSlicePb(nodeIDs),
+			Epoch:            epoch.Pb(),
+			SeqNr:            seqNr.Pb(),
+			ResendPeriod:     resendPeriod.Pb(),
+			LeaderPolicyData: leaderPolicyData,
 		},
 	}}
 }

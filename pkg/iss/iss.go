@@ -556,14 +556,17 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 		return events.EmptyList(), nil
 	}
 
-	iss.logger.Log(logging.LevelDebug, "Installing state snapshot.", "epoch", chkp.Epoch())
-
+	// Deserialize received leader selection policy. If deserialization fails, ignore the whole message.
 	result, err := issutil.LeaderPolicyFromBytes(chkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		iss.logger.Log(logging.LevelWarn, "Error deserializing leader selection policy from checkpoint", err)
 		return events.EmptyList(), nil
 	}
 	iss.LeaderPolicy = result
+
+	iss.logger.Log(logging.LevelWarn, "Installing state snapshot.",
+		"epoch", chkp.Epoch(), "nodes", chkp.Memberships(), "leaders", iss.LeaderPolicy.Leaders())
+
 	// Clean up global ISS state that belongs to the current epoch
 	// instance that local replica got stuck with.
 	iss.epochs = make(map[t.EpochNr]*epochInfo)
@@ -586,10 +589,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// Start executing the current epoch (the one the checkpoint corresponds to).
 	// This must happen after the state is restored,
 	// so the application has the correct state for returning the next configuration.
-	// TODO: Properly serialize and deserialize the leader selection policy and pass it here.
-	eventsOut.PushBackList(iss.startEpoch(
-		chkp.Epoch(),
-	))
+	eventsOut.PushBackList(iss.startEpoch(chkp.Epoch()))
 
 	// Prune the old state of all related modules.
 	// Since we are loading the complete state from a checkpoint,
@@ -776,16 +776,21 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	oldNodeIDs := maputil.GetSortedKeys(iss.memberships[0])
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
-	iss.epoch.leaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
+	iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
 
 	// Start executing the new epoch.
 	// This must happen before starting the checkpoint protocol, since the application
 	// must already be in the new epoch when processing the state snapshot request
 	// emitted by the checkpoint sub-protocol
 	// (startEpoch emits an event for the application making it transition to the new epoch).
-	eventsOut.PushBackList(iss.startEpoch(
-		newEpochNr,
-	))
+	eventsOut.PushBackList(iss.startEpoch(newEpochNr))
+
+	// Serialize current leader selection policy.
+	leaderPolicyData, err := iss.LeaderPolicy.Bytes()
+	if err != nil {
+		return nil, fmt.Errorf("could not serialize leader selection policy: %w", err)
+	}
+
 	// Create a new checkpoint tracker to start the checkpointing protocol.
 	// This must happen after initialization of the new epoch,
 	// as the sequence number the checkpoint will be associated with (iss.nextDeliveredSN)
@@ -803,6 +808,7 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 			newEpochNr,
 			iss.nextDeliveredSN,
 			checkpoint.DefaultResendPeriod,
+			leaderPolicyData,
 		),
 	))
 

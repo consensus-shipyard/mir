@@ -36,6 +36,7 @@ func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.Pa
 					ownID,
 					t.SeqNr(p.SeqNr),
 					t.EpochNr(p.Epoch),
+					p.LeaderPolicyData,
 					t.TimeDuration(time.Duration(p.ResendPeriod)),
 					logging.Decorate(logger, "", "chkpSN", p.SeqNr, "chkpEpoch", p.Epoch),
 				)
