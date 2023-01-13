@@ -23,6 +23,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/events"
 	factoryevents "github.com/filecoin-project/mir/pkg/factorymodule/events"
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/orderers"
@@ -36,7 +38,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -53,7 +54,7 @@ type ISS struct {
 
 	// The ISS configuration parameters (e.g. Segment length, proposal frequency etc...)
 	// passed to New() when creating an ISS protocol instance.
-	Params *issutil.ModuleParams
+	Params *issconfig.ModuleParams
 
 	// Implementation of the hash function to use by ISS for computing all hashes.
 	hashImpl crypto.HashImpl
@@ -110,7 +111,7 @@ type ISS struct {
 	// For details see the documentation of the LeaderSelectionPolicy type.
 	// ATTENTION: The leader selection policy is stateful!
 	// Must not be nil.
-	LeaderPolicy issutil.LeaderSelectionPolicy
+	LeaderPolicy lsp.LeaderSelectionPolicy
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
@@ -124,7 +125,7 @@ func New(
 
 	// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
 	// See the documentation of the issutil.ModuleParams type for details.
-	params *issutil.ModuleParams,
+	params *issconfig.ModuleParams,
 
 	// Stable checkpoint defining the initial state of the protocol.
 	startingChkp *checkpoint.StableCheckpoint,
@@ -145,13 +146,13 @@ func New(
 	}
 
 	// Check whether the passed configuration is valid.
-	if err := issutil.CheckParams(params); err != nil {
+	if err := issconfig.CheckParams(params); err != nil {
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
 	// TODO: Make sure that startingChkp is consistent with params.
 
-	leaderPolicy, err := issutil.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
+	leaderPolicy, err := lsp.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
@@ -193,7 +194,7 @@ func New(
 // repeated for all the params.ConfigOffset following epochs.
 func InitialStateSnapshot(
 	appState []byte,
-	params *issutil.ModuleParams,
+	params *issconfig.ModuleParams,
 	logger logging.Logger,
 ) (*commonpb.StateSnapshot, error) {
 
@@ -207,14 +208,14 @@ func InitialStateSnapshot(
 	var leaderPolicyData []byte
 	var err error
 	switch params.LeaderSelectionPolicy {
-	case issutil.Simple:
-		leaderPolicyData, err = issutil.NewSimpleLeaderPolicy(
+	case lsp.Simple:
+		leaderPolicyData, err = lsp.NewSimpleLeaderPolicy(
 			maputil.GetSortedKeys(params.InitialMembership),
 		).Bytes()
-	case issutil.Blacklist:
-		leaderPolicyData, err = issutil.NewBlackListLeaderPolicy(
+	case lsp.Blacklist:
+		leaderPolicyData, err = lsp.NewBlackListLeaderPolicy(
 			maputil.GetSortedKeys(params.InitialMembership),
-			issutil.StrongQuorum(len(params.InitialMembership)),
+			issconfig.StrongQuorum(len(params.InitialMembership)),
 		).Bytes()
 	default:
 		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
@@ -572,7 +573,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	}
 
 	// Deserialize received leader selection policy. If deserialization fails, ignore the whole message.
-	result, err := issutil.LeaderPolicyFromBytes(chkp.Snapshot.EpochData.LeaderPolicy)
+	result, err := lsp.LeaderPolicyFromBytes(chkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		iss.logger.Log(logging.LevelWarn, "Error deserializing leader selection policy from checkpoint", err)
 		return events.EmptyList(), nil

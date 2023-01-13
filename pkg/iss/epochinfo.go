@@ -1,9 +1,9 @@
 package iss
 
 import (
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/orderers"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
 )
 
 // epochInfo holds epoch-specific information that becomes irrelevant on advancing to the next epoch.
@@ -22,14 +22,14 @@ type epochInfo struct {
 	Segments []*orderers.Segment
 
 	// TODO: Comment.
-	leaderPolicy issutil.LeaderSelectionPolicy
+	leaderPolicy lsp.LeaderSelectionPolicy
 }
 
 func newEpochInfo(
 	nr t.EpochNr,
 	firstSN t.SeqNr,
 	nodeIDs []t.NodeID,
-	leaderPolicy issutil.LeaderSelectionPolicy,
+	leaderPolicy lsp.LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{
 		nr:           nr,

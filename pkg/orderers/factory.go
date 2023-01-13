@@ -2,14 +2,14 @@ package orderers
 
 import (
 	"github.com/filecoin-project/mir/pkg/factorymodule"
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
 )
 
-func Factory(mc *ModuleConfig, issParams *issutil.ModuleParams, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
+func Factory(mc *ModuleConfig, issParams *issconfig.ModuleParams, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}

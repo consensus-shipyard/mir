@@ -22,9 +22,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
-
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -33,7 +30,9 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
@@ -144,7 +143,7 @@ func run() error {
 	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
 	// always the very first membership at sequence number 0. It is part of the system configuration.
 	trantorParams := trantor.DefaultParams(initialMembership)
-	trantorParams.Iss.LeaderSelectionPolicy = issutil.Simple
+	trantorParams.Iss.LeaderSelectionPolicy = lsp.Simple
 
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(

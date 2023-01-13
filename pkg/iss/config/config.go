@@ -4,12 +4,13 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package issutil
+package config
 
 import (
 	"fmt"
 	"time"
 
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -91,7 +92,7 @@ type ModuleParams struct {
 	// Leader selection policy to use for generating the initial state snapshot. See type for possible options.
 	// This field is only used for initialization of the state snapshot that might be provided to a new instance of ISS.
 	// It is the state snapshot (and not this value) that determines the protocol instance's leader selection policy.
-	LeaderSelectionPolicy LeaderPolicyType
+	LeaderSelectionPolicy lsp.LeaderPolicyType
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS params, maybe even use a field of type PBFTConfig in ModuleParams.
@@ -172,7 +173,7 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 		RequestNAckTimeout:    16,
 		MsgBufCapacity:        32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:        1,
-		LeaderSelectionPolicy: Simple,
+		LeaderSelectionPolicy: lsp.Simple,
 	}).AdjustSpeed(time.Second)
 }
 

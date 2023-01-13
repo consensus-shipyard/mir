@@ -2,10 +2,10 @@ package orderers
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -75,7 +75,7 @@ func (vcState *pbftViewChangeState) AddSignedViewChange(svc *ordererspbftpb.Sign
 
 	vcState.signedViewChanges[from] = svc
 
-	if len(vcState.signedViewChanges) >= issutil.StrongQuorum(vcState.numNodes) {
+	if len(vcState.signedViewChanges) >= config.StrongQuorum(vcState.numNodes) {
 		vcState.updateReproposals()
 	}
 }
@@ -170,7 +170,7 @@ func (vcState *pbftViewChangeState) askForMissingPreprepares(moduleConfig *Modul
 					PbftPreprepareRequestSBMessage(
 						pbftPreprepareRequestMsg(sn, digest)),
 					moduleConfig.Self),
-				issutil.RemoveNodeID(vcState.prepreparedIDs[sn], "1"), // TODO be smarter about this eventually, not asking everyone at once.
+				removeNodeID(vcState.prepreparedIDs[sn], "1"), // TODO be smarter about this eventually, not asking everyone at once.
 			))
 		}
 	}
