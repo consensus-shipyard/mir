@@ -23,6 +23,7 @@ import (
 	"strconv"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
 
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -142,7 +143,8 @@ func run() error {
 
 	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,
 	// always the very first membership at sequence number 0. It is part of the system configuration.
-	smrParams := trantor.DefaultParams(initialMembership)
+	trantorParams := trantor.DefaultParams(initialMembership)
+	trantorParams.Iss.LeaderSelectionPolicy = issutil.Simple
 
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(
@@ -154,7 +156,7 @@ func run() error {
 	}
 
 	// Initialize the libp2p transport subsystem.
-	transport, err := libp2p2.NewTransport(smrParams.Net, h, args.OwnID, logger)
+	transport, err := libp2p2.NewTransport(trantorParams.Net, h, args.OwnID, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p transport")
 	}
@@ -183,7 +185,7 @@ func run() error {
 		}
 
 		// Verify that the starting checkpoint is valid.
-		//err = genesis.VerifyCert(crypto.SHA256, localCrypto.Crypto(args.OwnID), smrParams.Iss.InitialMembership)
+		//err = genesis.VerifyCert(crypto.SHA256, localCrypto.Crypto(args.OwnID), trantorParams.Iss.InitialMembership)
 		//if err != nil {
 		//	return errors.Wrap(err, "starting checkpoint invalid")
 		//}
@@ -194,20 +196,20 @@ func run() error {
 		if err != nil {
 			return errors.Wrap(err, "could not create initial snapshot")
 		}
-		genesis, err = trantor.GenesisCheckpoint(initialSnapshot, smrParams, logger)
+		genesis, err = trantor.GenesisCheckpoint(initialSnapshot, trantorParams, logger)
 		if err != nil {
 			return errors.Wrap(err, "could not create genesis checkpoint")
 		}
 	}
 
 	// Create a Mir SMR system.
-	smrSystem, err := trantor.New(
+	trantorSystem, err := trantor.New(
 		args.OwnID,
 		transport,
 		genesis,
 		crypto,
 		chatApp,
-		smrParams,
+		trantorParams,
 		logger,
 	)
 	if err != nil {
@@ -227,7 +229,7 @@ func run() error {
 		return errors.Wrap(err, "could not create new recorder")
 	}
 	// Create a Mir node, passing it all the modules of the SMR system.
-	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), smrSystem.Modules(), nil, interceptor)
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), trantorSystem.Modules(), nil, interceptor)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}
@@ -240,7 +242,7 @@ func run() error {
 	// This will start all the goroutines that need to run within the modules of the SMR system.
 	// For example, the network module will start listening for incoming connections and create outgoing ones.
 	// The modules will become ready to be used by the node (but the node itself is not yet started).
-	if err := smrSystem.Start(); err != nil {
+	if err := trantorSystem.Start(); err != nil {
 		return errors.Wrap(err, "could not start SMR system")
 	}
 
@@ -289,7 +291,7 @@ func run() error {
 	if args.Verbose {
 		fmt.Println("Stopping SMR system.")
 	}
-	smrSystem.Stop()
+	trantorSystem.Stop()
 
 	// Stop the node.
 	if args.Verbose {

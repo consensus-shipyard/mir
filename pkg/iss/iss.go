@@ -203,18 +203,33 @@ func InitialStateSnapshot(
 		memberships[i] = params.InitialMembership
 	}
 
-	// TODO: This assumes the simple leader selection policy. Generalize!
-	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
-	leaderPolicy, err := issutil.NewBlackListLeaderPolicy(maputil.GetSortedKeys(params.InitialMembership), issutil.StrongQuorum(len(params.InitialMembership))).Bytes()
+	// Create the initial leader selection policy.
+	var leaderPolicyData []byte
+	var err error
+	switch params.LeaderSelectionPolicy {
+	case issutil.Simple:
+		leaderPolicyData, err = issutil.NewSimpleLeaderPolicy(
+			maputil.GetSortedKeys(params.InitialMembership),
+		).Bytes()
+	case issutil.Blacklist:
+		leaderPolicyData, err = issutil.NewBlackListLeaderPolicy(
+			maputil.GetSortedKeys(params.InitialMembership),
+			issutil.StrongQuorum(len(params.InitialMembership)),
+		).Bytes()
+	default:
+		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
+	}
 	if err != nil {
 		return nil, err
 	}
+
+	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
 	return &commonpb.StateSnapshot{
 		AppData: appState,
 		EpochData: &commonpb.EpochData{
 			EpochConfig:    events.EpochConfig(0, 0, firstEpochLength, memberships),
 			ClientProgress: clientprogress.NewClientProgress(nil).Pb(),
-			LeaderPolicy:   leaderPolicy,
+			LeaderPolicy:   leaderPolicyData,
 		},
 	}, nil
 }
