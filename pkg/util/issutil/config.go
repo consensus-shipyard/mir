@@ -88,6 +88,11 @@ type ModuleParams struct {
 	// Time interval for repeated retransmission of checkpoint messages.
 	CheckpointResendPeriod time.Duration
 
+	// Leader selection policy to use for generating the initial state snapshot. See type for possible options.
+	// This field is only used for initialization of the state snapshot that might be provided to a new instance of ISS.
+	// It is the state snapshot (and not this value) that determines the protocol instance's leader selection policy.
+	LeaderSelectionPolicy LeaderPolicyType
+
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS params, maybe even use a field of type PBFTConfig in ModuleParams.
 	PBFTDoneResendPeriod         time.Duration
@@ -160,13 +165,14 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
 	return (&ModuleParams{
-		InitialMembership:  initialMembership,
-		ConfigOffset:       2,
-		SegmentLength:      4,
-		NumBuckets:         len(initialMembership),
-		RequestNAckTimeout: 16,
-		MsgBufCapacity:     32 * 1024 * 1024, // 32 MiB
-		RetainedEpochs:     1,
+		InitialMembership:     initialMembership,
+		ConfigOffset:          2,
+		SegmentLength:         4,
+		NumBuckets:            len(initialMembership),
+		RequestNAckTimeout:    16,
+		MsgBufCapacity:        32 * 1024 * 1024, // 32 MiB
+		RetainedEpochs:        1,
+		LeaderSelectionPolicy: Simple,
 	}).AdjustSpeed(time.Second)
 }
 
