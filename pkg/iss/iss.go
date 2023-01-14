@@ -195,7 +195,6 @@ func New(
 func InitialStateSnapshot(
 	appState []byte,
 	params *issconfig.ModuleParams,
-	logger logging.Logger,
 ) (*commonpb.StateSnapshot, error) {
 
 	// Create the first membership and all ConfigOffset following ones (by using the initial one).
