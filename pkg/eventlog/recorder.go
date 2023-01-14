@@ -145,6 +145,15 @@ func NewRecorder(
 // to the output stream has completed (successfully or otherwise), Intercept
 // returns an error.
 func (i *Recorder) Intercept(events *events.EventList) error {
+
+	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
+	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
+	// Mir would treat that variable as non-nil, thinking there is an interceptor, and call Intercept() on it.
+	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
+	if i == nil {
+		return nil
+	}
+
 	select {
 	case i.eventC <- EventRecord{
 		Events: events,
