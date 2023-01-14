@@ -195,7 +195,7 @@ func run() error {
 		if err != nil {
 			return errors.Wrap(err, "could not create initial snapshot")
 		}
-		genesis, err = trantor.GenesisCheckpoint(initialSnapshot, trantorParams, logger)
+		genesis, err = trantor.GenesisCheckpoint(initialSnapshot, trantorParams)
 		if err != nil {
 			return errors.Wrap(err, "could not create genesis checkpoint")
 		}

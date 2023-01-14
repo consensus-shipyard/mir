@@ -388,7 +388,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
 		}
-		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, issConfig, nodeLogger)
+		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, issConfig)
 		if err != nil {
 			return nil, fmt.Errorf("error initializing Mir state snapshot: %w", err)
 		}
