@@ -791,7 +791,7 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	oldNodeIDs := maputil.GetSortedKeys(iss.memberships[0])
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
-	iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
+	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
 
 	// Start executing the new epoch.
 	// This must happen before starting the checkpoint protocol, since the application
