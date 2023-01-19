@@ -137,24 +137,28 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 			len(sc.Cert), f+1)
 	}
 
-	// Check whether all signatures are valid.
+	// Check whether all signatures from the validators of the membership are valid.
 	snapshotData := serializing.SnapshotForHash(sc.StateSnapshot())
 	snapshotHash := hash(snapshotData, h)
 	sigData := serializing.CheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
-	for nodeID, sig := range sc.Cert {
-		// For each signature in the certificate...
 
-		// Check if the signing node is also in the given membership, thus "authorized" to sign.
-		// TODO: Once nodes are identified by more than their ID
-		//   (e.g., if a separate putlic key is part of their identity), adapt the check accordingly.
-		if _, ok := membership[t.NodeID(nodeID)]; !ok {
-			return fmt.Errorf("node %v not in membership", nodeID)
+	correctSignatures := 0
+	for nodeID := range membership {
+
+		sig, ok := sc.Cert[nodeID.Pb()]
+		if !ok {
+			continue
 		}
 
 		// Check if the signature is valid.
-		if err := v.Verify(sigData, sig, t.NodeID(nodeID)); err != nil {
-			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
+		if err := v.Verify(sigData, sig, nodeID); err != nil {
+			continue
 		}
+
+		correctSignatures++
+	}
+	if correctSignatures < f+1 {
+		return fmt.Errorf("certificate verification error")
 	}
 	return nil
 }
