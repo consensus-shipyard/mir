@@ -535,7 +535,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	//       The memberhips information in the checkpint is used to verify the checkpoint itself.
 	//       This makes it possible to construct an arbitrary valid checkpoint.
 	//       Use an independent local source of memberhip information instead.
-	if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkp.Memberships()[0]); err != nil {
+	if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkp.PreviousMembership()); err != nil {
 		iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Certificate don walid.",
 			"localEpoch", iss.epoch.Nr(),
 			"chkpEpoch", chkp.Epoch(),
