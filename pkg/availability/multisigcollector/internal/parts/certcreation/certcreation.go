@@ -1,23 +1,29 @@
 package certcreation
 
 import (
-	batchdbdsl "github.com/filecoin-project/mir/pkg/availability/batchdb/dsl"
-	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
-	mscdsl "github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/dsl"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/protobuf"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
-	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
+	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
+	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
+	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // State represents the state related to this part of the module.
 type State struct {
-	NextReqID    RequestID
-	RequestState map[RequestID]*RequestState
+	NextReqID      RequestID
+	RequestStates  []*RequestState
+	Certificates   map[RequestID]*Certificate
+	RemainingSeqNr int
 }
 
 // RequestID is used to uniquely identify an outgoing request.
@@ -26,11 +32,13 @@ type RequestID = uint64
 // RequestState represents the state related to a request on the source node of the request.
 // The node disposes of this state as soon as the request is completed.
 type RequestState struct {
-	ReqOrigin *apb.RequestCertOrigin
-	BatchID   t.BatchID
+	ReqOrigin *apbtypes.RequestCertOrigin
+}
 
-	receivedSig map[t.NodeID]bool
+type Certificate struct {
+	BatchID     t.BatchID
 	sigs        map[t.NodeID][]byte
+	receivedSig map[t.NodeID]bool
 }
 
 // IncludeCreatingCertificates registers event handlers for processing availabilitypb.RequestCert events.
@@ -41,31 +49,58 @@ func IncludeCreatingCertificates(
 	nodeID t.NodeID,
 ) {
 	state := State{
-		NextReqID:    0,
-		RequestState: make(map[uint64]*RequestState),
+		NextReqID:      0,
+		RequestStates:  make([]*RequestState, 0),
+		Certificates:   make(map[RequestID]*Certificate),
+		RemainingSeqNr: params.MaxRequests,
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// code for the source of the request                                                                             //
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	// When a batch is requested by the consensus layer, request a batch of transactions from the mempool.
-	adsl.UponRequestCert(m, func(origin *apb.RequestCertOrigin) error {
+	apbdsl.UponComputeCert(m, func() error {
+		if state.RemainingSeqNr <= 0 {
+			return nil //no remaining sequence numbers to process, do not do dumb computations
+		}
 		reqID := state.NextReqID
 		state.NextReqID++
-
-		state.RequestState[reqID] = &RequestState{
-			ReqOrigin:   origin,
+		state.Certificates[reqID] = &Certificate{
 			receivedSig: make(map[t.NodeID]bool),
 			sigs:        make(map[t.NodeID][]byte),
 		}
-
 		mempooldsl.RequestBatch(m, mc.Mempool, &requestBatchFromMempoolContext{reqID})
 		return nil
 	})
 
+	// When a batch is requested by the consensus layer, request a batch of transactions from the mempool.
+	apbdsl.UponRequestCert(m, func(origin *apbtypes.RequestCertOrigin) error {
+
+		state.RequestStates = append(state.RequestStates, &RequestState{
+			ReqOrigin: origin,
+		})
+
+		sendIfReady(m, &state, params, false)
+		if len(state.Certificates) == 0 {
+			apbdsl.ComputeCert(m, mc.Self)
+			// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
+		}
+		return nil
+	})
+
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpb.Request, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
+		if len(txs) == 0 {
+			delete(state.Certificates, context.reqID)
+			if len(state.RequestStates) > 0 { // do not do work for the empty batch if there is not even a request to answer
+				sendIfReady(m, &state, params, true)
+				if len(state.Certificates) == 0 {
+					apbdsl.ComputeCert(m, mc.Self)
+					// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
+				}
+			}
+			return nil
+		}
 		// TODO: add persistent storage for crash-recovery.
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})
 		return nil
@@ -73,23 +108,26 @@ func IncludeCreatingCertificates(
 
 	// When the id of the batch is computed, request signatures for the batch from all nodes.
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *requestIDOfOwnBatchContext) error {
-		state.RequestState[context.reqID].BatchID = batchID
+		if _, ok := state.Certificates[context.reqID]; !ok {
+			return nil
+		}
+		state.Certificates[context.reqID].BatchID = batchID
 		// TODO: add persistent storage for crash-recovery.
-		dsl.SendMessage(m, mc.Net, protobuf.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
+		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
 		return nil
 	})
 
 	// When receive a signature, verify its correctness.
-	mscdsl.UponSigMessageReceived(m, func(from t.NodeID, signature []byte, reqID RequestID) error {
-		requestState, ok := state.RequestState[reqID]
+	mscpbdsl.UponSigMessageReceived(m, func(from t.NodeID, signature []byte, reqID RequestID) error {
+		certificate, ok := state.Certificates[reqID]
 		if !ok {
 			// Ignore a message with an invalid or outdated request id.
 			return nil
 		}
 
-		if !requestState.receivedSig[from] {
-			requestState.receivedSig[from] = true
-			sigData := common.SigData(params.InstanceUID, requestState.BatchID)
+		if !certificate.receivedSig[from] {
+			certificate.receivedSig[from] = true
+			sigData := common.SigData(params.InstanceUID, certificate.BatchID)
 			dsl.VerifyOneNodeSig(m, mc.Crypto, sigData, signature, from, &verifySigContext{reqID, signature})
 		}
 		return nil
@@ -101,32 +139,25 @@ func IncludeCreatingCertificates(
 			// Ignore invalid signature.
 			return nil
 		}
-		requestState, ok := state.RequestState[context.reqID]
+		certificate, ok := state.Certificates[context.reqID]
 		if !ok {
 			// The request has already been completed.
 			return nil
 		}
 
-		requestState.sigs[nodeID] = context.signature
-		return nil
-	})
+		certificate.sigs[nodeID] = context.signature
 
-	// When F+1 signatures are collected, create and output a certificate.
-	dsl.UponCondition(m, func() error {
-		// Iterate over active outgoing requests.
-		// Most of the time, there is expected to be at most one active outgoing request.
-		for reqID, requestState := range state.RequestState {
-			if len(requestState.sigs) >= params.F+1 {
-				certNodes, certSigs := maputil.GetKeysAndValues(requestState.sigs)
+		newDue := len(certificate.sigs) >= params.F+1 // keep this here...
 
-				requestingModule := t.ModuleID(requestState.ReqOrigin.Module)
-				cert := protobuf.Cert(requestState.BatchID, certNodes, certSigs)
-				adsl.NewCert(m, requestingModule, cert, requestState.ReqOrigin)
-
-				// Dispose of the state associated with this request.
-				delete(state.RequestState, reqID)
-			}
+		if len(state.RequestStates) > 0 {
+			sendIfReady(m, &state, params, false) // ... because this call changes the state
+			// do not send empty certificate because nonempty being computed
 		}
+
+		if newDue && len(state.Certificates) < params.Limit {
+			apbdsl.ComputeCert(m, mc.Self)
+		}
+
 		return nil
 	})
 
@@ -135,7 +166,7 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// When receive a request for a signature, compute the ids of the received transactions.
-	mscdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpb.Request, reqID RequestID) error {
+	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID RequestID) error {
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})
@@ -149,13 +180,14 @@ func IncludeCreatingCertificates(
 
 	// When the id of the batch is computed, store the batch persistently.
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *computeIDOfReceivedBatchContext) error {
-		batchdbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
+		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
 			&storeBatchContext{context.sourceID, context.reqID, batchID})
+		// TODO minor optimization: start computing cert without waiting for reply (maybe do not even get a reply from batchdb)
 		return nil
 	})
 
 	// When the batch is stored, generate a signature
-	batchdbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
+	batchdbpbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
 		sigMsg := common.SigData(params.InstanceUID, context.batchID)
 		dsl.SignRequest(m, mc.Crypto, sigMsg, &signReceivedBatchContext{context.sourceID, context.reqID})
 		return nil
@@ -163,9 +195,61 @@ func IncludeCreatingCertificates(
 
 	// When a signature is generated, send it to the process that sent the request.
 	dsl.UponSignResult(m, func(signature []byte, context *signReceivedBatchContext) error {
-		dsl.SendMessage(m, mc.Net, protobuf.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
+		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
 		return nil
 	})
+}
+
+func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEmptyIfNoneReady bool) {
+	certFinished := make([]*Certificate, 0)
+	certsToDelete := make(map[t.BatchIDString]struct{}, 0)
+	for _, cert := range state.Certificates {
+		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
+			certFinished = append(certFinished, cert)
+			certsToDelete[t.BatchIDString(cert.BatchID)] = struct{}{}
+		}
+	}
+
+	if len(certFinished) > 0 { // if any certificate is ready
+		maputil.FindAndDeleteAll(state.Certificates,
+			func(key RequestID, val *Certificate) bool {
+				_, ok := certsToDelete[t.BatchIDString(val.BatchID)]
+				return ok
+			}) // prevent duplicates
+
+		// prepare finished certs for proposal
+		mscProposal := make([]*mscpbtypes.Cert, 0, len(certFinished))
+		for _, _cert := range certFinished { // at least one
+			certNodes, certSigs := maputil.GetKeysAndValues(_cert.sigs)
+			cert := &mscpbtypes.Cert{BatchId: _cert.BatchID, Signers: certNodes, Signatures: certSigs}
+			mscProposal = append(mscProposal, cert)
+		}
+		proposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{
+			Mscs: &mscpbtypes.Certs{
+				Certs: mscProposal,
+			}}}
+
+		//return the certificates that are ready to all pending requests
+		for _, requestState := range state.RequestStates {
+			requestingModule := requestState.ReqOrigin.Module
+			apbdsl.NewCert(m, requestingModule, proposal, requestState.ReqOrigin)
+			state.RemainingSeqNr--
+		}
+		// Dispose of the state associated with handled requests.
+		state.RequestStates = make([]*RequestState, 0)
+
+	} else if sendEmptyIfNoneReady { // if none are ready and sendEmptyIfNoneReady is true, send empty cert
+		emptyProposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{
+			Certs: []*mscpbtypes.Cert{emptycert.EmptyCert()},
+		}}}
+		for _, requestState := range state.RequestStates {
+			requestingModule := requestState.ReqOrigin.Module
+			apbdsl.NewCert(m, requestingModule, emptyProposal, requestState.ReqOrigin)
+			state.RemainingSeqNr--
+		}
+		// Dispose of the state associated with handled requests.
+		state.RequestStates = make([]*RequestState, 0)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,19 +262,19 @@ type requestBatchFromMempoolContext struct {
 
 type requestIDOfOwnBatchContext struct {
 	reqID RequestID
-	txs   []*requestpb.Request
+	txs   []*requestpbtypes.Request
 }
 
 type computeIDsOfReceivedTxsContext struct {
 	sourceID t.NodeID
-	txs      []*requestpb.Request
+	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }
 
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
 	txIDs    []t.TxID
-	txs      []*requestpb.Request
+	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }
 

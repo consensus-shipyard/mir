@@ -3,7 +3,7 @@ package mempoolpbevents
 import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -22,7 +22,7 @@ func RequestBatch(destModule types.ModuleID, origin *types1.RequestBatchOrigin) 
 	}
 }
 
-func NewBatch(destModule types.ModuleID, txIds [][]uint8, txs []*requestpb.Request, origin *types1.RequestBatchOrigin) *types2.Event {
+func NewBatch(destModule types.ModuleID, txIds [][]uint8, txs []*types3.Request, origin *types1.RequestBatchOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -55,7 +55,7 @@ func RequestTransactions(destModule types.ModuleID, txIds [][]uint8, origin *typ
 	}
 }
 
-func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*requestpb.Request, origin *types1.RequestTransactionsOrigin) *types2.Event {
+func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*types3.Request, origin *types1.RequestTransactionsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -72,7 +72,7 @@ func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*requ
 	}
 }
 
-func RequestTransactionIDs(destModule types.ModuleID, txs []*requestpb.Request, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
+func RequestTransactionIDs(destModule types.ModuleID, txs []*types3.Request, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{

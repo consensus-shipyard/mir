@@ -19,5 +19,5 @@ type ModuleParams struct {
 
 // State represents the common state accessible to all parts of the module implementation.
 type State struct {
-	TxByID map[t.TxID]*requestpb.Request
+	TxByID map[string]*requestpb.Request
 }

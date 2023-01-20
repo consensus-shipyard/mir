@@ -8,12 +8,14 @@ import (
 	"os"
 	"strings"
 
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+
 	"google.golang.org/protobuf/proto"
 
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
@@ -130,10 +132,10 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 		m.eventsOut <- events.ListOf(events.NewClientRequests("mempool", []*requestpb.Request{request}))
 	}
 
-	m.eventsOut <- events.ListOf(availabilityevents.RequestCert("availability", &availabilitypb.RequestCertOrigin{
+	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{
 		Module: "control",
-		Type:   &availabilitypb.RequestCertOrigin_ContextStore{},
-	}))
+		Type:   &apbtypes.RequestCertOrigin_ContextStore{},
+	}).Pb())
 
 	return nil
 }
@@ -152,17 +154,18 @@ func (m *controlModule) readBatch(scanner *bufio.Scanner) error {
 		return fmt.Errorf("error decoding certificate: %w", err)
 	}
 
-	cert := new(availabilitypb.Cert)
-	err = proto.Unmarshal(certBytes, cert)
+	_cert := new(availabilitypb.Cert)
+	err = proto.Unmarshal(certBytes, _cert)
 	if err != nil {
 		return fmt.Errorf("error unmarshalling certificate: %w", err)
 	}
+	cert := apbtypes.CertFromPb(_cert)
 
-	m.eventsOut <- events.ListOf(availabilityevents.RequestTransactions("availability", cert,
-		&availabilitypb.RequestTransactionsOrigin{
+	m.eventsOut <- events.ListOf(apbevents.RequestTransactions("availability", cert,
+		&apbtypes.RequestTransactionsOrigin{
 			Module: "control",
-			Type:   &availabilitypb.RequestTransactionsOrigin_ContextStore{},
-		}))
+			Type:   &apbtypes.RequestTransactionsOrigin_ContextStore{},
+		}).Pb())
 
 	return nil
 }

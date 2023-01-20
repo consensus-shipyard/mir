@@ -1,6 +1,7 @@
 package formbatches
 
 import (
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
@@ -27,13 +28,13 @@ func IncludeBatchCreation(
 	}
 
 	dsl.UponNewRequests(m, func(txs []*requestpb.Request) error {
-		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
+		mpdsl.RequestTransactionIDs(m, mc.Self, availabilityevents.RequestConvertFromLegacyDsl(txs), &requestTxIDsContext{txs})
 		return nil
 	})
 
 	mpdsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
 		for i := range txIDs {
-			state.TxByID[txIDs[i]] = context.txs[i]
+			state.TxByID[string(txIDs[i])] = context.txs[i]
 		}
 		state.NewTxIDs = append(state.NewTxIDs, txIDs...)
 		return nil
@@ -46,7 +47,7 @@ func IncludeBatchCreation(
 
 		txCount := 0
 		for _, txID := range state.NewTxIDs {
-			tx := state.TxByID[txID]
+			tx := state.TxByID[string(txID)]
 
 			// TODO: add other limitations (if any) here.
 			if txCount == params.MaxTransactionsInBatch {

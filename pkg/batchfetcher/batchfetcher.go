@@ -3,7 +3,10 @@ package batchfetcher
 import (
 	"fmt"
 
-	availabilitydsl "github.com/filecoin-project/mir/pkg/availability/dsl"
+	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
@@ -64,10 +67,10 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			output.Flush(m)
 		} else {
 			// If this is a proper certificate, request transactions from the availability layer.
-			availabilitydsl.RequestTransactions(
+			availabilitypbdsl.RequestTransactions(
 				m,
 				mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-				cert.Cert,
+				apbtypes.CertFromPb(cert.Cert),
 				&txRequestContext{queueItem: &item},
 			)
 		}
@@ -133,7 +136,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	// assigns the remaining transactions to the corresponding output item
 	// (the one created on reception of the corresponding availability certificate in DeliverCert)
 	// and flushes the output stream.
-	availabilitydsl.UponProvideTransactions(m, func(txs []*requestpb.Request, context *txRequestContext) error {
+	availabilitypbdsl.UponProvideTransactions(m, func(txs []*requestpbtypes.Request, context *txRequestContext) error {
 
 		// Filter out transactions that already have been delivered
 		newTxs := make([]*requestpb.Request, 0, len(txs))
@@ -141,12 +144,12 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			// Runs for each received transaction.
 
 			// Convenience variables
-			clID := t.ClientID(req.ClientId)
-			reqNo := t.ReqNo(req.ReqNo)
+			clID := req.ClientId
+			reqNo := req.ReqNo
 
 			// Only keep request if it has not yet been delivered.
 			if clientProgress.Add(clID, reqNo) {
-				newTxs = append(newTxs, req)
+				newTxs = append(newTxs, req.Pb())
 			}
 		}
 
