@@ -83,6 +83,16 @@ func (sc *StableCheckpoint) Memberships() []map[t.NodeID]t.NodeAddress {
 	return t.MembershipSlice(sc.Snapshot.EpochData.EpochConfig.Memberships)
 }
 
+// PreviousMembership returns the membership of the epoch preceding the epoch the checkpoint is associated with
+// (i.e. the membership of sc.Epoch()-1).
+// This is the membership that created the checkpoint and must be used to verify its certificate.
+// Note that this membership is contained in the checkpoint itself and thus can be forged.
+// Using PreviousMembership as an argument to VerifyCert without independently checking its validity is not secure
+// (in this sense, the checkpoint certificate is self-signed).
+func (sc *StableCheckpoint) PreviousMembership() map[t.NodeID]t.NodeAddress {
+	return t.Membership(sc.Snapshot.EpochData.PreviousMembership)
+}
+
 // Epoch returns the epoch associated with this checkpoint.
 // It is the epoch **started** by this checkpoint, **not** the last one included in it.
 func (sc *StableCheckpoint) Epoch() t.EpochNr {
