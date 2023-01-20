@@ -19,6 +19,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -49,6 +50,8 @@ type Protocol struct {
 	seqNr t.SeqNr
 
 	// The IDs of nodes to execute this instance of the checkpoint protocol.
+	// Note that it is the membership of epoch e-1 that constructs the membership for epoch e.
+	// (As the starting checkpoint for e is the "finishing" checkpoint for e-1.)
 	membership []t.NodeID
 
 	// State snapshot associated with this checkpoint.
@@ -73,10 +76,9 @@ type Protocol struct {
 // NewProtocol allocates and returns a new instance of the Protocol associated with sequence number sn.
 func NewProtocol(
 	moduleConfig *ModuleConfig,
-	membership []t.NodeID,
 	ownID t.NodeID,
-	sn t.SeqNr,
-	epoch t.EpochNr,
+	membership map[t.NodeID]t.NodeAddress,
+	epochConfig *commonpb.EpochConfig,
 	leaderPolicyData []byte,
 	resendPeriod t.TimeDuration,
 	logger logging.Logger,
@@ -85,19 +87,20 @@ func NewProtocol(
 		Logger:          logger,
 		moduleConfig:    moduleConfig,
 		ownID:           ownID,
-		seqNr:           sn,
-		epoch:           epoch,
+		seqNr:           t.SeqNr(epochConfig.FirstSn),
+		epoch:           t.EpochNr(epochConfig.EpochNr),
 		resendPeriod:    resendPeriod,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
-		membership:      membership,
+		membership:      maputil.GetSortedKeys(membership),
 		stateSnapshot: &commonpb.StateSnapshot{
 			AppData: nil,
 			EpochData: &commonpb.EpochData{
-				EpochConfig:    nil,
-				ClientProgress: nil,
-				LeaderPolicy:   leaderPolicyData,
+				EpochConfig:        epochConfig,
+				ClientProgress:     nil, // This will be filled by a separate event.
+				LeaderPolicy:       leaderPolicyData,
+				PreviousMembership: t.MembershipPb(membership),
 			},
 		},
 	}
@@ -127,13 +130,6 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return p.applyClientProgress(e.ClientProgress)
 		default:
 			return nil, errors.Errorf("unexpected batch fetcher event type: %T", e)
-		}
-	case *eventpb.Event_Checkpoint:
-		switch e := e.Checkpoint.Type.(type) {
-		case *checkpointpb.Event_EpochConfig:
-			return p.applyEpochConfig(e.EpochConfig)
-		default:
-			return nil, errors.Errorf("unexpected checkpoint event type: %T", e)
 		}
 	case *eventpb.Event_MessageReceived:
 		switch msg := e.MessageReceived.Msg.Type.(type) {
@@ -172,18 +168,6 @@ func (p *Protocol) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.E
 	return events.EmptyList(), nil
 }
 
-func (p *Protocol) applyEpochConfig(epochConfig *commonpb.EpochConfig) (*events.EventList, error) {
-
-	// Save the received configuration if there is none yet.
-	if p.stateSnapshot.EpochData.EpochConfig == nil {
-		p.stateSnapshot.EpochData.EpochConfig = epochConfig
-		if p.snapshotReady() {
-			return p.processStateSnapshot()
-		}
-	}
-	return events.EmptyList(), nil
-}
-
 func (p *Protocol) applyClientProgress(clientProgress *commonpb.ClientProgress) (*events.EventList, error) {
 
 	// Save the received client progress if there is none yet.
@@ -198,7 +182,6 @@ func (p *Protocol) applyClientProgress(clientProgress *commonpb.ClientProgress) 
 
 func (p *Protocol) snapshotReady() bool {
 	return p.stateSnapshot.AppData != nil &&
-		p.stateSnapshot.EpochData.EpochConfig != nil &&
 		p.stateSnapshot.EpochData.ClientProgress != nil
 }
 

@@ -227,9 +227,10 @@ func InitialStateSnapshot(
 	return &commonpb.StateSnapshot{
 		AppData: appState,
 		EpochData: &commonpb.EpochData{
-			EpochConfig:    events.EpochConfig(0, 0, firstEpochLength, memberships),
-			ClientProgress: clientprogress.NewClientProgress(nil).Pb(),
-			LeaderPolicy:   leaderPolicyData,
+			EpochConfig:        events.EpochConfig(0, 0, firstEpochLength, memberships),
+			ClientProgress:     clientprogress.NewClientProgress(nil).Pb(),
+			LeaderPolicy:       leaderPolicyData,
+			PreviousMembership: nil,
 		},
 	}, nil
 }
@@ -367,20 +368,6 @@ func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, er
 		"forEpoch", newMembershipEpoch,
 		"currentEpoch", iss.epoch.Nr(),
 		"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
-
-	// Submit configurations to the corresponding instance of the checkpoint protocol.
-	if !iss.hasEpochCheckpoint() {
-		chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
-		eventsOut.PushBack(chkpprotos.EpochConfigEvent(
-			chkpModuleID,
-			events.EpochConfig(
-				iss.epoch.Nr(),
-				iss.epoch.FirstSN(),
-				iss.epoch.Len(),
-				iss.memberships,
-			),
-		))
-	}
 
 	// Advance to the next epoch if this configuration was the last missing bit.
 	if iss.epochFinished() {
@@ -788,7 +775,7 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	)
 
 	// Advance the membership pipeline
-	oldNodeIDs := maputil.GetSortedKeys(iss.memberships[0])
+	oldMembership := iss.memberships[0]
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
 	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
@@ -819,11 +806,10 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 		chkpModuleID,
 		t.RetentionIndex(newEpochNr),
 		chkpprotos.InstanceParams(
-			oldNodeIDs,
-			newEpochNr,
-			iss.nextDeliveredSN,
+			oldMembership,
 			checkpoint.DefaultResendPeriod,
 			leaderPolicyData,
+			events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
 		),
 	))
 
