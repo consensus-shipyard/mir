@@ -28,17 +28,15 @@ func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.Pa
 
 				// Get the instance parameters
 				p := params.Type.(*factorymodulepb.GeneratorParams_Checkpoint).Checkpoint
-				chkpNodeIDs := t.NodeIDSlice(p.NodeIds)
 
 				protocol := NewProtocol(
 					&submc,
-					chkpNodeIDs,
 					ownID,
-					t.SeqNr(p.SeqNr),
-					t.EpochNr(p.Epoch),
+					t.Membership(p.Membership),
+					p.EpochConfig,
 					p.LeaderPolicyData,
 					t.TimeDuration(time.Duration(p.ResendPeriod)),
-					logging.Decorate(logger, "", "chkpSN", p.SeqNr, "chkpEpoch", p.Epoch),
+					logging.Decorate(logger, "", "chkpSN", p.EpochConfig.FirstSn, "chkpEpoch", p.EpochConfig.EpochNr),
 				)
 
 				return protocol, nil

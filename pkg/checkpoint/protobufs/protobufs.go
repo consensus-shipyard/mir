@@ -18,15 +18,6 @@ func Event(destModule t.ModuleID, event *checkpointpb.Event) *eventpb.Event {
 	}
 }
 
-func EpochConfigEvent(destModule t.ModuleID, epochConfig *commonpb.EpochConfig) *eventpb.Event {
-	return Event(
-		destModule,
-		&checkpointpb.Event{Type: &checkpointpb.Event_EpochConfig{
-			EpochConfig: epochConfig,
-		}},
-	)
-}
-
 func EpochProgressEvent(
 	destModule t.ModuleID,
 	nodeID t.NodeID,
@@ -99,19 +90,17 @@ func SigVerOrigin(module t.ModuleID) *eventpb.SigVerOrigin {
 }
 
 func InstanceParams(
-	nodeIDs []t.NodeID,
-	epoch t.EpochNr,
-	seqNr t.SeqNr,
+	membership map[t.NodeID]t.NodeAddress,
 	resendPeriod t.TimeDuration,
 	leaderPolicyData []byte,
+	epochConfig *commonpb.EpochConfig,
 ) *factorymodulepb.GeneratorParams {
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_Checkpoint{
 		Checkpoint: &checkpointpb.InstanceParams{
-			NodeIds:          t.NodeIDSlicePb(nodeIDs),
-			Epoch:            epoch.Pb(),
-			SeqNr:            seqNr.Pb(),
+			Membership:       t.MembershipPb(membership),
 			ResendPeriod:     resendPeriod.Pb(),
 			LeaderPolicyData: leaderPolicyData,
+			EpochConfig:      epochConfig,
 		},
 	}}
 }
