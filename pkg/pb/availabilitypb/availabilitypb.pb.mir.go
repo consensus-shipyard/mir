@@ -12,6 +12,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_CertVerified)(nil)),
 		reflect.TypeOf((*Event_RequestTransactions)(nil)),
 		reflect.TypeOf((*Event_ProvideTransactions)(nil)),
+		reflect.TypeOf((*Event_ComputeCert)(nil)),
 	}
 }
 
@@ -22,9 +23,22 @@ func (*RequestCertOrigin) ReflectTypeOptions() []reflect.Type {
 	}
 }
 
+func (*RequestTransactionsOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*RequestTransactionsOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*RequestTransactionsOrigin_Dsl)(nil)),
+	}
+}
+
 func (*VerifyCertOrigin) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*VerifyCertOrigin_ContextStore)(nil)),
 		reflect.TypeOf((*VerifyCertOrigin_Dsl)(nil)),
+	}
+}
+
+func (*Cert) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Cert_Mscs)(nil)),
 	}
 }

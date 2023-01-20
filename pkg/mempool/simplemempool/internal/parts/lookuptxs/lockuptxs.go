@@ -20,7 +20,7 @@ func IncludeTransactionLookupByID(
 		present := make([]bool, len(txIDs))
 		txs := make([]*requestpb.Request, len(txIDs))
 		for i, txID := range txIDs {
-			txs[i], present[i] = commonState.TxByID[txID]
+			txs[i], present[i] = commonState.TxByID[string(txID)]
 		}
 
 		mpdsl.TransactionsResponse(m, t.ModuleID(origin.Module), present, txs, origin)

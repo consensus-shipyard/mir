@@ -109,7 +109,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
 
-		certBytes, err := proto.Marshal(cert)
+		certBytes, err := proto.Marshal(cert) // TODO Alejandro, marshal all certs in the slice passed now as argument
 		if err != nil {
 			return nil, fmt.Errorf("error marshalling certificate: %w", err)
 		}
@@ -205,7 +205,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 		)
 	}
 
-	// Save the received preprepare message.
+	//FIXME Address verification of the certificate after decision, issue #335
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.

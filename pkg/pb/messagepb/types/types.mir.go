@@ -2,7 +2,7 @@ package messagepbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -36,7 +36,7 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	case *messagepb.Message_Bcb:
 		return &Message_Bcb{Bcb: types1.MessageFromPb(pb.Bcb)}
 	case *messagepb.Message_MultisigCollector:
-		return &Message_MultisigCollector{MultisigCollector: pb.MultisigCollector}
+		return &Message_MultisigCollector{MultisigCollector: types2.MessageFromPb(pb.MultisigCollector)}
 	case *messagepb.Message_Pingpong:
 		return &Message_Pingpong{Pingpong: pb.Pingpong}
 	case *messagepb.Message_Checkpoint:
@@ -84,17 +84,17 @@ func (*Message_Bcb) MirReflect() mirreflect.Type {
 }
 
 type Message_MultisigCollector struct {
-	MultisigCollector *mscpb.Message
+	MultisigCollector *types2.Message
 }
 
 func (*Message_MultisigCollector) isMessage_Type() {}
 
-func (w *Message_MultisigCollector) Unwrap() *mscpb.Message {
+func (w *Message_MultisigCollector) Unwrap() *types2.Message {
 	return w.MultisigCollector
 }
 
 func (w *Message_MultisigCollector) Pb() messagepb.Message_Type {
-	return &messagepb.Message_MultisigCollector{MultisigCollector: w.MultisigCollector}
+	return &messagepb.Message_MultisigCollector{MultisigCollector: (w.MultisigCollector).Pb()}
 }
 
 func (*Message_MultisigCollector) MirReflect() mirreflect.Type {

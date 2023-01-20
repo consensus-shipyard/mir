@@ -1,11 +1,12 @@
 package fakebatchdb
 
 import (
-	batchdbdsl "github.com/filecoin-project/mir/pkg/availability/batchdb/dsl"
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
+	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,9 +22,11 @@ func DefaultModuleConfig() *ModuleConfig {
 	}
 }
 
+type txIDString string
+
 type moduleState struct {
-	BatchStore       map[t.BatchID]batchInfo
-	TransactionStore map[t.TxID]*requestpb.Request
+	BatchStore       map[t.BatchIDString]batchInfo
+	TransactionStore map[txIDString]*requestpbtypes.Request
 }
 
 type batchInfo struct {
@@ -37,39 +40,43 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{
-		BatchStore:       make(map[t.BatchID]batchInfo),
-		TransactionStore: make(map[t.TxID]*requestpb.Request),
+		BatchStore:       make(map[t.BatchIDString]batchInfo),
+		TransactionStore: make(map[txIDString]*requestpbtypes.Request),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbdsl.UponStoreBatch(m, func(batchID t.BatchID, txIDs []t.TxID, txs []*requestpb.Request, metadata []byte, origin *batchdbpb.StoreBatchOrigin) error {
-		state.BatchStore[batchID] = batchInfo{
+	batchdbpbdsl.UponStoreBatch(m, func(batchID t.BatchID, txIDs []t.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+		state.BatchStore[t.BatchIDString(batchID)] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,
 		}
 
 		for i, txID := range txIDs {
-			state.TransactionStore[txID] = txs[i]
+			state.TransactionStore[txIDString(txID)] = txs[i]
 		}
 
-		batchdbdsl.BatchStored(m, t.ModuleID(origin.Module), origin)
+		batchdbpbdsl.BatchStored(m, origin.Module, origin)
 		return nil
 	})
 
 	// On LookupBatch request, just check the local map.
-	batchdbdsl.UponLookupBatch(m, func(batchID t.BatchID, origin *batchdbpb.LookupBatchOrigin) error {
-		info, found := state.BatchStore[batchID]
+	batchdbpbdsl.UponLookupBatch(m, func(batchID t.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
+		if emptybatchid.IsEmptyBatchID(batchID) {
+			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, origin)
+		}
+
+		info, found := state.BatchStore[t.BatchIDString(batchID)]
 		if !found {
-			batchdbdsl.LookupBatchResponse(m, t.ModuleID(origin.Module), false, nil, nil, origin)
+			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, origin)
 			return nil
 		}
 
-		txs := make([]*requestpb.Request, len(info.txIDs))
+		txs := make([]*requestpbtypes.Request, len(info.txIDs))
 		for i, txID := range info.txIDs {
-			txs[i] = state.TransactionStore[txID]
+			txs[i] = state.TransactionStore[txIDString(txID)]
 		}
 
-		batchdbdsl.LookupBatchResponse(m, t.ModuleID(origin.Module), true, txs, info.metadata, origin)
+		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, origin)
 		return nil
 	})
 

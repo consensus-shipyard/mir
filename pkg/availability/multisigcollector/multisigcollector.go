@@ -47,9 +47,8 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules
 	m := dsl.NewModule(mc.Self)
 
 	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID)
-	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID)
-	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID)
-
+	certverification.IncludeVerificationOfCertificates(m, mc, params)
+	batchreconstruction.IncludeBatchReconstruction(m, mc)
 	return m, nil
 }
 
@@ -66,10 +65,11 @@ func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.L
 			func(mscID t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Extract the IDs of the nodes in the membership associated with this instance
-				m := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector.Membership
-				mscNodeIDs := maputil.GetSortedKeys(t.Membership(m))
+				mscParams := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector
 
-				// Crate a copy of basic module config with an adapted ID for the submodule.
+				mscNodeIDs := maputil.GetSortedKeys(t.Membership(mscParams.Membership))
+
+				// Create a copy of basic module config with an adapted ID for the submodule.
 				submc := *mc
 				submc.Self = mscID
 
@@ -83,7 +83,9 @@ func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.L
 						AllNodes:    mscNodeIDs,
 						// TODO: Consider lowering this threshold or make it configurable
 						//       for the case where fault assumptions are stricter because of other modules.
-						F: (len(mscNodeIDs) - 1) / 2,
+						F:           (len(mscNodeIDs) - 1) / 2,
+						Limit:       int(mscParams.Limit),
+						MaxRequests: int(mscParams.MaxRequests),
 					},
 					nodeID,
 				)

@@ -20,6 +20,8 @@ import (
 
 // ================================================================================
 
+type BatchIDString string
+
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
 
@@ -93,25 +95,13 @@ func NodeIDSlicePb(nids []NodeID) []string {
 // ================================================================================
 
 // TxID is a unique identifier of a transaction.
-type TxID string
-
-// Pb converts a TxID to its underlying native type.
-func (id TxID) Pb() []byte {
-	return []byte(id)
-}
-
-// Bytes serializes the object to a sequence of bytes.
-func (id TxID) Bytes() []byte {
-	return []byte(id)
-}
+type TxID = []byte
 
 // TxIDSlice converts a slice of TxIDs represented directly as their underlying native type
 // to a slice of abstractly typed transaction IDs.
 func TxIDSlice(ids [][]byte) []TxID {
 	txIDs := make([]TxID, len(ids))
-	for i, nid := range ids {
-		txIDs[i] = TxID(nid)
-	}
+	copy(txIDs, ids)
 	return txIDs
 }
 
@@ -119,34 +109,22 @@ func TxIDSlice(ids [][]byte) []TxID {
 // This is required for serialization using Protocol Buffers.
 func TxIDSlicePb(ids []TxID) [][]byte {
 	pbSlice := make([][]byte, len(ids))
-	for i, nid := range ids {
-		pbSlice[i] = nid.Pb()
-	}
+	copy(pbSlice, ids)
 	return pbSlice
 }
 
 // ================================================================================
+// RequestID is used to uniquely identify an outgoing request.
+type RequestID = uint64
 
 // BatchID is a unique identifier of a batch.
-type BatchID string
-
-// Pb converts a BatchID to its underlying native type.
-func (id BatchID) Pb() []byte {
-	return []byte(id)
-}
-
-// Bytes serializes the object to a sequence of bytes.
-func (id BatchID) Bytes() []byte {
-	return []byte(id)
-}
+type BatchID = []byte
 
 // BatchIDSlice converts a slice of BatchIDs represented directly as their underlying native type
 // to a slice of abstractly typed batch IDs.
 func BatchIDSlice(ids [][]byte) []BatchID {
 	batchIDs := make([]BatchID, len(ids))
-	for i, nid := range ids {
-		batchIDs[i] = BatchID(nid)
-	}
+	copy(batchIDs, ids)
 	return batchIDs
 }
 
@@ -154,9 +132,7 @@ func BatchIDSlice(ids [][]byte) []BatchID {
 // This is required for serialization using Protocol Buffers.
 func BatchIDSlicePb(ids []BatchID) [][]byte {
 	pbSlice := make([][]byte, len(ids))
-	for i, nid := range ids {
-		pbSlice[i] = nid.Pb()
-	}
+	copy(pbSlice, ids)
 	return pbSlice
 }
 

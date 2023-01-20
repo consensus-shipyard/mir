@@ -1,6 +1,7 @@
 package availabilitypb
 
 import (
+	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
 )
@@ -36,6 +37,10 @@ func (w *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
 	return w.ProvideTransactions
 }
 
+func (w *Event_ComputeCert) Unwrap() *ComputeCert {
+	return w.ComputeCert
+}
+
 type RequestCertOrigin_Type = isRequestCertOrigin_Type
 
 type RequestCertOrigin_TypeWrapper[T any] interface {
@@ -48,6 +53,21 @@ func (w *RequestCertOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 }
 
 func (w *RequestCertOrigin_Dsl) Unwrap() *dslpb.Origin {
+	return w.Dsl
+}
+
+type RequestTransactionsOrigin_Type = isRequestTransactionsOrigin_Type
+
+type RequestTransactionsOrigin_TypeWrapper[T any] interface {
+	RequestTransactionsOrigin_Type
+	Unwrap() *T
+}
+
+func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
+	return w.ContextStore
+}
+
+func (w *RequestTransactionsOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
 }
 
@@ -64,4 +84,15 @@ func (w *VerifyCertOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 
 func (w *VerifyCertOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
+}
+
+type Cert_Type = isCert_Type
+
+type Cert_TypeWrapper[T any] interface {
+	Cert_Type
+	Unwrap() *T
+}
+
+func (w *Cert_Mscs) Unwrap() *mscpb.Certs {
+	return w.Mscs
 }

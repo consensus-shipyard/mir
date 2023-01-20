@@ -1,10 +1,10 @@
 package orderers
 
 import (
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
+	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -26,16 +26,32 @@ func OrdererEvent(
 }
 
 func (orderer *Orderer) requestCertOrigin() *events.EventList {
-	return events.ListOf(availabilityevents.RequestCert(
+	return events.ListOf(apbevents.RequestCert(
 		orderer.moduleConfig.Ava,
-		&availabilitypb.RequestCertOrigin{
-			Module: orderer.moduleConfig.Self.Pb(),
-			Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
+		&apbtypes.RequestCertOrigin{
+			Module: orderer.moduleConfig.Self,
+			Type: &apbtypes.RequestCertOrigin_ContextStore{ContextStore: &contextstorepbtypes.Origin{
 				ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
 			}},
 		},
-	))
+	).Pb())
 }
+
+//func (orderer *Orderer) requestCertOrigin() *events.EventList {
+//	return events.ListOf(
+//		&eventpb.Event{
+//			DestModule: orderer.moduleConfig.Ava.Pb(),
+//			Type: &eventpb.Event_Availability{
+//				Availability: &availabilitypb.Event{
+//					Type: apbtypes.RequestCert{
+//						&apbtypes.RequestCertOrigin{
+//							Module: orderer.moduleConfig.Self,
+//							Type: &apbtypes.RequestCertOrigin_ContextStore{ContextStore: &contextstorepbtypes.Origin{
+//								ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
+//							}},
+//						},
+//					}.Pb()}}})
+//}
 
 func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{

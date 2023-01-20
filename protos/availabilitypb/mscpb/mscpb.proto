@@ -6,13 +6,20 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb
 
 import "requestpb/requestpb.proto";
 import "commonpb/commonpb.proto";
+import "net/codegen_extensions.proto";
+import "mir/codegen_extensions.proto";
+
 
 // ============================================================
 // Messages
 // ============================================================
 
 message Message {
+  option (net.message_class) = true;
+
   oneof type {
+    option (net.message_type) = true;
+
     RequestSigMessage   request_sig   = 1;
     SigMessage          sig           = 2;
     RequestBatchMessage request_batch = 3;
@@ -21,23 +28,32 @@ message Message {
 }
 
 message RequestSigMessage {
+  option (net.message) = true;
+
   repeated requestpb.Request txs    = 1;
   uint64                     req_id = 2;
 }
 
 message SigMessage {
+  option (net.message) = true;
+
   bytes  signature  = 1;
   uint64 req_id     = 2;
 }
 
 message RequestBatchMessage {
+  option (net.message) = true;
+
   bytes  batch_id = 1;
   uint64 req_id   = 2;
 }
 
 message ProvideBatchMessage {
+  option (net.message) = true;
+
   repeated requestpb.Request txs     = 1;
   uint64                     req_id  = 2;
+  bytes  batch_id = 3;
 }
 
 // TODO: implement pulling of missing txs.
@@ -54,12 +70,18 @@ message ProvideBatchMessage {
 // ============================================================
 // Data structures
 // ============================================================
-
 message Cert {
+  option (mir.struct) = true;
+
   bytes           batch_id   = 1;
   // TODO: can be encoded as n bits
-  repeated string signers    = 2;
+  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes  signatures = 3;
+}
+
+message Certs {
+  option (mir.struct) = true;
+  repeated Cert certs = 1;
 }
 
 // ============================================================
@@ -68,4 +90,6 @@ message Cert {
 
 message InstanceParams {
   commonpb.Membership membership = 1;
+  uint64 limit = 2;
+  uint64 max_requests = 3;
 }
