@@ -12,3 +12,17 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Stored)(nil)),
 	}
 }
+
+func (*LookupBatchOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*LookupBatchOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*LookupBatchOrigin_Dsl)(nil)),
+	}
+}
+
+func (*StoreBatchOrigin) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*StoreBatchOrigin_ContextStore)(nil)),
+		reflect.TypeOf((*StoreBatchOrigin_Dsl)(nil)),
+	}
+}

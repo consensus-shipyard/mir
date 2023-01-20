@@ -1,11 +1,13 @@
 package dsl
 
 import (
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpevents "github.com/filecoin-project/mir/pkg/mempool/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -52,9 +54,10 @@ func TransactionsResponse(m dsl.Module, dest t.ModuleID, present []bool, txs []*
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.
 // It is possible that some of these transactions are not present in the mempool.
-func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs []*requestpb.Request, context *C) {
+func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs []*requestpbtypes.Request, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
+	_txs := availabilityevents.RequestConvertToLegacyDsl(txs)
 	origin := &mppb.RequestTransactionIDsOrigin{
 		Module: m.ModuleID().Pb(),
 		Type: &mppb.RequestTransactionIDsOrigin_Dsl{
@@ -62,7 +65,7 @@ func RequestTransactionIDs[C any](m dsl.Module, dest t.ModuleID, txs []*requestp
 		},
 	}
 
-	dsl.EmitEvent(m, mpevents.RequestTransactionIDs(dest, txs, origin))
+	dsl.EmitEvent(m, mpevents.RequestTransactionIDs(dest, _txs, origin))
 }
 
 // TransactionIDsResponse is a response to a RequestTransactionIDs event.
@@ -111,7 +114,7 @@ func UponRequestBatch(m dsl.Module, handler func(origin *mppb.RequestBatchOrigin
 }
 
 // UponNewBatch registers a handler for the NewBatch events.
-func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs []*requestpb.Request, context *C) error) {
+func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *C) error) {
 	UponEvent[*mppb.Event_NewBatch](m, func(ev *mppb.NewBatch) error {
 		originWrapper, ok := ev.Origin.Type.(*mppb.RequestBatchOrigin_Dsl)
 		if !ok {
@@ -124,7 +127,7 @@ func UponNewBatch[C any](m dsl.Module, handler func(txIDs []t.TxID, txs []*reque
 			return nil
 		}
 
-		return handler(t.TxIDSlice(ev.TxIds), ev.Txs, context)
+		return handler(t.TxIDSlice(ev.TxIds), availabilityevents.RequestConvertFromLegacyDsl(ev.Txs), context)
 	})
 }
 

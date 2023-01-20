@@ -1,19 +1,19 @@
 package batchfetcherpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	types3 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewOrderedBatch(destModule types.ModuleID, txs []*requestpb.Request) *types1.Event {
-	return &types1.Event{
+func NewOrderedBatch(destModule types.ModuleID, txs []*types1.Request) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_BatchFetcher{
-			BatchFetcher: &types2.Event{
-				Type: &types2.Event_NewOrderedBatch{
-					NewOrderedBatch: &types2.NewOrderedBatch{
+		Type: &types2.Event_BatchFetcher{
+			BatchFetcher: &types3.Event{
+				Type: &types3.Event_NewOrderedBatch{
+					NewOrderedBatch: &types3.NewOrderedBatch{
 						Txs: txs,
 					},
 				},

@@ -1,6 +1,7 @@
 package lookuptxs
 
 import (
+	"encoding/hex"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
@@ -20,7 +21,7 @@ func IncludeTransactionLookupByID(
 		present := make([]bool, len(txIDs))
 		txs := make([]*requestpb.Request, len(txIDs))
 		for i, txID := range txIDs {
-			txs[i], present[i] = commonState.TxByID[txID]
+			txs[i], present[i] = commonState.TxByID[hex.EncodeToString(txID)]
 		}
 
 		mpdsl.TransactionsResponse(m, t.ModuleID(origin.Module), present, txs, origin)

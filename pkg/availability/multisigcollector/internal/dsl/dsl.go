@@ -1,13 +1,9 @@
 package mscdsl
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 
-	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -74,13 +70,13 @@ func UponProvideBatchMessageReceived(m dsl.Module, handler func(from t.NodeID, t
 	})
 }
 
-func UponRequestTransactions(m dsl.Module, handler func(cert *mscpb.Cert, origin *apb.RequestTransactionsOrigin) error) {
-	adsl.UponRequestTransactions(m, func(cert *apb.Cert, origin *apb.RequestTransactionsOrigin) error {
-		mscCertWrapper, ok := cert.Type.(*apb.Cert_Msc)
-		if !ok {
-			return fmt.Errorf("unexpected certificate type. Expected: %T, got: %T", mscCertWrapper, cert.Type)
-		}
-
-		return handler(mscCertWrapper.Msc, origin)
-	})
-}
+//func UponRequestTransactions(m dsl.Module, handler func(cert *mscpb.Cert, origin *apb.RequestTransactionsOrigin) error) {
+//	adsl.UponRequestTransactions(m, func(cert *apb.Cert, origin *apb.RequestTransactionsOrigin) error {
+//		mscCertWrapper, ok := cert.Type.(*apb.Cert_Msc)
+//		if !ok {
+//			return fmt.Errorf("unexpected certificate type. Expected: %T, got: %T", mscCertWrapper, cert.Type)
+//		}
+//
+//		return handler(mscCertWrapper.Msc, origin)
+//	})
+//}

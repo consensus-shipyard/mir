@@ -2,9 +2,11 @@ package batchfetcherpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -86,18 +88,22 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type NewOrderedBatch struct {
-	Txs []*requestpb.Request
+	Txs []*types.Request
 }
 
 func NewOrderedBatchFromPb(pb *batchfetcherpb.NewOrderedBatch) *NewOrderedBatch {
 	return &NewOrderedBatch{
-		Txs: pb.Txs,
+		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
+			return types.RequestFromPb(t)
+		}),
 	}
 }
 
 func (m *NewOrderedBatch) Pb() *batchfetcherpb.NewOrderedBatch {
 	return &batchfetcherpb.NewOrderedBatch{
-		Txs: m.Txs,
+		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
+			return (t).Pb()
+		}),
 	}
 }
 

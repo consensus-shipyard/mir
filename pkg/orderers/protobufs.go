@@ -37,6 +37,22 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 	))
 }
 
+//func (orderer *Orderer) requestCertOrigin() *events.EventList {
+//	return events.ListOf(
+//		&eventpb.Event{
+//			DestModule: orderer.moduleConfig.Ava.Pb(),
+//			Type: &eventpb.Event_Availability{
+//				Availability: &availabilitypb.Event{
+//					Type: apbtypes.RequestCert{
+//						&apbtypes.RequestCertOrigin{
+//							Module: orderer.moduleConfig.Self,
+//							Type: &apbtypes.RequestCertOrigin_ContextStore{ContextStore: &contextstorepbtypes.Origin{
+//								ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
+//							}},
+//						},
+//					}.Pb()}}})
+//}
+
 func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{
 		Module: module.Pb(),

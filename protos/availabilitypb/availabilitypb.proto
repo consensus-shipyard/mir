@@ -35,19 +35,22 @@ message Event {
 // RequestCert is used by the consensus layer to request an availability certificate for a batch of transactions
 // from the availability layer.
 message RequestCert {
-  RequestCertOrigin origin = 1;
+  option (mir.event) = true;
+  RequestCertOrigin origin = 1 [(mir.origin_request) = true];
 }
 
 // NewCert is a response to a RequestCert event.
 message NewCert {
+  option (mir.event) = true;
   Cert              cert   = 1;
-  RequestCertOrigin origin = 2;
+  RequestCertOrigin origin = 2 [(mir.origin_response) = true];
 }
 
 // VerifyCert can be used to verify validity of an availability certificate.
 message VerifyCert {
+  option (mir.event) = true;
   Cert cert               = 1;
-  VerifyCertOrigin origin = 2;
+  VerifyCertOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // CertVerified is a response to a VerifyCert event.
@@ -56,21 +59,25 @@ message CertVerified {
 
   bool             valid  = 1;
   string           err    = 2;
-  VerifyCertOrigin origin = 3;
+  VerifyCertOrigin origin = 3 [(mir.origin_response) = true];
 }
 
 // RequestTransactions allows reconstructing a batch of transactions by a corresponding availability certificate.
 // It is possible that some of the transactions are not stored locally on the node. In this case, the availability
 // layer will pull these transactions from other nodes.
 message RequestTransactions {
+  option (mir.event) = true;
+
   Cert                      cert   = 1;
-  RequestTransactionsOrigin origin = 2;
+  RequestTransactionsOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // ProvideTransactions is a response to a RequestTransactions event.
 message ProvideTransactions {
+  option (mir.event) = true;
+
   repeated requestpb.Request txs    = 1;
-  RequestTransactionsOrigin  origin = 2;
+  RequestTransactionsOrigin  origin = 2 [(mir.origin_response) = true];
 }
 
 // TODO: add events related to garbage collection.
@@ -90,7 +97,8 @@ message RequestCertOrigin {
 }
 
 message RequestTransactionsOrigin {
-  string module = 1;
+  option (mir.struct) = true;
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -100,7 +108,7 @@ message RequestTransactionsOrigin {
 message VerifyCertOrigin {
   option (mir.struct) = true;
 
-  string module = 1;
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -108,7 +116,11 @@ message VerifyCertOrigin {
 }
 
 message Cert {
+  option (mir.event_class) = true;
+
   oneof type {
-    availabilitypb.mscpb.Cert msc = 1;
+    option (mir.event_type) = true;
+
+    mscpb.Cert msc = 1;
   }
 }

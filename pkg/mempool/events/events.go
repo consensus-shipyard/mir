@@ -110,7 +110,7 @@ func BatchIDResponse(dest t.ModuleID, batchID t.BatchID, origin *mppb.RequestBat
 	return Event(dest, &mppb.Event{
 		Type: &mppb.Event_BatchIdResponse{
 			BatchIdResponse: &mppb.BatchIDResponse{
-				BatchId: batchID.Pb(),
+				BatchId: batchID,
 				Origin:  origin,
 			},
 		},

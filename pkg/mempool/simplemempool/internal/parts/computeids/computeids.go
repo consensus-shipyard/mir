@@ -41,7 +41,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	mpdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
 		for i, txID := range txIDs {
-			data[i] = txID.Bytes()
+			data[i] = txID
 		}
 
 		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin})

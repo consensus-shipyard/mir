@@ -39,33 +39,34 @@ func SigMessage(moduleID t.ModuleID, signature []byte, reqID uint64) *messagepb.
 	})
 }
 
-func RequestBatchMessage(moduleID t.ModuleID, batchID t.BatchID, reqID uint64) *messagepb.Message {
-	return Message(moduleID, &mscpb.Message{
-		Type: &mscpb.Message_RequestBatch{
-			RequestBatch: &mscpb.RequestBatchMessage{
-				BatchId: batchID.Pb(),
-				ReqId:   reqID,
-			},
-		},
-	})
-}
+//
+//func RequestBatchMessage(moduleID t.ModuleID, batchID t.BatchID, reqID uint64) *messagepb.Message {
+//	return Message(moduleID, &mscpb.Message{
+//		Type: &mscpb.Message_RequestBatch{
+//			RequestBatch: &mscpb.RequestBatchMessage{
+//				BatchId: batchID.Pb(),
+//				ReqId:   reqID,
+//			},
+//		},
+//	})
+//}
 
-func ProvideBatchMessage(moduleID t.ModuleID, txs []*requestpb.Request, reqID uint64) *messagepb.Message {
-	return Message(moduleID, &mscpb.Message{
-		Type: &mscpb.Message_ProvideBatch{
-			ProvideBatch: &mscpb.ProvideBatchMessage{
-				Txs:   txs,
-				ReqId: reqID,
-			},
-		},
-	})
-}
+//func ProvideBatchMessage(moduleID t.ModuleID, txs []*types3.Request, reqID uint64) *messagepb.Message {
+//	return Message(moduleID, &mscpb.Message{
+//		Type: &mscpb.Message_ProvideBatch{
+//			ProvideBatch: &mscpb.ProvideBatchMessage{
+//				Txs:   txs,
+//				ReqId: reqID,
+//			},
+//		},
+//	})
+//}
 
 func Cert(batchID t.BatchID, signers []t.NodeID, signatures [][]byte) *apb.Cert {
 	return &apb.Cert{
 		Type: &apb.Cert_Msc{
 			Msc: &mscpb.Cert{
-				BatchId:    batchID.Pb(),
+				BatchId:    batchID,
 				Signers:    t.NodeIDSlicePb(signers),
 				Signatures: signatures,
 			},

@@ -32,5 +32,5 @@ type ModuleParams struct {
 
 // SigData is the binary data that should be signed for forming a certificate.
 func SigData(instanceUID InstanceUID, batchID t.BatchID) [][]byte {
-	return [][]byte{instanceUID.Bytes(), []byte("BATCH_STORED"), batchID.Bytes()}
+	return [][]byte{instanceUID.Bytes(), []byte("BATCH_STORED"), batchID}
 }

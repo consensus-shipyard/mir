@@ -1,15 +1,17 @@
 package certcreation
 
 import (
-	batchdbdsl "github.com/filecoin-project/mir/pkg/availability/batchdb/dsl"
-	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
-	mscdsl "github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/dsl"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/protobuf"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
-	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
+	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
+	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -26,7 +28,7 @@ type RequestID = uint64
 // RequestState represents the state related to a request on the source node of the request.
 // The node disposes of this state as soon as the request is completed.
 type RequestState struct {
-	ReqOrigin *apb.RequestCertOrigin
+	ReqOrigin *apbtypes.RequestCertOrigin
 	BatchID   t.BatchID
 
 	receivedSig map[t.NodeID]bool
@@ -50,7 +52,7 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// When a batch is requested by the consensus layer, request a batch of transactions from the mempool.
-	adsl.UponRequestCert(m, func(origin *apb.RequestCertOrigin) error {
+	apbdsl.UponRequestCert(m, func(origin *apbtypes.RequestCertOrigin) error {
 		reqID := state.NextReqID
 		state.NextReqID++
 
@@ -65,7 +67,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpb.Request, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		// TODO: add persistent storage for crash-recovery.
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})
 		return nil
@@ -75,12 +77,12 @@ func IncludeCreatingCertificates(
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *requestIDOfOwnBatchContext) error {
 		state.RequestState[context.reqID].BatchID = batchID
 		// TODO: add persistent storage for crash-recovery.
-		dsl.SendMessage(m, mc.Net, protobuf.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
+		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
 		return nil
 	})
 
 	// When receive a signature, verify its correctness.
-	mscdsl.UponSigMessageReceived(m, func(from t.NodeID, signature []byte, reqID RequestID) error {
+	mscpbdsl.UponSigMessageReceived(m, func(from t.NodeID, signature []byte, reqID RequestID) error {
 		requestState, ok := state.RequestState[reqID]
 		if !ok {
 			// Ignore a message with an invalid or outdated request id.
@@ -120,8 +122,8 @@ func IncludeCreatingCertificates(
 				certNodes, certSigs := maputil.GetKeysAndValues(requestState.sigs)
 
 				requestingModule := t.ModuleID(requestState.ReqOrigin.Module)
-				cert := protobuf.Cert(requestState.BatchID, certNodes, certSigs)
-				adsl.NewCert(m, requestingModule, cert, requestState.ReqOrigin)
+				cert := apbtypes.CertFromPb(protobuf.Cert(requestState.BatchID, certNodes, certSigs))
+				apbdsl.NewCert(m, requestingModule, cert, requestState.ReqOrigin)
 
 				// Dispose of the state associated with this request.
 				delete(state.RequestState, reqID)
@@ -135,7 +137,7 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// When receive a request for a signature, compute the ids of the received transactions.
-	mscdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpb.Request, reqID RequestID) error {
+	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID RequestID) error {
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})
@@ -149,13 +151,13 @@ func IncludeCreatingCertificates(
 
 	// When the id of the batch is computed, store the batch persistently.
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *computeIDOfReceivedBatchContext) error {
-		batchdbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
+		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
 			&storeBatchContext{context.sourceID, context.reqID, batchID})
 		return nil
 	})
 
 	// When the batch is stored, generate a signature
-	batchdbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
+	batchdbpbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
 		sigMsg := common.SigData(params.InstanceUID, context.batchID)
 		dsl.SignRequest(m, mc.Crypto, sigMsg, &signReceivedBatchContext{context.sourceID, context.reqID})
 		return nil
@@ -163,7 +165,7 @@ func IncludeCreatingCertificates(
 
 	// When a signature is generated, send it to the process that sent the request.
 	dsl.UponSignResult(m, func(signature []byte, context *signReceivedBatchContext) error {
-		dsl.SendMessage(m, mc.Net, protobuf.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
+		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
 		return nil
 	})
 }
@@ -178,19 +180,19 @@ type requestBatchFromMempoolContext struct {
 
 type requestIDOfOwnBatchContext struct {
 	reqID RequestID
-	txs   []*requestpb.Request
+	txs   []*requestpbtypes.Request
 }
 
 type computeIDsOfReceivedTxsContext struct {
 	sourceID t.NodeID
-	txs      []*requestpb.Request
+	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }
 
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
 	txIDs    []t.TxID
-	txs      []*requestpb.Request
+	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }
 

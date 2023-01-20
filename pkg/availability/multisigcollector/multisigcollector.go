@@ -49,7 +49,6 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules
 	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID)
 	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID)
 	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID)
-
 	return m, nil
 }
 

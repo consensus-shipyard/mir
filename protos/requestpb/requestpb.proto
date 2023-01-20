@@ -10,18 +10,26 @@ package requestpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/requestpb";
 
+import "mir/codegen_extensions.proto";
+
 message Request {
-  string client_id = 1;
-  uint64 req_no = 2;
-  uint64 type = 3;
+  option (mir.struct) = true;
+
+  string client_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ClientID"];
+  uint64 req_no = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ReqNo"];
+  uint64 type = 3; // TODO not being used at the moment? (only some boilerplate code in pkg/serializing)
   bytes data = 4;
 }
 
 message HashedRequest {
+  option (mir.struct) = true;
+
   Request req    = 1;
   bytes   digest = 2;
 }
 
 message Batch {
+  option (mir.struct) = true;
+
   repeated HashedRequest requests = 1;
 }

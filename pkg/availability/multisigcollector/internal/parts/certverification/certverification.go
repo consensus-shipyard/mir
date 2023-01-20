@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	adsl "github.com/filecoin-project/mir/pkg/availability/dsl"
+	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	apb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -21,10 +22,11 @@ func IncludeVerificationOfCertificates(
 	nodeID t.NodeID,
 ) {
 	// When receive a request to verify a certificate, check that it is structurally correct and verify the signatures.
-	adsl.UponVerifyCert(m, func(cert *apb.Cert, origin *apb.VerifyCertOrigin) error {
+	apbdsl.UponVerifyCert(m, func(cert *apbtypes.Cert, origin *apbtypes.VerifyCertOrigin) error {
 		mscCert, err := verifyCertificateStructure(params, cert)
+		valid, errStr := t.ErrorPb(err)
 		if err != nil {
-			adsl.CertVerified(m, t.ModuleID(origin.Module), err, origin)
+			apbdsl.CertVerified(m, t.ModuleID(origin.Module), valid, errStr, origin)
 			return nil
 		}
 
@@ -44,22 +46,22 @@ func IncludeVerificationOfCertificates(
 		if !allOK {
 			err = errors.New("some signatures are invalid")
 		}
-
-		adsl.CertVerified(m, t.ModuleID(context.origin.Module), err, context.origin)
+		valid, errStr := t.ErrorPb(err)
+		apbdsl.CertVerified(m, t.ModuleID(context.origin.Module), valid, errStr, context.origin)
 		return nil
 	})
 }
 
 // verifyCertificateStructure checks that the certificate is well-formed without checking the validity of the
 // cryptographic authenticators like hashes and digital signatures.
-func verifyCertificateStructure(params *common.ModuleParams, cert *apb.Cert) (*mscpb.Cert, error) {
+func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert) (*mscpbtypes.Cert, error) {
 	// Check that the certificate is present.
 	if cert == nil || cert.Type == nil {
 		return nil, fmt.Errorf("the certificate is nil")
 	}
 
 	// Check that the certificate is of the right type.
-	mscCertWrapper, ok := cert.Type.(*apb.Cert_Msc)
+	mscCertWrapper, ok := cert.Type.(*apbtypes.Cert_Msc)
 	if !ok {
 		return nil, fmt.Errorf("unexpected certificate type")
 	}
@@ -102,5 +104,5 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apb.Cert) (*m
 // Context data structures                                                                                            //
 
 type verifySigsInCertContext struct {
-	origin *apb.VerifyCertOrigin
+	origin *apbtypes.VerifyCertOrigin
 }

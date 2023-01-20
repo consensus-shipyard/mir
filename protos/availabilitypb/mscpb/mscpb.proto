@@ -6,13 +6,20 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb
 
 import "requestpb/requestpb.proto";
 import "commonpb/commonpb.proto";
+import "net/codegen_extensions.proto";
+import "mir/codegen_extensions.proto";
+
 
 // ============================================================
 // Messages
 // ============================================================
 
 message Message {
+  option (net.message_class) = true;
+
   oneof type {
+    option (net.message_type) = true;
+
     RequestSigMessage   request_sig   = 1;
     SigMessage          sig           = 2;
     RequestBatchMessage request_batch = 3;
@@ -21,21 +28,29 @@ message Message {
 }
 
 message RequestSigMessage {
+  option (net.message) = true;
+
   repeated requestpb.Request txs    = 1;
   uint64                     req_id = 2;
 }
 
 message SigMessage {
+  option (net.message) = true;
+
   bytes  signature  = 1;
   uint64 req_id     = 2;
 }
 
 message RequestBatchMessage {
+  option (net.message) = true;
+
   bytes  batch_id = 1;
-  uint64 req_id   = 2;
+  uint64 req_id   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RequestID"];
 }
 
 message ProvideBatchMessage {
+  option (net.message) = true;
+
   repeated requestpb.Request txs     = 1;
   uint64                     req_id  = 2;
 }
@@ -56,6 +71,8 @@ message ProvideBatchMessage {
 // ============================================================
 
 message Cert {
+  option (mir.event) = true;
+
   bytes           batch_id   = 1;
   // TODO: can be encoded as n bits
   repeated string signers    = 2;
