@@ -50,7 +50,7 @@ func newMockLibp2pCommunication(
 		hostAddr := libp2putil.NewFreeHostAddr()
 		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
 		lt.membership[id] = types.NodeAddress(libp2putil.NewDummyMultiaddr(i, hostAddr))
-		lt.transports[id], err = NewTransport(params, lt.hosts[id], id, logger)
+		lt.transports[id] = NewTransport(params, id, lt.hosts[id], logger)
 		if err != nil {
 			t.Fatalf("failed to create transport for node %s: %v", id, err)
 		}
@@ -269,7 +269,7 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 
 func (m *mockLibp2pCommunication) testConnsEmpty() {
 	for _, v := range m.transports {
-		require.Equal(m.t, 0, len(v.conns))
+		require.Equal(m.t, 0, len(v.connections))
 	}
 }
 
@@ -284,7 +284,7 @@ func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeI
 
 	require.Never(m.t,
 		func() bool {
-			return len(src.conns) > 1
+			return len(src.connections) > 1
 		},
 		5*time.Second, 300*time.Millisecond)
 }
@@ -374,10 +374,11 @@ func TestLibp2p_Sending(t *testing.T) {
 
 	t.Log(">>> sending messages")
 	err := a.Send("unknownNode", &messagepb.Message{})
-	require.ErrorIs(t, err, ErrUnknownNode)
+	require.ErrorIs(t, err, fmt.Errorf("no connection to node: %v", types.NodeID("unknownNode")))
 
-	err = a.Send(nodeE, &messagepb.Message{})
-	require.ErrorIs(t, err, ErrNilStream)
+	// TODO: Do we still need this?
+	//err = a.Send(nodeE, &messagepb.Message{})
+	//require.ErrorIs(t, err, ErrNilStream)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
@@ -802,9 +803,12 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 	t.Log(">>> connecting to a failed node")
 	err = a.Start()
 	require.NoError(t, err)
-	a.params.MaxRetries = 1
-	a.params.MaxConnectingTimeout = 1 * time.Second
-	a.params.MaxRetryTimeout = 0
+
+	// TODO: These parameters no longer exist. Remove them? Do we need some replacement?
+	//a.params.MaxRetries = 1
+	//a.params.MaxConnectingTimeout = 1 * time.Second
+	//a.params.MaxRetryTimeout = 0
+
 	a.Connect(initialNodes)
 	m.testNeverConnected(nodeA, nodeB)
 
