@@ -47,10 +47,10 @@ func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 
 	return libp2p.NewTransport(
 		libp2p.DefaultParams(),
-		t.hosts[sourceID],
 		sourceID,
+		t.hosts[sourceID],
 		t.logger,
-	)
+	), nil
 }
 
 func (t *LocalLibp2pTransport) Nodes() map[t.NodeID]t.NodeAddress {
