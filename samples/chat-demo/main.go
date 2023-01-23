@@ -246,9 +246,9 @@ func run() error {
 	}
 
 	// Start the node in a separate goroutine
-	var nodeErr error // The error returned from running the Node will be stored here.
+	nodeErr := make(chan error) // The error returned from running the Node will be written here.
 	go func() {
-		nodeErr = node.Run(ctx)
+		nodeErr <- node.Run(ctx)
 	}()
 
 	// ================================================================================
@@ -298,7 +298,7 @@ func run() error {
 	}
 	node.Stop()
 
-	return nodeErr
+	return <-nodeErr
 }
 
 // Parses the command-line arguments and returns them in a params struct.
