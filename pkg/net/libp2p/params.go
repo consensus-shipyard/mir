@@ -8,28 +8,23 @@ import (
 )
 
 const (
-	DefaultPermanentAddrTTL = time.Duration(math.MaxInt64 - iota)
+	DefaultConnectionTTL = time.Duration(math.MaxInt64 - iota)
 )
 
 type Params struct {
-	ProtocolID             protocol.ID
-	MaxConnectingTimeout   time.Duration
-	MaxRetryTimeout        time.Duration
-	MaxRetries             int
-	NoLoggingErrorAttempts int
-	PermanentAddrTTL       time.Duration
-	ConnWaitPollInterval   time.Duration
+	ProtocolID           protocol.ID
+	ConnectionTTL        time.Duration
+	ConnectionBufferSize int
+	StreamWriteTimeout   time.Duration
+	ReconnectionPeriod   time.Duration
 }
 
 func DefaultParams() Params {
 	return Params{
-
-		ProtocolID:             "/mir/0.0.1",
-		MaxConnectingTimeout:   10 * time.Second,
-		MaxRetryTimeout:        1 * time.Second,
-		MaxRetries:             10,
-		NoLoggingErrorAttempts: 2,
-		PermanentAddrTTL:       DefaultPermanentAddrTTL,
-		ConnWaitPollInterval:   100 * time.Millisecond,
+		ProtocolID:           "/mir/0.0.1",
+		ConnectionTTL:        DefaultConnectionTTL,
+		ConnectionBufferSize: 128,
+		StreamWriteTimeout:   100 * time.Millisecond,
+		ReconnectionPeriod:   time.Second,
 	}
 }

@@ -15,7 +15,6 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
@@ -109,10 +108,7 @@ func runNode() error {
 	}
 
 	// Initialize the libp2p transport subsystem.
-	transport, err := libp2p2.NewTransport(smrParams.Net, h, ownID, logger)
-	if err != nil {
-		return errors.Wrap(err, "failed to create libp2p transport")
-	}
+	transport := libp2p2.NewTransport(smrParams.Net, ownID, h, logger)
 
 	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
 	genesisCheckpoint, err := trantor.GenesisCheckpoint([]byte{}, smrParams)
