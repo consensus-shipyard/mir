@@ -68,7 +68,7 @@ func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.L
 				m := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector.Membership
 				mscNodeIDs := maputil.GetSortedKeys(t.Membership(m))
 
-				// Crate a copy of basic module config with an adapted ID for the submodule.
+				// Create a copy of basic module config with an adapted ID for the submodule.
 				submc := *mc
 				submc.Self = mscID
 

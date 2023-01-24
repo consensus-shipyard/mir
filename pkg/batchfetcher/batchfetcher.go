@@ -144,8 +144,8 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			// Runs for each received transaction.
 
 			// Convenience variables
-			clID := t.ClientID(req.ClientId)
-			reqNo := t.ReqNo(req.ReqNo)
+			clID := req.ClientId
+			reqNo := req.ReqNo
 
 			// Only keep request if it has not yet been delivered.
 			if clientProgress.Add(clID, reqNo) {

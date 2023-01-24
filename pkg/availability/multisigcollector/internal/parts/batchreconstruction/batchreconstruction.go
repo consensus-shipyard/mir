@@ -61,18 +61,18 @@ func IncludeBatchReconstruction(
 	// If the batch is present in the local storage, return it. Otherwise, ask the nodes that signed the certificate.
 	batchdbpbdsl.UponLookupBatchResponse(m, func(found bool, txs []*requestpbtypes.Request, metadata []byte, context *lookupBatchLocallyContext) error {
 		if found {
-			apbdsl.ProvideTransactions(m, t.ModuleID(context.origin.Module), txs, context.origin)
+			apbdsl.ProvideTransactions(m, context.origin.Module, txs, context.origin)
 			return nil
 		}
 
 		reqID := state.NextReqID
 		state.NextReqID++
 
-		state.RequestState[reqID] = &RequestState{t.BatchID(context.cert.BatchId), context.origin}
+		state.RequestState[reqID] = &RequestState{BatchID: context.cert.BatchId, ReqOrigin: context.origin}
 
 		eventpbdsl.SendMessage(m, mc.Net,
-			mscpbmsgs.RequestBatchMessage(mc.Self, t.BatchID(context.cert.BatchId), reqID),
-			t.NodeIDSlice(context.cert.Signers))
+			mscpbmsgs.RequestBatchMessage(mc.Self, context.cert.BatchId, reqID),
+			context.cert.Signers)
 		return nil
 	})
 
@@ -126,7 +126,7 @@ func IncludeBatchReconstruction(
 		}
 
 		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, []byte{} /*metadata*/, &storeBatchContext{})
-		apbdsl.ProvideTransactions(m, t.ModuleID(requestState.ReqOrigin.Module), context.txs, requestState.ReqOrigin)
+		apbdsl.ProvideTransactions(m, requestState.ReqOrigin.Module, context.txs, requestState.ReqOrigin)
 
 		// Dispose of the state associated with this request.
 		delete(state.RequestState, context.reqID)

@@ -2,6 +2,7 @@ package formbatches
 
 import (
 	"encoding/hex"
+
 	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"

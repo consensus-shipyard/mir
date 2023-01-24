@@ -39,7 +39,7 @@ func SigMessage(destModule types.ModuleID, signature []uint8, reqId uint64) *typ
 	}
 }
 
-func RequestBatchMessage(destModule types.ModuleID, batchId []uint8, reqId types.RequestID) *types2.Message {
+func RequestBatchMessage(destModule types.ModuleID, batchId []uint8, reqId uint64) *types2.Message {
 	return &types2.Message{
 		DestModule: destModule,
 		Type: &types2.Message_MultisigCollector{

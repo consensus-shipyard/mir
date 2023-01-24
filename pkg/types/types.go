@@ -110,9 +110,7 @@ type TxID = []byte
 // to a slice of abstractly typed transaction IDs.
 func TxIDSlice(ids [][]byte) []TxID {
 	txIDs := make([]TxID, len(ids))
-	for i, nid := range ids {
-		txIDs[i] = TxID(nid)
-	}
+	copy(txIDs, ids)
 	return txIDs
 }
 
@@ -120,9 +118,7 @@ func TxIDSlice(ids [][]byte) []TxID {
 // This is required for serialization using Protocol Buffers.
 func TxIDSlicePb(ids []TxID) [][]byte {
 	pbSlice := make([][]byte, len(ids))
-	for i, nid := range ids {
-		pbSlice[i] = nid
-	}
+	copy(pbSlice, ids)
 	return pbSlice
 }
 
@@ -148,9 +144,7 @@ type BatchID = []byte
 // to a slice of abstractly typed batch IDs.
 func BatchIDSlice(ids [][]byte) []BatchID {
 	batchIDs := make([]BatchID, len(ids))
-	for i, nid := range ids {
-		batchIDs[i] = BatchID(nid)
-	}
+	copy(batchIDs, ids)
 	return batchIDs
 }
 
@@ -158,9 +152,7 @@ func BatchIDSlice(ids [][]byte) []BatchID {
 // This is required for serialization using Protocol Buffers.
 func BatchIDSlicePb(ids []BatchID) [][]byte {
 	pbSlice := make([][]byte, len(ids))
-	for i, nid := range ids {
-		pbSlice[i] = nid
-	}
+	copy(pbSlice, ids)
 	return pbSlice
 }
 

@@ -54,7 +54,7 @@ func UponRequestBatchMessageReceived(m dsl.Module, handler func(from t.NodeID, b
 		}
 		requestBatchMsg := requestBatchMsgWrapper.RequestBatch
 
-		return handler(from, t.BatchID(requestBatchMsg.BatchId), requestBatchMsg.ReqId)
+		return handler(from, requestBatchMsg.BatchId, requestBatchMsg.ReqId)
 	})
 }
 

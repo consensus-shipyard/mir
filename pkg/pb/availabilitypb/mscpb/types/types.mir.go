@@ -179,20 +179,20 @@ func (*SigMessage) MirReflect() mirreflect.Type {
 
 type RequestBatchMessage struct {
 	BatchId []uint8
-	ReqId   types2.RequestID
+	ReqId   uint64
 }
 
 func RequestBatchMessageFromPb(pb *mscpb.RequestBatchMessage) *RequestBatchMessage {
 	return &RequestBatchMessage{
 		BatchId: pb.BatchId,
-		ReqId:   (types2.RequestID)(pb.ReqId),
+		ReqId:   pb.ReqId,
 	}
 }
 
 func (m *RequestBatchMessage) Pb() *mscpb.RequestBatchMessage {
 	return &mscpb.RequestBatchMessage{
 		BatchId: m.BatchId,
-		ReqId:   (uint64)(m.ReqId),
+		ReqId:   m.ReqId,
 	}
 }
 
@@ -229,22 +229,26 @@ func (*ProvideBatchMessage) MirReflect() mirreflect.Type {
 
 type Cert struct {
 	BatchId    []uint8
-	Signers    []string
+	Signers    []types2.NodeID
 	Signatures [][]uint8
 }
 
 func CertFromPb(pb *mscpb.Cert) *Cert {
 	return &Cert{
-		BatchId:    pb.BatchId,
-		Signers:    pb.Signers,
+		BatchId: pb.BatchId,
+		Signers: types1.ConvertSlice(pb.Signers, func(t string) types2.NodeID {
+			return (types2.NodeID)(t)
+		}),
 		Signatures: pb.Signatures,
 	}
 }
 
 func (m *Cert) Pb() *mscpb.Cert {
 	return &mscpb.Cert{
-		BatchId:    m.BatchId,
-		Signers:    m.Signers,
+		BatchId: m.BatchId,
+		Signers: types1.ConvertSlice(m.Signers, func(t types2.NodeID) string {
+			return (string)(t)
+		}),
 		Signatures: m.Signatures,
 	}
 }

@@ -34,7 +34,7 @@ func UponSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, signa
 	})
 }
 
-func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, batchId []uint8, reqId types1.RequestID) error) {
+func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, batchId []uint8, reqId uint64) error) {
 	UponMessageReceived[*types.Message_RequestBatch](m, func(from types1.NodeID, msg *types.RequestBatchMessage) error {
 		return handler(from, msg.BatchId, msg.ReqId)
 	})

@@ -202,6 +202,6 @@ func UponBatchIDResponse[C any](m dsl.Module, handler func(batchID t.BatchID, co
 			return nil
 		}
 
-		return handler(t.BatchID(ev.BatchId), context)
+		return handler(ev.BatchId, context)
 	})
 }

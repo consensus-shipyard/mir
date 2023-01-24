@@ -45,7 +45,7 @@ message RequestBatchMessage {
   option (net.message) = true;
 
   bytes  batch_id = 1;
-  uint64 req_id   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RequestID"];
+  uint64 req_id   = 2;
 }
 
 message ProvideBatchMessage {
@@ -69,13 +69,12 @@ message ProvideBatchMessage {
 // ============================================================
 // Data structures
 // ============================================================
-
 message Cert {
   option (mir.event) = true;
 
   bytes           batch_id   = 1;
   // TODO: can be encoded as n bits
-  repeated string signers    = 2;
+  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes  signatures = 3;
 }
 

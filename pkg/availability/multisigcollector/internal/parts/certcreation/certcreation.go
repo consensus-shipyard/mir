@@ -2,13 +2,13 @@ package certcreation
 
 import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/protobuf"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
+	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
@@ -121,9 +121,9 @@ func IncludeCreatingCertificates(
 			if len(requestState.sigs) >= params.F+1 {
 				certNodes, certSigs := maputil.GetKeysAndValues(requestState.sigs)
 
-				requestingModule := t.ModuleID(requestState.ReqOrigin.Module)
-				cert := apbtypes.CertFromPb(protobuf.Cert(requestState.BatchID, certNodes, certSigs))
-				apbdsl.NewCert(m, requestingModule, cert, requestState.ReqOrigin)
+				requestingModule := requestState.ReqOrigin.Module
+				cert := &mscpbtypes.Cert{BatchId: requestState.BatchID, Signers: certNodes, Signatures: certSigs}
+				apbdsl.NewCert(m, requestingModule, &apbtypes.Cert{Type: &apbtypes.Cert_Msc{Msc: cert}}, requestState.ReqOrigin)
 
 				// Dispose of the state associated with this request.
 				delete(state.RequestState, reqID)

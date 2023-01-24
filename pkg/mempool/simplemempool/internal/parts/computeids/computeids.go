@@ -30,9 +30,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 
 	dsl.UponHashResult(m, func(hashes [][]byte, context *computeHashForTransactionIDsContext) error {
 		txIDs := make([]t.TxID, len(hashes))
-		for i, hash := range hashes {
-			txIDs[i] = t.TxID(hash)
-		}
+		copy(txIDs, hashes)
 
 		mpdsl.TransactionIDsResponse(m, t.ModuleID(context.origin.Module), txIDs, context.origin)
 		return nil
@@ -40,16 +38,14 @@ func IncludeComputationOfTransactionAndBatchIDs(
 
 	mpdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
-		for i, txID := range txIDs {
-			data[i] = txID
-		}
+		copy(data, txIDs)
 
 		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin})
 		return nil
 	})
 
 	dsl.UponOneHashResult(m, func(hash []byte, context *computeHashForBatchIDContext) error {
-		mpdsl.BatchIDResponse(m, t.ModuleID(context.origin.Module), t.BatchID(hash), context.origin)
+		mpdsl.BatchIDResponse(m, t.ModuleID(context.origin.Module), hash, context.origin)
 		return nil
 	})
 }

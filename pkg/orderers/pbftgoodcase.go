@@ -131,7 +131,7 @@ func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, e
 
 	// Log debug message.
 	orderer.logger.Log(logging.LevelDebug, "Proposing.",
-		"sn", sn)
+		"sn", sn, "cert", cert)
 
 	// Create the proposal (consisting of a Preprepare message).
 	preprepare := pbftPreprepareMsg(sn, orderer.view, certBytes, false)
@@ -190,6 +190,35 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 		)
 	}
 
+	// Future view changes decide empty segments, no need to have a certificate
+	if orderer.view > 0 && preprepare.Aborted && len(preprepare.CertData) == 0 {
+		return orderer.finishUpPreprepare(preprepare, slot)
+	}
+
+	// append to FIFO
+	orderer.notVerifiedPrepepareContext = append(orderer.notVerifiedPrepepareContext, &verifyCertContext{
+		preprepare,
+		slot,
+	})
+
+	//Verify certificate from preprepare message before saving it in the slot
+	return orderer.verifyCert(preprepare)
+
+}
+
+//Finalize applyMsgPreprepare after cert verified
+func (orderer *Orderer) applyCertVerified(verified *availabilitypb.CertVerified) (*events.EventList, error) {
+	//pop from FIFO
+	context := orderer.notVerifiedPrepepareContext[0]
+	orderer.notVerifiedPrepepareContext = orderer.notVerifiedPrepepareContext[1:]
+
+	if !verified.Valid {
+		return events.EmptyList(), fmt.Errorf(verified.Err)
+	}
+	return orderer.finishUpPreprepare(context.prepepare, context.slot), nil
+}
+
+func (orderer *Orderer) finishUpPreprepare(preprepare *ordererspbftpb.Preprepare, slot *pbftSlot) *events.EventList {
 	// Save the received preprepare message.
 	slot.Preprepare = preprepare
 
@@ -337,4 +366,10 @@ func (orderer *Orderer) preprocessMessage(sn t.SeqNr, view t.PBFTViewNr, msg pro
 	} else {
 		return slot
 	}
+}
+
+// verifyCertContext saves the context of requesting a certificate to verify from the availability layer.
+type verifyCertContext struct {
+	prepepare *ordererspbftpb.Preprepare
+	slot      *pbftSlot
 }

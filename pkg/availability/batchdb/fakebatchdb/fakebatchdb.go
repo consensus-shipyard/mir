@@ -2,6 +2,7 @@ package fakebatchdb
 
 import (
 	"encoding/hex"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
@@ -56,7 +57,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			state.TransactionStore[txIDString(hex.EncodeToString(txID))] = txs[i]
 		}
 
-		batchdbpbdsl.BatchStored(m, t.ModuleID(origin.Module), origin)
+		batchdbpbdsl.BatchStored(m, origin.Module, origin)
 		return nil
 	})
 
@@ -64,7 +65,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	batchdbpbdsl.UponLookupBatch(m, func(batchID t.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
 		info, found := state.BatchStore[batchString(hex.EncodeToString(batchID))]
 		if !found {
-			batchdbpbdsl.LookupBatchResponse(m, t.ModuleID(origin.Module), false, nil, nil, origin)
+			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, nil, origin)
 			return nil
 		}
 
@@ -73,7 +74,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			txs[i] = state.TransactionStore[txIDString(hex.EncodeToString(txID))]
 		}
 
-		batchdbpbdsl.LookupBatchResponse(m, t.ModuleID(origin.Module), true, txs, info.metadata, origin)
+		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, info.metadata, origin)
 		return nil
 	})
 

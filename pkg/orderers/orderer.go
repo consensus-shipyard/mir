@@ -89,6 +89,12 @@ type Orderer struct {
 	// The map itself is allocated on creation of the pbftInstance, but the entries are initialized lazily,
 	// only when needed (when the node initiates a view change).
 	viewChangeStates map[t.PBFTViewNr]*pbftViewChangeState
+
+	// Each prepepare message must be verified by the availability module. We keep in this structure a FIFO queue of
+	// the context needed to continue with the processing of the prepepare message upon verification.
+	// A FIFO treatment suffices because the availability module is the only one responding to this request and
+	// it responds sequentially
+	notVerifiedPrepepareContext []*verifyCertContext
 }
 
 // NewOrdererModule allocates and initializes a new instance of the PBFT Orderer.
@@ -129,10 +135,11 @@ func NewOrdererModule(
 			//       Even better, share the same buffers with ISS.
 			logging.Decorate(logger, "Msgbuf: "),
 		),
-		logger:           logger,
-		view:             0,
-		inViewChange:     false,
-		viewChangeStates: make(map[t.PBFTViewNr]*pbftViewChangeState),
+		logger:                      logger,
+		view:                        0,
+		inViewChange:                false,
+		viewChangeStates:            make(map[t.PBFTViewNr]*pbftViewChangeState),
+		notVerifiedPrepepareContext: make([]*verifyCertContext, 0),
 	}
 }
 
@@ -168,6 +175,8 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		switch avEvent := ev.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
 			return orderer.applyCertReady(avEvent.NewCert.Cert)
+		case *availabilitypb.Event_CertVerified:
+			return orderer.applyCertVerified(avEvent.CertVerified)
 		default:
 			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
 		}

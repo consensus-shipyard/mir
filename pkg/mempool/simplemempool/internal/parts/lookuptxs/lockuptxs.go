@@ -2,6 +2,7 @@ package lookuptxs
 
 import (
 	"encoding/hex"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"

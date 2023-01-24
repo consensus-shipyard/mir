@@ -1,15 +1,23 @@
 package orderers
 
 import (
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/filecoin-project/mir/pkg/logging"
+
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
+	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -26,15 +34,15 @@ func OrdererEvent(
 }
 
 func (orderer *Orderer) requestCertOrigin() *events.EventList {
-	return events.ListOf(availabilityevents.RequestCert(
+	return events.ListOf(apbevents.RequestCert(
 		orderer.moduleConfig.Ava,
-		&availabilitypb.RequestCertOrigin{
-			Module: orderer.moduleConfig.Self.Pb(),
-			Type: &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: &contextstorepb.Origin{
+		&apbtypes.RequestCertOrigin{
+			Module: orderer.moduleConfig.Self,
+			Type: &apbtypes.RequestCertOrigin_ContextStore{ContextStore: &contextstorepbtypes.Origin{
 				ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
 			}},
 		},
-	))
+	).Pb())
 }
 
 //func (orderer *Orderer) requestCertOrigin() *events.EventList {
@@ -53,6 +61,33 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 //					}.Pb()}}})
 //}
 
+// Request availability module to verify the certificate from the preprepare message
+func (orderer *Orderer) verifyCert(preprepare *ordererspbftpb.Preprepare) *events.EventList {
+	cert := &availabilitypb.Cert{}
+
+	if err := proto.Unmarshal(preprepare.CertData, cert); err != nil {
+		orderer.logger.Log(logging.LevelWarn, "failed to unmarshal cert", "err", err)
+		return events.EmptyList()
+	}
+
+	verifyCert := availabilitypb.Event_VerifyCert{
+		VerifyCert: &availabilitypb.VerifyCert{
+			Cert: cert,
+			Origin: &availabilitypb.VerifyCertOrigin{
+				Module: orderer.moduleConfig.Self.Pb(),
+				Type: &availabilitypb.VerifyCertOrigin_ContextStore{
+					ContextStore: &contextstorepb.Origin{
+						ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
+					},
+				},
+			},
+		}}
+
+	return events.EmptyList().PushBack(&eventpb.Event{
+		DestModule: orderer.moduleConfig.Ava.Pb(),
+		Type:       &eventpb.Event_Availability{Availability: &availabilitypb.Event{Type: &verifyCert}},
+	})
+}
 func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{
 		Module: module.Pb(),

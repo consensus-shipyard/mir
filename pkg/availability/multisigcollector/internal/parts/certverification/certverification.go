@@ -23,18 +23,19 @@ func IncludeVerificationOfCertificates(
 ) {
 	// When receive a request to verify a certificate, check that it is structurally correct and verify the signatures.
 	apbdsl.UponVerifyCert(m, func(cert *apbtypes.Cert, origin *apbtypes.VerifyCertOrigin) error {
+
 		mscCert, err := verifyCertificateStructure(params, cert)
 		valid, errStr := t.ErrorPb(err)
 		if err != nil {
-			apbdsl.CertVerified(m, t.ModuleID(origin.Module), valid, errStr, origin)
+			apbdsl.CertVerified(m, origin.Module, valid, errStr, origin)
 			return nil
 		}
 
-		sigMsg := common.SigData(params.InstanceUID, t.BatchID(mscCert.BatchId))
+		sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
 		dsl.VerifyNodeSigs(m, mc.Crypto,
 			/*data*/ sliceutil.Repeat(sigMsg, len(mscCert.Signers)),
 			/*signatures*/ mscCert.Signatures,
-			/*nodeIDs*/ t.NodeIDSlice(mscCert.Signers),
+			/*nodeIDs*/ mscCert.Signers,
 			/*context*/ &verifySigsInCertContext{origin},
 		)
 		return nil
@@ -47,7 +48,7 @@ func IncludeVerificationOfCertificates(
 			err = errors.New("some signatures are invalid")
 		}
 		valid, errStr := t.ErrorPb(err)
-		apbdsl.CertVerified(m, t.ModuleID(context.origin.Module), valid, errStr, context.origin)
+		apbdsl.CertVerified(m, context.origin.Module, valid, errStr, context.origin)
 		return nil
 	})
 }
@@ -68,8 +69,8 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 	mscCert := mscCertWrapper.Msc
 
 	// Check that the certificate contains a sufficient number of signatures.
-	if len(mscCert.Signers) <= params.F+1 {
-		return nil, fmt.Errorf("insuficient number of signatures")
+	if len(mscCert.Signers) < params.F+1 {
+		return nil, fmt.Errorf("insuficient number of signatures: %d, need %d", len(mscCert.Signers), params.F+1)
 	}
 
 	if len(mscCert.Signers) != len(mscCert.Signatures) {
@@ -79,7 +80,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 	// Check that the identities of the signing nodes are not repeated.
 	alreadySeen := make(map[t.NodeID]struct{})
 	for _, idRaw := range mscCert.Signers {
-		id := t.NodeID(idRaw)
+		id := idRaw
 		if _, ok := alreadySeen[id]; ok {
 			return nil, fmt.Errorf("some node ids in the certificate are repeated multiple times")
 		}
@@ -93,8 +94,8 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 	}
 
 	for _, idRaw := range mscCert.Signers {
-		if _, ok := allNodes[t.NodeID(idRaw)]; !ok {
-			return nil, fmt.Errorf("unknown node id: %v", t.NodeID(idRaw))
+		if _, ok := allNodes[idRaw]; !ok {
+			return nil, fmt.Errorf("unknown node id: %v", idRaw)
 		}
 	}
 
