@@ -9,7 +9,6 @@ package transactionreceiver
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"sync"
 
 	es "github.com/go-errors/errors"
@@ -113,32 +112,23 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 }
 
 // Start starts the TransactionReceiver by initializing and starting the internal gRPC server,
-// listening on the passed port.
+// listening on the passed net.Listener.
 // Before ths method is called, no client connections are accepted.
-func (rr *TransactionReceiver) Start(port int) error {
+func (rr *TransactionReceiver) Start(listener net.Listener) {
 
-	rr.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for transaction connections on port %d", port))
+	rr.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for transaction connections on %v", listener.Addr().String()))
 
 	// Create a gRPC server and assign it the logic of this TransactionReceiver.
 	rr.grpcServer = grpc.NewServer()
 	RegisterTransactionReceiverServer(rr.grpcServer, rr)
 
-	// Start listening on the network
-	conn, err := net.Listen("tcp", ":"+strconv.Itoa(port))
-	if err != nil {
-		return es.Errorf("failed to listen for connections on port %d: %w", port, err)
-	}
-
 	// Start the gRPC server in a separate goroutine.
 	// When the server stops, it will write its exit error into gt.grpcServerError.
 	rr.grpcServerWg.Add(1)
 	go func() {
-		rr.grpcServerError = rr.grpcServer.Serve(conn)
+		rr.grpcServerError = rr.grpcServer.Serve(listener)
 		rr.grpcServerWg.Done()
 	}()
-
-	// If we got all the way here, no error occurred.
-	return nil
 }
 
 // Stop stops the own gRPC server (preventing further incoming connections).

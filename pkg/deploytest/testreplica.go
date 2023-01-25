@@ -3,8 +3,8 @@ package deploytest
 import (
 	"context"
 	"fmt"
+	gonet "net"
 	"path/filepath"
-	"strconv"
 	"sync"
 
 	es "github.com/go-errors/errors"
@@ -67,7 +67,7 @@ func (tr *TestReplica) EventLogFile() string {
 // The function blocks until the replica stops.
 // The replica stops when stopC is closed.
 // Run returns the error returned by the run of the underlying Mir node.
-func (tr *TestReplica) Run(ctx context.Context) error {
+func (tr *TestReplica) Run(ctx context.Context, txReceiverListener gonet.Listener) error {
 
 	// Initialize recording of events.
 	interceptor, err := eventlog.NewRecorder(
@@ -104,17 +104,8 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 
 	// Create a Transactionreceiver for transactions coming over the network.
-	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "TxRec: "))
-
-	// TODO: do not assume that node IDs are integers.
-	p, err := strconv.Atoi(tr.ID.Pb())
-	if err != nil {
-		return es.Errorf("error converting node ID %s: %w", tr.ID, err)
-	}
-	err = txreceiver.Start(TXListenPort + p)
-	if err != nil {
-		return es.Errorf("error starting transaction receiver: %w", err)
-	}
+	txReceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "TxRec: "))
+	txReceiver.Start(txReceiverListener)
 
 	// Initialize WaitGroup for the replica's transaction submission thread.
 	var wg sync.WaitGroup
@@ -149,8 +140,8 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
 
 	// Stop the transaction receiver.
-	txreceiver.Stop()
-	if err := txreceiver.ServerError(); err != nil {
+	txReceiver.Stop()
+	if err := txReceiver.ServerError(); err != nil {
 		return es.Errorf("transaction receiver returned server error: %w", err)
 	}
 
