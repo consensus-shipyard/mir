@@ -27,6 +27,6 @@ type Transport interface {
 	// TODO: Redefine this method to also return when the Transport stops. Add an error return value to indicate this.
 	WaitFor(n int)
 
-	// CloseOldConnections closes connections to the nodes that don't needed.
+	// CloseOldConnections closes connections to the nodes that don't needed
 	CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress)
 }
