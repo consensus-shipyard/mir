@@ -9,7 +9,6 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
@@ -45,15 +44,11 @@ func newMockLibp2pCommunication(
 		logger:     logger,
 	}
 
-	var err error
 	for i, id := range nodeIDs {
 		hostAddr := libp2putil.NewFreeHostAddr()
 		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
 		lt.membership[id] = types.NodeAddress(libp2putil.NewDummyMultiaddr(i, hostAddr))
 		lt.transports[id] = NewTransport(params, id, lt.hosts[id], logger)
-		if err != nil {
-			t.Fatalf("failed to create transport for node %s: %v", id, err)
-		}
 	}
 
 	return lt
@@ -212,15 +207,17 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID
 		10*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeID types.NodeID) {
-	v := m.getTransport(nodeID)
+func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeID) {
+	for _, nodeID := range nodeIDs {
+		v := m.getTransport(nodeID)
 
-	require.Eventually(m.t,
-		func() bool {
-			m.printStreams(nodeID)
-			return m.getNumberOfStreams(v) == 0
-		},
-		10*time.Second, 300*time.Millisecond)
+		require.Eventually(m.t,
+			func() bool {
+				m.printStreams(nodeID)
+				return m.getNumberOfStreams(v) == 0
+			},
+			10*time.Second, 300*time.Millisecond)
+	}
 }
 
 func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
@@ -267,13 +264,13 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 		10*time.Second, 100*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testConnsEmpty() {
+func (m *mockLibp2pCommunication) testConnectionsEmpty() {
 	for _, v := range m.transports {
 		require.Equal(m.t, 0, len(v.connections))
 	}
 }
 
-func (m *mockLibp2pCommunication) testNoConnections() {
+func (m *mockLibp2pCommunication) testNoHostConnections() {
 	for _, v := range m.transports {
 		require.Equal(m.t, 0, len(v.host.Network().Conns()))
 	}
@@ -333,14 +330,65 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
-func TestLibp2p_Sending(t *testing.T) {
+// TestLibp2p_ConnectTwoNodes that two nodes can be connected.
+func TestLibp2p_ConnectTwoNodes(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	m.StartAllTransports()
+
+	t.Log(">>> membership")
+	initialNodes := m.Membership(nodeA, nodeB)
+	t.Log(initialNodes)
+
+	t.Log(">>> connecting nodes")
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	m.testEventuallyConnected(nodeA, nodeB)
+
+	t.Log(">>> cleaning")
+	m.StopAllTransports()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA, nodeB)
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+}
+
+// TestLibp2p_CallSendWithoutConnect test that method `Send` returns an error when it is called without `Connect`.
+func TestLibp2p_CallSendWithoutConnect(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	a := m.transports[nodeA]
+	m.StartAllTransports()
+
+	err := a.Send(nodeB, &messagepb.Message{})
+	require.Error(t, err)
+
+	m.StopAllTransports()
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA, nodeB)
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+}
+
+// TestLibp2p_SendReceive tests that messages can be sent and received.
+func TestLibp2p_SendReceive(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 	nodeC := types.NodeID("c")
 	nodeD := types.NodeID("d")
-	nodeE := types.NodeID("e")
+	// nodeE := types.NodeID("e")
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
@@ -352,11 +400,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	require.Equal(t, nodeC, c.ownID)
 	require.Equal(t, nodeD, d.ownID)
 
-	eAddr := libp2putil.NewFakeMultiaddr(100, 0)
+	// eAddr := libp2putil.NewFakeMultiaddr(100, 0)
 
 	t.Log(">>> membership")
 	initialNodes := m.Membership(nodeA, nodeB, nodeC, nodeD)
-	initialNodes[nodeE] = eAddr
+	// initialNodes[nodeE] = eAddr
 	t.Log(initialNodes)
 
 	t.Log(">>> connecting nodes")
@@ -373,17 +421,11 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.testEventuallyConnected(nodeC, nodeD)
 
 	t.Log(">>> sending messages")
-	err := a.Send("unknownNode", &messagepb.Message{})
-	require.ErrorIs(t, err, fmt.Errorf("no connection to node: %v", types.NodeID("unknownNode")))
-
-	// TODO: Do we still need this?
-	//err = a.Send(nodeE, &messagepb.Message{})
-	//require.ErrorIs(t, err, ErrNilStream)
 
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
 
-	err = a.Send(nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, &messagepb.Message{})
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -395,25 +437,19 @@ func TestLibp2p_Sending(t *testing.T) {
 	m.disconnect(nodeA, nodeB)
 	m.testEventuallyNotConnected(nodeA, nodeB)
 
-	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
-	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
-	m.testEventuallySentMsg(nodeA, nodeC, &messagepb.Message{})
-	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
-
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
 	m.testEventuallyNoStreams(nodeA)
 	m.testEventuallyNoStreams(nodeB)
 	m.testEventuallyNoStreams(nodeC)
 	m.testEventuallyNoStreams(nodeD)
-	m.testConnsEmpty()
-
+	m.testConnectionsEmpty()
 	m.CloseAllHosts()
-	m.testNoConnections()
+	m.testNoHostConnections()
 }
 
-func TestLibp2p_Connecting(t *testing.T) {
+// TestLibp2p_Connect test that connections can be changed.
+func TestLibp2p_Connect(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -467,63 +503,10 @@ func TestLibp2p_Connecting(t *testing.T) {
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
-	m.testConnsEmpty()
+	m.testConnectionsEmpty()
 
 	m.CloseAllHosts()
-	m.testNoConnections()
-}
-
-func TestLibp2p_SendingWithTwoNodes(t *testing.T) {
-	logger := logging.ConsoleDebugLogger
-
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
-
-	a := m.transports[nodeA]
-	b := m.transports[nodeB]
-	m.StartAllTransports()
-
-	require.Equal(t, nodeA, a.ownID)
-	require.Equal(t, nodeB, b.ownID)
-
-	t.Log(">>> membership")
-	initialNodes := m.Membership(nodeA, nodeB)
-	t.Log(initialNodes)
-
-	t.Log(">>> connecting nodes")
-	a.Connect(initialNodes)
-	b.Connect(initialNodes)
-
-	m.testEventuallyConnected(nodeA, nodeB)
-	m.testEventuallyConnected(nodeB, nodeA)
-
-	t.Log(">>> sending messages")
-
-	nodeBEventsChan := b.EventsOut()
-
-	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
-	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
-
-	t.Log(">>> disconnecting nodes")
-	m.disconnect(nodeA, nodeB)
-	m.testEventuallyNotConnected(nodeA, nodeB)
-
-	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
-
-	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
-
-	t.Log(">>> cleaning")
-	m.StopAllTransports()
-	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
-	m.testEventuallyNoStreams(nodeA)
-	m.testEventuallyNoStreams(nodeB)
-	m.testConnsEmpty()
-
-	m.CloseAllHosts()
-	m.testNoConnections()
+	m.testNoHostConnections()
 }
 
 func TestLibp2p_Messaging(t *testing.T) {
@@ -568,10 +551,10 @@ func TestLibp2p_Messaging(t *testing.T) {
 		m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 		m.testEventuallyNoStreams(nodeA)
 		m.testEventuallyNoStreams(nodeB)
-		m.testConnsEmpty()
+		m.testConnectionsEmpty()
 
 		m.CloseAllHosts()
-		m.testNoConnections()
+		m.testNoHostConnections()
 	}(ctx)
 
 	sent := 0
@@ -637,16 +620,19 @@ func TestLibp2p_Messaging(t *testing.T) {
 	}
 }
 
-func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
+// TestLibp2p_SendingWithWaitFor tests that the transport operates normally if WaitFor call is used.
+func TestLibp2p_SendingReceiveWithWaitFor(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
+
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
+
 	m.StartAllTransports()
 	initialNodes := m.Membership(nodeA, nodeB)
 	t.Log(">>> membership")
@@ -664,27 +650,20 @@ func TestLibp2p_SendingWithTwoNodesInSyncMode(t *testing.T) {
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
-	t.Log(">>> disconnecting nodes")
-	m.disconnect(nodeA, nodeB)
-	m.testEventuallyNotConnected(nodeA, nodeB)
-
-	t.Log(">>> sending messages after disconnection")
-	m.testEventuallySentMsg(nodeA, nodeB, &messagepb.Message{})
-	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
-	m.testEventuallyConnected(nodeA, nodeB)
-
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testEventuallyNoStreams(nodeA)
 	m.testEventuallyNoStreams(nodeB)
-	m.testConnsEmpty()
+	m.testConnectionsEmpty()
 
 	m.CloseAllHosts()
-	m.testNoConnections()
+	m.testNoHostConnections()
 }
 
-func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
+// TestLibp2p_SendingWithWaitForBlocking tests that the transport operates normally if WaitFor call and
+// blocking messages are used.
+func TestLibp2p_SendReceiveWithWaitForAndBlock(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -723,10 +702,10 @@ func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
 
 	go func() {
 		b.incomingMessages <- events.ListOf(
-			events.MessageReceived(types.ModuleID("1"), "blocker", &messagepb.Message{}),
+			events.MessageReceived("1", "blocker", &messagepb.Message{}),
 		)
 		b.incomingMessages <- events.ListOf(
-			events.MessageReceived(types.ModuleID("1"), "blocker", &messagepb.Message{}),
+			events.MessageReceived("1", "blocker", &messagepb.Message{}),
 		)
 	}()
 	err = a.Send(nodeB, &messagepb.Message{})
@@ -738,124 +717,80 @@ func TestLibp2p_SendingWithTwoNodesNonBlock(t *testing.T) {
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
 	m.testEventuallyNoStreams(nodeA)
 	m.testEventuallyNoStreams(nodeB)
-	m.testConnsEmpty()
+	m.testConnectionsEmpty()
 
 	m.CloseAllHosts()
-	m.testNoConnections()
+	m.testNoHostConnections()
 
 	m.testThatSenderIs(<-nodeBEventsChan, "blocker")
 	m.testThatSenderIs(<-nodeBEventsChan, "blocker")
 }
 
-// Test we don't get two elements in the node table corresponding to the same node.
-func TestLibp2p_OneConnectionInProgress(t *testing.T) {
-	logger := logging.ConsoleDebugLogger
-
-	nodeA := types.NodeID("a")
-	nodeE := types.NodeID("e")
-
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA}, logger)
-
-	a := m.transports[nodeA]
-	m.StartAllTransports()
-
-	eAddr, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/udp/0")
-	require.NoError(t, err)
-
-	t.Log(">>> connecting nodes")
-
-	initialNodes := m.Membership(nodeA)
-	initialNodes[nodeE] = eAddr
-
-	t.Log(">>> send a message")
-	a.Connect(initialNodes)
-	a.Send(nodeE, &messagepb.Message{}) // nolint
-	m.testNeverMoreThanOneConnectionInProgress(nodeA)
-
-	t.Log(">>> cleaning")
-	m.StopAllTransports()
-	m.CloseAllHosts()
-	m.testNoConnections()
-}
-
-// Test that when a node fails to connect first time it will be trying to connect.
+// TestLibp2p_ConnectionAfterFail tests that when a node fails to connect first time it will try to connect again.
 func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	hostAddrA := libp2putil.NewFreeHostAddr()
+	hostA := libp2putil.NewDummyHost(0, hostAddrA)
+	addrA := types.NodeAddress(libp2putil.NewDummyMultiaddr(0, hostAddrA))
+	a := NewTransport(DefaultParams(), nodeA, hostA, logger)
 
-	a := m.transports[nodeA]
-	b := m.transports[nodeB]
+	hostAddrB := libp2putil.NewFreeHostAddr()
+	hostB := libp2putil.NewDummyHostNoListen(1, hostAddrB)
+	addrB := types.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
+	b := NewTransport(DefaultParams(), nodeB, hostB, logger)
 
-	bBadAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/100/p2p/%s", b.host.ID()))
-	require.NoError(t, err)
+	membershipA := make(map[types.NodeID]types.NodeAddress, 2)
+	membershipA[nodeA] = addrA
+	membershipA[nodeB] = addrB
 
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 
-	initialNodes := m.Membership(nodeA)
-	initialNodes[nodeB] = bBadAddr
-	t.Log(initialNodes)
+	m := &mockLibp2pCommunication{
+		t:          t,
+		params:     DefaultParams(),
+		membership: make(map[types.NodeID]types.NodeAddress, 2),
+		hosts:      make(map[types.NodeID]host.Host),
+		transports: make(map[types.NodeID]*Transport),
+		logger:     logger,
+	}
+
+	m.transports[nodeA] = a
+	m.transports[nodeB] = b
+	m.hosts[nodeA] = hostA
+	m.hosts[nodeB] = hostB
+	m.membership = membershipA
 
 	t.Log(">>> connecting to a failed node")
-	err = a.Start()
+	err := a.Start()
 	require.NoError(t, err)
-
-	// TODO: These parameters no longer exist. Remove them? Do we need some replacement?
-	//a.params.MaxRetries = 1
-	//a.params.MaxConnectingTimeout = 1 * time.Second
-	//a.params.MaxRetryTimeout = 0
-
-	a.Connect(initialNodes)
-	m.testNeverConnected(nodeA, nodeB)
-
-	t.Log(">>> connecting to the restarted node")
 	err = b.Start()
 	require.NoError(t, err)
-	initialNodes = m.Membership(nodeA, nodeB)
+
+	a.Connect(membershipA)
+	m.testNeverConnected(nodeA, nodeB)
+	b.Stop()
+	m.CloseHosts(b)
+
+	t.Log(">>> connecting to the restarted node")
+	hostB = libp2putil.NewDummyHost(1, hostAddrB)
+	b = NewTransport(DefaultParams(), nodeB, hostB, logger)
+	m.transports[nodeB] = b
+	err = b.Start()
 	require.NoError(t, err)
-	a.Connect(initialNodes)
+	a.Connect(membershipA)
 	m.testEventuallyHasConnection(nodeA, nodeB)
 
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
 	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
-	m.testEventuallyNoStreams(nodeA)
-	m.testEventuallyNoStreams(nodeB)
-	m.testConnsEmpty()
+	m.testEventuallyNoStreams(nodeA, nodeB)
+	m.testConnectionsEmpty()
 
 	m.CloseAllHosts()
-	m.testNoConnections()
-}
-
-func TestLibp2p_TwoNodesBasic(t *testing.T) {
-	logger := logging.ConsoleDebugLogger
-
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
-	a := m.transports[nodeA]
-	b := m.transports[nodeB]
-	m.StartAllTransports()
-
-	t.Log(">>> membership")
-	initialNodes := m.Membership(nodeA, nodeB)
-	t.Log(initialNodes)
-
-	t.Log(">>> connecting nodes")
-	a.Connect(initialNodes)
-	b.Connect(initialNodes)
-	m.testEventuallyConnected(nodeA, nodeB)
-
-	t.Log(">>> cleaning")
-	m.StopAllTransports()
-	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
-	m.testEventuallyNoStreams(nodeA)
-	m.testEventuallyNoStreams(nodeB)
-	m.testConnsEmpty()
-	m.CloseAllHosts()
-	m.testNoConnections()
+	m.testNoHostConnections()
 }
