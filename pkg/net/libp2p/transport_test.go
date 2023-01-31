@@ -147,20 +147,6 @@ func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Trans
 	return ts[0], ts[1], ts[2], ts[3]
 }
 
-func (m *mockLibp2pCommunication) testEventuallySentMsg(srcNode, dstNode types.NodeID, msg *messagepb.Message) {
-	src := m.getTransport(srcNode)
-
-	require.Eventually(m.t,
-		func() bool {
-			err := src.Send(dstNode, msg)
-			if err != nil {
-				m.t.Log(err)
-			}
-			return err == nil
-		},
-		5*time.Second, 300*time.Millisecond)
-}
-
 func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 types.NodeID) {
 	n1 := m.getTransport(nodeID1)
 	n2 := m.getTransport(nodeID2)
@@ -274,16 +260,6 @@ func (m *mockLibp2pCommunication) testNoHostConnections() {
 	for _, v := range m.transports {
 		require.Equal(m.t, 0, len(v.host.Network().Conns()))
 	}
-}
-
-func (m *mockLibp2pCommunication) testNeverMoreThanOneConnectionInProgress(nodeID types.NodeID) {
-	src := m.getTransport(nodeID)
-
-	require.Never(m.t,
-		func() bool {
-			return len(src.connections) > 1
-		},
-		5*time.Second, 300*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
