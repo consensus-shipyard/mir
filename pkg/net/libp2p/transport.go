@@ -201,6 +201,7 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 		go func(nodeID t.NodeID, conn connection) {
 			conn.Close()
 			tr.logger.Log(logging.LevelInfo, "Closed connection to node.", "nodeID", nodeID)
+			delete(tr.connections, nodeID)
 			wg.Done()
 		}(nodeID, conn)
 	}
