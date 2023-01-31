@@ -185,14 +185,14 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 	// We first select the connections (while holding a lock) and only then close them (after releasing the lock),
 	// As closing a connection involves waiting for its processing goroutine to stop.
 	toClose := make(map[t.NodeID]connection)
-	tr.connectionsLock.RLock()
+	tr.connectionsLock.Lock()
 	for nodeID, conn := range tr.connections {
 		if _, ok := newMembership[nodeID]; !ok {
 			toClose[nodeID] = conn
 			delete(tr.nodeIDs, conn.PeerID())
 		}
 	}
-	tr.connectionsLock.RUnlock()
+	tr.connectionsLock.Unlock()
 
 	// Close the selected connections (in parallel).
 	wg := sync.WaitGroup{}
@@ -201,11 +201,16 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 		go func(nodeID t.NodeID, conn connection) {
 			conn.Close()
 			tr.logger.Log(logging.LevelInfo, "Closed connection to node.", "nodeID", nodeID)
-			delete(tr.connections, nodeID)
 			wg.Done()
 		}(nodeID, conn)
 	}
 	wg.Wait()
+
+	tr.connectionsLock.Lock()
+	for nodeID := range toClose {
+		delete(tr.connections, nodeID)
+	}
+	tr.connectionsLock.Unlock()
 }
 
 func (tr *Transport) getConnection(nodeID t.NodeID) (connection, error) {
