@@ -156,6 +156,7 @@ func New(
 	if err != nil {
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
+
 	// Initialize a new ISS object.
 	iss := &ISS{
 		ownID:                ownID,
@@ -178,13 +179,6 @@ func New(
 		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
 	}
 
-	// Initialize the first epoch.
-	// The corresponding application state will be loaded upon init.
-	// TODO: Make leader policy part of checkpoint.
-	iss.logger.Log(logging.LevelInfo, "Initializing new epoch",
-		"epochNr", startingChkp.Epoch(), "numNodes", len(startingChkp.Memberships()[0]))
-
-	// Return the initialized protocol module.
 	return iss, nil
 }
 

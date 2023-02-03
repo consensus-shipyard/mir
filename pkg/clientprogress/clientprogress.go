@@ -21,7 +21,7 @@ func NewClientProgress(logger logging.Logger) *ClientProgress {
 
 func (cp *ClientProgress) Add(clID t.ClientID, reqNo t.ReqNo) bool {
 	if _, ok := cp.clientTrackers[clID]; !ok {
-		cp.clientTrackers[clID] = EmptyDeliveredReqs(cp.logger)
+		cp.clientTrackers[clID] = EmptyDeliveredReqs(logging.Decorate(cp.logger, "", "clID", clID))
 	}
 	return cp.clientTrackers[clID].Add(reqNo)
 }
@@ -45,14 +45,20 @@ func (cp *ClientProgress) Pb() *commonpb.ClientProgress {
 func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
 	cp.clientTrackers = make(map[t.ClientID]*DeliveredReqs)
 	for clientID, deliveredReqs := range pb.Progress {
-		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(deliveredReqs, cp.logger)
+		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(
+			deliveredReqs,
+			logging.Decorate(cp.logger, "", "clID", clientID),
+		)
 	}
 }
 
 func FromPb(pb *commonpb.ClientProgress, logger logging.Logger) *ClientProgress {
 	cp := NewClientProgress(logger)
 	for clientID, deliveredReqs := range pb.Progress {
-		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(deliveredReqs, logger)
+		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(
+			deliveredReqs,
+			logging.Decorate(logger, "", "clID", clientID),
+		)
 	}
 	return cp
 }
