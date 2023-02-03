@@ -46,7 +46,7 @@ func (dr *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 
 	if reqNo < dr.lowWM {
 		dr.logger.Log(logging.LevelDebug, "Request sequence number below client's watermark window.",
-			"lowWM", dr.lowWM, "clId", dr.lowWM, "reqNo", reqNo)
+			"lowWM", dr.lowWM, "reqNo", reqNo)
 		return false
 	}
 
