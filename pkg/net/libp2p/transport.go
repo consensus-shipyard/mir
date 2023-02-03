@@ -243,7 +243,7 @@ func (tr *Transport) handleIncomingConnection(s network.Stream) {
 	//       On shutdown, close them all and wait until the corresponding handlers return.
 	tr.connectionsLock.RUnlock()
 	if !ok {
-		tr.logger.Log(logging.LevelWarn, "Received message form unknown peer. Stopping incoming connection",
+		tr.logger.Log(logging.LevelWarn, "Received message from unknown peer. Stopping incoming connection",
 			"remotePeer", peerID)
 		return
 	}
