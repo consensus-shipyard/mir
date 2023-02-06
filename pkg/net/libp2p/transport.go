@@ -190,6 +190,7 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 		if _, ok := newMembership[nodeID]; !ok {
 			toClose[nodeID] = conn
 			delete(tr.nodeIDs, conn.PeerID())
+			delete(tr.connections, nodeID)
 		}
 	}
 	tr.connectionsLock.Unlock()
@@ -205,12 +206,6 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 		}(nodeID, conn)
 	}
 	wg.Wait()
-
-	tr.connectionsLock.Lock()
-	for nodeID := range toClose {
-		delete(tr.connections, nodeID)
-	}
-	tr.connectionsLock.Unlock()
 }
 
 func (tr *Transport) getConnection(nodeID t.NodeID) (connection, error) {
