@@ -231,6 +231,9 @@ func (tr *Transport) handleIncomingConnection(s network.Stream) {
 
 	// Close the stream when done.
 	defer func() {
+		if err := s.Reset(); err != nil {
+			tr.logger.Log(logging.LevelWarn, "Could not reset incoming stream", "remotePeer", peerID, "err", err)
+		}
 		if err := s.Close(); err != nil {
 			tr.logger.Log(logging.LevelWarn, "Could not close incoming stream", "remotePeer", peerID, "err", err)
 		}
