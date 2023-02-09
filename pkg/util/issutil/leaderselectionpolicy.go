@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/fxamacker/cbor/v2"
-	"golang.org/x/exp/constraints"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -230,39 +229,4 @@ func BlacklistLeaderPolicyFromBytes(data []byte) (*BlacklistLeaderPolicy, error)
 		return nil, err
 	}
 	return b, nil
-}
-
-// keyValue is a struct that holds a key-value pair of a map
-type keyValue[K constraints.Ordered, V any] struct {
-	Key   K
-	Value V
-}
-
-func mapToSortedSlice[K constraints.Ordered, V any](m map[K]V) []keyValue[K, V] {
-	keys := make([]K, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	sort.Slice(keys, func(i, j int) bool {
-		// Sort keys to ensure deterministic order
-		return keys[i] < keys[j]
-	})
-
-	slice := make([]keyValue[K, V], len(keys))
-	for i, key := range keys {
-		slice[i] = keyValue[K, V]{
-			Key:   key,
-			Value: m[key],
-		}
-	}
-	return slice
-}
-
-func sliceToMap[K constraints.Ordered, V any](slice []keyValue[K, V]) map[K]V {
-	m := make(map[K]V, len(slice))
-	for _, kv := range slice {
-		m[kv.Key] = kv.Value
-	}
-	return m
 }

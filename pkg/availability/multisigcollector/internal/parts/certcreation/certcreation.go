@@ -88,16 +88,14 @@ func IncludeCreatingCertificates(
 	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
 			delete(state.Certificate, context.reqID)
-			if len(state.RequestState) == 0 {
-				return nil // do not do work for the empty batch if there is not even a request to answer
-			} else {
+			if len(state.RequestState) > 0 { // do not do work for the empty batch if there is not even a request to answer
 				sendIfReady(m, &state, params, true)
 				if len(state.Certificate) == 0 {
 					apbdsl.ComputeCert(m, mc.Self)
 					// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 				}
-				return nil
 			}
+			return nil
 		}
 		// TODO: add persistent storage for crash-recovery.
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})

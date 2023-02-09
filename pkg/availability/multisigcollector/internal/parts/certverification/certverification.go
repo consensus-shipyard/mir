@@ -105,7 +105,7 @@ func IncludeVerificationOfCertificates(
 		// if we get here, that means so far all received signatures for all certificates in the reqID are verified valid or yet to be verified
 		allVerifiedValid := true
 		for _, certVerifiedValid := range state.RequestState[reqID].certVerifiedValid {
-			if certVerifiedValid == false {
+			if !certVerifiedValid {
 				allVerifiedValid = false
 				break
 			}
