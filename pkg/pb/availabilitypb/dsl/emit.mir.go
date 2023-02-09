@@ -54,3 +54,7 @@ func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, cert *t
 func ProvideTransactions(m dsl.Module, destModule types.ModuleID, txs []*types2.Request, origin *types1.RequestTransactionsOrigin) {
 	dsl.EmitMirEvent(m, events.ProvideTransactions(destModule, txs, origin))
 }
+
+func ComputeCert(m dsl.Module, destModule types.ModuleID) {
+	dsl.EmitMirEvent(m, events.ComputeCert(destModule))
+}

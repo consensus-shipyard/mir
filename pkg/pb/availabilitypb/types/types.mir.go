@@ -42,6 +42,8 @@ func Event_TypeFromPb(pb availabilitypb.Event_Type) Event_Type {
 		return &Event_RequestTransactions{RequestTransactions: RequestTransactionsFromPb(pb.RequestTransactions)}
 	case *availabilitypb.Event_ProvideTransactions:
 		return &Event_ProvideTransactions{ProvideTransactions: ProvideTransactionsFromPb(pb.ProvideTransactions)}
+	case *availabilitypb.Event_ComputeCert:
+		return &Event_ComputeCert{ComputeCert: ComputeCertFromPb(pb.ComputeCert)}
 	}
 	return nil
 }
@@ -152,6 +154,24 @@ func (w *Event_ProvideTransactions) Pb() availabilitypb.Event_Type {
 
 func (*Event_ProvideTransactions) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Event_ProvideTransactions]()}
+}
+
+type Event_ComputeCert struct {
+	ComputeCert *ComputeCert
+}
+
+func (*Event_ComputeCert) isEvent_Type() {}
+
+func (w *Event_ComputeCert) Unwrap() *ComputeCert {
+	return w.ComputeCert
+}
+
+func (w *Event_ComputeCert) Pb() availabilitypb.Event_Type {
+	return &availabilitypb.Event_ComputeCert{ComputeCert: (w.ComputeCert).Pb()}
+}
+
+func (*Event_ComputeCert) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Event_ComputeCert]()}
 }
 
 func EventFromPb(pb *availabilitypb.Event) *Event {
@@ -569,28 +589,28 @@ type Cert_TypeWrapper[T any] interface {
 
 func Cert_TypeFromPb(pb availabilitypb.Cert_Type) Cert_Type {
 	switch pb := pb.(type) {
-	case *availabilitypb.Cert_Msc:
-		return &Cert_Msc{Msc: types5.CertFromPb(pb.Msc)}
+	case *availabilitypb.Cert_Mscs:
+		return &Cert_Mscs{Mscs: types5.CertsFromPb(pb.Mscs)}
 	}
 	return nil
 }
 
-type Cert_Msc struct {
-	Msc *types5.Cert
+type Cert_Mscs struct {
+	Mscs *types5.Certs
 }
 
-func (*Cert_Msc) isCert_Type() {}
+func (*Cert_Mscs) isCert_Type() {}
 
-func (w *Cert_Msc) Unwrap() *types5.Cert {
-	return w.Msc
+func (w *Cert_Mscs) Unwrap() *types5.Certs {
+	return w.Mscs
 }
 
-func (w *Cert_Msc) Pb() availabilitypb.Cert_Type {
-	return &availabilitypb.Cert_Msc{Msc: (w.Msc).Pb()}
+func (w *Cert_Mscs) Pb() availabilitypb.Cert_Type {
+	return &availabilitypb.Cert_Mscs{Mscs: (w.Mscs).Pb()}
 }
 
-func (*Cert_Msc) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Cert_Msc]()}
+func (*Cert_Mscs) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Cert_Mscs]()}
 }
 
 func CertFromPb(pb *availabilitypb.Cert) *Cert {
@@ -607,4 +627,18 @@ func (m *Cert) Pb() *availabilitypb.Cert {
 
 func (*Cert) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Cert]()}
+}
+
+type ComputeCert struct{}
+
+func ComputeCertFromPb(pb *availabilitypb.ComputeCert) *ComputeCert {
+	return &ComputeCert{}
+}
+
+func (m *ComputeCert) Pb() *availabilitypb.ComputeCert {
+	return &availabilitypb.ComputeCert{}
+}
+
+func (*ComputeCert) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.ComputeCert]()}
 }

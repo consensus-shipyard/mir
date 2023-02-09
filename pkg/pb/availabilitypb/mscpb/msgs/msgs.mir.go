@@ -55,15 +55,16 @@ func RequestBatchMessage(destModule types.ModuleID, batchId []uint8, reqId uint6
 	}
 }
 
-func ProvideBatchMessage(destModule types.ModuleID, txs []*types1.Request, reqId uint64) *types2.Message {
+func ProvideBatchMessage(destModule types.ModuleID, txs []*types1.Request, reqId uint64, batchId []uint8) *types2.Message {
 	return &types2.Message{
 		DestModule: destModule,
 		Type: &types2.Message_MultisigCollector{
 			MultisigCollector: &types3.Message{
 				Type: &types3.Message_ProvideBatch{
 					ProvideBatch: &types3.ProvideBatchMessage{
-						Txs:   txs,
-						ReqId: reqId,
+						Txs:     txs,
+						ReqId:   reqId,
+						BatchId: batchId,
 					},
 				},
 			},

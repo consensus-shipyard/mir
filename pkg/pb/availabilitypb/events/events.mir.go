@@ -102,3 +102,16 @@ func ProvideTransactions(destModule types.ModuleID, txs []*types3.Request, origi
 		},
 	}
 }
+
+func ComputeCert(destModule types.ModuleID) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Availability{
+			Availability: &types1.Event{
+				Type: &types1.Event_ComputeCert{
+					ComputeCert: &types1.ComputeCert{},
+				},
+			},
+		},
+	}
+}

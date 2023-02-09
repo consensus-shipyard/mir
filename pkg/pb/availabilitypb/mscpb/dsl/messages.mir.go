@@ -40,8 +40,8 @@ func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.Node
 	})
 }
 
-func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64) error) {
+func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64, batchId []uint8) error) {
 	UponMessageReceived[*types.Message_ProvideBatch](m, func(from types1.NodeID, msg *types.ProvideBatchMessage) error {
-		return handler(from, msg.Txs, msg.ReqId)
+		return handler(from, msg.Txs, msg.ReqId, msg.BatchId)
 	})
 }

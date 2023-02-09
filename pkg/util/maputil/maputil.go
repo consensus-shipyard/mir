@@ -107,3 +107,11 @@ func FromSlices[K comparable, V any](keys []K, vals []V) map[K]V {
 
 	return m
 }
+
+func FindAndDeleteAll[K comparable, V any](m map[K]V, f func(key K, value V) bool) {
+	for k, v := range m {
+		if f(k, v) {
+			delete(m, k)
+		}
+	}
+}

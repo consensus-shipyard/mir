@@ -53,6 +53,7 @@ message ProvideBatchMessage {
 
   repeated requestpb.Request txs     = 1;
   uint64                     req_id  = 2;
+  bytes  batch_id = 3;
 }
 
 // TODO: implement pulling of missing txs.
@@ -76,6 +77,11 @@ message Cert {
   // TODO: can be encoded as n bits
   repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes  signatures = 3;
+}
+
+message Certs {
+  option (mir.event_class) = true;
+  repeated Cert certs = 1;
 }
 
 // ============================================================

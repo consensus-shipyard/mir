@@ -29,6 +29,9 @@ message Event {
 
     RequestTransactions request_transactions = 5;
     ProvideTransactions provide_transactions = 6;
+
+    ComputeCert compute_cert = 7;
+
   }
 }
 
@@ -121,6 +124,11 @@ message Cert {
   oneof type {
     option (mir.event_type) = true;
 
-    mscpb.Cert msc = 1;
+    mscpb.Certs mscs = 1;
   }
+}
+
+message ComputeCert {
+  option (mir.event) = true;
+
 }

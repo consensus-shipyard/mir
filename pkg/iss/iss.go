@@ -15,6 +15,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -621,25 +623,36 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) *events.EventList {
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
 
 	// Initialize the new availability module.
-	eventsOut.PushBack(iss.initAvailability())
+	eventsOut.PushBackSlice(iss.initAvailability())
 
 	// Initialize the orderer modules for the current epoch.
 	eventsOut.PushBackList(iss.initOrderers())
-
+	//LEFT TO DO:
+	// 1- Make it pass tests
+	// 2- Verify that batchfetcher does the proper treatment to these batches of certs
+	// 3- Verify that ISS is calling the computecert at the availability module at the right place
+	// 4- Comment modified and new code (specially availability/parts/*)
+	// bonus1 - Optimize?
 	return eventsOut
 }
 
 // initAvailability emits an event for the availability module to create a new submodule
 // corresponding to the current ISS epoch.
-func (iss *ISS) initAvailability() *eventpb.Event {
-	return factoryevents.NewModule(
+func (iss *ISS) initAvailability() []*eventpb.Event {
+	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
+	events := make([]*eventpb.Event, 0)
+
+	events = append(events, factoryevents.NewModule(
 		iss.moduleConfig.Availability,
-		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+		availabilityID,
 		t.RetentionIndex(iss.epoch.Nr()),
 		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
 			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0])},
 		}},
-	)
+	))
+
+	events = append(events, availabilityevents.ComputeCert(availabilityID))
+	return events
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.

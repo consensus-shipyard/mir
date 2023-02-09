@@ -1,8 +1,11 @@
 package events
 
 import (
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // These 2 functions convert between the two types of request events: (i) the newer type used by the newest DSL codegen featured
@@ -23,4 +26,18 @@ func RequestConvertFromLegacyDsl(txs []*requestpb.Request) []*requestpbtypes.Req
 		_txs[i] = requestpbtypes.RequestFromPb(tx)
 	}
 	return _txs
+}
+
+//This function is also needed for iss to call the ComputeCert event, because ISS does not use the DSL module.
+func ComputeCert(destModule t.ModuleID) *eventpb.Event {
+	return &eventpb.Event{
+		DestModule: destModule.Pb(),
+		Type: &eventpb.Event_Availability{
+			Availability: &availabilitypb.Event{
+				Type: &availabilitypb.Event_ComputeCert{
+					ComputeCert: &availabilitypb.ComputeCert{},
+				},
+			},
+		},
+	}
 }

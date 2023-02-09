@@ -46,6 +46,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules
 
 	m := dsl.NewModule(mc.Self)
 
+	params.Limit = 5 // TODO this is a hardcoded limit, allow protocol to configure this
 	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID)
 	certverification.IncludeVerificationOfCertificates(m, mc, params, nodeID)
 	batchreconstruction.IncludeBatchReconstruction(m, mc, params, nodeID)

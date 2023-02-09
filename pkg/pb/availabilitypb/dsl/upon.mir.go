@@ -88,3 +88,9 @@ func UponProvideTransactions[C any](m dsl.Module, handler func(txs []*types2.Req
 		return handler(ev.Txs, context)
 	})
 }
+
+func UponComputeCert(m dsl.Module, handler func() error) {
+	UponEvent[*types.Event_ComputeCert](m, func(ev *types.ComputeCert) error {
+		return handler()
+	})
+}

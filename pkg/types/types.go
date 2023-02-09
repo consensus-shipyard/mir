@@ -20,6 +20,8 @@ import (
 
 // ================================================================================
 
+type BatchIDString string
+
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
 

@@ -37,6 +37,10 @@ func (w *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
 	return w.ProvideTransactions
 }
 
+func (w *Event_ComputeCert) Unwrap() *ComputeCert {
+	return w.ComputeCert
+}
+
 type RequestCertOrigin_Type = isRequestCertOrigin_Type
 
 type RequestCertOrigin_TypeWrapper[T any] interface {
@@ -89,6 +93,6 @@ type Cert_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Cert_Msc) Unwrap() *mscpb.Cert {
-	return w.Msc
+func (w *Cert_Mscs) Unwrap() *mscpb.Certs {
+	return w.Mscs
 }

@@ -12,6 +12,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_CertVerified)(nil)),
 		reflect.TypeOf((*Event_RequestTransactions)(nil)),
 		reflect.TypeOf((*Event_ProvideTransactions)(nil)),
+		reflect.TypeOf((*Event_ComputeCert)(nil)),
 	}
 }
 
@@ -38,6 +39,6 @@ func (*VerifyCertOrigin) ReflectTypeOptions() []reflect.Type {
 
 func (*Cert) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Cert_Msc)(nil)),
+		reflect.TypeOf((*Cert_Mscs)(nil)),
 	}
 }

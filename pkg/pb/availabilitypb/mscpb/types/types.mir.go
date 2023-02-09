@@ -201,8 +201,9 @@ func (*RequestBatchMessage) MirReflect() mirreflect.Type {
 }
 
 type ProvideBatchMessage struct {
-	Txs   []*types.Request
-	ReqId uint64
+	Txs     []*types.Request
+	ReqId   uint64
+	BatchId []uint8
 }
 
 func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessage {
@@ -210,7 +211,8 @@ func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessa
 		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
 			return types.RequestFromPb(t)
 		}),
-		ReqId: pb.ReqId,
+		ReqId:   pb.ReqId,
+		BatchId: pb.BatchId,
 	}
 }
 
@@ -219,7 +221,8 @@ func (m *ProvideBatchMessage) Pb() *mscpb.ProvideBatchMessage {
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
 			return (t).Pb()
 		}),
-		ReqId: m.ReqId,
+		ReqId:   m.ReqId,
+		BatchId: m.BatchId,
 	}
 }
 
@@ -255,4 +258,28 @@ func (m *Cert) Pb() *mscpb.Cert {
 
 func (*Cert) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mscpb.Cert]()}
+}
+
+type Certs struct {
+	Certs []*Cert
+}
+
+func CertsFromPb(pb *mscpb.Certs) *Certs {
+	return &Certs{
+		Certs: types1.ConvertSlice(pb.Certs, func(t *mscpb.Cert) *Cert {
+			return CertFromPb(t)
+		}),
+	}
+}
+
+func (m *Certs) Pb() *mscpb.Certs {
+	return &mscpb.Certs{
+		Certs: types1.ConvertSlice(m.Certs, func(t *Cert) *mscpb.Cert {
+			return (t).Pb()
+		}),
+	}
+}
+
+func (*Certs) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mscpb.Certs]()}
 }

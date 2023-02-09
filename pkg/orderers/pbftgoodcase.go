@@ -86,7 +86,7 @@ func (orderer *Orderer) requestNewCert() *events.EventList {
 
 	// Emit the CertRequest event.
 	// Operation continues on reception of the CertReady event.
-	return orderer.requestCertOrigin()
+	return orderer.requestCertOrigin() //.PushBack(availabilityevents.ComputeCert(orderer.moduleConfig.Ava))
 }
 
 // applyCertReady processes a new availability certificate ready to be proposed.
@@ -119,8 +119,9 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 // propose assumes that the state of the PBFT Orderer allows sending a new proposal
 // and does not perform any checks in this regard.
 func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, error) {
+	//TODO Alejandro: argument must be slice of pointers to certs
 
-	certBytes, err := proto.Marshal(cert)
+	certBytes, err := proto.Marshal(cert) // TODO Alejandro, marshal all certs in the slice passed now as argument
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling certificate: %w", err)
 	}
@@ -202,12 +203,13 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 	})
 
 	//Verify certificate from preprepare message before saving it in the slot
-	return orderer.verifyCert(preprepare)
+	return orderer.verifyCert(preprepare) // TODO Alejandro: change to verify certs in the slice (new message? probs best?)
 
 }
 
 //Finalize applyMsgPreprepare after cert verified
 func (orderer *Orderer) applyCertVerified(verified *availabilitypb.CertVerified) (*events.EventList, error) {
+	// TODO Alejandro: change to verify certs in the slice (argument is now slice)
 	//pop from FIFO
 	context := orderer.notVerifiedPrepepareContext[0]
 	orderer.notVerifiedPrepepareContext = orderer.notVerifiedPrepepareContext[1:]

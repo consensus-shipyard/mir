@@ -3,6 +3,7 @@ package computeids
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -39,6 +40,10 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	mpdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
 		copy(data, txIDs)
+
+		if len(txIDs) == 0 {
+			mpdsl.BatchIDResponse(m, t.ModuleID(origin.Module), emptybatchid.EmptyBatchID(), origin)
+		}
 
 		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin})
 		return nil
