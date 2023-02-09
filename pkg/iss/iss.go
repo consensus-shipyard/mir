@@ -647,7 +647,9 @@ func (iss *ISS) initAvailability() []*eventpb.Event {
 		availabilityID,
 		t.RetentionIndex(iss.epoch.Nr()),
 		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
-			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0])},
+			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0]),
+				Limit:         5, // hardcoded right now
+				SegmentLength: uint64(iss.Params.SegmentLength)},
 		}},
 	))
 

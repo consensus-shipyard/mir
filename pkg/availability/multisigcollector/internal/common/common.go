@@ -26,11 +26,12 @@ type ModuleConfig struct {
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
-	InstanceUID []byte             // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
-	AllNodes    []t.NodeID         // the list of participating nodes
-	F           int                // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
-	Certs       []*mscpbtypes.Cert // the list of generated certificates
-	Limit       uint               // the maximum number of certificates to generate before a request is completed
+	InstanceUID   []byte             // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
+	AllNodes      []t.NodeID         // the list of participating nodes
+	F             int                // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
+	Certs         []*mscpbtypes.Cert // the list of generated certificates
+	Limit         int                // the maximum number of certificates to generate before a request is completed
+	SegmentLength int                // the number of sequence numbers per segment
 }
 
 // SigData is the binary data that should be signed for forming a certificate.

@@ -21,9 +21,10 @@ import (
 
 // State represents the state related to this part of the module.
 type State struct {
-	NextReqID    RequestID
-	RequestState []*RequestState
-	Certificate  map[RequestID]*Certificate
+	NextReqID      RequestID
+	RequestState   []*RequestState
+	Certificate    map[RequestID]*Certificate
+	RemainingSeqNr int
 }
 
 // RequestID is used to uniquely identify an outgoing request.
@@ -49,9 +50,10 @@ func IncludeCreatingCertificates(
 	nodeID t.NodeID,
 ) {
 	state := State{
-		NextReqID:    0,
-		RequestState: make([]*RequestState, 0),
-		Certificate:  make(map[RequestID]*Certificate),
+		NextReqID:      0,
+		RequestState:   make([]*RequestState, 0),
+		Certificate:    make(map[RequestID]*Certificate),
+		RemainingSeqNr: params.SegmentLength,
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +61,9 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	apbdsl.UponComputeCert(m, func() error {
+		if state.RemainingSeqNr <= 0 {
+			return nil //no remaining sequence numbers to process, do not do dumb computations
+		}
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.Certificate[reqID] = &Certificate{
@@ -150,7 +155,7 @@ func IncludeCreatingCertificates(
 			// do not send empty certificate because nonempty being computed
 		}
 
-		if newDue && uint(len(state.Certificate)) < params.Limit {
+		if newDue && len(state.Certificate) < params.Limit {
 			apbdsl.ComputeCert(m, mc.Self)
 			// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 		}
@@ -229,6 +234,7 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		for _, requestState := range state.RequestState {
 			requestingModule := requestState.ReqOrigin.Module
 			apbdsl.NewCert(m, requestingModule, proposal, requestState.ReqOrigin)
+			state.RemainingSeqNr--
 		}
 		// Dispose of the state associated with handled requests.
 		state.RequestState = make([]*RequestState, 0)
@@ -240,6 +246,7 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		for _, requestState := range state.RequestState {
 			requestingModule := requestState.ReqOrigin.Module
 			apbdsl.NewCert(m, requestingModule, emptyProposal, requestState.ReqOrigin)
+			state.RemainingSeqNr--
 		}
 		// Dispose of the state associated with handled requests.
 		state.RequestState = make([]*RequestState, 0)
