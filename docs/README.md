@@ -241,9 +241,9 @@ the interceptor combined with the [`mircat` utility](/cmd/mircat) become a very 
 ## Systems
 
 A system is a collection of modules that are logically related and configured to work together.
-For example, the [state machine replication (SMR) system](/pkg/systems/smr) that comes bundled with Mir
+For example, the [Trantor system](/pkg/systems/smr) that comes bundled with Mir
 can be instantiated as a single abstraction in a user-friendly way.
-The `System.Modules()` method then returns a set of named configured modules
+The `Trantor.Modules()` method then returns a set of named configured modules
 that can directly be passed to `mir.NewNode()`.
 
 > Note: At the time of writing, Mir only comes with a single system - the SMR system.
