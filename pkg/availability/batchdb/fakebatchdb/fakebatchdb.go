@@ -1,11 +1,8 @@
 package fakebatchdb
 
 import (
-	"encoding/hex"
-
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/modules"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -49,13 +46,13 @@ func NewModule(mc *ModuleConfig) modules.Module {
 
 	// On StoreBatch request, just store the data in the local memory.
 	batchdbpbdsl.UponStoreBatch(m, func(batchID t.BatchID, txIDs []t.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
-		state.BatchStore[t.BatchIDString(hex.EncodeToString(batchID))] = batchInfo{
+		state.BatchStore[t.BatchIDString(batchID)] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,
 		}
 
 		for i, txID := range txIDs {
-			state.TransactionStore[txIDString(hex.EncodeToString(txID))] = txs[i]
+			state.TransactionStore[txIDString(txID)] = txs[i]
 		}
 
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
@@ -68,7 +65,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, []uint8{}, origin)
 		}
 
-		info, found := state.BatchStore[t.BatchIDString(hex.EncodeToString(batchID))]
+		info, found := state.BatchStore[t.BatchIDString(batchID)]
 		if !found {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, nil, origin)
 			return nil
@@ -76,7 +73,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 
 		txs := make([]*requestpbtypes.Request, len(info.txIDs))
 		for i, txID := range info.txIDs {
-			txs[i] = state.TransactionStore[txIDString(hex.EncodeToString(txID))]
+			txs[i] = state.TransactionStore[txIDString(txID)]
 		}
 
 		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, info.metadata, origin)

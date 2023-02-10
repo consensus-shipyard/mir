@@ -1,7 +1,6 @@
 package batchreconstruction
 
 import (
-	"encoding/hex"
 	"fmt"
 	"reflect"
 
@@ -71,7 +70,7 @@ func IncludeBatchReconstruction(
 
 		if len(nonEmptyCerts) > 0 {
 			for _, c := range nonEmptyCerts {
-				batchIDString := t.BatchIDString(hex.EncodeToString(c.BatchId))
+				batchIDString := t.BatchIDString(c.BatchId)
 				state.RequestState[reqID].decidedOrder = append(state.RequestState[reqID].decidedOrder, batchIDString) // save the order in which the batches were decided
 				state.RequestState[reqID].Txs[batchIDString] = nil
 				batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
@@ -194,7 +193,7 @@ type storeBatchContext struct{}
 
 // saveAndFinish saves the received txs and if all requested batches have been received, it completes the request. Returns a bool indicating if the request has been completed.
 func saveAndFinish(m dsl.Module, reqID t.RequestID, txs []*requestpbtypes.Request, batchID t.BatchID, origin *apbtypes.RequestTransactionsOrigin, state *State) bool {
-	state.RequestState[reqID].Txs[t.BatchIDString(hex.EncodeToString(batchID))] = txs
+	state.RequestState[reqID].Txs[t.BatchIDString(batchID)] = txs
 	allFound := true
 	allTxs := make([]*requestpbtypes.Request, 0)
 

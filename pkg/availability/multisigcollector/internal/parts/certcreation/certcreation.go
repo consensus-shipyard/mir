@@ -1,8 +1,6 @@
 package certcreation
 
 import (
-	"encoding/hex"
-
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -207,14 +205,14 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 	for _, cert := range state.Certificate {
 		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
 			certFinished = append(certFinished, cert)
-			certsToDelete[t.BatchIDString(hex.EncodeToString(cert.BatchID))] = struct{}{}
+			certsToDelete[t.BatchIDString(cert.BatchID)] = struct{}{}
 		}
 	}
 
 	if len(certFinished) > 0 { // if any certificate is ready
 		maputil.FindAndDeleteAll(state.Certificate,
 			func(key RequestID, val *Certificate) bool {
-				_, ok := certsToDelete[t.BatchIDString(hex.EncodeToString(val.BatchID))]
+				_, ok := certsToDelete[t.BatchIDString(val.BatchID)]
 				return ok
 			}) // prevent duplicates
 

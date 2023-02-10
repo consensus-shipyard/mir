@@ -1,9 +1,10 @@
 package certverification
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
+
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // State represents the state related to this part of the module.
@@ -67,7 +67,7 @@ func IncludeVerificationOfCertificates(
 		}
 		if len(nonEmptyCerts) > 0 {
 			for _, mscCert := range nonEmptyCerts {
-				state.RequestState[reqID].certVerifiedValid[t.BatchIDString(hex.EncodeToString(mscCert.BatchId))] = false
+				state.RequestState[reqID].certVerifiedValid[t.BatchIDString(mscCert.BatchId)] = false
 				sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
 				dsl.VerifyNodeSigs(m, mc.Crypto,
 					/*data*/ sliceutil.Repeat(sigMsg, len(mscCert.Signers)),
@@ -93,7 +93,7 @@ func IncludeVerificationOfCertificates(
 			return nil
 		}
 
-		state.RequestState[reqID].certVerifiedValid[t.BatchIDString(hex.EncodeToString(context.cert.BatchId))] = allOK
+		state.RequestState[reqID].certVerifiedValid[t.BatchIDString(string(context.cert.BatchId))] = allOK
 		var err error
 		if !allOK {
 			err = errors.New("some signatures are invalid")
