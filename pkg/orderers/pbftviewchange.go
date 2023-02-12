@@ -20,7 +20,7 @@ import (
 // The Preprepare message produced by this function has the same digest as the original preprepare,
 // since the view number is not used for hash computation.
 func copyPreprepareToNewView(preprepare *ordererspbftpb.Preprepare, view t.PBFTViewNr) *ordererspbftpb.Preprepare {
-	return pbftPreprepareMsg(t.SeqNr(preprepare.Sn), view, preprepare.CertData, preprepare.Aborted)
+	return pbftPreprepareMsg(t.SeqNr(preprepare.Sn), view, preprepare.Data, preprepare.Aborted)
 }
 
 // ============================================================
@@ -462,7 +462,7 @@ func validEmptyPreprepare(preprepare *ordererspbftpb.Preprepare, view t.PBFTView
 	return preprepare.Aborted &&
 		t.SeqNr(preprepare.Sn) == sn &&
 		t.PBFTViewNr(preprepare.View) == view &&
-		len(preprepare.CertData) == 0
+		len(preprepare.Data) == 0
 }
 
 // viewChangeState returns the state of the view change sub-protocol associated with the given view,

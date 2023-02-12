@@ -80,11 +80,11 @@ func OrdererMessage(msg *ordererspb.SBInstanceMessage, destModule t.ModuleID) *m
 	return &messagepb.Message{DestModule: string(destModule), Type: &messagepb.Message_SbMessage{SbMessage: msg}}
 }
 
-func SBDeliverEvent(sn t.SeqNr, certData []byte, aborted bool, leader t.NodeID) *isspb.ISSEvent {
+func SBDeliverEvent(sn t.SeqNr, data []byte, aborted bool, leader t.NodeID) *isspb.ISSEvent {
 	return &isspb.ISSEvent{Type: &isspb.ISSEvent_SbDeliver{SbDeliver: &isspb.SBDeliver{
-		Sn:       sn.Pb(),
-		CertData: certData,
-		Aborted:  aborted,
-		Leader:   leader.Pb(),
+		Sn:      sn.Pb(),
+		Data:    data,
+		Aborted: aborted,
+		Leader:  leader.Pb(),
 	}}}
 }

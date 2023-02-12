@@ -80,8 +80,8 @@ message PushCheckpoint {
 }
 
 message SBDeliver{
-  uint64          sn        = 1;
-  bytes           cert_data = 2;
-  bool            aborted   = 3;
-  string          leader    = 4;
+  uint64          sn      = 1;
+  bytes           data    = 2;
+  bool            aborted = 3;
+  string          leader  = 4;
 }
