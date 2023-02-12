@@ -326,7 +326,7 @@ func (orderer *Orderer) applyCatchUpResponseHashResult(
 		Type: &eventpb.Event_Iss{
 			Iss: SBDeliverEvent(
 				sn,
-				slot.Preprepare.CertData,
+				slot.Preprepare.Data,
 				slot.Preprepare.Aborted,
 				orderer.segment.Leader,
 			),

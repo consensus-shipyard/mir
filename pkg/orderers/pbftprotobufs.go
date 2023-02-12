@@ -125,12 +125,12 @@ func PbftCatchUpResponseSBMessage(preprepare *ordererspbftpb.Preprepare) *ordere
 // of enforcing that all fields are explicitly set and none is forgotten.
 // Should the structure of the message change (e.g. by augmenting it by new fields),
 // using this function ensures that these the message is always constructed properly.
-func pbftPreprepareMsg(sn t.SeqNr, view t.PBFTViewNr, certData []byte, aborted bool) *ordererspbftpb.Preprepare {
+func pbftPreprepareMsg(sn t.SeqNr, view t.PBFTViewNr, data []byte, aborted bool) *ordererspbftpb.Preprepare {
 	return &ordererspbftpb.Preprepare{
-		Sn:       sn.Pb(),
-		View:     view.Pb(),
-		CertData: certData,
-		Aborted:  aborted,
+		Sn:      sn.Pb(),
+		View:    view.Pb(),
+		Data:    data,
+		Aborted: aborted,
 	}
 }
 
@@ -264,12 +264,10 @@ func serializePreprepareForHashing(preprepare *ordererspbftpb.Preprepare) [][]by
 		aborted = 1
 	}
 
-	// TODO: Implement deterministic cert serialization and use a cert directly
-
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
 	// as the view change protocol might compare hashes of Preprepares across vies.
-	return [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.CertData}
+	return [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.Data}
 }
 
 func serializeViewChangeForSigning(vc *ordererspbftpb.ViewChange) [][]byte {

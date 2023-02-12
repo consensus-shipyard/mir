@@ -19,9 +19,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererspbftpb";
 message Preprepare {
   uint64 sn = 1;
   uint64 view = 2;
-  bytes cert_data = 3; // TODO: Use `availabilitypb.Cert cert = 3;` type here instead of serialized cert data.
-                       //       This is only a hack to work around non-deterministic protobuf serialization.
-                       //       This way the proposer determines the serialization.
+  bytes data = 3;
   bool aborted = 4;
 }
 

@@ -309,7 +309,7 @@ func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) (*events.EventList,
 	// might mismatch, if they commit in different PBFT views (and thus using different Preprepares).
 	logEntry := &CommitLogEntry{
 		Sn:       t.SeqNr(deliver.Sn),
-		CertData: deliver.CertData,
+		CertData: deliver.Data,
 		Digest:   nil,
 		Aborted:  deliver.Aborted,
 		Suspect:  t.NodeID(deliver.Leader),
