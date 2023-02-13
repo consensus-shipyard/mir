@@ -798,6 +798,8 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 }
 
 // TestMeshMessaging tests that the transport operates normally if it is used within a mesh network.
+//
+// nolint:gocognit
 func TestMeshMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
@@ -856,7 +858,7 @@ func TestMeshMessaging(t *testing.T) {
 					case <-ctx.Done():
 						return
 					default:
-						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond) // nolint
 						err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
 						if err != nil {
 							t.Logf("%v->%v sending: %v", src, dst, err)
