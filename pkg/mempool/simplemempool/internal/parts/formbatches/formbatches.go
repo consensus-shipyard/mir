@@ -1,12 +1,12 @@
 package formbatches
 
 import (
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
-	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -27,8 +27,8 @@ func IncludeBatchCreation(
 		NewTxIDs: nil,
 	}
 
-	dsl.UponNewRequests(m, func(txs []*requestpb.Request) error {
-		mpdsl.RequestTransactionIDs(m, mc.Self, availabilityevents.RequestConvertFromLegacyDsl(txs), &requestTxIDsContext{txs})
+	eventpbdsl.UponNewRequests(m, func(txs []*requestpbtypes.Request) error {
+		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
 		return nil
 	})
 
@@ -40,9 +40,9 @@ func IncludeBatchCreation(
 		return nil
 	})
 
-	mpdsl.UponRequestBatch(m, func(origin *mppb.RequestBatchOrigin) error {
+	mpdsl.UponRequestBatch(m, func(origin *mppbtypes.RequestBatchOrigin) error {
 		var txIDs []t.TxID
-		var txs []*requestpb.Request
+		var txs []*requestpbtypes.Request
 		batchSize := 0
 
 		txCount := 0
@@ -71,5 +71,5 @@ func IncludeBatchCreation(
 // Context data structures
 
 type requestTxIDsContext struct {
-	txs []*requestpb.Request
+	txs []*requestpbtypes.Request
 }

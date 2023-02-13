@@ -100,20 +100,24 @@ message Init {
 message Tick {}
 
 message NewRequests {
+  option (mir.event) = true;
   repeated requestpb.Request requests = 1;
 }
 
 message HashRequest {
+  option (mir.event) = true;
   repeated commonpb.HashData data   = 1;
-  HashOrigin                 origin = 2;
+  HashOrigin                 origin = 2 [(mir.origin_request) = true];
 }
 
 message HashResult {
+  option (mir.event) = true;
   repeated bytes digests = 1;
-  HashOrigin     origin  = 2;
+  HashOrigin     origin  = 2 [(mir.origin_response) = true];
 }
 
 message HashOrigin {
+  option (mir.struct) = true;
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin   context_store = 2;

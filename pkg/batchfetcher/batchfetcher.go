@@ -2,14 +2,17 @@ package batchfetcher
 
 import (
 	"fmt"
+	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
+	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
+
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 
-	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 
-	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -44,7 +47,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
 	eventpbdsl.UponNewEpoch(m, func(epochNr t.EpochNr) error {
 		output.Enqueue(&outputItem{
-			event: events.NewEpoch(mc.Destination, epochNr), // TODO come back here and think of how to do this
+			event: events.NewEpoch(mc.Destination, epochNr),
 		})
 		output.Flush(m)
 		return nil
@@ -52,7 +55,6 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	// TODO: Make sure the certificate has been verified by the producer of this event.
 	eventpbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
@@ -60,10 +62,10 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		item := outputItem{event: nil}
 		output.Enqueue(&item)
 
-		if cert.Pb().Type == nil {
+		if cert.Type == nil {
 			// Skip fetching transactions for padding certificates.
 			// Directly deliver an empty batch instead.
-			item.event = bfevents.NewOrderedBatch(mc.Destination, []*requestpb.Request{})
+			item.event = bfeventstypes.NewOrderedBatch(mc.Destination, []*requestpbtypes.Request{}).Pb()
 			output.Flush(m)
 		} else {
 			// If this is a proper certificate, request transactions from the availability layer.
@@ -104,16 +106,12 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The AppRestoreState handler restores the batch fetcher's state from a checkpoint
 	// and forwards the event to the application, so it can restore its state too.
-	eventpbdsl.UponAppRestoreState(m, func(restoreState *eventpb.AppRestoreState) error {
-
-		// Load the checkpoint from the received event.
-		chkp := checkpoint.StableCheckpointFromPb(restoreState.Checkpoint)
-
+	eventpbdsl.UponAppRestoreState(m, func(chkp *checkpointpb.StableCheckpoint) error {
 		// Update current epoch number.
-		epochNr = chkp.Epoch()
+		epochNr = t.EpochNr(chkp.Snapshot.EpochData.EpochConfig.EpochNr)
 
 		// Load client progress.
-		clientProgress.LoadPb(chkp.StateSnapshot().EpochData.ClientProgress)
+		clientProgress.LoadPb(chkp.Snapshot.EpochData.ClientProgress)
 
 		// Reset output event queue.
 		// This is necessary to prune any pending output to the application
@@ -123,7 +121,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		// Forward the RestoreState event to the application.
 		// We can output it directly without passing through the queue,
 		// since we've just reset it and know this would be its first and only item.
-		dsl.EmitEvent(m, events.AppRestoreState(mc.Destination, restoreState.Checkpoint))
+		eventpbdsl.AppRestoreState(m, mc.Destination, chkp)
 
 		return nil
 	})
