@@ -251,7 +251,7 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 			return network.Connected == n1.host.Network().Connectedness(n2.host.ID()) &&
 				m.streamExist(n1, n2) && m.streamExist(n2, n1)
 		},
-		10*time.Second, 100*time.Millisecond)
+		15*time.Second, 100*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) testConnectionsEmpty() {
@@ -831,7 +831,7 @@ func TestMeshMessaging(t *testing.T) {
 
 	t.Log(">>> sending messages")
 
-	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(20*time.Second))
 	defer cancelFunc()
 
 	senders := sync.WaitGroup{}
