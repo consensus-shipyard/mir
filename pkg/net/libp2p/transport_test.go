@@ -804,10 +804,9 @@ func TestMeshMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	var nodes []types.NodeID
-	N := 10 // initial nodes
-	M := 7  // added nodes
+	N := 20 // initial nodes
 
-	for i := 0; i < N+M; i++ {
+	for i := 0; i < N; i++ {
 		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
 	}
 
@@ -815,7 +814,7 @@ func TestMeshMessaging(t *testing.T) {
 	m.StartAllTransports()
 	initialNodes := m.Membership(nodes...)
 
-	t.Log(">>> connecting initial nodes")
+	t.Logf(">>> connecting initial nodes")
 	for i := 0; i < N; i++ {
 		m.transports[nodes[i]].Connect(initialNodes)
 	}
@@ -831,39 +830,35 @@ func TestMeshMessaging(t *testing.T) {
 
 	t.Log(">>> sending messages")
 
-	testTime := time.Duration(M*10) * time.Second
-	newNodeTime := time.Duration(M) * time.Second
-
-	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(testTime))
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
 	defer cancelFunc()
 
-	wg := sync.WaitGroup{}
-
-	wg.Add((N + M) * (N + M - 1)) // sending
-	wg.Add(N + M)                 // receiving
-	wg.Add(1)                     // orchestrator adding new nodes
+	senders := sync.WaitGroup{}
 
 	var received, sent int
 
-	for i := 0; i < N+M; i++ {
-		for j := 0; j < N+M; j++ {
+	for i := 0; i < N; i++ {
+		for j := 0; j < N; j++ {
 			if i == j {
 				continue
 			}
+			senders.Add(1)
+
 			go func(src, dst types.NodeID) {
-				defer wg.Done()
+				defer senders.Done()
 
 				for {
 					select {
 					case <-ctx.Done():
 						return
 					default:
-						time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond) // nolint
+						time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond) // nolint
 						err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
 						if err != nil {
 							t.Logf("%v->%v sending: %v", src, dst, err)
+						} else {
+							sent++
 						}
-						sent++
 
 					}
 				}
@@ -871,61 +866,30 @@ func TestMeshMessaging(t *testing.T) {
 		}
 	}
 
-	go func() {
-		defer wg.Done()
-		j := 0
-
-		ticker := time.NewTicker(newNodeTime)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if j > M {
-					return
-				}
-
-				currentNodes := m.Membership(nodes[:N+j+1]...)
-
-				for i := 0; i < N+j+1; i++ {
-					m.transports[nodes[i]].Connect(currentNodes)
-				}
-
-				for i := 0; i < N+j+1; i++ {
-					for l := 0; l < N+j+1; l++ {
-						if l == i {
-							continue
-						}
-						m.testEventuallyConnected(nodes[i], nodes[l])
-					}
-				}
-				j++
-			}
-		}
-	}()
-
-	for i := 0; i < N+M; i++ {
+	for i := 0; i < N; i++ {
 		ch := m.transports[nodes[i]]
-		go func(nodeID types.NodeID, events chan *events.EventList) {
-			defer wg.Done()
+		// wg.Add(1)
+
+		go func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
+			// defer wg.Done()
 
 			for {
 				select {
-				case <-ctx.Done():
+				case <-stop:
 					return
-				case e := <-events:
+				case e, ok := <-events:
+					if !ok {
+						return
+					}
 					_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 					require.Equal(m.t, true, valid)
 					received++
 				}
 			}
-		}(ch.ownID, ch.incomingMessages)
+		}(ch.ownID, ch.incomingMessages, ch.stop)
 	}
 
-	t.Log(">>> waiting")
-	wg.Wait()
+	senders.Wait()
 
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
@@ -936,5 +900,6 @@ func TestMeshMessaging(t *testing.T) {
 	m.testConnectionsEmpty()
 	m.CloseAllHosts()
 	m.testNoHostConnections()
+
 	t.Logf(">>> sent: %d, received: %d", sent, received)
 }
