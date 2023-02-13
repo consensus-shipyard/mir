@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -835,7 +836,7 @@ func TestMeshMessaging(t *testing.T) {
 
 	senders := sync.WaitGroup{}
 
-	var received, sent int
+	var received, sent int64
 
 	for i := 0; i < N; i++ {
 		for j := 0; j < N; j++ {
@@ -857,7 +858,7 @@ func TestMeshMessaging(t *testing.T) {
 						if err != nil {
 							t.Logf("%v->%v sending: %v", src, dst, err)
 						} else {
-							sent++
+							atomic.AddInt64(&sent, 1)
 						}
 
 					}
@@ -883,7 +884,7 @@ func TestMeshMessaging(t *testing.T) {
 					}
 					_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
 					require.Equal(m.t, true, valid)
-					received++
+					atomic.AddInt64(&received, 1)
 				}
 			}
 		}(ch.ownID, ch.incomingMessages, ch.stop)
