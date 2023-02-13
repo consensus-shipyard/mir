@@ -2,6 +2,8 @@ package eventpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -9,6 +11,10 @@ import (
 )
 
 // Module-specific dsl functions for emitting events.
+
+func Init(m dsl.Module, destModule types.ModuleID) {
+	dsl.EmitMirEvent(m, events.Init(destModule))
+}
 
 func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
@@ -46,4 +52,20 @@ func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types2.Message, d
 
 func MessageReceived(m dsl.Module, destModule types.ModuleID, from types.NodeID, msg *types2.Message) {
 	dsl.EmitMirEvent(m, events.MessageReceived(destModule, from, msg))
+}
+
+func DeliverCert(m dsl.Module, destModule types.ModuleID, sn types.SeqNr, cert *types3.Cert) {
+	dsl.EmitMirEvent(m, events.DeliverCert(destModule, sn, cert))
+}
+
+func AppSnapshotRequest(m dsl.Module, destModule types.ModuleID, replyTo types.ModuleID) {
+	dsl.EmitMirEvent(m, events.AppSnapshotRequest(destModule, replyTo))
+}
+
+func AppRestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types4.StableCheckpoint) {
+	dsl.EmitMirEvent(m, events.AppRestoreState(destModule, checkpoint))
+}
+
+func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
+	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
 }

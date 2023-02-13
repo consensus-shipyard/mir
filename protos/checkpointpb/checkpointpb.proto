@@ -3,6 +3,7 @@ syntax = "proto3";
 package checkpointpb;
 
 import "commonpb/commonpb.proto";
+import "mir/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb";
 
@@ -28,7 +29,8 @@ message Event {
 }
 
 message StableCheckpoint {
-  uint64                 sn       = 1;
+  option (mir.event) = true;
+  uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   commonpb.StateSnapshot snapshot = 2;
   map<string, bytes>     cert     = 3;
 }

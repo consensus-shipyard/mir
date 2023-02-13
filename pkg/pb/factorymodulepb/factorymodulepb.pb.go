@@ -7,15 +7,13 @@
 package factorymodulepb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

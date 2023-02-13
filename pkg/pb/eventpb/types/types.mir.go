@@ -1,8 +1,6 @@
 package eventpbtypes
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types7 "github.com/filecoin-project/mir/codegen/model/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -10,6 +8,7 @@ import (
 	types5 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	types11 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types8 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types9 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -22,6 +21,7 @@ import (
 	types6 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {
@@ -44,7 +44,7 @@ type Event_TypeWrapper[T any] interface {
 func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *eventpb.Event_Init:
-		return &Event_Init{Init: pb.Init}
+		return &Event_Init{Init: InitFromPb(pb.Init)}
 	case *eventpb.Event_Tick:
 		return &Event_Tick{Tick: pb.Tick}
 	case *eventpb.Event_WalAppend:
@@ -74,7 +74,7 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_MessageReceived:
 		return &Event_MessageReceived{MessageReceived: MessageReceivedFromPb(pb.MessageReceived)}
 	case *eventpb.Event_DeliverCert:
-		return &Event_DeliverCert{DeliverCert: pb.DeliverCert}
+		return &Event_DeliverCert{DeliverCert: DeliverCertFromPb(pb.DeliverCert)}
 	case *eventpb.Event_Iss:
 		return &Event_Iss{Iss: pb.Iss}
 	case *eventpb.Event_VerifyRequestSig:
@@ -84,11 +84,11 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_StoreVerifiedRequest:
 		return &Event_StoreVerifiedRequest{StoreVerifiedRequest: pb.StoreVerifiedRequest}
 	case *eventpb.Event_AppSnapshotRequest:
-		return &Event_AppSnapshotRequest{AppSnapshotRequest: pb.AppSnapshotRequest}
+		return &Event_AppSnapshotRequest{AppSnapshotRequest: AppSnapshotRequestFromPb(pb.AppSnapshotRequest)}
 	case *eventpb.Event_AppSnapshot:
 		return &Event_AppSnapshot{AppSnapshot: pb.AppSnapshot}
 	case *eventpb.Event_AppRestoreState:
-		return &Event_AppRestoreState{AppRestoreState: pb.AppRestoreState}
+		return &Event_AppRestoreState{AppRestoreState: AppRestoreStateFromPb(pb.AppRestoreState)}
 	case *eventpb.Event_TimerDelay:
 		return &Event_TimerDelay{TimerDelay: pb.TimerDelay}
 	case *eventpb.Event_TimerRepeat:
@@ -102,7 +102,7 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_Availability:
 		return &Event_Availability{Availability: types3.EventFromPb(pb.Availability)}
 	case *eventpb.Event_NewEpoch:
-		return &Event_NewEpoch{NewEpoch: pb.NewEpoch}
+		return &Event_NewEpoch{NewEpoch: NewEpochFromPb(pb.NewEpoch)}
 	case *eventpb.Event_NewConfig:
 		return &Event_NewConfig{NewConfig: pb.NewConfig}
 	case *eventpb.Event_Factory:
@@ -128,17 +128,17 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 }
 
 type Event_Init struct {
-	Init *eventpb.Init
+	Init *Init
 }
 
 func (*Event_Init) isEvent_Type() {}
 
-func (w *Event_Init) Unwrap() *eventpb.Init {
+func (w *Event_Init) Unwrap() *Init {
 	return w.Init
 }
 
 func (w *Event_Init) Pb() eventpb.Event_Type {
-	return &eventpb.Event_Init{Init: w.Init}
+	return &eventpb.Event_Init{Init: (w.Init).Pb()}
 }
 
 func (*Event_Init) MirReflect() mirreflect.Type {
@@ -398,17 +398,17 @@ func (*Event_MessageReceived) MirReflect() mirreflect.Type {
 }
 
 type Event_DeliverCert struct {
-	DeliverCert *eventpb.DeliverCert
+	DeliverCert *DeliverCert
 }
 
 func (*Event_DeliverCert) isEvent_Type() {}
 
-func (w *Event_DeliverCert) Unwrap() *eventpb.DeliverCert {
+func (w *Event_DeliverCert) Unwrap() *DeliverCert {
 	return w.DeliverCert
 }
 
 func (w *Event_DeliverCert) Pb() eventpb.Event_Type {
-	return &eventpb.Event_DeliverCert{DeliverCert: w.DeliverCert}
+	return &eventpb.Event_DeliverCert{DeliverCert: (w.DeliverCert).Pb()}
 }
 
 func (*Event_DeliverCert) MirReflect() mirreflect.Type {
@@ -488,17 +488,17 @@ func (*Event_StoreVerifiedRequest) MirReflect() mirreflect.Type {
 }
 
 type Event_AppSnapshotRequest struct {
-	AppSnapshotRequest *eventpb.AppSnapshotRequest
+	AppSnapshotRequest *AppSnapshotRequest
 }
 
 func (*Event_AppSnapshotRequest) isEvent_Type() {}
 
-func (w *Event_AppSnapshotRequest) Unwrap() *eventpb.AppSnapshotRequest {
+func (w *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
 	return w.AppSnapshotRequest
 }
 
 func (w *Event_AppSnapshotRequest) Pb() eventpb.Event_Type {
-	return &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: w.AppSnapshotRequest}
+	return &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: (w.AppSnapshotRequest).Pb()}
 }
 
 func (*Event_AppSnapshotRequest) MirReflect() mirreflect.Type {
@@ -524,17 +524,17 @@ func (*Event_AppSnapshot) MirReflect() mirreflect.Type {
 }
 
 type Event_AppRestoreState struct {
-	AppRestoreState *eventpb.AppRestoreState
+	AppRestoreState *AppRestoreState
 }
 
 func (*Event_AppRestoreState) isEvent_Type() {}
 
-func (w *Event_AppRestoreState) Unwrap() *eventpb.AppRestoreState {
+func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
 	return w.AppRestoreState
 }
 
 func (w *Event_AppRestoreState) Pb() eventpb.Event_Type {
-	return &eventpb.Event_AppRestoreState{AppRestoreState: w.AppRestoreState}
+	return &eventpb.Event_AppRestoreState{AppRestoreState: (w.AppRestoreState).Pb()}
 }
 
 func (*Event_AppRestoreState) MirReflect() mirreflect.Type {
@@ -650,17 +650,17 @@ func (*Event_Availability) MirReflect() mirreflect.Type {
 }
 
 type Event_NewEpoch struct {
-	NewEpoch *eventpb.NewEpoch
+	NewEpoch *NewEpoch
 }
 
 func (*Event_NewEpoch) isEvent_Type() {}
 
-func (w *Event_NewEpoch) Unwrap() *eventpb.NewEpoch {
+func (w *Event_NewEpoch) Unwrap() *NewEpoch {
 	return w.NewEpoch
 }
 
 func (w *Event_NewEpoch) Pb() eventpb.Event_Type {
-	return &eventpb.Event_NewEpoch{NewEpoch: w.NewEpoch}
+	return &eventpb.Event_NewEpoch{NewEpoch: (w.NewEpoch).Pb()}
 }
 
 func (*Event_NewEpoch) MirReflect() mirreflect.Type {
@@ -869,6 +869,20 @@ func (m *Event) Pb() *eventpb.Event {
 
 func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event]()}
+}
+
+type Init struct{}
+
+func InitFromPb(pb *eventpb.Init) *Init {
+	return &Init{}
+}
+
+func (m *Init) Pb() *eventpb.Init {
+	return &eventpb.Init{}
+}
+
+func (*Init) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Init]()}
 }
 
 type SignRequest struct {
@@ -1322,4 +1336,87 @@ func (m *MessageReceived) Pb() *eventpb.MessageReceived {
 
 func (*MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.MessageReceived]()}
+}
+
+type DeliverCert struct {
+	Sn   types.SeqNr
+	Cert *types3.Cert
+}
+
+func DeliverCertFromPb(pb *eventpb.DeliverCert) *DeliverCert {
+	return &DeliverCert{
+		Sn:   (types.SeqNr)(pb.Sn),
+		Cert: types3.CertFromPb(pb.Cert),
+	}
+}
+
+func (m *DeliverCert) Pb() *eventpb.DeliverCert {
+	return &eventpb.DeliverCert{
+		Sn:   (uint64)(m.Sn),
+		Cert: (m.Cert).Pb(),
+	}
+}
+
+func (*DeliverCert) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.DeliverCert]()}
+}
+
+type AppSnapshotRequest struct {
+	ReplyTo types.ModuleID
+}
+
+func AppSnapshotRequestFromPb(pb *eventpb.AppSnapshotRequest) *AppSnapshotRequest {
+	return &AppSnapshotRequest{
+		ReplyTo: (types.ModuleID)(pb.ReplyTo),
+	}
+}
+
+func (m *AppSnapshotRequest) Pb() *eventpb.AppSnapshotRequest {
+	return &eventpb.AppSnapshotRequest{
+		ReplyTo: (string)(m.ReplyTo),
+	}
+}
+
+func (*AppSnapshotRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.AppSnapshotRequest]()}
+}
+
+type AppRestoreState struct {
+	Checkpoint *types11.StableCheckpoint
+}
+
+func AppRestoreStateFromPb(pb *eventpb.AppRestoreState) *AppRestoreState {
+	return &AppRestoreState{
+		Checkpoint: types11.StableCheckpointFromPb(pb.Checkpoint),
+	}
+}
+
+func (m *AppRestoreState) Pb() *eventpb.AppRestoreState {
+	return &eventpb.AppRestoreState{
+		Checkpoint: (m.Checkpoint).Pb(),
+	}
+}
+
+func (*AppRestoreState) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.AppRestoreState]()}
+}
+
+type NewEpoch struct {
+	EpochNr types.EpochNr
+}
+
+func NewEpochFromPb(pb *eventpb.NewEpoch) *NewEpoch {
+	return &NewEpoch{
+		EpochNr: (types.EpochNr)(pb.EpochNr),
+	}
+}
+
+func (m *NewEpoch) Pb() *eventpb.NewEpoch {
+	return &eventpb.NewEpoch{
+		EpochNr: (uint64)(m.EpochNr),
+	}
+}
+
+func (*NewEpoch) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.NewEpoch]()}
 }

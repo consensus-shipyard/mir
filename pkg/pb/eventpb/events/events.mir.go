@@ -1,10 +1,21 @@
 package eventpbevents
 
 import (
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
+
+func Init(destModule types.ModuleID) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Init{
+			Init: &types1.Init{},
+		},
+	}
+}
 
 func SignRequest(destModule types.ModuleID, data [][]uint8, origin *types1.SignOrigin) *types1.Event {
 	return &types1.Event{
@@ -78,6 +89,51 @@ func MessageReceived(destModule types.ModuleID, from types.NodeID, msg *types2.M
 			MessageReceived: &types1.MessageReceived{
 				From: from,
 				Msg:  msg,
+			},
+		},
+	}
+}
+
+func DeliverCert(destModule types.ModuleID, sn types.SeqNr, cert *types3.Cert) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_DeliverCert{
+			DeliverCert: &types1.DeliverCert{
+				Sn:   sn,
+				Cert: cert,
+			},
+		},
+	}
+}
+
+func AppSnapshotRequest(destModule types.ModuleID, replyTo types.ModuleID) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_AppSnapshotRequest{
+			AppSnapshotRequest: &types1.AppSnapshotRequest{
+				ReplyTo: replyTo,
+			},
+		},
+	}
+}
+
+func AppRestoreState(destModule types.ModuleID, checkpoint *types4.StableCheckpoint) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_AppRestoreState{
+			AppRestoreState: &types1.AppRestoreState{
+				Checkpoint: checkpoint,
+			},
+		},
+	}
+}
+
+func NewEpoch(destModule types.ModuleID, epochNr types.EpochNr) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_NewEpoch{
+			NewEpoch: &types1.NewEpoch{
+				EpochNr: epochNr,
 			},
 		},
 	}
