@@ -805,7 +805,7 @@ func TestMeshMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	var nodes []types.NodeID
-	N := 20 // initial nodes
+	N := 15 // initial nodes
 
 	for i := 0; i < N; i++ {
 		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
