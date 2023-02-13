@@ -835,6 +835,7 @@ func TestMeshMessaging(t *testing.T) {
 	defer cancelFunc()
 
 	senders := sync.WaitGroup{}
+	receivers := sync.WaitGroup{}
 
 	var received, sent int64
 
@@ -869,10 +870,10 @@ func TestMeshMessaging(t *testing.T) {
 
 	for i := 0; i < N; i++ {
 		ch := m.transports[nodes[i]]
-		// wg.Add(1)
+		receivers.Add(1)
 
 		go func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
-			// defer wg.Done()
+			defer receivers.Done()
 
 			for {
 				select {
@@ -894,6 +895,8 @@ func TestMeshMessaging(t *testing.T) {
 
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
+
+	receivers.Wait()
 
 	for _, n := range nodes {
 		m.testEventuallyNoStreams(n)
