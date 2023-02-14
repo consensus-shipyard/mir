@@ -27,6 +27,15 @@ import (
 // PBFT Orderer type and constructor
 // ============================================================
 
+// ValidityChecker is the interface of an external checker of validity of proposed data.
+// Each orderer is provided with an object implementing this interface
+// and applies its Check method to all received proposals.
+type ValidityChecker interface {
+
+	// Check returns nil if the provided proposal data is valid, a non-nil error otherwise.
+	Check(data []byte) error
+}
+
 // The Segment type represents an ISS Segment.
 // It is used to parametrize an orderer (i.e. the SB instance).
 type Segment struct {
@@ -89,6 +98,9 @@ type Orderer struct {
 	// The map itself is allocated on creation of the pbftInstance, but the entries are initialized lazily,
 	// only when needed (when the node initiates a view change).
 	viewChangeStates map[t.PBFTViewNr]*pbftViewChangeState
+
+	// Contains the application-specific code for validating incoming proposals.
+	externalValidator ValidityChecker
 }
 
 // NewOrdererModule allocates and initializes a new instance of the PBFT Orderer.
@@ -107,6 +119,7 @@ func NewOrdererModule(
 	ownID t.NodeID,
 	segment *Segment,
 	config *PBFTConfig,
+	externalValidator ValidityChecker,
 	logger logging.Logger) *Orderer {
 
 	// Set all the necessary fields of the new instance and return it.
@@ -115,6 +128,7 @@ func NewOrdererModule(
 		segment:           segment,
 		moduleConfig:      moduleConfig,
 		config:            config,
+		externalValidator: externalValidator,
 		slots:             make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{

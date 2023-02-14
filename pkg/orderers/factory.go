@@ -51,6 +51,7 @@ func Factory(mc *ModuleConfig, issParams *issconfig.ModuleParams, ownID t.NodeID
 						membership,
 						epoch,
 					),
+					newPermissiveValidityChecker(),
 
 					//TODO better logging here
 					logging.Decorate(logger, "", "submoduleID", submoduleID),
