@@ -804,9 +804,8 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 func TestMeshMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
+	N := 10 // number of nodes
 	var nodes []types.NodeID
-	N := 15 // initial nodes
-
 	for i := 0; i < N; i++ {
 		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
 	}
@@ -815,7 +814,7 @@ func TestMeshMessaging(t *testing.T) {
 	m.StartAllTransports()
 	initialNodes := m.Membership(nodes...)
 
-	t.Logf(">>> connecting initial nodes")
+	t.Logf(">>> connecting nodes")
 	for i := 0; i < N; i++ {
 		m.transports[nodes[i]].Connect(initialNodes)
 	}
@@ -831,13 +830,39 @@ func TestMeshMessaging(t *testing.T) {
 
 	t.Log(">>> sending messages")
 
-	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(20*time.Second))
-	defer cancelFunc()
-
-	senders := sync.WaitGroup{}
-	receivers := sync.WaitGroup{}
-
 	var received, sent int64
+	var senders, receivers sync.WaitGroup
+
+	sender := func(src, dst types.NodeID) {
+		defer senders.Done()
+
+		for i := 0; i < 100; i++ {
+			time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond) // nolint
+			err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
+			if err != nil {
+				t.Logf("%v->%v failed to send: %v", src, dst, err)
+			}
+			atomic.AddInt64(&sent, 1)
+		}
+	}
+
+	receiver := func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
+		defer receivers.Done()
+
+		for {
+			select {
+			case <-stop:
+				return
+			case e, ok := <-events:
+				if !ok {
+					return
+				}
+				_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+				require.Equal(m.t, true, valid)
+				atomic.AddInt64(&received, 1)
+			}
+		}
+	}
 
 	for i := 0; i < N; i++ {
 		for j := 0; j < N; j++ {
@@ -845,57 +870,20 @@ func TestMeshMessaging(t *testing.T) {
 				continue
 			}
 			senders.Add(1)
-
-			go func(src, dst types.NodeID) {
-				defer senders.Done()
-
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					default:
-						time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond) // nolint
-						err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
-						if err != nil {
-							t.Logf("%v->%v sending: %v", src, dst, err)
-						} else {
-							atomic.AddInt64(&sent, 1)
-						}
-
-					}
-				}
-			}(nodes[i], nodes[j])
+			go sender(nodes[i], nodes[j])
 		}
 	}
 
 	for i := 0; i < N; i++ {
 		ch := m.transports[nodes[i]]
 		receivers.Add(1)
-
-		go func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
-			defer receivers.Done()
-
-			for {
-				select {
-				case <-stop:
-					return
-				case e, ok := <-events:
-					if !ok {
-						return
-					}
-					_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-					require.Equal(m.t, true, valid)
-					atomic.AddInt64(&received, 1)
-				}
-			}
-		}(ch.ownID, ch.incomingMessages, ch.stop)
+		go receiver(ch.ownID, ch.incomingMessages, ch.stop)
 	}
 
 	senders.Wait()
 
 	t.Log(">>> cleaning")
 	m.StopAllTransports()
-
 	receivers.Wait()
 
 	for _, n := range nodes {
