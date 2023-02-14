@@ -172,6 +172,12 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 		return events.EmptyList()
 	}
 
+	// Check whether valid data has been proposed.
+	if err := orderer.externalValidator.Check(preprepare.Data); err != nil {
+		orderer.logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
+			"sn", sn, "from", from, "err", err)
+	}
+
 	// Check that this is the first Preprepare message received.
 	// Note that checking the orderer.Preprepared flag instead would be incorrect,
 	// as that flag is only set upon receiving the RequestsReady OrdererEvent.
