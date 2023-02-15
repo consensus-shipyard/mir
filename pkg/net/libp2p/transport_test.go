@@ -798,21 +798,23 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-// TestMeshMessaging tests that the transport operates normally if it is used within a mesh network.
+// TestMessagingWithNewNodes tests that the transport operates normally if new nodes are connected.
 //
 // nolint:gocognit
-func TestMeshMessaging(t *testing.T) {
+func TestMessagingWithNewNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	N := 10 // number of nodes
+	M := 5  // number of new nodes
 	var nodes []types.NodeID
-	for i := 0; i < N; i++ {
+	for i := 0; i < N+M; i++ {
 		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
 	}
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), nodes, logger)
 	m.StartAllTransports()
-	initialNodes := m.Membership(nodes...)
+	initialNodes := m.Membership(nodes[:N]...)
+	allNodes := m.Membership(nodes...)
 
 	t.Logf(">>> connecting nodes")
 	for i := 0; i < N; i++ {
@@ -864,8 +866,8 @@ func TestMeshMessaging(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < N; i++ {
-		for j := 0; j < N; j++ {
+	for i := 0; i < N+M; i++ {
+		for j := 0; j < N+M; j++ {
 			if i == j {
 				continue
 			}
@@ -874,15 +876,33 @@ func TestMeshMessaging(t *testing.T) {
 		}
 	}
 
-	for i := 0; i < N; i++ {
+	for i := 0; i < N+M; i++ {
 		ch := m.transports[nodes[i]]
 		receivers.Add(1)
 		go receiver(ch.ownID, ch.incomingMessages, ch.stop)
 	}
 
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < M+N; i++ {
+			time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond) // nolint
+			m.transports[nodes[i]].Connect(allNodes)
+		}
+		for i := 0; i < N+M; i++ {
+			for j := 0; j < N+M; j++ {
+				if i == j {
+					continue
+				}
+				m.testEventuallyConnected(nodes[i], nodes[j])
+			}
+		}
+		done <- struct{}{}
+	}()
+
 	senders.Wait()
 
 	t.Log(">>> cleaning")
+	<-done
 	m.StopAllTransports()
 	receivers.Wait()
 
