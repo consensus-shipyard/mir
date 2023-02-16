@@ -329,6 +329,7 @@ func (orderer *Orderer) applyCatchUpResponseHashResult(
 				slot.Preprepare.Data,
 				slot.Preprepare.Aborted,
 				orderer.segment.Leader,
+				orderer.moduleConfig.Self,
 			),
 		},
 	})

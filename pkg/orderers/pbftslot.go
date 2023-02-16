@@ -139,6 +139,7 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 					slot.Preprepare.Data,
 					slot.Preprepare.Aborted,
 					pbft.segment.Leader,
+					pbft.moduleConfig.Self,
 				),
 			},
 		})
