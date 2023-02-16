@@ -100,7 +100,13 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 	if orderer.proposal.certRequestedView == orderer.view {
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
-		l, err := orderer.propose(cert)
+
+		certBytes, err := proto.Marshal(cert)
+		if err != nil {
+			return nil, fmt.Errorf("error marshalling certificate: %w", err)
+		}
+
+		l, err := orderer.propose(certBytes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to propose: %w", err)
 		}
@@ -118,12 +124,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 // propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT Orderer allows sending a new proposal
 // and does not perform any checks in this regard.
-func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, error) {
-
-	certBytes, err := proto.Marshal(cert)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling certificate: %w", err)
-	}
+func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 
 	// Update proposal counter.
 	sn := orderer.segment.SeqNrs[orderer.proposal.proposalsMade]
@@ -134,7 +135,7 @@ func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, e
 		"sn", sn)
 
 	// Create the proposal (consisting of a Preprepare message).
-	preprepare := pbftPreprepareMsg(sn, orderer.view, certBytes, false)
+	preprepare := pbftPreprepareMsg(sn, orderer.view, data, false)
 
 	// Create a Preprepare message send OrdererEvent.
 	// No need for periodic re-transmission.
