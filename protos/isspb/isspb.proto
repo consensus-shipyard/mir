@@ -79,9 +79,10 @@ message PersistStableCheckpoint {
 message PushCheckpoint {
 }
 
-message SBDeliver{
-  uint64          sn      = 1;
-  bytes           data    = 2;
-  bool            aborted = 3;
-  string          leader  = 4;
+message SBDeliver {
+  uint64 sn          = 1;
+  bytes  data        = 2;
+  bool   aborted     = 3;
+  string leader      = 4;
+  string instance_id = 5;
 }
