@@ -176,7 +176,7 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		case *ordererspb.SBInstanceEvent_Init:
 			return orderer.applyInit(), nil
 		case *ordererspb.SBInstanceEvent_PbftProposeTimeout:
-			return orderer.applyProposeTimeout(int(e.PbftProposeTimeout)), nil
+			return orderer.applyProposeTimeout(int(e.PbftProposeTimeout))
 		case *ordererspb.SBInstanceEvent_PbftViewChangeSnTimeout:
 			return orderer.applyViewChangeSNTimeout(e.PbftViewChangeSnTimeout), nil
 		case *ordererspb.SBInstanceEvent_PbftViewChangeSegTimeout:
