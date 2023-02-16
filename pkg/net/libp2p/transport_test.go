@@ -664,6 +664,34 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 	m.testNoHostConnections()
 }
 
+// TestNoConnectionsAfterStop tests that connections are not established after stop.
+func TestNoConnectionsAfterStop(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	m.StartAllTransports()
+	initialNodes := m.Membership(nodeA, nodeB)
+	m.StopAllTransports()
+
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	m.testNeverConnected(nodeA, nodeB)
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+}
+
 // TestSendReceiveWithWaitForAndBlock tests that the transport operates normally if WaitFor call and
 // blocking messages are used.
 func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
