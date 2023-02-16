@@ -148,7 +148,7 @@ func New(
 	checkpointing := checkpoint.Factory(checkpoint.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
 
 	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
-	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, logging.Decorate(logger, "PBFT: "))
+	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))
 
 	// Use a simple mempool for incoming requests.
 	mempool := simplemempool.NewModule(

@@ -670,6 +670,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 				seg,
 				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 				iss.epoch.Nr(),
+				orderers.PermissiveValidityChecker,
 			),
 		))
 
