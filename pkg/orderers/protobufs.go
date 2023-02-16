@@ -62,6 +62,7 @@ func InstanceParams(
 	segment *Segment,
 	availabilityID t.ModuleID,
 	epoch t.EpochNr,
+	validityCheckerType ValidityCheckerType,
 ) *factorymodulepb.GeneratorParams {
 	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_PbftModule{
 		PbftModule: &ordererspb.PBFTModule{
@@ -70,8 +71,9 @@ func InstanceParams(
 				Membership: t.MembershipPb(segment.Membership),
 				SeqNrs:     t.SeqNrSlicePb(segment.SeqNrs),
 			},
-			AvailabilityId: availabilityID.Pb(),
-			Epoch:          epoch.Pb(),
+			AvailabilityId:  availabilityID.Pb(),
+			Epoch:           epoch.Pb(),
+			ValidityChecker: uint64(validityCheckerType),
 		},
 	}}
 }
