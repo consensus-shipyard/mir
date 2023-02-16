@@ -91,7 +91,7 @@ func (vcState *pbftViewChangeState) updateReproposals() {
 	}
 }
 
-func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr) [][][]byte {
+func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr, proposals map[t.SeqNr][]byte) [][][]byte {
 
 	// dataToHash will store the serialized form of newly created empty ("aborted") Preprepares.
 	dataToHash := make([][][]byte, 0, len(vcState.reproposals))
@@ -99,11 +99,19 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr) [][][
 	maputil.IterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
 		if digest != nil && len(digest) == 0 {
 
+			// If there is a pre-configured proposal, use it, otherwise use an empty byte slice.
+			var data []byte
+			if proposals[sn] != nil {
+				data = proposals[sn]
+			} else {
+				data = []byte{}
+			}
+
 			// Create a new empty Preprepare message.
 			vcState.preprepares[sn] = pbftPreprepareMsg(
 				sn,
 				view,
-				[]byte{},
+				data,
 				true,
 			)
 

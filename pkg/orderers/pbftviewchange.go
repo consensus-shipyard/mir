@@ -187,7 +187,7 @@ func (orderer *Orderer) applyVerifiedViewChange(svc *ordererspbftpb.SignedViewCh
 		orderer.logger.Log(logging.LevelDebug, "Received enough ViewChanges.")
 
 		// Fill in empty Preprepare messages for all sequence numbers where nothing was prepared in the old view.
-		emptyPreprepareData := state.SetEmptyPreprepares(vcView)
+		emptyPreprepareData := state.SetEmptyPreprepares(vcView, orderer.segment.Proposals)
 
 		// Request hashing of the new Preprepare messages
 		return events.ListOf(
@@ -427,7 +427,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 		// If the expected digest is empty, it means that the corresponding Preprepare is an "aborted" one.
 		// In this case, check the Preprepare directly.
 		if len(digest) == 0 {
-			prepreparesMatching = validEmptyPreprepare(newView.Preprepares[i], msgView, sn)
+			prepreparesMatching = validFreshPreprepare(newView.Preprepares[i], msgView, sn)
 		} else {
 			prepreparesMatching = bytes.Equal(digest, digests[i])
 		}
@@ -458,11 +458,10 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 // Auxiliary functions
 // ============================================================
 
-func validEmptyPreprepare(preprepare *ordererspbftpb.Preprepare, view t.PBFTViewNr, sn t.SeqNr) bool {
+func validFreshPreprepare(preprepare *ordererspbftpb.Preprepare, view t.PBFTViewNr, sn t.SeqNr) bool {
 	return preprepare.Aborted &&
 		t.SeqNr(preprepare.Sn) == sn &&
-		t.PBFTViewNr(preprepare.View) == view &&
-		len(preprepare.Data) == 0
+		t.PBFTViewNr(preprepare.View) == view
 }
 
 // viewChangeState returns the state of the view change sub-protocol associated with the given view,
