@@ -54,7 +54,7 @@ type pbftProposalState struct {
 
 // applyProposeTimeout applies the event of the proposal timeout firing.
 // It updates the proposal state accordingly and triggers a new proposal if possible.
-func (orderer *Orderer) applyProposeTimeout(numProposals int) *events.EventList {
+func (orderer *Orderer) applyProposeTimeout(numProposals int) (*events.EventList, error) {
 
 	// If we are still waiting for this timeout
 	if numProposals > orderer.proposal.proposalTimeout {
@@ -64,11 +64,18 @@ func (orderer *Orderer) applyProposeTimeout(numProposals int) *events.EventList 
 
 		// If this was the last bit missing, start a new proposal.
 		if orderer.canPropose() {
-			return orderer.requestNewCert()
+
+			// If a proposal already has been set as a parameter of the segment, propose it directly.
+			if proposal := orderer.segment.Proposals[orderer.proposal.proposalsMade]; proposal != nil {
+				return orderer.propose(proposal)
+			}
+
+			// Otherwise, obtain a fresh availability certificate first.
+			return orderer.requestNewCert(), nil
 		}
 	}
 
-	return events.EmptyList()
+	return events.EmptyList(), nil
 }
 
 // requestNewCert asks (by means of a CertRequest event) ISS to provide a new availability certificate.
