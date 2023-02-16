@@ -41,21 +41,12 @@ func Factory(
 				submc := *mc
 				submc.Self = submoduleID
 
+				// Load parameters from received protobuf
 				p := params.Type.(*factorymodulepb.GeneratorParams_PbftModule).PbftModule
-
 				availabilityID := t.ModuleID(p.AvailabilityId)
 				submc.Ava = availabilityID
-
 				epoch := t.EpochNr(p.Epoch)
-				// Get the segment parameters
-				seqNrs := t.SeqNrSlice(p.Segment.SeqNrs)
-				leader := t.NodeID(p.Segment.Leader)
-
-				segment := &Segment{
-					Leader:     leader,
-					Membership: t.Membership(p.Segment.Membership),
-					SeqNrs:     seqNrs,
-				}
+				segment := SegmentFromPb(p.Segment)
 
 				// Select validity checker
 				var validityChecker ValidityChecker
@@ -66,6 +57,7 @@ func Factory(
 					validityChecker = newCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership)
 				}
 
+				// Instantiate new protocol instance.
 				protocol := NewOrdererModule(
 					&submc,
 					ownID,
