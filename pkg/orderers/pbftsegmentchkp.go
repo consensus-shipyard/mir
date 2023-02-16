@@ -163,7 +163,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 			OrdererMessage(
 				PbftDoneSBMessage(digests),
 				orderer.moduleConfig.Self),
-			orderer.segment.Membership)},
+			orderer.segment.NodeIDs())},
 		t.TimeDuration(orderer.config.DoneResendPeriod),
 		t.RetentionIndex(orderer.config.epochNr),
 	))

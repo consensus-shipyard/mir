@@ -32,13 +32,12 @@ func Factory(mc *ModuleConfig, issParams *issconfig.ModuleParams, ownID t.NodeID
 
 				epoch := t.EpochNr(p.Epoch)
 				// Get the segment parameters
-				membership := t.NodeIDSlice(p.Segment.Membership)
 				seqNrs := t.SeqNrSlice(p.Segment.SeqNrs)
 				leader := t.NodeID(p.Segment.Leader)
 
 				segment := &Segment{
 					Leader:     leader,
-					Membership: membership,
+					Membership: t.Membership(p.Segment.Membership),
 					SeqNrs:     seqNrs,
 				}
 
@@ -48,7 +47,7 @@ func Factory(mc *ModuleConfig, issParams *issconfig.ModuleParams, ownID t.NodeID
 					segment,
 					newOrdererConfig(
 						issParams,
-						membership,
+						segment.NodeIDs(),
 						epoch,
 					),
 					newPermissiveValidityChecker(),
