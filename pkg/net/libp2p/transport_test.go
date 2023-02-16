@@ -828,6 +828,10 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 
 // TestMessagingWithNewNodes tests that the transport operates normally if new nodes are connected.
 //
+// This test connects N initial nodes with each other, starts sending messages between them.
+// Then, in parallel we add M new nodes and connect them with all other nodes.
+// Test checks that the implementation will not be in stuck and will not panic during those operations.
+//
 // nolint:gocognit
 func TestMessagingWithNewNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
@@ -851,10 +855,9 @@ func TestMessagingWithNewNodes(t *testing.T) {
 
 	for i := 0; i < N; i++ {
 		for j := 0; j < N; j++ {
-			if i == j {
-				continue
+			if i != j {
+				m.testEventuallyConnected(nodes[i], nodes[j])
 			}
-			m.testEventuallyConnected(nodes[i], nodes[j])
 		}
 	}
 
@@ -867,12 +870,13 @@ func TestMessagingWithNewNodes(t *testing.T) {
 		defer senders.Done()
 
 		for i := 0; i < 100; i++ {
-			time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond) // nolint
+			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond) // nolint
 			err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
 			if err != nil {
 				t.Logf("%v->%v failed to send: %v", src, dst, err)
+			} else {
+				atomic.AddInt64(&sent, 1)
 			}
-			atomic.AddInt64(&sent, 1)
 		}
 	}
 
@@ -896,11 +900,10 @@ func TestMessagingWithNewNodes(t *testing.T) {
 
 	for i := 0; i < N+M; i++ {
 		for j := 0; j < N+M; j++ {
-			if i == j {
-				continue
+			if i != j {
+				senders.Add(1)
+				go sender(nodes[i], nodes[j])
 			}
-			senders.Add(1)
-			go sender(nodes[i], nodes[j])
 		}
 	}
 
@@ -918,10 +921,9 @@ func TestMessagingWithNewNodes(t *testing.T) {
 		}
 		for i := 0; i < N+M; i++ {
 			for j := 0; j < N+M; j++ {
-				if i == j {
-					continue
+				if i != j {
+					m.testEventuallyConnected(nodes[i], nodes[j])
 				}
-				m.testEventuallyConnected(nodes[i], nodes[j])
 			}
 		}
 		done <- struct{}{}
