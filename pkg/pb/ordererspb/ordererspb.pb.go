@@ -1637,8 +1637,7 @@ type PBFTSegment struct {
 
 	Leader     string               `protobuf:"bytes,1,opt,name=leader,proto3" json:"leader,omitempty"`
 	Membership *commonpb.Membership `protobuf:"bytes,2,opt,name=membership,proto3" json:"membership,omitempty"`
-	SeqNrs     []uint64             `protobuf:"varint,3,rep,packed,name=seq_nrs,json=seqNrs,proto3" json:"seq_nrs,omitempty"`
-	Proposals  [][]byte             `protobuf:"bytes,4,rep,name=proposals,proto3" json:"proposals,omitempty"`
+	Proposals  map[uint64][]byte    `protobuf:"bytes,3,rep,name=proposals,proto3" json:"proposals,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *PBFTSegment) Reset() {
@@ -1687,14 +1686,7 @@ func (x *PBFTSegment) GetMembership() *commonpb.Membership {
 	return nil
 }
 
-func (x *PBFTSegment) GetSeqNrs() []uint64 {
-	if x != nil {
-		return x.SeqNrs
-	}
-	return nil
-}
-
-func (x *PBFTSegment) GetProposals() [][]byte {
+func (x *PBFTSegment) GetProposals() map[uint64][]byte {
 	if x != nil {
 		return x.Proposals
 	}
@@ -2045,30 +2037,35 @@ var file_ordererspb_ordererspb_proto_rawDesc = []byte{
 	0x0b, 0x32, 0x17, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x73, 0x70, 0x62, 0x66, 0x74,
 	0x70, 0x62, 0x2e, 0x4e, 0x65, 0x77, 0x56, 0x69, 0x65, 0x77, 0x48, 0x00, 0x52, 0x0b, 0x70, 0x62,
 	0x66, 0x74, 0x4e, 0x65, 0x77, 0x56, 0x69, 0x65, 0x77, 0x42, 0x06, 0x0a, 0x04, 0x74, 0x79, 0x70,
-	0x65, 0x22, 0x92, 0x01, 0x0a, 0x0b, 0x50, 0x42, 0x46, 0x54, 0x53, 0x65, 0x67, 0x6d, 0x65, 0x6e,
+	0x65, 0x22, 0xdf, 0x01, 0x0a, 0x0b, 0x50, 0x42, 0x46, 0x54, 0x53, 0x65, 0x67, 0x6d, 0x65, 0x6e,
 	0x74, 0x12, 0x16, 0x0a, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x06, 0x6c, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x34, 0x0a, 0x0a, 0x6d, 0x65, 0x6d,
 	0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e,
 	0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x70, 0x62, 0x2e, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73,
 	0x68, 0x69, 0x70, 0x52, 0x0a, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x73, 0x68, 0x69, 0x70, 0x12,
-	0x17, 0x0a, 0x07, 0x73, 0x65, 0x71, 0x5f, 0x6e, 0x72, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x04,
-	0x52, 0x06, 0x73, 0x65, 0x71, 0x4e, 0x72, 0x73, 0x12, 0x1c, 0x0a, 0x09, 0x70, 0x72, 0x6f, 0x70,
-	0x6f, 0x73, 0x61, 0x6c, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x09, 0x70, 0x72, 0x6f,
-	0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x22, 0xa9, 0x01, 0x0a, 0x0a, 0x50, 0x42, 0x46, 0x54, 0x4d,
-	0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x31, 0x0a, 0x07, 0x73, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72,
-	0x73, 0x70, 0x62, 0x2e, 0x50, 0x42, 0x46, 0x54, 0x53, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74, 0x52,
-	0x07, 0x73, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x61, 0x76, 0x61, 0x69,
-	0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x0e, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x49,
-	0x64, 0x12, 0x14, 0x0a, 0x05, 0x65, 0x70, 0x6f, 0x63, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x04,
-	0x52, 0x05, 0x65, 0x70, 0x6f, 0x63, 0x68, 0x12, 0x29, 0x0a, 0x10, 0x76, 0x61, 0x6c, 0x69, 0x64,
-	0x69, 0x74, 0x79, 0x5f, 0x63, 0x68, 0x65, 0x63, 0x6b, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x04, 0x52, 0x0f, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x69, 0x74, 0x79, 0x43, 0x68, 0x65, 0x63, 0x6b,
-	0x65, 0x72, 0x42, 0x33, 0x5a, 0x31, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
-	0x2f, 0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f, 0x69, 0x6e, 0x2d, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63,
-	0x74, 0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x62, 0x2f, 0x6f, 0x72, 0x64,
-	0x65, 0x72, 0x65, 0x72, 0x73, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x44, 0x0a, 0x09, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61, 0x6c, 0x73, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x26, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x73, 0x70, 0x62, 0x2e,
+	0x50, 0x42, 0x46, 0x54, 0x53, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x70,
+	0x6f, 0x73, 0x61, 0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x09, 0x70, 0x72, 0x6f, 0x70,
+	0x6f, 0x73, 0x61, 0x6c, 0x73, 0x1a, 0x3c, 0x0a, 0x0e, 0x50, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x61,
+	0x6c, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c,
+	0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a,
+	0x02, 0x38, 0x01, 0x22, 0xa9, 0x01, 0x0a, 0x0a, 0x50, 0x42, 0x46, 0x54, 0x4d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x12, 0x31, 0x0a, 0x07, 0x73, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x73, 0x70, 0x62,
+	0x2e, 0x50, 0x42, 0x46, 0x54, 0x53, 0x65, 0x67, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x07, 0x73, 0x65,
+	0x67, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62,
+	0x69, 0x6c, 0x69, 0x74, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0e,
+	0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x49, 0x64, 0x12, 0x14,
+	0x0a, 0x05, 0x65, 0x70, 0x6f, 0x63, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x65,
+	0x70, 0x6f, 0x63, 0x68, 0x12, 0x29, 0x0a, 0x10, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x69, 0x74, 0x79,
+	0x5f, 0x63, 0x68, 0x65, 0x63, 0x6b, 0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x04, 0x52, 0x0f,
+	0x76, 0x61, 0x6c, 0x69, 0x64, 0x69, 0x74, 0x79, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x65, 0x72, 0x42,
+	0x33, 0x5a, 0x31, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x66, 0x69,
+	0x6c, 0x65, 0x63, 0x6f, 0x69, 0x6e, 0x2d, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x6d,
+	0x69, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x62, 0x2f, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65,
+	0x72, 0x73, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -2083,7 +2080,7 @@ func file_ordererspb_ordererspb_proto_rawDescGZIP() []byte {
 	return file_ordererspb_ordererspb_proto_rawDescData
 }
 
-var file_ordererspb_ordererspb_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_ordererspb_ordererspb_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ordererspb_ordererspb_proto_goTypes = []interface{}{
 	(*SBInstanceMessage)(nil),                // 0: ordererspb.SBInstanceMessage
 	(*SBInstanceEvent)(nil),                  // 1: ordererspb.SBInstanceEvent
@@ -2107,32 +2104,33 @@ var file_ordererspb_ordererspb_proto_goTypes = []interface{}{
 	(*SBInstanceSigVerOrigin)(nil),           // 19: ordererspb.SBInstanceSigVerOrigin
 	(*PBFTSegment)(nil),                      // 20: ordererspb.PBFTSegment
 	(*PBFTModule)(nil),                       // 21: ordererspb.PBFTModule
-	(*ordererspbftpb.Preprepare)(nil),        // 22: ordererspbftpb.Preprepare
-	(*ordererspbftpb.Prepare)(nil),           // 23: ordererspbftpb.Prepare
-	(*ordererspbftpb.Commit)(nil),            // 24: ordererspbftpb.Commit
-	(*ordererspbftpb.SignedViewChange)(nil),  // 25: ordererspbftpb.SignedViewChange
-	(*ordererspbftpb.PreprepareRequest)(nil), // 26: ordererspbftpb.PreprepareRequest
-	(*ordererspbftpb.NewView)(nil),           // 27: ordererspbftpb.NewView
-	(*ordererspbftpb.Done)(nil),              // 28: ordererspbftpb.Done
-	(*ordererspbftpb.CatchUpRequest)(nil),    // 29: ordererspbftpb.CatchUpRequest
-	(*ordererspbftpb.VCSNTimeout)(nil),       // 30: ordererspbftpb.VCSNTimeout
-	(*requestpb.Batch)(nil),                  // 31: requestpb.Batch
-	(*availabilitypb.Cert)(nil),              // 32: availabilitypb.Cert
-	(*commonpb.HashData)(nil),                // 33: commonpb.HashData
-	(*ordererspbftpb.ViewChange)(nil),        // 34: ordererspbftpb.ViewChange
-	(*commonpb.Membership)(nil),              // 35: commonpb.Membership
+	nil,                                      // 22: ordererspb.PBFTSegment.ProposalsEntry
+	(*ordererspbftpb.Preprepare)(nil),        // 23: ordererspbftpb.Preprepare
+	(*ordererspbftpb.Prepare)(nil),           // 24: ordererspbftpb.Prepare
+	(*ordererspbftpb.Commit)(nil),            // 25: ordererspbftpb.Commit
+	(*ordererspbftpb.SignedViewChange)(nil),  // 26: ordererspbftpb.SignedViewChange
+	(*ordererspbftpb.PreprepareRequest)(nil), // 27: ordererspbftpb.PreprepareRequest
+	(*ordererspbftpb.NewView)(nil),           // 28: ordererspbftpb.NewView
+	(*ordererspbftpb.Done)(nil),              // 29: ordererspbftpb.Done
+	(*ordererspbftpb.CatchUpRequest)(nil),    // 30: ordererspbftpb.CatchUpRequest
+	(*ordererspbftpb.VCSNTimeout)(nil),       // 31: ordererspbftpb.VCSNTimeout
+	(*requestpb.Batch)(nil),                  // 32: requestpb.Batch
+	(*availabilitypb.Cert)(nil),              // 33: availabilitypb.Cert
+	(*commonpb.HashData)(nil),                // 34: commonpb.HashData
+	(*ordererspbftpb.ViewChange)(nil),        // 35: ordererspbftpb.ViewChange
+	(*commonpb.Membership)(nil),              // 36: commonpb.Membership
 }
 var file_ordererspb_ordererspb_proto_depIdxs = []int32{
-	22, // 0: ordererspb.SBInstanceMessage.pbft_preprepare:type_name -> ordererspbftpb.Preprepare
-	23, // 1: ordererspb.SBInstanceMessage.pbft_prepare:type_name -> ordererspbftpb.Prepare
-	24, // 2: ordererspb.SBInstanceMessage.pbft_commit:type_name -> ordererspbftpb.Commit
-	25, // 3: ordererspb.SBInstanceMessage.pbft_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
-	26, // 4: ordererspb.SBInstanceMessage.pbft_preprepare_request:type_name -> ordererspbftpb.PreprepareRequest
-	22, // 5: ordererspb.SBInstanceMessage.pbft_missing_preprepare:type_name -> ordererspbftpb.Preprepare
-	27, // 6: ordererspb.SBInstanceMessage.pbft_new_view:type_name -> ordererspbftpb.NewView
-	28, // 7: ordererspb.SBInstanceMessage.pbft_done:type_name -> ordererspbftpb.Done
-	29, // 8: ordererspb.SBInstanceMessage.pbft_catch_up_request:type_name -> ordererspbftpb.CatchUpRequest
-	22, // 9: ordererspb.SBInstanceMessage.pbft_catch_up_response:type_name -> ordererspbftpb.Preprepare
+	23, // 0: ordererspb.SBInstanceMessage.pbft_preprepare:type_name -> ordererspbftpb.Preprepare
+	24, // 1: ordererspb.SBInstanceMessage.pbft_prepare:type_name -> ordererspbftpb.Prepare
+	25, // 2: ordererspb.SBInstanceMessage.pbft_commit:type_name -> ordererspbftpb.Commit
+	26, // 3: ordererspb.SBInstanceMessage.pbft_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
+	27, // 4: ordererspb.SBInstanceMessage.pbft_preprepare_request:type_name -> ordererspbftpb.PreprepareRequest
+	23, // 5: ordererspb.SBInstanceMessage.pbft_missing_preprepare:type_name -> ordererspbftpb.Preprepare
+	28, // 6: ordererspb.SBInstanceMessage.pbft_new_view:type_name -> ordererspbftpb.NewView
+	29, // 7: ordererspb.SBInstanceMessage.pbft_done:type_name -> ordererspbftpb.Done
+	30, // 8: ordererspb.SBInstanceMessage.pbft_catch_up_request:type_name -> ordererspbftpb.CatchUpRequest
+	23, // 9: ordererspb.SBInstanceMessage.pbft_catch_up_response:type_name -> ordererspbftpb.Preprepare
 	2,  // 10: ordererspb.SBInstanceEvent.init:type_name -> ordererspb.SBInit
 	6,  // 11: ordererspb.SBInstanceEvent.deliver:type_name -> ordererspb.SBDeliver
 	7,  // 12: ordererspb.SBInstanceEvent.message_received:type_name -> ordererspb.SBMessageReceived
@@ -2145,37 +2143,38 @@ var file_ordererspb_ordererspb_proto_depIdxs = []int32{
 	11, // 19: ordererspb.SBInstanceEvent.hash_result:type_name -> ordererspb.SBHashResult
 	14, // 20: ordererspb.SBInstanceEvent.sign_result:type_name -> ordererspb.SBSignResult
 	17, // 21: ordererspb.SBInstanceEvent.node_sigs_verified:type_name -> ordererspb.SBNodeSigsVerified
-	22, // 22: ordererspb.SBInstanceEvent.pbft_persist_preprepare:type_name -> ordererspbftpb.Preprepare
-	23, // 23: ordererspb.SBInstanceEvent.pbft_persist_prepare:type_name -> ordererspbftpb.Prepare
-	24, // 24: ordererspb.SBInstanceEvent.pbft_persist_commit:type_name -> ordererspbftpb.Commit
-	25, // 25: ordererspb.SBInstanceEvent.pbft_persist_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
-	27, // 26: ordererspb.SBInstanceEvent.pbft_persist_new_view:type_name -> ordererspbftpb.NewView
-	30, // 27: ordererspb.SBInstanceEvent.pbft_view_change_sn_timeout:type_name -> ordererspbftpb.VCSNTimeout
-	31, // 28: ordererspb.SBBatchReady.batch:type_name -> requestpb.Batch
-	32, // 29: ordererspb.SBCertReady.cert:type_name -> availabilitypb.Cert
+	23, // 22: ordererspb.SBInstanceEvent.pbft_persist_preprepare:type_name -> ordererspbftpb.Preprepare
+	24, // 23: ordererspb.SBInstanceEvent.pbft_persist_prepare:type_name -> ordererspbftpb.Prepare
+	25, // 24: ordererspb.SBInstanceEvent.pbft_persist_commit:type_name -> ordererspbftpb.Commit
+	26, // 25: ordererspb.SBInstanceEvent.pbft_persist_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
+	28, // 26: ordererspb.SBInstanceEvent.pbft_persist_new_view:type_name -> ordererspbftpb.NewView
+	31, // 27: ordererspb.SBInstanceEvent.pbft_view_change_sn_timeout:type_name -> ordererspbftpb.VCSNTimeout
+	32, // 28: ordererspb.SBBatchReady.batch:type_name -> requestpb.Batch
+	33, // 29: ordererspb.SBCertReady.cert:type_name -> availabilitypb.Cert
 	0,  // 30: ordererspb.SBMessageReceived.msg:type_name -> ordererspb.SBInstanceMessage
-	33, // 31: ordererspb.SBHashRequest.data:type_name -> commonpb.HashData
+	34, // 31: ordererspb.SBHashRequest.data:type_name -> commonpb.HashData
 	12, // 32: ordererspb.SBHashRequest.origin:type_name -> ordererspb.SBHashOrigin
 	13, // 33: ordererspb.SBHashResult.origin:type_name -> ordererspb.SBInstanceHashOrigin
 	13, // 34: ordererspb.SBHashOrigin.origin:type_name -> ordererspb.SBInstanceHashOrigin
-	22, // 35: ordererspb.SBInstanceHashOrigin.pbft_preprepare:type_name -> ordererspbftpb.Preprepare
-	22, // 36: ordererspb.SBInstanceHashOrigin.pbft_missing_preprepare:type_name -> ordererspbftpb.Preprepare
-	27, // 37: ordererspb.SBInstanceHashOrigin.pbft_new_view:type_name -> ordererspbftpb.NewView
-	22, // 38: ordererspb.SBInstanceHashOrigin.pbft_catch_up_response:type_name -> ordererspbftpb.Preprepare
+	23, // 35: ordererspb.SBInstanceHashOrigin.pbft_preprepare:type_name -> ordererspbftpb.Preprepare
+	23, // 36: ordererspb.SBInstanceHashOrigin.pbft_missing_preprepare:type_name -> ordererspbftpb.Preprepare
+	28, // 37: ordererspb.SBInstanceHashOrigin.pbft_new_view:type_name -> ordererspbftpb.NewView
+	23, // 38: ordererspb.SBInstanceHashOrigin.pbft_catch_up_response:type_name -> ordererspbftpb.Preprepare
 	16, // 39: ordererspb.SBSignResult.origin:type_name -> ordererspb.SBInstanceSignOrigin
 	16, // 40: ordererspb.SBSignOrigin.origin:type_name -> ordererspb.SBInstanceSignOrigin
-	34, // 41: ordererspb.SBInstanceSignOrigin.pbft_view_change:type_name -> ordererspbftpb.ViewChange
+	35, // 41: ordererspb.SBInstanceSignOrigin.pbft_view_change:type_name -> ordererspbftpb.ViewChange
 	19, // 42: ordererspb.SBNodeSigsVerified.origin:type_name -> ordererspb.SBInstanceSigVerOrigin
 	19, // 43: ordererspb.SBSigVerOrigin.origin:type_name -> ordererspb.SBInstanceSigVerOrigin
-	25, // 44: ordererspb.SBInstanceSigVerOrigin.pbft_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
-	27, // 45: ordererspb.SBInstanceSigVerOrigin.pbft_new_view:type_name -> ordererspbftpb.NewView
-	35, // 46: ordererspb.PBFTSegment.membership:type_name -> commonpb.Membership
-	20, // 47: ordererspb.PBFTModule.segment:type_name -> ordererspb.PBFTSegment
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	26, // 44: ordererspb.SBInstanceSigVerOrigin.pbft_signed_view_change:type_name -> ordererspbftpb.SignedViewChange
+	28, // 45: ordererspb.SBInstanceSigVerOrigin.pbft_new_view:type_name -> ordererspbftpb.NewView
+	36, // 46: ordererspb.PBFTSegment.membership:type_name -> commonpb.Membership
+	22, // 47: ordererspb.PBFTSegment.proposals:type_name -> ordererspb.PBFTSegment.ProposalsEntry
+	20, // 48: ordererspb.PBFTModule.segment:type_name -> ordererspb.PBFTSegment
+	49, // [49:49] is the sub-list for method output_type
+	49, // [49:49] is the sub-list for method input_type
+	49, // [49:49] is the sub-list for extension type_name
+	49, // [49:49] is the sub-list for extension extendee
+	0,  // [0:49] is the sub-list for field type_name
 }
 
 func init() { file_ordererspb_ordererspb_proto_init() }
@@ -2503,7 +2502,7 @@ func file_ordererspb_ordererspb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ordererspb_ordererspb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

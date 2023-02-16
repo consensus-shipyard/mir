@@ -123,8 +123,8 @@ func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *ordererspbftpb.D
 		// Save, for each sequence number of the segment,
 		// the corresponding Preprepare digest of the committed certificate.
 		if chkp.digests == nil {
-			chkp.digests = make(map[t.SeqNr][]byte, len(segment.SeqNrs))
-			for i, sn := range segment.SeqNrs {
+			chkp.digests = make(map[t.SeqNr][]byte, segment.Len())
+			for i, sn := range segment.SeqNrs() {
 				chkp.digests[sn] = doneMsg.Digests[i]
 			}
 		}
@@ -150,7 +150,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 	orderer.logger.Log(logging.LevelInfo, "Done with segment.")
 
 	// Collect the preprepare digests of all committed certificates.
-	digests := make([][]byte, 0, len(orderer.segment.SeqNrs))
+	digests := make([][]byte, 0, orderer.segment.Len())
 	maputil.IterateSorted(orderer.slots[orderer.view], func(sn t.SeqNr, slot *pbftSlot) bool {
 		digests = append(digests, slot.Digest)
 		return true

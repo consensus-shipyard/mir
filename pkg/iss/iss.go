@@ -652,9 +652,9 @@ func (iss *ISS) initOrderers() *events.EventList {
 
 		// Create segment.
 		// The sequence proposals are all set to nil, so that the orderer proposes new availability certificates.
-		seqNrs := sequenceNumbers(iss.nextDeliveredSN+t.SeqNr(i), t.SeqNr(len(leaders)), iss.Params.SegmentLength)
-		seg := orderers.NewSegment(leader, iss.epoch.Membership, seqNrs, make([][]byte, len(seqNrs)))
-		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
+		proposals := freeProposals(iss.nextDeliveredSN+t.SeqNr(i), t.SeqNr(len(leaders)), iss.Params.SegmentLength)
+		seg := orderers.NewSegment(leader, iss.epoch.Membership, proposals)
+		iss.newEpochSN += t.SeqNr(seg.Len())
 
 		// Instantiate a new PBFT orderer.
 		eventsOut.PushBack(factoryevents.NewModule(
@@ -831,15 +831,16 @@ func (iss *ISS) computeHash(data [][]byte) []byte {
 // Auxiliary functions
 // ============================================================
 
-// sequenceNumbers returns a list of sequence numbers of length `length`,
-// starting with sequence number `start`, with the difference between two consecutive sequence number being `step`.
+// freeProposals returns a map of sequence numbers with associated "free" proposals (nil values).
+// The returned map has length `length`, starting with sequence number `start`,
+// with the difference between two consecutive sequence number being `step`.
 // This function is used to compute the sequence numbers of a Segment.
 // When there is `step` segments, their interleaving creates a consecutive block of sequence numbers
 // that constitutes an epoch.
-func sequenceNumbers(start t.SeqNr, step t.SeqNr, length int) []t.SeqNr {
-	seqNrs := make([]t.SeqNr, length)
+func freeProposals(start t.SeqNr, step t.SeqNr, length int) map[t.SeqNr][]byte {
+	seqNrs := make(map[t.SeqNr][]byte, length)
 	for i, nextSn := 0, start; i < length; i, nextSn = i+1, nextSn+step {
-		seqNrs[i] = nextSn
+		seqNrs[nextSn] = nil
 	}
 	return seqNrs
 }
