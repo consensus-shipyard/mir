@@ -397,67 +397,69 @@ func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*
 func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 
-	if stableCheckpoint.SeqNr() > iss.lastStableCheckpoint.SeqNr() {
-		// If this is the most recent checkpoint observed, save it.
-		iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
-			"epoch", stableCheckpoint.Epoch(),
-			"sn", stableCheckpoint.SeqNr(),
-			"replacingEpoch", iss.lastStableCheckpoint.Epoch(),
-			"replacingSn", iss.lastStableCheckpoint.SeqNr(),
-			"numMemberships", len(stableCheckpoint.Memberships()),
-		)
-		iss.lastStableCheckpoint = stableCheckpoint
-
-		// Deliver the stable checkpoint (and potential batches committed in the meantime,
-		// but blocked from being delivered due to this missing checkpoint) to the application.
-		eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint.Pb()))
-		pcResult, err := iss.processCommitted()
-		if err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(pcResult)
-
-		// Prune the state of all related modules.
-		// The state to prune is determined according to the retention index
-		// which is derived from the epoch number the new
-		// stable checkpoint is associated with.
-		pruneIndex := int(stableCheckpoint.Epoch()) - iss.Params.RetainedEpochs
-		if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
-
-			// Prune timer, checkpointing, availability, and orderers.
-			eventsOut.PushBackSlice([]*eventpb.Event{
-				events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
-				factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
-				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
-				factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex)),
-			})
-			// TODO: Make EventList.PushBack accept a variable number of arguments and use it here.
-
-			// Prune epoch state.
-			for epoch := range iss.epochs {
-				if epoch < t.EpochNr(pruneIndex) {
-					delete(iss.epochs, epoch)
-				}
-			}
-
-			// Start state catch-up.
-			// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
-			// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that caught up
-			// before the re-transmission is garbage-collected.
-			eventsOut.PushBack(events.TimerRepeat(
-				iss.moduleConfig.Timer,
-				[]*eventpb.Event{PushCheckpoint(iss.moduleConfig.Self)},
-				t.TimeDuration(iss.Params.CatchUpTimerPeriod),
-
-				// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
-				// Using pruneIndex makes sure that the re-transmission is stopped
-				// on every stable checkpoint (when another one is started).
-				t.RetentionIndex(pruneIndex),
-			))
-
-		}
-	} else {
+	// Ignore old checkpoints.
+	if stableCheckpoint.SeqNr() <= iss.lastStableCheckpoint.SeqNr() {
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", stableCheckpoint.SeqNr())
+		return eventsOut, nil
+	}
+
+	// If this is the most recent checkpoint observed, save it.
+	iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
+		"epoch", stableCheckpoint.Epoch(),
+		"sn", stableCheckpoint.SeqNr(),
+		"replacingEpoch", iss.lastStableCheckpoint.Epoch(),
+		"replacingSn", iss.lastStableCheckpoint.SeqNr(),
+		"numMemberships", len(stableCheckpoint.Memberships()),
+	)
+	iss.lastStableCheckpoint = stableCheckpoint
+
+	// Deliver the stable checkpoint (and potential batches committed in the meantime,
+	// but blocked from being delivered due to this missing checkpoint) to the application.
+	eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, stableCheckpoint.Pb()))
+	pcResult, err := iss.processCommitted()
+	if err != nil {
+		return nil, err
+	}
+	eventsOut.PushBackList(pcResult)
+
+	// Prune the state of all related modules.
+	// The state to prune is determined according to the retention index
+	// which is derived from the epoch number the new
+	// stable checkpoint is associated with.
+	pruneIndex := int(stableCheckpoint.Epoch()) - iss.Params.RetainedEpochs
+	if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
+
+		// Prune timer, checkpointing, availability, and orderers.
+		eventsOut.PushBackSlice([]*eventpb.Event{
+			events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
+			factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
+			factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
+			factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex)),
+		})
+		// TODO: Make EventList.PushBack accept a variable number of arguments and use it here.
+
+		// Prune epoch state.
+		for epoch := range iss.epochs {
+			if epoch < t.EpochNr(pruneIndex) {
+				delete(iss.epochs, epoch)
+			}
+		}
+
+		// Start state catch-up.
+		// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
+		// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that caught up
+		// before the re-transmission is garbage-collected.
+		eventsOut.PushBack(events.TimerRepeat(
+			iss.moduleConfig.Timer,
+			[]*eventpb.Event{PushCheckpoint(iss.moduleConfig.Self)},
+			t.TimeDuration(iss.Params.CatchUpTimerPeriod),
+
+			// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
+			// Using pruneIndex makes sure that the re-transmission is stopped
+			// on every stable checkpoint (when another one is started).
+			t.RetentionIndex(pruneIndex),
+		))
+
 	}
 
 	return eventsOut, nil
