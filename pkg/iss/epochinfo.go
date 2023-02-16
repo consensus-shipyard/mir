@@ -52,7 +52,7 @@ func (e *epochInfo) FirstSN() t.SeqNr {
 func (e *epochInfo) Len() int {
 	l := 0
 	for _, segment := range e.Segments {
-		l += len(segment.SeqNrs)
+		l += segment.Len()
 	}
 	return l
 }

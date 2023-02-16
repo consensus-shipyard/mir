@@ -407,7 +407,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 
 	// Create a temporary view change state object
 	// to use for reconstructing the re-proposals from the obtained view change messages.
-	vcState := newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.NodeIDs(), orderer.logger)
+	vcState := newPbftViewChangeState(orderer.segment.SeqNrs(), orderer.segment.NodeIDs(), orderer.logger)
 
 	// Feed all obtained ViewChange messages to the view chnage state.
 	for i, signedViewChange := range newView.SignedViewChanges {
@@ -475,7 +475,7 @@ func (orderer *Orderer) getViewChangeState(view t.PBFTViewNr) *pbftViewChangeSta
 	}
 
 	// If no view change state is yet associated with this view, allocate a new one and return it.
-	orderer.viewChangeStates[view] = newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.NodeIDs(), orderer.logger)
+	orderer.viewChangeStates[view] = newPbftViewChangeState(orderer.segment.SeqNrs(), orderer.segment.NodeIDs(), orderer.logger)
 
 	return orderer.viewChangeStates[view]
 }
@@ -650,7 +650,7 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 	qSet = make(map[t.SeqNr]map[string]t.PBFTViewNr)
 
 	// For each sequence number, compute the PSet and the QSet.
-	for _, sn := range orderer.segment.SeqNrs {
+	for _, sn := range orderer.segment.SeqNrs() {
 
 		// Initialize QSet.
 		// (No need to initialize the PSet, as, unlike the PSet,

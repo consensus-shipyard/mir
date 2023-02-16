@@ -16,24 +16,19 @@ type Segment struct {
 	// All nodes executing the orderer implementation.
 	Membership map[t.NodeID]t.NodeAddress
 
-	// List of sequence numbers for which the orderer is responsible.
-	// This is the actual "segment" of the commit log.
-	SeqNrs []t.SeqNr
-
-	// List of proposals, one per sequence number.
-	// A non-nil proposal will always be proposed by a node for the corresponding sequence number, regardless of view
-	// (unless, of course, a previous proposal is enforced by the protocol).
-	// If a proposal is nil, the implementation is left to choose the proposal.
+	// Sequence numbers for which the orderer is responsible, along with corresponding (optional) pre-defined proposals.
+	// The keys of this map are the actual "segment" of the commit log.
+	// A nil value means that no proposal is specified (and the protocol implementation will decide what to propose).
+	// A non-nil value will be proposed for that sequence number whenever possible.
 	// Currently, such a "free" proposal is a new availability certificate in view 0,
 	// and a special empty one in other views.
-	Proposals [][]byte
+	Proposals map[t.SeqNr][]byte
 }
 
-func NewSegment(leader t.NodeID, membership map[t.NodeID]t.NodeAddress, seqNrs []t.SeqNr, proposals [][]byte) *Segment {
+func NewSegment(leader t.NodeID, membership map[t.NodeID]t.NodeAddress, proposals map[t.SeqNr][]byte) *Segment {
 	return &Segment{
 		Leader:     leader,
 		Membership: membership,
-		SeqNrs:     seqNrs,
 		Proposals:  proposals,
 	}
 }
@@ -42,9 +37,35 @@ func SegmentFromPb(seg *ordererspb.PBFTSegment) *Segment {
 	return &Segment{
 		Leader:     t.NodeID(seg.Leader),
 		Membership: t.Membership(seg.Membership),
-		SeqNrs:     t.SeqNrSlice(seg.SeqNrs),
-		Proposals:  seg.Proposals,
+		Proposals: maputil.Transform(
+			seg.Proposals,
+			func(key uint64) t.SeqNr {
+				return t.SeqNr(key)
+			}, func(val []byte) []byte {
+				return val
+			},
+		),
 	}
+}
+
+func (seg *Segment) Pb() *ordererspb.PBFTSegment {
+	return &ordererspb.PBFTSegment{
+		Leader:     seg.Leader.Pb(),
+		Membership: t.MembershipPb(seg.Membership),
+		Proposals: maputil.Transform(
+			seg.Proposals,
+			func(key t.SeqNr) uint64 {
+				return key.Pb()
+			},
+			func(value []byte) []byte {
+				return value
+			},
+		),
+	}
+}
+
+func (seg *Segment) Len() int {
+	return len(seg.Proposals)
 }
 
 func (seg *Segment) NodeIDs() []t.NodeID {
@@ -64,11 +85,6 @@ func (seg *Segment) LeaderIndex() int {
 	panic("invalid segment: leader not in membership")
 }
 
-func (seg *Segment) Pb() *ordererspb.PBFTSegment {
-	return &ordererspb.PBFTSegment{
-		Leader:     seg.Leader.Pb(),
-		Membership: t.MembershipPb(seg.Membership),
-		SeqNrs:     t.SeqNrSlicePb(seg.SeqNrs),
-		Proposals:  seg.Proposals,
-	}
+func (seg *Segment) SeqNrs() []t.SeqNr {
+	return maputil.GetSortedKeys(seg.Proposals)
 }

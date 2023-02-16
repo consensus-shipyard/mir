@@ -149,8 +149,7 @@ message SBInstanceSigVerOrigin {
 message PBFTSegment {
   string              leader     = 1;
   commonpb.Membership membership = 2;
-  repeated uint64     seq_nrs    = 3;
-  repeated bytes      proposals  = 4;
+  map<uint64, bytes>  proposals  = 3;
 }
 
 message PBFTModule{

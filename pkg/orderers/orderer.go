@@ -322,7 +322,7 @@ func (orderer *Orderer) canPropose() bool {
 		!orderer.proposal.certRequested &&
 
 		// There must still be a free sequence number for which a proposal can be made.
-		orderer.proposal.proposalsMade < len(orderer.segment.SeqNrs) &&
+		orderer.proposal.proposalsMade < orderer.segment.Len() &&
 
 		// The proposal timeout must have passed.
 		orderer.proposal.proposalTimeout > orderer.proposal.proposalsMade &&
@@ -388,7 +388,7 @@ func (orderer *Orderer) initView(view t.PBFTViewNr) *events.EventList {
 
 	// Initialize PBFT slots for the new view, one for each sequence number.
 	orderer.slots[view] = make(map[t.SeqNr]*pbftSlot)
-	for _, sn := range orderer.segment.SeqNrs {
+	for _, sn := range orderer.segment.SeqNrs() {
 
 		// Create a fresh, empty slot.
 		// For n being the membership size, f = (n-1) / 3

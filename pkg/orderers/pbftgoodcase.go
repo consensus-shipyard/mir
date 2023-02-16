@@ -66,7 +66,8 @@ func (orderer *Orderer) applyProposeTimeout(numProposals int) (*events.EventList
 		if orderer.canPropose() {
 
 			// If a proposal already has been set as a parameter of the segment, propose it directly.
-			if proposal := orderer.segment.Proposals[orderer.proposal.proposalsMade]; proposal != nil {
+			sn := orderer.segment.SeqNrs()[orderer.proposal.proposalsMade]
+			if proposal := orderer.segment.Proposals[sn]; proposal != nil {
 				return orderer.propose(proposal)
 			}
 
@@ -134,7 +135,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 
 	// Update proposal counter.
-	sn := orderer.segment.SeqNrs[orderer.proposal.proposalsMade]
+	sn := orderer.segment.SeqNrs()[orderer.proposal.proposalsMade]
 	orderer.proposal.proposalsMade++
 
 	// Log debug message.
