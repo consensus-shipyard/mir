@@ -9,16 +9,15 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
-
-	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -34,21 +33,6 @@ type ValidityChecker interface {
 
 	// Check returns nil if the provided proposal data is valid, a non-nil error otherwise.
 	Check(data []byte) error
-}
-
-// The Segment type represents an ISS Segment.
-// It is used to parametrize an orderer (i.e. the SB instance).
-type Segment struct {
-
-	// The leader node of the orderer.
-	Leader t.NodeID
-
-	// List of all nodes executing the orderer implementation.
-	Membership []t.NodeID
-
-	// List of sequence numbers for which the orderer is responsible.
-	// This is the actual "segment" of the commit log.
-	SeqNrs []t.SeqNr
 }
 
 // Orderer represents a PBFT Orderer.
@@ -466,19 +450,6 @@ func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *ordererspbf
 // ============================================================
 // Auxiliary functions
 // ============================================================
-
-func primaryNode(seg *Segment, view t.PBFTViewNr) t.NodeID {
-	return seg.Membership[(leaderIndex(seg)+int(view))%len(seg.Membership)]
-}
-
-func leaderIndex(seg *Segment) int {
-	for i, nodeID := range seg.Membership {
-		if nodeID == seg.Leader {
-			return i
-		}
-	}
-	panic("invalid segment: leader not in membership")
-}
 
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.

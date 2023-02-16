@@ -142,7 +142,7 @@ func (orderer *Orderer) propose(cert *availabilitypb.Cert) (*events.EventList, e
 	msgSendEvent := events.SendMessage(orderer.moduleConfig.Net,
 		OrdererMessage(PbftPreprepareSBMessage(preprepare),
 			orderer.moduleConfig.Self), //same moduleID as destination
-		orderer.segment.Membership)
+		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
 
@@ -188,7 +188,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 	}
 
 	// Check whether the sender is the legitimate leader of the segment in the current view.
-	primary := primaryNode(orderer.segment, orderer.view)
+	primary := orderer.segment.PrimaryNode(orderer.view)
 	if from != primary {
 		orderer.logger.Log(logging.LevelWarn, "Ignoring Preprepare message. Invalid Leader.",
 			"expectedLeader", primary,
@@ -241,7 +241,7 @@ func (orderer *Orderer) sendPrepare(prepare *ordererspbftpb.Prepare) *events.Eve
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
 		OrdererMessage(PbftPrepareSBMessage(prepare), orderer.moduleConfig.Self),
-		orderer.segment.Membership,
+		orderer.segment.NodeIDs(),
 	))
 }
 
@@ -281,7 +281,7 @@ func (orderer *Orderer) sendCommit(commit *ordererspbftpb.Commit) *events.EventL
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
 		OrdererMessage(PbftCommitSBMessage(commit), orderer.moduleConfig.Self),
-		orderer.segment.Membership))
+		orderer.segment.NodeIDs()))
 }
 
 // applyMsgCommit applies a received commit message.

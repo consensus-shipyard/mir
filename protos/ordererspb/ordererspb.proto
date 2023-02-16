@@ -147,13 +147,13 @@ message SBInstanceSigVerOrigin {
 }
 
 message PBFTSegment {
-  string leader = 1;
-  repeated string membership = 2;
-  repeated uint64 seq_nrs = 3;
+  string              leader     = 1;
+  commonpb.Membership membership = 2;
+  repeated uint64     seq_nrs    = 3;
 }
 
 message PBFTModule{
-  PBFTSegment segment = 1;
-  string availability_id = 2;
-  uint64 epoch = 3;
+  PBFTSegment segment          = 1;
+  string      availability_id  = 2;
+  uint64      epoch            = 3;
 }

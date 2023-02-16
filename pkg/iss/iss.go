@@ -480,7 +480,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 	// catching up with state transfer.
 	var delayed []t.NodeID
 	lastStableCheckpointEpoch := iss.lastStableCheckpoint.Epoch()
-	for n := range iss.epoch.nodeIDs {
+	for n := range iss.epoch.Membership {
 		if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.Params.RetainedEpochs) {
 			delayed = append(delayed, n)
 		}
@@ -488,7 +488,7 @@ func (iss *ISS) applyPushCheckpoint() (*events.EventList, error) {
 
 	if len(delayed) > 0 {
 		iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
-			"delayed", delayed, "numNodes", len(iss.epoch.nodeIDs), "nodeEpochMap", iss.nodeEpochMap)
+			"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
 	}
 
 	m := StableCheckpointMessage(iss.lastStableCheckpoint)
@@ -611,11 +611,11 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// Initialize the internal data structures for the new epoch.
-	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
-	epoch := newEpochInfo(epochNr, iss.newEpochSN, nodeIDs, iss.LeaderPolicy)
+	epoch := newEpochInfo(epochNr, iss.newEpochSN, iss.memberships[0], iss.LeaderPolicy)
 	iss.epochs[epochNr] = &epoch
 	iss.epoch = &epoch
-	iss.logger.Log(logging.LevelInfo, "Initializing new epoch", "epochNr", epochNr, "nodes", nodeIDs, "leaders", iss.LeaderPolicy.Leaders())
+	iss.logger.Log(logging.LevelInfo, "Initializing new epoch",
+		"epochNr", epochNr, "nodes", maputil.GetSortedKeys(iss.memberships[0]), "leaders", iss.LeaderPolicy.Leaders())
 
 	// Signal the new epoch to the application.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
@@ -653,7 +653,7 @@ func (iss *ISS) initOrderers() *events.EventList {
 		// Create segment.
 		seg := &orderers.Segment{
 			Leader:     leader,
-			Membership: maputil.GetSortedKeys(iss.epoch.nodeIDs),
+			Membership: iss.epoch.Membership,
 			SeqNrs: sequenceNumbers(
 				iss.nextDeliveredSN+t.SeqNr(i),
 				t.SeqNr(len(leaders)),

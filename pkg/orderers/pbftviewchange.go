@@ -104,7 +104,7 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 	msgView := t.PBFTViewNr(viewChange.View)
 
 	// Compute the primary of this view (using round-robin on the membership)
-	primary := primaryNode(orderer.segment, msgView)
+	primary := orderer.segment.PrimaryNode(msgView)
 
 	// Assemble signature and viewChange to a SignedViewChange message.
 	signedViewChange := pbftSignedViewChangeMsg(viewChange, signature)
@@ -158,7 +158,7 @@ func (orderer *Orderer) applyVerifiedViewChange(svc *ordererspbftpb.SignedViewCh
 	}
 
 	// Discard ViewChange message if this node is not the primary for the referenced view
-	primary := primaryNode(orderer.segment, vcView)
+	primary := orderer.segment.PrimaryNode(vcView)
 	if orderer.ownID != primary {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring ViewChange. Not the primary of view",
 			"sender", from,
@@ -350,13 +350,13 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 			PbftNewViewSBMessage(newView),
 			orderer.moduleConfig.Self,
 		),
-		orderer.segment.Membership))
+		orderer.segment.NodeIDs()))
 }
 
 func (orderer *Orderer) applyMsgNewView(newView *ordererspbftpb.NewView, from t.NodeID) *events.EventList {
 
 	// Ignore message if the sender is not the primary of the view.
-	if from != primaryNode(orderer.segment, t.PBFTViewNr(newView.View)) {
+	if from != orderer.segment.PrimaryNode(t.PBFTViewNr(newView.View)) {
 		return events.EmptyList()
 	}
 
@@ -407,7 +407,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 
 	// Create a temporary view change state object
 	// to use for reconstructing the re-proposals from the obtained view change messages.
-	vcState := newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.Membership, orderer.logger)
+	vcState := newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.NodeIDs(), orderer.logger)
 
 	// Feed all obtained ViewChange messages to the view chnage state.
 	for i, signedViewChange := range newView.SignedViewChanges {
@@ -447,7 +447,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 	eventsOut := orderer.initView(msgView)
 
 	// Apply all the Preprepares contained in the NewView
-	primary := primaryNode(orderer.segment, msgView)
+	primary := orderer.segment.PrimaryNode(msgView)
 	for _, preprepare := range newView.Preprepares {
 		eventsOut.PushBackList(orderer.applyMsgPreprepare(preprepare, primary))
 	}
@@ -475,7 +475,7 @@ func (orderer *Orderer) getViewChangeState(view t.PBFTViewNr) *pbftViewChangeSta
 	}
 
 	// If no view change state is yet associated with this view, allocate a new one and return it.
-	orderer.viewChangeStates[view] = newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.Membership, orderer.logger)
+	orderer.viewChangeStates[view] = newPbftViewChangeState(orderer.segment.SeqNrs, orderer.segment.NodeIDs(), orderer.logger)
 
 	return orderer.viewChangeStates[view]
 }

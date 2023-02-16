@@ -67,7 +67,7 @@ func InstanceParams(
 		PbftModule: &ordererspb.PBFTModule{
 			Segment: &ordererspb.PBFTSegment{
 				Leader:     segment.Leader.Pb(),
-				Membership: t.NodeIDSlicePb(segment.Membership),
+				Membership: t.MembershipPb(segment.Membership),
 				SeqNrs:     t.SeqNrSlicePb(segment.SeqNrs),
 			},
 			AvailabilityId: availabilityID.Pb(),
