@@ -150,6 +150,7 @@ message PBFTSegment {
   string              leader     = 1;
   commonpb.Membership membership = 2;
   repeated uint64     seq_nrs    = 3;
+  repeated bytes      proposals  = 4;
 }
 
 message PBFTModule{

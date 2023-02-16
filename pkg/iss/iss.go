@@ -651,14 +651,9 @@ func (iss *ISS) initOrderers() *events.EventList {
 	for i, leader := range leaders {
 
 		// Create segment.
-		seg := &orderers.Segment{
-			Leader:     leader,
-			Membership: iss.epoch.Membership,
-			SeqNrs: sequenceNumbers(
-				iss.nextDeliveredSN+t.SeqNr(i),
-				t.SeqNr(len(leaders)),
-				iss.Params.SegmentLength),
-		}
+		// The sequence proposals are all set to nil, so that the orderer proposes new availability certificates.
+		seqNrs := sequenceNumbers(iss.nextDeliveredSN+t.SeqNr(i), t.SeqNr(len(leaders)), iss.Params.SegmentLength)
+		seg := orderers.NewSegment(leader, iss.epoch.Membership, seqNrs, make([][]byte, len(seqNrs)))
 		iss.newEpochSN += t.SeqNr(len(seg.SeqNrs))
 
 		// Instantiate a new PBFT orderer.
