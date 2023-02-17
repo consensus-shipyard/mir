@@ -2,6 +2,7 @@ package batchfetcher
 
 import (
 	"fmt"
+
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
 

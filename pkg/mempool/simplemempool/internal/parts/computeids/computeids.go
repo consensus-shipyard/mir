@@ -24,7 +24,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*requestpbtypes.Request, origin *mppbtypes.RequestTransactionIDsOrigin) error {
 		txMsgs := make([]*commonpbtypes.HashData, len(txs))
 		for i, tx := range txs {
-			txMsgs[i] = &commonpbtypes.HashData{serializing.RequestForHash(tx.Pb())}
+			txMsgs[i] = &commonpbtypes.HashData{Data: serializing.RequestForHash(tx.Pb())}
 		}
 
 		eventpbdsl.HashRequest(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})

@@ -63,7 +63,7 @@ func IncludeBatchCreation(
 		state.NewTxIDs = state.NewTxIDs[txCount:]
 
 		// Note that a batch may be empty.
-		mpdsl.NewBatch(m, t.ModuleID(origin.Module), txIDs, txs, origin)
+		mpdsl.NewBatch(m, origin.Module, txIDs, txs, origin)
 		return nil
 	})
 }
