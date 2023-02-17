@@ -370,7 +370,7 @@ func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*
 }
 
 // applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
-// It performs the necessary cleanup, mostly garbage-collecting state subsumed by the stable checkpoint.
+// It serializes and submits the checkpoint for agreement.
 func (iss *ISS) applyStableCheckpoint(chkp *checkpoint.StableCheckpoint) (*events.EventList, error) {
 
 	// Ignore old checkpoints.
