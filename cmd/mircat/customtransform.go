@@ -7,5 +7,12 @@ import "github.com/filecoin-project/mir/pkg/pb/eventpb"
 // If customEventFilter returns nil, the event is ignored (this can be used for additional event filtering).
 // It is meant for ad-hoc editing while debugging, to be able to select events in a fine-grained way.
 func customTransform(e *eventpb.Event) *eventpb.Event {
+
+	//moduleID := ""
+	//if e.DestModule == moduleID {
+	//	return e
+	//}
+	//return nil
+
 	return e
 }
