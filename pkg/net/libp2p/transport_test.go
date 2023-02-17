@@ -3,7 +3,9 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -103,7 +105,9 @@ func (m *mockLibp2pCommunication) CloseAllHosts() {
 	m.t.Log(">>> close hosts")
 	for _, v := range m.transports {
 		err := v.host.Close()
-		require.NoError(m.t, err)
+		if err != nil {
+			m.t.Fatalf("failed close host %v: %v", v.ownID, err)
+		}
 	}
 }
 
@@ -247,7 +251,7 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types
 			return network.Connected == n1.host.Network().Connectedness(n2.host.ID()) &&
 				m.streamExist(n1, n2) && m.streamExist(n2, n1)
 		},
-		10*time.Second, 100*time.Millisecond)
+		15*time.Second, 100*time.Millisecond)
 }
 
 func (m *mockLibp2pCommunication) testConnectionsEmpty() {
@@ -306,8 +310,31 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
-// TestLibp2p_ConnectTwoNodes that two nodes can be connected.
-func TestLibp2p_ConnectTwoNodes(t *testing.T) {
+// TestNewTransport tests that the transport can be created.
+func TestNewTransport(t *testing.T) {
+	addr := libp2putil.NewFreeHostAddr()
+	h := libp2putil.NewDummyHostNoListen(1, addr)
+	_ = NewTransport(DefaultParams(), types.NodeID("a"), h, logging.ConsoleDebugLogger)
+	err := h.Close()
+	require.NoError(t, err)
+}
+
+// TestTransportStartStop tests that the transport can be started and stopped.
+func TestTransportStartStop(t *testing.T) {
+	addr := libp2putil.NewFreeHostAddr()
+	h := libp2putil.NewDummyHostNoListen(1, addr)
+	tr := NewTransport(DefaultParams(), types.NodeID("a"), h, logging.ConsoleDebugLogger)
+
+	err := tr.Start()
+	require.NoError(t, err)
+	tr.Stop()
+
+	err = h.Close()
+	require.NoError(t, err)
+}
+
+// TestConnectTwoNodes that two nodes can be connected.
+func TestConnectTwoNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -335,8 +362,8 @@ func TestLibp2p_ConnectTwoNodes(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-// TestLibp2p_CallSendWithoutConnect test that method `Send` returns an error when it is called without `Connect`.
-func TestLibp2p_CallSendWithoutConnect(t *testing.T) {
+// TestCallSendWithoutConnect test that method `Send` returns an error when it is called without `Connect`.
+func TestCallSendWithoutConnect(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -356,8 +383,8 @@ func TestLibp2p_CallSendWithoutConnect(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-// TestLibp2p_SendReceive tests that messages can be sent and received.
-func TestLibp2p_SendReceive(t *testing.T) {
+// TestSendReceive tests that messages can be sent and received.
+func TestSendReceive(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -424,8 +451,8 @@ func TestLibp2p_SendReceive(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-// TestLibp2p_Connect test that connections can be changed.
-func TestLibp2p_Connect(t *testing.T) {
+// TestConnect test that connections can be changed.
+func TestConnect(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -485,7 +512,7 @@ func TestLibp2p_Connect(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-func TestLibp2p_Messaging(t *testing.T) {
+func TestMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -596,8 +623,8 @@ func TestLibp2p_Messaging(t *testing.T) {
 	}
 }
 
-// TestLibp2p_SendingWithWaitFor tests that the transport operates normally if WaitFor call is used.
-func TestLibp2p_SendingReceiveWithWaitFor(t *testing.T) {
+// TestSendingReceiveWithWaitFor tests that the transport operates normally if WaitFor call is used.
+func TestSendingReceiveWithWaitFor(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -637,9 +664,37 @@ func TestLibp2p_SendingReceiveWithWaitFor(t *testing.T) {
 	m.testNoHostConnections()
 }
 
-// TestLibp2p_SendingWithWaitForBlocking tests that the transport operates normally if WaitFor call and
+// TestNoConnectionsAfterStop tests that connections are not established after stop.
+func TestNoConnectionsAfterStop(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	a := m.transports[nodeA]
+	b := m.transports[nodeB]
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+
+	m.StartAllTransports()
+	initialNodes := m.Membership(nodeA, nodeB)
+	m.StopAllTransports()
+
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	m.testNeverConnected(nodeA, nodeB)
+	m.testEventuallyNoStreamsBetween(nodeA, nodeB)
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+}
+
+// TestSendReceiveWithWaitForAndBlock tests that the transport operates normally if WaitFor call and
 // blocking messages are used.
-func TestLibp2p_SendReceiveWithWaitForAndBlock(t *testing.T) {
+func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -702,8 +757,8 @@ func TestLibp2p_SendReceiveWithWaitForAndBlock(t *testing.T) {
 	m.testThatSenderIs(<-nodeBEventsChan, "blocker")
 }
 
-// TestLibp2p_ConnectionAfterFail tests that when a node fails to connect first time it will try to connect again.
-func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
+// TestOpeningConnectionAfterFail tests that when a node fails to connect first time it will try to connect again.
+func TestOpeningConnectionAfterFail(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -769,4 +824,124 @@ func TestLibp2p_OpeningConnectionAfterFail(t *testing.T) {
 
 	m.CloseAllHosts()
 	m.testNoHostConnections()
+}
+
+// TestMessagingWithNewNodes tests that the transport operates normally if new nodes are connected.
+//
+// This test connects N initial nodes with each other, starts sending messages between them.
+// Then, in parallel we add M new nodes and connect them with all other nodes.
+// Test checks that the implementation will not be in stuck and will not panic during those operations.
+//
+// nolint:gocognit
+func TestMessagingWithNewNodes(t *testing.T) {
+	logger := logging.ConsoleDebugLogger
+
+	N := 10 // number of nodes
+	M := 5  // number of new nodes
+	var nodes []types.NodeID
+	for i := 0; i < N+M; i++ {
+		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
+	}
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), nodes, logger)
+	m.StartAllTransports()
+	initialNodes := m.Membership(nodes[:N]...)
+	allNodes := m.Membership(nodes...)
+
+	t.Logf(">>> connecting nodes")
+	for i := 0; i < N; i++ {
+		m.transports[nodes[i]].Connect(initialNodes)
+	}
+
+	for i := 0; i < N; i++ {
+		for j := 0; j < N; j++ {
+			if i != j {
+				m.testEventuallyConnected(nodes[i], nodes[j])
+			}
+		}
+	}
+
+	t.Log(">>> sending messages")
+
+	var received, sent int64
+	var senders, receivers sync.WaitGroup
+
+	sender := func(src, dst types.NodeID) {
+		defer senders.Done()
+
+		for i := 0; i < 100; i++ {
+			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond) // nolint
+			err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
+			if err != nil {
+				t.Logf("%v->%v failed to send: %v", src, dst, err)
+			} else {
+				atomic.AddInt64(&sent, 1)
+			}
+		}
+	}
+
+	receiver := func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
+		defer receivers.Done()
+
+		for {
+			select {
+			case <-stop:
+				return
+			case e, ok := <-events:
+				if !ok {
+					return
+				}
+				_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+				require.Equal(m.t, true, valid)
+				atomic.AddInt64(&received, 1)
+			}
+		}
+	}
+
+	for i := 0; i < N+M; i++ {
+		for j := 0; j < N+M; j++ {
+			if i != j {
+				senders.Add(1)
+				go sender(nodes[i], nodes[j])
+			}
+		}
+	}
+
+	for i := 0; i < N+M; i++ {
+		ch := m.transports[nodes[i]]
+		receivers.Add(1)
+		go receiver(ch.ownID, ch.incomingMessages, ch.stop)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < M+N; i++ {
+			time.Sleep(time.Duration(rand.Intn(200)) * time.Millisecond) // nolint
+			m.transports[nodes[i]].Connect(allNodes)
+		}
+		for i := 0; i < N+M; i++ {
+			for j := 0; j < N+M; j++ {
+				if i != j {
+					m.testEventuallyConnected(nodes[i], nodes[j])
+				}
+			}
+		}
+		done <- struct{}{}
+	}()
+
+	senders.Wait()
+
+	t.Log(">>> cleaning")
+	<-done
+	m.StopAllTransports()
+	receivers.Wait()
+
+	for _, n := range nodes {
+		m.testEventuallyNoStreams(n)
+	}
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+
+	t.Logf(">>> sent: %d, received: %d", sent, received)
 }

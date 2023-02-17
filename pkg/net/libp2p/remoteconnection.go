@@ -193,11 +193,14 @@ func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
 
 	// If connecting failed, wait a moment before returning.
 	// (tryConnecting is likely to be called again immediately if it fails.)
+	after := time.NewTimer(conn.params.ReconnectionPeriod)
+	defer after.Stop()
+
 	if err != nil {
 		select {
 		case <-conn.stop:
 			return fmt.Errorf("context canceled")
-		case <-time.After(conn.params.ReconnectionPeriod):
+		case <-after.C:
 			conn.logger.Log(logging.LevelWarn, "Failed connecting.", "err", err)
 			return nil
 		}

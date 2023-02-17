@@ -92,6 +92,13 @@ func (tr *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
 	tr.connectionsLock.Lock()
 	defer tr.connectionsLock.Unlock()
 
+	select {
+	case <-tr.stop:
+		tr.logger.Log(logging.LevelWarn, "called connect after stop")
+		return
+	default:
+	}
+
 	for nodeID, addr := range nodes {
 		// For each given node
 
