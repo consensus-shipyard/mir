@@ -71,6 +71,11 @@ type Protocol struct {
 
 	// Time interval for repeated retransmission of checkpoint messages.
 	resendPeriod t.TimeDuration
+
+	// Flag ensuring that the stable checkpoint is only announced once.
+	// Set to true when announcing a stable checkpoint for the first time.
+	// When true, stable checkpoints are not announced anymore.
+	announced bool
 }
 
 // NewProtocol allocates and returns a new instance of the Protocol associated with sequence number sn.
@@ -90,6 +95,7 @@ func NewProtocol(
 		seqNr:           t.SeqNr(epochConfig.FirstSn),
 		epoch:           t.EpochNr(epochConfig.EpochNr),
 		resendPeriod:    resendPeriod,
+		announced:       false,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
@@ -323,6 +329,12 @@ func (p *Protocol) stable() bool {
 }
 
 func (p *Protocol) announceStable() *events.EventList {
+
+	// Only announce the stable checkpoint once.
+	if p.announced {
+		return events.EmptyList()
+	}
+	p.announced = true
 
 	// Assemble a multisig certificate from the received signatures.
 	cert := make(map[string][]byte)
