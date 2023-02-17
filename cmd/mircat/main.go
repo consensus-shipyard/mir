@@ -43,6 +43,10 @@ type arguments struct {
 	// If set to true, start a Node in debug mode with the given event log.
 	debug bool
 
+	// When this is true, the selected events are all passed to the custom module.
+	// Note that this is completely separate from normal debugging.
+	dbgModule bool
+
 	// The rest of the fields are only used in debug mode and are otherwise ignored.
 
 	// The ID of the node being debugged.
@@ -133,6 +137,7 @@ func parseArgs(args []string) (*arguments, error) {
 	limit := app.Flag("limit", "Maximum number of events to consider for display or debug").Default("0").Int()
 	dbg := app.Flag("debug", "Start a Node in debug mode with the given event log.").Short('d').Bool()
 	id := app.Flag("own-id", "ID of the node to use for debugging.").String()
+	dbgModule := app.Flag("module", "Debug the custom module.").Bool()
 	membership := app.Flag(
 		"node-id",
 		"ID of one membership node, specified once for each node (debugging only).",
@@ -148,6 +153,7 @@ func parseArgs(args []string) (*arguments, error) {
 	return &arguments{
 		src:                   src,
 		debug:                 *dbg,
+		dbgModule:             *dbgModule,
 		ownID:                 t.NodeID(*id),
 		membership:            t.NodeIDSlice(*membership),
 		showNodeEvents:        *showNodeEvents,
