@@ -102,10 +102,16 @@ type ISS struct {
 	// The first sequence number to be delivered in the new epoch.
 	newEpochSN t.SeqNr
 
-	// Stores the stable checkpoint with the highest sequence number observed so far.
+	// Stores the stable checkpoint with the highest sequence number agreed-upon so far.
 	// If no stable checkpoint has been observed yet, lastStableCheckpoint is initialized to a stable checkpoint value
 	// corresponding to the initial state and associated with sequence number 0.
 	lastStableCheckpoint *checkpoint.StableCheckpoint
+
+	// Stores the highest stable checkpoint sequence number received from the checkpointing protocol so far.
+	// This value is set immediately on reception of the checkpoint, without waiting for agreement on it.
+	// This is only necessary if the checkpointing protocol announces a stable checkpoint multiple times,
+	// in which case we use this value to only start a single agreement protocol for the same checkpoint.
+	lastPendingCheckpointSN t.SeqNr
 
 	// The logic for selecting leader nodes in each epoch.
 	// For details see the documentation of the LeaderSelectionPolicy type.
@@ -159,22 +165,23 @@ func New(
 
 	// Initialize a new ISS object.
 	iss := &ISS{
-		ownID:                ownID,
-		moduleConfig:         moduleConfig,
-		Params:               params,
-		hashImpl:             hashImpl,
-		chkpVerifier:         chkpVerifier,
-		logger:               logger,
-		epoch:                nil, // Initialized later.
-		epochs:               make(map[t.EpochNr]*epochInfo),
-		nodeEpochMap:         make(map[t.NodeID]t.EpochNr),
-		memberships:          startingChkp.Memberships(),
-		nextNewMembership:    nil,
-		commitLog:            make(map[t.SeqNr]*CommitLogEntry),
-		nextDeliveredSN:      startingChkp.SeqNr(),
-		newEpochSN:           startingChkp.SeqNr(),
-		lastStableCheckpoint: startingChkp,
-		LeaderPolicy:         leaderPolicy,
+		ownID:                   ownID,
+		moduleConfig:            moduleConfig,
+		Params:                  params,
+		hashImpl:                hashImpl,
+		chkpVerifier:            chkpVerifier,
+		logger:                  logger,
+		epoch:                   nil, // Initialized later.
+		epochs:                  make(map[t.EpochNr]*epochInfo),
+		nodeEpochMap:            make(map[t.NodeID]t.EpochNr),
+		memberships:             startingChkp.Memberships(),
+		nextNewMembership:       nil,
+		commitLog:               make(map[t.SeqNr]*CommitLogEntry),
+		nextDeliveredSN:         startingChkp.SeqNr(),
+		newEpochSN:              startingChkp.SeqNr(),
+		lastStableCheckpoint:    startingChkp,
+		lastPendingCheckpointSN: 0,
+		LeaderPolicy:            leaderPolicy,
 		// TODO: Make sure that verification of the stable checkpoint certificate for epoch 0 is handled properly.
 		//       (Probably "always valid", if the membership is right.) There is no epoch -1 with nodes to sign it.
 	}
@@ -374,10 +381,11 @@ func (iss *ISS) applyEpochProgress(epochProgress *checkpointpb.EpochProgress) (*
 func (iss *ISS) applyStableCheckpoint(chkp *checkpoint.StableCheckpoint) (*events.EventList, error) {
 
 	// Ignore old checkpoints.
-	if chkp.SeqNr() <= iss.lastStableCheckpoint.SeqNr() {
+	if chkp.SeqNr() <= iss.lastPendingCheckpointSN {
 		iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", chkp.SeqNr())
 		return events.EmptyList(), nil
 	}
+	iss.lastPendingCheckpointSN = chkp.SeqNr()
 
 	// If this is the most recent checkpoint observed, save it.
 	iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
