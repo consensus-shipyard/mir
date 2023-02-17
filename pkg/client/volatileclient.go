@@ -29,7 +29,7 @@ func NewVolatileClient(clientID t.ClientID) *VolatileClient {
 // corresponding to the number of transactions previously created by this client.
 // Until Done is called with the returned transaction's number,
 // the transaction will be pending, i.e., among the transactions returned by Pending.
-func (vc *VolatileClient) NewTX(txType uint64, data []byte) *requestpb.Request {
+func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*requestpb.Request, error) {
 	tx := &requestpb.Request{
 		ClientId: vc.clientID.Pb(),
 		ReqNo:    vc.nextTxNo.Pb(),
@@ -38,19 +38,22 @@ func (vc *VolatileClient) NewTX(txType uint64, data []byte) *requestpb.Request {
 	}
 	vc.pendingTX[vc.nextTxNo] = tx
 	vc.nextTxNo++
-	return tx
+	return tx, nil
 }
 
 // Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
-func (vc *VolatileClient) Done(txNo t.ReqNo) {
+func (vc *VolatileClient) Done(txNo t.ReqNo) error {
 	delete(vc.pendingTX, txNo)
+	return nil
 }
 
 // Pending returns all transactions previously returned by NewTX that have not been marked as done.
-func (vc *VolatileClient) Pending() []*requestpb.Request {
-	return maputil.GetValuesOf(vc.pendingTX, maputil.GetSortedKeys(vc.pendingTX))
+func (vc *VolatileClient) Pending() ([]*requestpb.Request, error) {
+	return maputil.GetValuesOf(vc.pendingTX, maputil.GetSortedKeys(vc.pendingTX)), nil
 }
 
 // Sync does nothing.
 // VolatileClient does not provide any persistence.
-func (vc *VolatileClient) Sync() {}
+func (vc *VolatileClient) Sync() error {
+	return nil
+}

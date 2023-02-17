@@ -22,15 +22,15 @@ type Client interface {
 	// the transaction will be pending, i.e., among the transactions returned by Pending.
 	// The transaction need not necessarily yet be written to persistent storage when NewTX returns.
 	// Use the separate Sync() method to guarantee persistence.
-	NewTX(txType uint64, data []byte) *requestpb.Request
+	NewTX(txType uint64, data []byte) (*requestpb.Request, error)
 
 	// Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
 	// The effect of this call need not be written to persistent storage until Sync is called.
-	Done(txNo t.ReqNo)
+	Done(txNo t.ReqNo) error
 
 	// Pending returns all transactions previously returned by NewTX that have not been marked as done.
-	Pending() []*requestpb.Request
+	Pending() ([]*requestpb.Request, error)
 
 	// Sync ensures that the effects of all previous calls to NewTX and Done have been written to persistent storage.
-	Sync()
+	Sync() error
 }
