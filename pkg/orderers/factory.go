@@ -48,6 +48,9 @@ func Factory(
 				epoch := t.EpochNr(p.Epoch)
 				segment := SegmentFromPb(p.Segment)
 
+				// Create new configuration for this particular orderer instance.
+				ordererConfig := newOrdererConfig(issParams, segment.NodeIDs(), epoch)
+
 				// Select validity checker
 				var validityChecker ValidityChecker
 				switch ValidityCheckerType(p.ValidityChecker) {
@@ -55,6 +58,11 @@ func Factory(
 					validityChecker = newPermissiveValidityChecker()
 				case CheckpointValidityChecker:
 					validityChecker = newCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership)
+
+					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
+					// Make the agreement on a checkpoint start immediately.
+					ordererConfig.MaxProposeDelay = 0
+
 				}
 
 				// Instantiate new protocol instance.
@@ -62,11 +70,7 @@ func Factory(
 					&submc,
 					ownID,
 					segment,
-					newOrdererConfig(
-						issParams,
-						segment.NodeIDs(),
-						epoch,
-					),
+					ordererConfig,
 					validityChecker,
 
 					//TODO better logging here
