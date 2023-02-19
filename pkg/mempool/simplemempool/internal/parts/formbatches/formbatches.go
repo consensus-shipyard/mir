@@ -26,6 +26,7 @@ func IncludeBatchCreation(
 		State:    commonState,
 		NewTxIDs: nil,
 	}
+	txIDCount := make(map[string]int, 0)
 
 	eventpbdsl.UponNewRequests(m, func(txs []*requestpbtypes.Request) error {
 		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
@@ -35,6 +36,7 @@ func IncludeBatchCreation(
 	mpdsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
 		for i := range txIDs {
 			state.TxByID[string(txIDs[i])] = context.txs[i]
+			txIDCount[string(txIDs[i])] = txIDCount[string(txIDs[i])] + 1
 		}
 		state.NewTxIDs = append(state.NewTxIDs, txIDs...)
 		return nil
@@ -58,6 +60,15 @@ func IncludeBatchCreation(
 			txs = append(txs, tx)
 			batchSize += len(tx.Data)
 			txCount++
+		}
+
+		for _, txID := range state.NewTxIDs[:txCount] {
+			if txIDCount[string(txID)] == 1 {
+				delete(state.TxByID, string(txID))
+				delete(txIDCount, string(txID))
+			} else {
+				txIDCount[string(txID)] = txIDCount[string(txID)] - 1
+			}
 		}
 
 		state.NewTxIDs = state.NewTxIDs[txCount:]
