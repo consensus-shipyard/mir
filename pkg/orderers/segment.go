@@ -19,7 +19,7 @@ type Segment struct {
 	// Sequence numbers for which the orderer is responsible, along with corresponding (optional) pre-defined proposals.
 	// The keys of this map are the actual "segment" of the commit log.
 	// A nil value means that no proposal is specified (and the protocol implementation will decide what to propose).
-	// A non-nil value will be proposed for that sequence number whenever possible.
+	// A non-nil value will be proposed (by this node) for that sequence number whenever possible.
 	// Currently, such a "free" proposal is a new availability certificate in view 0,
 	// and a special empty one in other views.
 	Proposals map[t.SeqNr][]byte
