@@ -30,6 +30,7 @@ require (
 	github.com/drand/kyber-bls12381 v0.2.3
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/ipfs/go-cid v0.2.0
+	github.com/libp2p/go-yamux/v3 v3.1.2
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/multiformats/go-multiaddr v0.6.0
 	github.com/reactivex/rxgo/v2 v2.5.0
@@ -82,7 +83,6 @@ require (
 	github.com/libp2p/go-netroute v0.2.0 // indirect
 	github.com/libp2p/go-openssl v0.1.0 // indirect
 	github.com/libp2p/go-reuseport v0.2.0 // indirect
-	github.com/libp2p/go-yamux/v3 v3.1.2 // indirect
 	github.com/lucas-clemente/quic-go v0.28.1 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.2 // indirect
@@ -134,7 +134,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
