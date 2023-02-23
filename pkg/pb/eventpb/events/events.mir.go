@@ -2,7 +2,7 @@ package eventpbevents
 
 import (
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	types6 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -154,7 +154,7 @@ func AppSnapshotRequest(destModule types.ModuleID, replyTo types.ModuleID) *type
 	}
 }
 
-func AppRestoreState(destModule types.ModuleID, checkpoint *checkpointpb.StableCheckpoint) *types1.Event {
+func AppRestoreState(destModule types.ModuleID, checkpoint *types6.StableCheckpoint) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_AppRestoreState{

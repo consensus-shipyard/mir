@@ -3,7 +3,7 @@ package eventpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	types6 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -118,7 +118,7 @@ func UponAppSnapshotRequest(m dsl.Module, handler func(replyTo types3.ModuleID) 
 	})
 }
 
-func UponAppRestoreState(m dsl.Module, handler func(checkpoint *checkpointpb.StableCheckpoint) error) {
+func UponAppRestoreState(m dsl.Module, handler func(checkpoint *types6.StableCheckpoint) error) {
 	dsl.UponMirEvent[*types.Event_AppRestoreState](m, func(ev *types.AppRestoreState) error {
 		return handler(ev.Checkpoint)
 	})

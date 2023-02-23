@@ -25,3 +25,23 @@ func (m *HashData) Pb() *commonpb.HashData {
 func (*HashData) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.HashData]()}
 }
+
+type ClientProgress struct {
+	Progress map[string]*commonpb.DeliveredReqs
+}
+
+func ClientProgressFromPb(pb *commonpb.ClientProgress) *ClientProgress {
+	return &ClientProgress{
+		Progress: pb.Progress,
+	}
+}
+
+func (m *ClientProgress) Pb() *commonpb.ClientProgress {
+	return &commonpb.ClientProgress{
+		Progress: m.Progress,
+	}
+}
+
+func (*ClientProgress) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.ClientProgress]()}
+}

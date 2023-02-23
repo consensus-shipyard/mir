@@ -3,13 +3,12 @@ package batchfetcher
 import (
 	"fmt"
 
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
-	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
-
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
@@ -94,6 +93,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
 			f: func(_ *eventpb.Event) {
 				clientProgress.GarbageCollect()
+				//commonpbdsl.ClientProgress(m, mc.Checkpoint, clientProgress.ClientTrackers)
 				dsl.EmitEvent(m, bfevents.ClientProgress(
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
 					clientProgress.Pb(),
@@ -107,7 +107,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The AppRestoreState handler restores the batch fetcher's state from a checkpoint
 	// and forwards the event to the application, so it can restore its state too.
-	eventpbdsl.UponAppRestoreState(m, func(chkp *checkpointpb.StableCheckpoint) error {
+	eventpbdsl.UponAppRestoreState(m, func(chkp *checkpointpbtypes.StableCheckpoint) error {
 		// Update current epoch number.
 		epochNr = t.EpochNr(chkp.Snapshot.EpochData.EpochConfig.EpochNr)
 

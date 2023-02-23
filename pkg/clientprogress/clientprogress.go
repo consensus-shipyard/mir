@@ -8,27 +8,27 @@ import (
 
 // ClientProgress tracks watermarks for all the clients.
 type ClientProgress struct {
-	clientTrackers map[t.ClientID]*DeliveredReqs
+	ClientTrackers map[t.ClientID]*DeliveredReqs
 	logger         logging.Logger
 }
 
 func NewClientProgress(logger logging.Logger) *ClientProgress {
 	return &ClientProgress{
-		clientTrackers: make(map[t.ClientID]*DeliveredReqs),
+		ClientTrackers: make(map[t.ClientID]*DeliveredReqs),
 		logger:         logger,
 	}
 }
 
 func (cp *ClientProgress) Add(clID t.ClientID, reqNo t.ReqNo) bool {
-	if _, ok := cp.clientTrackers[clID]; !ok {
-		cp.clientTrackers[clID] = EmptyDeliveredReqs(logging.Decorate(cp.logger, "", "clID", clID))
+	if _, ok := cp.ClientTrackers[clID]; !ok {
+		cp.ClientTrackers[clID] = EmptyDeliveredReqs(logging.Decorate(cp.logger, "", "clID", clID))
 	}
-	return cp.clientTrackers[clID].Add(reqNo)
+	return cp.ClientTrackers[clID].Add(reqNo)
 }
 
 func (cp *ClientProgress) GarbageCollect() map[t.ClientID]t.ReqNo {
 	lowWMs := make(map[t.ClientID]t.ReqNo)
-	for clientID, cwmt := range cp.clientTrackers {
+	for clientID, cwmt := range cp.ClientTrackers {
 		lowWMs[clientID] = cwmt.GarbageCollect()
 	}
 	return lowWMs
@@ -36,16 +36,16 @@ func (cp *ClientProgress) GarbageCollect() map[t.ClientID]t.ReqNo {
 
 func (cp *ClientProgress) Pb() *commonpb.ClientProgress {
 	pb := make(map[string]*commonpb.DeliveredReqs)
-	for clientID, clientTracker := range cp.clientTrackers {
+	for clientID, clientTracker := range cp.ClientTrackers {
 		pb[clientID.Pb()] = clientTracker.Pb()
 	}
 	return &commonpb.ClientProgress{Progress: pb}
 }
 
 func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
-	cp.clientTrackers = make(map[t.ClientID]*DeliveredReqs)
+	cp.ClientTrackers = make(map[t.ClientID]*DeliveredReqs)
 	for clientID, deliveredReqs := range pb.Progress {
-		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(
+		cp.ClientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(
 			deliveredReqs,
 			logging.Decorate(cp.logger, "", "clID", clientID),
 		)

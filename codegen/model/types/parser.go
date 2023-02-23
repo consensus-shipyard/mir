@@ -225,7 +225,7 @@ func (p *Parser) parseField(
 	protoField protoreflect.FieldDescriptor,
 ) (*Field, error) {
 
-	tp, err := p.getFieldType(goField.Type, protoField)
+	tp, err := p.getFieldType(goField.Type, protoField, false)
 	if err != nil {
 		return nil, err
 	}
@@ -238,15 +238,26 @@ func (p *Parser) parseField(
 	}, nil
 }
 
-func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.FieldDescriptor) (Type, error) {
+func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.FieldDescriptor, mapType bool) (Type, error) {
 	// TODO: Since maps are not currently used, I didn't bother supporting them yet.
+	//if goType.Kind() == reflect.Map {
+	//	return nil, fmt.Errorf("map fields are not supported yet")
+	//}
 	if goType.Kind() == reflect.Map {
-		return nil, fmt.Errorf("map fields are not supported yet")
+		key, err := p.getFieldType(goType.Key(), protoField, false)
+		if err != nil {
+			return nil, err
+		}
+		val, err := p.getFieldType(goType.Elem(), protoField, true)
+		if err != nil {
+			return nil, err
+		}
+		return Map{key, val}, nil
 	}
 
 	// Check if the field is repeated.
 	if goType.Kind() == reflect.Slice {
-		underlying, err := p.getFieldType(goType.Elem(), protoField)
+		underlying, err := p.getFieldType(goType.Elem(), protoField, false)
 		if err != nil {
 			return nil, err
 		}
@@ -263,6 +274,15 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 	}
 
 	if mirTypeOption != "" {
+		sepMapIdx := strings.Index(mirTypeOption, "|")
+		if sepMapIdx != -1 { // it is a map type
+			if !mapType { //key value
+				mirTypeOption = mirTypeOption[:sepMapIdx]
+			} else { // map value
+				mirTypeOption = mirTypeOption[sepMapIdx+1:]
+			}
+		}
+
 		sepIdx := strings.LastIndex(mirTypeOption, ".")
 		return Castable{
 			PbType_:  jenutil.QualFromType(goType),
