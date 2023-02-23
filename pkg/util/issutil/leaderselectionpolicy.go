@@ -23,7 +23,7 @@ const (
 	Blacklist
 )
 
-//Initiate cbor.EncMode to core deterministic once only
+// Initiate cbor.EncMode to core deterministic once only
 var encMode cbor.EncMode
 var once sync.Once
 

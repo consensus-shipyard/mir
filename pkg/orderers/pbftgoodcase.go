@@ -207,7 +207,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 
 }
 
-//Finalize applyMsgPreprepare after cert verified
+// Finalize applyMsgPreprepare after cert verified
 func (orderer *Orderer) applyCertVerified(verified *availabilitypb.CertVerified) (*events.EventList, error) {
 	// TODO Alejandro: change to verify certs in the slice (argument is now slice)
 	//pop from FIFO
