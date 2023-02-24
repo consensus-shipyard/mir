@@ -153,10 +153,9 @@ func (*LookupBatch) MirReflect() mirreflect.Type {
 }
 
 type LookupBatchResponse struct {
-	Found    bool
-	Txs      []*types.Request
-	Metadata []uint8
-	Origin   *LookupBatchOrigin
+	Found  bool
+	Txs    []*types.Request
+	Origin *LookupBatchOrigin
 }
 
 func LookupBatchResponseFromPb(pb *batchdbpb.LookupBatchResponse) *LookupBatchResponse {
@@ -165,8 +164,7 @@ func LookupBatchResponseFromPb(pb *batchdbpb.LookupBatchResponse) *LookupBatchRe
 		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
 			return types.RequestFromPb(t)
 		}),
-		Metadata: pb.Metadata,
-		Origin:   LookupBatchOriginFromPb(pb.Origin),
+		Origin: LookupBatchOriginFromPb(pb.Origin),
 	}
 }
 
@@ -176,8 +174,7 @@ func (m *LookupBatchResponse) Pb() *batchdbpb.LookupBatchResponse {
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
 			return (t).Pb()
 		}),
-		Metadata: m.Metadata,
-		Origin:   (m.Origin).Pb(),
+		Origin: (m.Origin).Pb(),
 	}
 }
 

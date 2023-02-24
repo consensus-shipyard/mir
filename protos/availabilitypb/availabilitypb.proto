@@ -119,11 +119,9 @@ message VerifyCertOrigin {
 }
 
 message Cert {
-  option (mir.event_class) = true;
+  option (mir.struct) = true;
 
   oneof type {
-    option (mir.event_type) = true;
-
     mscpb.Certs mscs = 1;
   }
 }

@@ -97,17 +97,6 @@ func NodeIDSlicePb(nids []NodeID) []string {
 // TxID is a unique identifier of a transaction.
 type TxID = []byte
 
-//
-//// Pb converts a TxID to its underlying native type.
-//func (id TxID) Pb() []byte {
-//	return []byte(id)
-//}
-//
-//// Bytes serializes the object to a sequence of bytes.
-//func (id TxID) Bytes() []byte {
-//	return []byte(id)
-//}
-
 // TxIDSlice converts a slice of TxIDs represented directly as their underlying native type
 // to a slice of abstractly typed transaction IDs.
 func TxIDSlice(ids [][]byte) []TxID {
@@ -130,17 +119,6 @@ type RequestID = uint64
 
 // BatchID is a unique identifier of a batch.
 type BatchID = []byte
-
-//
-//// Pb converts a BatchID to its underlying native type.
-//func (id BatchID) Pb() []byte {
-//	return []byte(id)
-//}
-//
-//// Bytes serializes the object to a sequence of bytes.
-//func (id BatchID) Bytes() []byte {
-//	return []byte(id)
-//}
 
 // BatchIDSlice converts a slice of BatchIDs represented directly as their underlying native type
 // to a slice of abstractly typed batch IDs.

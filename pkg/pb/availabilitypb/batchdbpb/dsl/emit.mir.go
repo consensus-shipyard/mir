@@ -21,8 +21,8 @@ func LookupBatch[C any](m dsl.Module, destModule types.ModuleID, batchId []uint8
 	dsl.EmitMirEvent(m, events.LookupBatch(destModule, batchId, origin))
 }
 
-func LookupBatchResponse(m dsl.Module, destModule types.ModuleID, found bool, txs []*types2.Request, metadata []uint8, origin *types1.LookupBatchOrigin) {
-	dsl.EmitMirEvent(m, events.LookupBatchResponse(destModule, found, txs, metadata, origin))
+func LookupBatchResponse(m dsl.Module, destModule types.ModuleID, found bool, txs []*types2.Request, origin *types1.LookupBatchOrigin) {
+	dsl.EmitMirEvent(m, events.LookupBatchResponse(destModule, found, txs, origin))
 }
 
 func StoreBatch[C any](m dsl.Module, destModule types.ModuleID, batchId []uint8, txIds [][]uint8, txs []*types2.Request, metadata []uint8, context *C) {

@@ -86,7 +86,7 @@ func (orderer *Orderer) requestNewCert() *events.EventList {
 
 	// Emit the CertRequest event.
 	// Operation continues on reception of the CertReady event.
-	return orderer.requestCertOrigin() //.PushBack(availabilityevents.ComputeCert(orderer.moduleConfig.Ava))
+	return orderer.requestCertOrigin()
 }
 
 // applyCertReady processes a new availability certificate ready to be proposed.
@@ -190,38 +190,8 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 			"sender", from,
 		)
 	}
-
-	// Future view changes decide empty segments, no need to have a certificate
-	if orderer.view > 0 && preprepare.Aborted && len(preprepare.CertData) == 0 {
-		return orderer.finishUpPreprepare(preprepare, slot)
-	}
-
-	// append to FIFO
-	orderer.notVerifiedPrepepareContext = append(orderer.notVerifiedPrepepareContext, &verifyCertContext{
-		preprepare,
-		slot,
-	})
-
-	//Verify certificate from preprepare message before saving it in the slot
-	return orderer.verifyCert(preprepare) // TODO Alejandro: change to verify certs in the slice (new message? probs best?)
-
-}
-
-// Finalize applyMsgPreprepare after cert verified
-func (orderer *Orderer) applyCertVerified(verified *availabilitypb.CertVerified) (*events.EventList, error) {
-	// TODO Alejandro: change to verify certs in the slice (argument is now slice)
-	//pop from FIFO
-	context := orderer.notVerifiedPrepepareContext[0]
-	orderer.notVerifiedPrepepareContext = orderer.notVerifiedPrepepareContext[1:]
-
-	if !verified.Valid {
-		return events.EmptyList(), fmt.Errorf(verified.Err)
-	}
-	return orderer.finishUpPreprepare(context.prepepare, context.slot), nil
-}
-
-func (orderer *Orderer) finishUpPreprepare(preprepare *ordererspbftpb.Preprepare, slot *pbftSlot) *events.EventList {
-	// Save the received preprepare message.
+	
+	//FIXME Address verification of the certificate after decision, issue #335
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.

@@ -23,17 +23,16 @@ func LookupBatch(destModule types.ModuleID, batchId []uint8, origin *types1.Look
 	}
 }
 
-func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types3.Request, metadata []uint8, origin *types1.LookupBatchOrigin) *types2.Event {
+func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types3.Request, origin *types1.LookupBatchOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_BatchDb{
 			BatchDb: &types1.Event{
 				Type: &types1.Event_LookupResponse{
 					LookupResponse: &types1.LookupBatchResponse{
-						Found:    found,
-						Txs:      txs,
-						Metadata: metadata,
-						Origin:   origin,
+						Found:  found,
+						Txs:    txs,
+						Origin: origin,
 					},
 				},
 			},

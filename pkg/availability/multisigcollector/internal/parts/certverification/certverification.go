@@ -35,7 +35,6 @@ func IncludeVerificationOfCertificates(
 	m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
-	nodeID t.NodeID,
 ) {
 	state := State{
 		NextReqID:    0,
@@ -58,15 +57,11 @@ func IncludeVerificationOfCertificates(
 		state.RequestState[reqID] = &RequestState{
 			certVerifiedValid: make(map[t.BatchIDString]bool),
 		}
-		nonEmptyCerts := make([]*mscpbtypes.Cert, 0)
 
+		allEmpty := true
 		for _, mscCert := range mscCerts {
 			if !emptycert.IsEmpty(mscCert) {
-				nonEmptyCerts = append(nonEmptyCerts, mscCert) // do not add to requests
-			}
-		}
-		if len(nonEmptyCerts) > 0 {
-			for _, mscCert := range nonEmptyCerts {
+				allEmpty = false
 				state.RequestState[reqID].certVerifiedValid[t.BatchIDString(mscCert.BatchId)] = false
 				sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
 				dsl.VerifyNodeSigs(m, mc.Crypto,
@@ -76,7 +71,9 @@ func IncludeVerificationOfCertificates(
 					/*context*/ &verifySigsInCertContext{origin, reqID, mscCert},
 				)
 			}
-		} else {
+		}
+
+		if allEmpty {
 			// all certs are empty cert, verify immediately
 			apbdsl.CertVerified(m, origin.Module, true, "", origin)
 			delete(state.RequestState, reqID)
@@ -93,7 +90,7 @@ func IncludeVerificationOfCertificates(
 			return nil
 		}
 
-		state.RequestState[reqID].certVerifiedValid[t.BatchIDString(string(context.cert.BatchId))] = allOK
+		state.RequestState[reqID].certVerifiedValid[t.BatchIDString(context.cert.BatchId)] = allOK
 		var err error
 		if !allOK {
 			err = errors.New("some signatures are invalid")
@@ -150,12 +147,11 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 		// Check that the identities of the signing nodes are not repeated.
 		alreadySeen := make(map[t.NodeID]struct{})
-		for _, idRaw := range mscCert.Signers {
-			id := idRaw
-			if _, ok := alreadySeen[id]; ok {
+		for _, nodeID := range mscCert.Signers {
+			if _, ok := alreadySeen[nodeID]; ok {
 				return nil, fmt.Errorf("some node ids in the certificate are repeated multiple times")
 			}
-			alreadySeen[id] = struct{}{}
+			alreadySeen[nodeID] = struct{}{}
 		}
 
 		// Check that the identities of the source node and the signing nodes are valid.
@@ -166,7 +162,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 		for _, idRaw := range mscCert.Signers {
 			if _, ok := allNodes[idRaw]; !ok {
-				return nil, fmt.Errorf("unknown node id: %v", idRaw)
+				return nil, fmt.Errorf("unknown node nodeID: %v", idRaw)
 			}
 		}
 	}

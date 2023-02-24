@@ -623,38 +623,33 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) *events.EventList {
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
 
 	// Initialize the new availability module.
-	eventsOut.PushBackSlice(iss.initAvailability())
+	eventsOut.PushBackList(iss.initAvailability())
 
 	// Initialize the orderer modules for the current epoch.
 	eventsOut.PushBackList(iss.initOrderers())
-	//LEFT TO DO:
-	// 1- Make it pass tests
-	// 2- Verify that batchfetcher does the proper treatment to these batches of certs
-	// 3- Verify that ISS is calling the computecert at the availability module at the right place
-	// 4- Comment modified and new code (specially availability/parts/*)
-	// bonus1 - Optimize?
 	return eventsOut
 }
 
 // initAvailability emits an event for the availability module to create a new submodule
 // corresponding to the current ISS epoch.
-func (iss *ISS) initAvailability() []*eventpb.Event {
+func (iss *ISS) initAvailability() *events.EventList {
 	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
-	events := make([]*eventpb.Event, 0)
+	//events := make([]*eventpb.Event, 0)
+	eventList := events.EmptyList()
 
-	events = append(events, factoryevents.NewModule(
+	eventList.PushBack(factoryevents.NewModule(
 		iss.moduleConfig.Availability,
 		availabilityID,
 		t.RetentionIndex(iss.epoch.Nr()),
 		&factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_MultisigCollector{
 			MultisigCollector: &mscpb.InstanceParams{Membership: t.MembershipPb(iss.memberships[0]),
-				Limit:         5, // hardcoded right now
-				SegmentLength: uint64(iss.Params.SegmentLength)},
+				Limit:       5, // hardcoded right now
+				MaxRequests: uint64(iss.Params.SegmentLength)},
 		}},
 	))
 
-	events = append(events, availabilityevents.ComputeCert(availabilityID))
-	return events
+	eventList.PushBack(availabilityevents.ComputeCert(availabilityID))
+	return eventList
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.

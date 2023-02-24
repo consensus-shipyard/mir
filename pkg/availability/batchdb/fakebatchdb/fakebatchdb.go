@@ -62,12 +62,12 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	// On LookupBatch request, just check the local map.
 	batchdbpbdsl.UponLookupBatch(m, func(batchID t.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
 		if emptybatchid.IsEmptyBatchID(batchID) {
-			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, []uint8{}, origin)
+			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, origin)
 		}
 
 		info, found := state.BatchStore[t.BatchIDString(batchID)]
 		if !found {
-			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, nil, origin)
+			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, origin)
 			return nil
 		}
 
@@ -76,7 +76,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			txs[i] = state.TransactionStore[txIDString(txID)]
 		}
 
-		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, info.metadata, origin)
+		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, origin)
 		return nil
 	})
 

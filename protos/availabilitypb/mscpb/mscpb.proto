@@ -71,7 +71,7 @@ message ProvideBatchMessage {
 // Data structures
 // ============================================================
 message Cert {
-  option (mir.event) = true;
+  option (mir.struct) = true;
 
   bytes           batch_id   = 1;
   // TODO: can be encoded as n bits
@@ -80,7 +80,7 @@ message Cert {
 }
 
 message Certs {
-  option (mir.event_class) = true;
+  option (mir.struct) = true;
   repeated Cert certs = 1;
 }
 
@@ -91,5 +91,5 @@ message Certs {
 message InstanceParams {
   commonpb.Membership membership = 1;
   uint64 limit = 2;
-  uint64 segment_length = 3;
+  uint64 max_requests = 3;
 }

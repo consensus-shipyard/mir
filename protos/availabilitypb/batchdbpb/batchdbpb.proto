@@ -40,7 +40,6 @@ message LookupBatchResponse {
 
   bool                       found    = 1;
   repeated requestpb.Request txs      = 2;
-  bytes                      metadata = 3;
   LookupBatchOrigin          origin   = 4 [(mir.origin_response) = true];
 }
 

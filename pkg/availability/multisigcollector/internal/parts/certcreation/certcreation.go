@@ -10,6 +10,7 @@ import (
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
@@ -20,8 +21,8 @@ import (
 // State represents the state related to this part of the module.
 type State struct {
 	NextReqID      RequestID
-	RequestState   []*RequestState
-	Certificate    map[RequestID]*Certificate
+	RequestStates  []*RequestState
+	Certificates   map[RequestID]*Certificate
 	RemainingSeqNr int
 }
 
@@ -49,9 +50,9 @@ func IncludeCreatingCertificates(
 ) {
 	state := State{
 		NextReqID:      0,
-		RequestState:   make([]*RequestState, 0),
-		Certificate:    make(map[RequestID]*Certificate),
-		RemainingSeqNr: params.SegmentLength,
+		RequestStates:  make([]*RequestState, 0),
+		Certificates:   make(map[RequestID]*Certificate),
+		RemainingSeqNr: params.MaxRequests,
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +65,7 @@ func IncludeCreatingCertificates(
 		}
 		reqID := state.NextReqID
 		state.NextReqID++
-		state.Certificate[reqID] = &Certificate{
+		state.Certificates[reqID] = &Certificate{
 			receivedSig: make(map[t.NodeID]bool),
 			sigs:        make(map[t.NodeID][]byte),
 		}
@@ -75,12 +76,12 @@ func IncludeCreatingCertificates(
 	// When a batch is requested by the consensus layer, request a batch of transactions from the mempool.
 	apbdsl.UponRequestCert(m, func(origin *apbtypes.RequestCertOrigin) error {
 
-		state.RequestState = append(state.RequestState, &RequestState{
+		state.RequestStates = append(state.RequestStates, &RequestState{
 			ReqOrigin: origin,
 		})
 
 		sendIfReady(m, &state, params, false)
-		if len(state.Certificate) == 0 {
+		if len(state.Certificates) == 0 {
 			apbdsl.ComputeCert(m, mc.Self)
 			// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 		}
@@ -90,10 +91,10 @@ func IncludeCreatingCertificates(
 	// When the mempool provides a batch, compute its ID.
 	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
-			delete(state.Certificate, context.reqID)
-			if len(state.RequestState) > 0 { // do not do work for the empty batch if there is not even a request to answer
+			delete(state.Certificates, context.reqID)
+			if len(state.RequestStates) > 0 { // do not do work for the empty batch if there is not even a request to answer
 				sendIfReady(m, &state, params, true)
-				if len(state.Certificate) == 0 {
+				if len(state.Certificates) == 0 {
 					apbdsl.ComputeCert(m, mc.Self)
 					// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 				}
@@ -107,10 +108,10 @@ func IncludeCreatingCertificates(
 
 	// When the id of the batch is computed, request signatures for the batch from all nodes.
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *requestIDOfOwnBatchContext) error {
-		if _, ok := state.Certificate[context.reqID]; !ok {
+		if _, ok := state.Certificates[context.reqID]; !ok {
 			return nil
 		}
-		state.Certificate[context.reqID].BatchID = batchID
+		state.Certificates[context.reqID].BatchID = batchID
 		// TODO: add persistent storage for crash-recovery.
 		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
 		return nil
@@ -118,7 +119,7 @@ func IncludeCreatingCertificates(
 
 	// When receive a signature, verify its correctness.
 	mscpbdsl.UponSigMessageReceived(m, func(from t.NodeID, signature []byte, reqID RequestID) error {
-		certificate, ok := state.Certificate[reqID]
+		certificate, ok := state.Certificates[reqID]
 		if !ok {
 			// Ignore a message with an invalid or outdated request id.
 			return nil
@@ -138,7 +139,7 @@ func IncludeCreatingCertificates(
 			// Ignore invalid signature.
 			return nil
 		}
-		certificate, ok := state.Certificate[context.reqID]
+		certificate, ok := state.Certificates[context.reqID]
 		if !ok {
 			// The request has already been completed.
 			return nil
@@ -148,14 +149,13 @@ func IncludeCreatingCertificates(
 
 		newDue := len(certificate.sigs) >= params.F+1 // keep this here...
 
-		if len(state.RequestState) > 0 {
+		if len(state.RequestStates) > 0 {
 			sendIfReady(m, &state, params, false) // ... because this call changes the state
 			// do not send empty certificate because nonempty being computed
 		}
 
-		if newDue && len(state.Certificate) < params.Limit {
+		if newDue && len(state.Certificates) < params.Limit {
 			apbdsl.ComputeCert(m, mc.Self)
-			// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 		}
 
 		return nil
@@ -182,6 +182,7 @@ func IncludeCreatingCertificates(
 	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *computeIDOfReceivedBatchContext) error {
 		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
 			&storeBatchContext{context.sourceID, context.reqID, batchID})
+		// TODO minor optimization: start computing cert without waiting for reply (maybe do not even get a reply from batchdb)
 		return nil
 	})
 
@@ -202,7 +203,7 @@ func IncludeCreatingCertificates(
 func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEmptyIfNoneReady bool) {
 	certFinished := make([]*Certificate, 0)
 	certsToDelete := make(map[t.BatchIDString]struct{}, 0)
-	for _, cert := range state.Certificate {
+	for _, cert := range state.Certificates {
 		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
 			certFinished = append(certFinished, cert)
 			certsToDelete[t.BatchIDString(cert.BatchID)] = struct{}{}
@@ -210,44 +211,44 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 	}
 
 	if len(certFinished) > 0 { // if any certificate is ready
-		maputil.FindAndDeleteAll(state.Certificate,
+		maputil.FindAndDeleteAll(state.Certificates,
 			func(key RequestID, val *Certificate) bool {
 				_, ok := certsToDelete[t.BatchIDString(val.BatchID)]
 				return ok
 			}) // prevent duplicates
 
 		// prepare finished certs for proposal
-		_proposal := make([]*mscpbtypes.Cert, 0, len(certFinished))
+		mscProposal := make([]*mscpbtypes.Cert, 0, len(certFinished))
 		for _, _cert := range certFinished { // at least one
 			certNodes, certSigs := maputil.GetKeysAndValues(_cert.sigs)
 			cert := &mscpbtypes.Cert{BatchId: _cert.BatchID, Signers: certNodes, Signatures: certSigs}
-			_proposal = append(_proposal, cert)
+			mscProposal = append(mscProposal, cert)
 		}
-
-		proposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{
-			Certs: _proposal,
-		}}}
+		proposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{
+			Mscs: &mscpbtypes.Certs{
+				Certs: mscProposal,
+			}}}
 
 		//return the certificates that are ready to all pending requests
-		for _, requestState := range state.RequestState {
+		for _, requestState := range state.RequestStates {
 			requestingModule := requestState.ReqOrigin.Module
 			apbdsl.NewCert(m, requestingModule, proposal, requestState.ReqOrigin)
 			state.RemainingSeqNr--
 		}
 		// Dispose of the state associated with handled requests.
-		state.RequestState = make([]*RequestState, 0)
+		state.RequestStates = make([]*RequestState, 0)
 
 	} else if sendEmptyIfNoneReady { // if none are ready and sendEmptyIfNoneReady is true, send empty cert
 		emptyProposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{
 			Certs: []*mscpbtypes.Cert{emptycert.EmptyCert()},
 		}}}
-		for _, requestState := range state.RequestState {
+		for _, requestState := range state.RequestStates {
 			requestingModule := requestState.ReqOrigin.Module
 			apbdsl.NewCert(m, requestingModule, emptyProposal, requestState.ReqOrigin)
 			state.RemainingSeqNr--
 		}
 		// Dispose of the state associated with handled requests.
-		state.RequestState = make([]*RequestState, 0)
+		state.RequestStates = make([]*RequestState, 0)
 	}
 }
 

@@ -175,8 +175,6 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		switch avEvent := ev.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
 			return orderer.applyCertReady(avEvent.NewCert.Cert)
-		case *availabilitypb.Event_CertVerified:
-			return orderer.applyCertVerified(avEvent.CertVerified)
 		default:
 			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
 		}

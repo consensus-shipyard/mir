@@ -26,7 +26,7 @@ func UponLookupBatch(m dsl.Module, handler func(batchId []uint8, origin *types.L
 	})
 }
 
-func UponLookupBatchResponse[C any](m dsl.Module, handler func(found bool, txs []*types2.Request, metadata []uint8, context *C) error) {
+func UponLookupBatchResponse[C any](m dsl.Module, handler func(found bool, txs []*types2.Request, context *C) error) {
 	UponEvent[*types.Event_LookupResponse](m, func(ev *types.LookupBatchResponse) error {
 		originWrapper, ok := ev.Origin.Type.(*types.LookupBatchOrigin_Dsl)
 		if !ok {
@@ -39,7 +39,7 @@ func UponLookupBatchResponse[C any](m dsl.Module, handler func(found bool, txs [
 			return nil
 		}
 
-		return handler(ev.Found, ev.Txs, ev.Metadata, context)
+		return handler(ev.Found, ev.Txs, context)
 	})
 }
 

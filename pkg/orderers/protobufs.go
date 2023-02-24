@@ -1,14 +1,7 @@
 package orderers
 
 import (
-	"google.golang.org/protobuf/proto"
-
-	"github.com/filecoin-project/mir/pkg/logging"
-
-	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
-
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
@@ -17,7 +10,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -61,33 +53,6 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 //					}.Pb()}}})
 //}
 
-// Request availability module to verify the certificate from the preprepare message
-func (orderer *Orderer) verifyCert(preprepare *ordererspbftpb.Preprepare) *events.EventList {
-	cert := &availabilitypb.Cert{}
-
-	if err := proto.Unmarshal(preprepare.CertData, cert); err != nil {
-		orderer.logger.Log(logging.LevelWarn, "failed to unmarshal cert", "err", err)
-		return events.EmptyList()
-	}
-
-	verifyCert := availabilitypb.Event_VerifyCert{
-		VerifyCert: &availabilitypb.VerifyCert{
-			Cert: cert,
-			Origin: &availabilitypb.VerifyCertOrigin{
-				Module: orderer.moduleConfig.Self.Pb(),
-				Type: &availabilitypb.VerifyCertOrigin_ContextStore{
-					ContextStore: &contextstorepb.Origin{
-						ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
-					},
-				},
-			},
-		}}
-
-	return events.EmptyList().PushBack(&eventpb.Event{
-		DestModule: orderer.moduleConfig.Ava.Pb(),
-		Type:       &eventpb.Event_Availability{Availability: &availabilitypb.Event{Type: &verifyCert}},
-	})
-}
 func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
 	return &eventpb.HashOrigin{
 		Module: module.Pb(),
