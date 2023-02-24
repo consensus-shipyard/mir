@@ -190,7 +190,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 			"sender", from,
 		)
 	}
-	
+
 	//FIXME Address verification of the certificate after decision, issue #335
 	slot.Preprepare = preprepare
 
