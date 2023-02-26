@@ -108,7 +108,7 @@ func IncludeVerificationOfCertificates(
 			}
 		}
 
-		if _, ok := state.RequestState[reqID]; allVerifiedValid && ok {
+		if allVerifiedValid {
 			apbdsl.CertVerified(m, context.origin.Module, true, "", context.origin)
 			delete(state.RequestState, reqID)
 		}
@@ -160,9 +160,9 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 			allNodes[id] = struct{}{}
 		}
 
-		for _, idRaw := range mscCert.Signers {
-			if _, ok := allNodes[idRaw]; !ok {
-				return nil, fmt.Errorf("unknown node nodeID: %v", idRaw)
+		for _, id := range mscCert.Signers {
+			if _, ok := allNodes[id]; !ok {
+				return nil, fmt.Errorf("unknown node nodeID: %v", id)
 			}
 		}
 	}

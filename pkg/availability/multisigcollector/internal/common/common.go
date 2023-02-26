@@ -31,7 +31,7 @@ type ModuleParams struct {
 	F           int                // the maximum number of failures tolerated. Must be less than (len(AllNodes)-1) / 2
 	Certs       []*mscpbtypes.Cert // the list of generated certificates
 	Limit       int                // the maximum number of certificates to generate before a request is completed
-	MaxRequests int                // the number of sequence numbers per segment
+	MaxRequests int                // the maximum number of requests to be provided by this module
 }
 
 // SigData is the binary data that should be signed for forming a certificate.
