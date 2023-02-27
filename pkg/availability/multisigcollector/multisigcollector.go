@@ -39,20 +39,20 @@ type ModuleParams = common.ModuleParams
 // Whenever an availability certificate is requested, it pulls a batch from the mempool module,
 // sends it to all replicas and collects params.F+1 signatures confirming that
 // other nodes have persistently stored the batch.
-func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) (modules.PassiveModule, error) {
+func NewModule(mc *ModuleConfig, params *ModuleParams) (modules.PassiveModule, error) {
 	if len(params.AllNodes) < 2*params.F+1 {
 		return nil, fmt.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
 	}
 
 	m := dsl.NewModule(mc.Self)
 
-	certcreation.IncludeCreatingCertificates(m, mc, params, nodeID)
+	certcreation.IncludeCreatingCertificates(m, mc, params)
 	certverification.IncludeVerificationOfCertificates(m, mc, params)
 	batchreconstruction.IncludeBatchReconstruction(m, mc)
 	return m, nil
 }
 
-func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.Logger) modules.PassiveModule {
+func NewReconfigurableModule(mc *ModuleConfig, logger logging.Logger) modules.PassiveModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -87,7 +87,6 @@ func NewReconfigurableModule(mc *ModuleConfig, nodeID t.NodeID, logger logging.L
 						Limit:       int(mscParams.Limit),
 						MaxRequests: int(mscParams.MaxRequests),
 					},
-					nodeID,
 				)
 				if err != nil {
 					return nil, err
