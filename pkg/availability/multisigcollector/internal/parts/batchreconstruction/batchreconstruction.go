@@ -28,7 +28,7 @@ type State struct {
 // RequestState represents the state related to a request on the source node of the request.
 // The node disposes of this state as soon as the request is completed.
 type RequestState struct {
-	nonEmptyCerts []t.BatchIDString
+	NonEmptyCerts []t.BatchIDString
 	Txs           map[t.BatchIDString][]*requestpbtypes.Request
 	ReqOrigin     *apbtypes.RequestTransactionsOrigin
 }
@@ -51,7 +51,7 @@ func IncludeBatchReconstruction(
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.RequestState[reqID] = &RequestState{
-			nonEmptyCerts: make([]t.BatchIDString, 0),
+			NonEmptyCerts: make([]t.BatchIDString, 0),
 			Txs:           make(map[t.BatchIDString][]*requestpbtypes.Request),
 			ReqOrigin:     origin,
 		}
@@ -72,7 +72,7 @@ func IncludeBatchReconstruction(
 		if len(nonEmptyCerts) > 0 {
 			for _, c := range nonEmptyCerts {
 				batchIDString := t.BatchIDString(c.BatchId)
-				state.RequestState[reqID].nonEmptyCerts = append(state.RequestState[reqID].nonEmptyCerts, batchIDString) // save the order in which the batches were decided
+				state.RequestState[reqID].NonEmptyCerts = append(state.RequestState[reqID].NonEmptyCerts, batchIDString) // save the order in which the batches were decided
 				state.RequestState[reqID].Txs[batchIDString] = nil
 				batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
 
@@ -202,7 +202,7 @@ func saveAndFinish(m dsl.Module, reqID t.RequestID, txs []*requestpbtypes.Reques
 	allFound := true
 	allTxs := make([]*requestpbtypes.Request, 0)
 
-	for _, batchIDString := range state.RequestState[reqID].nonEmptyCerts {
+	for _, batchIDString := range state.RequestState[reqID].NonEmptyCerts {
 		txs := state.RequestState[reqID].Txs[batchIDString] // preserve order in which they were decided by the orderer
 		if txs == nil {
 			allFound = false

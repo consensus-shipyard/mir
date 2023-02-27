@@ -162,7 +162,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 		for _, id := range mscCert.Signers {
 			if _, ok := allNodes[id]; !ok {
-				return nil, fmt.Errorf("unknown node nodeID: %v", id)
+				return nil, fmt.Errorf("unknown node ID: %v", id)
 			}
 		}
 	}

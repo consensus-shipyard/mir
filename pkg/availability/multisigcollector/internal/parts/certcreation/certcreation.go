@@ -46,7 +46,6 @@ func IncludeCreatingCertificates(
 	m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
-	nodeID t.NodeID,
 ) {
 	state := State{
 		NextReqID:      0,
@@ -218,16 +217,13 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 			}) // prevent duplicates
 
 		// prepare finished certs for proposal
-		mscProposal := make([]*mscpbtypes.Cert, 0, len(certFinished))
-		for _, _cert := range certFinished { // at least one
-			certNodes, certSigs := maputil.GetKeysAndValues(_cert.sigs)
-			cert := &mscpbtypes.Cert{BatchId: _cert.BatchID, Signers: certNodes, Signatures: certSigs}
-			mscProposal = append(mscProposal, cert)
+		proposedCerts := make([]*mscpbtypes.Cert, 0, len(certFinished))
+		for _, c := range certFinished { // at least one
+			certNodes, certSigs := maputil.GetKeysAndValues(c.sigs)
+			cert := mscCert(c.BatchID, certNodes, certSigs)
+			proposedCerts = append(proposedCerts, cert)
 		}
-		proposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{
-			Mscs: &mscpbtypes.Certs{
-				Certs: mscProposal,
-			}}}
+		proposal := avCert(proposedCerts)
 
 		//return the certificates that are ready to all pending requests
 		for _, requestState := range state.RequestStates {
@@ -239,9 +235,7 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		state.RequestStates = make([]*RequestState, 0)
 
 	} else if sendEmptyIfNoneReady { // if none are ready and sendEmptyIfNoneReady is true, send empty cert
-		emptyProposal := &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{
-			Certs: []*mscpbtypes.Cert{emptycert.EmptyCert()},
-		}}}
+		emptyProposal := avCert([]*mscpbtypes.Cert{emptycert.EmptyCert()})
 		for _, requestState := range state.RequestStates {
 			requestingModule := requestState.ReqOrigin.Module
 			apbdsl.NewCert(m, requestingModule, emptyProposal, requestState.ReqOrigin)
@@ -250,6 +244,29 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		// Dispose of the state associated with handled requests.
 		state.RequestStates = make([]*RequestState, 0)
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Protobuf constructors for multisig-collector-specific certificates                                                 //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// mscCert returns a single multisig (sub)certificate produced by the multisig collector.
+// Multiple of these can be aggregated in one overarching certificate used by the availability layer.
+func mscCert(batchID []byte, signers []t.NodeID, signatures [][]byte) *mscpbtypes.Cert {
+	return &mscpbtypes.Cert{
+		BatchId:    batchID,
+		Signers:    signers,
+		Signatures: signatures,
+	}
+}
+
+// Creates an availability certificate as output by the availability layer from a list of (sub)certificates
+// produced by the multisig collector.
+func avCert(certs []*mscpbtypes.Cert) *apbtypes.Cert {
+	return &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{
+		Mscs: &mscpbtypes.Certs{
+			Certs: certs,
+		}}}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

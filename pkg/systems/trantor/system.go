@@ -175,7 +175,6 @@ func New(
 			Mempool: "mempool",
 			BatchDB: "batchdb",
 		},
-		ownID,
 		logger,
 	)
 
