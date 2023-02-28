@@ -39,10 +39,8 @@ func SegmentFromPb(seg *ordererspb.PBFTSegment) *Segment {
 		Membership: t.Membership(seg.Membership),
 		Proposals: maputil.Transform(
 			seg.Proposals,
-			func(key uint64) t.SeqNr {
-				return t.SeqNr(key)
-			}, func(val []byte) []byte {
-				return val
+			func(key uint64, val []byte) (t.SeqNr, []byte) {
+				return t.SeqNr(key), val
 			},
 		),
 	}
@@ -54,11 +52,8 @@ func (seg *Segment) Pb() *ordererspb.PBFTSegment {
 		Membership: t.MembershipPb(seg.Membership),
 		Proposals: maputil.Transform(
 			seg.Proposals,
-			func(key t.SeqNr) uint64 {
-				return key.Pb()
-			},
-			func(value []byte) []byte {
-				return value
+			func(key t.SeqNr, val []byte) (uint64, []byte) {
+				return key.Pb(), val
 			},
 		),
 	}
