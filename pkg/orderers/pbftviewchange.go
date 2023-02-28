@@ -436,7 +436,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 		return prepreparesMatching
 	})
 
-	// If the NewVeiw contains mismatching Preprepares, ignore the message.
+	// If the NewView contains mismatching Preprepares, ignore the message.
 	if !prepreparesMatching {
 		orderer.logger.Log(logging.LevelWarn, "Hash mismatch in received NewView. Ignoring.", "view", newView.View)
 		return events.EmptyList()
