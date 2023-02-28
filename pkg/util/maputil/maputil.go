@@ -85,10 +85,11 @@ func Any[K comparable, V any](m map[K]V) (V, bool) {
 	return zeroVal, false
 }
 
-func Transform[Ki comparable, Vi any, Ko comparable, Vo any](mi map[Ki]Vi, kt func(Ki) Ko, vt func(Vi) Vo) map[Ko]Vo {
+func Transform[Ki comparable, Vi any, Ko comparable, Vo any](mi map[Ki]Vi, f func(Ki, Vi) (Ko, Vo)) map[Ko]Vo {
 	mo := make(map[Ko]Vo, len(mi))
 	for ki, vi := range mi {
-		mo[kt(ki)] = vt(vi)
+		ko, vo := f(ki, vi)
+		mo[ko] = vo
 	}
 	return mo
 }

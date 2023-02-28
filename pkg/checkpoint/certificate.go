@@ -15,10 +15,8 @@ type Certificate map[t.NodeID][]byte
 
 func (cert *Certificate) Pb() map[string][]byte {
 	return maputil.Transform(*cert,
-		func(k t.NodeID) string {
-			return k.Pb()
-		}, func(v []byte) []byte {
-			return v
+		func(k t.NodeID, v []byte) (string, []byte) {
+			return k.Pb(), v
 		},
 	)
 }

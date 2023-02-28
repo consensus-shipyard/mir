@@ -110,10 +110,8 @@ func (sc *StableCheckpoint) ClientProgress(logger logging.Logger) *clientprogres
 
 func (sc *StableCheckpoint) Certificate() *Certificate {
 	m := maputil.Transform(sc.Cert,
-		func(k string) t.NodeID {
-			return t.NodeID(k)
-		}, func(v []byte) []byte {
-			return v
+		func(k string, v []byte) (t.NodeID, []byte) {
+			return t.NodeID(k), v
 		},
 	)
 	return (*Certificate)(&m)
