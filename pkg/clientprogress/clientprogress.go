@@ -54,11 +54,6 @@ func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
 
 func FromPb(pb *commonpb.ClientProgress, logger logging.Logger) *ClientProgress {
 	cp := NewClientProgress(logger)
-	for clientID, deliveredReqs := range pb.Progress {
-		cp.clientTrackers[t.ClientID(clientID)] = DeliveredReqsFromPb(
-			deliveredReqs,
-			logging.Decorate(logger, "", "clID", clientID),
-		)
-	}
+	cp.LoadPb(pb)
 	return cp
 }
