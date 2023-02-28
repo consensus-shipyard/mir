@@ -15,9 +15,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
-
 	"google.golang.org/protobuf/proto"
+
+	availabilityevents "github.com/filecoin-project/mir/pkg/availability/events"
+	"github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
@@ -120,6 +121,12 @@ type ISS struct {
 	// ATTENTION: The leader selection policy is stateful!
 	// Must not be nil.
 	LeaderPolicy lsp.LeaderSelectionPolicy
+
+	// Each preprepare message must be verified by the availability module. We keep in this structure a FIFO queue of
+	// the context needed to continue with the processing of the preprepare message upon verification.
+	// A FIFO treatment suffices because the availability module is the only one responding to this request and
+	// it responds sequentially
+	notVerifiedPrepepareContext []*verifyCertContext
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
@@ -276,7 +283,13 @@ func (iss *ISS) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
 		}
 	case *eventpb.Event_MessageReceived:
 		return iss.applyMessageReceived(e.MessageReceived)
-
+	case *eventpb.Event_Availability:
+		switch avEvent := e.Availability.Type.(type) {
+		case *availabilitypb.Event_CertVerified:
+			return iss.applyCertVerified(avEvent.CertVerified)
+		default:
+			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
+		}
 	default:
 		return nil, fmt.Errorf("unknown protocol (ISS) event type: %T", event.Type)
 	}
@@ -309,10 +322,20 @@ func (iss *ISS) applyInit() (*events.EventList, error) {
 // It invokes the appropriate handler depending on whether this data is
 // an availability certificate (or the special abort value) or a common checkpoint.
 func (iss *ISS) applySBInstDeliver(deliver *isspb.SBDeliver) (*events.EventList, error) {
+	// If checkpoint ordering instance, deliver without verification
 	if t.ModuleID(deliver.InstanceId).Sub().Sub() == "chkp" {
 		return iss.deliverCommonCheckpoint(deliver.Data)
 	}
-	return iss.deliverCert(deliver)
+
+	// If decided empty certificate, deliver already
+	if len(deliver.Data) == 0 {
+		return iss.deliverCert(deliver)
+	}
+	// append to FIFO
+	iss.notVerifiedPrepepareContext = append(iss.notVerifiedPrepepareContext, &verifyCertContext{deliver})
+
+	// verify the certificate before deciding it
+	return iss.verifyCert(deliver)
 }
 
 func (iss *ISS) applyNewConfig(config *eventpb.NewConfig) (*events.EventList, error) {
@@ -791,6 +814,38 @@ func (iss *ISS) advanceEpoch() (*events.EventList, error) {
 	return eventsOut, nil
 }
 
+// verifyCert requests the availability module to verify the certificate from the preprepare message
+func (iss *ISS) verifyCert(deliverEvent *isspb.SBDeliver) (*events.EventList, error) {
+	cert := &availabilitypb.Cert{}
+
+	if err := proto.Unmarshal(deliverEvent.Data, cert); err != nil { // wrong certificate,
+		iss.logger.Log(logging.LevelWarn, "failed to unmarshal cert", "err", err)
+		// suspect leader
+		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), t.NodeID(deliverEvent.Leader))
+		// decide empty certificate
+		deliverEvent.Data = []byte{}
+		return iss.deliverCert(deliverEvent)
+	}
+
+	verifyCert := availabilitypb.Event_VerifyCert{
+		VerifyCert: &availabilitypb.VerifyCert{
+			Cert: cert,
+			Origin: &availabilitypb.VerifyCertOrigin{
+				Module: iss.moduleConfig.Self.Pb(),
+				Type: &availabilitypb.VerifyCertOrigin_ContextStore{
+					ContextStore: &contextstorepb.Origin{
+						ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
+					},
+				},
+			},
+		}}
+
+	return events.EmptyList().PushBack(&eventpb.Event{
+		DestModule: iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Pb(),
+		Type:       &eventpb.Event_Availability{Availability: &availabilitypb.Event{Type: &verifyCert}},
+	}), nil
+}
+
 // deliverCert creates a commitLog entry from an availability certificate delivered by an orderer
 // and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
@@ -901,6 +956,20 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) (*events.EventList, err
 	return eventsOut, nil
 }
 
+func (iss *ISS) applyCertVerified(verified *availabilitypb.CertVerified) (*events.EventList, error) {
+	//pop from FIFO
+	context := iss.notVerifiedPrepepareContext[0]
+	iss.notVerifiedPrepepareContext = iss.notVerifiedPrepepareContext[1:]
+	if !verified.Valid {
+		// decide empty cert
+		context.deliverEvent.Data = []byte{}
+		// suspect leader
+		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), t.NodeID(context.deliverEvent.Leader))
+	}
+
+	return iss.deliverCert(context.deliverEvent)
+}
+
 func (iss *ISS) computeHash(data [][]byte) []byte {
 
 	// One data item consists of potentially multiple byte slices.
@@ -953,4 +1022,9 @@ func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 
 	// Put everything together in a slice and return it.
 	return [][]byte{snBuf, suspectBuf, {aborted}, entry.CertData}
+}
+
+// verifyCertContext saves the context of requesting a certificate to verify from the availability layer.
+type verifyCertContext struct {
+	deliverEvent *isspb.SBDeliver
 }

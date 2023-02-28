@@ -3,11 +3,11 @@ package batchfetcher
 import (
 	"fmt"
 
+	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 
-	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"

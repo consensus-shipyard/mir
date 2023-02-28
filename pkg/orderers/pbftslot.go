@@ -130,7 +130,7 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 			eventsOut.PushBackList(pbft.sendDoneMessages())
 		}
 
-		// Deliver availability certificate.
+		// Deliver availability certificate (will be verified by ISS)
 		eventsOut.PushBack(&eventpb.Event{
 			DestModule: pbft.moduleConfig.Ord.Pb(),
 			Type: &eventpb.Event_Iss{
@@ -144,7 +144,6 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 			},
 		})
 	}
-
 	return eventsOut
 }
 
