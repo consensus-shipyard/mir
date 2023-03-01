@@ -34,9 +34,11 @@ func IncludeBatchCreation(
 
 	mpdsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
 		for i := range txIDs {
-			state.TxByID[string(txIDs[i])] = context.txs[i]
+			if _, ok := state.TxByID[string(txIDs[i])]; !ok {
+				state.TxByID[string(txIDs[i])] = context.txs[i]
+				state.NewTxIDs = append(state.NewTxIDs, txIDs[i])
+			}
 		}
-		state.NewTxIDs = append(state.NewTxIDs, txIDs...)
 		return nil
 	})
 
