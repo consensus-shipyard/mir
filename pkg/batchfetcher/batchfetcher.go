@@ -127,7 +127,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		// Forward the RestoreState event to the application.
 		// We can output it directly without passing through the queue,
 		// since we've just reset it and know this would be its first and only item.
-		eventpbdsl.AppRestoreState(m, mc.Destination, checkpointpbtypes.StableCheckpointFromPb(chkp.Pb()))
+		eventpbdsl.AppRestoreState(m, mc.Destination, mirChkp)
 
 		return nil
 	})
