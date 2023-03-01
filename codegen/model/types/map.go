@@ -8,7 +8,7 @@ import (
 
 var _thisPackage = reflect.TypeOf(Map{}).PkgPath()
 
-// Map is used to represent repeated fields.
+// Map is used to represent map types.
 type Map struct {
 	KeyType   Type
 	ValueType Type
