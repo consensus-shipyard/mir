@@ -22,4 +22,6 @@ extend google.protobuf.FieldOptions {
   bool omit_in_event_constructors = 60002;
   bool origin_request = 60003;
   bool origin_response = 60004;
+  string key_type = 60005;
+  string value_type = 60006;
 }

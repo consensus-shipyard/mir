@@ -225,7 +225,7 @@ func (p *Parser) parseField(
 	protoField protoreflect.FieldDescriptor,
 ) (*Field, error) {
 
-	tp, err := p.getFieldType(goField.Type, protoField, false)
+	tp, err := p.getFieldType(goField.Type, protoField, defaultParserState)
 	if err != nil {
 		return nil, err
 	}
@@ -238,17 +238,15 @@ func (p *Parser) parseField(
 	}, nil
 }
 
-func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.FieldDescriptor, mapType bool) (Type, error) {
-	// TODO: Since maps are not currently used, I didn't bother supporting them yet.
-	//if goType.Kind() == reflect.Map {
-	//	return nil, fmt.Errorf("map fields are not supported yet")
-	//}
+// getFieldType returns the type of the field. If the field is a Slice or Map, it will be parsed recursively. for the internal types. parserState is set to mapKey and mapValue for the key/value types only during the recursive call for a map type.
+func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.FieldDescriptor, ps parserState) (Type, error) {
+
 	if goType.Kind() == reflect.Map {
-		key, err := p.getFieldType(goType.Key(), protoField, false)
+		key, err := p.getFieldType(goType.Key(), protoField, mapKey)
 		if err != nil {
 			return nil, err
 		}
-		val, err := p.getFieldType(goType.Elem(), protoField, true)
+		val, err := p.getFieldType(goType.Elem(), protoField, mapValue)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +255,7 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 
 	// Check if the field is repeated.
 	if goType.Kind() == reflect.Slice {
-		underlying, err := p.getFieldType(goType.Elem(), protoField, false)
+		underlying, err := p.getFieldType(goType.Elem(), protoField, ps)
 		if err != nil {
 			return nil, err
 		}
@@ -273,16 +271,19 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 		return Error{}, nil
 	}
 
-	if mirTypeOption != "" {
-		sepMapIdx := strings.Index(mirTypeOption, "|")
-		if sepMapIdx != -1 { // it is a map type
-			if !mapType { //key value
-				mirTypeOption = mirTypeOption[:sepMapIdx]
-			} else { // map value
-				mirTypeOption = mirTypeOption[sepMapIdx+1:]
-			}
+	if ps != defaultParserState {
+		if mirTypeOption != "" {
+			return nil, fmt.Errorf("mir.type option cannot be used on maps")
 		}
 
+		if ps == mapKey { // key type
+			mirTypeOption = proto.GetExtension(protoFieldOptions, mir.E_KeyType).(string)
+		} else if ps == mapValue { // value type
+			mirTypeOption = proto.GetExtension(protoFieldOptions, mir.E_ValueType).(string)
+		}
+	}
+
+	if mirTypeOption != "" {
 		sepIdx := strings.LastIndex(mirTypeOption, ".")
 		return Castable{
 			PbType_:  jenutil.QualFromType(goType),
@@ -302,3 +303,11 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 
 	return Same{jenutil.QualFromType(goType)}, nil
 }
+
+type parserState int
+
+const (
+	defaultParserState = iota
+	mapKey
+	mapValue
+)

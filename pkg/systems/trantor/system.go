@@ -96,31 +96,31 @@ func (sys *System) Stop() {
 // The returned system's Stop method should be called when the system is no longer needed.
 // The returned system's Modules method can be used to obtain the Mir modules to be passed to mir.NewNode.
 func New(
-	// The ID of this node.
+// The ID of this node.
 	ownID t.NodeID,
 
-	// Network transport system to be used by Trantor to send and receive messages.
+// Network transport system to be used by Trantor to send and receive messages.
 	transport net.Transport,
 
-	// Initial checkpoint of the application state and configuration.
-	// The SMR system will continue operating from this checkpoint.
+// Initial checkpoint of the application state and configuration.
+// The SMR system will continue operating from this checkpoint.
 	startingCheckpoint *checkpoint.StableCheckpoint,
 
-	// Implementation of the cryptographic primitives to be used for signing and verifying protocol messages.
+// Implementation of the cryptographic primitives to be used for signing and verifying protocol messages.
 	cryptoImpl mircrypto.Crypto,
 
-	// The replicated application logic.
-	// This is what the user of the SMR system is expected to implement.
-	// If the system needs to support reconfiguration,
-	// the user is expected to implement the AppLogic interface directly.
-	// For a static application, the user can implement the StaticAppLogic interface instead and transform it into to AppLogic
-	// using AppLogicFromStatic.
+// The replicated application logic.
+// This is what the user of the SMR system is expected to implement.
+// If the system needs to support reconfiguration,
+// the user is expected to implement the AppLogic interface directly.
+// For a static application, the user can implement the StaticAppLogic interface instead and transform it into to AppLogic
+// using AppLogicFromStatic.
 	app AppLogic,
 
-	// Parameters of the SMR system, like batch size or batch timeout.
+// Parameters of the SMR system, like batch size or batch timeout.
 	params Params,
 
-	// The logger to which the system will pass all its log messages.
+// The logger to which the system will pass all its log messages.
 	logger logging.Logger,
 ) (*System, error) {
 
@@ -184,6 +184,7 @@ func New(
 		batchfetcher.DefaultModuleConfig(),
 		startingCheckpoint.Epoch(),
 		startingCheckpoint.ClientProgress(logger),
+		logger,
 	)
 
 	// Let the ISS implementation complete the module set by adding default implementations of helper modules

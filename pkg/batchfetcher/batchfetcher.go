@@ -2,7 +2,8 @@ package batchfetcher
 
 import (
 	"fmt"
-
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/logging"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
@@ -36,9 +37,8 @@ import (
 // and provides it to the checkpoint module when relaying a state snapshot request to the application.
 // Analogously, when relaying a RestoreState event, it restores its state (including the delivered transactions)
 // using the relayed information.
-func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress) modules.Module {
+func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress, logger logging.Logger) modules.Module {
 	m := dsl.NewModule(mc.Self)
-
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
 	// In such a case, events received later must not be relayed until the pending certificate has been resolved.
@@ -62,6 +62,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		item := outputItem{event: nil}
 		output.Enqueue(&item)
 
+		//TODO cleanup check for empty certificates and make consistent across modules
 		if cert.Type == nil {
 			// Skip fetching transactions for padding certificates.
 			// Directly deliver an empty batch instead.
@@ -107,12 +108,15 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The AppRestoreState handler restores the batch fetcher's state from a checkpoint
 	// and forwards the event to the application, so it can restore its state too.
-	eventpbdsl.UponAppRestoreState(m, func(chkp *checkpointpbtypes.StableCheckpoint) error {
+	eventpbdsl.UponAppRestoreState(m, func(mirChkp *checkpointpbtypes.StableCheckpoint) error {
+
+		chkp := checkpoint.StableCheckpointFromPb(mirChkp.Pb())
+
 		// Update current epoch number.
-		epochNr = t.EpochNr(chkp.Snapshot.EpochData.EpochConfig.EpochNr)
+		epochNr = chkp.Epoch()
 
 		// Load client progress.
-		clientProgress.LoadPb(chkp.Snapshot.EpochData.ClientProgress)
+		clientProgress = chkp.ClientProgress(logger)
 
 		// Reset output event queue.
 		// This is necessary to prune any pending output to the application
@@ -122,7 +126,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		// Forward the RestoreState event to the application.
 		// We can output it directly without passing through the queue,
 		// since we've just reset it and know this would be its first and only item.
-		eventpbdsl.AppRestoreState(m, mc.Destination, chkp)
+		eventpbdsl.AppRestoreState(m, mc.Destination, checkpointpbtypes.StableCheckpointFromPb(chkp.Pb()))
 
 		return nil
 	})

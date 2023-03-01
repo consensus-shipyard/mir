@@ -8,7 +8,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// These are specific events that are not automatically generated but are necessary for the batchfetcher to queue them and tream them in order
+// These are specific events that are not automatically generated but are necessary for the batchfetcher to queue them and treat them in order
 // Event creates an eventpb.Event out of an batchfetcherpb.Event.
 func Event(dest t.ModuleID, ev *bfpb.Event) *eventpb.Event {
 	return &eventpb.Event{
