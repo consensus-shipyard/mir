@@ -32,7 +32,7 @@ message Event {
 
 // RequestBatch is used by the availability layer to request a new batch of transactions from the mempool.
 message RequestBatch {
-  option (mir.event) = true;
+    option (mir.event) = true;
 
   RequestBatchOrigin origin = 1 [(mir.origin_request) = true];
 }

@@ -15,6 +15,7 @@ import (
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 )
 
@@ -183,6 +184,37 @@ func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 
 func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 	return w.TestingUint
+}
+
+type HashOrigin_Type = isHashOrigin_Type
+
+type HashOrigin_TypeWrapper[T any] interface {
+	HashOrigin_Type
+	Unwrap() *T
+}
+
+func (w *HashOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
+	return w.ContextStore
+}
+
+func (w *HashOrigin_Request) Unwrap() *requestpb.Request {
+	return w.Request
+}
+
+func (w *HashOrigin_Iss) Unwrap() *isspb.ISSHashOrigin {
+	return w.Iss
+}
+
+func (w *HashOrigin_Dsl) Unwrap() *dslpb.Origin {
+	return w.Dsl
+}
+
+func (w *HashOrigin_Checkpoint) Unwrap() *checkpointpb.HashOrigin {
+	return w.Checkpoint
+}
+
+func (w *HashOrigin_Sb) Unwrap() *ordererspb.SBInstanceHashOrigin {
+	return w.Sb
 }
 
 type SignOrigin_Type = isSignOrigin_Type

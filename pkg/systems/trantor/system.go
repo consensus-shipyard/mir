@@ -184,6 +184,7 @@ func New(
 		batchfetcher.DefaultModuleConfig(),
 		startingCheckpoint.Epoch(),
 		startingCheckpoint.ClientProgress(logger),
+		logger,
 	)
 
 	// Let the ISS implementation complete the module set by adding default implementations of helper modules

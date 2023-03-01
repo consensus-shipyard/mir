@@ -46,10 +46,12 @@ package protos
 // Generate the Mir-generated code for events and messages.
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/eventpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/messagepb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/commonpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/dslpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"

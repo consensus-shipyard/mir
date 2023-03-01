@@ -2,11 +2,11 @@ package batchfetcherpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
+	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -30,7 +30,7 @@ func Event_TypeFromPb(pb batchfetcherpb.Event_Type) Event_Type {
 	case *batchfetcherpb.Event_NewOrderedBatch:
 		return &Event_NewOrderedBatch{NewOrderedBatch: NewOrderedBatchFromPb(pb.NewOrderedBatch)}
 	case *batchfetcherpb.Event_ClientProgress:
-		return &Event_ClientProgress{ClientProgress: pb.ClientProgress}
+		return &Event_ClientProgress{ClientProgress: types.ClientProgressFromPb(pb.ClientProgress)}
 	}
 	return nil
 }
@@ -54,17 +54,17 @@ func (*Event_NewOrderedBatch) MirReflect() mirreflect.Type {
 }
 
 type Event_ClientProgress struct {
-	ClientProgress *commonpb.ClientProgress
+	ClientProgress *types.ClientProgress
 }
 
 func (*Event_ClientProgress) isEvent_Type() {}
 
-func (w *Event_ClientProgress) Unwrap() *commonpb.ClientProgress {
+func (w *Event_ClientProgress) Unwrap() *types.ClientProgress {
 	return w.ClientProgress
 }
 
 func (w *Event_ClientProgress) Pb() batchfetcherpb.Event_Type {
-	return &batchfetcherpb.Event_ClientProgress{ClientProgress: w.ClientProgress}
+	return &batchfetcherpb.Event_ClientProgress{ClientProgress: (w.ClientProgress).Pb()}
 }
 
 func (*Event_ClientProgress) MirReflect() mirreflect.Type {
@@ -88,20 +88,20 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type NewOrderedBatch struct {
-	Txs []*types.Request
+	Txs []*types1.Request
 }
 
 func NewOrderedBatchFromPb(pb *batchfetcherpb.NewOrderedBatch) *NewOrderedBatch {
 	return &NewOrderedBatch{
-		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
-			return types.RequestFromPb(t)
+		Txs: types2.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types1.Request {
+			return types1.RequestFromPb(t)
 		}),
 	}
 }
 
 func (m *NewOrderedBatch) Pb() *batchfetcherpb.NewOrderedBatch {
 	return &batchfetcherpb.NewOrderedBatch{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
+		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Request) *requestpb.Request {
 			return (t).Pb()
 		}),
 	}

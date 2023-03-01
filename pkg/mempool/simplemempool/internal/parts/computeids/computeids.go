@@ -2,11 +2,13 @@ package computeids
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
-	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
-	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -19,30 +21,30 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	params *common.ModuleParams,
 	commonState *common.State,
 ) {
-	mpdsl.UponRequestTransactionIDs(m, func(txs []*requestpb.Request, origin *mppb.RequestTransactionIDsOrigin) error {
-		txMsgs := make([][][]byte, len(txs))
+	mppbdsl.UponRequestTransactionIDs(m, func(txs []*requestpbtypes.Request, origin *mppbtypes.RequestTransactionIDsOrigin) error {
+		txMsgs := make([]*commonpbtypes.HashData, len(txs))
 		for i, tx := range txs {
-			txMsgs[i] = serializing.RequestForHash(tx)
+			txMsgs[i] = &commonpbtypes.HashData{Data: serializing.RequestForHash(tx.Pb())}
 		}
 
-		dsl.HashRequest(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
+		eventpbdsl.HashRequest(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
 		return nil
 	})
 
-	dsl.UponHashResult(m, func(hashes [][]byte, context *computeHashForTransactionIDsContext) error {
+	eventpbdsl.UponHashResult(m, func(hashes [][]uint8, context *computeHashForTransactionIDsContext) error {
 		txIDs := make([]t.TxID, len(hashes))
 		copy(txIDs, hashes)
 
-		mpdsl.TransactionIDsResponse(m, t.ModuleID(context.origin.Module), txIDs, context.origin)
+		mppbdsl.TransactionIDsResponse(m, context.origin.Module, txIDs, context.origin)
 		return nil
 	})
 
-	mpdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error {
+	mppbdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
 		copy(data, txIDs)
 
 		if len(txIDs) == 0 {
-			mpdsl.BatchIDResponse(m, t.ModuleID(origin.Module), emptybatchid.EmptyBatchID(), origin)
+			mppbdsl.BatchIDResponse(m, origin.Module, emptybatchid.EmptyBatchID(), origin)
 		}
 
 		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin})
@@ -50,7 +52,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	dsl.UponOneHashResult(m, func(hash []byte, context *computeHashForBatchIDContext) error {
-		mpdsl.BatchIDResponse(m, t.ModuleID(context.origin.Module), hash, context.origin)
+		mppbdsl.BatchIDResponse(m, context.origin.Module, hash, context.origin)
 		return nil
 	})
 }
@@ -58,9 +60,9 @@ func IncludeComputationOfTransactionAndBatchIDs(
 // Context data structures
 
 type computeHashForTransactionIDsContext struct {
-	origin *mppb.RequestTransactionIDsOrigin
+	origin *mppbtypes.RequestTransactionIDsOrigin
 }
 
 type computeHashForBatchIDContext struct {
-	origin *mppb.RequestBatchIDOrigin
+	origin *mppbtypes.RequestBatchIDOrigin
 }

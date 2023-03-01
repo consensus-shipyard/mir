@@ -93,25 +93,31 @@ message Event {
   string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
 }
 
-message Init {}
+message Init {
+  option (mir.event) = true;
+}
 
 message Tick {}
 
 message NewRequests {
+  option (mir.event) = true;
   repeated requestpb.Request requests = 1;
 }
 
 message HashRequest {
+  option (mir.event) = true;
   repeated commonpb.HashData data   = 1;
-  HashOrigin                 origin = 2;
+  HashOrigin                 origin = 2 [(mir.origin_request) = true];
 }
 
 message HashResult {
+  option (mir.event) = true;
   repeated bytes digests = 1;
-  HashOrigin     origin  = 2;
+  HashOrigin     origin  = 2 [(mir.origin_response) = true];
 }
 
 message HashOrigin {
+  option (mir.struct) = true;
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin   context_store = 2;
@@ -224,7 +230,8 @@ message WALLoadAll {
 }
 
 message DeliverCert {
-  uint64 sn = 1;
+  option (mir.event) = true;
+  uint64 sn = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   availabilitypb.Cert cert = 2;
 }
 
@@ -246,7 +253,8 @@ message StoreVerifiedRequest {
 }
 
 message AppSnapshotRequest {
-  string reply_to = 1;
+  option (mir.event) = true;
+  string reply_to = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];;
 }
 
 message AppSnapshot {
@@ -254,6 +262,7 @@ message AppSnapshot {
 }
 
 message AppRestoreState {
+  option (mir.event) = true;
   checkpointpb.StableCheckpoint checkpoint = 1;
 }
 
@@ -273,7 +282,8 @@ message TimerGarbageCollect {
 }
 
 message NewEpoch {
-  uint64 epoch_nr = 1;
+  option (mir.event) = true;
+  uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
 }
 
 message NewConfig {

@@ -4,7 +4,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	mempooldsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
@@ -13,6 +12,7 @@ import (
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
