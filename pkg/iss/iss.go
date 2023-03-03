@@ -557,6 +557,14 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// so the application has the correct state for returning the next configuration.
 	eventsOut.PushBackList(iss.startEpoch(chkp.Epoch()))
 
+	// Deliver the checkpoint to the application in the proper epoch.
+	// Technically, this could be made redundant, since it is the same checkpoint the application is restoring from.
+	// However, it helps preserve the pattern of calls to the application where a checkpoint is explicitly delivered
+	// in each epoch.
+	// Note: It is important that this line goes after the call to iss.startEpoch(), as iss.startEpoch() also interacts
+	//       with the application, notifying it about the new epoch.
+	eventsOut.PushBack(chkpprotos.StableCheckpointEvent(iss.moduleConfig.App, chkp.Pb()))
+
 	// Prune the old state of all related modules.
 	// Since we are loading the complete state from a checkpoint,
 	// we prune all state related to anything before that checkpoint.
