@@ -147,14 +147,14 @@ At the moment of writing, it is not possible to annotate the slice itself. This 
 
 As for maps, the annotations `mir.key_type` and `mir.value_type` should be used instead of `mir.type`, which allows annotating either the key type or the value type. 
 Example:
-```
+```protobuf
   [...]
   map<string, string> membership = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID",
   				      (mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeIP"];
   [...]
 ```
 Here, the `map<string,string> membership` will be represented as a map with key types `types.NodeID` and value types `types.NodeIP` the generated code instead of `string`. If only the `mir.key_type` was provided: 
-```
+```protobuf
   [...]
   map<string, string> membership = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   [...]
