@@ -138,6 +138,28 @@ func ErrorToString(err error) string {
 	return s
 }
 ```
+ 
+#### Customizing repeated and map types 
+When annotating repeated types, as shown in the previous example, the annotated type is assigned to the underlying type of the slice. 
+For example, the annotation `repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];` is represented as a slice of `types.NodeID` in the generated code. 
+
+At the moment of writing, it is not possible to annotate the slice itself. This means that in the above example, if we have a type alias in Go: `type NodeList []NodeID`, then we could not use the DSL to automatically convert a proto field directly into the NodeList type. This is a special inconvenience when annotating `bytes`, as they are actually treated as `repeated byte` proto fields and thus a slice of bytes cannot be currently annotated with a custom Go type, only the underlying byte type. This is a [known issue](https://github.com/filecoin-project/mir/issues/364) that is to be resolved soon.
+
+As for maps, the annotations `mir.key_type` and `mir.value_type` should be used instead of `mir.type`, which allows annotating either the key type or the value type. 
+Example:
+```
+  [...]
+  map<string, string> membership = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID",
+  				      (mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeIP"];
+  [...]
+```
+Here, the `map<string,string> membership` will be represented as a map with key types `types.NodeID` and value types `types.NodeIP` the generated code instead of `string`. If only the `mir.key_type` was provided: 
+```
+  [...]
+  map<string, string> membership = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  [...]
+```
+Then the generated code will represent this proto field as a map with key types `types.NodeID` and value types `string`. The same occurs if only the value type was provided. Currently, passing `mir.type` to map types results in an error. Same as with slices, the outer map type cannot currently be directly annotated.
 
 #### The “origin” field for request-response events
 
