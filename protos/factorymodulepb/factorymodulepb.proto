@@ -8,6 +8,7 @@ import "availabilitypb/mscpb/mscpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
 
+// FIXME: rename to Event to be consistent with other modules and avoid repeating the package name.
 message Factory {
   oneof type {
     NewModule      new_module      = 1;
@@ -15,16 +16,22 @@ message Factory {
   }
 }
 
+// NewModule is a request to create a new module.
+// module_id must be prefixed with the factory module's ID followed by "/".
+// retention_index is used for garbage collection (see: GarbageCollect).
 message NewModule {
   string          module_id       = 1;
   uint64          retention_index = 2;
   GeneratorParams params          = 3;
 }
 
+// GarbageCollect is a request to destroy all modules that have retention index smaller than the given index.
 message GarbageCollect {
   uint64 retention_index = 1;
 }
 
+// GeneratorParams is a union of all possible types of module parameters
+// for modules that can be created by the factory module.
 message GeneratorParams {
   oneof type {
     availabilitypb.mscpb.InstanceParams multisig_collector = 1;
