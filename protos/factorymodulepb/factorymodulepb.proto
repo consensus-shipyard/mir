@@ -25,8 +25,7 @@ message NewModule {
   GeneratorParams params          = 3;
 }
 
-// GarbageCollect is a request to destroy all modules that have retention index smaller than
-// or equal to the given index.
+// GarbageCollect is a request to destroy all modules that have retention index smaller than the given index.
 message GarbageCollect {
   uint64 retention_index = 1;
 }
