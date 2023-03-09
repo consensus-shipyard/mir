@@ -22,10 +22,11 @@ import (
 // See: protos/factorymodulepb/factorymodulepb.proto for details on the interface of the factory module itself.
 //
 // The forwarding mechanism is as follows:
-// 1. All events destined for an existing submodule are forwarded to it automatically regardless of the event type.
-// 2. Incoming network messages destined for non-existent submodules are buffered within a limit
-// and are dropped once the limit is exceeded.
-// 3. Other events destined for non-existent submodules are ignored.
+//  1. All events destined for an existing submodule are forwarded to it automatically regardless of the event type.
+//  2. Incoming network messages destined for non-existent submodules are buffered within a limit.
+//     Once the limit is exceeded, the oldest messages are discarded.
+//     If a single message is too large to fit into the buffer, it is discarded.
+//  3. Other events destined for non-existent submodules are ignored.
 type FactoryModule struct {
 	ownID     t.ModuleID
 	generator ModuleGenerator
