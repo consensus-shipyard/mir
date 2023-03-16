@@ -1,4 +1,4 @@
-package formbatches
+package formbatchesint
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
