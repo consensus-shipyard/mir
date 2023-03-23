@@ -93,15 +93,15 @@ func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return nil
 }
 
-func (m *simTransportModule) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) CloseOldConnections(_ map[t.NodeID]t.NodeAddress) {
 }
 
-func (m *simTransportModule) Connect(nodes map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) Connect(_ map[t.NodeID]t.NodeAddress) {
 	go m.handleOutChan(m.SimTransport.Simulation.Spawn())
 }
 
 // WaitFor returns immediately, since the simulated transport does not need to wait for anything.
-func (m *simTransportModule) WaitFor(n int) {
+func (m *simTransportModule) WaitFor(_ int) {
 }
 
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
@@ -125,7 +125,7 @@ func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) e
 	return nil
 }
 
-func (m *simTransportModule) multicastMessage(ctx context.Context, msg *messagepb.Message, targets []t.NodeID) {
+func (m *simTransportModule) multicastMessage(_ context.Context, msg *messagepb.Message, targets []t.NodeID) {
 	for _, target := range targets {
 		m.sendMessage(msg, target)
 	}

@@ -144,7 +144,7 @@ func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
 
 func (ft *FakeTransport) Close() {}
 
-func (fl *FakeLink) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {}
+func (fl *FakeLink) CloseOldConnections(_ map[t.NodeID]t.NodeAddress) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]
@@ -154,7 +154,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) Connect(nodes map[t.NodeID]t.NodeAddress) {
+func (fl *FakeLink) Connect(_ map[t.NodeID]t.NodeAddress) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	fl.wg.Add(len(sourceBuffers))
@@ -186,7 +186,7 @@ func (fl *FakeLink) Connect(nodes map[t.NodeID]t.NodeAddress) {
 // It does not need to wait for anything, since the Connect() function already waits for all the connections.
 // TODO: Technically this does not properly implement the semantics, as calling WaitFor without having called Connect
 // should block. Fix this.
-func (fl *FakeLink) WaitFor(n int) {
+func (fl *FakeLink) WaitFor(_ int) {
 }
 
 func (fl *FakeLink) Stop() {

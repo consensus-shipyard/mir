@@ -119,7 +119,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 			return nil, fmt.Errorf("failed to propose: %w", err)
 		}
 		eventsOut.PushBackList(l)
-	} else { // nolint:staticcheck
+	} else { // nolint:staticcheck,revive
 		// If the PBFT view advanced since the certificate was requested,
 		// do not propose the certificate and resurrect the requests it contains.
 		// eventsOut.PushBack(orderer.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))

@@ -18,8 +18,8 @@ import (
 func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
 	mc *common.ModuleConfig,
-	params *common.ModuleParams,
-	commonState *common.State,
+	_ *common.ModuleParams,
+	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*requestpbtypes.Request, origin *mppbtypes.RequestTransactionIDsOrigin) error {
 		txMsgs := make([]*commonpbtypes.HashData, len(txs))

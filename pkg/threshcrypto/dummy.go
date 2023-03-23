@@ -24,13 +24,13 @@ type DummyCrypto struct {
 }
 
 // SignShare always returns the dummy signature DummySig, regardless of the data.
-func (dc *DummyCrypto) SignShare(data [][]byte) ([]byte, error) {
+func (dc *DummyCrypto) SignShare(_ [][]byte) ([]byte, error) {
 	return dc.buildSigShare(dc.Self), nil
 }
 
 // VerifyShare returns nil (i.e. success) only if signature share equals nodeID||DummySigShareSuffix.
 // data is ignored.
-func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte, nodeID t.NodeID) error {
+func (dc *DummyCrypto) VerifyShare(_ [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	if !bytes.Equal(sigShare, dc.buildSigShare(nodeID)) {
 		return fmt.Errorf("dummy signature mismatch")
 	}
@@ -40,7 +40,7 @@ func (dc *DummyCrypto) VerifyShare(data [][]byte, sigShare []byte, nodeID t.Node
 
 // VerifyFull returns nil (i.e. success) only if signature equals DummySig.
 // data is ignored.
-func (dc *DummyCrypto) VerifyFull(data [][]byte, signature []byte) error {
+func (dc *DummyCrypto) VerifyFull(_ [][]byte, signature []byte) error {
 	if !bytes.Equal(signature, dc.DummySigFull) {
 		return fmt.Errorf("dummy signature mismatch")
 	}

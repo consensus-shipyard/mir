@@ -277,7 +277,7 @@ func (inst *TBLSInst) VerifyFull(msg [][]byte, sigFull []byte) error {
 
 // Recover recovers a full signature from a set of (previously validated) shares, that are known to be from
 // distinct nodes.
-func (inst *TBLSInst) Recover(msg [][]byte, sigShares [][]byte) ([]byte, error) {
+func (inst *TBLSInst) Recover(_ [][]byte, sigShares [][]byte) ([]byte, error) {
 	// We don't use inst.scheme.Recover to avoid validating sigShares twice
 
 	// This function is a modified version of the original implementation of inst.scheme.Recover

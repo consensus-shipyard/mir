@@ -11,8 +11,8 @@ import (
 // IncludeTransactionLookupByID registers event handlers for processing RequestTransactions events.
 func IncludeTransactionLookupByID(
 	m dsl.Module,
-	mc *common.ModuleConfig,
-	params *common.ModuleParams,
+	_ *common.ModuleConfig,
+	_ *common.ModuleParams,
 	commonState *common.State,
 ) {
 	mpdsl.UponRequestTransactions(m, func(txIDs [][]uint8, origin *mppb.RequestTransactionsOrigin) error {

@@ -266,13 +266,13 @@ func WALTruncate(destModule t.ModuleID, retentionIndex t.RetentionIndex) *eventp
 
 // WALEntry returns an event of reading an entry from the WAL.
 // Those events are used at system initialization.
-func WALEntry(persistedEvent *eventpb.Event, retentionIndex t.RetentionIndex) *eventpb.Event {
+func WALEntry(persistedEvent *eventpb.Event, _ t.RetentionIndex) *eventpb.Event {
 	return &eventpb.Event{Type: &eventpb.Event_WalEntry{WalEntry: &eventpb.WALEntry{
 		Event: persistedEvent,
 	}}}
 }
 
-// Deliver returns an event of delivering a request batch to the application in sequence number order.
+// DeliverCert returns an event of delivering a request batch to the application in sequence number order.
 func DeliverCert(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_DeliverCert{
 		DeliverCert: &eventpb.DeliverCert{
