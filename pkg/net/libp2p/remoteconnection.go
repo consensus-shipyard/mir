@@ -20,9 +20,6 @@ import (
 )
 
 type remoteConnection struct {
-
-	// TEST
-
 	params        Params
 	ownID         t.NodeID
 	addrInfo      *peer.AddrInfo
@@ -233,6 +230,7 @@ func (conn *remoteConnection) process() {
 
 		// Create a network connection if there is none.
 		if conn.stream == nil {
+			fmt.Println("CONNECTING to ", conn.addrInfo.ID)
 			if err := conn.connect(); err != nil {
 				// Unless the connection is closing, connect() will keep retrying to connect indefinitely.
 				// Thus, if it returns an error, it means that there is no point in continuing the processing.
