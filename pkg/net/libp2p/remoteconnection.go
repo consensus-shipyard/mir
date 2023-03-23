@@ -20,6 +20,9 @@ import (
 )
 
 type remoteConnection struct {
+
+	// TEST
+
 	params        Params
 	ownID         t.NodeID
 	addrInfo      *peer.AddrInfo
