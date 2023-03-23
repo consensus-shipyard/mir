@@ -366,7 +366,7 @@ func (gt *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
 	wg.Wait()
 }
 
-func (gt *Transport) WaitFor(n int) {
+func (gt *Transport) WaitFor(_ int) {
 	// TODO: We return immediately here, as the Connect() function already waits for all connections to be established.
 	//       This is not right and should be done as in the libp2p transport.
 }

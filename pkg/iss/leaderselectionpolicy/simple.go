@@ -26,7 +26,7 @@ func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
 }
 
 // Suspect does nothing for the SimpleLeaderPolicy.
-func (simple *SimpleLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (simple *SimpleLeaderPolicy) Suspect(_ t.EpochNr, _ t.NodeID) {
 	// Do nothing.
 }
 

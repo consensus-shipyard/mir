@@ -20,7 +20,7 @@ type localPseudoCryptoSystem struct {
 
 // NewLocalCryptoSystem creates an instance of LocalCryptoSystem suitable for tests.
 // In the current implementation, cryptoType can only be "pseudo".
-func NewLocalCryptoSystem(cryptoType string, nodeIDs []t.NodeID, logger logging.Logger) LocalCryptoSystem {
+func NewLocalCryptoSystem(_ string, nodeIDs []t.NodeID, _ logging.Logger) LocalCryptoSystem {
 	return &localPseudoCryptoSystem{nodeIDs}
 }
 

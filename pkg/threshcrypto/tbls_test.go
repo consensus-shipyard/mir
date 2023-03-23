@@ -115,7 +115,7 @@ func TestTBLSMarshalling(t *testing.T) {
 	}
 }
 
-func keygen(nByz, T, N int) []*TBLSInst {
+func keygen(_, T, N int) []*TBLSInst {
 	members := make([]types.NodeID, N)
 	for i := range members {
 		members[i] = types.NewNodeIDFromInt(i)

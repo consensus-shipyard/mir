@@ -45,7 +45,7 @@ type WAL struct {
 	retentionIndex t.RetentionIndex
 }
 
-func (w *WAL) LoadAll(ctx context.Context) (*events.EventList, error) {
+func (w *WAL) LoadAll(_ context.Context) (*events.EventList, error) {
 	storedEvents := events.EmptyList()
 
 	// Add all events from the WAL to the new EventList.

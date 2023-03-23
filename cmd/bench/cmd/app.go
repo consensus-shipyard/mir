@@ -35,7 +35,7 @@ func (a *App) Snapshot() ([]byte, error) {
 	return nil, nil
 }
 
-func (a *App) RestoreState(checkpoint *checkpoint.StableCheckpoint) error {
+func (a *App) RestoreState(_ *checkpoint.StableCheckpoint) error {
 	return nil
 }
 

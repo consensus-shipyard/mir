@@ -33,7 +33,7 @@ func newControlModule() modules.ActiveModule {
 
 func (m *controlModule) ImplementsModule() {}
 
-func (m *controlModule) ApplyEvents(ctx context.Context, events *events.EventList) error {
+func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		switch event := event.Type.(type) {

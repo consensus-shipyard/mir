@@ -48,7 +48,7 @@ func NewDummyHost(numericID int, sourceAddr t.NodeAddress) host.Host {
 }
 
 // NewDummyHostNoListen creates an insecure libp2p host for test and demonstration purposes without listening interface.
-func NewDummyHostNoListen(numericID int, sourceAddr t.NodeAddress) host.Host {
+func NewDummyHostNoListen(numericID int, _ t.NodeAddress) host.Host {
 	// sourceMultiAddr, priv := NewDummyHostID(id, basePort)
 
 	h, err := libp2p.New(

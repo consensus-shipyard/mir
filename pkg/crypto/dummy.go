@@ -26,22 +26,22 @@ type DummyCrypto struct {
 }
 
 // Sign always returns the dummy signature DummySig, regardless of the data.
-func (dc *DummyCrypto) Sign(data [][]byte) ([]byte, error) {
+func (dc *DummyCrypto) Sign(_ [][]byte) ([]byte, error) {
 	return dc.DummySig, nil
 }
 
 // RegisterNodeKey does nothing, as no public keys are used.
-func (dc *DummyCrypto) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
+func (dc *DummyCrypto) RegisterNodeKey(_ []byte, _ t.NodeID) error {
 	return nil
 }
 
 // DeleteNodeKey does nothing, as no public keys are used.
-func (dc *DummyCrypto) DeleteNodeKey(nodeID t.NodeID) {
+func (dc *DummyCrypto) DeleteNodeKey(_ t.NodeID) {
 }
 
 // Verify returns nil (i.e. success) only if signature equals DummySig.
 // Both data and nodeID are ignored.
-func (dc *DummyCrypto) Verify(data [][]byte, signature []byte, nodeID t.NodeID) error {
+func (dc *DummyCrypto) Verify(_ [][]byte, signature []byte, _ t.NodeID) error {
 	if !bytes.Equal(signature, dc.DummySig) {
 		return fmt.Errorf("dummy signature mismatch")
 	}
