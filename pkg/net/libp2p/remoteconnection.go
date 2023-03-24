@@ -241,6 +241,16 @@ func (conn *remoteConnection) process() {
 		default:
 		}
 
+		// Create a network connection if there is none.
+		if conn.stream == nil {
+			if err := conn.connect(); err != nil {
+				// Unless the connection is closing, connect() will keep retrying to connect indefinitely.
+				// Thus, if it returns an error, it means that there is no point in continuing the processing.
+				conn.logger.Log(logging.LevelWarn, "Gave up connecting", "err", err)
+				return
+			}
+		}
+
 		// Get the next message and encode it if there is no pending unsent message.
 		if msgData == nil {
 			select {
@@ -254,16 +264,6 @@ func (conn *remoteConnection) process() {
 					conn.logger.Log(logging.LevelError, "Could not encode message. Disconnecting.", "err", err)
 					return
 				}
-			}
-		}
-
-		// Create a network connection if there is none.
-		if conn.stream == nil {
-			if err := conn.connect(); err != nil {
-				// Unless the connection is closing, connect() will keep retrying to connect indefinitely.
-				// Thus, if it returns an error, it means that there is no point in continuing the processing.
-				conn.logger.Log(logging.LevelWarn, "Gave up connecting", "err", err)
-				return
 			}
 		}
 
