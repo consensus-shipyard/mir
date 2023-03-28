@@ -206,7 +206,6 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 		return events.EmptyList()
 	}
 
-	//FIXME Address verification of the certificate after decision, issue #335
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.
