@@ -82,8 +82,6 @@ type Node struct {
 	// This channel is closed by the Run and Debug methods on returning.
 	// Closing of the channel indicates that the node has stopped and the Stop method can also return.
 	stopped chan struct{}
-
-	logger logging.Logger
 }
 
 // NewNode creates a new node with ID id.
@@ -129,8 +127,6 @@ func NewNode(
 		inputPausedCond: sync.NewCond(&sync.Mutex{}),
 
 		stopped: make(chan struct{}),
-
-		logger: config.Logger,
 	}, nil
 }
 
@@ -248,8 +244,8 @@ func (n *Node) processWAL(ctx context.Context) error {
 // which mostly consists of routing events between the node's modules.
 // Stops and returns when ctx is canceled.
 func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
-	n.logger.Log(logging.LevelInfo, "node process started")
-	defer n.logger.Log(logging.LevelInfo, "node process finished")
+	n.Config.Logger.Log(logging.LevelInfo, "node process started")
+	defer n.Config.Logger.Log(logging.LevelInfo, "node process finished")
 
 	var wg sync.WaitGroup // Synchronizes all the worker functions
 
@@ -369,8 +365,8 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 		// For each module, we start a worker function reads a single work item (EventList) and processes it.
 		wg.Add(1)
 		go func(mID t.ModuleID, m modules.Module, workChan chan *events.EventList) {
-			n.logger.Log(logging.LevelInfo, "module started", "ID", mID.Pb())
-			defer n.logger.Log(logging.LevelInfo, "module finished", "ID", mID.Pb())
+			n.Config.Logger.Log(logging.LevelInfo, "module started", "ID", mID.Pb())
+			defer n.Config.Logger.Log(logging.LevelInfo, "module finished", "ID", mID.Pb())
 
 			defer wg.Done()
 
