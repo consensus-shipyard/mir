@@ -203,6 +203,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 			"expectedLeader", primary,
 			"sender", from,
 		)
+		return events.EmptyList()
 	}
 
 	//FIXME Address verification of the certificate after decision, issue #335
