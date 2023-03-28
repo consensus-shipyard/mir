@@ -82,7 +82,6 @@ func IncludeCreatingCertificates(
 		sendIfReady(m, &state, params, false)
 		if len(state.Certificates) == 0 {
 			apbdsl.ComputeCert(m, mc.Self)
-			// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 		}
 		return nil
 	})
@@ -95,7 +94,6 @@ func IncludeCreatingCertificates(
 				sendIfReady(m, &state, params, true)
 				if len(state.Certificates) == 0 {
 					apbdsl.ComputeCert(m, mc.Self)
-					// TODO optimization: stop once as many requests have been answered as there are sequence numbers in a segment
 				}
 			}
 			return nil
