@@ -109,7 +109,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
 
-		certBytes, err := proto.Marshal(cert) // TODO Alejandro, marshal all certs in the slice passed now as argument
+		certBytes, err := proto.Marshal(cert)
 		if err != nil {
 			return nil, fmt.Errorf("error marshalling certificate: %w", err)
 		}
