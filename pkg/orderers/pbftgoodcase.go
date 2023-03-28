@@ -154,7 +154,6 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
-
 	ordererEvent := OrdererEvent(orderer.moduleConfig.Self,
 		PbftProposeTimeout(uint64(orderer.proposal.proposalsMade+1)))
 
@@ -185,6 +184,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 	if err := orderer.externalValidator.Check(preprepare.Data); err != nil {
 		orderer.logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
 			"sn", sn, "from", from, "err", err)
+		return events.EmptyList()
 	}
 
 	// Check that this is the first Preprepare message received.
