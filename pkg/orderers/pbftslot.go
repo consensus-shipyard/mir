@@ -113,14 +113,6 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 				t.TimeDuration(pbft.config.ViewChangeSNTimeout),
 			))
 		}
-		eventsOut.PushBack(events.TimerDelay(
-			pbft.moduleConfig.Timer,
-			[]*eventpb.Event{OrdererEvent(pbft.moduleConfig.Self,
-				PbftViewChangeSNTimeout(
-					pbft.view,
-					pbft.numCommitted(pbft.view)))},
-			t.TimeDuration(pbft.config.ViewChangeSNTimeout),
-		))
 
 		// If all certificates have been committed (i.e. this is the last certificate to commit),
 		// send a Done message to all other nodes.
