@@ -137,7 +137,6 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
 			f: func(_ *eventpb.Event) {
 				clientProgress.GarbageCollect()
-				//commonpbdsl.ClientProgress(m, mc.Checkpoint, clientProgress.ClientTrackers)
 				dsl.EmitEvent(m, bfevents.ClientProgress(
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
 					clientProgress.Pb(),
