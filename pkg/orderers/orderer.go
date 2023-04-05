@@ -454,10 +454,7 @@ func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *ordererspbf
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
 func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
-	for view > 0 {
-		timeout *= 2
-		view--
-	}
+	timeout *= 1 << view
 	return timeout
 }
 
