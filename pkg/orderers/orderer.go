@@ -246,6 +246,7 @@ func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) 
 			"type", fmt.Sprintf("%T", result.Origin.Type),
 			"errors", result.Errors,
 		)
+		return nil
 	}
 
 	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
