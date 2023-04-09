@@ -258,6 +258,19 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
 	eventsOut := events.EmptyList()
 
+	member := false
+	// check if from is part of the membership
+	for _, nodeId := range p.membership {
+		if nodeId == source {
+			member = true
+			break // no need to keep looking
+		}
+	}
+
+	if !member {
+		p.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", source)
+		return events.EmptyList()
+	}
 	// Notify the protocol about the progress of the source node.
 	// If no progress is made for a configured number of epochs,
 	// the node is considered to be a straggler and is sent a stable checkpoint to catch up.
