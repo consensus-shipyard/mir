@@ -260,7 +260,7 @@ func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *
 	eventsOut := events.EmptyList()
 
 	// check if source is part of the membership
-	if sliceutil.Contains(p.membership, source) {
+	if !sliceutil.Contains(p.membership, source) {
 		p.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", source)
 		return events.EmptyList()
 	}

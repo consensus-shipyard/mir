@@ -8,6 +8,7 @@ package orderers
 
 import (
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
@@ -250,22 +251,12 @@ func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) 
 	}
 
 	// Verify all signers are part of the membership
-	allMembers := true
-	for _, signerId := range result.NodeIds {
-		member := false
-		for _, nodeId := range orderer.config.Membership {
-			if nodeId == t.NodeID(signerId) {
-				member = true
-				break // no need to keep looking
-			}
-		}
-		if !member {
-			allMembers = false
-			break // no need to keep verifying
-		}
-	}
-
-	if !allMembers {
+	if !sliceutil.ContainsAll(orderer.config.Membership,
+		sliceutil.Transform(result.NodeIds, func(i int, nodeString string) t.NodeID {
+			return t.NodeID(nodeString)
+		},
+		),
+	) {
 		orderer.logger.Log(logging.LevelWarn,
 			"Ignoring message as it contains signatures from non members, ignoring event (with all signatures).",
 			"from", result.NodeIds,
@@ -291,16 +282,8 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
 
-	member := false
 	// check if from is part of the membership
-	for _, nodeId := range orderer.config.Membership {
-		if nodeId == from {
-			member = true
-			break // no need to keep looking
-		}
-	}
-
-	if !member {
+	if !sliceutil.Contains(orderer.config.Membership, from) {
 		orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 		return events.EmptyList()
 	}
