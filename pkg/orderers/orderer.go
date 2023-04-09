@@ -246,7 +246,32 @@ func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) 
 			"type", fmt.Sprintf("%T", result.Origin.Type),
 			"errors", result.Errors,
 		)
-		return nil
+		return events.EmptyList()
+	}
+
+	// Verify all signers are part of the membership
+	allMembers := true
+	for _, signerId := range result.NodeIds {
+		member := false
+		for _, nodeId := range orderer.config.Membership {
+			if nodeId == t.NodeID(signerId) {
+				member = true
+				break // no need to keep looking
+			}
+		}
+		if !member {
+			allMembers = false
+			break // no need to keep verifying
+		}
+	}
+
+	if !allMembers {
+		orderer.logger.Log(logging.LevelWarn,
+			"Ignoring message as it contains signatures from non members, ignoring event (with all signatures).",
+			"from", result.NodeIds,
+			"type", fmt.Sprintf("%T", result.Origin.Type),
+		)
+		return events.EmptyList()
 	}
 
 	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
@@ -271,12 +296,13 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 	for _, nodeId := range orderer.config.Membership {
 		if nodeId == from {
 			member = true
+			break // no need to keep looking
 		}
 	}
 
 	if !member {
-		orderer.logger.Log(logging.LevelWarn, "sender %s is not part of the membership.\n", from)
-		return nil
+		orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+		return events.EmptyList()
 	}
 
 	switch msg := message.Type.(type) {
