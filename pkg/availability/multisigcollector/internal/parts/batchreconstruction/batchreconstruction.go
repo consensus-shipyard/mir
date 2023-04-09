@@ -2,6 +2,7 @@ package batchreconstruction
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 

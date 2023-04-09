@@ -8,6 +8,7 @@ package orderers
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"

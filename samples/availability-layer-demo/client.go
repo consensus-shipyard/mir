@@ -112,6 +112,7 @@ func run() error {
 			AllNodes:    nodeIDs,
 			F:           (len(nodeIDs) - 1) / 2,
 		},
+		logger,
 	)
 	if err != nil {
 		return err

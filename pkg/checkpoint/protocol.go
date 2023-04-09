@@ -4,8 +4,9 @@ package checkpoint
 
 import (
 	"bytes"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/pkg/errors"
 
