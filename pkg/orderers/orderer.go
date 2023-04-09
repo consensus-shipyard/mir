@@ -264,6 +264,20 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
+
+	member := false
+	// check if from is part of the membership
+	for _, nodeId := range orderer.config.Membership {
+		if nodeId == from {
+			member = true
+		}
+	}
+
+	if !member {
+		orderer.logger.Log(logging.LevelWarn, "sender %s is not part of the membership.\n", from)
+		return nil
+	}
+
 	switch msg := message.Type.(type) {
 	case *messagepb.Message_SbMessage:
 		// Based on the message type, call the appropriate handler method.
