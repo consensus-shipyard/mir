@@ -155,10 +155,8 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 		}
 
 		// Check that signers are members.
-		if sliceutil.ContainsAll(params.AllNodes, mscCert.Signers) {
-			return nil, fmt.Errorf("certificate contains signatures from non members",
-				"signers", mscCert.Signers,
-			)
+		if !sliceutil.ContainsAll(params.AllNodes, mscCert.Signers) {
+			return nil, fmt.Errorf("certificate contains signatures from non members, signers %v", mscCert.Signers)
 		}
 
 	}
