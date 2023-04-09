@@ -4,6 +4,7 @@ package checkpoint
 
 import (
 	"bytes"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	"time"
 
 	"github.com/pkg/errors"
@@ -258,16 +259,8 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
 	eventsOut := events.EmptyList()
 
-	member := false
-	// check if from is part of the membership
-	for _, nodeId := range p.membership {
-		if nodeId == source {
-			member = true
-			break // no need to keep looking
-		}
-	}
-
-	if !member {
+	// check if source is part of the membership
+	if sliceutil.Contains(p.membership, source) {
 		p.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", source)
 		return events.EmptyList()
 	}
