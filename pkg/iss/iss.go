@@ -510,8 +510,8 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 }
 
 // applyStableCheckpointMessage processes a received StableCheckpoint message
-// by creating a request for verifying the signatures in the included checkpoint certificate.
-// The actual processing then happens in applyStableCheckpointSigVerResult.
+// by creating a request for verifying the signatures in the included checkpoint certificate,
+// and processing the checkpoint certificate if the signatures are valid.
 func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
 	eventsOut := events.EmptyList()
