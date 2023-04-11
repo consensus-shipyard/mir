@@ -228,7 +228,7 @@ func run() error {
 		return errors.Wrap(err, "could not create new recorder")
 	}
 	// Create a Mir node, passing it all the modules of the SMR system.
-	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), trantorSystem.Modules(), nil, interceptor)
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), trantorSystem.Modules(), interceptor)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}

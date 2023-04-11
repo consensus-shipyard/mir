@@ -7,10 +7,6 @@ import (
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_Init)(nil)),
-		reflect.TypeOf((*Event_Tick)(nil)),
-		reflect.TypeOf((*Event_WalAppend)(nil)),
-		reflect.TypeOf((*Event_WalEntry)(nil)),
-		reflect.TypeOf((*Event_WalTruncate)(nil)),
 		reflect.TypeOf((*Event_NewRequests)(nil)),
 		reflect.TypeOf((*Event_HashRequest)(nil)),
 		reflect.TypeOf((*Event_HashResult)(nil)),

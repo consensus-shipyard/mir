@@ -155,7 +155,7 @@ func runNode() error {
 	)
 
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
-	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), nil, interceptor)
+	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), interceptor)
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}

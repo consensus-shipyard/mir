@@ -74,7 +74,7 @@ func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
 }
 
 // Init returns an event instructing a module to initialize.
-// This event is the first to be applied to a module after applying all events from the WAL.
+// This event is the first to be applied to a module.
 func Init(destModule t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
 }
@@ -241,35 +241,6 @@ func NodeSigsVerified(
 			AllOk:   allOk,
 		}},
 	}
-}
-
-// WALAppend returns an event of appending a new entry to the WAL.
-// This event is produced by the protocol state machine for persisting its state.
-func WALAppend(destModule t.ModuleID, event *eventpb.Event, retentionIndex t.RetentionIndex) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_WalAppend{WalAppend: &eventpb.WALAppend{
-		Event:          event,
-		RetentionIndex: retentionIndex.Pb(),
-	}}}
-}
-
-// WALTruncate returns and event on removing all entries from the WAL
-// that have been appended with a retentionIndex smaller than the
-// specified one.
-func WALTruncate(destModule t.ModuleID, retentionIndex t.RetentionIndex) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_WalTruncate{WalTruncate: &eventpb.WALTruncate{
-			RetentionIndex: retentionIndex.Pb(),
-		}},
-	}
-}
-
-// WALEntry returns an event of reading an entry from the WAL.
-// Those events are used at system initialization.
-func WALEntry(persistedEvent *eventpb.Event, _ t.RetentionIndex) *eventpb.Event {
-	return &eventpb.Event{Type: &eventpb.Event_WalEntry{WalEntry: &eventpb.WALEntry{
-		Event: persistedEvent,
-	}}}
 }
 
 // DeliverCert returns an event of delivering a request batch to the application in sequence number order.

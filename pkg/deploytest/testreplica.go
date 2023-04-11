@@ -3,7 +3,6 @@ package deploytest
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -16,7 +15,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/simplewal"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -67,17 +65,6 @@ func (tr *TestReplica) EventLogFile() string {
 // Run returns the error returned by the run of the underlying Mir node.
 func (tr *TestReplica) Run(ctx context.Context) error {
 
-	// Initialize the write-ahead log.
-	walPath := filepath.Join(tr.Dir, "wal")
-	if err := os.MkdirAll(walPath, 0700); err != nil {
-		return fmt.Errorf("error creating WAL directory: %w", err)
-	}
-	wal, err := simplewal.Open(walPath)
-	if err != nil {
-		return fmt.Errorf("error opening WAL: %w", err)
-	}
-	defer wal.Close()
-
 	// Initialize recording of events.
 	interceptor, err := eventlog.NewRecorder(tr.ID, tr.Dir, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	if err != nil {
@@ -88,14 +75,6 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 			panic(err)
 		}
 	}()
-
-	// TODO: avoid hacky special cases like this.
-	if tr.Modules["wal"] != nil {
-		if _, isNull := tr.Modules["wal"].(modules.NullPassive); !isNull {
-			return fmt.Errorf("\"wal\" module is already present in replica configuration")
-		}
-	}
-	tr.Modules["wal"] = wal
 
 	mod := tr.Modules
 	if tr.Sim != nil {
@@ -108,7 +87,6 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		tr.ID,
 		tr.Config,
 		mod,
-		wal,
 		interceptor,
 	)
 	if err != nil {
@@ -136,11 +114,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// The client submits a predefined number of requests and then stops.
 	go func() {
 		if tr.Proc != nil {
-			walEvents, err := wal.LoadAll(ctx)
-			if err != nil {
-				panic(fmt.Errorf("error loading WAL events %w", err))
-			}
-			tr.Sim.Start(tr.Proc, walEvents)
+			tr.Sim.Start(tr.Proc)
 		}
 		tr.submitFakeRequests(ctx, node, tr.FakeRequestsDestModule, &wg)
 	}()

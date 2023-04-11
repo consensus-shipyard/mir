@@ -1,8 +1,6 @@
 package eventpbtypes
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types10 "github.com/filecoin-project/mir/codegen/model/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -27,6 +25,7 @@ import (
 	types8 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {
@@ -50,14 +49,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *eventpb.Event_Init:
 		return &Event_Init{Init: InitFromPb(pb.Init)}
-	case *eventpb.Event_Tick:
-		return &Event_Tick{Tick: pb.Tick}
-	case *eventpb.Event_WalAppend:
-		return &Event_WalAppend{WalAppend: pb.WalAppend}
-	case *eventpb.Event_WalEntry:
-		return &Event_WalEntry{WalEntry: pb.WalEntry}
-	case *eventpb.Event_WalTruncate:
-		return &Event_WalTruncate{WalTruncate: pb.WalTruncate}
 	case *eventpb.Event_NewRequests:
 		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_HashRequest:
@@ -148,78 +139,6 @@ func (w *Event_Init) Pb() eventpb.Event_Type {
 
 func (*Event_Init) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Init]()}
-}
-
-type Event_Tick struct {
-	Tick *eventpb.Tick
-}
-
-func (*Event_Tick) isEvent_Type() {}
-
-func (w *Event_Tick) Unwrap() *eventpb.Tick {
-	return w.Tick
-}
-
-func (w *Event_Tick) Pb() eventpb.Event_Type {
-	return &eventpb.Event_Tick{Tick: w.Tick}
-}
-
-func (*Event_Tick) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Tick]()}
-}
-
-type Event_WalAppend struct {
-	WalAppend *eventpb.WALAppend
-}
-
-func (*Event_WalAppend) isEvent_Type() {}
-
-func (w *Event_WalAppend) Unwrap() *eventpb.WALAppend {
-	return w.WalAppend
-}
-
-func (w *Event_WalAppend) Pb() eventpb.Event_Type {
-	return &eventpb.Event_WalAppend{WalAppend: w.WalAppend}
-}
-
-func (*Event_WalAppend) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_WalAppend]()}
-}
-
-type Event_WalEntry struct {
-	WalEntry *eventpb.WALEntry
-}
-
-func (*Event_WalEntry) isEvent_Type() {}
-
-func (w *Event_WalEntry) Unwrap() *eventpb.WALEntry {
-	return w.WalEntry
-}
-
-func (w *Event_WalEntry) Pb() eventpb.Event_Type {
-	return &eventpb.Event_WalEntry{WalEntry: w.WalEntry}
-}
-
-func (*Event_WalEntry) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_WalEntry]()}
-}
-
-type Event_WalTruncate struct {
-	WalTruncate *eventpb.WALTruncate
-}
-
-func (*Event_WalTruncate) isEvent_Type() {}
-
-func (w *Event_WalTruncate) Unwrap() *eventpb.WALTruncate {
-	return w.WalTruncate
-}
-
-func (w *Event_WalTruncate) Pb() eventpb.Event_Type {
-	return &eventpb.Event_WalTruncate{WalTruncate: w.WalTruncate}
-}
-
-func (*Event_WalTruncate) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_WalTruncate]()}
 }
 
 type Event_NewRequests struct {

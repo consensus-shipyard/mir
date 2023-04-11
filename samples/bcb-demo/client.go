@@ -111,7 +111,7 @@ func run() error {
 	}
 
 	// create a Mir node
-	node, err := mir.NewNode("client", mir.DefaultNodeConfig().WithLogger(logger), m, nil, nil)
+	node, err := mir.NewNode("client", mir.DefaultNodeConfig().WithLogger(logger), m, nil)
 	if err != nil {
 		return fmt.Errorf("error creating a Mir node: %w", err)
 	}

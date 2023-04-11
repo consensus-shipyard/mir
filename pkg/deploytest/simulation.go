@@ -128,9 +128,7 @@ func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
 // Start initiates simulation with the events from the write-ahead log
 // on behalf of the given process. To be called concurrently with
 // mir.Node.Run().
-func (n *SimNode) Start(proc *testsim.Process, walEvents *events.EventList) {
-	n.SendEvents(proc, walEvents)
-
+func (n *SimNode) Start(proc *testsim.Process) {
 	initEvents := events.EmptyList()
 	for m := range n.moduleChans {
 		initEvents.PushBack(events.Init(m))

@@ -39,10 +39,6 @@ message Event {
     option (mir.event_type) = true;
 
     Init                    init                    = 1;
-    Tick                    tick                    = 2;
-    WALAppend               wal_append              = 3;
-    WALEntry                wal_entry               = 4;
-    WALTruncate             wal_truncate            = 5;
     NewRequests             new_requests            = 7;
     HashRequest             hash_request            = 8;
     HashResult              hash_result             = 9;
@@ -88,6 +84,7 @@ message Event {
   // after the corresponding entry has been persisted in the write-ahead log (WAL).
   // In this case, the WAL append event would be this event
   // and the next field would contain the message sending event.
+  // (This is a hypothetical example, the WAL functionality is not implemented at a moment.)
   repeated Event next = 100 [(mir.omit_in_event_constructors) = true];
 
   string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
@@ -96,8 +93,6 @@ message Event {
 message Init {
   option (mir.event) = true;
 }
-
-message Tick {}
 
 message NewRequests {
   option (mir.event) = true;
@@ -208,22 +203,6 @@ message MessageReceived {
 
   string from = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   messagepb.Message msg = 2;
-}
-
-message WALAppend {
-  Event event = 1;
-  uint64 retention_index = 2;
-}
-
-message WALEntry {
-  Event event = 1;
-}
-
-message WALTruncate {
-  uint64 retention_index = 1;
-}
-
-message WALLoadAll {
 }
 
 message DeliverCert {
