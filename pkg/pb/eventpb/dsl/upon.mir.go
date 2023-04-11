@@ -3,7 +3,8 @@ package eventpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/timer/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -25,19 +26,19 @@ func UponTimerEvent[W types.TimerEvent_TypeWrapper[Ev], Ev any](m dsl.Module, ha
 	})
 }
 
-func UponTimerDelay(m dsl.Module, handler func(eventsToDelay []*types.Event, delay types1.TimeDuration) error) {
+func UponTimerDelay(m dsl.Module, handler func(eventsToDelay []*types.Event, delay types1.Duration) error) {
 	UponTimerEvent[*types.TimerEvent_Delay](m, func(ev *types.TimerDelay) error {
 		return handler(ev.EventsToDelay, ev.Delay)
 	})
 }
 
-func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, delay types1.TimeDuration, retentionIndex types1.RetentionIndex) error) {
+func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, delay types1.Duration, retentionIndex types2.RetentionIndex) error) {
 	UponTimerEvent[*types.TimerEvent_Repeat](m, func(ev *types.TimerRepeat) error {
 		return handler(ev.EventsToRepeat, ev.Delay, ev.RetentionIndex)
 	})
 }
 
-func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types1.RetentionIndex) error) {
+func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types2.RetentionIndex) error) {
 	UponTimerEvent[*types.TimerEvent_GarbageCollect](m, func(ev *types.TimerGarbageCollect) error {
 		return handler(ev.RetentionIndex)
 	})

@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -67,7 +68,7 @@ func SigVerOrigin(module t.ModuleID) *cryptopbtypes.SigVerOrigin {
 
 func InstanceParams(
 	membership map[t.NodeID]t.NodeAddress,
-	resendPeriod t.TimeDuration,
+	resendPeriod types.Duration,
 	leaderPolicyData []byte,
 	epochConfig *commonpb.EpochConfig,
 ) *factorypbtypes.GeneratorParams {

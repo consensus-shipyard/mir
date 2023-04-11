@@ -3,6 +3,8 @@ package orderers
 import (
 	"fmt"
 
+	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -47,7 +49,7 @@ type pbftProposalState struct {
 	// If the view advanced in the meantime, the proposal must be aborted and the contained requests resurrected
 	// (i.e., put back in their respective ISS bucket queues).
 	// If certRequested is false, certRequestedView must not be used.
-	certRequestedView t.PBFTViewNr
+	certRequestedView types2.ViewNr
 
 	// the number of proposals for which the timeout has passed.
 	// If this number is higher than proposalsMade, a new certificate can be proposed.
@@ -161,7 +163,7 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 
 	timerEvent := eventpbevents.TimerDelay(orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{ordererEvent},
-		t.TimeDuration(orderer.config.MaxProposeDelay),
+		types.Duration(orderer.config.MaxProposeDelay),
 	).Pb()
 
 	return events.ListOf(msgSendEvent.Pb(), timerEvent), nil
@@ -225,7 +227,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 	sn := t.SeqNr(preprepare.Sn)
 
 	// Stop processing the Preprepare if view advanced in the meantime.
-	if t.PBFTViewNr(preprepare.View) < orderer.view {
+	if types2.ViewNr(preprepare.View) < orderer.view {
 		return events.EmptyList()
 	}
 
@@ -246,7 +248,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 }
 
 // sendPrepare creates an event for sending a Prepare message.
-func (orderer *Orderer) sendPrepare(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *events.EventList {
+func (orderer *Orderer) sendPrepare(sn t.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
 
 	// Return a list with a single element - the send event containing a PBFT prepare message.
 	// No need for periodic re-transmission.
@@ -287,7 +289,7 @@ func (orderer *Orderer) applyMsgPrepare(prepare *pbftpbtypes.Prepare, from t.Nod
 }
 
 // sendCommit creates an event for sending a Commit message.
-func (orderer *Orderer) sendCommit(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *events.EventList {
+func (orderer *Orderer) sendCommit(sn t.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
 
 	// Emit a send event with a PBFT Commit message.
 	// No need for periodic re-transmission.
@@ -332,7 +334,7 @@ func (orderer *Orderer) applyMsgCommit(commit *pbftpbtypes.Commit, from t.NodeID
 // If the message is from a future view, preprocessMessage will try to buffer it for later processing and returns nil.
 // If the message can be processed, preprocessMessage returns the pbftSlot tracking the corresponding state.
 // The slot returned by preprocessMessage always belongs to the current view.
-func (orderer *Orderer) preprocessMessage(sn t.SeqNr, view t.PBFTViewNr, msg proto.Message, from t.NodeID) *pbftSlot {
+func (orderer *Orderer) preprocessMessage(sn t.SeqNr, view types2.ViewNr, msg proto.Message, from t.NodeID) *pbftSlot {
 
 	if view < orderer.view {
 		// Ignore messages from old views.

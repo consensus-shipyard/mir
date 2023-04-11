@@ -9,6 +9,7 @@ package orderers
 import (
 	"fmt"
 
+	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -16,6 +17,7 @@ import (
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -72,7 +74,7 @@ type Orderer struct {
 
 	// For each view, slots contains one pbftSlot per sequence number this Orderer is responsible for.
 	// Each slot tracks the state of the agreement protocol for one sequence number.
-	slots map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot
+	slots map[types2.ViewNr]map[t.SeqNr]*pbftSlot
 
 	// Tracks the state of the segment-local checkpoint.
 	segmentCheckpoint *pbftSegmentChkp
@@ -81,7 +83,7 @@ type Orderer struct {
 	logger logging.Logger
 
 	// PBFT view
-	view t.PBFTViewNr
+	view types2.ViewNr
 
 	// Flag indicating whether this node is currently performing a view change.
 	// It is set on sending the ViewChange message and cleared on accepting a new view.
@@ -90,7 +92,7 @@ type Orderer struct {
 	// For each view transition, stores the state of the corresponding PBFT view change sub-protocol.
 	// The map itself is allocated on creation of the pbftInstance, but the entries are initialized lazily,
 	// only when needed (when the node initiates a view change).
-	viewChangeStates map[t.PBFTViewNr]*pbftViewChangeState
+	viewChangeStates map[types2.ViewNr]*pbftViewChangeState
 
 	// Contains the application-specific code for validating incoming proposals.
 	externalValidator ValidityChecker
@@ -122,7 +124,7 @@ func NewOrdererModule(
 		moduleConfig:      moduleConfig,
 		config:            config,
 		externalValidator: externalValidator,
-		slots:             make(map[t.PBFTViewNr]map[t.SeqNr]*pbftSlot),
+		slots:             make(map[types2.ViewNr]map[t.SeqNr]*pbftSlot),
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:     0,
@@ -139,7 +141,7 @@ func NewOrdererModule(
 		logger:           logger,
 		view:             0,
 		inViewChange:     false,
-		viewChangeStates: make(map[t.PBFTViewNr]*pbftViewChangeState),
+		viewChangeStates: make(map[types2.ViewNr]*pbftViewChangeState),
 	}
 }
 
@@ -204,7 +206,7 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 			case *pbftpb.Event_ViewChangeSnTimeout:
 				return orderer.applyViewChangeSNTimeout(e.ViewChangeSnTimeout), nil
 			case *pbftpb.Event_ViewChangeSegTimeout:
-				return orderer.applyViewChangeSegmentTimeout(t.PBFTViewNr(e.ViewChangeSegTimeout)), nil
+				return orderer.applyViewChangeSegmentTimeout(types2.ViewNr(e.ViewChangeSegTimeout)), nil
 			default:
 				return nil, fmt.Errorf("unknown PBFT event type: %T", e)
 			}
@@ -232,7 +234,7 @@ func (orderer *Orderer) applyHashResult(result *hasherpb.Result) *events.EventLi
 			case *pbftpb.HashOrigin_Preprepare:
 				return orderer.applyPreprepareHashResult(result.Digests[0], o.Preprepare)
 			case *pbftpb.HashOrigin_EmptyPreprepares:
-				return orderer.applyEmptyPreprepareHashResult(result.Digests, t.PBFTViewNr(o.EmptyPreprepares))
+				return orderer.applyEmptyPreprepareHashResult(result.Digests, types2.ViewNr(o.EmptyPreprepares))
 			case *pbftpb.HashOrigin_MissingPreprepare:
 				return orderer.applyMissingPreprepareHashResult(
 					result.Digests[0],
@@ -415,7 +417,7 @@ func (orderer *Orderer) applyInit() *events.EventList {
 	event := eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self, PbftProposeTimeout(1)))},
-		t.TimeDuration(orderer.config.MaxProposeDelay),
+		types.Duration(orderer.config.MaxProposeDelay),
 	)
 
 	// Set up timer for the first proposal.
@@ -424,7 +426,7 @@ func (orderer *Orderer) applyInit() *events.EventList {
 }
 
 // numCommitted returns the number of slots that are already committed in the given view.
-func (orderer *Orderer) numCommitted(view t.PBFTViewNr) int {
+func (orderer *Orderer) numCommitted(view types2.ViewNr) int {
 	numCommitted := 0
 	for _, slot := range orderer.slots[view] {
 		if slot.Committed {
@@ -440,7 +442,7 @@ func (orderer *Orderer) allCommitted() bool {
 	return orderer.numCommitted(orderer.view) == len(orderer.slots[orderer.view])
 }
 
-func (orderer *Orderer) initView(view t.PBFTViewNr) *events.EventList {
+func (orderer *Orderer) initView(view types2.ViewNr) *events.EventList {
 	// Sanity check
 	if view < orderer.view {
 		panic(fmt.Sprintf("Starting a view (%d) older than the current one (%d)", view, orderer.view))
@@ -475,12 +477,12 @@ func (orderer *Orderer) initView(view t.PBFTViewNr) *events.EventList {
 		orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
 			PbftViewChangeSNTimeout(view, orderer.numCommitted(view))))},
-		computeTimeout(t.TimeDuration(orderer.config.ViewChangeSNTimeout), view),
+		computeTimeout(types.Duration(orderer.config.ViewChangeSNTimeout), view),
 	).Pb()).PushBack(eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
 			PbftViewChangeSegmentTimeout(view)))},
-		computeTimeout(t.TimeDuration(orderer.config.ViewChangeSegmentTimeout), view),
+		computeTimeout(types.Duration(orderer.config.ViewChangeSegmentTimeout), view),
 	).Pb())
 
 	orderer.view = view
@@ -509,7 +511,7 @@ func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *pbftpbtypes
 		}
 
 		// This check cannot be replaced by a (view >= 0) condition in the loop header and must appear here.
-		// If the underlying type of t.PBFTViewNr is unsigned, view would underflow and we would loop forever.
+		// If the underlying type of ViewNr is unsigned, view would underflow and we would loop forever.
 		if view == 0 {
 			return nil
 		}
@@ -522,7 +524,7 @@ func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *pbftpbtypes
 
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
-func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
+func computeTimeout(timeout types.Duration, view types2.ViewNr) types.Duration {
 	timeout *= 1 << view
 	return timeout
 }

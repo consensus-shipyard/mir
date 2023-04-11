@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
@@ -918,7 +919,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 		// before the re-transmission is garbage-collected.
 		eventpbdsl.TimerRepeat(iss.m, iss.moduleConfig.Timer,
 			[]*eventpbtypes.Event{isspbevents.PushCheckpoint(iss.moduleConfig.Self)},
-			t.TimeDuration(iss.Params.CatchUpTimerPeriod),
+			types.Duration(iss.Params.CatchUpTimerPeriod),
 			// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
 			// Using pruneIndex makes sure that the re-transmission is stopped
 			// on every stable checkpoint (when another one is started).

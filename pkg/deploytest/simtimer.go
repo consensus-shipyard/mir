@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -52,11 +53,11 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 		switch e := e.Timer.Type.(type) {
 		case *eventpb.TimerEvent_Delay:
 			evtsOut := events.ListOf(e.Delay.EventsToDelay...)
-			d := t.TimeDuration(e.Delay.Delay)
+			d := types.Duration(e.Delay.Delay)
 			m.delay(ctx, evtsOut, d)
 		case *eventpb.TimerEvent_Repeat:
 			evtsOut := events.ListOf(e.Repeat.EventsToRepeat...)
-			d := t.TimeDuration(e.Repeat.Delay)
+			d := types.Duration(e.Repeat.Delay)
 			retIdx := t.RetentionIndex(e.Repeat.RetentionIndex)
 			m.repeat(ctx, evtsOut, d, retIdx)
 		case *eventpb.TimerEvent_GarbageCollect:
@@ -72,7 +73,7 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 	return nil
 }
 
-func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList, d t.TimeDuration) {
+func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList, d types.Duration) {
 	proc := m.Spawn()
 
 	done := make(chan struct{})
@@ -104,7 +105,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList,
 	}()
 }
 
-func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d t.TimeDuration, retIdx t.RetentionIndex) {
+func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d types.Duration, retIdx t.RetentionIndex) {
 	proc := m.Spawn()
 	m.processes[retIdx] = proc
 

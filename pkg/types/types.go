@@ -9,7 +9,6 @@ package types
 import (
 	"encoding/binary"
 	"strconv"
-	"time"
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
@@ -79,8 +78,6 @@ func NodeIDSlice(nids []string) []NodeID {
 	}
 	return nodeIDs
 }
-
-const NodeIDSeparator = Separator
 
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
@@ -176,24 +173,6 @@ func (cid ClientID) Bytes() []byte {
 
 // ================================================================================
 
-// ClientWM represents the client request watermark.
-type ClientWM uint64
-
-// Pb converts a ClientWN to its underlying native type.
-func (cwm ClientWM) Pb() uint64 {
-	return uint64(cwm)
-}
-
-func ClientWMsPb(wms map[ClientID]ClientWM) map[string]uint64 {
-	m := make(map[string]uint64)
-	for k, v := range wms {
-		m[k.Pb()] = v.Pb()
-	}
-	return m
-}
-
-// ================================================================================
-
 // SeqNr represents the sequence number of a batch as assigned by the ordering protocol.
 type SeqNr uint64
 
@@ -263,20 +242,6 @@ func (ri RetentionIndex) Bytes() []byte {
 
 // ================================================================================
 
-// SBInstanceNr identifies the instance of Sequenced Broadcast (SB) within an epoch.
-type SBInstanceNr uint64
-
-// Pb converts a SBInstanceNr to its underlying native type.
-func (i SBInstanceNr) Pb() uint64 {
-	return uint64(i)
-}
-
-func (i SBInstanceNr) Bytes() []byte {
-	return Uint64ToBytes(uint64(i))
-}
-
-// ================================================================================
-
 // EpochNr represents the number of an epoch.
 type EpochNr uint64
 
@@ -287,49 +252,6 @@ func (e EpochNr) Pb() uint64 {
 
 func (e EpochNr) Bytes() []byte {
 	return Uint64ToBytes(uint64(e))
-}
-
-// ================================================================================
-
-// NumRequests represents the number of requests (e.g. pending in some buffer)
-type NumRequests uint64
-
-// Pb converts an EpochNr number to its underlying native type.
-func (nr NumRequests) Pb() uint64 {
-	return uint64(nr)
-}
-
-func (nr NumRequests) Bytes() []byte {
-	return Uint64ToBytes(uint64(nr))
-}
-
-// ================================================================================
-
-// PBFTViewNr represents the view number in the PBFT protocol (used as a sub-protocol of ISS)
-type PBFTViewNr uint64
-
-// Pb converts a PBFTViewNr to its underlying native type
-func (v PBFTViewNr) Pb() uint64 {
-	return uint64(v)
-}
-
-// Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
-func (v PBFTViewNr) Bytes() []byte {
-	return Uint64ToBytes(uint64(v))
-}
-
-// ================================================================================
-
-// TimeDuration represents an interval of real time
-type TimeDuration time.Duration
-
-// Pb converts a TimeDuration to a type used in a Protobuf message.
-func (td TimeDuration) Pb() uint64 {
-	return uint64(td)
-}
-
-func (td TimeDuration) Bytes() []byte {
-	return Uint64ToBytes(uint64(td))
 }
 
 // ================================================================================

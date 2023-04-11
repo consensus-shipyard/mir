@@ -14,6 +14,7 @@ import (
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -170,7 +171,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 			pbftpbmsgs.Done(orderer.moduleConfig.Self, digests),
 			orderer.segment.NodeIDs(),
 		)},
-		t.TimeDuration(orderer.config.DoneResendPeriod),
+		types.Duration(orderer.config.DoneResendPeriod),
 		t.RetentionIndex(orderer.config.epochNr),
 	).Pb())
 }
@@ -203,9 +204,9 @@ func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *
 		[]*eventpbtypes.Event{eventpbevents.TimerRepeat(
 			orderer.moduleConfig.Timer,
 			orderer.catchUpRequests(doneNodes, orderer.segmentCheckpoint.Digests()),
-			t.TimeDuration(orderer.config.CatchUpDelay),
+			types.Duration(orderer.config.CatchUpDelay),
 			t.RetentionIndex(orderer.config.epochNr))},
-		t.TimeDuration(orderer.config.CatchUpDelay),
+		types.Duration(orderer.config.CatchUpDelay),
 	).Pb())
 
 	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,

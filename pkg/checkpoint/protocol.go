@@ -15,6 +15,7 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/pkg/errors"
@@ -37,7 +38,7 @@ import (
 )
 
 const (
-	DefaultResendPeriod = t.TimeDuration(time.Second)
+	DefaultResendPeriod = types.Duration(time.Second)
 )
 
 // Protocol represents the state associated with a single instance of the checkpoint protocol
@@ -84,7 +85,7 @@ type Protocol struct {
 	pendingMessages map[t.NodeID]*checkpointpb.Checkpoint
 
 	// Time interval for repeated retransmission of checkpoint messages.
-	resendPeriod t.TimeDuration
+	resendPeriod types.Duration
 
 	// Flag ensuring that the stable checkpoint is only announced once.
 	// Set to true when announcing a stable checkpoint for the first time.
@@ -99,7 +100,7 @@ func NewProtocol(
 	membership map[t.NodeID]t.NodeAddress,
 	epochConfig *commonpb.EpochConfig,
 	leaderPolicyData []byte,
-	resendPeriod t.TimeDuration,
+	resendPeriod types.Duration,
 	logger logging.Logger,
 ) *Protocol {
 	return &Protocol{

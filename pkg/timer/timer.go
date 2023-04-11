@@ -8,6 +8,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -49,13 +50,13 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 				tm.Delay(
 					ctx,
 					events.ListOf(e.Delay.EventsToDelay...),
-					t.TimeDuration(e.Delay.Delay),
+					types.Duration(e.Delay.Delay),
 				)
 			case *eventpb.TimerEvent_Repeat:
 				tm.Repeat(
 					ctx,
 					events.ListOf(e.Repeat.EventsToRepeat...),
-					t.TimeDuration(e.Repeat.Delay),
+					types.Duration(e.Repeat.Delay),
 					t.RetentionIndex(e.Repeat.RetentionIndex),
 				)
 			case *eventpb.TimerEvent_GarbageCollect:
@@ -74,7 +75,7 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 func (tm *Timer) Delay(
 	ctx context.Context,
 	events *events.EventList,
-	delay t.TimeDuration,
+	delay types.Duration,
 ) {
 
 	// This manual implementation has the following advantage over simply using time.AfterFunc:
@@ -104,7 +105,7 @@ func (tm *Timer) Delay(
 func (tm *Timer) Repeat(
 	ctx context.Context,
 	events *events.EventList,
-	period t.TimeDuration,
+	period types.Duration,
 	retIndex t.RetentionIndex,
 ) {
 	go func() {

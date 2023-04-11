@@ -4,6 +4,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/orderers/types"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -94,7 +95,7 @@ func (vcState *pbftViewChangeState) updateReproposals() {
 	}
 }
 
-func (vcState *pbftViewChangeState) SetEmptyPreprepares(view t.PBFTViewNr, proposals map[t.SeqNr][]byte) []*commonpbtypes.HashData {
+func (vcState *pbftViewChangeState) SetEmptyPreprepares(view types.ViewNr, proposals map[t.SeqNr][]byte) []*commonpbtypes.HashData {
 
 	// dataToHash will store the serialized form of newly created empty ("aborted") Preprepares.
 	dataToHash := make([]*commonpbtypes.HashData, 0, len(vcState.reproposals))
@@ -144,7 +145,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) 
 	}
 }
 
-func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view t.PBFTViewNr) {
+func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view types.ViewNr) {
 	for sn, digest := range vcState.reproposals {
 		if vcState.preprepares[sn] == nil && digest != nil && len(digest) > 0 {
 			if preprepare := pbft.lookUpPreprepare(sn, digest); preprepare != nil {

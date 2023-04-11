@@ -38,7 +38,7 @@ import (
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	"github.com/filecoin-project/mir/pkg/systems/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"

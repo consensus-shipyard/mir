@@ -19,6 +19,7 @@ import (
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types13 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
+	types15 "github.com/filecoin-project/mir/pkg/timer/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -564,7 +565,7 @@ func (*TimerEvent) MirReflect() mirreflect.Type {
 
 type TimerDelay struct {
 	EventsToDelay []*Event
-	Delay         types.TimeDuration
+	Delay         types15.Duration
 }
 
 func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
@@ -572,7 +573,7 @@ func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 		EventsToDelay: types14.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay: (types.TimeDuration)(pb.Delay),
+		Delay: (types15.Duration)(pb.Delay),
 	}
 }
 
@@ -591,7 +592,7 @@ func (*TimerDelay) MirReflect() mirreflect.Type {
 
 type TimerRepeat struct {
 	EventsToRepeat []*Event
-	Delay          types.TimeDuration
+	Delay          types15.Duration
 	RetentionIndex types.RetentionIndex
 }
 
@@ -600,7 +601,7 @@ func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 		EventsToRepeat: types14.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay:          (types.TimeDuration)(pb.Delay),
+		Delay:          (types15.Duration)(pb.Delay),
 		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
 	}
 }

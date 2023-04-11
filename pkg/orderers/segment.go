@@ -1,6 +1,7 @@
 package orderers
 
 import (
+	"github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -67,7 +68,7 @@ func (seg *Segment) NodeIDs() []t.NodeID {
 	return maputil.GetSortedKeys(seg.Membership)
 }
 
-func (seg *Segment) PrimaryNode(view t.PBFTViewNr) t.NodeID {
+func (seg *Segment) PrimaryNode(view types.ViewNr) t.NodeID {
 	return seg.NodeIDs()[(seg.LeaderIndex()+int(view))%len(seg.NodeIDs())]
 }
 
