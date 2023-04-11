@@ -166,7 +166,6 @@ func New(
 	}
 
 	// TODO: Make sure that startingChkp is consistent with params.
-
 	leaderPolicy, err := lsp.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
