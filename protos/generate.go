@@ -59,6 +59,8 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/requestpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 
 // Generate other things.
 //go:generate protoc --proto_path=. --go_out=:../pkg/ --go_opt=paths=source_relative simplewal/simplewal.proto

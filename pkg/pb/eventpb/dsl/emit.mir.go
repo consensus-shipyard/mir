@@ -87,6 +87,14 @@ func AppRestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types6
 	dsl.EmitMirEvent(m, events.AppRestoreState(destModule, checkpoint))
 }
 
+func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types3.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) {
+	dsl.EmitMirEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
+}
+
+func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types.RetentionIndex) {
+	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
+}
+
 func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
 	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
 }

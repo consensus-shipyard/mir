@@ -4,7 +4,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
@@ -40,7 +40,7 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	case *messagepb.Message_Pingpong:
 		return &Message_Pingpong{Pingpong: pb.Pingpong}
 	case *messagepb.Message_Checkpoint:
-		return &Message_Checkpoint{Checkpoint: pb.Checkpoint}
+		return &Message_Checkpoint{Checkpoint: types4.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_SbMessage:
 		return &Message_SbMessage{SbMessage: pb.SbMessage}
 	}
@@ -120,17 +120,17 @@ func (*Message_Pingpong) MirReflect() mirreflect.Type {
 }
 
 type Message_Checkpoint struct {
-	Checkpoint *checkpointpb.Message
+	Checkpoint *types4.Message
 }
 
 func (*Message_Checkpoint) isMessage_Type() {}
 
-func (w *Message_Checkpoint) Unwrap() *checkpointpb.Message {
+func (w *Message_Checkpoint) Unwrap() *types4.Message {
 	return w.Checkpoint
 }
 
 func (w *Message_Checkpoint) Pb() messagepb.Message_Type {
-	return &messagepb.Message_Checkpoint{Checkpoint: w.Checkpoint}
+	return &messagepb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
 func (*Message_Checkpoint) MirReflect() mirreflect.Type {

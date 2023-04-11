@@ -124,6 +124,18 @@ func UponAppRestoreState(m dsl.Module, handler func(checkpoint *types6.StableChe
 	})
 }
 
+func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, delay types3.TimeDuration, retentionIndex types3.RetentionIndex) error) {
+	dsl.UponMirEvent[*types.Event_TimerRepeat](m, func(ev *types.TimerRepeat) error {
+		return handler(ev.EventsToRepeat, ev.Delay, ev.RetentionIndex)
+	})
+}
+
+func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types3.RetentionIndex) error) {
+	dsl.UponMirEvent[*types.Event_TimerGarbageCollect](m, func(ev *types.TimerGarbageCollect) error {
+		return handler(ev.RetentionIndex)
+	})
+}
+
 func UponNewEpoch(m dsl.Module, handler func(epochNr types3.EpochNr) error) {
 	dsl.UponMirEvent[*types.Event_NewEpoch](m, func(ev *types.NewEpoch) error {
 		return handler(ev.EpochNr)

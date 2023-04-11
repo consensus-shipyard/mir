@@ -7,6 +7,9 @@ import "ordererspbftpb/ordererspbftpb.proto";
 import "requestpb/requestpb.proto";
 import "availabilitypb/availabilitypb.proto";
 
+import "mir/codegen_extensions.proto";
+
+
 option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererspb";
 
 message SBInstanceMessage {
@@ -147,12 +150,14 @@ message SBInstanceSigVerOrigin {
 }
 
 message PBFTSegment {
+  option (mir.struct) = true;
   string              leader     = 1;
   commonpb.Membership membership = 2;
   map<uint64, bytes>  proposals  = 3;
 }
 
 message PBFTModule{
+  option (mir.struct) = true;
   PBFTSegment segment          = 1;
   string      availability_id  = 2;
   uint64      epoch            = 3;

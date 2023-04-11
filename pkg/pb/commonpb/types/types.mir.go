@@ -2,9 +2,9 @@ package commonpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types "github.com/filecoin-project/mir/codegen/model/types"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -26,6 +26,29 @@ func (m *HashData) Pb() *commonpb.HashData {
 
 func (*HashData) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.HashData]()}
+}
+
+type StateSnapshot struct {
+	AppData   []uint8
+	EpochData *EpochData
+}
+
+func StateSnapshotFromPb(pb *commonpb.StateSnapshot) *StateSnapshot {
+	return &StateSnapshot{
+		AppData:   pb.AppData,
+		EpochData: EpochDataFromPb(pb.EpochData),
+	}
+}
+
+func (m *StateSnapshot) Pb() *commonpb.StateSnapshot {
+	return &commonpb.StateSnapshot{
+		AppData:   m.AppData,
+		EpochData: (m.EpochData).Pb(),
+	}
+}
+
+func (*StateSnapshot) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.StateSnapshot]()}
 }
 
 type EpochData struct {
@@ -58,18 +81,18 @@ func (*EpochData) MirReflect() mirreflect.Type {
 }
 
 type EpochConfig struct {
-	EpochNr     uint64
-	FirstSn     uint64
+	EpochNr     types.EpochNr
+	FirstSn     types.SeqNr
 	Length      uint64
 	Memberships []*Membership
 }
 
 func EpochConfigFromPb(pb *commonpb.EpochConfig) *EpochConfig {
 	return &EpochConfig{
-		EpochNr: pb.EpochNr,
-		FirstSn: pb.FirstSn,
+		EpochNr: (types.EpochNr)(pb.EpochNr),
+		FirstSn: (types.SeqNr)(pb.FirstSn),
 		Length:  pb.Length,
-		Memberships: types.ConvertSlice(pb.Memberships, func(t *commonpb.Membership) *Membership {
+		Memberships: types1.ConvertSlice(pb.Memberships, func(t *commonpb.Membership) *Membership {
 			return MembershipFromPb(t)
 		}),
 	}
@@ -77,10 +100,10 @@ func EpochConfigFromPb(pb *commonpb.EpochConfig) *EpochConfig {
 
 func (m *EpochConfig) Pb() *commonpb.EpochConfig {
 	return &commonpb.EpochConfig{
-		EpochNr: m.EpochNr,
-		FirstSn: m.FirstSn,
+		EpochNr: (uint64)(m.EpochNr),
+		FirstSn: (uint64)(m.FirstSn),
 		Length:  m.Length,
-		Memberships: types.ConvertSlice(m.Memberships, func(t *Membership) *commonpb.Membership {
+		Memberships: types1.ConvertSlice(m.Memberships, func(t *Membership) *commonpb.Membership {
 			return (t).Pb()
 		}),
 	}
@@ -91,20 +114,20 @@ func (*EpochConfig) MirReflect() mirreflect.Type {
 }
 
 type Membership struct {
-	Membership map[types1.NodeID]string
+	Membership map[types.NodeID]string
 }
 
 func MembershipFromPb(pb *commonpb.Membership) *Membership {
 	return &Membership{
-		Membership: types.ConvertMap(pb.Membership, func(k string, v string) (types1.NodeID, string) {
-			return (types1.NodeID)(k), v
+		Membership: types1.ConvertMap(pb.Membership, func(k string, v string) (types.NodeID, string) {
+			return (types.NodeID)(k), v
 		}),
 	}
 }
 
 func (m *Membership) Pb() *commonpb.Membership {
 	return &commonpb.Membership{
-		Membership: types.ConvertMap(m.Membership, func(k types1.NodeID, v string) (string, string) {
+		Membership: types1.ConvertMap(m.Membership, func(k types.NodeID, v string) (string, string) {
 			return (string)(k), v
 		}),
 	}

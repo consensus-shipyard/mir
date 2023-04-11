@@ -132,27 +132,27 @@ type ISS struct {
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 func New(
 
-// ID of the node being instantiated with ISS.
+	// ID of the node being instantiated with ISS.
 	ownID t.NodeID,
 
-// IDs of the modules ISS interacts with.
+	// IDs of the modules ISS interacts with.
 	moduleConfig *ModuleConfig,
 
-// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
-// See the documentation of the issutil.ModuleParams type for details.
+	// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
+	// See the documentation of the issutil.ModuleParams type for details.
 	params *issconfig.ModuleParams,
 
-// Stable checkpoint defining the initial state of the protocol.
+	// Stable checkpoint defining the initial state of the protocol.
 	startingChkp *checkpoint.StableCheckpoint,
 
-// Hash implementation to use when computing hashes.
+	// Hash implementation to use when computing hashes.
 	hashImpl crypto.HashImpl,
 
-// Verifier of received stable checkpoints.
-// This is most likely going to be the crypto module used by the protocol.
+	// Verifier of received stable checkpoints.
+	// This is most likely going to be the crypto module used by the protocol.
 	chkpVerifier checkpoint.Verifier,
 
-// Logger the ISS implementation uses to output log messages.
+	// Logger the ISS implementation uses to output log messages.
 	logger logging.Logger,
 
 ) (*ISS, error) {
@@ -166,6 +166,7 @@ func New(
 	}
 
 	// TODO: Make sure that startingChkp is consistent with params.
+
 	leaderPolicy, err := lsp.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
@@ -509,8 +510,8 @@ func (iss *ISS) applyMessageReceived(messageReceived *eventpb.MessageReceived) (
 }
 
 // applyStableCheckpointMessage processes a received StableCheckpoint message
-// by creating a request for verifying the signatures in the included checkpoint certificate,
-// and processing the checkpoint certificate if the signatures are valid.
+// by creating a request for verifying the signatures in the included checkpoint certificate.
+// The actual processing then happens in applyStableCheckpointSigVerResult.
 func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoint, _ t.NodeID) (*events.EventList, error) {
 
 	eventsOut := events.EmptyList()

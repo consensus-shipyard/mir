@@ -14,6 +14,6 @@ func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[string
 	dsl.EmitMirEvent(m, events.ClientProgress(destModule, progress))
 }
 
-func EpochConfig(m dsl.Module, destModule types.ModuleID, epochNr uint64, firstSn uint64, length uint64, memberships []*types1.Membership) {
+func EpochConfig(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr, firstSn types.SeqNr, length uint64, memberships []*types1.Membership) {
 	dsl.EmitMirEvent(m, events.EpochConfig(destModule, epochNr, firstSn, length, memberships))
 }

@@ -272,13 +272,15 @@ message TimerDelay {
 }
 
 message TimerRepeat {
-  repeated Event  events          = 1;
-  uint64          delay           = 2;
-  uint64          retention_index = 3;
+  option (mir.event) = true;
+  repeated Event  events_to_repeat          = 1;
+  uint64          delay           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TimeDuration"];
+  uint64          retention_index = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
 }
 
 message TimerGarbageCollect {
-  uint64 retention_index = 1;
+  option (mir.event) = true;
+  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
 }
 
 message NewEpoch {

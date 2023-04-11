@@ -24,7 +24,7 @@ func ClientProgress(destModule types.ModuleID, progress map[string]*commonpb.Del
 	}
 }
 
-func EpochConfig(destModule types.ModuleID, epochNr uint64, firstSn uint64, length uint64, memberships []*types3.Membership) *types1.Event {
+func EpochConfig(destModule types.ModuleID, epochNr types.EpochNr, firstSn types.SeqNr, length uint64, memberships []*types3.Membership) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Checkpoint{

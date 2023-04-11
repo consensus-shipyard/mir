@@ -4,6 +4,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
+	types3 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
@@ -282,4 +283,30 @@ func (m *Certs) Pb() *mscpb.Certs {
 
 func (*Certs) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mscpb.Certs]()}
+}
+
+type InstanceParams struct {
+	Membership  *types3.Membership
+	Limit       uint64
+	MaxRequests uint64
+}
+
+func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
+	return &InstanceParams{
+		Membership:  types3.MembershipFromPb(pb.Membership),
+		Limit:       pb.Limit,
+		MaxRequests: pb.MaxRequests,
+	}
+}
+
+func (m *InstanceParams) Pb() *mscpb.InstanceParams {
+	return &mscpb.InstanceParams{
+		Membership:  (m.Membership).Pb(),
+		Limit:       m.Limit,
+		MaxRequests: m.MaxRequests,
+	}
+}
+
+func (*InstanceParams) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mscpb.InstanceParams]()}
 }

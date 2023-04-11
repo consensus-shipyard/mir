@@ -165,6 +165,30 @@ func AppRestoreState(destModule types.ModuleID, checkpoint *types6.StableCheckpo
 	}
 }
 
+func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_TimerRepeat{
+			TimerRepeat: &types1.TimerRepeat{
+				EventsToRepeat: eventsToRepeat,
+				Delay:          delay,
+				RetentionIndex: retentionIndex,
+			},
+		},
+	}
+}
+
+func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types.RetentionIndex) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_TimerGarbageCollect{
+			TimerGarbageCollect: &types1.TimerGarbageCollect{
+				RetentionIndex: retentionIndex,
+			},
+		},
+	}
+}
+
 func NewEpoch(destModule types.ModuleID, epochNr types.EpochNr) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,

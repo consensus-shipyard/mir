@@ -4,11 +4,96 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
+
+type Message struct {
+	Type Message_Type
+}
+
+type Message_Type interface {
+	mirreflect.GeneratedType
+	isMessage_Type()
+	Pb() checkpointpb.Message_Type
+}
+
+type Message_TypeWrapper[T any] interface {
+	Message_Type
+	Unwrap() *T
+}
+
+func Message_TypeFromPb(pb checkpointpb.Message_Type) Message_Type {
+	switch pb := pb.(type) {
+	case *checkpointpb.Message_Checkpoint:
+		return &Message_Checkpoint{Checkpoint: CheckpointFromPb(pb.Checkpoint)}
+	}
+	return nil
+}
+
+type Message_Checkpoint struct {
+	Checkpoint *Checkpoint
+}
+
+func (*Message_Checkpoint) isMessage_Type() {}
+
+func (w *Message_Checkpoint) Unwrap() *Checkpoint {
+	return w.Checkpoint
+}
+
+func (w *Message_Checkpoint) Pb() checkpointpb.Message_Type {
+	return &checkpointpb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
+}
+
+func (*Message_Checkpoint) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.Message_Checkpoint]()}
+}
+
+func MessageFromPb(pb *checkpointpb.Message) *Message {
+	return &Message{
+		Type: Message_TypeFromPb(pb.Type),
+	}
+}
+
+func (m *Message) Pb() *checkpointpb.Message {
+	return &checkpointpb.Message{
+		Type: (m.Type).Pb(),
+	}
+}
+
+func (*Message) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.Message]()}
+}
+
+type Checkpoint struct {
+	Epoch        types.EpochNr
+	Sn           types.SeqNr
+	SnapshotHash []uint8
+	Signature    []uint8
+}
+
+func CheckpointFromPb(pb *checkpointpb.Checkpoint) *Checkpoint {
+	return &Checkpoint{
+		Epoch:        (types.EpochNr)(pb.Epoch),
+		Sn:           (types.SeqNr)(pb.Sn),
+		SnapshotHash: pb.SnapshotHash,
+		Signature:    pb.Signature,
+	}
+}
+
+func (m *Checkpoint) Pb() *checkpointpb.Checkpoint {
+	return &checkpointpb.Checkpoint{
+		Epoch:        (uint64)(m.Epoch),
+		Sn:           (uint64)(m.Sn),
+		SnapshotHash: m.SnapshotHash,
+		Signature:    m.Signature,
+	}
+}
+
+func (*Checkpoint) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.Checkpoint]()}
+}
 
 type Event struct {
 	Type Event_Type
@@ -28,22 +113,22 @@ type Event_TypeWrapper[T any] interface {
 func Event_TypeFromPb(pb checkpointpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *checkpointpb.Event_EpochConfig:
-		return &Event_EpochConfig{EpochConfig: types.EpochConfigFromPb(pb.EpochConfig)}
+		return &Event_EpochConfig{EpochConfig: types1.EpochConfigFromPb(pb.EpochConfig)}
 	case *checkpointpb.Event_StableCheckpoint:
 		return &Event_StableCheckpoint{StableCheckpoint: StableCheckpointFromPb(pb.StableCheckpoint)}
 	case *checkpointpb.Event_EpochProgress:
-		return &Event_EpochProgress{EpochProgress: pb.EpochProgress}
+		return &Event_EpochProgress{EpochProgress: EpochProgressFromPb(pb.EpochProgress)}
 	}
 	return nil
 }
 
 type Event_EpochConfig struct {
-	EpochConfig *types.EpochConfig
+	EpochConfig *types1.EpochConfig
 }
 
 func (*Event_EpochConfig) isEvent_Type() {}
 
-func (w *Event_EpochConfig) Unwrap() *types.EpochConfig {
+func (w *Event_EpochConfig) Unwrap() *types1.EpochConfig {
 	return w.EpochConfig
 }
 
@@ -74,17 +159,17 @@ func (*Event_StableCheckpoint) MirReflect() mirreflect.Type {
 }
 
 type Event_EpochProgress struct {
-	EpochProgress *checkpointpb.EpochProgress
+	EpochProgress *EpochProgress
 }
 
 func (*Event_EpochProgress) isEvent_Type() {}
 
-func (w *Event_EpochProgress) Unwrap() *checkpointpb.EpochProgress {
+func (w *Event_EpochProgress) Unwrap() *EpochProgress {
 	return w.EpochProgress
 }
 
 func (w *Event_EpochProgress) Pb() checkpointpb.Event_Type {
-	return &checkpointpb.Event_EpochProgress{EpochProgress: w.EpochProgress}
+	return &checkpointpb.Event_EpochProgress{EpochProgress: (w.EpochProgress).Pb()}
 }
 
 func (*Event_EpochProgress) MirReflect() mirreflect.Type {
@@ -108,17 +193,17 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type StableCheckpoint struct {
-	Sn       types1.SeqNr
-	Snapshot *commonpb.StateSnapshot
-	Cert     map[types1.NodeID][]uint8
+	Sn       types.SeqNr
+	Snapshot *types1.StateSnapshot
+	Cert     map[types.NodeID][]uint8
 }
 
 func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint {
 	return &StableCheckpoint{
-		Sn:       (types1.SeqNr)(pb.Sn),
-		Snapshot: pb.Snapshot,
-		Cert: types2.ConvertMap(pb.Cert, func(k string, v []uint8) (types1.NodeID, []uint8) {
-			return (types1.NodeID)(k), v
+		Sn:       (types.SeqNr)(pb.Sn),
+		Snapshot: types1.StateSnapshotFromPb(pb.Snapshot),
+		Cert: types2.ConvertMap(pb.Cert, func(k string, v []uint8) (types.NodeID, []uint8) {
+			return (types.NodeID)(k), v
 		}),
 	}
 }
@@ -126,8 +211,8 @@ func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint
 func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 	return &checkpointpb.StableCheckpoint{
 		Sn:       (uint64)(m.Sn),
-		Snapshot: m.Snapshot,
-		Cert: types2.ConvertMap(m.Cert, func(k types1.NodeID, v []uint8) (string, []uint8) {
+		Snapshot: (m.Snapshot).Pb(),
+		Cert: types2.ConvertMap(m.Cert, func(k types.NodeID, v []uint8) (string, []uint8) {
 			return (string)(k), v
 		}),
 	}
@@ -135,6 +220,29 @@ func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 
 func (*StableCheckpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.StableCheckpoint]()}
+}
+
+type EpochProgress struct {
+	NodeId types.NodeID
+	Epoch  types.EpochNr
+}
+
+func EpochProgressFromPb(pb *checkpointpb.EpochProgress) *EpochProgress {
+	return &EpochProgress{
+		NodeId: (types.NodeID)(pb.NodeId),
+		Epoch:  (types.EpochNr)(pb.Epoch),
+	}
+}
+
+func (m *EpochProgress) Pb() *checkpointpb.EpochProgress {
+	return &checkpointpb.EpochProgress{
+		NodeId: (string)(m.NodeId),
+		Epoch:  (uint64)(m.Epoch),
+	}
+}
+
+func (*EpochProgress) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.EpochProgress]()}
 }
 
 type HashOrigin struct{}
@@ -149,4 +257,33 @@ func (m *HashOrigin) Pb() *checkpointpb.HashOrigin {
 
 func (*HashOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.HashOrigin]()}
+}
+
+type InstanceParams struct {
+	Membership       *types1.Membership
+	ResendPeriod     uint64
+	LeaderPolicyData []uint8
+	EpochConfig      *types1.EpochConfig
+}
+
+func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
+	return &InstanceParams{
+		Membership:       types1.MembershipFromPb(pb.Membership),
+		ResendPeriod:     pb.ResendPeriod,
+		LeaderPolicyData: pb.LeaderPolicyData,
+		EpochConfig:      types1.EpochConfigFromPb(pb.EpochConfig),
+	}
+}
+
+func (m *InstanceParams) Pb() *checkpointpb.InstanceParams {
+	return &checkpointpb.InstanceParams{
+		Membership:       (m.Membership).Pb(),
+		ResendPeriod:     m.ResendPeriod,
+		LeaderPolicyData: m.LeaderPolicyData,
+		EpochConfig:      (m.EpochConfig).Pb(),
+	}
+}
+
+func (*InstanceParams) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.InstanceParams]()}
 }
