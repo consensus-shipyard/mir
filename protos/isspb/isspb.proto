@@ -12,6 +12,9 @@ import "commonpb/commonpb.proto";
 import "requestpb/requestpb.proto";
 import "checkpointpb/checkpointpb.proto";
 
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
 option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
 // ============================================================
@@ -19,14 +22,18 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 // ============================================================
 
 message ISSMessage {
+  option (net.message_class) = true;
+
   oneof type {
-    // SBMessage                       sb                  = 1;
+    option (net.message_type) = true;
     checkpointpb.StableCheckpoint   stable_checkpoint   = 3;
-    RetransmitRequests              retransmit_requests = 4;
+    RetransmitRequests              retransmit_requests = 4; // TODO Remove? not being used
   }
 }
 
 message RetransmitRequests {
+  option (net.message) = true;
+
   repeated requestpb.Request requests = 1;
 }
 
@@ -35,7 +42,9 @@ message RetransmitRequests {
 // ============================================================
 
 message ISSEvent {
+  option (mir.event_class) = true;
   oneof type {
+    option (mir.event_type) = true;
     PersistCheckpoint       persist_checkpoint        = 1;
     PersistStableCheckpoint persist_stable_checkpoint = 3;
     PushCheckpoint          push_checkpoint           = 5;
@@ -43,7 +52,7 @@ message ISSEvent {
   }
 }
 
-message ISSHashOrigin {
+message ISSHashOrigin { // TODO Remove? not being used
   oneof type {
     uint64            log_entry_sn         = 2;
     uint64            state_snapshot_epoch = 3;
@@ -51,18 +60,18 @@ message ISSHashOrigin {
   }
 }
 
-message RequestHashOrigin {
+message RequestHashOrigin { // TODO Remove? not being used
   repeated requestpb.Request requests = 1;
 }
 
-message ISSSigVerOrigin {
+message ISSSigVerOrigin { // TODO Remove? not being used
   oneof type {
     uint64                        checkpoint_epoch  = 2;
     checkpointpb.StableCheckpoint stable_checkpoint = 3;
   }
 }
 
-message PersistCheckpoint {
+message PersistCheckpoint { // TODO Remove? not being used
   uint64                 sn                  = 1;
   commonpb.StateSnapshot state_snapshot      = 2;
   bytes                  state_snapshot_hash = 3;
@@ -72,17 +81,20 @@ message PersistCheckpoint {
 // PersistStableCheckpoint needs to be a separate Event from StableCheckpoint, since both are ISSEvents,
 // but, the protocol must differentiate between them. While the former will be applied on recovery from the WAL,
 // the latter serves as a notification to the ISS protocol when a stable checkpoint has been persisted.
-message PersistStableCheckpoint {
+message PersistStableCheckpoint { // TODO Remove? not being used
   checkpointpb.StableCheckpoint stable_checkpoint = 1;
 }
 
 message PushCheckpoint {
+  option (mir.event) = true;
 }
 
 message SBDeliver {
-  uint64 sn          = 1;
+  option (mir.event) = true;
+
+  uint64 sn          = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   bytes  data        = 2;
   bool   aborted     = 3;
-  string leader      = 4;
-  string instance_id = 5;
+  string leader      = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string instance_id = 5 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
 }

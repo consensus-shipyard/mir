@@ -90,3 +90,7 @@ func AppRestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types6
 func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
 	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
 }
+
+func NewConfig(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr, membership *types2.Membership) {
+	dsl.EmitMirEvent(m, events.NewConfig(destModule, epochNr, membership))
+}

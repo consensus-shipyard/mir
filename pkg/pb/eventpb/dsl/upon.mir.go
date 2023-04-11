@@ -129,3 +129,9 @@ func UponNewEpoch(m dsl.Module, handler func(epochNr types3.EpochNr) error) {
 		return handler(ev.EpochNr)
 	})
 }
+
+func UponNewConfig(m dsl.Module, handler func(epochNr types3.EpochNr, membership *types2.Membership) error) {
+	dsl.UponMirEvent[*types.Event_NewConfig](m, func(ev *types.NewConfig) error {
+		return handler(ev.EpochNr, ev.Membership)
+	})
+}

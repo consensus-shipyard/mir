@@ -12,13 +12,11 @@
 package requestreceiver
 
 import (
-	reflect "reflect"
-	sync "sync"
-
+	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

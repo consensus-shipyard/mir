@@ -9,6 +9,6 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func StableCheckpoint(m dsl.Module, destModule types.ModuleID, sn types.SeqNr, snapshot *commonpb.StateSnapshot, cert map[string][]uint8) {
+func StableCheckpoint(m dsl.Module, destModule types.ModuleID, sn types.SeqNr, snapshot *commonpb.StateSnapshot, cert map[types.NodeID][]uint8) {
 	dsl.EmitMirEvent(m, events.StableCheckpoint(destModule, sn, snapshot, cert))
 }

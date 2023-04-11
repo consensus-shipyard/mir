@@ -21,7 +21,7 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponStableCheckpoint(m dsl.Module, handler func(sn types2.SeqNr, snapshot *commonpb.StateSnapshot, cert map[string][]uint8) error) {
+func UponStableCheckpoint(m dsl.Module, handler func(sn types2.SeqNr, snapshot *commonpb.StateSnapshot, cert map[types2.NodeID][]uint8) error) {
 	UponEvent[*types.Event_StableCheckpoint](m, func(ev *types.StableCheckpoint) error {
 		return handler(ev.Sn, ev.Snapshot, ev.Cert)
 	})

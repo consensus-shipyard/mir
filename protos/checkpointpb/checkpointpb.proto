@@ -4,6 +4,7 @@ package checkpointpb;
 
 import "commonpb/commonpb.proto";
 import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb";
 
@@ -34,9 +35,11 @@ message Event {
 
 message StableCheckpoint {
   option (mir.event) = true;
+  option (net.message) = true;
+
   uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   commonpb.StateSnapshot snapshot = 2;
-  map<string, bytes>     cert     = 3;
+  map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message EpochProgress {

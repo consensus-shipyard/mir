@@ -2,10 +2,10 @@ package messagepbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
+	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
@@ -32,11 +32,11 @@ type Message_TypeWrapper[T any] interface {
 func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	switch pb := pb.(type) {
 	case *messagepb.Message_Iss:
-		return &Message_Iss{Iss: pb.Iss}
+		return &Message_Iss{Iss: types1.ISSMessageFromPb(pb.Iss)}
 	case *messagepb.Message_Bcb:
-		return &Message_Bcb{Bcb: types1.MessageFromPb(pb.Bcb)}
+		return &Message_Bcb{Bcb: types2.MessageFromPb(pb.Bcb)}
 	case *messagepb.Message_MultisigCollector:
-		return &Message_MultisigCollector{MultisigCollector: types2.MessageFromPb(pb.MultisigCollector)}
+		return &Message_MultisigCollector{MultisigCollector: types3.MessageFromPb(pb.MultisigCollector)}
 	case *messagepb.Message_Pingpong:
 		return &Message_Pingpong{Pingpong: pb.Pingpong}
 	case *messagepb.Message_Checkpoint:
@@ -48,17 +48,17 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 }
 
 type Message_Iss struct {
-	Iss *isspb.ISSMessage
+	Iss *types1.ISSMessage
 }
 
 func (*Message_Iss) isMessage_Type() {}
 
-func (w *Message_Iss) Unwrap() *isspb.ISSMessage {
+func (w *Message_Iss) Unwrap() *types1.ISSMessage {
 	return w.Iss
 }
 
 func (w *Message_Iss) Pb() messagepb.Message_Type {
-	return &messagepb.Message_Iss{Iss: w.Iss}
+	return &messagepb.Message_Iss{Iss: (w.Iss).Pb()}
 }
 
 func (*Message_Iss) MirReflect() mirreflect.Type {
@@ -66,12 +66,12 @@ func (*Message_Iss) MirReflect() mirreflect.Type {
 }
 
 type Message_Bcb struct {
-	Bcb *types1.Message
+	Bcb *types2.Message
 }
 
 func (*Message_Bcb) isMessage_Type() {}
 
-func (w *Message_Bcb) Unwrap() *types1.Message {
+func (w *Message_Bcb) Unwrap() *types2.Message {
 	return w.Bcb
 }
 
@@ -84,12 +84,12 @@ func (*Message_Bcb) MirReflect() mirreflect.Type {
 }
 
 type Message_MultisigCollector struct {
-	MultisigCollector *types2.Message
+	MultisigCollector *types3.Message
 }
 
 func (*Message_MultisigCollector) isMessage_Type() {}
 
-func (w *Message_MultisigCollector) Unwrap() *types2.Message {
+func (w *Message_MultisigCollector) Unwrap() *types3.Message {
 	return w.MultisigCollector
 }
 

@@ -7,15 +7,13 @@
 package factorymodulepb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -25,6 +23,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// FIXME: rename to Event to be consistent with other modules and avoid repeating the package name.
 type Factory struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -105,6 +104,9 @@ func (*Factory_NewModule) isFactory_Type() {}
 
 func (*Factory_GarbageCollect) isFactory_Type() {}
 
+// NewModule is a request to create a new module.
+// module_id must be prefixed with the factory module's ID followed by "/".
+// retention_index is used for garbage collection (see: GarbageCollect).
 type NewModule struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -168,6 +170,7 @@ func (x *NewModule) GetParams() *GeneratorParams {
 	return nil
 }
 
+// GarbageCollect is a request to destroy all modules that have retention index smaller than the given index.
 type GarbageCollect struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -215,6 +218,8 @@ func (x *GarbageCollect) GetRetentionIndex() uint64 {
 	return 0
 }
 
+// GeneratorParams is a union of all possible types of module parameters
+// for modules that can be created by the factory module.
 type GeneratorParams struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

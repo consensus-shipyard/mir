@@ -2,9 +2,11 @@ package checkpointpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -26,7 +28,7 @@ type Event_TypeWrapper[T any] interface {
 func Event_TypeFromPb(pb checkpointpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *checkpointpb.Event_EpochConfig:
-		return &Event_EpochConfig{EpochConfig: pb.EpochConfig}
+		return &Event_EpochConfig{EpochConfig: types.EpochConfigFromPb(pb.EpochConfig)}
 	case *checkpointpb.Event_StableCheckpoint:
 		return &Event_StableCheckpoint{StableCheckpoint: StableCheckpointFromPb(pb.StableCheckpoint)}
 	case *checkpointpb.Event_EpochProgress:
@@ -36,17 +38,17 @@ func Event_TypeFromPb(pb checkpointpb.Event_Type) Event_Type {
 }
 
 type Event_EpochConfig struct {
-	EpochConfig *commonpb.EpochConfig
+	EpochConfig *types.EpochConfig
 }
 
 func (*Event_EpochConfig) isEvent_Type() {}
 
-func (w *Event_EpochConfig) Unwrap() *commonpb.EpochConfig {
+func (w *Event_EpochConfig) Unwrap() *types.EpochConfig {
 	return w.EpochConfig
 }
 
 func (w *Event_EpochConfig) Pb() checkpointpb.Event_Type {
-	return &checkpointpb.Event_EpochConfig{EpochConfig: w.EpochConfig}
+	return &checkpointpb.Event_EpochConfig{EpochConfig: (w.EpochConfig).Pb()}
 }
 
 func (*Event_EpochConfig) MirReflect() mirreflect.Type {
@@ -106,16 +108,18 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type StableCheckpoint struct {
-	Sn       types.SeqNr
+	Sn       types1.SeqNr
 	Snapshot *commonpb.StateSnapshot
-	Cert     map[string][]uint8
+	Cert     map[types1.NodeID][]uint8
 }
 
 func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint {
 	return &StableCheckpoint{
-		Sn:       (types.SeqNr)(pb.Sn),
+		Sn:       (types1.SeqNr)(pb.Sn),
 		Snapshot: pb.Snapshot,
-		Cert:     pb.Cert,
+		Cert: types2.ConvertMap(pb.Cert, func(k string, v []uint8) (types1.NodeID, []uint8) {
+			return (types1.NodeID)(k), v
+		}),
 	}
 }
 
@@ -123,7 +127,9 @@ func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 	return &checkpointpb.StableCheckpoint{
 		Sn:       (uint64)(m.Sn),
 		Snapshot: m.Snapshot,
-		Cert:     m.Cert,
+		Cert: types2.ConvertMap(m.Cert, func(k types1.NodeID, v []uint8) (string, []uint8) {
+			return (string)(k), v
+		}),
 	}
 }
 

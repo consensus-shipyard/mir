@@ -175,3 +175,15 @@ func NewEpoch(destModule types.ModuleID, epochNr types.EpochNr) *types1.Event {
 		},
 	}
 }
+
+func NewConfig(destModule types.ModuleID, epochNr types.EpochNr, membership *types3.Membership) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_NewConfig{
+			NewConfig: &types1.NewConfig{
+				EpochNr:    epochNr,
+				Membership: membership,
+			},
+		},
+	}
+}
