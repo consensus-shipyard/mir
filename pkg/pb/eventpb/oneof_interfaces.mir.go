@@ -1,8 +1,6 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
@@ -17,6 +15,7 @@ import (
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -201,10 +200,6 @@ func (w *HashOrigin_Request) Unwrap() *requestpb.Request {
 	return w.Request
 }
 
-func (w *HashOrigin_Iss) Unwrap() *isspb.ISSHashOrigin {
-	return w.Iss
-}
-
 func (w *HashOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
 }
@@ -249,10 +244,6 @@ type SigVerOrigin_TypeWrapper[T any] interface {
 
 func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 	return w.ContextStore
-}
-
-func (w *SigVerOrigin_Iss) Unwrap() *isspb.ISSSigVerOrigin {
-	return w.Iss
 }
 
 func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {

@@ -53,7 +53,6 @@ func (*HashOrigin) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*HashOrigin_ContextStore)(nil)),
 		reflect.TypeOf((*HashOrigin_Request)(nil)),
-		reflect.TypeOf((*HashOrigin_Iss)(nil)),
 		reflect.TypeOf((*HashOrigin_Dsl)(nil)),
 		reflect.TypeOf((*HashOrigin_Checkpoint)(nil)),
 		reflect.TypeOf((*HashOrigin_Sb)(nil)),
@@ -72,7 +71,6 @@ func (*SignOrigin) ReflectTypeOptions() []reflect.Type {
 func (*SigVerOrigin) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*SigVerOrigin_ContextStore)(nil)),
-		reflect.TypeOf((*SigVerOrigin_Iss)(nil)),
 		reflect.TypeOf((*SigVerOrigin_Dsl)(nil)),
 		reflect.TypeOf((*SigVerOrigin_Checkpoint)(nil)),
 		reflect.TypeOf((*SigVerOrigin_Sb)(nil)),

@@ -5,7 +5,6 @@ import (
 	types "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -19,11 +18,5 @@ func UponISSMessageReceived[W types.ISSMessage_TypeWrapper[M], M any](m dsl.Modu
 		}
 
 		return handler(from, w.Unwrap())
-	})
-}
-
-func UponRetransmitRequestsReceived(m dsl.Module, handler func(from types1.NodeID, requests []*types3.Request) error) {
-	UponISSMessageReceived[*types.ISSMessage_RetransmitRequests](m, func(from types1.NodeID, msg *types.RetransmitRequests) error {
-		return handler(from, msg.Requests)
 	})
 }

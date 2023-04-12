@@ -17,7 +17,6 @@ package iss
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -35,32 +34,9 @@ func Event(destModule t.ModuleID, event *isspb.ISSEvent) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Iss{Iss: event}}
 }
 
-func HashOrigin(ownModuleID t.ModuleID, origin *isspb.ISSHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{Module: ownModuleID.Pb(), Type: &eventpb.HashOrigin_Iss{Iss: origin}}
-}
-
-func SigVerOrigin(ownModuleID t.ModuleID, origin *isspb.ISSSigVerOrigin) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{Module: ownModuleID.Pb(), Type: &eventpb.SigVerOrigin_Iss{Iss: origin}}
-}
-
 func PushCheckpoint(ownModuleID t.ModuleID) *eventpb.Event {
 	return Event(ownModuleID, &isspb.ISSEvent{Type: &isspb.ISSEvent_PushCheckpoint{
 		PushCheckpoint: &isspb.PushCheckpoint{},
-	}})
-}
-
-func LogEntryHashOrigin(ownModuleID t.ModuleID, logEntrySN t.SeqNr) *eventpb.HashOrigin {
-	return HashOrigin(ownModuleID, &isspb.ISSHashOrigin{Type: &isspb.ISSHashOrigin_LogEntrySn{
-		LogEntrySn: logEntrySN.Pb(),
-	}})
-}
-
-func StableCheckpointSigVerOrigin(
-	ownModuleID t.ModuleID,
-	stableCheckpoint *checkpointpb.StableCheckpoint,
-) *eventpb.SigVerOrigin {
-	return SigVerOrigin(ownModuleID, &isspb.ISSSigVerOrigin{Type: &isspb.ISSSigVerOrigin_StableCheckpoint{
-		StableCheckpoint: stableCheckpoint,
 	}})
 }
 

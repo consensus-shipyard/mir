@@ -1,8 +1,6 @@
 package eventpbtypes
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types10 "github.com/filecoin-project/mir/codegen/model/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -17,7 +15,6 @@ import (
 	types14 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	types5 "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
-	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	types15 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -28,6 +25,7 @@ import (
 	types8 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {
@@ -987,8 +985,6 @@ func HashOrigin_TypeFromPb(pb eventpb.HashOrigin_Type) HashOrigin_Type {
 		return &HashOrigin_ContextStore{ContextStore: types13.OriginFromPb(pb.ContextStore)}
 	case *eventpb.HashOrigin_Request:
 		return &HashOrigin_Request{Request: types11.RequestFromPb(pb.Request)}
-	case *eventpb.HashOrigin_Iss:
-		return &HashOrigin_Iss{Iss: pb.Iss}
 	case *eventpb.HashOrigin_Dsl:
 		return &HashOrigin_Dsl{Dsl: types14.OriginFromPb(pb.Dsl)}
 	case *eventpb.HashOrigin_Checkpoint:
@@ -1033,24 +1029,6 @@ func (w *HashOrigin_Request) Pb() eventpb.HashOrigin_Type {
 
 func (*HashOrigin_Request) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.HashOrigin_Request]()}
-}
-
-type HashOrigin_Iss struct {
-	Iss *isspb.ISSHashOrigin
-}
-
-func (*HashOrigin_Iss) isHashOrigin_Type() {}
-
-func (w *HashOrigin_Iss) Unwrap() *isspb.ISSHashOrigin {
-	return w.Iss
-}
-
-func (w *HashOrigin_Iss) Pb() eventpb.HashOrigin_Type {
-	return &eventpb.HashOrigin_Iss{Iss: w.Iss}
-}
-
-func (*HashOrigin_Iss) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.HashOrigin_Iss]()}
 }
 
 type HashOrigin_Dsl struct {
@@ -1408,8 +1386,6 @@ func SigVerOrigin_TypeFromPb(pb eventpb.SigVerOrigin_Type) SigVerOrigin_Type {
 	switch pb := pb.(type) {
 	case *eventpb.SigVerOrigin_ContextStore:
 		return &SigVerOrigin_ContextStore{ContextStore: types13.OriginFromPb(pb.ContextStore)}
-	case *eventpb.SigVerOrigin_Iss:
-		return &SigVerOrigin_Iss{Iss: pb.Iss}
 	case *eventpb.SigVerOrigin_Dsl:
 		return &SigVerOrigin_Dsl{Dsl: types14.OriginFromPb(pb.Dsl)}
 	case *eventpb.SigVerOrigin_Checkpoint:
@@ -1436,24 +1412,6 @@ func (w *SigVerOrigin_ContextStore) Pb() eventpb.SigVerOrigin_Type {
 
 func (*SigVerOrigin_ContextStore) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_ContextStore]()}
-}
-
-type SigVerOrigin_Iss struct {
-	Iss *isspb.ISSSigVerOrigin
-}
-
-func (*SigVerOrigin_Iss) isSigVerOrigin_Type() {}
-
-func (w *SigVerOrigin_Iss) Unwrap() *isspb.ISSSigVerOrigin {
-	return w.Iss
-}
-
-func (w *SigVerOrigin_Iss) Pb() eventpb.SigVerOrigin_Type {
-	return &eventpb.SigVerOrigin_Iss{Iss: w.Iss}
-}
-
-func (*SigVerOrigin_Iss) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.SigVerOrigin_Iss]()}
 }
 
 type SigVerOrigin_Dsl struct {

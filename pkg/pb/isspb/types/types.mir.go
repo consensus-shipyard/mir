@@ -30,8 +30,6 @@ func ISSMessage_TypeFromPb(pb isspb.ISSMessage_Type) ISSMessage_Type {
 	switch pb := pb.(type) {
 	case *isspb.ISSMessage_StableCheckpoint:
 		return &ISSMessage_StableCheckpoint{StableCheckpoint: types.StableCheckpointFromPb(pb.StableCheckpoint)}
-	case *isspb.ISSMessage_RetransmitRequests:
-		return &ISSMessage_RetransmitRequests{RetransmitRequests: RetransmitRequestsFromPb(pb.RetransmitRequests)}
 	}
 	return nil
 }
@@ -52,24 +50,6 @@ func (w *ISSMessage_StableCheckpoint) Pb() isspb.ISSMessage_Type {
 
 func (*ISSMessage_StableCheckpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSMessage_StableCheckpoint]()}
-}
-
-type ISSMessage_RetransmitRequests struct {
-	RetransmitRequests *RetransmitRequests
-}
-
-func (*ISSMessage_RetransmitRequests) isISSMessage_Type() {}
-
-func (w *ISSMessage_RetransmitRequests) Unwrap() *RetransmitRequests {
-	return w.RetransmitRequests
-}
-
-func (w *ISSMessage_RetransmitRequests) Pb() isspb.ISSMessage_Type {
-	return &isspb.ISSMessage_RetransmitRequests{RetransmitRequests: (w.RetransmitRequests).Pb()}
-}
-
-func (*ISSMessage_RetransmitRequests) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSMessage_RetransmitRequests]()}
 }
 
 func ISSMessageFromPb(pb *isspb.ISSMessage) *ISSMessage {
@@ -129,52 +109,12 @@ type ISSEvent_TypeWrapper[T any] interface {
 
 func ISSEvent_TypeFromPb(pb isspb.ISSEvent_Type) ISSEvent_Type {
 	switch pb := pb.(type) {
-	case *isspb.ISSEvent_PersistCheckpoint:
-		return &ISSEvent_PersistCheckpoint{PersistCheckpoint: pb.PersistCheckpoint}
-	case *isspb.ISSEvent_PersistStableCheckpoint:
-		return &ISSEvent_PersistStableCheckpoint{PersistStableCheckpoint: pb.PersistStableCheckpoint}
 	case *isspb.ISSEvent_PushCheckpoint:
 		return &ISSEvent_PushCheckpoint{PushCheckpoint: PushCheckpointFromPb(pb.PushCheckpoint)}
 	case *isspb.ISSEvent_SbDeliver:
 		return &ISSEvent_SbDeliver{SbDeliver: SBDeliverFromPb(pb.SbDeliver)}
 	}
 	return nil
-}
-
-type ISSEvent_PersistCheckpoint struct {
-	PersistCheckpoint *isspb.PersistCheckpoint
-}
-
-func (*ISSEvent_PersistCheckpoint) isISSEvent_Type() {}
-
-func (w *ISSEvent_PersistCheckpoint) Unwrap() *isspb.PersistCheckpoint {
-	return w.PersistCheckpoint
-}
-
-func (w *ISSEvent_PersistCheckpoint) Pb() isspb.ISSEvent_Type {
-	return &isspb.ISSEvent_PersistCheckpoint{PersistCheckpoint: w.PersistCheckpoint}
-}
-
-func (*ISSEvent_PersistCheckpoint) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSEvent_PersistCheckpoint]()}
-}
-
-type ISSEvent_PersistStableCheckpoint struct {
-	PersistStableCheckpoint *isspb.PersistStableCheckpoint
-}
-
-func (*ISSEvent_PersistStableCheckpoint) isISSEvent_Type() {}
-
-func (w *ISSEvent_PersistStableCheckpoint) Unwrap() *isspb.PersistStableCheckpoint {
-	return w.PersistStableCheckpoint
-}
-
-func (w *ISSEvent_PersistStableCheckpoint) Pb() isspb.ISSEvent_Type {
-	return &isspb.ISSEvent_PersistStableCheckpoint{PersistStableCheckpoint: w.PersistStableCheckpoint}
-}
-
-func (*ISSEvent_PersistStableCheckpoint) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSEvent_PersistStableCheckpoint]()}
 }
 
 type ISSEvent_PushCheckpoint struct {

@@ -7,15 +7,13 @@
 package checkpointpb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	_ "github.com/filecoin-project/mir/pkg/pb/mir"
 	_ "github.com/filecoin-project/mir/pkg/pb/net"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
