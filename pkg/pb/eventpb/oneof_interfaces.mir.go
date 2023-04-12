@@ -201,10 +201,6 @@ func (w *HashOrigin_Request) Unwrap() *requestpb.Request {
 	return w.Request
 }
 
-func (w *HashOrigin_Iss) Unwrap() *isspb.ISSHashOrigin {
-	return w.Iss
-}
-
 func (w *HashOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
 }
@@ -249,10 +245,6 @@ type SigVerOrigin_TypeWrapper[T any] interface {
 
 func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 	return w.ContextStore
-}
-
-func (w *SigVerOrigin_Iss) Unwrap() *isspb.ISSSigVerOrigin {
-	return w.Iss
 }
 
 func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {

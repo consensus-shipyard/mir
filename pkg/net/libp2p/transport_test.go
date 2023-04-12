@@ -829,7 +829,7 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 // TestMessagingWithNewNodes tests that the transport operates normally if new nodes are connected.
 //
 // This test connects N initial nodes with each other, starts sending messages between them.
-// Then, in parallel we add M new nodes and connect them with all other nodes.
+// Then, in parallel we add m new nodes and connect them with all other nodes.
 // Test checks that the implementation will not be in stuck and will not panic during those operations.
 //
 // nolint:gocognit

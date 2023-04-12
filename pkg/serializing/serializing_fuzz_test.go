@@ -42,8 +42,9 @@ func FuzzSnapshotForHash(f *testing.F) {
 		cfg := commonpb.EpochConfig{EpochNr: e, Memberships: []*commonpb.Membership{&mb}}
 		clProgress := commonpb.ClientProgress{Progress: map[string]*commonpb.DeliveredReqs{}} // TODO: add actual values
 		state := commonpb.StateSnapshot{AppData: data, EpochData: &commonpb.EpochData{
-			EpochConfig:    &cfg,
-			ClientProgress: &clProgress,
+			EpochConfig:        &cfg,
+			ClientProgress:     &clProgress,
+			PreviousMembership: types.MembershipPb(make(map[types.NodeID]types.NodeAddress)),
 		}}
 		SnapshotForHash(&state)
 	})

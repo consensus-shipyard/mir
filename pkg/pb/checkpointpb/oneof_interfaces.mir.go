@@ -2,6 +2,17 @@ package checkpointpb
 
 import commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 
+type Message_Type = isMessage_Type
+
+type Message_TypeWrapper[T any] interface {
+	Message_Type
+	Unwrap() *T
+}
+
+func (w *Message_Checkpoint) Unwrap() *Checkpoint {
+	return w.Checkpoint
+}
+
 type Event_Type = isEvent_Type
 
 type Event_TypeWrapper[T any] interface {

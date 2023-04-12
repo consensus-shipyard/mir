@@ -53,7 +53,7 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 		d := t.TimeDuration(e.TimerDelay.Delay)
 		m.delay(ctx, eventsOut, d)
 	case *eventpb.Event_TimerRepeat:
-		eventsOut := events.EmptyList().PushBackSlice(e.TimerRepeat.Events)
+		eventsOut := events.EmptyList().PushBackSlice(e.TimerRepeat.EventsToRepeat)
 		d := t.TimeDuration(e.TimerRepeat.Delay)
 		retIdx := t.RetentionIndex(e.TimerRepeat.RetentionIndex)
 		m.repeat(ctx, eventsOut, d, retIdx)

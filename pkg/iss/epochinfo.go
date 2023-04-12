@@ -21,7 +21,7 @@ type epochInfo struct {
 	// Orderers' segments associated with the epoch.
 	Segments []*orderers.Segment
 
-	// TODO: Comment.
+	// Leader selection policy.
 	leaderPolicy lsp.LeaderSelectionPolicy
 }
 
