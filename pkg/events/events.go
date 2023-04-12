@@ -355,7 +355,7 @@ func TimerRepeat(
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
 		Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
-			Events:         events,
+			EventsToRepeat: events,
 			Delay:          delay.Pb(),
 			RetentionIndex: retIndex.Pb(),
 		}},

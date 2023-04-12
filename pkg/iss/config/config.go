@@ -111,6 +111,11 @@ func CheckParams(c *ModuleParams) error {
 		return fmt.Errorf("empty membership")
 	}
 
+	// Check that ConfigOffset is at least 1
+	if c.ConfigOffset < 1 {
+		return fmt.Errorf("config offset must be at least 1")
+	}
+
 	// Segment length must not be negative.
 	if c.SegmentLength < 0 {
 		return fmt.Errorf("negative SegmentLength: %d", c.SegmentLength)

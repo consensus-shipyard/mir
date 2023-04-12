@@ -121,7 +121,7 @@ func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
 	case modules.PassiveModule:
 		return n.wrapPassive(m, moduleChan)
 	default:
-		panic("Unexpected module type")
+		panic(fmt.Sprintf("Unexpected module type: %v %T", m, m))
 	}
 }
 
@@ -170,7 +170,7 @@ func newSimModule(n *SimNode, m modules.Module, simChan *testsim.Chan) *simModul
 			return events.EmptyList(), m.ApplyEvents(ctx, eventList)
 		}
 	default:
-		panic("Unexpected module type")
+		panic(fmt.Sprintf("Unexpected module type: %v %T", m, m))
 	}
 
 	sm := &simModule{

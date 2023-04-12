@@ -4,18 +4,22 @@ package checkpointpb;
 
 import "commonpb/commonpb.proto";
 import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb";
 
 message Message {
+  option (net.message_class) = true;
   oneof type {
+    option (net.message_type) = true;
     Checkpoint checkpoint = 1;
   }
 }
 
 message Checkpoint {
-  uint64 epoch        = 1;
-  uint64 sn           = 2;
+  option (net.message) = true;
+  uint64 epoch        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  uint64 sn           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   bytes  snapshotHash = 3;
   bytes  signature    = 4;
 }
@@ -34,14 +38,17 @@ message Event {
 
 message StableCheckpoint {
   option (mir.event) = true;
+  option (net.message) = true;
+
   uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   commonpb.StateSnapshot snapshot = 2;
-  map<string, bytes>     cert     = 3;
+  map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message EpochProgress {
-  string node_id = 1;
-  uint64 epoch   = 2;
+  option (mir.event) = true;
+  string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  uint64 epoch   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
 }
 
 message HashOrigin {
@@ -53,6 +60,7 @@ message SignOrigin {}
 message SigVerOrigin {}
 
 message InstanceParams {
+  option (mir.struct) = true;
   commonpb.Membership  membership         = 1;
   uint64               resend_period      = 2; // in milliseconds
   bytes                leader_policy_data = 3;
