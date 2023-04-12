@@ -15,6 +15,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/modules"
+
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
@@ -127,7 +129,7 @@ type ISS struct {
 	LeaderPolicy lsp.LeaderSelectionPolicy
 
 	// The DSL Module.
-	M dsl.Module
+	m dsl.Module
 }
 
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
@@ -156,7 +158,7 @@ func New(
 	// Logger the ISS implementation uses to output log messages.
 	logger logging.Logger,
 
-) (*ISS, error) {
+) (modules.PassiveModule, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -199,16 +201,16 @@ func New(
 	// Event application
 	// ============================================================
 
-	iss.M = dsl.NewModule(moduleConfig.Self)
+	iss.m = dsl.NewModule(moduleConfig.Self)
 
 	// Upon Init event, initialize the ISS protocol.
 	// This event is only expected to be applied once at startup,
 	// after all the events stored in the WAL have been applied and before any other event has been applied.
 	// (At this time, the WAL is not used. TODO: Update this when wal is implemented.)
-	eventpbdsl.UponInit(iss.M, func() error {
+	eventpbdsl.UponInit(iss.m, func() error {
 
 		// Initialize application state according to the initial checkpoint.
-		eventpbdsl.AppRestoreState(iss.M, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
+		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
@@ -219,7 +221,7 @@ func New(
 	// Upon SBDeliver event, process the event of an SB instance delivering data.
 	// It invokes the appropriate handler depending on whether this data is
 	// an availability certificate (or the special abort value) or a common checkpoint.
-	isspbdsl.UponSBDeliver(iss.M, func(sn t.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
+	isspbdsl.UponSBDeliver(iss.m, func(sn t.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
 		// If checkpoint ordering instance, deliver without verification
 		if instanceId.Sub().Sub() == "chkp" {
 			return iss.deliverCommonCheckpoint(data)
@@ -234,7 +236,7 @@ func New(
 		return iss.verifyCert(sn, data, aborted, leader)
 	})
 
-	apbdsl.UponCertVerified(iss.M, func(valid bool, err string, context *verifyCertContext) error {
+	apbdsl.UponCertVerified(iss.m, func(valid bool, err string, context *verifyCertContext) error {
 		if !valid {
 			// decide empty cert
 			context.data = []byte{}
@@ -244,7 +246,7 @@ func New(
 		return iss.deliverCert(context.sn, context.data, context.aborted, context.leader)
 	})
 
-	eventpbdsl.UponNewConfig(iss.M, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
+	eventpbdsl.UponNewConfig(iss.m, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
 		membership := maputil.Transform(membershippb.Membership, func(nodeID t.NodeID, nodeAddr string) (t.NodeID, t.NodeAddress) {
 			multiAddr, _ := multiaddr.NewMultiaddr(nodeAddr)
 			return nodeID, t.NodeAddress(multiAddr)
@@ -291,7 +293,7 @@ func New(
 	// Upon EpochProgress handle the event informing ISS that a node reached a certain epoch.
 	// This event can be, for example, emitted by the checkpoint protocol
 	// when it detects a node having reached a checkpoint for a certain epoch.
-	chkppbdsl.UponEpochProgress(iss.M, func(nodeID t.NodeID, epochNr t.EpochNr) error {
+	chkppbdsl.UponEpochProgress(iss.m, func(nodeID t.NodeID, epochNr t.EpochNr) error {
 		// Remember the highest epoch number for each node to detect
 		// later if the remote node is delayed too much and requires
 		// assistance in order to catch up through state transfer.
@@ -303,7 +305,7 @@ func New(
 
 	// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
 	// It serializes and submits the checkpoint for agreement.
-	chkppbdsl.UponStableCheckpoint(iss.M, func(sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+	chkppbdsl.UponStableCheckpoint(iss.m, func(sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
 		// Ignore old checkpoints.
 		if sn <= iss.lastPendingCheckpointSN {
 			iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
@@ -351,7 +353,7 @@ func New(
 		}
 
 		// Instantiate a new PBFT orderer.
-		factorypbdsl.NewModule(iss.M,
+		factorypbdsl.NewModule(iss.m,
 			iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
 			t.RetentionIndex(epoch),
@@ -365,7 +367,7 @@ func New(
 		return nil
 	})
 
-	isspbdsl.UponPushCheckpoint(iss.M, func() error {
+	isspbdsl.UponPushCheckpoint(iss.m, func() error {
 
 		// Send the latest stable checkpoint to potentially
 		// delayed nodes. The set of nodes to send the latest
@@ -389,7 +391,7 @@ func New(
 				"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
 		}
 
-		eventpbdsl.SendMessage(iss.M,
+		eventpbdsl.SendMessage(iss.m,
 			iss.moduleConfig.Net,
 			chkppbmsgs.StableCheckpoint(iss.moduleConfig.Self, iss.lastStableCheckpoint.SeqNr(),
 				commonpbtypes.StateSnapshotFromPb(iss.lastStableCheckpoint.StateSnapshot()),
@@ -399,7 +401,7 @@ func New(
 		return nil
 	})
 
-	chkppbdsl.UponStableCheckpointReceived(iss.M, func(sender t.NodeID, sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
 		_chkp := chkppbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
@@ -473,7 +475,7 @@ func New(
 		// Create an event to request the application module for
 		// restoring its state from the snapshot received in the new
 		// stable checkpoint message.
-		eventpbdsl.AppRestoreState(iss.M, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
+		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
 
 		// Start executing the current epoch (the one the checkpoint corresponds to).
 		// This must happen after the state is restored,
@@ -486,7 +488,7 @@ func New(
 		// in each epoch.
 		// Note: It is important that this line goes after the call to iss.startEpoch(), as iss.startEpoch() also interacts
 		//       with the application, notifying it about the new epoch.
-		chkppbdsl.StableCheckpoint(iss.M,
+		chkppbdsl.StableCheckpoint(iss.m,
 			iss.moduleConfig.App,
 			chkp.SeqNr(),
 			commonpbtypes.StateSnapshotFromPb(chkp.StateSnapshot()),
@@ -497,14 +499,14 @@ func New(
 		// Since we are loading the complete state from a checkpoint,
 		// we prune all state related to anything before that checkpoint.
 		pruneIndex := chkp.Epoch()
-		eventpbdsl.TimerGarbageCollect(iss.M, iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex))
+		eventpbdsl.TimerGarbageCollect(iss.m, iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex))
 
 		return nil
 	})
-	return iss, nil
+	return iss.m, nil
 }
 
 // InitialStateSnapshot creates and returns a default initial snapshot that can be used to instantiate ISS.
@@ -573,7 +575,7 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) {
 
 	// Signal the new epoch to the application.
 	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
-	eventpbdsl.NewEpoch(iss.M, iss.moduleConfig.App, iss.epoch.Nr())
+	eventpbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
 
 	// Initialize the new availability module.
 	iss.initAvailability()
@@ -588,14 +590,14 @@ func (iss *ISS) initAvailability() {
 	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	//events := make([]*eventpb.Event, 0)
 
-	factorypbdsl.NewModule(iss.M, iss.moduleConfig.Availability, availabilityID, t.RetentionIndex(iss.epoch.Nr()), &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_MultisigCollector{
+	factorypbdsl.NewModule(iss.m, iss.moduleConfig.Availability, availabilityID, t.RetentionIndex(iss.epoch.Nr()), &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 		MultisigCollector: &mscpbtypes.InstanceParams{
 			Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
 			Limit:       5, // hardcoded right now
 			MaxRequests: uint64(iss.Params.SegmentLength)},
 	}})
 
-	apbdsl.ComputeCert(iss.M, availabilityID)
+	apbdsl.ComputeCert(iss.m, availabilityID)
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
@@ -611,7 +613,7 @@ func (iss *ISS) initOrderers() {
 		iss.newEpochSN += t.SeqNr(seg.Len())
 
 		// Instantiate a new PBFT orderer.
-		factorypbdsl.NewModule(iss.M, iss.moduleConfig.Ordering,
+		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))),
 			t.RetentionIndex(iss.epoch.Nr()),
 			factorypbtypes.GeneratorParamsFromPb(
@@ -680,7 +682,7 @@ func (iss *ISS) processCommitted() error {
 		} else {
 			_cert = apbtypes.CertFromPb(&cert)
 		}
-		eventpbdsl.DeliverCert(iss.M, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
+		eventpbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
@@ -741,7 +743,7 @@ func (iss *ISS) advanceEpoch() error {
 	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
 	// The membership used for the checkpoint tracker still must be the old membership.
 	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", newEpochNr)))
-	factorypbdsl.NewModule(iss.M,
+	factorypbdsl.NewModule(iss.m,
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
 		t.RetentionIndex(newEpochNr),
@@ -759,7 +761,7 @@ func (iss *ISS) advanceEpoch() error {
 	// but it is guaranteed to be created before the application's response.
 	// This is because the NewModule event will already be enqueued for the checkpoint factory
 	// when the application receives the snapshot request.
-	eventpbdsl.AppSnapshotRequest(iss.M, iss.moduleConfig.App, chkpModuleID)
+	eventpbdsl.AppSnapshotRequest(iss.m, iss.moduleConfig.App, chkpModuleID)
 
 	return nil
 }
@@ -777,7 +779,7 @@ func (iss *ISS) verifyCert(sn t.SeqNr, data []uint8, aborted bool, leader t.Node
 		return iss.deliverCert(sn, data, aborted, leader)
 	}
 
-	apbdsl.VerifyCert(iss.M, iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+	apbdsl.VerifyCert(iss.m, iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 		apbtypes.CertFromPb(cert), &verifyCertContext{
 			sn:      sn,
 			data:    data,
@@ -845,7 +847,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 
 	// Deliver the stable checkpoint (and potential batches committed in the meantime,
 	// but blocked from being delivered due to this missing checkpoint) to the application.
-	chkppbdsl.StableCheckpoint(iss.M,
+	chkppbdsl.StableCheckpoint(iss.m,
 		iss.moduleConfig.App,
 		chkp.SeqNr(),
 		commonpbtypes.StateSnapshotFromPb(chkp.Snapshot),
@@ -869,10 +871,10 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 	if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 		// Prune timer, checkpointing, availability, and orderers.
-		eventpbdsl.TimerGarbageCollect(iss.M, iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.M, iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex))
+		eventpbdsl.TimerGarbageCollect(iss.m, iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.
 		for epoch := range iss.epochs {
@@ -885,7 +887,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 		// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
 		// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that caught up
 		// before the re-transmission is garbage-collected.
-		eventpbdsl.TimerRepeat(iss.M, iss.moduleConfig.Timer,
+		eventpbdsl.TimerRepeat(iss.m, iss.moduleConfig.Timer,
 			[]*eventpbtypes.Event{isspbevents.PushCheckpoint(iss.moduleConfig.Self)},
 			t.TimeDuration(iss.Params.CatchUpTimerPeriod),
 			// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
