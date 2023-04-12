@@ -154,17 +154,11 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 			alreadySeen[nodeID] = struct{}{}
 		}
 
-		// Check that the identities of the source node and the signing nodes are valid.
-		allNodes := make(map[t.NodeID]struct{})
-		for _, id := range params.AllNodes {
-			allNodes[id] = struct{}{}
+		// Check that signers are members.
+		if !sliceutil.ContainsAll(params.AllNodes, mscCert.Signers) {
+			return nil, fmt.Errorf("certificate contains signatures from non members, signers %v", mscCert.Signers)
 		}
 
-		for _, id := range mscCert.Signers {
-			if _, ok := allNodes[id]; !ok {
-				return nil, fmt.Errorf("unknown node ID: %v", id)
-			}
-		}
 	}
 	return mscCerts, nil
 }

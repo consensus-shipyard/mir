@@ -9,6 +9,8 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -246,6 +248,17 @@ func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) 
 			"type", fmt.Sprintf("%T", result.Origin.Type),
 			"errors", result.Errors,
 		)
+		return events.EmptyList()
+	}
+
+	// Verify all signers are part of the membership
+	if !sliceutil.ContainsAll(orderer.config.Membership, t.NodeIDSlice(result.NodeIds)) {
+		orderer.logger.Log(logging.LevelWarn,
+			"Ignoring message as it contains signatures from non members, ignoring event (with all signatures).",
+			"from", result.NodeIds,
+			"type", fmt.Sprintf("%T", result.Origin.Type),
+		)
+		return events.EmptyList()
 	}
 
 	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
@@ -264,6 +277,13 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
+
+	// check if from is part of the membership
+	if !sliceutil.Contains(orderer.config.Membership, from) {
+		orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+		return events.EmptyList()
+	}
+
 	switch msg := message.Type.(type) {
 	case *messagepb.Message_SbMessage:
 		// Based on the message type, call the appropriate handler method.
@@ -454,10 +474,7 @@ func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *ordererspbf
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
 func computeTimeout(timeout t.TimeDuration, view t.PBFTViewNr) t.TimeDuration {
-	for view > 0 {
-		timeout *= 2
-		view--
-	}
+	timeout *= 1 << view
 	return timeout
 }
 
