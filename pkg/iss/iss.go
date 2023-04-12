@@ -535,13 +535,7 @@ func InitialStateSnapshot(
 			maputil.GetSortedKeys(params.InitialMembership),
 			issconfig.StrongQuorum(len(params.InitialMembership)),
 		).Bytes()
-	default: //// append to FIFO
-		//iss.notVerifiedPrepepareContext = append(iss.notVerifiedPrepepareContext, &verifyCertContext{
-		//	sn:      sn,
-		//	data:    data,
-		//	aborted: aborted,
-		//	leader:  leader,
-		//})
+	default:
 		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
 	}
 	if err != nil {
