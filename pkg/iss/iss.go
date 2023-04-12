@@ -417,12 +417,31 @@ func New(
 			Cert:     cert,
 		}
 		chkp := checkpoint.StableCheckpointFromPb(_chkp.Pb())
-		// TODO: Technically this is wrong.
-		//       The memberhips information in the checkpint is used to verify the checkpoint itself.
-		//       This makes it possible to construct an arbitrary valid checkpoint.
-		//       Use an independent local source of memberhip information instead.
-		if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkp.PreviousMembership()); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Certificate don walid.",
+		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
+
+		// Check how far the received stable checkpoint is ahead of the local node's state.
+		if chkpMembershipOffset <= 0 {
+			// Ignore stable checkpoints that are not far enough
+			// ahead of the current state of the local node.
+			return nil
+		}
+
+		chkpMembership := chkp.PreviousMembership() // TODO this is wrong and it is a vulnerability, come back to fix after discussion (issue #384)
+		if chkpMembershipOffset > iss.Params.ConfigOffset {
+			// cannot verify checkpoint signatures, too far ahead
+			// TODO here we should externalize verification/decision to dedicated module (issue #402)
+			iss.logger.Log(logging.LevelWarn, "-----------------------------------------------------\n",
+				"ATTENTION: cannot verify membership of checkpoint, too far ahead, proceed with caution\n",
+				"-----------------------------------------------------\n",
+				"localEpoch", iss.epoch.Nr(),
+				"chkpEpoch", chkp.Epoch(),
+				"configOffset", iss.Params.ConfigOffset,
+			)
+		} else {
+			chkpMembership = iss.memberships[chkpMembershipOffset]
+		}
+		if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkpMembership); err != nil {
+			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Certificate not valid.",
 				"localEpoch", iss.epoch.Nr(),
 				"chkpEpoch", chkp.Epoch(),
 			)
@@ -434,13 +453,6 @@ func New(
 			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Membership configuration mismatch.",
 				"expectedNum", iss.Params.ConfigOffset+1,
 				"receivedNum", len(chkp.Memberships()))
-			return nil
-		}
-
-		// Check how far the received stable checkpoint is ahead of the local node's state.
-		if chkp.Epoch() <= iss.epoch.Nr()+1 {
-			// Ignore stable checkpoints that are not far enough
-			// ahead of the current state of the local node.
 			return nil
 		}
 
