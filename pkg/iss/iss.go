@@ -14,6 +14,10 @@ package iss
 import (
 	"encoding/binary"
 	"fmt"
+
+	"github.com/multiformats/go-multiaddr"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
@@ -30,8 +34,6 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-	"github.com/multiformats/go-multiaddr"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
@@ -83,9 +85,9 @@ type ISS struct {
 	// Highest epoch numbers indicated in Checkpoint messages from each node.
 	nodeEpochMap map[t.NodeID]t.EpochNr
 
-	// The memberships for the current epoch and the params.ConfigOffset - 1 following epochs
+	// The memberships for the current epoch and the params.ConfigOffset following epochs
 	// (totalling params.ConfigOffset memberships).
-	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, and 7.
+	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, 7 and 8.
 	memberships []map[t.NodeID]t.NodeAddress
 
 	// The latest new membership obtained from the application.
