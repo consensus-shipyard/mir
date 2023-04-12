@@ -252,12 +252,7 @@ func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) 
 	}
 
 	// Verify all signers are part of the membership
-	if !sliceutil.ContainsAll(orderer.config.Membership,
-		sliceutil.Transform(result.NodeIds, func(i int, nodeString string) t.NodeID {
-			return t.NodeID(nodeString)
-		},
-		),
-	) {
+	if !sliceutil.ContainsAll(orderer.config.Membership, t.NodeIDSlice(result.NodeIds)) {
 		orderer.logger.Log(logging.LevelWarn,
 			"Ignoring message as it contains signatures from non members, ignoring event (with all signatures).",
 			"from", result.NodeIds,
