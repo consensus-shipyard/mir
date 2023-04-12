@@ -4,11 +4,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
@@ -46,6 +48,7 @@ func IncludeCreatingCertificates(
 	m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
+	logger logging.Logger,
 ) {
 	state := State{
 		NextReqID:      0,
@@ -122,6 +125,12 @@ func IncludeCreatingCertificates(
 			return nil
 		}
 
+		// check that sender is a member
+		if !sliceutil.Contains(params.AllNodes, from) {
+			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+			return nil
+		}
+
 		if !certificate.receivedSig[from] {
 			certificate.receivedSig[from] = true
 			sigData := common.SigData(params.InstanceUID, certificate.BatchID)
@@ -164,6 +173,11 @@ func IncludeCreatingCertificates(
 
 	// When receive a request for a signature, compute the ids of the received transactions.
 	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID RequestID) error {
+		// check that sender is a member
+		if !sliceutil.Contains(params.AllNodes, from) {
+			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+			return nil
+		}
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})

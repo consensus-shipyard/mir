@@ -409,7 +409,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 	// to use for reconstructing the re-proposals from the obtained view change messages.
 	vcState := newPbftViewChangeState(orderer.segment.SeqNrs(), orderer.segment.NodeIDs(), orderer.logger)
 
-	// Feed all obtained ViewChange messages to the view chnage state.
+	// Feed all obtained ViewChange messages to the view change state.
 	for i, signedViewChange := range newView.SignedViewChanges {
 		vcState.AddSignedViewChange(signedViewChange, t.NodeID(newView.ViewChangeSenders[i]))
 	}

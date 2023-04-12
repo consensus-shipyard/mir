@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
@@ -258,6 +260,11 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *events.EventList {
 	eventsOut := events.EmptyList()
 
+	// check if source is part of the membership
+	if !sliceutil.Contains(p.membership, source) {
+		p.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", source)
+		return events.EmptyList()
+	}
 	// Notify the protocol about the progress of the source node.
 	// If no progress is made for a configured number of epochs,
 	// the node is considered to be a straggler and is sent a stable checkpoint to catch up.

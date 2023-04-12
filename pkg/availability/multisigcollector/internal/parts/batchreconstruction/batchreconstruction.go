@@ -3,6 +3,9 @@ package batchreconstruction
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
@@ -37,6 +40,8 @@ type RequestState struct {
 func IncludeBatchReconstruction(
 	m dsl.Module,
 	mc *common.ModuleConfig,
+	params *common.ModuleParams,
+	logger logging.Logger,
 ) {
 	state := State{
 		NextReqID:    0,
@@ -108,6 +113,11 @@ func IncludeBatchReconstruction(
 
 	// When receive a request for batch from another node, lookup the batch in the local storage.
 	mscpbdsl.UponRequestBatchMessageReceived(m, func(from t.NodeID, batchID t.BatchID, reqID t.RequestID) error {
+		// check that sender is a member
+		if !sliceutil.Contains(params.AllNodes, from) {
+			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+			return nil
+		}
 		// TODO: add some DoS prevention mechanisms.
 		batchdbpbdsl.LookupBatch(m, mc.BatchDB, batchID, &lookupBatchOnRemoteRequestContext{from, reqID, batchID})
 		return nil
@@ -126,6 +136,11 @@ func IncludeBatchReconstruction(
 
 	// When receive a requested batch, compute the ids of the received transactions.
 	mscpbdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID t.RequestID, batchID t.BatchID) error {
+		// check that sender is a member
+		if !sliceutil.Contains(params.AllNodes, from) {
+			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+			return nil
+		}
 
 		if _, ok := state.RequestState[reqID]; !ok {
 			// Ignore a message with an invalid or outdated request id.

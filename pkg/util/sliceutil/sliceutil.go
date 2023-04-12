@@ -35,6 +35,26 @@ func Filter[T any](ts []T, f func(i int, t T) bool) []T {
 	return res
 }
 
+// Contains returns true if the slice contains the given element.
+func Contains[T comparable](ts []T, t T) bool {
+	for _, v := range ts {
+		if v == t {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsAll returns true if the slice contains all elements of the given slice.
+func ContainsAll[T comparable](ts []T, ts2 []T) bool {
+	for _, t := range ts2 {
+		if !Contains(ts, t) {
+			return false
+		}
+	}
+	return true
+}
+
 // Any returns an arbitrary element of the slice.
 // If the slice is not empty, the second return value is true.
 // Otherwise, Any returns the zero value of the slice's element type and false.
