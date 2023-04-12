@@ -22,10 +22,8 @@ import (
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	checkpointpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
-	chkpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
@@ -46,7 +44,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -211,7 +208,7 @@ func New(
 	eventpbdsl.UponInit(iss.M, func() error {
 
 		// Initialize application state according to the initial checkpoint.
-		eventpbdsl.AppRestoreState(iss.M, iss.moduleConfig.App, chkpbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
+		eventpbdsl.AppRestoreState(iss.M, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
@@ -224,7 +221,7 @@ func New(
 	// an availability certificate (or the special abort value) or a common checkpoint.
 	isspbdsl.UponSBDeliver(iss.M, func(sn t.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
 		// If checkpoint ordering instance, deliver without verification
-		if t.ModuleID(instanceId).Sub().Sub() == "chkp" {
+		if instanceId.Sub().Sub() == "chkp" {
 			return iss.deliverCommonCheckpoint(data)
 		}
 
@@ -302,7 +299,7 @@ func New(
 	// Upon EpochProgress handle the event informing ISS that a node reached a certain epoch.
 	// This event can be, for example, emitted by the checkpoint protocol
 	// when it detects a node having reached a checkpoint for a certain epoch.
-	checkpointpbdsl.UponEpochProgress(iss.M, func(nodeID t.NodeID, epochNr t.EpochNr) error {
+	chkppbdsl.UponEpochProgress(iss.M, func(nodeID t.NodeID, epochNr t.EpochNr) error {
 		// Remember the highest epoch number for each node to detect
 		// later if the remote node is delayed too much and requires
 		// assistance in order to catch up through state transfer.
@@ -314,7 +311,7 @@ func New(
 
 	// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
 	// It serializes and submits the checkpoint for agreement.
-	checkpointpbdsl.UponStableCheckpoint(iss.M, func(sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+	chkppbdsl.UponStableCheckpoint(iss.M, func(sn t.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
 		// Ignore old checkpoints.
 		if sn <= iss.lastPendingCheckpointSN {
 			iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
@@ -351,7 +348,7 @@ func New(
 		leader := maputil.GetSortedKeys(membership)[int(epoch)%len(membership)]
 
 		// Serialize checkpoint, so it can be proposed as a value.
-		stableCheckpoint := chkpbtypes.StableCheckpoint{
+		stableCheckpoint := chkppbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
 			Cert:     cert,
@@ -710,7 +707,7 @@ func (iss *ISS) processCommitted() error {
 
 	// If the epoch is finished, transition to the next epoch.
 	if iss.epochFinished() {
-		iss.advanceEpoch()
+		return iss.advanceEpoch()
 	}
 
 	return nil
@@ -787,7 +784,7 @@ func (iss *ISS) verifyCert(sn t.SeqNr, data []uint8, aborted bool, leader t.Node
 	if err := proto.Unmarshal(data, cert); err != nil { // wrong certificate,
 		iss.logger.Log(logging.LevelWarn, "failed to unmarshal cert", "err", err)
 		// suspect leader
-		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), t.NodeID(leader))
+		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), leader)
 		// decide empty certificate
 		data = []byte{}
 		return iss.deliverCert(sn, data, aborted, leader)
@@ -861,7 +858,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 
 	// Deliver the stable checkpoint (and potential batches committed in the meantime,
 	// but blocked from being delivered due to this missing checkpoint) to the application.
-	checkpointpbdsl.StableCheckpoint(iss.M, iss.moduleConfig.App, chkp.SeqNr(), commonpbtypes.StateSnapshotFromPb(chkp.Snapshot), maputil.Transform(chkp.Cert, func(ki string, vi []byte) (t.NodeID, []byte) {
+	chkppbdsl.StableCheckpoint(iss.M, iss.moduleConfig.App, chkp.SeqNr(), commonpbtypes.StateSnapshotFromPb(chkp.Snapshot), maputil.Transform(chkp.Cert, func(ki string, vi []byte) (t.NodeID, []byte) {
 		return t.NodeID(ki), vi
 	}))
 
@@ -938,11 +935,6 @@ func freeProposals(start t.SeqNr, step t.SeqNr, length int) map[t.SeqNr][]byte {
 		seqNrs[nextSn] = nil
 	}
 	return seqNrs
-}
-
-// reqStrKey takes a request reference and transforms it to a string for using as a map key.
-func reqStrKey(req *requestpb.HashedRequest) string {
-	return fmt.Sprintf("%v-%d.%v", req.Req.ClientId, req.Req.ReqNo, req.Digest)
 }
 
 func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
