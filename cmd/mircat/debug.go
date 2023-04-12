@@ -181,7 +181,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 			nullTransport,
 			"iss",
 		),
-		"iss": protocol,
+		"iss": protocol.M,
 	}, iss.DefaultModuleConfig())
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))

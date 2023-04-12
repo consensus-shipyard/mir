@@ -191,7 +191,7 @@ func New(
 	// that it needs but that have not been specified explicitly.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		issModuleConfig.App:          batchFetcher,
-		issModuleConfig.Self:         issProtocol,
+		issModuleConfig.Self:         issProtocol.M,
 		issModuleConfig.Net:          transport,
 		issModuleConfig.Availability: availability,
 		issModuleConfig.Checkpoint:   checkpointing,
