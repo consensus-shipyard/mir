@@ -240,7 +240,7 @@ func InitialStateSnapshot(
 			EpochConfig:        events.EpochConfig(0, 0, firstEpochLength, memberships),
 			ClientProgress:     clientprogress.NewClientProgress(nil).Pb(),
 			LeaderPolicy:       leaderPolicyData,
-			PreviousMembership: nil,
+			PreviousMembership: t.MembershipPb(make(map[t.NodeID]t.NodeAddress)), // empty map
 		},
 	}, nil
 }
@@ -573,6 +573,12 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	// Create an event to request the application module for
 	// restoring its state from the snapshot received in the new
 	// stable checkpoint message.
+	//if chkp.Snapshot.EpochData.PreviousMembership == nil {
+	//	chkp.Snapshot.EpochData.PreviousMembership = &commonpb.Membership{
+	//		Membership: make(map[string]string),
+	//	}
+	//}
+
 	eventsOut.PushBack(events.AppRestoreState(iss.moduleConfig.App, chkp.Pb()))
 
 	// Start executing the current epoch (the one the checkpoint corresponds to).
