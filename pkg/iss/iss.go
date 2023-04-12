@@ -133,27 +133,27 @@ type ISS struct {
 // New returns a new initialized instance of the ISS protocol module to be used when instantiating a mir.Node.
 func New(
 
-	// ID of the node being instantiated with ISS.
+// ID of the node being instantiated with ISS.
 	ownID t.NodeID,
 
-	// IDs of the modules ISS interacts with.
+// IDs of the modules ISS interacts with.
 	moduleConfig *ModuleConfig,
 
-	// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
-	// See the documentation of the issutil.ModuleParams type for details.
+// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
+// See the documentation of the issutil.ModuleParams type for details.
 	params *issconfig.ModuleParams,
 
-	// Stable checkpoint defining the initial state of the protocol.
+// Stable checkpoint defining the initial state of the protocol.
 	startingChkp *checkpoint.StableCheckpoint,
 
-	// Hash implementation to use when computing hashes.
+// Hash implementation to use when computing hashes.
 	hashImpl crypto.HashImpl,
 
-	// Verifier of received stable checkpoints.
-	// This is most likely going to be the crypto module used by the protocol.
+// Verifier of received stable checkpoints.
+// This is most likely going to be the crypto module used by the protocol.
 	chkpVerifier checkpoint.Verifier,
 
-	// Logger the ISS implementation uses to output log messages.
+// Logger the ISS implementation uses to output log messages.
 	logger logging.Logger,
 
 ) (*ISS, error) {
@@ -229,14 +229,6 @@ func New(
 		if len(data) == 0 {
 			return iss.deliverCert(sn, data, aborted, leader)
 		}
-
-		//// append to FIFO
-		//iss.notVerifiedPrepepareContext = append(iss.notVerifiedPrepepareContext, &verifyCertContext{
-		//	sn:      sn,
-		//	data:    data,
-		//	aborted: aborted,
-		//	leader:  leader,
-		//})
 
 		// verify the certificate before deciding it
 		return iss.verifyCert(sn, data, aborted, leader)
@@ -414,9 +406,9 @@ func New(
 			Cert:     cert,
 		}
 		chkp := checkpoint.StableCheckpointFromPb(_chkp.Pb())
-		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
 
 		// Check how far the received stable checkpoint is ahead of the local node's state.
+		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
 		if chkpMembershipOffset <= 0 {
 			// Ignore stable checkpoints that are not far enough
 			// ahead of the current state of the local node.
@@ -543,7 +535,13 @@ func InitialStateSnapshot(
 			maputil.GetSortedKeys(params.InitialMembership),
 			issconfig.StrongQuorum(len(params.InitialMembership)),
 		).Bytes()
-	default:
+	default: //// append to FIFO
+		//iss.notVerifiedPrepepareContext = append(iss.notVerifiedPrepepareContext, &verifyCertContext{
+		//	sn:      sn,
+		//	data:    data,
+		//	aborted: aborted,
+		//	leader:  leader,
+		//})
 		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
 	}
 	if err != nil {
@@ -561,10 +559,6 @@ func InitialStateSnapshot(
 		},
 	}, nil
 }
-
-// ============================================================
-// Protocol Interface implementation
-// ============================================================
 
 // ============================================================
 // Additional protocol logic
@@ -692,7 +686,6 @@ func (iss *ISS) processCommitted() error {
 		} else {
 			_cert = apbtypes.CertFromPb(&cert)
 		}
-		fmt.Printf("_cert: %v", _cert)
 		eventpbdsl.DeliverCert(iss.M, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
 		// Output debugging information.
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
@@ -858,9 +851,16 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 
 	// Deliver the stable checkpoint (and potential batches committed in the meantime,
 	// but blocked from being delivered due to this missing checkpoint) to the application.
-	chkppbdsl.StableCheckpoint(iss.M, iss.moduleConfig.App, chkp.SeqNr(), commonpbtypes.StateSnapshotFromPb(chkp.Snapshot), maputil.Transform(chkp.Cert, func(ki string, vi []byte) (t.NodeID, []byte) {
-		return t.NodeID(ki), vi
-	}))
+	chkppbdsl.StableCheckpoint(iss.M,
+		iss.moduleConfig.App,
+		chkp.SeqNr(),
+		commonpbtypes.StateSnapshotFromPb(chkp.Snapshot),
+		maputil.Transform(chkp.Cert,
+			func(ki string, vi []byte) (t.NodeID, []byte) {
+				return t.NodeID(ki), vi
+			},
+		),
+	)
 
 	err := iss.processCommitted()
 	if err != nil {
