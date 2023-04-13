@@ -51,11 +51,11 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 	if hierarchyNode.IsRoot() {
 
 		jenFile.Func().Id("Upon"+hierarchyNode.Name()+"Received").Types(
-			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("m")),
-			jen.Id("m").Any(),
+			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("M")),
+			jen.Id("M").Any(),
 		).Params(
 			jen.Id("m").Add(dslModule),
-			jen.Id("handler").Func().Params(jen.Id("from").Add(tNodeIDCode), jen.Id("msg").Op("*").Id("m")).Id("error"),
+			jen.Id("handler").Func().Params(jen.Id("from").Add(tNodeIDCode), jen.Id("msg").Op("*").Id("M")).Id("error"),
 		).Block(
 			jen.Add(uponMessageReceived).Params(
 				jen.Id("m"),
@@ -94,8 +94,8 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 
 		// Generate function for handling the message class.
 		jenFile.Func().Id("Upon"+hierarchyNode.Name()+"Received").Types(
-			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("m")),
-			jen.Id("m").Any(),
+			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("M")),
+			jen.Id("M").Any(),
 		).Params(
 			jen.Id("m").Add(dslModule),
 			// TODO: consider if we need to propagate some parameters from the parent.
