@@ -46,7 +46,6 @@ message Event {
     SignResult              sign_result             = 11;
     VerifyNodeSigs          verify_node_sigs        = 12;
     NodeSigsVerified        node_sigs_verified      = 13;
-    RequestReady            request_ready           = 14;
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
     DeliverCert             deliver_cert            = 17;
@@ -161,10 +160,6 @@ message SigVerOrigin {
     checkpointpb.SigVerOrigin checkpoint    = 5;
     ordererspb.SBInstanceSigVerOrigin sb    = 6;
   }
-}
-
-message RequestReady {
-  requestpb.Request request = 1;
 }
 
 message SendMessage {
