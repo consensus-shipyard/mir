@@ -61,8 +61,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_VerifyNodeSigs{VerifyNodeSigs: VerifyNodeSigsFromPb(pb.VerifyNodeSigs)}
 	case *eventpb.Event_NodeSigsVerified:
 		return &Event_NodeSigsVerified{NodeSigsVerified: NodeSigsVerifiedFromPb(pb.NodeSigsVerified)}
-	case *eventpb.Event_RequestReady:
-		return &Event_RequestReady{RequestReady: pb.RequestReady}
 	case *eventpb.Event_SendMessage:
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
 	case *eventpb.Event_MessageReceived:
@@ -245,24 +243,6 @@ func (w *Event_NodeSigsVerified) Pb() eventpb.Event_Type {
 
 func (*Event_NodeSigsVerified) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NodeSigsVerified]()}
-}
-
-type Event_RequestReady struct {
-	RequestReady *eventpb.RequestReady
-}
-
-func (*Event_RequestReady) isEvent_Type() {}
-
-func (w *Event_RequestReady) Unwrap() *eventpb.RequestReady {
-	return w.RequestReady
-}
-
-func (w *Event_RequestReady) Pb() eventpb.Event_Type {
-	return &eventpb.Event_RequestReady{RequestReady: w.RequestReady}
-}
-
-func (*Event_RequestReady) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_RequestReady]()}
 }
 
 type Event_SendMessage struct {

@@ -13,7 +13,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_SignResult)(nil)),
 		reflect.TypeOf((*Event_VerifyNodeSigs)(nil)),
 		reflect.TypeOf((*Event_NodeSigsVerified)(nil)),
-		reflect.TypeOf((*Event_RequestReady)(nil)),
 		reflect.TypeOf((*Event_SendMessage)(nil)),
 		reflect.TypeOf((*Event_MessageReceived)(nil)),
 		reflect.TypeOf((*Event_DeliverCert)(nil)),

@@ -53,10 +53,6 @@ func (w *Event_NodeSigsVerified) Unwrap() *NodeSigsVerified {
 	return w.NodeSigsVerified
 }
 
-func (w *Event_RequestReady) Unwrap() *RequestReady {
-	return w.RequestReady
-}
-
 func (w *Event_SendMessage) Unwrap() *SendMessage {
 	return w.SendMessage
 }
