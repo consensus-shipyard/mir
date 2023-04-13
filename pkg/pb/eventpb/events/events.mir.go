@@ -19,15 +19,15 @@ func Init(destModule types.ModuleID) *types1.Event {
 	}
 }
 
-func TimerDelay(destModule types.ModuleID, events []*types1.Event, delay uint64) *types1.Event {
+func TimerDelay(destModule types.ModuleID, evts []*types1.Event, delay uint64) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Timer{
 			Timer: &types1.TimerEvent{
 				Type: &types1.TimerEvent_Delay{
 					Delay: &types1.TimerDelay{
-						Events: events,
-						Delay:  delay,
+						Evts:  evts,
+						Delay: delay,
 					},
 				},
 			},
