@@ -17,6 +17,7 @@ SPDX-License-Identifier: Apache-2.0
 package orderers
 
 import (
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -256,7 +257,7 @@ func catchUpResponseHashOrigin(preprepare *ordererspbftpb.Preprepare) *orderersp
 // Note that the view number is *not* serialized, as hashes must be consistent across views.
 // Even though the preprepare argument is a protocol buffer, this function is required to guarantee
 // that the serialization is deterministic, since the protobuf native serialization does not provide this guarantee.
-func serializePreprepareForHashing(preprepare *ordererspbftpb.Preprepare) [][]byte {
+func serializePreprepareForHashing(preprepare *ordererspbftpb.Preprepare) *commonpbtypes.HashData {
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)
@@ -267,7 +268,7 @@ func serializePreprepareForHashing(preprepare *ordererspbftpb.Preprepare) [][]by
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
 	// as the view change protocol might compare hashes of Preprepares across vies.
-	return [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.Data}
+	return &commonpbtypes.HashData{Data: [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.Data}}
 }
 
 func serializeViewChangeForSigning(vc *ordererspbftpb.ViewChange) [][]byte {

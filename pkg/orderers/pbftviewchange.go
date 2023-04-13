@@ -6,7 +6,9 @@ import (
 	"sort"
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -190,13 +192,11 @@ func (orderer *Orderer) applyVerifiedViewChange(svc *ordererspbftpb.SignedViewCh
 		emptyPreprepareData := state.SetEmptyPreprepares(vcView, orderer.segment.Proposals)
 
 		// Request hashing of the new Preprepare messages
-		return events.ListOf(
-			events.HashRequest(
-				orderer.moduleConfig.Hasher,
-				emptyPreprepareData,
-				HashOrigin(orderer.moduleConfig.Self,
-					emptyPreprepareHashOrigin(vcView)),
-			))
+		return events.ListOf(hasherpbevents.Request(
+			orderer.moduleConfig.Hasher,
+			emptyPreprepareData,
+			HashOrigin(orderer.moduleConfig.Self, emptyPreprepareHashOrigin(vcView)),
+		).Pb())
 	}
 
 	// TODO: Consider checking whether a quorum of valid view change messages has been almost received
@@ -272,13 +272,11 @@ func (orderer *Orderer) applyMsgMissingPreprepare(preprepare *ordererspbftpb.Pre
 	}
 
 	// Request a hash of the received preprepare message.
-	hashRequest := events.HashRequest(
+	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[][][]byte{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self,
-			missingPreprepareHashOrigin(preprepare)),
-	)
-	return events.ListOf(hashRequest)
+		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		HashOrigin(orderer.moduleConfig.Self, missingPreprepareHashOrigin(preprepare)),
+	).Pb())
 }
 
 func (orderer *Orderer) applyMissingPreprepareHashResult(
@@ -382,17 +380,17 @@ func (orderer *Orderer) applyMsgNewView(newView *ordererspbftpb.NewView, from t.
 
 func (orderer *Orderer) applyVerifiedNewView(newView *ordererspbftpb.NewView) *events.EventList {
 	// Serialize obtained Preprepare messages for hashing.
-	dataToHash := make([][][]byte, len(newView.Preprepares))
+	dataToHash := make([]*commonpbtypes.HashData, len(newView.Preprepares))
 	for i, preprepare := range newView.Preprepares { // Preprepares in a NewView message are sorted by sequence number.
 		dataToHash[i] = serializePreprepareForHashing(preprepare)
 	}
 
 	// Request hashes of the Preprepare messages.
-	return events.ListOf(events.HashRequest(orderer.moduleConfig.Hasher,
+	return events.ListOf(hasherpbevents.Request(
+		orderer.moduleConfig.Hasher,
 		dataToHash,
-		HashOrigin(orderer.moduleConfig.Self, newViewHashOrigin(newView))),
-	)
-
+		HashOrigin(orderer.moduleConfig.Self, newViewHashOrigin(newView)),
+	).Pb())
 }
 
 func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordererspbftpb.NewView) *events.EventList {

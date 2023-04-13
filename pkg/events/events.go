@@ -115,50 +115,11 @@ func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte) *requestpb.R
 	}
 }
 
-func HashedRequest(request *requestpb.Request, digest []byte) *requestpb.HashedRequest {
-	return &requestpb.HashedRequest{
-		Req:    request,
-		Digest: digest,
-	}
-}
-
 // NewClientRequests returns an event representing the reception of new requests from clients.
 func NewClientRequests(destModule t.ModuleID, requests []*requestpb.Request) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_NewRequests{
 		NewRequests: &eventpb.NewRequests{Requests: requests},
 	}}
-}
-
-// HashRequest returns an event representing a request to the hashing module for computing hashes of data.
-// For each object to be hashed the data argument contains a slice of byte slices representing it (thus [][][]byte).
-// The origin is an object used to maintain the context for the requesting module and will be included in the
-// HashResult produced by the hashing module.
-func HashRequest(destModule t.ModuleID, data [][][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
-
-	// First, construct a slice of HashData objects
-	hashData := make([]*commonpb.HashData, len(data))
-	for i, d := range data {
-		hashData[i] = &commonpb.HashData{Data: d}
-	}
-
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_HashRequest{HashRequest: &eventpb.HashRequest{
-			Data:   hashData,
-			Origin: origin,
-		}},
-	}
-}
-
-// HashResult returns an event representing the computation of hashes by the hashing module.
-// It contains the computed digests and the HashOrigin,
-// an object used to maintain the context for the requesting module,
-// i.e., information about what to do with the contained digest.
-func HashResult(destModule t.ModuleID, digests [][]byte, origin *eventpb.HashOrigin) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_HashResult{HashResult: &eventpb.HashResult{
-		Digests: digests,
-		Origin:  origin,
-	}}}
 }
 
 // SignRequest returns an event representing a request to the crypto module for computing the signature over data.

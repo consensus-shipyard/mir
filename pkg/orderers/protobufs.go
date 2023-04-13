@@ -7,6 +7,7 @@ import (
 	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
@@ -53,10 +54,10 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 //					}.Pb()}}})
 //}
 
-func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.HashOrigin_Sb{Sb: origin},
+func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *hasherpbtypes.HashOrigin {
+	return &hasherpbtypes.HashOrigin{
+		Module: module,
+		Type:   &hasherpbtypes.HashOrigin_Sb{Sb: origin},
 	}
 }
 

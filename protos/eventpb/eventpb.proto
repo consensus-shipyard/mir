@@ -25,6 +25,7 @@ import "threshcryptopb/threshcryptopb.proto";
 import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererspb/ordererspb.proto";
+import "hasherpb/hasherpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -40,8 +41,7 @@ message Event {
 
     Init                    init                    = 1;
     NewRequests             new_requests            = 7;
-    HashRequest             hash_request            = 8;
-    HashResult              hash_result             = 9;
+    hasherpb.Event          hasher                  = 8;
     SignRequest             sign_request            = 10;
     SignResult              sign_result             = 11;
     VerifyNodeSigs          verify_node_sigs        = 12;
@@ -97,30 +97,6 @@ message Init {
 message NewRequests {
   option (mir.event) = true;
   repeated requestpb.Request requests = 1;
-}
-
-message HashRequest {
-  option (mir.event) = true;
-  repeated commonpb.HashData data   = 1;
-  HashOrigin                 origin = 2 [(mir.origin_request) = true];
-}
-
-message HashResult {
-  option (mir.event) = true;
-  repeated bytes digests = 1;
-  HashOrigin     origin  = 2 [(mir.origin_response) = true];
-}
-
-message HashOrigin {
-  option (mir.struct) = true;
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-  oneof type {
-    contextstorepb.Origin   context_store = 2;
-    requestpb.Request       request       = 3;
-    dslpb.Origin            dsl           = 5;
-    checkpointpb.HashOrigin checkpoint    = 6;
-    ordererspb.SBInstanceHashOrigin sb    = 7;
-  }
 }
 
 message SignRequest {

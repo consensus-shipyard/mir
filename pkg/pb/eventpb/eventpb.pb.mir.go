@@ -8,8 +8,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_Init)(nil)),
 		reflect.TypeOf((*Event_NewRequests)(nil)),
-		reflect.TypeOf((*Event_HashRequest)(nil)),
-		reflect.TypeOf((*Event_HashResult)(nil)),
+		reflect.TypeOf((*Event_Hasher)(nil)),
 		reflect.TypeOf((*Event_SignRequest)(nil)),
 		reflect.TypeOf((*Event_SignResult)(nil)),
 		reflect.TypeOf((*Event_VerifyNodeSigs)(nil)),
@@ -42,16 +41,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_SbEvent)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
-	}
-}
-
-func (*HashOrigin) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*HashOrigin_ContextStore)(nil)),
-		reflect.TypeOf((*HashOrigin_Request)(nil)),
-		reflect.TypeOf((*HashOrigin_Dsl)(nil)),
-		reflect.TypeOf((*HashOrigin_Checkpoint)(nil)),
-		reflect.TypeOf((*HashOrigin_Sb)(nil)),
 	}
 }
 

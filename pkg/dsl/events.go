@@ -96,31 +96,6 @@ func VerifyOneNodeSig[C any](
 	VerifyNodeSigs(m, destModule, [][][]byte{data}, [][]byte{signature}, []t.NodeID{nodeID}, context)
 }
 
-// HashRequest emits a request event to compute hashes of a batch of messages.
-// The response should be processed using UponHashResult with the same context type C.
-// C can be an arbitrary type and does not have to be serializable.
-func HashRequest[C any](m Module, destModule t.ModuleID, data [][][]byte, context *C) {
-	contextID := m.DslHandle().StoreContext(context)
-
-	origin := &eventpb.HashOrigin{
-		Module: m.ModuleID().Pb(),
-		Type: &eventpb.HashOrigin_Dsl{
-			Dsl: &dslpb.Origin{
-				ContextID: contextID.Pb(),
-			},
-		},
-	}
-
-	EmitEvent(m, events.HashRequest(destModule, data, origin))
-}
-
-// HashOneMessage emits a request event to compute hash one message.
-// This is a wrapper around HashRequest.
-// May be useful in combination with UponOneHashResult.
-func HashOneMessage[C any](m Module, destModule t.ModuleID, data [][]byte, context *C) {
-	HashRequest(m, destModule, [][][]byte{data}, context)
-}
-
 // Dsl functions for processing events
 // TODO: consider generating this code automatically using a protoc plugin.
 
@@ -187,40 +162,6 @@ func UponOneNodeSigVerified[C any](m Module, handler func(nodeID t.NodeID, err e
 	UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *C) error {
 		for i := range nodeIDs {
 			err := handler(nodeIDs[i], errs[i], context)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-}
-
-// UponHashResult invokes handler when the module receives a response to a request made by HashRequest with the same
-// context type C.
-func UponHashResult[C any](m Module, handler func(hashes [][]byte, context *C) error) {
-	UponEvent[*eventpb.Event_HashResult](m, func(ev *eventpb.HashResult) error {
-		originWrapper, ok := ev.Origin.Type.(*eventpb.HashOrigin_Dsl)
-		if !ok {
-			return nil
-		}
-
-		contextRaw := m.DslHandle().RecoverAndCleanupContext(ContextID(originWrapper.Dsl.ContextID))
-		context, ok := contextRaw.(*C)
-		if !ok {
-			return nil
-		}
-
-		return handler(ev.Digests, context)
-	})
-}
-
-// UponOneHashResult is a wrapper around UponHashResult that invokes handler on each response in a batch separately.
-// May be useful in combination with HashOneMessage.
-func UponOneHashResult[C any](m Module, handler func(hash []byte, context *C) error) {
-	UponHashResult(m, func(hashes [][]byte, context *C) error {
-		for _, hash := range hashes {
-			err := handler(hash, context)
 			if err != nil {
 				return err
 			}

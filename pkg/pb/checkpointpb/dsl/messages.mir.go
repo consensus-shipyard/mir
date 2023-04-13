@@ -19,7 +19,7 @@ func UponStableCheckpointReceived(m dsl.Module, handler func(from types.NodeID, 
 	})
 }
 
-func UponMessageReceived[W types3.Message_TypeWrapper[m], m any](m dsl.Module, handler func(from types.NodeID, msg *m) error) {
+func UponMessageReceived[W types3.Message_TypeWrapper[M], M any](m dsl.Module, handler func(from types.NodeID, msg *M) error) {
 	dsl2.UponMessageReceived[*types4.Message_Checkpoint](m, func(from types.NodeID, msg *types3.Message) error {
 		w, ok := msg.Type.(W)
 		if !ok {

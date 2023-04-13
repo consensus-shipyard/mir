@@ -17,7 +17,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
+	hasherevt "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -126,8 +129,13 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 		return events.EmptyList(), nil // Nothing to initialize.
 	case *eventpb.Event_AppSnapshot:
 		return p.applyAppSnapshot(e.AppSnapshot)
-	case *eventpb.Event_HashResult:
-		return p.applyHashResult(e.HashResult)
+	case *eventpb.Event_Hasher:
+		switch e := e.Hasher.Type.(type) {
+		case *hasherpb.Event_Result:
+			return p.applyHashResult(e.Result)
+		default:
+			return nil, errors.Errorf("unexpected hasher event type: %T", e)
+		}
 	case *eventpb.Event_SignResult:
 		return p.applySignResult(e.SignResult)
 	case *eventpb.Event_NodeSigsVerified:
@@ -196,14 +204,14 @@ func (p *Protocol) snapshotReady() bool {
 func (p *Protocol) processStateSnapshot() (*events.EventList, error) {
 
 	// Initiate computing the hash of the snapshot.
-	return events.ListOf(events.HashRequest(
+	return events.ListOf(hasherevt.Request(
 		p.moduleConfig.Hasher,
-		[][][]byte{serializing.SnapshotForHash(p.stateSnapshot)},
+		[]*commonpbtypes.HashData{serializing.SnapshotForHash(p.stateSnapshot)},
 		protobufs.HashOrigin(p.moduleConfig.Self),
-	)), nil
+	).Pb()), nil
 }
 
-func (p *Protocol) applyHashResult(result *eventpb.HashResult) (*events.EventList, error) {
+func (p *Protocol) applyHashResult(result *hasherpb.Result) (*events.EventList, error) {
 
 	// Save the received snapshot hash
 	p.stateSnapshotHash = result.Digests[0]

@@ -8,7 +8,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -209,10 +211,11 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.
-	return events.ListOf(events.HashRequest(orderer.moduleConfig.Hasher,
-		[][][]byte{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare))),
-	)
+	return events.ListOf(hasherpbevents.Request(
+		orderer.moduleConfig.Hasher,
+		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare)),
+	).Pb())
 }
 
 func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *ordererspbftpb.Preprepare) *events.EventList {

@@ -10,7 +10,7 @@ import (
 
 // Module-specific dsl functions for processing net messages.
 
-func UponISSMessageReceived[W types.ISSMessage_TypeWrapper[m], m any](m dsl.Module, handler func(from types1.NodeID, msg *m) error) {
+func UponISSMessageReceived[W types.ISSMessage_TypeWrapper[M], M any](m dsl.Module, handler func(from types1.NodeID, msg *M) error) {
 	dsl1.UponMessageReceived[*types2.Message_Iss](m, func(from types1.NodeID, msg *types.ISSMessage) error {
 		w, ok := msg.Type.(W)
 		if !ok {

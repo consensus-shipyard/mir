@@ -22,6 +22,7 @@ package protos
 //go:generate protoc-events messagepb/messagepb.proto
 //go:generate protoc-events requestpb/requestpb.proto
 //go:generate protoc-events eventpb/eventpb.proto
+//go:generate protoc-events hasherpb/hasherpb.proto
 //go:generate protoc-events recordingpb/recordingpb.proto
 //go:generate protoc-events isspb/isspb.proto
 //go:generate protoc-events bcbpb/bcbpb.proto
@@ -61,6 +62,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 
 // Generate other things.
 //go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto

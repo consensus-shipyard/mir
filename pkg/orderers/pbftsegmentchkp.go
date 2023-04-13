@@ -6,7 +6,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -269,10 +271,11 @@ func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *ordererspbftpb.Prepr
 		return events.EmptyList()
 	}
 
-	return events.ListOf(events.HashRequest(orderer.moduleConfig.Hasher,
-		[][][]byte{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self, catchUpResponseHashOrigin(preprepare))),
-	)
+	return events.ListOf(hasherpbevents.Request(
+		orderer.moduleConfig.Hasher,
+		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		HashOrigin(orderer.moduleConfig.Self, catchUpResponseHashOrigin(preprepare)),
+	).Pb())
 }
 
 // applyCatchUpResponseHashResult processes a missing committed certificate when its hash becomes available.

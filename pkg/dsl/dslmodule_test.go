@@ -236,20 +236,11 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
 
 	UponTestingString(m, func(s string) error {
 		SignRequest(m, mc.Crypto, [][]byte{[]byte(s)}, &testingStringContext{s})
-		HashOneMessage(m, mc.Hasher, [][]byte{[]byte(s)}, &testingStringContext{s})
 		return nil
 	})
 
 	UponSignResult(m, func(signature []byte, context *testingStringContext) error {
 		EmitTestingString(m, mc.Signed, fmt.Sprintf("%s: %s", context.s, string(signature)))
-		return nil
-	})
-
-	UponHashResult(m, func(hashes [][]byte, context *testingStringContext) error {
-		if len(hashes) != 1 {
-			return fmt.Errorf("unexpected number of hashes: %v", hashes)
-		}
-		EmitTestingString(m, mc.Hashed, fmt.Sprintf("%s: %s", context.s, string(hashes[0])))
 		return nil
 	})
 
@@ -295,19 +286,14 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 		"request response": func(mc *contextTestingModuleModuleConfig, m Module) {
 			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
 			assert.Nil(t, err)
-			assert.Equal(t, 2, eventsOut.Len())
+			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
 			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
-			hashOrigin := iter.Next().Type.(*eventpb.Event_HashRequest).HashRequest.Origin
 
 			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
 			assert.Nil(t, err)
 			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
-
-			eventsOut, err = m.ApplyEvents(events.ListOf(events.HashResult(mc.Self, [][]byte{[]byte("world")}, hashOrigin)))
-			assert.Nil(t, err)
-			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Hashed, "hello: world")}, eventsOut.Slice())
 		},
 
 		"response without request": func(mc *contextTestingModuleModuleConfig, m Module) {
@@ -321,11 +307,10 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 		"check context is disposed": func(mc *contextTestingModuleModuleConfig, m Module) {
 			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
 			assert.Nil(t, err)
-			assert.Equal(t, 2, eventsOut.Len())
+			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
 			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
-			_ = iter.Next().Type.(*eventpb.Event_HashRequest).HashRequest.Origin
 
 			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
 			assert.Nil(t, err)
@@ -349,7 +334,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			assert.Equal(t, 8, len(sigVerNodes))
 			sigVerOrigin := sigVerEvent.Origin
 
-			// send some undelated events to make sure the context is preserved and does not get overwritten
+			// send some unrelated events to make sure the context is preserved and does not get overwritten
 			_, err = m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
 			assert.Nil(t, err)
 			_, err = m.ApplyEvents(events.ListOf(events.TestingUint(mc.Self, 3)))

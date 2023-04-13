@@ -9,6 +9,7 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -171,8 +172,13 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		default:
 			return nil, fmt.Errorf("unknown availability event type: %T", avEvent)
 		}
-	case *eventpb.Event_HashResult:
-		return orderer.applyHashResult(ev), nil
+	case *eventpb.Event_Hasher:
+		switch e := ev.Hasher.Type.(type) {
+		case *hasherpb.Event_Result:
+			return orderer.applyHashResult(e.Result), nil
+		default:
+			return nil, fmt.Errorf("unknown Hasher event: %T", e)
+		}
 	case *eventpb.Event_SbEvent:
 		switch e := ev.SbEvent.Type.(type) {
 		case *ordererspb.SBInstanceEvent_Init:
@@ -196,23 +202,22 @@ func (orderer *Orderer) ApplyEvents(evts *events.EventList) (*events.EventList, 
 	return modules.ApplyEventsSequentially(evts, orderer.ApplyEvent)
 }
 
-func (orderer *Orderer) applyHashResult(result *eventpb.Event_HashResult) *events.EventList {
+func (orderer *Orderer) applyHashResult(result *hasherpb.Result) *events.EventList {
 	// Depending on the origin of the hash result, continue processing where the hash was needed.
 
-	origin := result.HashResult
-	switch ev := origin.Origin.Type.(type) {
-	case *eventpb.HashOrigin_Sb:
+	switch ev := result.Origin.Type.(type) {
+	case *hasherpb.HashOrigin_Sb:
 		switch e := ev.Sb.Type.(type) {
 		case *ordererspb.SBInstanceHashOrigin_PbftPreprepare:
-			return orderer.applyPreprepareHashResult(origin.Digests[0], e.PbftPreprepare)
+			return orderer.applyPreprepareHashResult(result.Digests[0], e.PbftPreprepare)
 		case *ordererspb.SBInstanceHashOrigin_PbftEmptyPreprepares:
-			return orderer.applyEmptyPreprepareHashResult(origin.Digests, t.PBFTViewNr(e.PbftEmptyPreprepares))
+			return orderer.applyEmptyPreprepareHashResult(result.Digests, t.PBFTViewNr(e.PbftEmptyPreprepares))
 		case *ordererspb.SBInstanceHashOrigin_PbftMissingPreprepare:
-			return orderer.applyMissingPreprepareHashResult(origin.Digests[0], e.PbftMissingPreprepare)
+			return orderer.applyMissingPreprepareHashResult(result.Digests[0], e.PbftMissingPreprepare)
 		case *ordererspb.SBInstanceHashOrigin_PbftNewView:
-			return orderer.applyNewViewHashResult(origin.Digests, e.PbftNewView)
+			return orderer.applyNewViewHashResult(result.Digests, e.PbftNewView)
 		case *ordererspb.SBInstanceHashOrigin_PbftCatchUpResponse:
-			return orderer.applyCatchUpResponseHashResult(origin.Digests[0], e.PbftCatchUpResponse)
+			return orderer.applyCatchUpResponseHashResult(result.Digests[0], e.PbftCatchUpResponse)
 		default:
 			panic(fmt.Sprintf("unknown hash origin type: %T", e))
 		}

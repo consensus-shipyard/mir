@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -53,8 +54,8 @@ func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]b
 	return [][]byte{epochBytes, snBytes, snapshotHash}
 }
 
-func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
-	return append(EpochDataForHash(snapshot.EpochData), snapshot.AppData)
+func SnapshotForHash(snapshot *commonpb.StateSnapshot) *commonpbtypes.HashData {
+	return &commonpbtypes.HashData{Data: append(EpochDataForHash(snapshot.EpochData), snapshot.AppData)}
 }
 
 func EpochDataForHash(epochData *commonpb.EpochData) [][]byte {

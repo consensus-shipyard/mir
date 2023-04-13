@@ -2,9 +2,11 @@ package protobufs
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -68,10 +70,10 @@ func CheckpointMessage(
 	)
 }
 
-func HashOrigin(module t.ModuleID) *eventpb.HashOrigin {
-	return &eventpb.HashOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.HashOrigin_Checkpoint{Checkpoint: &checkpointpb.HashOrigin{}},
+func HashOrigin(module t.ModuleID) *hasherpbtypes.HashOrigin {
+	return &hasherpbtypes.HashOrigin{
+		Module: module,
+		Type:   &hasherpbtypes.HashOrigin_Checkpoint{Checkpoint: &checkpointpbtypes.HashOrigin{}},
 	}
 }
 
