@@ -40,8 +40,24 @@ message Event {
     option (mir.event_type) = true;
 
     Init                    init                    = 1;
+    TimerEvent              timer                   = 2; // Timer events must be defined in this file, see below.
+
+          hasherpb.Event    hasher                  = 8;
+             bcbpb.Event    bcb                     = 28;
+         mempoolpb.Event    mempool                 = 29;
+    availabilitypb.Event    availability            = 30;
+         batchdbpb.Event    batch_db                = 34;
+    batchfetcherpb.Event    batch_fetcher           = 35;
+    threshcryptopb.Event    thresh_crypto           = 36;
+        pingpongpb.Event    ping_pong               = 37;
+      checkpointpb.Event    checkpoint              = 38;
+
+
+    factorymodulepb.Factory factory                 = 33;
+    ordererspb.SBInstanceEvent sb_event             = 39;
+    isspb.ISSEvent          iss                     = 18;
+
     NewRequests             new_requests            = 7;
-    hasherpb.Event          hasher                  = 8;
     SignRequest             sign_request            = 10;
     SignResult              sign_result             = 11;
     VerifyNodeSigs          verify_node_sigs        = 12;
@@ -49,28 +65,14 @@ message Event {
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
     DeliverCert             deliver_cert            = 17;
-    isspb.ISSEvent          iss                     = 18;
     VerifyRequestSig        verify_request_sig      = 19;
     RequestSigVerified      request_sig_verified    = 20;
     StoreVerifiedRequest    store_verified_request  = 21;
     AppSnapshotRequest      app_snapshot_request    = 22;
     AppSnapshot             app_snapshot            = 23;
     AppRestoreState         app_restore_state       = 24;
-    TimerDelay              timer_delay             = 25;
-    TimerRepeat             timer_repeat            = 26;
-    TimerGarbageCollect     timer_garbage_collect   = 27;
-    bcbpb.Event             bcb                     = 28;
-    mempoolpb.Event         mempool                 = 29;
-    availabilitypb.Event    availability            = 30;
     NewEpoch                new_epoch               = 31;
     NewConfig               new_config              = 32;
-    factorymodulepb.Factory factory                 = 33;
-    batchdbpb.Event         batch_db                = 34;
-    batchfetcherpb.Event    batch_fetcher           = 35;
-    threshcryptopb.Event    thresh_crypto           = 36;
-    pingpongpb.Event        ping_pong               = 37;
-    checkpointpb.Event      checkpoint              = 38;
-    ordererspb.SBInstanceEvent sb_event             = 39;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -213,23 +215,6 @@ message AppRestoreState {
   checkpointpb.StableCheckpoint checkpoint = 1;
 }
 
-message TimerDelay {
-  repeated Event  events = 1;
-  uint64          delay  = 2;
-}
-
-message TimerRepeat {
-  option (mir.event) = true;
-  repeated Event  events_to_repeat          = 1;
-  uint64          delay           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TimeDuration"];
-  uint64          retention_index = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
-}
-
-message TimerGarbageCollect {
-  option (mir.event) = true;
-  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
-}
-
 message NewEpoch {
   option (mir.event) = true;
   uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
@@ -239,4 +224,48 @@ message NewConfig {
   option (mir.event) = true;
   uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
   commonpb.Membership membership = 2;
+}
+
+
+// ======================================================================
+// Timer events.
+// ======================================================================
+//
+// Those events, unfortunately, need to be defined in this very file, because they recursively contain top-level Events.
+// Protocol Buffers do not allow recursion across files, complaining about cyclic imports.
+// If timer events were defined separately, a cyclic import would be inevitable.
+// The main eventpb.proto file (this file) would need to include the timer event file,
+// since the timer event is an option of the Event's oneof type field.
+// But the timer event file also needs to import the main Event file, since timer events contain general Events.
+// The only way to express this mutual dependency is having all dependent events defined in a single file.
+
+message TimerEvent {
+  option (mir.event_class) = true;
+
+  oneof Type {
+    option (mir.event_type) = true;
+
+    TimerDelay  delay                   = 1;
+    TimerRepeat repeat                  = 2;
+    TimerGarbageCollect garbage_collect = 3;
+  }
+}
+
+message TimerDelay {
+  option (mir.event) = true;
+
+  repeated Event  events = 1;
+  uint64          delay  = 2;
+}
+
+message TimerRepeat {
+  option (mir.event) = true;
+  repeated Event  events_to_repeat = 1;
+  uint64          delay            = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TimeDuration"];
+  uint64          retention_index  = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
+}
+
+message TimerGarbageCollect {
+  option (mir.event) = true;
+  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
 }
