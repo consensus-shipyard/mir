@@ -7,8 +7,8 @@ import (
 	types6 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -19,7 +19,36 @@ func UponInit(m dsl.Module, handler func() error) {
 	})
 }
 
-func UponNewRequests(m dsl.Module, handler func(requests []*types1.Request) error) {
+func UponTimerEvent[W types.TimerEvent_TypeWrapper[Ev], Ev any](m dsl.Module, handler func(ev *Ev) error) {
+	dsl.UponMirEvent[*types.Event_Timer](m, func(ev *types.TimerEvent) error {
+		w, ok := ev.Type.(W)
+		if !ok {
+			return nil
+		}
+
+		return handler(w.Unwrap())
+	})
+}
+
+func UponTimerDelay(m dsl.Module, handler func(events []*types.Event, delay uint64) error) {
+	UponTimerEvent[*types.TimerEvent_Delay](m, func(ev *types.TimerDelay) error {
+		return handler(ev.Events, ev.Delay)
+	})
+}
+
+func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, delay types1.TimeDuration, retentionIndex types1.RetentionIndex) error) {
+	UponTimerEvent[*types.TimerEvent_Repeat](m, func(ev *types.TimerRepeat) error {
+		return handler(ev.EventsToRepeat, ev.Delay, ev.RetentionIndex)
+	})
+}
+
+func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types1.RetentionIndex) error) {
+	UponTimerEvent[*types.TimerEvent_GarbageCollect](m, func(ev *types.TimerGarbageCollect) error {
+		return handler(ev.RetentionIndex)
+	})
+}
+
+func UponNewRequests(m dsl.Module, handler func(requests []*types2.Request) error) {
 	dsl.UponMirEvent[*types.Event_NewRequests](m, func(ev *types.NewRequests) error {
 		return handler(ev.Requests)
 	})
@@ -48,13 +77,13 @@ func UponSignResult[C any](m dsl.Module, handler func(signature []uint8, context
 	})
 }
 
-func UponVerifyNodeSigs(m dsl.Module, handler func(data []*types.SigVerData, signatures [][]uint8, origin *types.SigVerOrigin, nodeIds []types2.NodeID) error) {
+func UponVerifyNodeSigs(m dsl.Module, handler func(data []*types.SigVerData, signatures [][]uint8, origin *types.SigVerOrigin, nodeIds []types1.NodeID) error) {
 	dsl.UponMirEvent[*types.Event_VerifyNodeSigs](m, func(ev *types.VerifyNodeSigs) error {
 		return handler(ev.Data, ev.Signatures, ev.Origin, ev.NodeIds)
 	})
 }
 
-func UponNodeSigsVerified[C any](m dsl.Module, handler func(nodeIds []types2.NodeID, valid []bool, errors []error, allOk bool, context *C) error) {
+func UponNodeSigsVerified[C any](m dsl.Module, handler func(nodeIds []types1.NodeID, valid []bool, errors []error, allOk bool, context *C) error) {
 	dsl.UponMirEvent[*types.Event_NodeSigsVerified](m, func(ev *types.NodeSigsVerified) error {
 		originWrapper, ok := ev.Origin.Type.(*types.SigVerOrigin_Dsl)
 		if !ok {
@@ -71,25 +100,25 @@ func UponNodeSigsVerified[C any](m dsl.Module, handler func(nodeIds []types2.Nod
 	})
 }
 
-func UponSendMessage(m dsl.Module, handler func(msg *types3.Message, destinations []types2.NodeID) error) {
+func UponSendMessage(m dsl.Module, handler func(msg *types3.Message, destinations []types1.NodeID) error) {
 	dsl.UponMirEvent[*types.Event_SendMessage](m, func(ev *types.SendMessage) error {
 		return handler(ev.Msg, ev.Destinations)
 	})
 }
 
-func UponMessageReceived(m dsl.Module, handler func(from types2.NodeID, msg *types3.Message) error) {
+func UponMessageReceived(m dsl.Module, handler func(from types1.NodeID, msg *types3.Message) error) {
 	dsl.UponMirEvent[*types.Event_MessageReceived](m, func(ev *types.MessageReceived) error {
 		return handler(ev.From, ev.Msg)
 	})
 }
 
-func UponDeliverCert(m dsl.Module, handler func(sn types2.SeqNr, cert *types4.Cert) error) {
+func UponDeliverCert(m dsl.Module, handler func(sn types1.SeqNr, cert *types4.Cert) error) {
 	dsl.UponMirEvent[*types.Event_DeliverCert](m, func(ev *types.DeliverCert) error {
 		return handler(ev.Sn, ev.Cert)
 	})
 }
 
-func UponAppSnapshotRequest(m dsl.Module, handler func(replyTo types2.ModuleID) error) {
+func UponAppSnapshotRequest(m dsl.Module, handler func(replyTo types1.ModuleID) error) {
 	dsl.UponMirEvent[*types.Event_AppSnapshotRequest](m, func(ev *types.AppSnapshotRequest) error {
 		return handler(ev.ReplyTo)
 	})
@@ -101,25 +130,13 @@ func UponAppRestoreState(m dsl.Module, handler func(checkpoint *types5.StableChe
 	})
 }
 
-func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, delay types2.TimeDuration, retentionIndex types2.RetentionIndex) error) {
-	dsl.UponMirEvent[*types.Event_TimerRepeat](m, func(ev *types.TimerRepeat) error {
-		return handler(ev.EventsToRepeat, ev.Delay, ev.RetentionIndex)
-	})
-}
-
-func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types2.RetentionIndex) error) {
-	dsl.UponMirEvent[*types.Event_TimerGarbageCollect](m, func(ev *types.TimerGarbageCollect) error {
-		return handler(ev.RetentionIndex)
-	})
-}
-
-func UponNewEpoch(m dsl.Module, handler func(epochNr types2.EpochNr) error) {
+func UponNewEpoch(m dsl.Module, handler func(epochNr types1.EpochNr) error) {
 	dsl.UponMirEvent[*types.Event_NewEpoch](m, func(ev *types.NewEpoch) error {
 		return handler(ev.EpochNr)
 	})
 }
 
-func UponNewConfig(m dsl.Module, handler func(epochNr types2.EpochNr, membership *types6.Membership) error) {
+func UponNewConfig(m dsl.Module, handler func(epochNr types1.EpochNr, membership *types6.Membership) error) {
 	dsl.UponMirEvent[*types.Event_NewConfig](m, func(ev *types.NewConfig) error {
 		return handler(ev.EpochNr, ev.Membership)
 	})

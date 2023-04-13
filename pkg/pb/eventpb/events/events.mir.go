@@ -19,6 +19,54 @@ func Init(destModule types.ModuleID) *types1.Event {
 	}
 }
 
+func TimerDelay(destModule types.ModuleID, events []*types1.Event, delay uint64) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Timer{
+			Timer: &types1.TimerEvent{
+				Type: &types1.TimerEvent_Delay{
+					Delay: &types1.TimerDelay{
+						Events: events,
+						Delay:  delay,
+					},
+				},
+			},
+		},
+	}
+}
+
+func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Timer{
+			Timer: &types1.TimerEvent{
+				Type: &types1.TimerEvent_Repeat{
+					Repeat: &types1.TimerRepeat{
+						EventsToRepeat: eventsToRepeat,
+						Delay:          delay,
+						RetentionIndex: retentionIndex,
+					},
+				},
+			},
+		},
+	}
+}
+
+func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types.RetentionIndex) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Timer{
+			Timer: &types1.TimerEvent{
+				Type: &types1.TimerEvent_GarbageCollect{
+					GarbageCollect: &types1.TimerGarbageCollect{
+						RetentionIndex: retentionIndex,
+					},
+				},
+			},
+		},
+	}
+}
+
 func NewRequests(destModule types.ModuleID, requests []*types2.Request) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
@@ -136,30 +184,6 @@ func AppRestoreState(destModule types.ModuleID, checkpoint *types5.StableCheckpo
 		Type: &types1.Event_AppRestoreState{
 			AppRestoreState: &types1.AppRestoreState{
 				Checkpoint: checkpoint,
-			},
-		},
-	}
-}
-
-func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_TimerRepeat{
-			TimerRepeat: &types1.TimerRepeat{
-				EventsToRepeat: eventsToRepeat,
-				Delay:          delay,
-				RetentionIndex: retentionIndex,
-			},
-		},
-	}
-}
-
-func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types.RetentionIndex) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_TimerGarbageCollect{
-			TimerGarbageCollect: &types1.TimerGarbageCollect{
-				RetentionIndex: retentionIndex,
 			},
 		},
 	}

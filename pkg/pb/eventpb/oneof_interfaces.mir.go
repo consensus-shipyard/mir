@@ -29,12 +29,60 @@ func (w *Event_Init) Unwrap() *Init {
 	return w.Init
 }
 
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
+func (w *Event_Timer) Unwrap() *TimerEvent {
+	return w.Timer
 }
 
 func (w *Event_Hasher) Unwrap() *hasherpb.Event {
 	return w.Hasher
+}
+
+func (w *Event_Bcb) Unwrap() *bcbpb.Event {
+	return w.Bcb
+}
+
+func (w *Event_Mempool) Unwrap() *mempoolpb.Event {
+	return w.Mempool
+}
+
+func (w *Event_Availability) Unwrap() *availabilitypb.Event {
+	return w.Availability
+}
+
+func (w *Event_BatchDb) Unwrap() *batchdbpb.Event {
+	return w.BatchDb
+}
+
+func (w *Event_BatchFetcher) Unwrap() *batchfetcherpb.Event {
+	return w.BatchFetcher
+}
+
+func (w *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
+	return w.ThreshCrypto
+}
+
+func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
+	return w.PingPong
+}
+
+func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
+	return w.Checkpoint
+}
+
+func (w *Event_Factory) Unwrap() *factorymodulepb.Factory {
+	return w.Factory
+}
+
+func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
+	return w.SbEvent
+}
+
+func (w *Event_Iss) Unwrap() *isspb.ISSEvent {
+	return w.Iss
+}
+
+func (w *Event_NewRequests) Unwrap() *NewRequests {
+	return w.NewRequests
 }
 
 func (w *Event_SignRequest) Unwrap() *SignRequest {
@@ -65,10 +113,6 @@ func (w *Event_DeliverCert) Unwrap() *DeliverCert {
 	return w.DeliverCert
 }
 
-func (w *Event_Iss) Unwrap() *isspb.ISSEvent {
-	return w.Iss
-}
-
 func (w *Event_VerifyRequestSig) Unwrap() *VerifyRequestSig {
 	return w.VerifyRequestSig
 }
@@ -93,64 +137,12 @@ func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
 	return w.AppRestoreState
 }
 
-func (w *Event_TimerDelay) Unwrap() *TimerDelay {
-	return w.TimerDelay
-}
-
-func (w *Event_TimerRepeat) Unwrap() *TimerRepeat {
-	return w.TimerRepeat
-}
-
-func (w *Event_TimerGarbageCollect) Unwrap() *TimerGarbageCollect {
-	return w.TimerGarbageCollect
-}
-
-func (w *Event_Bcb) Unwrap() *bcbpb.Event {
-	return w.Bcb
-}
-
-func (w *Event_Mempool) Unwrap() *mempoolpb.Event {
-	return w.Mempool
-}
-
-func (w *Event_Availability) Unwrap() *availabilitypb.Event {
-	return w.Availability
-}
-
 func (w *Event_NewEpoch) Unwrap() *NewEpoch {
 	return w.NewEpoch
 }
 
 func (w *Event_NewConfig) Unwrap() *NewConfig {
 	return w.NewConfig
-}
-
-func (w *Event_Factory) Unwrap() *factorymodulepb.Factory {
-	return w.Factory
-}
-
-func (w *Event_BatchDb) Unwrap() *batchdbpb.Event {
-	return w.BatchDb
-}
-
-func (w *Event_BatchFetcher) Unwrap() *batchfetcherpb.Event {
-	return w.BatchFetcher
-}
-
-func (w *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
-	return w.ThreshCrypto
-}
-
-func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
-	return w.PingPong
-}
-
-func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
-	return w.Checkpoint
-}
-
-func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
-	return w.SbEvent
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
@@ -205,4 +197,23 @@ func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
 
 func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
 	return w.Sb
+}
+
+type TimerEvent_Type = isTimerEvent_Type
+
+type TimerEvent_TypeWrapper[T any] interface {
+	TimerEvent_Type
+	Unwrap() *T
+}
+
+func (w *TimerEvent_Delay) Unwrap() *TimerDelay {
+	return w.Delay
+}
+
+func (w *TimerEvent_Repeat) Unwrap() *TimerRepeat {
+	return w.Repeat
+}
+
+func (w *TimerEvent_GarbageCollect) Unwrap() *TimerGarbageCollect {
+	return w.GarbageCollect
 }

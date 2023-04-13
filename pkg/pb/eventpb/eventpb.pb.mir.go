@@ -7,8 +7,20 @@ import (
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_Init)(nil)),
-		reflect.TypeOf((*Event_NewRequests)(nil)),
+		reflect.TypeOf((*Event_Timer)(nil)),
 		reflect.TypeOf((*Event_Hasher)(nil)),
+		reflect.TypeOf((*Event_Bcb)(nil)),
+		reflect.TypeOf((*Event_Mempool)(nil)),
+		reflect.TypeOf((*Event_Availability)(nil)),
+		reflect.TypeOf((*Event_BatchDb)(nil)),
+		reflect.TypeOf((*Event_BatchFetcher)(nil)),
+		reflect.TypeOf((*Event_ThreshCrypto)(nil)),
+		reflect.TypeOf((*Event_PingPong)(nil)),
+		reflect.TypeOf((*Event_Checkpoint)(nil)),
+		reflect.TypeOf((*Event_Factory)(nil)),
+		reflect.TypeOf((*Event_SbEvent)(nil)),
+		reflect.TypeOf((*Event_Iss)(nil)),
+		reflect.TypeOf((*Event_NewRequests)(nil)),
 		reflect.TypeOf((*Event_SignRequest)(nil)),
 		reflect.TypeOf((*Event_SignResult)(nil)),
 		reflect.TypeOf((*Event_VerifyNodeSigs)(nil)),
@@ -16,28 +28,14 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_SendMessage)(nil)),
 		reflect.TypeOf((*Event_MessageReceived)(nil)),
 		reflect.TypeOf((*Event_DeliverCert)(nil)),
-		reflect.TypeOf((*Event_Iss)(nil)),
 		reflect.TypeOf((*Event_VerifyRequestSig)(nil)),
 		reflect.TypeOf((*Event_RequestSigVerified)(nil)),
 		reflect.TypeOf((*Event_StoreVerifiedRequest)(nil)),
 		reflect.TypeOf((*Event_AppSnapshotRequest)(nil)),
 		reflect.TypeOf((*Event_AppSnapshot)(nil)),
 		reflect.TypeOf((*Event_AppRestoreState)(nil)),
-		reflect.TypeOf((*Event_TimerDelay)(nil)),
-		reflect.TypeOf((*Event_TimerRepeat)(nil)),
-		reflect.TypeOf((*Event_TimerGarbageCollect)(nil)),
-		reflect.TypeOf((*Event_Bcb)(nil)),
-		reflect.TypeOf((*Event_Mempool)(nil)),
-		reflect.TypeOf((*Event_Availability)(nil)),
 		reflect.TypeOf((*Event_NewEpoch)(nil)),
 		reflect.TypeOf((*Event_NewConfig)(nil)),
-		reflect.TypeOf((*Event_Factory)(nil)),
-		reflect.TypeOf((*Event_BatchDb)(nil)),
-		reflect.TypeOf((*Event_BatchFetcher)(nil)),
-		reflect.TypeOf((*Event_ThreshCrypto)(nil)),
-		reflect.TypeOf((*Event_PingPong)(nil)),
-		reflect.TypeOf((*Event_Checkpoint)(nil)),
-		reflect.TypeOf((*Event_SbEvent)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 	}
@@ -58,5 +56,13 @@ func (*SigVerOrigin) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*SigVerOrigin_Dsl)(nil)),
 		reflect.TypeOf((*SigVerOrigin_Checkpoint)(nil)),
 		reflect.TypeOf((*SigVerOrigin_Sb)(nil)),
+	}
+}
+
+func (*TimerEvent) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*TimerEvent_Delay)(nil)),
+		reflect.TypeOf((*TimerEvent_Repeat)(nil)),
+		reflect.TypeOf((*TimerEvent_GarbageCollect)(nil)),
 	}
 }

@@ -6,9 +6,9 @@ import (
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -18,37 +18,49 @@ func Init(m dsl.Module, destModule types.ModuleID) {
 	dsl.EmitMirEvent(m, events.Init(destModule))
 }
 
-func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types1.Request) {
+func TimerDelay(m dsl.Module, destModule types.ModuleID, events []*types1.Event, delay uint64) {
+	dsl.EmitMirEvent(m, events.TimerDelay(destModule, events, delay))
+}
+
+func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) {
+	dsl.EmitMirEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
+}
+
+func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types.RetentionIndex) {
+	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
+}
+
+func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types2.Request) {
 	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }
 
 func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types2.SignOrigin{
+	origin := &types1.SignOrigin{
 		Module: m.ModuleID(),
-		Type:   &types2.SignOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types1.SignOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.SignRequest(destModule, data, origin))
 }
 
-func SignResult(m dsl.Module, destModule types.ModuleID, signature []uint8, origin *types2.SignOrigin) {
+func SignResult(m dsl.Module, destModule types.ModuleID, signature []uint8, origin *types1.SignOrigin) {
 	dsl.EmitMirEvent(m, events.SignResult(destModule, signature, origin))
 }
 
-func VerifyNodeSigs[C any](m dsl.Module, destModule types.ModuleID, data []*types2.SigVerData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
+func VerifyNodeSigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types2.SigVerOrigin{
+	origin := &types1.SigVerOrigin{
 		Module: m.ModuleID(),
-		Type:   &types2.SigVerOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types1.SigVerOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.VerifyNodeSigs(destModule, data, signatures, origin, nodeIds))
 }
 
-func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *types2.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
+func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
 	dsl.EmitMirEvent(m, events.NodeSigsVerified(destModule, origin, nodeIds, valid, errors, allOk))
 }
 
@@ -70,14 +82,6 @@ func AppSnapshotRequest(m dsl.Module, destModule types.ModuleID, replyTo types.M
 
 func AppRestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types5.StableCheckpoint) {
 	dsl.EmitMirEvent(m, events.AppRestoreState(destModule, checkpoint))
-}
-
-func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types2.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) {
-	dsl.EmitMirEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
-}
-
-func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types.RetentionIndex) {
-	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
 }
 
 func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
