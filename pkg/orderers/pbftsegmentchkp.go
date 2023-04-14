@@ -8,7 +8,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -159,16 +162,16 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 	})
 
 	// Periodically send a Done message with the digests to all other nodes.
-	return events.ListOf(events.TimerRepeat(
+	return events.ListOf(eventpbevents.TimerRepeat(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{events.SendMessage(orderer.moduleConfig.Net,
-			OrdererMessage(
+		[]*eventpbtypes.Event{eventpbevents.SendMessage(orderer.moduleConfig.Net,
+			messagepbtypes.MessageFromPb(OrdererMessage(
 				PbftDoneSBMessage(digests),
-				orderer.moduleConfig.Self),
+				orderer.moduleConfig.Self)),
 			orderer.segment.NodeIDs())},
 		t.TimeDuration(orderer.config.DoneResendPeriod),
 		t.RetentionIndex(orderer.config.epochNr),
-	))
+	).Pb())
 }
 
 // applyMsgDone applies a received Done message.
@@ -194,15 +197,15 @@ func (orderer *Orderer) applyMsgDone(doneMsg *ordererspbftpb.Done, from t.NodeID
 	// We also set the catchingUp flag to prevent this code from executing more than once per PBFT instance.
 	orderer.segmentCheckpoint.catchingUp = true
 
-	return events.ListOf(events.TimerDelay(
+	return events.ListOf(eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{events.TimerRepeat(
+		[]*eventpbtypes.Event{eventpbevents.TimerRepeat(
 			orderer.moduleConfig.Timer,
 			orderer.catchUpRequests(doneNodes, orderer.segmentCheckpoint.Digests()),
 			t.TimeDuration(orderer.config.CatchUpDelay),
 			t.RetentionIndex(orderer.config.epochNr))},
 		t.TimeDuration(orderer.config.CatchUpDelay),
-	))
+	).Pb())
 
 	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,
 	//       resulting in a huge waste of resources. Be smarter about it by, for example, only asking a few nodes first.
@@ -211,9 +214,9 @@ func (orderer *Orderer) applyMsgDone(doneMsg *ordererspbftpb.Done, from t.NodeID
 // catchUpRequests assembles and returns a list of Events
 // representing requests for retransmission of committed certificates.
 // The list contains one request for each slot of the segment that has not yet been committed.
-func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]byte) []*eventpb.Event {
+func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]byte) []*eventpbtypes.Event {
 
-	catchUpRequests := make([]*eventpb.Event, 0)
+	catchUpRequests := make([]*eventpbtypes.Event, 0)
 
 	// Deterministically iterate through all the (sequence number, certificate) pairs
 	// received in a quorum of Done messages.
@@ -221,10 +224,10 @@ func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]
 
 		// If no certificate has been committed for the sequence number, create a retransmission request.
 		if !orderer.slots[orderer.view][sn].Committed {
-			catchUpRequests = append(catchUpRequests, events.SendMessage(
+			catchUpRequests = append(catchUpRequests, eventpbevents.SendMessage(
 				orderer.moduleConfig.Net,
-				OrdererMessage(PbftCatchUpRequestSBMessage(sn, digest),
-					orderer.moduleConfig.Self),
+				messagepbtypes.MessageFromPb(OrdererMessage(PbftCatchUpRequestSBMessage(sn, digest),
+					orderer.moduleConfig.Self)),
 				nodes,
 			))
 		}

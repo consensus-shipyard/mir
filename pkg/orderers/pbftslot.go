@@ -5,6 +5,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
@@ -104,14 +106,14 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all certificates.
 		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
-			eventsOut.PushBack(events.TimerDelay(
+			eventsOut.PushBack(eventpbevents.TimerDelay(
 				pbft.moduleConfig.Timer,
-				[]*eventpb.Event{OrdererEvent(pbft.moduleConfig.Self,
+				[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(pbft.moduleConfig.Self,
 					PbftViewChangeSNTimeout(
 						pbft.view,
-						pbft.numCommitted(pbft.view)))},
+						pbft.numCommitted(pbft.view))))},
 				t.TimeDuration(pbft.config.ViewChangeSNTimeout),
-			))
+			).Pb())
 		}
 
 		// If all certificates have been committed (i.e. this is the last certificate to commit),

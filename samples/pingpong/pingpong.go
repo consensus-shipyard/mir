@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -53,13 +55,13 @@ func (p *Pingpong) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 
 func (p *Pingpong) applyInit() (*events.EventList, error) {
 	p.nextSn = 0
-	timerEvent := events.TimerRepeat(
+	timerEvent := eventpbevents.TimerRepeat(
 		"timer",
-		[]*eventpb.Event{protobufs.PingTimeEvent("pingpong")},
+		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(protobufs.PingTimeEvent("pingpong"))},
 		t.TimeDuration(time.Second),
 		0,
 	)
-	return events.ListOf(timerEvent), nil
+	return events.ListOf(timerEvent.Pb()), nil
 }
 
 func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*events.EventList, error) {

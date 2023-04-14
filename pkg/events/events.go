@@ -272,38 +272,6 @@ func AppRestoreState(destModule t.ModuleID, checkpoint *checkpointpb.StableCheck
 	}
 }
 
-func TimerDelay(destModule t.ModuleID, events []*eventpb.Event, delay t.TimeDuration) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_TimerDelay{TimerDelay: &eventpb.TimerDelay{
-		Events: events,
-		Delay:  delay.Pb(),
-	}}}
-}
-
-func TimerRepeat(
-	destModule t.ModuleID,
-	events []*eventpb.Event,
-	delay t.TimeDuration,
-	retIndex t.RetentionIndex,
-) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_TimerRepeat{TimerRepeat: &eventpb.TimerRepeat{
-			EventsToRepeat: events,
-			Delay:          delay.Pb(),
-			RetentionIndex: retIndex.Pb(),
-		}},
-	}
-}
-
-func TimerGarbageCollect(destModule t.ModuleID, retIndex t.RetentionIndex) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_TimerGarbageCollect{TimerGarbageCollect: &eventpb.TimerGarbageCollect{
-			RetentionIndex: retIndex.Pb(),
-		}},
-	}
-}
-
 func NewEpoch(destModule t.ModuleID, epochNr t.EpochNr) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),

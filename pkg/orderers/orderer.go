@@ -9,6 +9,8 @@ package orderers
 import (
 	"fmt"
 
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
@@ -367,15 +369,14 @@ func (orderer *Orderer) applyInit() *events.EventList {
 	// Initialize the first PBFT view
 	eventsOut.PushBackList(orderer.initView(0))
 
-	event := events.TimerDelay(
+	event := eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{OrdererEvent(orderer.moduleConfig.Self,
-			PbftProposeTimeout(1))},
+		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self, PbftProposeTimeout(1)))},
 		t.TimeDuration(orderer.config.MaxProposeDelay),
 	)
 
 	// Set up timer for the first proposal.
-	return eventsOut.PushBack(event)
+	return eventsOut.PushBack(event.Pb())
 
 }
 
@@ -427,17 +428,17 @@ func (orderer *Orderer) initView(view t.PBFTViewNr) *events.EventList {
 
 	// Set view change timeouts
 	timerEvents := events.EmptyList()
-	timerEvents.PushBack(events.TimerDelay(
+	timerEvents.PushBack(eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{OrdererEvent(orderer.moduleConfig.Self,
-			PbftViewChangeSNTimeout(view, orderer.numCommitted(view)))},
+		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
+			PbftViewChangeSNTimeout(view, orderer.numCommitted(view))))},
 		computeTimeout(t.TimeDuration(orderer.config.ViewChangeSNTimeout), view),
-	)).PushBack(events.TimerDelay(
+	).Pb()).PushBack(eventpbevents.TimerDelay(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{OrdererEvent(orderer.moduleConfig.Self,
-			PbftViewChangeSegmentTimeout(view))},
+		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
+			PbftViewChangeSegmentTimeout(view)))},
 		computeTimeout(t.TimeDuration(orderer.config.ViewChangeSegmentTimeout), view),
-	))
+	).Pb())
 
 	orderer.view = view
 	orderer.inViewChange = false

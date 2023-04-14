@@ -3,13 +3,14 @@ package orderers
 import (
 	"fmt"
 
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -156,13 +157,13 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
-	ordererEvent := OrdererEvent(orderer.moduleConfig.Self,
-		PbftProposeTimeout(uint64(orderer.proposal.proposalsMade+1)))
+	ordererEvent := eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
+		PbftProposeTimeout(uint64(orderer.proposal.proposalsMade+1))))
 
-	timerEvent := events.TimerDelay(orderer.moduleConfig.Timer,
-		[]*eventpb.Event{ordererEvent},
+	timerEvent := eventpbevents.TimerDelay(orderer.moduleConfig.Timer,
+		[]*eventpbtypes.Event{ordererEvent},
 		t.TimeDuration(orderer.config.MaxProposeDelay),
-	)
+	).Pb()
 
 	return events.ListOf(msgSendEvent, timerEvent), nil
 }

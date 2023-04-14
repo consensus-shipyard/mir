@@ -7,8 +7,10 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -113,19 +115,19 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 
 	// Repeatedly send the ViewChange message. Repeat until this instance of PBFT is garbage-collected,
 	// i.e., from the point of view of the PBFT protocol, effectively forever.
-	repeatedSendEvent := events.TimerRepeat(
+	repeatedSendEvent := eventpbevents.TimerRepeat(
 		orderer.moduleConfig.Timer,
-		[]*eventpb.Event{events.SendMessage(
+		[]*eventpbtypes.Event{eventpbevents.SendMessage(
 			orderer.moduleConfig.Net,
-			OrdererMessage(
+			messagepbtypes.MessageFromPb(OrdererMessage(
 				PbftSignedViewChangeSBMessage(signedViewChange),
-				orderer.moduleConfig.Self),
+				orderer.moduleConfig.Self)),
 			[]t.NodeID{primary},
 		)},
 		t.TimeDuration(orderer.config.ViewChangeResendPeriod),
 		t.RetentionIndex(orderer.config.epochNr),
 	)
-	return events.ListOf(repeatedSendEvent)
+	return events.ListOf(repeatedSendEvent.Pb())
 }
 
 // applyMsgSignedViewChange applies a signed view change message.

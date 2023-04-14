@@ -48,18 +48,23 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 	switch e := e.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-	case *eventpb.Event_TimerDelay:
-		eventsOut := events.EmptyList().PushBackSlice(e.TimerDelay.Events)
-		d := t.TimeDuration(e.TimerDelay.Delay)
-		m.delay(ctx, eventsOut, d)
-	case *eventpb.Event_TimerRepeat:
-		eventsOut := events.EmptyList().PushBackSlice(e.TimerRepeat.EventsToRepeat)
-		d := t.TimeDuration(e.TimerRepeat.Delay)
-		retIdx := t.RetentionIndex(e.TimerRepeat.RetentionIndex)
-		m.repeat(ctx, eventsOut, d, retIdx)
-	case *eventpb.Event_TimerGarbageCollect:
-		retIdx := t.RetentionIndex(e.TimerGarbageCollect.RetentionIndex)
-		m.garbageCollect(retIdx)
+	case *eventpb.Event_Timer:
+		switch e := e.Timer.Type.(type) {
+		case *eventpb.TimerEvent_Delay:
+			evtsOut := events.ListOf(e.Delay.EventsToDelay...)
+			d := t.TimeDuration(e.Delay.Delay)
+			m.delay(ctx, evtsOut, d)
+		case *eventpb.TimerEvent_Repeat:
+			evtsOut := events.ListOf(e.Repeat.EventsToRepeat...)
+			d := t.TimeDuration(e.Repeat.Delay)
+			retIdx := t.RetentionIndex(e.Repeat.RetentionIndex)
+			m.repeat(ctx, evtsOut, d, retIdx)
+		case *eventpb.TimerEvent_GarbageCollect:
+			retIdx := t.RetentionIndex(e.GarbageCollect.RetentionIndex)
+			m.garbageCollect(retIdx)
+		default:
+			return fmt.Errorf("unexpected type of Timer sub-event: %T", e)
+		}
 	default:
 		return fmt.Errorf("unexpected type of Timer event: %T", e)
 	}

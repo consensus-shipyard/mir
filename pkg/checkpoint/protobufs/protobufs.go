@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -43,10 +44,10 @@ func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointp
 	)
 }
 
-func Message(destModule t.ModuleID, message *checkpointpb.Message) *messagepb.Message {
-	return &messagepb.Message{
-		DestModule: destModule.Pb(),
-		Type:       &messagepb.Message_Checkpoint{Checkpoint: message},
+func Message(destModule t.ModuleID, message *checkpointpb.Message) *messagepbtypes.Message {
+	return &messagepbtypes.Message{
+		DestModule: destModule,
+		Type:       messagepbtypes.Message_TypeFromPb(&messagepb.Message_Checkpoint{Checkpoint: message}),
 	}
 }
 
@@ -56,7 +57,7 @@ func CheckpointMessage(
 	sn t.SeqNr,
 	snapshotHash,
 	signature []byte,
-) *messagepb.Message {
+) *messagepbtypes.Message {
 	return Message(
 		destModule,
 		&checkpointpb.Message{Type: &checkpointpb.Message_Checkpoint{

@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"time"
 
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/pkg/errors"
@@ -241,11 +243,11 @@ func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventLis
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
 	chkpMessage := protobufs.CheckpointMessage(p.moduleConfig.Self, p.epoch, p.seqNr, p.stateSnapshotHash, result.Signature)
-	eventsOut.PushBack(events.TimerRepeat(
+	eventsOut.PushBack(eventpbevents.TimerRepeat(
 		"timer",
-		[]*eventpb.Event{events.SendMessage(p.moduleConfig.Net, chkpMessage, p.membership)},
+		[]*eventpbtypes.Event{eventpbevents.SendMessage(p.moduleConfig.Net, chkpMessage, p.membership)},
 		p.resendPeriod,
-		t.RetentionIndex(p.epoch)),
+		t.RetentionIndex(p.epoch)).Pb(),
 	)
 
 	p.Log(logging.LevelDebug, "Sending checkpoint message",
