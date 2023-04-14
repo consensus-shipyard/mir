@@ -256,8 +256,8 @@ message TimerDelay {
 
   // TODO: The field name must not be `events`, since it conflicts with a package name in the generated code.
   //       This is a bug in the Mir code generator that should be fixed.
-  repeated Event evts  = 1;
-  uint64         delay = 2;
+  repeated Event events_to_delay  = 1;
+  uint64         delay            = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TimeDuration"];
 }
 
 message TimerRepeat {
