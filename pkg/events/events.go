@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
@@ -43,11 +44,11 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 	return &newEvent, nextList
 }
 
-func Redirect(event *eventpb.Event, destination t.ModuleID) *eventpb.Event {
-	return &eventpb.Event{
+func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.Event {
+	return &eventpbtypes.Event{
 		Type:       event.Type,
 		Next:       event.Next,
-		DestModule: destination.Pb(),
+		DestModule: destination,
 	}
 }
 

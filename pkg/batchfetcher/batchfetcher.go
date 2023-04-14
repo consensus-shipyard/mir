@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
@@ -195,7 +196,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	// All other events simply pass through the batch fetcher unchanged (except their destination module).
 	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
 		output.Enqueue(&outputItem{
-			event: events.Redirect(ev, mc.Destination),
+			event: events.Redirect(eventpbtypes.EventFromPb(ev), mc.Destination).Pb(),
 		})
 		output.Flush(m)
 		return nil

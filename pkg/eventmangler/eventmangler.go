@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -108,11 +109,11 @@ func NewModule(mc *ModuleConfig, params *ModuleParams) (modules.PassiveModule, e
 		if delay > 0 {
 			dsl.EmitEvent(m, events.TimerDelay(
 				mc.Timer,
-				[]*eventpb.Event{events.Redirect(ev, mc.Dest)},
+				[]*eventpb.Event{events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest).Pb()},
 				t.TimeDuration(delay)),
 			)
 		} else {
-			dsl.EmitEvent(m, events.Redirect(ev, mc.Dest))
+			dsl.EmitEvent(m, events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest).Pb())
 		}
 
 		return nil
