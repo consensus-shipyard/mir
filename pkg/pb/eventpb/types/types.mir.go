@@ -1390,25 +1390,25 @@ func (*TimerEvent) MirReflect() mirreflect.Type {
 }
 
 type TimerDelay struct {
-	Evts  []*Event
-	Delay uint64
+	EventsToDelay []*Event
+	Delay         types.TimeDuration
 }
 
 func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 	return &TimerDelay{
-		Evts: types11.ConvertSlice(pb.Evts, func(t *eventpb.Event) *Event {
+		EventsToDelay: types11.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay: pb.Delay,
+		Delay: (types.TimeDuration)(pb.Delay),
 	}
 }
 
 func (m *TimerDelay) Pb() *eventpb.TimerDelay {
 	return &eventpb.TimerDelay{
-		Evts: types11.ConvertSlice(m.Evts, func(t *Event) *eventpb.Event {
+		EventsToDelay: types11.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		}),
-		Delay: m.Delay,
+		Delay: (uint64)(m.Delay),
 	}
 }
 

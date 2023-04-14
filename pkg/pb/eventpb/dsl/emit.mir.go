@@ -18,8 +18,8 @@ func Init(m dsl.Module, destModule types.ModuleID) {
 	dsl.EmitMirEvent(m, events.Init(destModule))
 }
 
-func TimerDelay(m dsl.Module, destModule types.ModuleID, evts []*types1.Event, delay uint64) {
-	dsl.EmitMirEvent(m, events.TimerDelay(destModule, evts, delay))
+func TimerDelay(m dsl.Module, destModule types.ModuleID, eventsToDelay []*types1.Event, delay types.TimeDuration) {
+	dsl.EmitMirEvent(m, events.TimerDelay(destModule, eventsToDelay, delay))
 }
 
 func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types.TimeDuration, retentionIndex types.RetentionIndex) {

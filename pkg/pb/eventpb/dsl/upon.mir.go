@@ -30,9 +30,9 @@ func UponTimerEvent[W types.TimerEvent_TypeWrapper[Ev], Ev any](m dsl.Module, ha
 	})
 }
 
-func UponTimerDelay(m dsl.Module, handler func(evts []*types.Event, delay uint64) error) {
+func UponTimerDelay(m dsl.Module, handler func(eventsToDelay []*types.Event, delay types1.TimeDuration) error) {
 	UponTimerEvent[*types.TimerEvent_Delay](m, func(ev *types.TimerDelay) error {
-		return handler(ev.Evts, ev.Delay)
+		return handler(ev.EventsToDelay, ev.Delay)
 	})
 }
 
