@@ -13,7 +13,7 @@ import (
 	types13 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types14 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
-	types9 "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
+	types9 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	types10 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
@@ -70,7 +70,7 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	case *eventpb.Event_Checkpoint:
 		return &Event_Checkpoint{Checkpoint: types8.EventFromPb(pb.Checkpoint)}
 	case *eventpb.Event_Factory:
-		return &Event_Factory{Factory: types9.FactoryFromPb(pb.Factory)}
+		return &Event_Factory{Factory: types9.EventFromPb(pb.Factory)}
 	case *eventpb.Event_SbEvent:
 		return &Event_SbEvent{SbEvent: pb.SbEvent}
 	case *eventpb.Event_Iss:
@@ -314,12 +314,12 @@ func (*Event_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type Event_Factory struct {
-	Factory *types9.Factory
+	Factory *types9.Event
 }
 
 func (*Event_Factory) isEvent_Type() {}
 
-func (w *Event_Factory) Unwrap() *types9.Factory {
+func (w *Event_Factory) Unwrap() *types9.Event {
 	return w.Factory
 }
 

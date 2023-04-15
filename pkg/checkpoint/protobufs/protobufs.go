@@ -5,7 +5,8 @@ import (
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -97,13 +98,13 @@ func InstanceParams(
 	resendPeriod t.TimeDuration,
 	leaderPolicyData []byte,
 	epochConfig *commonpb.EpochConfig,
-) *factorymodulepb.GeneratorParams {
-	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_Checkpoint{
+) *factorypbtypes.GeneratorParams {
+	return factorypbtypes.GeneratorParamsFromPb(&factorypb.GeneratorParams{Type: &factorypb.GeneratorParams_Checkpoint{
 		Checkpoint: &checkpointpb.InstanceParams{
 			Membership:       t.MembershipPb(membership),
 			ResendPeriod:     resendPeriod.Pb(),
 			LeaderPolicyData: leaderPolicyData,
 			EpochConfig:      epochConfig,
 		},
-	}}
+	}})
 }

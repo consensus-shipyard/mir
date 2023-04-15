@@ -30,8 +30,8 @@ import (
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/dsl"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
+	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 
@@ -357,12 +357,12 @@ func New(
 			iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
 			t.RetentionIndex(epoch),
-			factorypbtypes.GeneratorParamsFromPb(orderers.InstanceParams(
+			orderers.InstanceParams(
 				orderers.NewSegment(leader, membership, map[t.SeqNr][]byte{0: chkpData}),
 				"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
 				epoch,
 				orderers.CheckpointValidityChecker,
-			)))
+			))
 
 		return nil
 	})
@@ -608,12 +608,20 @@ func (iss *ISS) initAvailability() {
 	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	//events := make([]*eventpb.Event, 0)
 
-	factorypbdsl.NewModule(iss.m, iss.moduleConfig.Availability, availabilityID, t.RetentionIndex(iss.epoch.Nr()), &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_MultisigCollector{
-		MultisigCollector: &mscpbtypes.InstanceParams{
-			Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
-			Limit:       5, // hardcoded right now
-			MaxRequests: uint64(iss.Params.SegmentLength)},
-	}})
+	factorypbdsl.NewModule(
+		iss.m,
+		iss.moduleConfig.Availability,
+		availabilityID,
+		t.RetentionIndex(iss.epoch.Nr()),
+		&factorypbtypes.GeneratorParams{
+			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
+				MultisigCollector: &mscpbtypes.InstanceParams{
+					Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
+					Limit:       5, // hardcoded right now
+					MaxRequests: uint64(iss.Params.SegmentLength)},
+			},
+		},
+	)
 
 	apbdsl.ComputeCert(iss.m, availabilityID)
 }
@@ -634,13 +642,12 @@ func (iss *ISS) initOrderers() {
 		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))),
 			t.RetentionIndex(iss.epoch.Nr()),
-			factorypbtypes.GeneratorParamsFromPb(
-				orderers.InstanceParams(
-					seg,
-					iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
-					iss.epoch.Nr(),
-					orderers.PermissiveValidityChecker,
-				)))
+			orderers.InstanceParams(
+				seg,
+				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+				iss.epoch.Nr(),
+				orderers.PermissiveValidityChecker,
+			))
 
 		//Add the segment to the list of segments.
 		iss.epoch.Segments = append(iss.epoch.Segments, seg)
@@ -765,13 +772,12 @@ func (iss *ISS) advanceEpoch() error {
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
 		t.RetentionIndex(newEpochNr),
-		factorypbtypes.GeneratorParamsFromPb(
-			chkpprotos.InstanceParams(
-				oldMembership,
-				checkpoint.DefaultResendPeriod,
-				leaderPolicyData,
-				events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
-			)),
+		chkpprotos.InstanceParams(
+			oldMembership,
+			checkpoint.DefaultResendPeriod,
+			leaderPolicyData,
+			events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
+		),
 	)
 
 	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.

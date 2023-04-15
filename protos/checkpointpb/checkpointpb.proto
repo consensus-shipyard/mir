@@ -61,6 +61,7 @@ message SigVerOrigin {}
 
 message InstanceParams {
   option (mir.struct) = true;
+
   commonpb.Membership  membership         = 1;
   uint64               resend_period      = 2; // in milliseconds
   bytes                leader_policy_data = 3;

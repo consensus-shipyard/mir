@@ -1,9 +1,9 @@
-package factorymodulepbdsl
+package factorypbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	events "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
+	events "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
+	types1 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 

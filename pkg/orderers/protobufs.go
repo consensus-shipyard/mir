@@ -6,11 +6,12 @@ import (
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererspbtypes "github.com/filecoin-project/mir/pkg/pb/ordererspb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -80,10 +81,10 @@ func InstanceParams(
 	availabilityID t.ModuleID,
 	epoch t.EpochNr,
 	validityCheckerType ValidityCheckerType,
-) *factorymodulepb.GeneratorParams {
-	return &factorymodulepb.GeneratorParams{Type: &factorymodulepb.GeneratorParams_PbftModule{
-		PbftModule: &ordererspb.PBFTModule{
-			Segment:         segment.Pb(),
+) *factorypbtypes.GeneratorParams {
+	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
+		PbftModule: &ordererspbtypes.PBFTModule{
+			Segment:         ordererspbtypes.PBFTSegmentFromPb(segment.Pb()),
 			AvailabilityId:  availabilityID.Pb(),
 			Epoch:           epoch.Pb(),
 			ValidityChecker: uint64(validityCheckerType),

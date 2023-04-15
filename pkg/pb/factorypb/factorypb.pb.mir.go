@@ -1,13 +1,13 @@
-package factorymodulepb
+package factorypb
 
 import (
 	reflect "reflect"
 )
 
-func (*Factory) ReflectTypeOptions() []reflect.Type {
+func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Factory_NewModule)(nil)),
-		reflect.TypeOf((*Factory_GarbageCollect)(nil)),
+		reflect.TypeOf((*Event_NewModule)(nil)),
+		reflect.TypeOf((*Event_GarbageCollect)(nil)),
 	}
 }
 

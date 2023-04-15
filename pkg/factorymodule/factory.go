@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -19,7 +19,7 @@ import (
 // FactoryModule provides the basic functionality of "submodules".
 // It can be used to dynamically create and garbage-collect passive modules,
 // and it automatically forwards events to them.
-// See: protos/factorymodulepb/factorymodulepb.proto for details on the interface of the factory module itself.
+// See: protos/factorypb/factorypb.proto for details on the interface of the factory module itself.
 //
 // The forwarding mechanism is as follows:
 //  1. All events destined for an existing submodule are forwarded to it automatically regardless of the event type.
@@ -80,9 +80,9 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
 			switch e := e.Factory.Type.(type) {
-			case *factorymodulepb.Factory_NewModule:
+			case *factorypb.Event_NewModule:
 				return fm.applyNewModule(e.NewModule)
-			case *factorymodulepb.Factory_GarbageCollect:
+			case *factorypb.Event_GarbageCollect:
 				return fm.applyGarbageCollect(e.GarbageCollect)
 			default:
 				return nil, fmt.Errorf("unsupported factory event subtype: %T", e)
@@ -94,7 +94,7 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 	return fm.forwardEvent(event)
 }
 
-func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*events.EventList, error) {
+func (fm *FactoryModule) applyNewModule(newModule *factorypb.NewModule) (*events.EventList, error) {
 
 	// Convenience variables
 	id := t.ModuleID(newModule.ModuleId)
@@ -150,7 +150,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorymodulepb.NewModule) (*
 	return eventsOut, nil
 }
 
-func (fm *FactoryModule) applyGarbageCollect(gc *factorymodulepb.GarbageCollect) (*events.EventList, error) {
+func (fm *FactoryModule) applyGarbageCollect(gc *factorypb.GarbageCollect) (*events.EventList, error) {
 	// While the new retention index is larger than the current one
 	for t.RetentionIndex(gc.RetentionIndex) > fm.retIdx {
 

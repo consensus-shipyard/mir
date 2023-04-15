@@ -1,8 +1,8 @@
-package factorymodulepbevents
+package factorypbevents
 
 import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -10,8 +10,8 @@ func NewModule(destModule types.ModuleID, moduleId types.ModuleID, retentionInde
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Factory{
-			Factory: &types1.Factory{
-				Type: &types1.Factory_NewModule{
+			Factory: &types1.Event{
+				Type: &types1.Event_NewModule{
 					NewModule: &types1.NewModule{
 						ModuleId:       moduleId,
 						RetentionIndex: retentionIndex,
@@ -27,8 +27,8 @@ func GarbageCollect(destModule types.ModuleID, retentionIndex types.RetentionInd
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Factory{
-			Factory: &types1.Factory{
-				Type: &types1.Factory_GarbageCollect{
+			Factory: &types1.Event{
+				Type: &types1.Event_GarbageCollect{
 					GarbageCollect: &types1.GarbageCollect{
 						RetentionIndex: retentionIndex,
 					},

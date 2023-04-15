@@ -1,4 +1,4 @@
-package factorymodulepb
+package factorypb
 
 import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
@@ -6,18 +6,18 @@ import (
 	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
 )
 
-type Factory_Type = isFactory_Type
+type Event_Type = isEvent_Type
 
-type Factory_TypeWrapper[T any] interface {
-	Factory_Type
+type Event_TypeWrapper[T any] interface {
+	Event_Type
 	Unwrap() *T
 }
 
-func (w *Factory_NewModule) Unwrap() *NewModule {
+func (w *Event_NewModule) Unwrap() *NewModule {
 	return w.NewModule
 }
 
-func (w *Factory_GarbageCollect) Unwrap() *GarbageCollect {
+func (w *Event_GarbageCollect) Unwrap() *GarbageCollect {
 	return w.GarbageCollect
 }
 

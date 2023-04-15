@@ -8,7 +8,7 @@ import (
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
-	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
@@ -69,7 +69,7 @@ func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
 	return w.Checkpoint
 }
 
-func (w *Event_Factory) Unwrap() *factorymodulepb.Factory {
+func (w *Event_Factory) Unwrap() *factorypb.Event {
 	return w.Factory
 }
 
