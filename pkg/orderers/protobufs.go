@@ -8,7 +8,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
 	ordererspbtypes "github.com/filecoin-project/mir/pkg/pb/ordererspb/types"
@@ -94,14 +93,4 @@ func InstanceParams(
 
 func OrdererMessage(msg *ordererspb.SBInstanceMessage, destModule t.ModuleID) *messagepb.Message {
 	return &messagepb.Message{DestModule: string(destModule), Type: &messagepb.Message_SbMessage{SbMessage: msg}}
-}
-
-func SBDeliverEvent(sn t.SeqNr, data []byte, aborted bool, leader t.NodeID, instanceID t.ModuleID) *isspb.ISSEvent {
-	return &isspb.ISSEvent{Type: &isspb.ISSEvent_SbDeliver{SbDeliver: &isspb.SBDeliver{
-		Sn:         sn.Pb(),
-		Data:       data,
-		Aborted:    aborted,
-		Leader:     leader.Pb(),
-		InstanceId: instanceID.Pb(),
-	}}}
 }

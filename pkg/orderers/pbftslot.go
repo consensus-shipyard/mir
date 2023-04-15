@@ -3,12 +3,11 @@ package orderers
 import (
 	"bytes"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-
-	"github.com/filecoin-project/mir/pkg/events"
+	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -125,18 +124,14 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 		}
 
 		// Deliver availability certificate (will be verified by ISS)
-		eventsOut.PushBack(&eventpb.Event{
-			DestModule: pbft.moduleConfig.Ord.Pb(),
-			Type: &eventpb.Event_Iss{
-				Iss: SBDeliverEvent(
-					sn,
-					slot.Preprepare.Data,
-					slot.Preprepare.Aborted,
-					pbft.segment.Leader,
-					pbft.moduleConfig.Self,
-				),
-			},
-		})
+		eventsOut.PushBack(isspbevents.SBDeliver(
+			pbft.moduleConfig.Ord,
+			sn,
+			slot.Preprepare.Data,
+			slot.Preprepare.Aborted,
+			pbft.segment.Leader,
+			pbft.moduleConfig.Self,
+		).Pb())
 	}
 	return eventsOut
 }

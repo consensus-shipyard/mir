@@ -39,12 +39,14 @@ message RetransmitRequests {
 // Events
 // ============================================================
 
-message ISSEvent {
+message Event {
   option (mir.event_class) = true;
+
   oneof type {
     option (mir.event_type) = true;
-    PushCheckpoint          push_checkpoint           = 5;
-    SBDeliver sb_deliver = 6;
+
+    PushCheckpoint push_checkpoint = 5;
+    SBDeliver      sb_deliver      = 6;
   }
 }
 

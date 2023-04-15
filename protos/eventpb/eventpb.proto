@@ -52,9 +52,9 @@ message Event {
         pingpongpb.Event    ping_pong               = 37;
       checkpointpb.Event    checkpoint              = 38;
          factorypb.Event    factory                 = 33;
+             isspb.Event    iss                     = 18;
 
     ordererspb.SBInstanceEvent sb_event             = 39;
-    isspb.ISSEvent          iss                     = 18;
 
     NewRequests             new_requests            = 7;
     SignRequest             sign_request            = 10;

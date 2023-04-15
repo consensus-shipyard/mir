@@ -7,10 +7,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -327,18 +327,14 @@ func (orderer *Orderer) applyCatchUpResponseHashResult(
 	}
 
 	// Deliver certificate.
-	eventsOut.PushBack(&eventpb.Event{
-		DestModule: orderer.moduleConfig.Ord.Pb(),
-		Type: &eventpb.Event_Iss{
-			Iss: SBDeliverEvent(
-				sn,
-				slot.Preprepare.Data,
-				slot.Preprepare.Aborted,
-				orderer.segment.Leader,
-				orderer.moduleConfig.Self,
-			),
-		},
-	})
+	eventsOut.PushBack(isspbevents.SBDeliver(
+		orderer.moduleConfig.Ord,
+		sn,
+		slot.Preprepare.Data,
+		slot.Preprepare.Aborted,
+		orderer.segment.Leader,
+		orderer.moduleConfig.Self,
+	).Pb())
 
 	return eventsOut
 }
