@@ -73,12 +73,12 @@ func (w *Event_Factory) Unwrap() *factorypb.Event {
 	return w.Factory
 }
 
-func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
-	return w.SbEvent
+func (w *Event_Iss) Unwrap() *isspb.Event {
+	return w.Iss
 }
 
-func (w *Event_Iss) Unwrap() *isspb.ISSEvent {
-	return w.Iss
+func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
+	return w.SbEvent
 }
 
 func (w *Event_NewRequests) Unwrap() *NewRequests {

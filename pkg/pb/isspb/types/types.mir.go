@@ -92,81 +92,81 @@ func (*RetransmitRequests) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.RetransmitRequests]()}
 }
 
-type ISSEvent struct {
-	Type ISSEvent_Type
+type Event struct {
+	Type Event_Type
 }
 
-type ISSEvent_Type interface {
+type Event_Type interface {
 	mirreflect.GeneratedType
-	isISSEvent_Type()
-	Pb() isspb.ISSEvent_Type
+	isEvent_Type()
+	Pb() isspb.Event_Type
 }
 
-type ISSEvent_TypeWrapper[T any] interface {
-	ISSEvent_Type
+type Event_TypeWrapper[T any] interface {
+	Event_Type
 	Unwrap() *T
 }
 
-func ISSEvent_TypeFromPb(pb isspb.ISSEvent_Type) ISSEvent_Type {
+func Event_TypeFromPb(pb isspb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
-	case *isspb.ISSEvent_PushCheckpoint:
-		return &ISSEvent_PushCheckpoint{PushCheckpoint: PushCheckpointFromPb(pb.PushCheckpoint)}
-	case *isspb.ISSEvent_SbDeliver:
-		return &ISSEvent_SbDeliver{SbDeliver: SBDeliverFromPb(pb.SbDeliver)}
+	case *isspb.Event_PushCheckpoint:
+		return &Event_PushCheckpoint{PushCheckpoint: PushCheckpointFromPb(pb.PushCheckpoint)}
+	case *isspb.Event_SbDeliver:
+		return &Event_SbDeliver{SbDeliver: SBDeliverFromPb(pb.SbDeliver)}
 	}
 	return nil
 }
 
-type ISSEvent_PushCheckpoint struct {
+type Event_PushCheckpoint struct {
 	PushCheckpoint *PushCheckpoint
 }
 
-func (*ISSEvent_PushCheckpoint) isISSEvent_Type() {}
+func (*Event_PushCheckpoint) isEvent_Type() {}
 
-func (w *ISSEvent_PushCheckpoint) Unwrap() *PushCheckpoint {
+func (w *Event_PushCheckpoint) Unwrap() *PushCheckpoint {
 	return w.PushCheckpoint
 }
 
-func (w *ISSEvent_PushCheckpoint) Pb() isspb.ISSEvent_Type {
-	return &isspb.ISSEvent_PushCheckpoint{PushCheckpoint: (w.PushCheckpoint).Pb()}
+func (w *Event_PushCheckpoint) Pb() isspb.Event_Type {
+	return &isspb.Event_PushCheckpoint{PushCheckpoint: (w.PushCheckpoint).Pb()}
 }
 
-func (*ISSEvent_PushCheckpoint) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSEvent_PushCheckpoint]()}
+func (*Event_PushCheckpoint) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_PushCheckpoint]()}
 }
 
-type ISSEvent_SbDeliver struct {
+type Event_SbDeliver struct {
 	SbDeliver *SBDeliver
 }
 
-func (*ISSEvent_SbDeliver) isISSEvent_Type() {}
+func (*Event_SbDeliver) isEvent_Type() {}
 
-func (w *ISSEvent_SbDeliver) Unwrap() *SBDeliver {
+func (w *Event_SbDeliver) Unwrap() *SBDeliver {
 	return w.SbDeliver
 }
 
-func (w *ISSEvent_SbDeliver) Pb() isspb.ISSEvent_Type {
-	return &isspb.ISSEvent_SbDeliver{SbDeliver: (w.SbDeliver).Pb()}
+func (w *Event_SbDeliver) Pb() isspb.Event_Type {
+	return &isspb.Event_SbDeliver{SbDeliver: (w.SbDeliver).Pb()}
 }
 
-func (*ISSEvent_SbDeliver) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSEvent_SbDeliver]()}
+func (*Event_SbDeliver) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_SbDeliver]()}
 }
 
-func ISSEventFromPb(pb *isspb.ISSEvent) *ISSEvent {
-	return &ISSEvent{
-		Type: ISSEvent_TypeFromPb(pb.Type),
+func EventFromPb(pb *isspb.Event) *Event {
+	return &Event{
+		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
-func (m *ISSEvent) Pb() *isspb.ISSEvent {
-	return &isspb.ISSEvent{
+func (m *Event) Pb() *isspb.Event {
+	return &isspb.Event{
 		Type: (m.Type).Pb(),
 	}
 }
 
-func (*ISSEvent) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSEvent]()}
+func (*Event) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event]()}
 }
 
 type PushCheckpoint struct{}

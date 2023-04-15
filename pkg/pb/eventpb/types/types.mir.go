@@ -71,10 +71,10 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Checkpoint{Checkpoint: types8.EventFromPb(pb.Checkpoint)}
 	case *eventpb.Event_Factory:
 		return &Event_Factory{Factory: types9.EventFromPb(pb.Factory)}
+	case *eventpb.Event_Iss:
+		return &Event_Iss{Iss: types10.EventFromPb(pb.Iss)}
 	case *eventpb.Event_SbEvent:
 		return &Event_SbEvent{SbEvent: pb.SbEvent}
-	case *eventpb.Event_Iss:
-		return &Event_Iss{Iss: types10.ISSEventFromPb(pb.Iss)}
 	case *eventpb.Event_NewRequests:
 		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_SignRequest:
@@ -331,6 +331,24 @@ func (*Event_Factory) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Factory]()}
 }
 
+type Event_Iss struct {
+	Iss *types10.Event
+}
+
+func (*Event_Iss) isEvent_Type() {}
+
+func (w *Event_Iss) Unwrap() *types10.Event {
+	return w.Iss
+}
+
+func (w *Event_Iss) Pb() eventpb.Event_Type {
+	return &eventpb.Event_Iss{Iss: (w.Iss).Pb()}
+}
+
+func (*Event_Iss) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Iss]()}
+}
+
 type Event_SbEvent struct {
 	SbEvent *ordererspb.SBInstanceEvent
 }
@@ -347,24 +365,6 @@ func (w *Event_SbEvent) Pb() eventpb.Event_Type {
 
 func (*Event_SbEvent) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_SbEvent]()}
-}
-
-type Event_Iss struct {
-	Iss *types10.ISSEvent
-}
-
-func (*Event_Iss) isEvent_Type() {}
-
-func (w *Event_Iss) Unwrap() *types10.ISSEvent {
-	return w.Iss
-}
-
-func (w *Event_Iss) Pb() eventpb.Event_Type {
-	return &eventpb.Event_Iss{Iss: (w.Iss).Pb()}
-}
-
-func (*Event_Iss) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Iss]()}
 }
 
 type Event_NewRequests struct {

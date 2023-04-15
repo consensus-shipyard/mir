@@ -10,9 +10,9 @@ func (*ISSMessage) ReflectTypeOptions() []reflect.Type {
 	}
 }
 
-func (*ISSEvent) ReflectTypeOptions() []reflect.Type {
+func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*ISSEvent_PushCheckpoint)(nil)),
-		reflect.TypeOf((*ISSEvent_SbDeliver)(nil)),
+		reflect.TypeOf((*Event_PushCheckpoint)(nil)),
+		reflect.TypeOf((*Event_SbDeliver)(nil)),
 	}
 }
