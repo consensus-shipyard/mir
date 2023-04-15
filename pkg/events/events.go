@@ -10,8 +10,6 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -204,16 +202,6 @@ func NodeSigsVerified(
 	}
 }
 
-// DeliverCert returns an event of delivering a request batch to the application in sequence number order.
-func DeliverCert(destModule t.ModuleID, sn t.SeqNr, cert *availabilitypb.Cert) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_DeliverCert{
-		DeliverCert: &eventpb.DeliverCert{
-			Sn:   sn.Pb(),
-			Cert: cert,
-		},
-	}}
-}
-
 // AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
 func AppSnapshotRequest(destModule t.ModuleID, replyTo t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{
@@ -257,17 +245,6 @@ func EpochConfig(
 		FirstSn:     firstSn.Pb(),
 		Length:      uint64(length),
 		Memberships: m,
-	}
-}
-
-// AppRestoreState returns an event representing the protocol module asking the application
-// for restoring its state from the snapshot.
-func AppRestoreState(destModule t.ModuleID, checkpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_AppRestoreState{AppRestoreState: &eventpb.AppRestoreState{
-			Checkpoint: checkpoint,
-		}},
 	}
 }
 
