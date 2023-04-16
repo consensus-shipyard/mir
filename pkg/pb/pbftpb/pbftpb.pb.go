@@ -155,7 +155,7 @@ type isMessage_Type interface {
 }
 
 type Message_Preprepare struct {
-	// PBFT good case messages
+	// Good case messages
 	Preprepare *Preprepare `protobuf:"bytes,1,opt,name=preprepare,proto3,oneof"`
 }
 

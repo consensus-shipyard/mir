@@ -34,36 +34,6 @@ func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types2.Req
 	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }
 
-func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
-	contextID := m.DslHandle().StoreContext(context)
-
-	origin := &types1.SignOrigin{
-		Module: m.ModuleID(),
-		Type:   &types1.SignOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
-	}
-
-	dsl.EmitMirEvent(m, events.SignRequest(destModule, data, origin))
-}
-
-func SignResult(m dsl.Module, destModule types.ModuleID, signature []uint8, origin *types1.SignOrigin) {
-	dsl.EmitMirEvent(m, events.SignResult(destModule, signature, origin))
-}
-
-func VerifyNodeSigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
-	contextID := m.DslHandle().StoreContext(context)
-
-	origin := &types1.SigVerOrigin{
-		Module: m.ModuleID(),
-		Type:   &types1.SigVerOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
-	}
-
-	dsl.EmitMirEvent(m, events.VerifyNodeSigs(destModule, data, signatures, origin, nodeIds))
-}
-
-func NodeSigsVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
-	dsl.EmitMirEvent(m, events.NodeSigsVerified(destModule, origin, nodeIds, valid, errors, allOk))
-}
-
 func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types3.Message, destinations []types.NodeID) {
 	dsl.EmitMirEvent(m, events.SendMessage(destModule, msg, destinations))
 }

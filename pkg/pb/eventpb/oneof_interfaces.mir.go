@@ -6,8 +6,7 @@ import (
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
-	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
+	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
@@ -81,24 +80,12 @@ func (w *Event_Orderer) Unwrap() *ordererpb.Event {
 	return w.Orderer
 }
 
+func (w *Event_Crypto) Unwrap() *cryptopb.Event {
+	return w.Crypto
+}
+
 func (w *Event_NewRequests) Unwrap() *NewRequests {
 	return w.NewRequests
-}
-
-func (w *Event_SignRequest) Unwrap() *SignRequest {
-	return w.SignRequest
-}
-
-func (w *Event_SignResult) Unwrap() *SignResult {
-	return w.SignResult
-}
-
-func (w *Event_VerifyNodeSigs) Unwrap() *VerifyNodeSigs {
-	return w.VerifyNodeSigs
-}
-
-func (w *Event_NodeSigsVerified) Unwrap() *NodeSigsVerified {
-	return w.NodeSigsVerified
 }
 
 func (w *Event_SendMessage) Unwrap() *SendMessage {
@@ -151,52 +138,6 @@ func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 
 func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 	return w.TestingUint
-}
-
-type SignOrigin_Type = isSignOrigin_Type
-
-type SignOrigin_TypeWrapper[T any] interface {
-	SignOrigin_Type
-	Unwrap() *T
-}
-
-func (w *SignOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
-	return w.ContextStore
-}
-
-func (w *SignOrigin_Dsl) Unwrap() *dslpb.Origin {
-	return w.Dsl
-}
-
-func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
-	return w.Checkpoint
-}
-
-func (w *SignOrigin_Sb) Unwrap() *ordererpb.SignOrigin {
-	return w.Sb
-}
-
-type SigVerOrigin_Type = isSigVerOrigin_Type
-
-type SigVerOrigin_TypeWrapper[T any] interface {
-	SigVerOrigin_Type
-	Unwrap() *T
-}
-
-func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
-	return w.ContextStore
-}
-
-func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {
-	return w.Dsl
-}
-
-func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
-	return w.Checkpoint
-}
-
-func (w *SigVerOrigin_Sb) Unwrap() *ordererpb.SigVerOrigin {
-	return w.Sb
 }
 
 type TimerEvent_Type = isTimerEvent_Type

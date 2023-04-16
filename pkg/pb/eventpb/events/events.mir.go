@@ -78,59 +78,6 @@ func NewRequests(destModule types.ModuleID, requests []*types2.Request) *types1.
 	}
 }
 
-func SignRequest(destModule types.ModuleID, data [][]uint8, origin *types1.SignOrigin) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_SignRequest{
-			SignRequest: &types1.SignRequest{
-				Data:   data,
-				Origin: origin,
-			},
-		},
-	}
-}
-
-func SignResult(destModule types.ModuleID, signature []uint8, origin *types1.SignOrigin) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_SignResult{
-			SignResult: &types1.SignResult{
-				Signature: signature,
-				Origin:    origin,
-			},
-		},
-	}
-}
-
-func VerifyNodeSigs(destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, origin *types1.SigVerOrigin, nodeIds []types.NodeID) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_VerifyNodeSigs{
-			VerifyNodeSigs: &types1.VerifyNodeSigs{
-				Data:       data,
-				Signatures: signatures,
-				Origin:     origin,
-				NodeIds:    nodeIds,
-			},
-		},
-	}
-}
-
-func NodeSigsVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_NodeSigsVerified{
-			NodeSigsVerified: &types1.NodeSigsVerified{
-				Origin:  origin,
-				NodeIds: nodeIds,
-				Valid:   valid,
-				Errors:  errors,
-				AllOk:   allOk,
-			},
-		},
-	}
-}
-
 func SendMessage(destModule types.ModuleID, msg *types3.Message, destinations []types.NodeID) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,

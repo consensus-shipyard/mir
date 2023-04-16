@@ -20,11 +20,8 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Factory)(nil)),
 		reflect.TypeOf((*Event_Iss)(nil)),
 		reflect.TypeOf((*Event_Orderer)(nil)),
+		reflect.TypeOf((*Event_Crypto)(nil)),
 		reflect.TypeOf((*Event_NewRequests)(nil)),
-		reflect.TypeOf((*Event_SignRequest)(nil)),
-		reflect.TypeOf((*Event_SignResult)(nil)),
-		reflect.TypeOf((*Event_VerifyNodeSigs)(nil)),
-		reflect.TypeOf((*Event_NodeSigsVerified)(nil)),
 		reflect.TypeOf((*Event_SendMessage)(nil)),
 		reflect.TypeOf((*Event_MessageReceived)(nil)),
 		reflect.TypeOf((*Event_DeliverCert)(nil)),
@@ -38,24 +35,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_NewConfig)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
-	}
-}
-
-func (*SignOrigin) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*SignOrigin_ContextStore)(nil)),
-		reflect.TypeOf((*SignOrigin_Dsl)(nil)),
-		reflect.TypeOf((*SignOrigin_Checkpoint)(nil)),
-		reflect.TypeOf((*SignOrigin_Sb)(nil)),
-	}
-}
-
-func (*SigVerOrigin) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*SigVerOrigin_ContextStore)(nil)),
-		reflect.TypeOf((*SigVerOrigin_Dsl)(nil)),
-		reflect.TypeOf((*SigVerOrigin_Checkpoint)(nil)),
-		reflect.TypeOf((*SigVerOrigin_Sb)(nil)),
 	}
 }
 
