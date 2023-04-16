@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package ordererpb;
+
+import "commonpb/commonpb.proto";
+import "pbftpb/pbftpb.proto";
+import "requestpb/requestpb.proto";
+import "availabilitypb/availabilitypb.proto";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb";
+
+message Event {
+  oneof type {
+    SBInit             init               = 1;
+    SBDeliver          deliver            = 2;
+    SBMessageReceived  message_received   = 3;
+    SBPendingRequests  pending_requests   = 4;
+    SBCertRequest      cert_request       = 6;
+    SBBatchReady       batch_ready        = 7;
+    SBCertReady        cert_ready         = 8;
+
+    pbftpb.Event       pbft               = 14;
+  }
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    pbftpb.Message pbft = 1;
+  }
+}
+
+message SBInit {}
+
+message SBCertRequest {
+}
+
+message SBBatchReady {
+  requestpb.Batch batch = 1;
+  uint64 pending_requests_left = 2;
+}
+
+message SBCertReady {
+  availabilitypb.Cert cert = 1;
+}
+
+message SBDeliver {
+  uint64          sn      = 1;
+  bytes           cert_data = 2;
+  bool            aborted = 3;
+}
+
+message SBMessageReceived {
+  string  from = 1;
+  Message msg  = 2;
+}
+
+message SBPendingRequests {
+  uint64 numRequests = 1;
+}
+
+message HashOrigin {
+  uint64 epoch    = 1;
+  uint64 instance = 2;
+  oneof type {
+    pbftpb.HashOrigin pbft = 3;
+  }
+}
+
+message SignOrigin {
+  uint64 epoch    = 1;
+  uint64 instance = 2;
+  oneof type {
+    pbftpb.SignOrigin pbft = 3;
+  }
+}
+
+message SigVerOrigin {
+  uint64                 epoch    = 1;
+  uint64                 instance = 2;
+  oneof type {
+    pbftpb.SigVerOrigin pbft = 3;
+  }
+}
+
+message PBFTSegment {
+  option (mir.struct) = true;
+
+  string              leader     = 1;
+  commonpb.Membership membership = 2;
+  map<uint64, bytes>  proposals  = 3;
+}
+
+message PBFTModule{
+  option (mir.struct) = true;
+
+  PBFTSegment segment          = 1;
+  string      availability_id  = 2;
+  uint64      epoch            = 3;
+  uint64      validity_checker = 4;
+}

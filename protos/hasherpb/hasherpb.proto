@@ -11,7 +11,7 @@ import "contextstorepb/contextstorepb.proto";
 import "requestpb/requestpb.proto";
 import "dslpb/dslpb.proto";
 import "checkpointpb/checkpointpb.proto";
-import "ordererspb/ordererspb.proto";
+import "ordererpb/ordererpb.proto";
 
 
 message Event {
@@ -64,6 +64,6 @@ message HashOrigin {
     requestpb.Request               request       = 3;
     dslpb.Origin                    dsl           = 5;
     checkpointpb.HashOrigin         checkpoint    = 6;
-    ordererspb.SBInstanceHashOrigin sb            = 7;
+    ordererpb.HashOrigin            sb            = 7;
   }
 }

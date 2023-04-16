@@ -24,7 +24,7 @@ import "batchfetcherpb/batchfetcherpb.proto";
 import "threshcryptopb/threshcryptopb.proto";
 import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
-import "ordererspb/ordererspb.proto";
+import "ordererpb/ordererpb.proto";
 import "hasherpb/hasherpb.proto";
 
 import "mir/codegen_extensions.proto";
@@ -53,8 +53,7 @@ message Event {
       checkpointpb.Event    checkpoint              = 38;
          factorypb.Event    factory                 = 33;
              isspb.Event    iss                     = 18;
-
-    ordererspb.SBInstanceEvent sb_event             = 39;
+         ordererpb.Event    orderer                 = 39;
 
     NewRequests             new_requests            = 7;
     SignRequest             sign_request            = 10;
@@ -121,7 +120,7 @@ message SignOrigin {
     contextstorepb.Origin   context_store = 2;
     dslpb.Origin            dsl           = 4;
     checkpointpb.SignOrigin checkpoint    = 5;
-    ordererspb.SBInstanceSignOrigin sb    = 6;
+    ordererpb.SignOrigin    sb            = 6;
   }
 }
 
@@ -159,7 +158,7 @@ message SigVerOrigin {
     contextstorepb.Origin     context_store = 2;
     dslpb.Origin              dsl           = 4;
     checkpointpb.SigVerOrigin checkpoint    = 5;
-    ordererspb.SBInstanceSigVerOrigin sb    = 6;
+    ordererpb.SigVerOrigin    sb            = 6;
   }
 }
 
