@@ -39,6 +39,7 @@ package protos
 //go:generate protoc-events pingpongpb/pingpongpb.proto
 //go:generate protoc-events checkpointpb/checkpointpb.proto
 //go:generate protoc-events ordererpb/ordererpb.proto
+//go:generate protoc-events cryptopb/cryptopb.proto
 
 // Build the custom code generators.
 //go:generate go build -o ../codegen/generators/mir-std-gen/mir-std-gen.bin ../codegen/generators/mir-std-gen
@@ -64,6 +65,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorypb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 
 // Generate other things.
 //go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto
