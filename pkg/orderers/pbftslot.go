@@ -8,7 +8,7 @@ import (
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -17,22 +17,22 @@ import (
 type pbftSlot struct {
 
 	// The received preprepare message.
-	Preprepare *ordererspbftpb.Preprepare
+	Preprepare *pbftpb.Preprepare
 
 	// Prepare messages received.
 	// A nil entry signifies that an invalid message has been discarded.
-	Prepares map[t.NodeID]*ordererspbftpb.Prepare
+	Prepares map[t.NodeID]*pbftpb.Prepare
 
 	// Valid prepare messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidPrepares []*ordererspbftpb.Prepare
+	ValidPrepares []*pbftpb.Prepare
 
 	// Commit messages received.
-	Commits map[t.NodeID]*ordererspbftpb.Commit
+	Commits map[t.NodeID]*pbftpb.Commit
 
 	// Valid commit messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidCommits []*ordererspbftpb.Commit
+	ValidCommits []*pbftpb.Commit
 
 	// The digest of the proposed (preprepared) certificate
 	Digest []byte
@@ -54,10 +54,10 @@ type pbftSlot struct {
 func newPbftSlot(numNodes int) *pbftSlot {
 	return &pbftSlot{
 		Preprepare:    nil,
-		Prepares:      make(map[t.NodeID]*ordererspbftpb.Prepare),
-		ValidPrepares: make([]*ordererspbftpb.Prepare, 0),
-		Commits:       make(map[t.NodeID]*ordererspbftpb.Commit),
-		ValidCommits:  make([]*ordererspbftpb.Commit, 0),
+		Prepares:      make(map[t.NodeID]*pbftpb.Prepare),
+		ValidPrepares: make([]*pbftpb.Prepare, 0),
+		Commits:       make(map[t.NodeID]*pbftpb.Commit),
+		ValidCommits:  make([]*pbftpb.Commit, 0),
 		Digest:        nil,
 		Preprepared:   false,
 		Prepared:      false,
@@ -208,7 +208,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 	return len(slot.ValidCommits) >= config.StrongQuorum(slot.numNodes)
 }
 
-func (slot *pbftSlot) getPreprepare(digest []byte) *ordererspbftpb.Preprepare {
+func (slot *pbftSlot) getPreprepare(digest []byte) *pbftpb.Preprepare {
 	if slot.Preprepared && bytes.Equal(digest, slot.Digest) {
 		return slot.Preprepare
 	}
@@ -217,7 +217,7 @@ func (slot *pbftSlot) getPreprepare(digest []byte) *ordererspbftpb.Preprepare {
 }
 
 // Note: The Preprepare's view must match the view this slot is assigned to!
-func (slot *pbftSlot) catchUp(preprepare *ordererspbftpb.Preprepare, digest []byte) {
+func (slot *pbftSlot) catchUp(preprepare *pbftpb.Preprepare, digest []byte) {
 	slot.Preprepare = preprepare
 	slot.Digest = digest
 	slot.Preprepared = true

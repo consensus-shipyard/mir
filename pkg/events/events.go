@@ -7,11 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"

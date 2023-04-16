@@ -12,7 +12,7 @@ import (
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -34,7 +34,7 @@ type pbftSegmentChkp struct {
 	// Saves all the Done messages received from other nodes.
 	// They contain the hashes of all Preprepare messages, as committed by the respective nodes.
 	// (A node sends a Done message when it commits everything in the segment.)
-	doneMessages map[t.NodeID]*ordererspbftpb.Done
+	doneMessages map[t.NodeID]*pbftpb.Done
 
 	// For each received Done message, stores the IDs of nodes that sent it.
 	doneMsgIndex map[string][]t.NodeID
@@ -59,7 +59,7 @@ type pbftSegmentChkp struct {
 // newPbftSegmentChkp returns a pointer to a new instance of pbftSegmentChkp
 func newPbftSegmentChkp() *pbftSegmentChkp {
 	return &pbftSegmentChkp{
-		doneMessages: make(map[t.NodeID]*ordererspbftpb.Done),
+		doneMessages: make(map[t.NodeID]*pbftpb.Done),
 		doneMsgIndex: make(map[string][]t.NodeID),
 	}
 }
@@ -107,7 +107,7 @@ func (chkp *pbftSegmentChkp) Stable(numNodes int) bool {
 // NodeDone registers a Done message received from a node.
 // Once NodeDone has been called with matching Done messages for a quorum of nodes,
 // the instance-level checkpoint will become stable.
-func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *ordererspbftpb.Done, segment *Segment) {
+func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *pbftpb.Done, segment *Segment) {
 
 	// Ignore duplicate Done messages.
 	if _, ok := chkp.doneMessages[nodeID]; ok {
@@ -178,7 +178,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 // Once enough Done messages have been applied, makes the protocol
 // - stop participating in view changes and
 // - set up a timer for fetching missing certificates.
-func (orderer *Orderer) applyMsgDone(doneMsg *ordererspbftpb.Done, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgDone(doneMsg *pbftpb.Done, from t.NodeID) *events.EventList {
 
 	// Register Done message.
 	orderer.segmentCheckpoint.NodeDone(from, doneMsg, orderer.segment)
@@ -242,7 +242,7 @@ func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]
 // by its sequence number and digest and sends it to the originator of the request inside a CatchUpResponse message.
 // If no matching Preprepare is found, does nothing.
 func (orderer *Orderer) applyMsgCatchUpRequest(
-	catchUpReq *ordererspbftpb.CatchUpRequest,
+	catchUpReq *pbftpb.CatchUpRequest,
 	from t.NodeID,
 ) *events.EventList {
 	if preprepare := orderer.lookUpPreprepare(t.SeqNr(catchUpReq.Sn), catchUpReq.Digest); preprepare != nil {
@@ -265,7 +265,7 @@ func (orderer *Orderer) applyMsgCatchUpRequest(
 // applyMsgCatchUpResponse applies a retransmitted missing committed certificate.
 // It only requests hashing of the response,
 // the actual handling of it being performed only when the hash result is available.
-func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *ordererspbftpb.Preprepare, _ t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *pbftpb.Preprepare, _ t.NodeID) *events.EventList {
 
 	// Ignore preprepare if received in the meantime.
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
@@ -285,7 +285,7 @@ func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *ordererspbftpb.Prepr
 // It is the final step of catching up with an instance-level checkpoint.
 func (orderer *Orderer) applyCatchUpResponseHashResult(
 	digest []byte,
-	preprepare *ordererspbftpb.Preprepare,
+	preprepare *pbftpb.Preprepare,
 ) *events.EventList {
 
 	eventsOut := events.EmptyList()

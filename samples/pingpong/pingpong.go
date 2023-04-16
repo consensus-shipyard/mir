@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	t "github.com/filecoin-project/mir/pkg/types"

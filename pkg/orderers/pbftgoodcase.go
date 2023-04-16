@@ -3,16 +3,16 @@ package orderers
 import (
 	"fmt"
 
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -171,7 +171,7 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 // applyMsgPreprepare applies a received preprepare message.
 // It performs the necessary checks and, if successful,
 // requests a confirmation from ISS that all contained requests have been received and authenticated.
-func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpb.Preprepare, from t.NodeID) *events.EventList {
 
 	// Convenience variable
 	sn := t.SeqNr(preprepare.Sn)
@@ -219,7 +219,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *ordererspbftpb.Preprepare
 	).Pb())
 }
 
-func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *ordererspbftpb.Preprepare) *events.EventList {
+func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbftpb.Preprepare) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// Convenience variable.
@@ -247,7 +247,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *ord
 }
 
 // sendPrepare creates an event for sending a Prepare message.
-func (orderer *Orderer) sendPrepare(prepare *ordererspbftpb.Prepare) *events.EventList {
+func (orderer *Orderer) sendPrepare(prepare *pbftpb.Prepare) *events.EventList {
 
 	// Return a list with a single element - the send event containing a PBFT prepare message.
 	// No need for periodic re-transmission.
@@ -261,7 +261,7 @@ func (orderer *Orderer) sendPrepare(prepare *ordererspbftpb.Prepare) *events.Eve
 // applyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func (orderer *Orderer) applyMsgPrepare(prepare *ordererspbftpb.Prepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPrepare(prepare *pbftpb.Prepare, from t.NodeID) *events.EventList {
 
 	// Convenience variable
 	sn := t.SeqNr(prepare.Sn)
@@ -287,7 +287,7 @@ func (orderer *Orderer) applyMsgPrepare(prepare *ordererspbftpb.Prepare, from t.
 }
 
 // sendCommit creates an event for sending a Commit message.
-func (orderer *Orderer) sendCommit(commit *ordererspbftpb.Commit) *events.EventList {
+func (orderer *Orderer) sendCommit(commit *pbftpb.Commit) *events.EventList {
 
 	// Emit a send event with a PBFT Commit message.
 	// No need for periodic re-transmission.
@@ -300,7 +300,7 @@ func (orderer *Orderer) sendCommit(commit *ordererspbftpb.Commit) *events.EventL
 // applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func (orderer *Orderer) applyMsgCommit(commit *ordererspbftpb.Commit, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgCommit(commit *pbftpb.Commit, from t.NodeID) *events.EventList {
 
 	// Convenience variable
 	sn := t.SeqNr(commit.Sn)

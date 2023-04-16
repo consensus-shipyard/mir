@@ -14,7 +14,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -23,7 +23,7 @@ import (
 // except for the view number being set to view.
 // The Preprepare message produced by this function has the same digest as the original preprepare,
 // since the view number is not used for hash computation.
-func copyPreprepareToNewView(preprepare *ordererspbftpb.Preprepare, view t.PBFTViewNr) *ordererspbftpb.Preprepare {
+func copyPreprepareToNewView(preprepare *pbftpb.Preprepare, view t.PBFTViewNr) *pbftpb.Preprepare {
 	return pbftPreprepareMsg(t.SeqNr(preprepare.Sn), view, preprepare.Data, preprepare.Aborted)
 }
 
@@ -34,7 +34,7 @@ func copyPreprepareToNewView(preprepare *ordererspbftpb.Preprepare, view t.PBFTV
 // applyViewChangeSNTimeout applies the view change SN timeout event
 // triggered some time after a certificate is committed.
 // If nothing has been committed since, triggers a view change.
-func (orderer *Orderer) applyViewChangeSNTimeout(timeoutEvent *ordererspbftpb.VCSNTimeout) *events.EventList {
+func (orderer *Orderer) applyViewChangeSNTimeout(timeoutEvent *pbftpb.VCSNTimeout) *events.EventList {
 
 	// If the view is still the same as when the timer was set up,
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
@@ -102,7 +102,7 @@ func (orderer *Orderer) startViewChange() *events.EventList {
 
 // applyViewChangeSignResult processes a newly generated signature of a ViewChange message.
 // It creates a SignedViewChange message and sends it to the new leader (PBFT primary)
-func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *ordererspbftpb.ViewChange) *events.EventList {
+func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *pbftpb.ViewChange) *events.EventList {
 
 	// Convenience variable
 	msgView := t.PBFTViewNr(viewChange.View)
@@ -132,7 +132,7 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 
 // applyMsgSignedViewChange applies a signed view change message.
 // The only thing it does is request verification of the signature.
-func (orderer *Orderer) applyMsgSignedViewChange(svc *ordererspbftpb.SignedViewChange, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgSignedViewChange(svc *pbftpb.SignedViewChange, from t.NodeID) *events.EventList {
 	viewChange := svc.ViewChange
 	return events.ListOf(events.VerifyNodeSigs(
 		orderer.moduleConfig.Crypto,
@@ -144,7 +144,7 @@ func (orderer *Orderer) applyMsgSignedViewChange(svc *ordererspbftpb.SignedViewC
 	))
 }
 
-func (orderer *Orderer) applyVerifiedViewChange(svc *ordererspbftpb.SignedViewChange, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyVerifiedViewChange(svc *pbftpb.SignedViewChange, from t.NodeID) *events.EventList {
 	orderer.logger.Log(logging.LevelDebug, "Received ViewChange.", "sender", from)
 
 	// Convenience variables.
@@ -239,7 +239,7 @@ func (orderer *Orderer) applyEmptyPreprepareHashResult(digests [][]byte, view t.
 }
 
 func (orderer *Orderer) applyMsgPreprepareRequest(
-	preprepareRequest *ordererspbftpb.PreprepareRequest,
+	preprepareRequest *pbftpb.PreprepareRequest,
 	from t.NodeID,
 ) *events.EventList {
 	if preprepare := orderer.lookUpPreprepare(t.SeqNr(preprepareRequest.Sn), preprepareRequest.Digest); preprepare != nil {
@@ -263,7 +263,7 @@ func (orderer *Orderer) applyMsgPreprepareRequest(
 	return events.EmptyList()
 }
 
-func (orderer *Orderer) applyMsgMissingPreprepare(preprepare *ordererspbftpb.Preprepare, _ t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgMissingPreprepare(preprepare *pbftpb.Preprepare, _ t.NodeID) *events.EventList {
 
 	// Ignore preprepare if received in the meantime or if view has already advanced.
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
@@ -283,7 +283,7 @@ func (orderer *Orderer) applyMsgMissingPreprepare(preprepare *ordererspbftpb.Pre
 
 func (orderer *Orderer) applyMissingPreprepareHashResult(
 	digest []byte,
-	preprepare *ordererspbftpb.Preprepare,
+	preprepare *pbftpb.Preprepare,
 ) *events.EventList {
 
 	// Convenience variable
@@ -321,10 +321,10 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 
 	// Extract SignedViewChanges and their senders from the view change state.
 	viewChangeSenders := make([]t.NodeID, 0, len(vcState.signedViewChanges))
-	signedViewChanges := make([]*ordererspbftpb.SignedViewChange, 0, len(vcState.signedViewChanges))
+	signedViewChanges := make([]*pbftpb.SignedViewChange, 0, len(vcState.signedViewChanges))
 	maputil.IterateSorted(
 		vcState.signedViewChanges,
-		func(sender t.NodeID, signedViewChange *ordererspbftpb.SignedViewChange) bool {
+		func(sender t.NodeID, signedViewChange *pbftpb.SignedViewChange) bool {
 			viewChangeSenders = append(viewChangeSenders, sender)
 			signedViewChanges = append(signedViewChanges, signedViewChange)
 			return true
@@ -333,8 +333,8 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 
 	// Extract re-proposed Preprepares and their corresponding sequence numbers from the view change state.
 	preprepareSeqNrs := make([]t.SeqNr, 0, len(vcState.preprepares))
-	preprepares := make([]*ordererspbftpb.Preprepare, 0, len(vcState.preprepares))
-	maputil.IterateSorted(vcState.preprepares, func(sn t.SeqNr, preprepare *ordererspbftpb.Preprepare) bool {
+	preprepares := make([]*pbftpb.Preprepare, 0, len(vcState.preprepares))
+	maputil.IterateSorted(vcState.preprepares, func(sn t.SeqNr, preprepare *pbftpb.Preprepare) bool {
 		preprepareSeqNrs = append(preprepareSeqNrs, sn)
 		preprepares = append(preprepares, preprepare)
 		return true
@@ -353,7 +353,7 @@ func (orderer *Orderer) sendNewView(view t.PBFTViewNr, vcState *pbftViewChangeSt
 		orderer.segment.NodeIDs()))
 }
 
-func (orderer *Orderer) applyMsgNewView(newView *ordererspbftpb.NewView, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgNewView(newView *pbftpb.NewView, from t.NodeID) *events.EventList {
 
 	// Ignore message if the sender is not the primary of the view.
 	if from != orderer.segment.PrimaryNode(t.PBFTViewNr(newView.View)) {
@@ -380,7 +380,7 @@ func (orderer *Orderer) applyMsgNewView(newView *ordererspbftpb.NewView, from t.
 	))
 }
 
-func (orderer *Orderer) applyVerifiedNewView(newView *ordererspbftpb.NewView) *events.EventList {
+func (orderer *Orderer) applyVerifiedNewView(newView *pbftpb.NewView) *events.EventList {
 	// Serialize obtained Preprepare messages for hashing.
 	dataToHash := make([]*commonpbtypes.HashData, len(newView.Preprepares))
 	for i, preprepare := range newView.Preprepares { // Preprepares in a NewView message are sorted by sequence number.
@@ -395,7 +395,7 @@ func (orderer *Orderer) applyVerifiedNewView(newView *ordererspbftpb.NewView) *e
 	).Pb())
 }
 
-func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordererspbftpb.NewView) *events.EventList {
+func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *pbftpb.NewView) *events.EventList {
 
 	// Convenience variable
 	msgView := t.PBFTViewNr(newView.View)
@@ -458,7 +458,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *ordere
 // Auxiliary functions
 // ============================================================
 
-func validFreshPreprepare(preprepare *ordererspbftpb.Preprepare, view t.PBFTViewNr, sn t.SeqNr) bool {
+func validFreshPreprepare(preprepare *pbftpb.Preprepare, view t.PBFTViewNr, sn t.SeqNr) bool {
 	return preprepare.Aborted &&
 		t.SeqNr(preprepare.Sn) == sn &&
 		t.PBFTViewNr(preprepare.View) == view
@@ -504,14 +504,14 @@ func (orderer *Orderer) latestPendingVCState() (*pbftViewChangeState, t.PBFTView
 // viewChangePSet represents the P set of a PBFT view change message.
 // For each sequence number, it holds the digest of the last prepared certificate,
 // along with the view in which it was prepared.
-type viewChangePSet map[t.SeqNr]*ordererspbftpb.PSetEntry
+type viewChangePSet map[t.SeqNr]*pbftpb.PSetEntry
 
 // Pb returns a protobuf representation of a viewChangePSet,
 // Where all entries are stored in a simple list.
 // The list is sorted for repeatability.
-func (pSet viewChangePSet) Pb() []*ordererspbftpb.PSetEntry {
+func (pSet viewChangePSet) Pb() []*pbftpb.PSetEntry {
 
-	list := make([]*ordererspbftpb.PSetEntry, 0, len(pSet))
+	list := make([]*pbftpb.PSetEntry, 0, len(pSet))
 
 	for _, pEntry := range pSet {
 		list = append(list, pEntry)
@@ -530,7 +530,7 @@ func (pSet viewChangePSet) Pb() []*ordererspbftpb.PSetEntry {
 	return list
 }
 
-func reconstructPSet(entries []*ordererspbftpb.PSetEntry) (viewChangePSet, error) {
+func reconstructPSet(entries []*pbftpb.PSetEntry) (viewChangePSet, error) {
 	pSet := make(viewChangePSet)
 	for _, entry := range entries {
 
@@ -554,13 +554,13 @@ type viewChangeQSet map[t.SeqNr]map[string]t.PBFTViewNr
 // Pb returns a protobuf representation of a viewChangeQSet,
 // where all entries, represented as (sn, view, digest) tuples, are stored in a simple list.
 // The list is sorted for repeatability.
-func (qSet viewChangeQSet) Pb() []*ordererspbftpb.QSetEntry {
+func (qSet viewChangeQSet) Pb() []*pbftpb.QSetEntry {
 
-	list := make([]*ordererspbftpb.QSetEntry, 0, len(qSet))
+	list := make([]*pbftpb.QSetEntry, 0, len(qSet))
 
 	for sn, qEntry := range qSet {
 		for digest, view := range qEntry {
-			list = append(list, &ordererspbftpb.QSetEntry{
+			list = append(list, &pbftpb.QSetEntry{
 				Sn:     sn.Pb(),
 				View:   view.Pb(),
 				Digest: []byte(digest),
@@ -581,7 +581,7 @@ func (qSet viewChangeQSet) Pb() []*ordererspbftpb.QSetEntry {
 	return list
 }
 
-func reconstructQSet(entries []*ordererspbftpb.QSetEntry) (viewChangeQSet, error) {
+func reconstructQSet(entries []*pbftpb.QSetEntry) (viewChangeQSet, error) {
 	qSet := make(viewChangeQSet)
 	for _, entry := range entries {
 
@@ -607,7 +607,7 @@ func reconstructQSet(entries []*ordererspbftpb.QSetEntry) (viewChangeQSet, error
 }
 
 func reconstructPSetQSet(
-	signedViewChanges map[t.NodeID]*ordererspbftpb.SignedViewChange,
+	signedViewChanges map[t.NodeID]*pbftpb.SignedViewChange,
 	logger logging.Logger,
 ) (map[t.NodeID]viewChangePSet, map[t.NodeID]viewChangeQSet) {
 	pSets := make(map[t.NodeID]viewChangePSet)
@@ -643,7 +643,7 @@ func reconstructPSetQSet(
 // They must first be transformed to a serializable representation that adheres to the message format.
 func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet) {
 	// Initialize the PSet.
-	pSet = make(map[t.SeqNr]*ordererspbftpb.PSetEntry)
+	pSet = make(map[t.SeqNr]*pbftpb.PSetEntry)
 
 	// Initialize the QSet.
 	qSet = make(map[t.SeqNr]map[string]t.PBFTViewNr)
@@ -668,7 +668,7 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 				// If a certificate was prepared for sn in view, add the corresponding entry to the PSet.
 				// If there was an entry corresponding to an older view, it will be overwritten.
 				if slot.Prepared {
-					pSet[sn] = &ordererspbftpb.PSetEntry{
+					pSet[sn] = &pbftpb.PSetEntry{
 						Sn:     sn.Pb(),
 						View:   view.Pb(),
 						Digest: slot.Digest,

@@ -5,9 +5,6 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/filecoin-project/mir/pkg/pb/factorypb"
-	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 
@@ -15,6 +12,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tp "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/testlogger"

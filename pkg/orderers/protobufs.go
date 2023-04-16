@@ -9,19 +9,19 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
-	ordererspbtypes "github.com/filecoin-project/mir/pkg/pb/ordererspb/types"
+	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
+	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 func OrdererEvent(
 	destModule t.ModuleID,
-	event *ordererspb.SBInstanceEvent,
+	event *ordererpb.Event,
 ) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_SbEvent{
-			SbEvent: event,
+		Type: &eventpb.Event_Orderer{
+			Orderer: event,
 		},
 	}
 }
@@ -54,21 +54,21 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 //					}.Pb()}}})
 //}
 
-func HashOrigin(module t.ModuleID, origin *ordererspb.SBInstanceHashOrigin) *hasherpbtypes.HashOrigin {
+func HashOrigin(module t.ModuleID, origin *ordererpb.HashOrigin) *hasherpbtypes.HashOrigin {
 	return &hasherpbtypes.HashOrigin{
 		Module: module,
 		Type:   &hasherpbtypes.HashOrigin_Sb{Sb: origin},
 	}
 }
 
-func SignOrigin(module t.ModuleID, origin *ordererspb.SBInstanceSignOrigin) *eventpb.SignOrigin {
+func SignOrigin(module t.ModuleID, origin *ordererpb.SignOrigin) *eventpb.SignOrigin {
 	return &eventpb.SignOrigin{
 		Module: module.Pb(),
 		Type:   &eventpb.SignOrigin_Sb{Sb: origin},
 	}
 }
 
-func SigVerOrigin(module t.ModuleID, origin *ordererspb.SBInstanceSigVerOrigin) *eventpb.SigVerOrigin {
+func SigVerOrigin(module t.ModuleID, origin *ordererpb.SigVerOrigin) *eventpb.SigVerOrigin {
 	return &eventpb.SigVerOrigin{
 		Module: module.Pb(),
 		Type:   &eventpb.SigVerOrigin_Sb{Sb: origin},
@@ -82,8 +82,8 @@ func InstanceParams(
 	validityCheckerType ValidityCheckerType,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
-		PbftModule: &ordererspbtypes.PBFTModule{
-			Segment:         ordererspbtypes.PBFTSegmentFromPb(segment.Pb()),
+		PbftModule: &ordererpbtypes.PBFTModule{
+			Segment:         ordererpbtypes.PBFTSegmentFromPb(segment.Pb()),
 			AvailabilityId:  availabilityID.Pb(),
 			Epoch:           epoch.Pb(),
 			ValidityChecker: uint64(validityCheckerType),
@@ -91,6 +91,6 @@ func InstanceParams(
 	}}
 }
 
-func OrdererMessage(msg *ordererspb.SBInstanceMessage, destModule t.ModuleID) *messagepb.Message {
-	return &messagepb.Message{DestModule: string(destModule), Type: &messagepb.Message_SbMessage{SbMessage: msg}}
+func OrdererMessage(msg *ordererpb.Message, destModule t.ModuleID) *messagepb.Message {
+	return &messagepb.Message{DestModule: string(destModule), Type: &messagepb.Message_Orderer{Orderer: msg}}
 }

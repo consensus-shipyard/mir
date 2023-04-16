@@ -1,7 +1,7 @@
 package orderers
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -33,7 +33,7 @@ func NewSegment(leader t.NodeID, membership map[t.NodeID]t.NodeAddress, proposal
 	}
 }
 
-func SegmentFromPb(seg *ordererspb.PBFTSegment) *Segment {
+func SegmentFromPb(seg *ordererpb.PBFTSegment) *Segment {
 	return &Segment{
 		Leader:     t.NodeID(seg.Leader),
 		Membership: t.Membership(seg.Membership),
@@ -46,8 +46,8 @@ func SegmentFromPb(seg *ordererspb.PBFTSegment) *Segment {
 	}
 }
 
-func (seg *Segment) Pb() *ordererspb.PBFTSegment {
-	return &ordererspb.PBFTSegment{
+func (seg *Segment) Pb() *ordererpb.PBFTSegment {
+	return &ordererpb.PBFTSegment{
 		Leader:     seg.Leader.Pb(),
 		Membership: t.MembershipPb(seg.Membership),
 		Proposals: maputil.Transform(

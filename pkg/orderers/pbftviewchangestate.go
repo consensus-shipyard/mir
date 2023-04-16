@@ -5,7 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/ordererspbftpb"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -15,7 +15,7 @@ import (
 // The transition from view 2 to view 3 will be tracked by a different instance of pbftViewChangeState.
 type pbftViewChangeState struct {
 	numNodes          int
-	signedViewChanges map[t.NodeID]*ordererspbftpb.SignedViewChange
+	signedViewChanges map[t.NodeID]*pbftpb.SignedViewChange
 
 	// Digests of preprepares that need to be repropsed in a new view.
 	// At initialization, an explicit nil entry is created for each sequence number of the segment.
@@ -30,7 +30,7 @@ type pbftViewChangeState struct {
 	// a new Preprepare message to be re-proposed (with a correctly set view number).
 	// This also holds for sequence numbers for which nothing was prepared in the previous view,
 	// in which case the value is set to a Preprepare with an empty certificate and the "aborted" flag set.
-	preprepares map[t.SeqNr]*ordererspbftpb.Preprepare
+	preprepares map[t.SeqNr]*pbftpb.Preprepare
 
 	prepreparedIDs map[t.SeqNr][]t.NodeID
 
@@ -39,7 +39,7 @@ type pbftViewChangeState struct {
 
 func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID, logger logging.Logger) *pbftViewChangeState {
 	reproposals := make(map[t.SeqNr][]byte)
-	preprepares := make(map[t.SeqNr]*ordererspbftpb.Preprepare)
+	preprepares := make(map[t.SeqNr]*pbftpb.Preprepare)
 	for _, sn := range seqNrs {
 		reproposals[sn] = nil
 		preprepares[sn] = nil
@@ -47,7 +47,7 @@ func newPbftViewChangeState(seqNrs []t.SeqNr, membership []t.NodeID, logger logg
 
 	return &pbftViewChangeState{
 		numNodes:          len(membership),
-		signedViewChanges: make(map[t.NodeID]*ordererspbftpb.SignedViewChange),
+		signedViewChanges: make(map[t.NodeID]*pbftpb.SignedViewChange),
 		reproposals:       reproposals,
 		prepreparedIDs:    make(map[t.SeqNr][]t.NodeID),
 		preprepares:       preprepares,
@@ -64,7 +64,7 @@ func (vcState *pbftViewChangeState) EnoughViewChanges() bool {
 	return true
 }
 
-func (vcState *pbftViewChangeState) AddSignedViewChange(svc *ordererspbftpb.SignedViewChange, from t.NodeID) {
+func (vcState *pbftViewChangeState) AddSignedViewChange(svc *pbftpb.SignedViewChange, from t.NodeID) {
 
 	if vcState.EnoughViewChanges() {
 		return

@@ -26,7 +26,7 @@ package protos
 //go:generate protoc-events recordingpb/recordingpb.proto
 //go:generate protoc-events isspb/isspb.proto
 //go:generate protoc-events bcbpb/bcbpb.proto
-//go:generate protoc-events ordererspbftpb/ordererspbftpb.proto
+//go:generate protoc-events pbftpb/pbftpb.proto
 //go:generate protoc-events contextstorepb/contextstorepb.proto
 //go:generate protoc-events dslpb/dslpb.proto
 //go:generate protoc-events mempoolpb/mempoolpb.proto
@@ -38,7 +38,7 @@ package protos
 //go:generate protoc-events threshcryptopb/threshcryptopb.proto
 //go:generate protoc-events pingpongpb/pingpongpb.proto
 //go:generate protoc-events checkpointpb/checkpointpb.proto
-//go:generate protoc-events ordererspb/ordererspb.proto
+//go:generate protoc-events ordererpb/ordererpb.proto
 
 // Build the custom code generators.
 //go:generate go build -o ../codegen/generators/mir-std-gen/mir-std-gen.bin ../codegen/generators/mir-std-gen
@@ -60,7 +60,8 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/requestpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorypb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 
