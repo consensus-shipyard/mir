@@ -38,7 +38,7 @@ func SignResult(destModule types.ModuleID, signature []uint8, origin *types1.Sig
 	}
 }
 
-func VerifySig(destModule types.ModuleID, data *types1.SigVerData, signature []uint8, origin *types1.SigVerOrigin, nodeId types.NodeID) *types2.Event {
+func VerifySig(destModule types.ModuleID, data *types1.SignedData, signature []uint8, origin *types1.SigVerOrigin, nodeId types.NodeID) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Crypto{
@@ -56,7 +56,7 @@ func VerifySig(destModule types.ModuleID, data *types1.SigVerData, signature []u
 	}
 }
 
-func SigVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId types.NodeID, valid bool, error error) *types2.Event {
+func SigVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId types.NodeID, error error) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Crypto{
@@ -65,7 +65,6 @@ func SigVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId 
 					SigVerified: &types1.SigVerified{
 						Origin: origin,
 						NodeId: nodeId,
-						Valid:  valid,
 						Error:  error,
 					},
 				},
@@ -74,7 +73,7 @@ func SigVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId 
 	}
 }
 
-func VerifySigs(destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, origin *types1.SigVerOrigin, nodeIds []types.NodeID) *types2.Event {
+func VerifySigs(destModule types.ModuleID, data []*types1.SignedData, signatures [][]uint8, origin *types1.SigVerOrigin, nodeIds []types.NodeID) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Crypto{
@@ -92,7 +91,7 @@ func VerifySigs(destModule types.ModuleID, data []*types1.SigVerData, signatures
 	}
 }
 
-func SigsVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) *types2.Event {
+func SigsVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, errors []error, allOk bool) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Crypto{
@@ -101,7 +100,6 @@ func SigsVerified(destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId
 					SigsVerified: &types1.SigsVerified{
 						Origin:  origin,
 						NodeIds: nodeIds,
-						Valid:   valid,
 						Errors:  errors,
 						AllOk:   allOk,
 					},

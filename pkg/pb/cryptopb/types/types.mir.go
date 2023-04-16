@@ -216,7 +216,7 @@ func (*SignResult) MirReflect() mirreflect.Type {
 }
 
 type VerifySig struct {
-	Data      *SigVerData
+	Data      *SignedData
 	Signature []uint8
 	Origin    *SigVerOrigin
 	NodeId    types.NodeID
@@ -224,7 +224,7 @@ type VerifySig struct {
 
 func VerifySigFromPb(pb *cryptopb.VerifySig) *VerifySig {
 	return &VerifySig{
-		Data:      SigVerDataFromPb(pb.Data),
+		Data:      SignedDataFromPb(pb.Data),
 		Signature: pb.Signature,
 		Origin:    SigVerOriginFromPb(pb.Origin),
 		NodeId:    (types.NodeID)(pb.NodeId),
@@ -247,7 +247,6 @@ func (*VerifySig) MirReflect() mirreflect.Type {
 type SigVerified struct {
 	Origin *SigVerOrigin
 	NodeId types.NodeID
-	Valid  bool
 	Error  error
 }
 
@@ -255,7 +254,6 @@ func SigVerifiedFromPb(pb *cryptopb.SigVerified) *SigVerified {
 	return &SigVerified{
 		Origin: SigVerOriginFromPb(pb.Origin),
 		NodeId: (types.NodeID)(pb.NodeId),
-		Valid:  pb.Valid,
 		Error:  types1.StringToError(pb.Error),
 	}
 }
@@ -264,7 +262,6 @@ func (m *SigVerified) Pb() *cryptopb.SigVerified {
 	return &cryptopb.SigVerified{
 		Origin: (m.Origin).Pb(),
 		NodeId: (string)(m.NodeId),
-		Valid:  m.Valid,
 		Error:  types1.ErrorToString(m.Error),
 	}
 }
@@ -274,7 +271,7 @@ func (*SigVerified) MirReflect() mirreflect.Type {
 }
 
 type VerifySigs struct {
-	Data       []*SigVerData
+	Data       []*SignedData
 	Signatures [][]uint8
 	Origin     *SigVerOrigin
 	NodeIds    []types.NodeID
@@ -282,8 +279,8 @@ type VerifySigs struct {
 
 func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
 	return &VerifySigs{
-		Data: types1.ConvertSlice(pb.Data, func(t *cryptopb.SigVerData) *SigVerData {
-			return SigVerDataFromPb(t)
+		Data: types1.ConvertSlice(pb.Data, func(t *cryptopb.SignedData) *SignedData {
+			return SignedDataFromPb(t)
 		}),
 		Signatures: pb.Signatures,
 		Origin:     SigVerOriginFromPb(pb.Origin),
@@ -295,7 +292,7 @@ func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
 
 func (m *VerifySigs) Pb() *cryptopb.VerifySigs {
 	return &cryptopb.VerifySigs{
-		Data: types1.ConvertSlice(m.Data, func(t *SigVerData) *cryptopb.SigVerData {
+		Data: types1.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
 			return (t).Pb()
 		}),
 		Signatures: m.Signatures,
@@ -313,7 +310,6 @@ func (*VerifySigs) MirReflect() mirreflect.Type {
 type SigsVerified struct {
 	Origin  *SigVerOrigin
 	NodeIds []types.NodeID
-	Valid   []bool
 	Errors  []error
 	AllOk   bool
 }
@@ -324,7 +320,6 @@ func SigsVerifiedFromPb(pb *cryptopb.SigsVerified) *SigsVerified {
 		NodeIds: types1.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
-		Valid: pb.Valid,
 		Errors: types1.ConvertSlice(pb.Errors, func(t string) error {
 			return types1.StringToError(t)
 		}),
@@ -338,7 +333,6 @@ func (m *SigsVerified) Pb() *cryptopb.SigsVerified {
 		NodeIds: types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
 			return (string)(t)
 		}),
-		Valid: m.Valid,
 		Errors: types1.ConvertSlice(m.Errors, func(t error) string {
 			return types1.ErrorToString(t)
 		}),
@@ -590,22 +584,22 @@ func (*SigVerOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SigVerOrigin]()}
 }
 
-type SigVerData struct {
+type SignedData struct {
 	Data [][]uint8
 }
 
-func SigVerDataFromPb(pb *cryptopb.SigVerData) *SigVerData {
-	return &SigVerData{
+func SignedDataFromPb(pb *cryptopb.SignedData) *SignedData {
+	return &SignedData{
 		Data: pb.Data,
 	}
 }
 
-func (m *SigVerData) Pb() *cryptopb.SigVerData {
-	return &cryptopb.SigVerData{
+func (m *SignedData) Pb() *cryptopb.SignedData {
+	return &cryptopb.SignedData{
 		Data: m.Data,
 	}
 }
 
-func (*SigVerData) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SigVerData]()}
+func (*SignedData) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SignedData]()}
 }

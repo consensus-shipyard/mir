@@ -43,13 +43,13 @@ func UponSignResult[C any](m dsl.Module, handler func(signature []uint8, context
 	})
 }
 
-func UponVerifySig(m dsl.Module, handler func(data *types.SigVerData, signature []uint8, origin *types.SigVerOrigin, nodeId types2.NodeID) error) {
+func UponVerifySig(m dsl.Module, handler func(data *types.SignedData, signature []uint8, origin *types.SigVerOrigin, nodeId types2.NodeID) error) {
 	UponEvent[*types.Event_VerifySig](m, func(ev *types.VerifySig) error {
 		return handler(ev.Data, ev.Signature, ev.Origin, ev.NodeId)
 	})
 }
 
-func UponSigVerified[C any](m dsl.Module, handler func(nodeId types2.NodeID, valid bool, error error, context *C) error) {
+func UponSigVerified[C any](m dsl.Module, handler func(nodeId types2.NodeID, error error, context *C) error) {
 	UponEvent[*types.Event_SigVerified](m, func(ev *types.SigVerified) error {
 		originWrapper, ok := ev.Origin.Type.(*types.SigVerOrigin_Dsl)
 		if !ok {
@@ -62,17 +62,17 @@ func UponSigVerified[C any](m dsl.Module, handler func(nodeId types2.NodeID, val
 			return nil
 		}
 
-		return handler(ev.NodeId, ev.Valid, ev.Error, context)
+		return handler(ev.NodeId, ev.Error, context)
 	})
 }
 
-func UponVerifySigs(m dsl.Module, handler func(data []*types.SigVerData, signatures [][]uint8, origin *types.SigVerOrigin, nodeIds []types2.NodeID) error) {
+func UponVerifySigs(m dsl.Module, handler func(data []*types.SignedData, signatures [][]uint8, origin *types.SigVerOrigin, nodeIds []types2.NodeID) error) {
 	UponEvent[*types.Event_VerifySigs](m, func(ev *types.VerifySigs) error {
 		return handler(ev.Data, ev.Signatures, ev.Origin, ev.NodeIds)
 	})
 }
 
-func UponSigsVerified[C any](m dsl.Module, handler func(nodeIds []types2.NodeID, valid []bool, errors []error, allOk bool, context *C) error) {
+func UponSigsVerified[C any](m dsl.Module, handler func(nodeIds []types2.NodeID, errors []error, allOk bool, context *C) error) {
 	UponEvent[*types.Event_SigsVerified](m, func(ev *types.SigsVerified) error {
 		originWrapper, ok := ev.Origin.Type.(*types.SigVerOrigin_Dsl)
 		if !ok {
@@ -85,6 +85,6 @@ func UponSigsVerified[C any](m dsl.Module, handler func(nodeIds []types2.NodeID,
 			return nil
 		}
 
-		return handler(ev.NodeIds, ev.Valid, ev.Errors, ev.AllOk, context)
+		return handler(ev.NodeIds, ev.Errors, ev.AllOk, context)
 	})
 }

@@ -24,7 +24,7 @@ func SignResult(m dsl.Module, destModule types.ModuleID, signature []uint8, orig
 	dsl.EmitMirEvent(m, events.SignResult(destModule, signature, origin))
 }
 
-func VerifySig[C any](m dsl.Module, destModule types.ModuleID, data *types1.SigVerData, signature []uint8, nodeId types.NodeID, context *C) {
+func VerifySig[C any](m dsl.Module, destModule types.ModuleID, data *types1.SignedData, signature []uint8, nodeId types.NodeID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.SigVerOrigin{
@@ -35,11 +35,11 @@ func VerifySig[C any](m dsl.Module, destModule types.ModuleID, data *types1.SigV
 	dsl.EmitMirEvent(m, events.VerifySig(destModule, data, signature, origin, nodeId))
 }
 
-func SigVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId types.NodeID, valid bool, error error) {
-	dsl.EmitMirEvent(m, events.SigVerified(destModule, origin, nodeId, valid, error))
+func SigVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeId types.NodeID, error error) {
+	dsl.EmitMirEvent(m, events.SigVerified(destModule, origin, nodeId, error))
 }
 
-func VerifySigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.SigVerData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
+func VerifySigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.SignedData, signatures [][]uint8, nodeIds []types.NodeID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.SigVerOrigin{
@@ -50,6 +50,6 @@ func VerifySigs[C any](m dsl.Module, destModule types.ModuleID, data []*types1.S
 	dsl.EmitMirEvent(m, events.VerifySigs(destModule, data, signatures, origin, nodeIds))
 }
 
-func SigsVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, valid []bool, errors []error, allOk bool) {
-	dsl.EmitMirEvent(m, events.SigsVerified(destModule, origin, nodeIds, valid, errors, allOk))
+func SigsVerified(m dsl.Module, destModule types.ModuleID, origin *types1.SigVerOrigin, nodeIds []types.NodeID, errors []error, allOk bool) {
+	dsl.EmitMirEvent(m, events.SigsVerified(destModule, origin, nodeIds, errors, allOk))
 }
