@@ -12,7 +12,7 @@ import (
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -77,8 +77,8 @@ func (w *Event_Iss) Unwrap() *isspb.Event {
 	return w.Iss
 }
 
-func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
-	return w.SbEvent
+func (w *Event_Orderer) Unwrap() *ordererpb.Event {
+	return w.Orderer
 }
 
 func (w *Event_NewRequests) Unwrap() *NewRequests {
@@ -172,7 +172,7 @@ func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
 	return w.Checkpoint
 }
 
-func (w *SignOrigin_Sb) Unwrap() *ordererspb.SBInstanceSignOrigin {
+func (w *SignOrigin_Sb) Unwrap() *ordererpb.SignOrigin {
 	return w.Sb
 }
 
@@ -195,7 +195,7 @@ func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
 	return w.Checkpoint
 }
 
-func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
+func (w *SigVerOrigin_Sb) Unwrap() *ordererpb.SigVerOrigin {
 	return w.Sb
 }
 

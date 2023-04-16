@@ -5,7 +5,7 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/ordererspb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )

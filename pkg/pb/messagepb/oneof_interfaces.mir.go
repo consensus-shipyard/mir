@@ -5,7 +5,7 @@ import (
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 )
 
@@ -36,6 +36,6 @@ func (w *Message_Checkpoint) Unwrap() *checkpointpb.Message {
 	return w.Checkpoint
 }
 
-func (w *Message_SbMessage) Unwrap() *ordererspb.SBInstanceMessage {
-	return w.SbMessage
+func (w *Message_Orderer) Unwrap() *ordererpb.Message {
+	return w.Orderer
 }

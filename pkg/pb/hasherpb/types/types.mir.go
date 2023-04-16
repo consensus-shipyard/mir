@@ -9,7 +9,7 @@ import (
 	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	types4 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -333,12 +333,12 @@ func (*HashOrigin_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Sb struct {
-	Sb *ordererspb.SBInstanceHashOrigin
+	Sb *ordererpb.HashOrigin
 }
 
 func (*HashOrigin_Sb) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Sb) Unwrap() *ordererspb.SBInstanceHashOrigin {
+func (w *HashOrigin_Sb) Unwrap() *ordererpb.HashOrigin {
 	return w.Sb
 }
 

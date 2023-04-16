@@ -3,7 +3,7 @@ package factorypb
 import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 )
 
 type Event_Type = isEvent_Type
@@ -40,6 +40,6 @@ func (w *GeneratorParams_EchoTestModule) Unwrap() *EchoModuleParams {
 	return w.EchoTestModule
 }
 
-func (w *GeneratorParams_PbftModule) Unwrap() *ordererspb.PBFTModule {
+func (w *GeneratorParams_PbftModule) Unwrap() *ordererpb.PBFTModule {
 	return w.PbftModule
 }

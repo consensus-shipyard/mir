@@ -7,7 +7,7 @@ import (
 	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	types5 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -41,8 +41,8 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 		return &Message_Pingpong{Pingpong: pb.Pingpong}
 	case *messagepb.Message_Checkpoint:
 		return &Message_Checkpoint{Checkpoint: types4.MessageFromPb(pb.Checkpoint)}
-	case *messagepb.Message_SbMessage:
-		return &Message_SbMessage{SbMessage: pb.SbMessage}
+	case *messagepb.Message_Orderer:
+		return &Message_Orderer{Orderer: types5.MessageFromPb(pb.Orderer)}
 	}
 	return nil
 }
@@ -137,22 +137,22 @@ func (*Message_Checkpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Checkpoint]()}
 }
 
-type Message_SbMessage struct {
-	SbMessage *ordererspb.SBInstanceMessage
+type Message_Orderer struct {
+	Orderer *types5.Message
 }
 
-func (*Message_SbMessage) isMessage_Type() {}
+func (*Message_Orderer) isMessage_Type() {}
 
-func (w *Message_SbMessage) Unwrap() *ordererspb.SBInstanceMessage {
-	return w.SbMessage
+func (w *Message_Orderer) Unwrap() *types5.Message {
+	return w.Orderer
 }
 
-func (w *Message_SbMessage) Pb() messagepb.Message_Type {
-	return &messagepb.Message_SbMessage{SbMessage: w.SbMessage}
+func (w *Message_Orderer) Pb() messagepb.Message_Type {
+	return &messagepb.Message_Orderer{Orderer: (w.Orderer).Pb()}
 }
 
-func (*Message_SbMessage) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_SbMessage]()}
+func (*Message_Orderer) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Orderer]()}
 }
 
 func MessageFromPb(pb *messagepb.Message) *Message {

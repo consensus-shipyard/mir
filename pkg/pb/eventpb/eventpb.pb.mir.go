@@ -19,7 +19,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Checkpoint)(nil)),
 		reflect.TypeOf((*Event_Factory)(nil)),
 		reflect.TypeOf((*Event_Iss)(nil)),
-		reflect.TypeOf((*Event_SbEvent)(nil)),
+		reflect.TypeOf((*Event_Orderer)(nil)),
 		reflect.TypeOf((*Event_NewRequests)(nil)),
 		reflect.TypeOf((*Event_SignRequest)(nil)),
 		reflect.TypeOf((*Event_SignResult)(nil)),

@@ -4,7 +4,7 @@ import (
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
@@ -54,6 +54,6 @@ func (w *HashOrigin_Checkpoint) Unwrap() *checkpointpb.HashOrigin {
 	return w.Checkpoint
 }
 
-func (w *HashOrigin_Sb) Unwrap() *ordererspb.SBInstanceHashOrigin {
+func (w *HashOrigin_Sb) Unwrap() *ordererpb.HashOrigin {
 	return w.Sb
 }

@@ -18,7 +18,7 @@ import (
 	types10 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	types15 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	types12 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
@@ -73,8 +73,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Factory{Factory: types9.EventFromPb(pb.Factory)}
 	case *eventpb.Event_Iss:
 		return &Event_Iss{Iss: types10.EventFromPb(pb.Iss)}
-	case *eventpb.Event_SbEvent:
-		return &Event_SbEvent{SbEvent: pb.SbEvent}
+	case *eventpb.Event_Orderer:
+		return &Event_Orderer{Orderer: pb.Orderer}
 	case *eventpb.Event_NewRequests:
 		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_SignRequest:
@@ -349,22 +349,22 @@ func (*Event_Iss) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Iss]()}
 }
 
-type Event_SbEvent struct {
-	SbEvent *ordererspb.SBInstanceEvent
+type Event_Orderer struct {
+	Orderer *ordererpb.Event
 }
 
-func (*Event_SbEvent) isEvent_Type() {}
+func (*Event_Orderer) isEvent_Type() {}
 
-func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
-	return w.SbEvent
+func (w *Event_Orderer) Unwrap() *ordererpb.Event {
+	return w.Orderer
 }
 
-func (w *Event_SbEvent) Pb() eventpb.Event_Type {
-	return &eventpb.Event_SbEvent{SbEvent: w.SbEvent}
+func (w *Event_Orderer) Pb() eventpb.Event_Type {
+	return &eventpb.Event_Orderer{Orderer: w.Orderer}
 }
 
-func (*Event_SbEvent) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_SbEvent]()}
+func (*Event_Orderer) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Orderer]()}
 }
 
 type Event_NewRequests struct {
@@ -884,12 +884,12 @@ func (*SignOrigin_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin_Sb struct {
-	Sb *ordererspb.SBInstanceSignOrigin
+	Sb *ordererpb.SignOrigin
 }
 
 func (*SignOrigin_Sb) isSignOrigin_Type() {}
 
-func (w *SignOrigin_Sb) Unwrap() *ordererspb.SBInstanceSignOrigin {
+func (w *SignOrigin_Sb) Unwrap() *ordererpb.SignOrigin {
 	return w.Sb
 }
 
@@ -1101,12 +1101,12 @@ func (*SigVerOrigin_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type SigVerOrigin_Sb struct {
-	Sb *ordererspb.SBInstanceSigVerOrigin
+	Sb *ordererpb.SigVerOrigin
 }
 
 func (*SigVerOrigin_Sb) isSigVerOrigin_Type() {}
 
-func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
+func (w *SigVerOrigin_Sb) Unwrap() *ordererpb.SigVerOrigin {
 	return w.Sb
 }
 
