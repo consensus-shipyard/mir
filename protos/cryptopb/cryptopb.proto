@@ -33,7 +33,7 @@ message Event {
 message SignRequest {
   option (mir.event) = true;
 
-  repeated bytes data = 1;
+  SignedData data = 1;
   SignOrigin origin = 2 [(mir.origin_request) = true];
 }
 
