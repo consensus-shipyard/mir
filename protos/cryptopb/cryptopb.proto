@@ -23,8 +23,10 @@ message Event {
 
     SignRequest  sign_request  = 1;
     SignResult   sign_result   = 2;
-    VerifySigs   verify_sigs   = 3;
-    SigsVerified sigs_verified = 4;
+    VerifySig    verify_sig    = 3;
+    SigVerified  sig_verified  = 4;
+    VerifySigs   verify_sigs   = 5;
+    SigsVerified sigs_verified = 6;
   }
 }
 
@@ -40,6 +42,24 @@ message SignResult {
 
   bytes signature = 1;
   SignOrigin origin = 2 [(mir.origin_response) = true];
+}
+
+message VerifySig {
+  option (mir.event) = true;
+
+  SigVerData   data      = 1;
+  bytes        signature = 2;
+  SigVerOrigin origin    = 3 [(mir.origin_request) = true];
+  string       node_id   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+}
+
+message SigVerified {
+  option (mir.event) = true;
+
+  SigVerOrigin origin  = 1 [(mir.origin_response) = true];
+  string       node_id = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  bool         valid   = 3;
+  string       error   = 4 [(mir.type) = "error"];
 }
 
 message VerifySigs {
