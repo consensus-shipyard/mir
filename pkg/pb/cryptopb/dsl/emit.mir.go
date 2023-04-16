@@ -9,7 +9,7 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
+func SignRequest[C any](m dsl.Module, destModule types.ModuleID, data *types1.SignedData, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.SignOrigin{

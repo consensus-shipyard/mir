@@ -20,7 +20,7 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponSignRequest(m dsl.Module, handler func(data [][]uint8, origin *types.SignOrigin) error) {
+func UponSignRequest(m dsl.Module, handler func(data *types.SignedData, origin *types.SignOrigin) error) {
 	UponEvent[*types.Event_SignRequest](m, func(ev *types.SignRequest) error {
 		return handler(ev.Data, ev.Origin)
 	})

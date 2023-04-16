@@ -170,20 +170,20 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type SignRequest struct {
-	Data   [][]uint8
+	Data   *SignedData
 	Origin *SignOrigin
 }
 
 func SignRequestFromPb(pb *cryptopb.SignRequest) *SignRequest {
 	return &SignRequest{
-		Data:   pb.Data,
+		Data:   SignedDataFromPb(pb.Data),
 		Origin: SignOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *SignRequest) Pb() *cryptopb.SignRequest {
 	return &cryptopb.SignRequest{
-		Data:   m.Data,
+		Data:   (m.Data).Pb(),
 		Origin: (m.Origin).Pb(),
 	}
 }

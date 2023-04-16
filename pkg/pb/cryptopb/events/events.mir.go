@@ -6,7 +6,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func SignRequest(destModule types.ModuleID, data [][]uint8, origin *types1.SignOrigin) *types2.Event {
+func SignRequest(destModule types.ModuleID, data *types1.SignedData, origin *types1.SignOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Crypto{
