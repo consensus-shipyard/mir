@@ -47,7 +47,7 @@ message SignResult {
 message VerifySig {
   option (mir.event) = true;
 
-  SigVerData   data      = 1;
+  SignedData   data      = 1;
   bytes        signature = 2;
   SigVerOrigin origin    = 3 [(mir.origin_request) = true];
   string       node_id   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
@@ -58,14 +58,13 @@ message SigVerified {
 
   SigVerOrigin origin  = 1 [(mir.origin_response) = true];
   string       node_id = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  bool         valid   = 3;
-  string       error   = 4 [(mir.type) = "error"];
+  string       error   = 3 [(mir.type) = "error"];
 }
 
 message VerifySigs {
   option (mir.event) = true;
 
-  repeated SigVerData data       = 1;
+  repeated SignedData data       = 1;
   repeated bytes      signatures = 2;
   SigVerOrigin        origin     = 3 [(mir.origin_request) = true];
   repeated string     node_ids   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
@@ -76,9 +75,8 @@ message SigsVerified {
 
   SigVerOrigin    origin   = 1 [(mir.origin_response) = true];
   repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  repeated bool   valid    = 3;
-  repeated string errors   = 4 [(mir.type) = "error"];
-  bool            all_ok   = 5;
+  repeated string errors   = 3 [(mir.type) = "error"];
+  bool            all_ok   = 4;
 }
 
 // ============================================================
@@ -114,7 +112,7 @@ message SigVerOrigin {
 // Auxiliary structs
 // ============================================================
 
-message SigVerData {
+message SignedData {
   option (mir.struct) = true;
 
   repeated bytes data = 1;
