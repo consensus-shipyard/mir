@@ -368,20 +368,29 @@ func New(
 	})
 
 	isspbdsl.UponPushCheckpoint(iss.m, func() error {
-
 		// Send the latest stable checkpoint to potentially
 		// delayed nodes. The set of nodes to send the latest
 		// stable checkpoint to is determined based on the
-		// highest epoch number in the messages received from
+		// highest epoch number in the checkpoint messages received from
 		// the node so far. If the highest epoch number we
 		// have heard from the node is more than params.RetainedEpochs
 		// behind, then that node is likely to be left behind
 		// and needs the stable checkpoint in order to start
 		// catching up with state transfer.
+
+		// Convenience variables
+		epoch := iss.lastStableCheckpoint.Epoch()
+		membership := iss.lastStableCheckpoint.Memberships()[0] // Membership of the epoch started by th checkpoint
+
+		// We loop through the checkpoint's first epoch's membership
+		// and not through the membership this replica is currently in.
+		// (Which might differ if the replica already advanced to a new epoch,
+		// but hasn't obtained its starting checkpoint yet.)
+		// This is required to avoid sending old checkpoints to replicas
+		// that are not yet part of the system for those checkpoints.
 		var delayed []t.NodeID
-		lastStableCheckpointEpoch := iss.lastStableCheckpoint.Epoch()
-		for n := range iss.epoch.Membership {
-			if lastStableCheckpointEpoch > iss.nodeEpochMap[n]+t.EpochNr(iss.Params.RetainedEpochs) {
+		for n := range membership {
+			if epoch > iss.nodeEpochMap[n]+t.EpochNr(iss.Params.RetainedEpochs) {
 				delayed = append(delayed, n)
 			}
 		}
@@ -414,6 +423,15 @@ func New(
 		if chkpMembershipOffset <= 0 {
 			// Ignore stable checkpoints that are not far enough
 			// ahead of the current state of the local node.
+			return nil
+		}
+
+		// Ignore checkpoint if we are not part of its membership
+		// (more precisely, membership of the epoch the checkpoint is at the start of).
+		// Correct nodes should never send such checkpoints, but faulty ones could.
+		if _, ok := chkp.Memberships()[0][iss.ownID]; !ok {
+			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Not in membership.",
+				"sender", sender, "memberships", chkp.Memberships())
 			return nil
 		}
 
