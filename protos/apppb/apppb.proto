@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package apppb;
+
+import "checkpointpb/checkpointpb.proto";
+
+import "mir/codegen_extensions.proto";
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/apppb";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    SnapshotRequest      snapshot_request    = 22;
+    Snapshot             snapshot            = 23;
+    RestoreState         restore_state       = 24;
+    NewEpoch             new_epoch           = 31;
+  }
+}
+
+message SnapshotRequest {
+  option (mir.event) = true;
+
+  string reply_to = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];;
+}
+
+message Snapshot {
+  option (mir.event) = true;
+
+  bytes                 app_data = 1;
+}
+
+message RestoreState {
+  option (mir.event) = true;
+  checkpointpb.StableCheckpoint checkpoint = 1;
+}
+
+message NewEpoch {
+  option (mir.event) = true;
+  uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+}
+
+

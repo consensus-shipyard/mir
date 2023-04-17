@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package eventpb;
 
+import "apppb/apppb.proto";
 import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
@@ -47,11 +48,7 @@ message Event {
              isspb.Event    iss                     = 18;
          ordererpb.Event    orderer                 = 39;
           cryptopb.Event    crypto                  = 40;
-
-    AppSnapshotRequest      app_snapshot_request    = 22;
-    AppSnapshot             app_snapshot            = 23;
-    AppRestoreState         app_restore_state       = 24;
-    NewEpoch                new_epoch               = 31;
+             apppb.Event    app                     = 41;
 
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
@@ -116,26 +113,6 @@ message StoreVerifiedRequest {
   bytes             data          = 2;
   bytes             authenticator = 3;
 }
-
-message AppSnapshotRequest {
-  option (mir.event) = true;
-  string reply_to = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];;
-}
-
-message AppSnapshot {
-  bytes                 app_data = 1;
-}
-
-message AppRestoreState {
-  option (mir.event) = true;
-  checkpointpb.StableCheckpoint checkpoint = 1;
-}
-
-message NewEpoch {
-  option (mir.event) = true;
-  uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
-}
-
 
 // ======================================================================
 // Timer events.
