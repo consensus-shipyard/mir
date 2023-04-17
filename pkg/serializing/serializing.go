@@ -11,6 +11,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -44,14 +45,14 @@ func BatchForHash(batch *requestpb.Batch) [][]byte {
 	return data
 }
 
-func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]byte {
+func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
 	epochBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(epochBytes, uint64(epoch))
 
 	snBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(snBytes, uint64(seqNr))
 
-	return [][]byte{epochBytes, snBytes, snapshotHash}
+	return &cryptopbtypes.SignedData{Data: [][]byte{epochBytes, snBytes, snapshotHash}}
 }
 
 func SnapshotForHash(snapshot *commonpb.StateSnapshot) *commonpbtypes.HashData {

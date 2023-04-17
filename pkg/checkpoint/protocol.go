@@ -6,6 +6,9 @@ import (
 	"bytes"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
+	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
@@ -138,10 +141,15 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 		default:
 			return nil, errors.Errorf("unexpected hasher event type: %T", e)
 		}
-	case *eventpb.Event_SignResult:
-		return p.applySignResult(e.SignResult)
-	case *eventpb.Event_NodeSigsVerified:
-		return p.applyNodeSigsVerified(e.NodeSigsVerified)
+	case *eventpb.Event_Crypto:
+		switch e := e.Crypto.Type.(type) {
+		case *cryptopb.Event_SignResult:
+			return p.applySignResult(e.SignResult)
+		case *cryptopb.Event_SigsVerified:
+			return p.applyNodeSigsVerified(e.SigsVerified)
+		default:
+			return nil, errors.Errorf("unexpected crypto event type: %T", e)
+		}
 	case *eventpb.Event_BatchFetcher:
 		switch e := e.BatchFetcher.Type.(type) {
 		case *batchfetcherpb.Event_ClientProgress:
@@ -220,14 +228,15 @@ func (p *Protocol) applyHashResult(result *hasherpb.Result) (*events.EventList, 
 
 	// Request signature
 	sigData := serializing.CheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
-	return events.ListOf(events.SignRequest(
+
+	return events.ListOf(cryptopbevents.SignRequest(
 		p.moduleConfig.Crypto,
 		sigData,
 		protobufs.SignOrigin(p.moduleConfig.Self),
-	)), nil
+	).Pb()), nil
 }
 
-func (p *Protocol) applySignResult(result *eventpb.SignResult) (*events.EventList, error) {
+func (p *Protocol) applySignResult(result *cryptopb.SignResult) (*events.EventList, error) {
 
 	eventsOut := events.EmptyList()
 
@@ -307,18 +316,18 @@ func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *
 
 	// Verify signature of the sender.
 	sigData := serializing.CheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
-	eventsOut.PushBack(events.VerifyNodeSigs(
+	eventsOut.PushBack(cryptopbevents.VerifySigs(
 		p.moduleConfig.Crypto,
-		[][][]byte{sigData},
+		[]*cryptopbtypes.SignedData{sigData},
 		[][]byte{msg.Signature},
-		[]t.NodeID{source},
 		protobufs.SigVerOrigin(p.moduleConfig.Self),
-	))
+		[]t.NodeID{source},
+	).Pb())
 
 	return eventsOut
 }
 
-func (p *Protocol) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) (*events.EventList, error) {
+func (p *Protocol) applyNodeSigsVerified(result *cryptopb.SigsVerified) (*events.EventList, error) {
 
 	// A checkpoint only has one signature and thus each slice of the result only contains one element.
 	sourceNode := t.NodeID(result.NodeIds[0])

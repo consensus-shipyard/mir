@@ -9,6 +9,7 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
@@ -161,12 +162,17 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 	switch ev := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return orderer.applyInit(), nil
-	case *eventpb.Event_SignResult: // TODO Remove SBInstanceEvent_SignResult
-		return orderer.applySignResult(ev.SignResult), nil
+	case *eventpb.Event_Crypto:
+		switch e := ev.Crypto.Type.(type) {
+		case *cryptopb.Event_SignResult:
+			return orderer.applySignResult(e.SignResult), nil
+		case *cryptopb.Event_SigsVerified:
+			return orderer.applyNodeSigsVerified(e.SigsVerified), nil
+		default:
+			return nil, fmt.Errorf("unknown crypto event type: %T", e)
+		}
 	case *eventpb.Event_MessageReceived:
 		return orderer.applyMessageReceived(ev.MessageReceived), nil
-	case *eventpb.Event_NodeSigsVerified:
-		return orderer.applyNodeSigsVerified(ev.NodeSigsVerified), nil
 	case *eventpb.Event_Availability:
 		switch avEvent := ev.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
@@ -238,10 +244,10 @@ func (orderer *Orderer) applyHashResult(result *hasherpb.Result) *events.EventLi
 	}
 }
 
-func (orderer *Orderer) applySignResult(result *eventpb.SignResult) *events.EventList {
+func (orderer *Orderer) applySignResult(result *cryptopb.SignResult) *events.EventList {
 	// Depending on the origin of the sign result, continue processing where the signature was needed.
 	switch or := result.Origin.Type.(type) {
-	case *eventpb.SignOrigin_Sb:
+	case *cryptopb.SignOrigin_Sb:
 		switch origin := or.Sb.Type.(type) {
 		case *ordererpb.SignOrigin_Pbft:
 			switch origin := origin.Pbft.Type.(type) {
@@ -258,9 +264,9 @@ func (orderer *Orderer) applySignResult(result *eventpb.SignResult) *events.Even
 	}
 }
 
-func (orderer *Orderer) applyNodeSigsVerified(result *eventpb.NodeSigsVerified) *events.EventList {
+func (orderer *Orderer) applyNodeSigsVerified(result *cryptopb.SigsVerified) *events.EventList {
 
-	ordererOrigin := result.Origin.Type.(*eventpb.SigVerOrigin_Sb).Sb
+	ordererOrigin := result.Origin.Type.(*cryptopb.SigVerOrigin_Sb).Sb
 
 	// Ignore events with invalid signatures.
 	if !result.AllOk {

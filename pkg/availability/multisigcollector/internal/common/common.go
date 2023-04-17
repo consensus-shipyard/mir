@@ -2,6 +2,7 @@ package common
 
 import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -35,6 +36,6 @@ type ModuleParams struct {
 }
 
 // SigData is the binary data that should be signed for forming a certificate.
-func SigData(instanceUID InstanceUID, batchID t.BatchID) [][]byte {
-	return [][]byte{instanceUID.Bytes(), []byte("BATCH_STORED"), batchID}
+func SigData(instanceUID InstanceUID, batchID t.BatchID) *cryptopbtypes.SignedData {
+	return &cryptopbtypes.SignedData{Data: [][]byte{instanceUID.Bytes(), []byte("BATCH_STORED"), batchID}}
 }

@@ -5,6 +5,7 @@ import (
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
@@ -61,17 +62,17 @@ func HashOrigin(module t.ModuleID, origin *ordererpb.HashOrigin) *hasherpbtypes.
 	}
 }
 
-func SignOrigin(module t.ModuleID, origin *ordererpb.SignOrigin) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.SignOrigin_Sb{Sb: origin},
+func SignOrigin(module t.ModuleID, origin *ordererpb.SignOrigin) *cryptopbtypes.SignOrigin {
+	return &cryptopbtypes.SignOrigin{
+		Module: module,
+		Type:   &cryptopbtypes.SignOrigin_Sb{Sb: origin},
 	}
 }
 
-func SigVerOrigin(module t.ModuleID, origin *ordererpb.SigVerOrigin) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.SigVerOrigin_Sb{Sb: origin},
+func SigVerOrigin(module t.ModuleID, origin *ordererpb.SigVerOrigin) *cryptopbtypes.SigVerOrigin {
+	return &cryptopbtypes.SigVerOrigin{
+		Module: module,
+		Type:   &cryptopbtypes.SigVerOrigin_Sb{Sb: origin},
 	}
 }
 

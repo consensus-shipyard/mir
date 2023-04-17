@@ -17,6 +17,7 @@ package orderers
 
 import (
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -274,7 +275,7 @@ func serializePreprepareForHashing(preprepare *pbftpb.Preprepare) *commonpbtypes
 	return &commonpbtypes.HashData{Data: [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.Data}}
 }
 
-func serializeViewChangeForSigning(vc *pbftpb.ViewChange) [][]byte {
+func serializeViewChangeForSigning(vc *pbftpb.ViewChange) *cryptopbtypes.SignedData {
 	_ = &pbftpb.ViewChange{
 		View: 0,
 		PSet: nil,
@@ -301,5 +302,5 @@ func serializeViewChangeForSigning(vc *pbftpb.ViewChange) [][]byte {
 		data = append(data, qSetEntry.Digest)
 	}
 
-	return data
+	return &cryptopbtypes.SignedData{Data: data}
 }

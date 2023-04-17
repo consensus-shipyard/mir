@@ -4,6 +4,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
@@ -79,17 +80,17 @@ func HashOrigin(module t.ModuleID) *hasherpbtypes.HashOrigin {
 	}
 }
 
-func SignOrigin(module t.ModuleID) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.SignOrigin_Checkpoint{Checkpoint: &checkpointpb.SignOrigin{}},
+func SignOrigin(module t.ModuleID) *cryptopbtypes.SignOrigin {
+	return &cryptopbtypes.SignOrigin{
+		Module: module,
+		Type:   &cryptopbtypes.SignOrigin_Checkpoint{Checkpoint: &checkpointpb.SignOrigin{}},
 	}
 }
 
-func SigVerOrigin(module t.ModuleID) *eventpb.SigVerOrigin {
-	return &eventpb.SigVerOrigin{
-		Module: module.Pb(),
-		Type:   &eventpb.SigVerOrigin_Checkpoint{Checkpoint: &checkpointpb.SigVerOrigin{}},
+func SigVerOrigin(module t.ModuleID) *cryptopbtypes.SigVerOrigin {
+	return &cryptopbtypes.SigVerOrigin{
+		Module: module,
+		Type:   &cryptopbtypes.SigVerOrigin_Checkpoint{Checkpoint: &checkpointpb.SigVerOrigin{}},
 	}
 }
 

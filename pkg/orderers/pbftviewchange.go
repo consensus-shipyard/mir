@@ -7,6 +7,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
@@ -92,12 +94,12 @@ func (orderer *Orderer) startViewChange() *events.EventList {
 
 	// Request a signature for the newly created ViewChange message.
 	// Operation continues on reception of the SignResult event.
-	return eventsOut.PushBack(events.SignRequest(
+	return eventsOut.PushBack(cryptopbevents.SignRequest(
 		orderer.moduleConfig.Crypto,
 		serializeViewChangeForSigning(viewChange),
 		SignOrigin(orderer.moduleConfig.Self,
 			viewChangeSignOrigin(viewChange)),
-	))
+	).Pb())
 }
 
 // applyViewChangeSignResult processes a newly generated signature of a ViewChange message.
@@ -134,14 +136,13 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 // The only thing it does is request verification of the signature.
 func (orderer *Orderer) applyMsgSignedViewChange(svc *pbftpb.SignedViewChange, from t.NodeID) *events.EventList {
 	viewChange := svc.ViewChange
-	return events.ListOf(events.VerifyNodeSigs(
+	return events.ListOf(cryptopbevents.VerifySigs(
 		orderer.moduleConfig.Crypto,
-		[][][]byte{serializeViewChangeForSigning(viewChange)},
+		[]*cryptopbtypes.SignedData{serializeViewChangeForSigning(viewChange)},
 		[][]byte{svc.Signature},
+		SigVerOrigin(orderer.moduleConfig.Self, viewChangeSigVerOrigin(svc)),
 		[]t.NodeID{from},
-		SigVerOrigin(orderer.moduleConfig.Self,
-			viewChangeSigVerOrigin(svc)),
-	))
+	).Pb())
 }
 
 func (orderer *Orderer) applyVerifiedViewChange(svc *pbftpb.SignedViewChange, from t.NodeID) *events.EventList {
@@ -361,7 +362,7 @@ func (orderer *Orderer) applyMsgNewView(newView *pbftpb.NewView, from t.NodeID) 
 	}
 
 	// Assemble request for checking signatures on the contained ViewChange messages.
-	viewChangeData := make([][][]byte, len(newView.SignedViewChanges))
+	viewChangeData := make([]*cryptopbtypes.SignedData, len(newView.SignedViewChanges))
 	signatures := make([][]byte, len(newView.SignedViewChanges))
 	for i, signedViewChange := range newView.SignedViewChanges {
 		viewChangeData[i] = serializeViewChangeForSigning(signedViewChange.ViewChange)
@@ -369,15 +370,15 @@ func (orderer *Orderer) applyMsgNewView(newView *pbftpb.NewView, from t.NodeID) 
 	}
 
 	// Request checking of signatures on the contained ViewChange messages
-	return events.ListOf(events.VerifyNodeSigs(
+	return events.ListOf(cryptopbevents.VerifySigs(
 		orderer.moduleConfig.Crypto,
 		viewChangeData,
 		signatures,
-		t.NodeIDSlice(newView.ViewChangeSenders),
 		SigVerOrigin(
 			orderer.moduleConfig.Self,
 			newViewSigVerOrigin(newView)),
-	))
+		t.NodeIDSlice(newView.ViewChangeSenders),
+	).Pb())
 }
 
 func (orderer *Orderer) applyVerifiedNewView(newView *pbftpb.NewView) *events.EventList {

@@ -1,4 +1,4 @@
-package dsl
+package test
 
 import (
 	"errors"
@@ -9,8 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	// TODO: Try removing the dependency on the crypto module. (Does that mean completely removing some tests?)
+	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
+	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/types"
@@ -33,7 +39,7 @@ func defaultSimpleModuleConfig() *simpleModuleConfig {
 }
 
 func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
-	m := NewModule(mc.Self)
+	m := dsl.NewModule(mc.Self)
 
 	// state
 	var testingStrings []string
@@ -69,9 +75,9 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	UponCondition(m, func() error {
+	dsl.UponCondition(m, func() error {
 		if len(testingStrings) >= 3 {
-			EmitEvent(m, &eventpb.Event{
+			dsl.EmitEvent(m, &eventpb.Event{
 				DestModule: "reports",
 				Type: &eventpb.Event_TestingString{
 					TestingString: wrapperspb.String(fmt.Sprintf("Collected at least 3 testing strings: %v",
@@ -87,10 +93,10 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	UponCondition(m, func() error {
+	dsl.UponCondition(m, func() error {
 		for uintsSum >= lastReportedUint+100 {
 			lastReportedUint += 100
-			EmitEvent(m, &eventpb.Event{
+			dsl.EmitEvent(m, &eventpb.Event{
 				DestModule: "reports",
 				Type: &eventpb.Event_TestingUint{
 					TestingUint: wrapperspb.UInt64(lastReportedUint),
@@ -100,7 +106,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	UponCondition(m, func() error {
+	dsl.UponCondition(m, func() error {
 		if uintsSum > 1000 {
 			return errors.New("too much")
 		}
@@ -231,22 +237,27 @@ type testingStringContext struct {
 	s string
 }
 
-func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
-	m := NewModule(mc.Self)
+func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
+	m := dsl.NewModule(mc.Self)
 
 	UponTestingString(m, func(s string) error {
-		SignRequest(m, mc.Crypto, [][]byte{[]byte(s)}, &testingStringContext{s})
+		cryptopbdsl.SignRequest(
+			m,
+			mc.Crypto,
+			&cryptopbtypes.SignedData{Data: [][]byte{[]byte(s)}},
+			&testingStringContext{s},
+		)
 		return nil
 	})
 
-	UponSignResult(m, func(signature []byte, context *testingStringContext) error {
+	cryptopbdsl.UponSignResult(m, func(signature []byte, context *testingStringContext) error {
 		EmitTestingString(m, mc.Signed, fmt.Sprintf("%s: %s", context.s, string(signature)))
 		return nil
 	})
 
 	UponTestingUint(m, func(u uint64) error {
 		if u < 10 {
-			msg := [][]byte{[]byte("uint"), []byte(strconv.FormatUint(u, 10))}
+			msg := &cryptopbtypes.SignedData{Data: [][]byte{[]byte("uint"), []byte(strconv.FormatUint(u, 10))}}
 
 			var signatures [][]byte
 			var nodeIDs []types.NodeID
@@ -257,19 +268,19 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
 
 			// NB: avoid using primitive types as the context in the actual implementation, prefer named structs,
 			//     remember that the context type is used to match requests with responses.
-			VerifyNodeSigs(m, mc.Crypto, sliceutil.Repeat(msg, int(u)), signatures, nodeIDs, &u)
+			cryptopbdsl.VerifySigs(m, mc.Crypto, sliceutil.Repeat(msg, int(u)), signatures, nodeIDs, &u)
 		}
 		return nil
 	})
 
-	UponOneNodeSigVerified(m, func(nodeID types.NodeID, err error, context *uint64) error {
+	cryptopbdsl.UponSigVerified(m, func(nodeID types.NodeID, err error, context *uint64) error {
 		if err == nil {
 			EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
 		}
 		return nil
 	})
 
-	UponNodeSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
 		if allOK {
 			EmitTestingUint(m, mc.Verified, *context)
 		}
@@ -280,59 +291,67 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) Module {
 }
 
 func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
-	testCases := map[string]func(mc *contextTestingModuleModuleConfig, m Module){
-		"empty": func(mc *contextTestingModuleModuleConfig, m Module) {},
+	testCases := map[string]func(mc *contextTestingModuleModuleConfig, m dsl.Module){
+		"empty": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {},
 
-		"request response": func(mc *contextTestingModuleModuleConfig, m Module) {
+		"request response": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
+			signOrigin := iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin
 
-			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+			eventsOut, err = m.ApplyEvents(events.ListOf(cryptopbevents.SignResult(
+				mc.Self,
+				[]byte("world"),
+				cryptopbtypes.SignOriginFromPb(signOrigin),
+			).Pb()))
 			assert.Nil(t, err)
 			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
 		},
 
-		"response without request": func(mc *contextTestingModuleModuleConfig, m Module) {
+		"response without request": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			assert.Panics(t, func() {
 				// Context with id 42 doesn't exist. The module should panic.
 				_, _ = m.ApplyEvents(events.ListOf(
-					events.SignResult(mc.Self, []byte{}, DslSignOrigin(mc.Self, ContextID(42)))))
+					cryptopbevents.SignResult(mc.Self, []byte{}, DslSignOrigin(mc.Self, dsl.ContextID(42))).Pb()))
 			})
 		},
 
-		"check context is disposed": func(mc *contextTestingModuleModuleConfig, m Module) {
+		"check context is disposed": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			signOrigin := iter.Next().Type.(*eventpb.Event_SignRequest).SignRequest.Origin
+			signOrigin := cryptopbtypes.SignOriginFromPb(iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin)
 
-			eventsOut, err = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+			eventsOut, err = m.ApplyEvents(events.ListOf(
+				cryptopbevents.SignResult(mc.Self, []byte("world"), signOrigin).Pb(),
+			))
 			assert.Nil(t, err)
 			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
 				// The context should already be disposed of and the module should panic.
-				_, _ = m.ApplyEvents(events.ListOf(events.SignResult(mc.Self, []byte("world"), signOrigin)))
+				_, _ = m.ApplyEvents(events.ListOf(
+					cryptopbevents.SignResult(mc.Self, []byte("world"), signOrigin).Pb()),
+				)
 			})
 		},
 
-		"check multiple handlers for response": func(mc *contextTestingModuleModuleConfig, m Module) {
+		"check multiple handlers for response": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			eventsOut, err := m.ApplyEvents(events.ListOf(events.TestingUint(mc.Self, 8)))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			sigVerEvent := iter.Next().Type.(*eventpb.Event_VerifyNodeSigs).VerifyNodeSigs
+			sigVerEvent := iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_VerifySigs).VerifySigs
 			sigVerNodes := sigVerEvent.NodeIds
 			assert.Equal(t, 8, len(sigVerNodes))
-			sigVerOrigin := sigVerEvent.Origin
+			sigVerOrigin := cryptopbtypes.SigVerOriginFromPb(sigVerEvent.Origin)
 
 			// send some unrelated events to make sure the context is preserved and does not get overwritten
 			_, err = m.ApplyEvents(events.ListOf(events.TestingString(mc.Self, "hello")))
@@ -343,14 +362,14 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			assert.Nil(t, err)
 
 			// construct a response for the signature verification request.
-			sigsVerifiedEvent := events.NodeSigsVerified(
+			var nilErr error
+			sigsVerifiedEvent := cryptopbevents.SigsVerified(
 				/*destModule*/ mc.Self,
-				/*valid*/ sliceutil.Repeat(true, 8),
-				/*errors*/ sliceutil.Repeat("", 8),
-				/*nodeIDs*/ types.NodeIDSlice(sigVerNodes),
 				/*origin*/ sigVerOrigin,
+				/*nodeIDs*/ types.NodeIDSlice(sigVerNodes),
+				/*errors*/ sliceutil.Repeat(nilErr, 8),
 				/*allOk*/ true,
-			)
+			).Pb()
 
 			eventsOut, err = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
 			assert.Nil(t, err)
@@ -384,33 +403,33 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 
 // event wrappers (similar to the ones in pkg/events/events.go)
 
-func DslSignOrigin(module types.ModuleID, contextID ContextID) *eventpb.SignOrigin {
-	return &eventpb.SignOrigin{
-		Module: module.Pb(),
-		Type: &eventpb.SignOrigin_Dsl{
-			Dsl: Origin(contextID),
+func DslSignOrigin(module types.ModuleID, contextID dsl.ContextID) *cryptopbtypes.SignOrigin {
+	return &cryptopbtypes.SignOrigin{
+		Module: module,
+		Type: &cryptopbtypes.SignOrigin_Dsl{
+			Dsl: dsl.Origin(contextID),
 		},
 	}
 }
 
 // dsl wrappers (similar to the ones in pkg/dsl/events.go)
 
-func EmitTestingString(m Module, dest types.ModuleID, s string) {
-	EmitEvent(m, events.TestingString(dest, s))
+func EmitTestingString(m dsl.Module, dest types.ModuleID, s string) {
+	dsl.EmitEvent(m, events.TestingString(dest, s))
 }
 
-func EmitTestingUint(m Module, dest types.ModuleID, u uint64) {
-	EmitEvent(m, events.TestingUint(dest, u))
+func EmitTestingUint(m dsl.Module, dest types.ModuleID, u uint64) {
+	dsl.EmitEvent(m, events.TestingUint(dest, u))
 }
 
-func UponTestingString(m Module, handler func(s string) error) {
-	UponEvent[*eventpb.Event_TestingString](m, func(ev *wrapperspb.StringValue) error {
+func UponTestingString(m dsl.Module, handler func(s string) error) {
+	dsl.UponEvent[*eventpb.Event_TestingString](m, func(ev *wrapperspb.StringValue) error {
 		return handler(ev.Value)
 	})
 }
 
-func UponTestingUint(m Module, handler func(u uint64) error) {
-	UponEvent[*eventpb.Event_TestingUint](m, func(ev *wrapperspb.UInt64Value) error {
+func UponTestingUint(m dsl.Module, handler func(u uint64) error) {
+	dsl.UponEvent[*eventpb.Event_TestingUint](m, func(ev *wrapperspb.UInt64Value) error {
 		return handler(ev.Value)
 	})
 }

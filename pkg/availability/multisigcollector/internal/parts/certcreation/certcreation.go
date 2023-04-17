@@ -10,6 +10,7 @@ import (
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -134,13 +135,13 @@ func IncludeCreatingCertificates(
 		if !certificate.receivedSig[from] {
 			certificate.receivedSig[from] = true
 			sigData := common.SigData(params.InstanceUID, certificate.BatchID)
-			dsl.VerifyOneNodeSig(m, mc.Crypto, sigData, signature, from, &verifySigContext{reqID, signature})
+			cryptopbdsl.VerifySig(m, mc.Crypto, sigData, signature, from, &verifySigContext{reqID, signature})
 		}
 		return nil
 	})
 
 	// When a signature is verified, store it in memory.
-	dsl.UponOneNodeSigVerified(m, func(nodeID t.NodeID, err error, context *verifySigContext) error {
+	cryptopbdsl.UponSigVerified(m, func(nodeID t.NodeID, err error, context *verifySigContext) error {
 		if err != nil {
 			// Ignore invalid signature.
 			return nil
@@ -199,13 +200,13 @@ func IncludeCreatingCertificates(
 
 	// When the batch is stored, generate a signature
 	batchdbpbdsl.UponBatchStored(m, func(context *storeBatchContext) error {
-		sigMsg := common.SigData(params.InstanceUID, context.batchID)
-		dsl.SignRequest(m, mc.Crypto, sigMsg, &signReceivedBatchContext{context.sourceID, context.reqID})
+		signedData := common.SigData(params.InstanceUID, context.batchID)
+		cryptopbdsl.SignRequest(m, mc.Crypto, signedData, &signReceivedBatchContext{context.sourceID, context.reqID})
 		return nil
 	})
 
 	// When a signature is generated, send it to the process that sent the request.
-	dsl.UponSignResult(m, func(signature []byte, context *signReceivedBatchContext) error {
+	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signReceivedBatchContext) error {
 		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
 		return nil
 	})
