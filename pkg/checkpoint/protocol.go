@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/pb/apppb"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
@@ -132,8 +133,13 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return events.EmptyList(), nil // Nothing to initialize.
-	case *eventpb.Event_AppSnapshot:
-		return p.applyAppSnapshot(e.AppSnapshot)
+	case *eventpb.Event_App:
+		switch e := e.App.Type.(type) {
+		case *apppb.Event_Snapshot:
+			return p.applyAppSnapshot(e.Snapshot)
+		default:
+			return nil, errors.Errorf("unexpected app event type: %T", e)
+		}
 	case *eventpb.Event_Hasher:
 		switch e := e.Hasher.Type.(type) {
 		case *hasherpb.Event_Result:
@@ -174,7 +180,7 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 	}
 }
 
-func (p *Protocol) applyAppSnapshot(appSnapshot *eventpb.AppSnapshot) (*events.EventList, error) {
+func (p *Protocol) applyAppSnapshot(appSnapshot *apppb.Snapshot) (*events.EventList, error) {
 
 	// Treat nil data as an empty byte slice.
 	var appData []byte

@@ -120,31 +120,6 @@ func NewClientRequests(destModule t.ModuleID, requests []*requestpb.Request) *ev
 	}}
 }
 
-// AppSnapshotRequest returns an event representing the protocol module asking the application for a state snapshot.
-func AppSnapshotRequest(destModule t.ModuleID, replyTo t.ModuleID) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: &eventpb.AppSnapshotRequest{
-			ReplyTo: replyTo.Pb(),
-		}},
-	}
-}
-
-// AppSnapshotResponse returns an event representing the application making a snapshot of its state.
-// appData is the serialized application state (the snapshot itself)
-// and origin is the origin of the corresponding AppSnapshotRequest.
-func AppSnapshotResponse(
-	destModule t.ModuleID,
-	appData []byte,
-) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_AppSnapshot{AppSnapshot: &eventpb.AppSnapshot{
-			AppData: appData,
-		}},
-	}
-}
-
 // EpochConfig represents the configuration of the system during one epoch
 func EpochConfig(
 	epochNr t.EpochNr,
@@ -163,14 +138,5 @@ func EpochConfig(
 		FirstSn:     firstSn.Pb(),
 		Length:      uint64(length),
 		Memberships: m,
-	}
-}
-
-func NewEpoch(destModule t.ModuleID, epochNr t.EpochNr) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_NewEpoch{NewEpoch: &eventpb.NewEpoch{
-			EpochNr: epochNr.Pb(),
-		}},
 	}
 }

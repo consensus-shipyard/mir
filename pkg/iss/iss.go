@@ -15,18 +15,29 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/modules"
-
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
+	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/events"
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/orderers"
+	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -34,18 +45,6 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-
-	"github.com/filecoin-project/mir/pkg/checkpoint"
-	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
-	"github.com/filecoin-project/mir/pkg/clientprogress"
-	"github.com/filecoin-project/mir/pkg/crypto"
-	"github.com/filecoin-project/mir/pkg/events"
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
-	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/orderers"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -210,7 +209,7 @@ func New(
 	eventpbdsl.UponInit(iss.m, func() error {
 
 		// Initialize application state according to the initial checkpoint.
-		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
+		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
@@ -493,7 +492,7 @@ func New(
 		// Create an event to request the application module for
 		// restoring its state from the snapshot received in the new
 		// stable checkpoint message.
-		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
+		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
 
 		// Start executing the current epoch (the one the checkpoint corresponds to).
 		// This must happen after the state is restored,
@@ -582,7 +581,6 @@ func InitialStateSnapshot(
 // This includes informing the application about the new epoch and initializing all the necessary external modules
 // such as availability and orderers.
 func (iss *ISS) startEpoch(epochNr t.EpochNr) {
-	eventsOut := events.EmptyList()
 
 	// Initialize the internal data structures for the new epoch.
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, iss.memberships[0], iss.LeaderPolicy)
@@ -592,8 +590,7 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) {
 		"epochNr", epochNr, "nodes", maputil.GetSortedKeys(iss.memberships[0]), "leaders", iss.LeaderPolicy.Leaders())
 
 	// Signal the new epoch to the application.
-	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
-	eventpbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
+	apppbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
 
 	// Initialize the new availability module.
 	iss.initAvailability()
@@ -784,7 +781,7 @@ func (iss *ISS) advanceEpoch() error {
 	// but it is guaranteed to be created before the application's response.
 	// This is because the NewModule event will already be enqueued for the checkpoint factory
 	// when the application receives the snapshot request.
-	eventpbdsl.AppSnapshotRequest(iss.m, iss.moduleConfig.App, chkpModuleID)
+	apppbdsl.SnapshotRequest(iss.m, iss.moduleConfig.App, chkpModuleID)
 
 	return nil
 }
