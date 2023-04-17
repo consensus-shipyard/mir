@@ -273,9 +273,11 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 		return nil
 	})
 
-	cryptopbdsl.UponSigVerified(m, func(nodeID types.NodeID, err error, context *uint64) error {
-		if err == nil {
-			EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
+		if allOK {
+			for _, nodeID := range nodeIDs {
+				EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
+			}
 		}
 		return nil
 	})
