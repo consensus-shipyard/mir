@@ -84,6 +84,22 @@ func (w *Event_Crypto) Unwrap() *cryptopb.Event {
 	return w.Crypto
 }
 
+func (w *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
+	return w.AppSnapshotRequest
+}
+
+func (w *Event_AppSnapshot) Unwrap() *AppSnapshot {
+	return w.AppSnapshot
+}
+
+func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
+	return w.AppRestoreState
+}
+
+func (w *Event_NewEpoch) Unwrap() *NewEpoch {
+	return w.NewEpoch
+}
+
 func (w *Event_SendMessage) Unwrap() *SendMessage {
 	return w.SendMessage
 }
@@ -102,26 +118,6 @@ func (w *Event_RequestSigVerified) Unwrap() *RequestSigVerified {
 
 func (w *Event_StoreVerifiedRequest) Unwrap() *StoreVerifiedRequest {
 	return w.StoreVerifiedRequest
-}
-
-func (w *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
-	return w.AppSnapshotRequest
-}
-
-func (w *Event_AppSnapshot) Unwrap() *AppSnapshot {
-	return w.AppSnapshot
-}
-
-func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
-	return w.AppRestoreState
-}
-
-func (w *Event_NewEpoch) Unwrap() *NewEpoch {
-	return w.NewEpoch
-}
-
-func (w *Event_NewConfig) Unwrap() *NewConfig {
-	return w.NewConfig
 }
 
 func (w *Event_NewRequests) Unwrap() *NewRequests {

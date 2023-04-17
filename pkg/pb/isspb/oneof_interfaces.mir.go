@@ -31,3 +31,7 @@ func (w *Event_SbDeliver) Unwrap() *SBDeliver {
 func (w *Event_DeliverCert) Unwrap() *DeliverCert {
 	return w.DeliverCert
 }
+
+func (w *Event_NewConfig) Unwrap() *NewConfig {
+	return w.NewConfig
+}

@@ -5,6 +5,7 @@ import (
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
@@ -116,6 +117,8 @@ func Event_TypeFromPb(pb isspb.Event_Type) Event_Type {
 		return &Event_SbDeliver{SbDeliver: SBDeliverFromPb(pb.SbDeliver)}
 	case *isspb.Event_DeliverCert:
 		return &Event_DeliverCert{DeliverCert: DeliverCertFromPb(pb.DeliverCert)}
+	case *isspb.Event_NewConfig:
+		return &Event_NewConfig{NewConfig: NewConfigFromPb(pb.NewConfig)}
 	}
 	return nil
 }
@@ -172,6 +175,24 @@ func (w *Event_DeliverCert) Pb() isspb.Event_Type {
 
 func (*Event_DeliverCert) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_DeliverCert]()}
+}
+
+type Event_NewConfig struct {
+	NewConfig *NewConfig
+}
+
+func (*Event_NewConfig) isEvent_Type() {}
+
+func (w *Event_NewConfig) Unwrap() *NewConfig {
+	return w.NewConfig
+}
+
+func (w *Event_NewConfig) Pb() isspb.Event_Type {
+	return &isspb.Event_NewConfig{NewConfig: (w.NewConfig).Pb()}
+}
+
+func (*Event_NewConfig) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_NewConfig]()}
 }
 
 func EventFromPb(pb *isspb.Event) *Event {
@@ -257,4 +278,27 @@ func (m *DeliverCert) Pb() *isspb.DeliverCert {
 
 func (*DeliverCert) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.DeliverCert]()}
+}
+
+type NewConfig struct {
+	EpochNr    types3.EpochNr
+	Membership *types5.Membership
+}
+
+func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
+	return &NewConfig{
+		EpochNr:    (types3.EpochNr)(pb.EpochNr),
+		Membership: types5.MembershipFromPb(pb.Membership),
+	}
+}
+
+func (m *NewConfig) Pb() *isspb.NewConfig {
+	return &isspb.NewConfig{
+		EpochNr:    (uint64)(m.EpochNr),
+		Membership: (m.Membership).Pb(),
+	}
+}
+
+func (*NewConfig) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.NewConfig]()}
 }
