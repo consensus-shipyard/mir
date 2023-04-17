@@ -11,6 +11,7 @@ package isspb;
 import "requestpb/requestpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "availabilitypb/availabilitypb.proto";
+import "commonpb/commonpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
@@ -49,6 +50,7 @@ message Event {
     PushCheckpoint push_checkpoint = 5;
     SBDeliver      sb_deliver      = 6;
     DeliverCert    deliver_cert    = 7;
+    NewConfig      new_config      = 8;
   }
 }
 
@@ -71,5 +73,12 @@ message DeliverCert {
 
   uint64              sn   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
   availabilitypb.Cert cert = 2;
+}
+
+message NewConfig {
+  option (mir.event) = true;
+
+  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  commonpb.Membership membership = 2;
 }
 

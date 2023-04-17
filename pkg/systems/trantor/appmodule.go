@@ -9,7 +9,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -121,7 +123,11 @@ func (m *AppModule) applyNewEpoch(newEpoch *eventpb.NewEpoch) (*events.EventList
 	}
 	m.transport.Connect(membership) // TODO: Make this function not use a context (and not block).
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
-	return events.ListOf(events.NewConfig(m.protocolModule, t.EpochNr(newEpoch.EpochNr), membership)), nil
+	return events.ListOf(isspbevents.NewConfig(
+		m.protocolModule,
+		t.EpochNr(newEpoch.EpochNr),
+		commonpbtypes.MembershipFromPb(t.MembershipPb(membership))).Pb(),
+	), nil
 }
 
 func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {

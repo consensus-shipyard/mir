@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package eventpb;
 
-import "commonpb/commonpb.proto";
 import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
@@ -49,16 +48,16 @@ message Event {
          ordererpb.Event    orderer                 = 39;
           cryptopb.Event    crypto                  = 40;
 
+    AppSnapshotRequest      app_snapshot_request    = 22;
+    AppSnapshot             app_snapshot            = 23;
+    AppRestoreState         app_restore_state       = 24;
+    NewEpoch                new_epoch               = 31;
+
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
     VerifyRequestSig        verify_request_sig      = 19;
     RequestSigVerified      request_sig_verified    = 20;
     StoreVerifiedRequest    store_verified_request  = 21;
-    AppSnapshotRequest      app_snapshot_request    = 22;
-    AppSnapshot             app_snapshot            = 23;
-    AppRestoreState         app_restore_state       = 24;
-    NewEpoch                new_epoch               = 31;
-    NewConfig               new_config              = 32;
     NewRequests             new_requests            = 7;
 
     // for unit-tests
@@ -135,12 +134,6 @@ message AppRestoreState {
 message NewEpoch {
   option (mir.event) = true;
   uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
-}
-
-message NewConfig {
-  option (mir.event) = true;
-  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
-  commonpb.Membership membership = 2;
 }
 
 

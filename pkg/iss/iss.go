@@ -246,7 +246,7 @@ func New(
 		return iss.deliverCert(context.sn, context.data, context.aborted, context.leader)
 	})
 
-	eventpbdsl.UponNewConfig(iss.m, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
+	isspbdsl.UponNewConfig(iss.m, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
 		membership := maputil.Transform(membershippb.Membership, func(nodeID t.NodeID, nodeAddr string) (t.NodeID, t.NodeAddress) {
 			multiAddr, _ := multiaddr.NewMultiaddr(nodeAddr)
 			return nodeID, t.NodeAddress(multiAddr)
