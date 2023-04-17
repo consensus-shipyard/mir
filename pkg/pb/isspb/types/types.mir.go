@@ -3,6 +3,7 @@ package isspbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -113,6 +114,8 @@ func Event_TypeFromPb(pb isspb.Event_Type) Event_Type {
 		return &Event_PushCheckpoint{PushCheckpoint: PushCheckpointFromPb(pb.PushCheckpoint)}
 	case *isspb.Event_SbDeliver:
 		return &Event_SbDeliver{SbDeliver: SBDeliverFromPb(pb.SbDeliver)}
+	case *isspb.Event_DeliverCert:
+		return &Event_DeliverCert{DeliverCert: DeliverCertFromPb(pb.DeliverCert)}
 	}
 	return nil
 }
@@ -151,6 +154,24 @@ func (w *Event_SbDeliver) Pb() isspb.Event_Type {
 
 func (*Event_SbDeliver) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_SbDeliver]()}
+}
+
+type Event_DeliverCert struct {
+	DeliverCert *DeliverCert
+}
+
+func (*Event_DeliverCert) isEvent_Type() {}
+
+func (w *Event_DeliverCert) Unwrap() *DeliverCert {
+	return w.DeliverCert
+}
+
+func (w *Event_DeliverCert) Pb() isspb.Event_Type {
+	return &isspb.Event_DeliverCert{DeliverCert: (w.DeliverCert).Pb()}
+}
+
+func (*Event_DeliverCert) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.Event_DeliverCert]()}
 }
 
 func EventFromPb(pb *isspb.Event) *Event {
@@ -213,4 +234,27 @@ func (m *SBDeliver) Pb() *isspb.SBDeliver {
 
 func (*SBDeliver) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.SBDeliver]()}
+}
+
+type DeliverCert struct {
+	Sn   types3.SeqNr
+	Cert *types4.Cert
+}
+
+func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
+	return &DeliverCert{
+		Sn:   (types3.SeqNr)(pb.Sn),
+		Cert: types4.CertFromPb(pb.Cert),
+	}
+}
+
+func (m *DeliverCert) Pb() *isspb.DeliverCert {
+	return &isspb.DeliverCert{
+		Sn:   (uint64)(m.Sn),
+		Cert: (m.Cert).Pb(),
+	}
+}
+
+func (*DeliverCert) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.DeliverCert]()}
 }

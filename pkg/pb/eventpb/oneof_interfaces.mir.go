@@ -84,20 +84,12 @@ func (w *Event_Crypto) Unwrap() *cryptopb.Event {
 	return w.Crypto
 }
 
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
-}
-
 func (w *Event_SendMessage) Unwrap() *SendMessage {
 	return w.SendMessage
 }
 
 func (w *Event_MessageReceived) Unwrap() *MessageReceived {
 	return w.MessageReceived
-}
-
-func (w *Event_DeliverCert) Unwrap() *DeliverCert {
-	return w.DeliverCert
 }
 
 func (w *Event_VerifyRequestSig) Unwrap() *VerifyRequestSig {
@@ -130,6 +122,10 @@ func (w *Event_NewEpoch) Unwrap() *NewEpoch {
 
 func (w *Event_NewConfig) Unwrap() *NewConfig {
 	return w.NewConfig
+}
+
+func (w *Event_NewRequests) Unwrap() *NewRequests {
+	return w.NewRequests
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {

@@ -21,10 +21,8 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Iss)(nil)),
 		reflect.TypeOf((*Event_Orderer)(nil)),
 		reflect.TypeOf((*Event_Crypto)(nil)),
-		reflect.TypeOf((*Event_NewRequests)(nil)),
 		reflect.TypeOf((*Event_SendMessage)(nil)),
 		reflect.TypeOf((*Event_MessageReceived)(nil)),
-		reflect.TypeOf((*Event_DeliverCert)(nil)),
 		reflect.TypeOf((*Event_VerifyRequestSig)(nil)),
 		reflect.TypeOf((*Event_RequestSigVerified)(nil)),
 		reflect.TypeOf((*Event_StoreVerifiedRequest)(nil)),
@@ -33,6 +31,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_AppRestoreState)(nil)),
 		reflect.TypeOf((*Event_NewEpoch)(nil)),
 		reflect.TypeOf((*Event_NewConfig)(nil)),
+		reflect.TypeOf((*Event_NewRequests)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 	}

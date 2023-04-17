@@ -27,3 +27,7 @@ func (w *Event_PushCheckpoint) Unwrap() *PushCheckpoint {
 func (w *Event_SbDeliver) Unwrap() *SBDeliver {
 	return w.SbDeliver
 }
+
+func (w *Event_DeliverCert) Unwrap() *DeliverCert {
+	return w.DeliverCert
+}

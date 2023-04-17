@@ -2,6 +2,7 @@ package isspbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
@@ -29,5 +30,11 @@ func UponPushCheckpoint(m dsl.Module, handler func() error) {
 func UponSBDeliver(m dsl.Module, handler func(sn types2.SeqNr, data []uint8, aborted bool, leader types2.NodeID, instanceId types2.ModuleID) error) {
 	UponEvent[*types.Event_SbDeliver](m, func(ev *types.SBDeliver) error {
 		return handler(ev.Sn, ev.Data, ev.Aborted, ev.Leader, ev.InstanceId)
+	})
+}
+
+func UponDeliverCert(m dsl.Module, handler func(sn types2.SeqNr, cert *types3.Cert) error) {
+	UponEvent[*types.Event_DeliverCert](m, func(ev *types.DeliverCert) error {
+		return handler(ev.Sn, ev.Cert)
 	})
 }

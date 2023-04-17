@@ -75,14 +75,10 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Orderer{Orderer: pb.Orderer}
 	case *eventpb.Event_Crypto:
 		return &Event_Crypto{Crypto: types11.EventFromPb(pb.Crypto)}
-	case *eventpb.Event_NewRequests:
-		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_SendMessage:
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
 	case *eventpb.Event_MessageReceived:
 		return &Event_MessageReceived{MessageReceived: MessageReceivedFromPb(pb.MessageReceived)}
-	case *eventpb.Event_DeliverCert:
-		return &Event_DeliverCert{DeliverCert: DeliverCertFromPb(pb.DeliverCert)}
 	case *eventpb.Event_VerifyRequestSig:
 		return &Event_VerifyRequestSig{VerifyRequestSig: pb.VerifyRequestSig}
 	case *eventpb.Event_RequestSigVerified:
@@ -99,6 +95,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_NewEpoch{NewEpoch: NewEpochFromPb(pb.NewEpoch)}
 	case *eventpb.Event_NewConfig:
 		return &Event_NewConfig{NewConfig: NewConfigFromPb(pb.NewConfig)}
+	case *eventpb.Event_NewRequests:
+		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
@@ -377,24 +375,6 @@ func (*Event_Crypto) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Crypto]()}
 }
 
-type Event_NewRequests struct {
-	NewRequests *NewRequests
-}
-
-func (*Event_NewRequests) isEvent_Type() {}
-
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
-}
-
-func (w *Event_NewRequests) Pb() eventpb.Event_Type {
-	return &eventpb.Event_NewRequests{NewRequests: (w.NewRequests).Pb()}
-}
-
-func (*Event_NewRequests) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewRequests]()}
-}
-
 type Event_SendMessage struct {
 	SendMessage *SendMessage
 }
@@ -429,24 +409,6 @@ func (w *Event_MessageReceived) Pb() eventpb.Event_Type {
 
 func (*Event_MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_MessageReceived]()}
-}
-
-type Event_DeliverCert struct {
-	DeliverCert *DeliverCert
-}
-
-func (*Event_DeliverCert) isEvent_Type() {}
-
-func (w *Event_DeliverCert) Unwrap() *DeliverCert {
-	return w.DeliverCert
-}
-
-func (w *Event_DeliverCert) Pb() eventpb.Event_Type {
-	return &eventpb.Event_DeliverCert{DeliverCert: (w.DeliverCert).Pb()}
-}
-
-func (*Event_DeliverCert) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_DeliverCert]()}
 }
 
 type Event_VerifyRequestSig struct {
@@ -591,6 +553,24 @@ func (w *Event_NewConfig) Pb() eventpb.Event_Type {
 
 func (*Event_NewConfig) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewConfig]()}
+}
+
+type Event_NewRequests struct {
+	NewRequests *NewRequests
+}
+
+func (*Event_NewRequests) isEvent_Type() {}
+
+func (w *Event_NewRequests) Unwrap() *NewRequests {
+	return w.NewRequests
+}
+
+func (w *Event_NewRequests) Pb() eventpb.Event_Type {
+	return &eventpb.Event_NewRequests{NewRequests: (w.NewRequests).Pb()}
+}
+
+func (*Event_NewRequests) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewRequests]()}
 }
 
 type Event_TestingString struct {
@@ -739,29 +719,6 @@ func (m *MessageReceived) Pb() *eventpb.MessageReceived {
 
 func (*MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.MessageReceived]()}
-}
-
-type DeliverCert struct {
-	Sn   types.SeqNr
-	Cert *types4.Cert
-}
-
-func DeliverCertFromPb(pb *eventpb.DeliverCert) *DeliverCert {
-	return &DeliverCert{
-		Sn:   (types.SeqNr)(pb.Sn),
-		Cert: types4.CertFromPb(pb.Cert),
-	}
-}
-
-func (m *DeliverCert) Pb() *eventpb.DeliverCert {
-	return &eventpb.DeliverCert{
-		Sn:   (uint64)(m.Sn),
-		Cert: (m.Cert).Pb(),
-	}
-}
-
-func (*DeliverCert) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.DeliverCert]()}
 }
 
 type AppSnapshotRequest struct {
