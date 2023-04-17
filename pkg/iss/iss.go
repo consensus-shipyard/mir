@@ -707,8 +707,7 @@ func (iss *ISS) processCommitted() error {
 		} else {
 			_cert = apbtypes.CertFromPb(&cert)
 		}
-		eventpbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
-		// Output debugging information.
+		isspbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
 		// Remove just delivered certificate from the temporary

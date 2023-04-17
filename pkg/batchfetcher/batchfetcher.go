@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
@@ -83,7 +84,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	eventpbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
+	isspbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.

@@ -49,10 +49,8 @@ message Event {
          ordererpb.Event    orderer                 = 39;
           cryptopb.Event    crypto                  = 40;
 
-    NewRequests             new_requests            = 7;
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
-    DeliverCert             deliver_cert            = 17;
     VerifyRequestSig        verify_request_sig      = 19;
     RequestSigVerified      request_sig_verified    = 20;
     StoreVerifiedRequest    store_verified_request  = 21;
@@ -61,6 +59,7 @@ message Event {
     AppRestoreState         app_restore_state       = 24;
     NewEpoch                new_epoch               = 31;
     NewConfig               new_config              = 32;
+    NewRequests             new_requests            = 7;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -100,12 +99,6 @@ message MessageReceived {
 
   string from = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   messagepb.Message msg = 2;
-}
-
-message DeliverCert {
-  option (mir.event) = true;
-  uint64 sn = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
-  availabilitypb.Cert cert = 2;
 }
 
 message VerifyRequestSig {
