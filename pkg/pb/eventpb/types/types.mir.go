@@ -2,7 +2,8 @@ package eventpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types12 "github.com/filecoin-project/mir/codegen/model/types"
+	types13 "github.com/filecoin-project/mir/codegen/model/types"
+	types12 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
@@ -14,11 +15,11 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	types10 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types14 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types15 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types13 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types14 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -74,14 +75,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Orderer{Orderer: pb.Orderer}
 	case *eventpb.Event_Crypto:
 		return &Event_Crypto{Crypto: types11.EventFromPb(pb.Crypto)}
-	case *eventpb.Event_AppSnapshotRequest:
-		return &Event_AppSnapshotRequest{AppSnapshotRequest: AppSnapshotRequestFromPb(pb.AppSnapshotRequest)}
-	case *eventpb.Event_AppSnapshot:
-		return &Event_AppSnapshot{AppSnapshot: pb.AppSnapshot}
-	case *eventpb.Event_AppRestoreState:
-		return &Event_AppRestoreState{AppRestoreState: AppRestoreStateFromPb(pb.AppRestoreState)}
-	case *eventpb.Event_NewEpoch:
-		return &Event_NewEpoch{NewEpoch: NewEpochFromPb(pb.NewEpoch)}
+	case *eventpb.Event_App:
+		return &Event_App{App: types12.EventFromPb(pb.App)}
 	case *eventpb.Event_SendMessage:
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
 	case *eventpb.Event_MessageReceived:
@@ -372,76 +367,22 @@ func (*Event_Crypto) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Crypto]()}
 }
 
-type Event_AppSnapshotRequest struct {
-	AppSnapshotRequest *AppSnapshotRequest
+type Event_App struct {
+	App *types12.Event
 }
 
-func (*Event_AppSnapshotRequest) isEvent_Type() {}
+func (*Event_App) isEvent_Type() {}
 
-func (w *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
-	return w.AppSnapshotRequest
+func (w *Event_App) Unwrap() *types12.Event {
+	return w.App
 }
 
-func (w *Event_AppSnapshotRequest) Pb() eventpb.Event_Type {
-	return &eventpb.Event_AppSnapshotRequest{AppSnapshotRequest: (w.AppSnapshotRequest).Pb()}
+func (w *Event_App) Pb() eventpb.Event_Type {
+	return &eventpb.Event_App{App: (w.App).Pb()}
 }
 
-func (*Event_AppSnapshotRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_AppSnapshotRequest]()}
-}
-
-type Event_AppSnapshot struct {
-	AppSnapshot *eventpb.AppSnapshot
-}
-
-func (*Event_AppSnapshot) isEvent_Type() {}
-
-func (w *Event_AppSnapshot) Unwrap() *eventpb.AppSnapshot {
-	return w.AppSnapshot
-}
-
-func (w *Event_AppSnapshot) Pb() eventpb.Event_Type {
-	return &eventpb.Event_AppSnapshot{AppSnapshot: w.AppSnapshot}
-}
-
-func (*Event_AppSnapshot) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_AppSnapshot]()}
-}
-
-type Event_AppRestoreState struct {
-	AppRestoreState *AppRestoreState
-}
-
-func (*Event_AppRestoreState) isEvent_Type() {}
-
-func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
-	return w.AppRestoreState
-}
-
-func (w *Event_AppRestoreState) Pb() eventpb.Event_Type {
-	return &eventpb.Event_AppRestoreState{AppRestoreState: (w.AppRestoreState).Pb()}
-}
-
-func (*Event_AppRestoreState) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_AppRestoreState]()}
-}
-
-type Event_NewEpoch struct {
-	NewEpoch *NewEpoch
-}
-
-func (*Event_NewEpoch) isEvent_Type() {}
-
-func (w *Event_NewEpoch) Unwrap() *NewEpoch {
-	return w.NewEpoch
-}
-
-func (w *Event_NewEpoch) Pb() eventpb.Event_Type {
-	return &eventpb.Event_NewEpoch{NewEpoch: (w.NewEpoch).Pb()}
-}
-
-func (*Event_NewEpoch) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewEpoch]()}
+func (*Event_App) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_App]()}
 }
 
 type Event_SendMessage struct {
@@ -591,7 +532,7 @@ func (*Event_TestingUint) MirReflect() mirreflect.Type {
 func EventFromPb(pb *eventpb.Event) *Event {
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
-		Next: types12.ConvertSlice(pb.Next, func(t *eventpb.Event) *Event {
+		Next: types13.ConvertSlice(pb.Next, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
 		DestModule: (types.ModuleID)(pb.DestModule),
@@ -601,7 +542,7 @@ func EventFromPb(pb *eventpb.Event) *Event {
 func (m *Event) Pb() *eventpb.Event {
 	return &eventpb.Event{
 		Type: (m.Type).Pb(),
-		Next: types12.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
+		Next: types13.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		}),
 		DestModule: (string)(m.DestModule),
@@ -627,20 +568,20 @@ func (*Init) MirReflect() mirreflect.Type {
 }
 
 type NewRequests struct {
-	Requests []*types13.Request
+	Requests []*types14.Request
 }
 
 func NewRequestsFromPb(pb *eventpb.NewRequests) *NewRequests {
 	return &NewRequests{
-		Requests: types12.ConvertSlice(pb.Requests, func(t *requestpb.Request) *types13.Request {
-			return types13.RequestFromPb(t)
+		Requests: types13.ConvertSlice(pb.Requests, func(t *requestpb.Request) *types14.Request {
+			return types14.RequestFromPb(t)
 		}),
 	}
 }
 
 func (m *NewRequests) Pb() *eventpb.NewRequests {
 	return &eventpb.NewRequests{
-		Requests: types12.ConvertSlice(m.Requests, func(t *types13.Request) *requestpb.Request {
+		Requests: types13.ConvertSlice(m.Requests, func(t *types14.Request) *requestpb.Request {
 			return (t).Pb()
 		}),
 	}
@@ -651,14 +592,14 @@ func (*NewRequests) MirReflect() mirreflect.Type {
 }
 
 type SendMessage struct {
-	Msg          *types14.Message
+	Msg          *types15.Message
 	Destinations []types.NodeID
 }
 
 func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 	return &SendMessage{
-		Msg: types14.MessageFromPb(pb.Msg),
-		Destinations: types12.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
+		Msg: types15.MessageFromPb(pb.Msg),
+		Destinations: types13.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
 	}
@@ -667,7 +608,7 @@ func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 func (m *SendMessage) Pb() *eventpb.SendMessage {
 	return &eventpb.SendMessage{
 		Msg: (m.Msg).Pb(),
-		Destinations: types12.ConvertSlice(m.Destinations, func(t types.NodeID) string {
+		Destinations: types13.ConvertSlice(m.Destinations, func(t types.NodeID) string {
 			return (string)(t)
 		}),
 	}
@@ -679,13 +620,13 @@ func (*SendMessage) MirReflect() mirreflect.Type {
 
 type MessageReceived struct {
 	From types.NodeID
-	Msg  *types14.Message
+	Msg  *types15.Message
 }
 
 func MessageReceivedFromPb(pb *eventpb.MessageReceived) *MessageReceived {
 	return &MessageReceived{
 		From: (types.NodeID)(pb.From),
-		Msg:  types14.MessageFromPb(pb.Msg),
+		Msg:  types15.MessageFromPb(pb.Msg),
 	}
 }
 
@@ -698,66 +639,6 @@ func (m *MessageReceived) Pb() *eventpb.MessageReceived {
 
 func (*MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.MessageReceived]()}
-}
-
-type AppSnapshotRequest struct {
-	ReplyTo types.ModuleID
-}
-
-func AppSnapshotRequestFromPb(pb *eventpb.AppSnapshotRequest) *AppSnapshotRequest {
-	return &AppSnapshotRequest{
-		ReplyTo: (types.ModuleID)(pb.ReplyTo),
-	}
-}
-
-func (m *AppSnapshotRequest) Pb() *eventpb.AppSnapshotRequest {
-	return &eventpb.AppSnapshotRequest{
-		ReplyTo: (string)(m.ReplyTo),
-	}
-}
-
-func (*AppSnapshotRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.AppSnapshotRequest]()}
-}
-
-type AppRestoreState struct {
-	Checkpoint *types8.StableCheckpoint
-}
-
-func AppRestoreStateFromPb(pb *eventpb.AppRestoreState) *AppRestoreState {
-	return &AppRestoreState{
-		Checkpoint: types8.StableCheckpointFromPb(pb.Checkpoint),
-	}
-}
-
-func (m *AppRestoreState) Pb() *eventpb.AppRestoreState {
-	return &eventpb.AppRestoreState{
-		Checkpoint: (m.Checkpoint).Pb(),
-	}
-}
-
-func (*AppRestoreState) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.AppRestoreState]()}
-}
-
-type NewEpoch struct {
-	EpochNr types.EpochNr
-}
-
-func NewEpochFromPb(pb *eventpb.NewEpoch) *NewEpoch {
-	return &NewEpoch{
-		EpochNr: (types.EpochNr)(pb.EpochNr),
-	}
-}
-
-func (m *NewEpoch) Pb() *eventpb.NewEpoch {
-	return &eventpb.NewEpoch{
-		EpochNr: (uint64)(m.EpochNr),
-	}
-}
-
-func (*NewEpoch) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.NewEpoch]()}
 }
 
 type TimerEvent struct {
@@ -864,7 +745,7 @@ type TimerDelay struct {
 
 func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 	return &TimerDelay{
-		EventsToDelay: types12.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
+		EventsToDelay: types13.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
 		Delay: (types.TimeDuration)(pb.Delay),
@@ -873,7 +754,7 @@ func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 
 func (m *TimerDelay) Pb() *eventpb.TimerDelay {
 	return &eventpb.TimerDelay{
-		EventsToDelay: types12.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
+		EventsToDelay: types13.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		}),
 		Delay: (uint64)(m.Delay),
@@ -892,7 +773,7 @@ type TimerRepeat struct {
 
 func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 	return &TimerRepeat{
-		EventsToRepeat: types12.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
+		EventsToRepeat: types13.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
 		Delay:          (types.TimeDuration)(pb.Delay),
@@ -902,7 +783,7 @@ func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 
 func (m *TimerRepeat) Pb() *eventpb.TimerRepeat {
 	return &eventpb.TimerRepeat{
-		EventsToRepeat: types12.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
+		EventsToRepeat: types13.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		}),
 		Delay:          (uint64)(m.Delay),

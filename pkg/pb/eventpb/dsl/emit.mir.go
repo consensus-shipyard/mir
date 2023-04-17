@@ -2,11 +2,10 @@ package eventpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -28,26 +27,14 @@ func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex
 	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
 }
 
-func AppSnapshotRequest(m dsl.Module, destModule types.ModuleID, replyTo types.ModuleID) {
-	dsl.EmitMirEvent(m, events.AppSnapshotRequest(destModule, replyTo))
-}
-
-func AppRestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types2.StableCheckpoint) {
-	dsl.EmitMirEvent(m, events.AppRestoreState(destModule, checkpoint))
-}
-
-func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
-	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
-}
-
-func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types3.Message, destinations []types.NodeID) {
+func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types2.Message, destinations []types.NodeID) {
 	dsl.EmitMirEvent(m, events.SendMessage(destModule, msg, destinations))
 }
 
-func MessageReceived(m dsl.Module, destModule types.ModuleID, from types.NodeID, msg *types3.Message) {
+func MessageReceived(m dsl.Module, destModule types.ModuleID, from types.NodeID, msg *types2.Message) {
 	dsl.EmitMirEvent(m, events.MessageReceived(destModule, from, msg))
 }
 
-func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types4.Request) {
+func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types3.Request) {
 	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }

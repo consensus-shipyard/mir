@@ -1,10 +1,9 @@
 package eventpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -65,40 +64,7 @@ func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types.Retenti
 	}
 }
 
-func AppSnapshotRequest(destModule types.ModuleID, replyTo types.ModuleID) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_AppSnapshotRequest{
-			AppSnapshotRequest: &types1.AppSnapshotRequest{
-				ReplyTo: replyTo,
-			},
-		},
-	}
-}
-
-func AppRestoreState(destModule types.ModuleID, checkpoint *types2.StableCheckpoint) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_AppRestoreState{
-			AppRestoreState: &types1.AppRestoreState{
-				Checkpoint: checkpoint,
-			},
-		},
-	}
-}
-
-func NewEpoch(destModule types.ModuleID, epochNr types.EpochNr) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_NewEpoch{
-			NewEpoch: &types1.NewEpoch{
-				EpochNr: epochNr,
-			},
-		},
-	}
-}
-
-func SendMessage(destModule types.ModuleID, msg *types3.Message, destinations []types.NodeID) *types1.Event {
+func SendMessage(destModule types.ModuleID, msg *types2.Message, destinations []types.NodeID) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_SendMessage{
@@ -110,7 +76,7 @@ func SendMessage(destModule types.ModuleID, msg *types3.Message, destinations []
 	}
 }
 
-func MessageReceived(destModule types.ModuleID, from types.NodeID, msg *types3.Message) *types1.Event {
+func MessageReceived(destModule types.ModuleID, from types.NodeID, msg *types2.Message) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_MessageReceived{
@@ -122,7 +88,7 @@ func MessageReceived(destModule types.ModuleID, from types.NodeID, msg *types3.M
 	}
 }
 
-func NewRequests(destModule types.ModuleID, requests []*types4.Request) *types1.Event {
+func NewRequests(destModule types.ModuleID, requests []*types3.Request) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_NewRequests{
