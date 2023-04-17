@@ -97,18 +97,6 @@ func (w *Event_MessageReceived) Unwrap() *MessageReceived {
 	return w.MessageReceived
 }
 
-func (w *Event_VerifyRequestSig) Unwrap() *VerifyRequestSig {
-	return w.VerifyRequestSig
-}
-
-func (w *Event_RequestSigVerified) Unwrap() *RequestSigVerified {
-	return w.RequestSigVerified
-}
-
-func (w *Event_StoreVerifiedRequest) Unwrap() *StoreVerifiedRequest {
-	return w.StoreVerifiedRequest
-}
-
 func (w *Event_NewRequests) Unwrap() *NewRequests {
 	return w.NewRequests
 }

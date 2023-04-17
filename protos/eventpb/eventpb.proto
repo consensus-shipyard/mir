@@ -52,9 +52,6 @@ message Event {
 
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
-    VerifyRequestSig        verify_request_sig      = 19;
-    RequestSigVerified      request_sig_verified    = 20;
-    StoreVerifiedRequest    store_verified_request  = 21;
     NewRequests             new_requests            = 7;
 
     // for unit-tests
@@ -95,23 +92,6 @@ message MessageReceived {
 
   string from = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   messagepb.Message msg = 2;
-}
-
-message VerifyRequestSig {
-  requestpb.Request request   = 1;
-  bytes             signature = 2;
-}
-
-message RequestSigVerified {
-  requestpb.Request request = 1;
-  bool              valid   = 2;
-  string            error   = 3;
-}
-
-message StoreVerifiedRequest {
-  requestpb.Request request       = 1;
-  bytes             data          = 2;
-  bytes             authenticator = 3;
 }
 
 // ======================================================================

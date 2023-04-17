@@ -81,12 +81,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
 	case *eventpb.Event_MessageReceived:
 		return &Event_MessageReceived{MessageReceived: MessageReceivedFromPb(pb.MessageReceived)}
-	case *eventpb.Event_VerifyRequestSig:
-		return &Event_VerifyRequestSig{VerifyRequestSig: pb.VerifyRequestSig}
-	case *eventpb.Event_RequestSigVerified:
-		return &Event_RequestSigVerified{RequestSigVerified: pb.RequestSigVerified}
-	case *eventpb.Event_StoreVerifiedRequest:
-		return &Event_StoreVerifiedRequest{StoreVerifiedRequest: pb.StoreVerifiedRequest}
 	case *eventpb.Event_NewRequests:
 		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_TestingString:
@@ -419,60 +413,6 @@ func (w *Event_MessageReceived) Pb() eventpb.Event_Type {
 
 func (*Event_MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_MessageReceived]()}
-}
-
-type Event_VerifyRequestSig struct {
-	VerifyRequestSig *eventpb.VerifyRequestSig
-}
-
-func (*Event_VerifyRequestSig) isEvent_Type() {}
-
-func (w *Event_VerifyRequestSig) Unwrap() *eventpb.VerifyRequestSig {
-	return w.VerifyRequestSig
-}
-
-func (w *Event_VerifyRequestSig) Pb() eventpb.Event_Type {
-	return &eventpb.Event_VerifyRequestSig{VerifyRequestSig: w.VerifyRequestSig}
-}
-
-func (*Event_VerifyRequestSig) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_VerifyRequestSig]()}
-}
-
-type Event_RequestSigVerified struct {
-	RequestSigVerified *eventpb.RequestSigVerified
-}
-
-func (*Event_RequestSigVerified) isEvent_Type() {}
-
-func (w *Event_RequestSigVerified) Unwrap() *eventpb.RequestSigVerified {
-	return w.RequestSigVerified
-}
-
-func (w *Event_RequestSigVerified) Pb() eventpb.Event_Type {
-	return &eventpb.Event_RequestSigVerified{RequestSigVerified: w.RequestSigVerified}
-}
-
-func (*Event_RequestSigVerified) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_RequestSigVerified]()}
-}
-
-type Event_StoreVerifiedRequest struct {
-	StoreVerifiedRequest *eventpb.StoreVerifiedRequest
-}
-
-func (*Event_StoreVerifiedRequest) isEvent_Type() {}
-
-func (w *Event_StoreVerifiedRequest) Unwrap() *eventpb.StoreVerifiedRequest {
-	return w.StoreVerifiedRequest
-}
-
-func (w *Event_StoreVerifiedRequest) Pb() eventpb.Event_Type {
-	return &eventpb.Event_StoreVerifiedRequest{StoreVerifiedRequest: w.StoreVerifiedRequest}
-}
-
-func (*Event_StoreVerifiedRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_StoreVerifiedRequest]()}
 }
 
 type Event_NewRequests struct {
