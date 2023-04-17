@@ -72,6 +72,20 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 				allOK,
 			).Pb()), nil
 
+		case *cryptopb.Event_VerifySig:
+			err := c.crypto.Verify(
+				e.VerifySig.Data.Data,
+				e.VerifySig.Signature,
+				t.NodeID(e.VerifySig.NodeId),
+			)
+
+			return events.ListOf(cryptopbevents.SigVerified(
+				t.ModuleID(e.VerifySig.Origin.Module),
+				cryptopbtypes.SigVerOriginFromPb(e.VerifySig.Origin),
+				t.NodeID(e.VerifySig.NodeId),
+				err,
+			).Pb()), nil
+
 		default:
 			return nil, fmt.Errorf("unexpected type of crypto event: %T", e)
 		}
