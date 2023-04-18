@@ -47,6 +47,7 @@ import (
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // The ISS type represents the ISS protocol module to be used when instantiating a node.
@@ -536,10 +537,12 @@ func InitialStateSnapshot(
 ) (*commonpb.StateSnapshot, error) {
 
 	// Create the first membership and all ConfigOffset following ones (by using the initial one).
-	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
-	for i := 0; i < params.ConfigOffset+1; i++ {
-		memberships[i] = params.InitialMembership
-	}
+	memberships := sliceutil.Repeat(&commonpbtypes.Membership{Membership: maputil.Transform(
+		params.InitialMembership,
+		func(nodeID t.NodeID, nodeAddr t.NodeAddress) (t.NodeID, string) {
+			return nodeID, nodeAddr.String()
+		},
+	)}, params.ConfigOffset+1)
 
 	// Create the initial leader selection policy.
 	var leaderPolicyData []byte
@@ -561,16 +564,21 @@ func InitialStateSnapshot(
 		return nil, err
 	}
 
-	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
-	return &commonpb.StateSnapshot{
+	firstEpochLength := uint64(params.SegmentLength * len(params.InitialMembership))
+	return (&commonpbtypes.StateSnapshot{
 		AppData: appState,
-		EpochData: &commonpb.EpochData{
-			EpochConfig:        events.EpochConfig(0, 0, firstEpochLength, memberships),
-			ClientProgress:     clientprogress.NewClientProgress(nil).Pb(),
+		EpochData: &commonpbtypes.EpochData{
+			EpochConfig: &commonpbtypes.EpochConfig{
+				EpochNr:     0,
+				FirstSn:     0,
+				Length:      firstEpochLength,
+				Memberships: memberships,
+			},
+			ClientProgress:     commonpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
 			LeaderPolicy:       leaderPolicyData,
-			PreviousMembership: t.MembershipPb(make(map[t.NodeID]t.NodeAddress)), // empty map
+			PreviousMembership: &commonpbtypes.Membership{Membership: make(map[t.NodeID]string)}, // empty map
 		},
-	}, nil
+	}).Pb(), nil
 }
 
 // ============================================================
