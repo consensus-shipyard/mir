@@ -3,7 +3,6 @@ package eventpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -41,17 +40,5 @@ func UponTimerRepeat(m dsl.Module, handler func(eventsToRepeat []*types.Event, d
 func UponTimerGarbageCollect(m dsl.Module, handler func(retentionIndex types1.RetentionIndex) error) {
 	UponTimerEvent[*types.TimerEvent_GarbageCollect](m, func(ev *types.TimerGarbageCollect) error {
 		return handler(ev.RetentionIndex)
-	})
-}
-
-func UponSendMessage(m dsl.Module, handler func(msg *types2.Message, destinations []types1.NodeID) error) {
-	dsl.UponMirEvent[*types.Event_SendMessage](m, func(ev *types.SendMessage) error {
-		return handler(ev.Msg, ev.Destinations)
-	})
-}
-
-func UponMessageReceived(m dsl.Module, handler func(from types1.NodeID, msg *types2.Message) error) {
-	dsl.UponMirEvent[*types.Event_MessageReceived](m, func(ev *types.MessageReceived) error {
-		return handler(ev.From, ev.Msg)
 	})
 }

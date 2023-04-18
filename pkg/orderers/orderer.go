@@ -13,6 +13,9 @@ import (
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
+	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -171,8 +174,13 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		default:
 			return nil, fmt.Errorf("unknown crypto event type: %T", e)
 		}
-	case *eventpb.Event_MessageReceived:
-		return orderer.applyMessageReceived(ev.MessageReceived), nil
+	case *eventpb.Event_Transport:
+		switch e := ev.Transport.Type.(type) {
+		case *transportpb.Event_MessageReceived:
+			return orderer.applyMessageReceived(e.MessageReceived), nil
+		default:
+			return nil, fmt.Errorf("unknown transport event type: %T", e)
+		}
 	case *eventpb.Event_Availability:
 		switch avEvent := ev.Availability.Type.(type) {
 		case *availabilitypb.Event_NewCert:
@@ -228,11 +236,17 @@ func (orderer *Orderer) applyHashResult(result *hasherpb.Result) *events.EventLi
 			case *pbftpb.HashOrigin_EmptyPreprepares:
 				return orderer.applyEmptyPreprepareHashResult(result.Digests, t.PBFTViewNr(o.EmptyPreprepares))
 			case *pbftpb.HashOrigin_MissingPreprepare:
-				return orderer.applyMissingPreprepareHashResult(result.Digests[0], o.MissingPreprepare)
+				return orderer.applyMissingPreprepareHashResult(
+					result.Digests[0],
+					pbftpbtypes.PreprepareFromPb(o.MissingPreprepare),
+				)
 			case *pbftpb.HashOrigin_NewView:
-				return orderer.applyNewViewHashResult(result.Digests, o.NewView)
+				return orderer.applyNewViewHashResult(result.Digests, pbftpbtypes.NewViewFromPb(o.NewView))
 			case *pbftpb.HashOrigin_CatchUpResponse:
-				return orderer.applyCatchUpResponseHashResult(result.Digests[0], o.CatchUpResponse)
+				return orderer.applyCatchUpResponseHashResult(
+					result.Digests[0],
+					pbftpbtypes.PreprepareFromPb(o.CatchUpResponse),
+				)
 			default:
 				panic(fmt.Sprintf("unknown hash origin type: %T", o))
 			}
@@ -306,7 +320,7 @@ func (orderer *Orderer) applyNodeSigsVerified(result *cryptopb.SigsVerified) *ev
 }
 
 // applyMessageReceived handles a received PBFT protocol message.
-func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageReceived) *events.EventList {
+func (orderer *Orderer) applyMessageReceived(messageReceived *transportpb.MessageReceived) *events.EventList {
 
 	message := messageReceived.Msg
 	from := t.NodeID(messageReceived.From)
@@ -320,28 +334,28 @@ func (orderer *Orderer) applyMessageReceived(messageReceived *eventpb.MessageRec
 	switch msg := message.Type.(type) {
 	case *messagepb.Message_Orderer:
 		// Based on the message type, call the appropriate handler method.
-		switch msg := msg.Orderer.Type.(type) {
-		case *ordererpb.Message_Pbft:
+		switch msg := ordererpbtypes.MessageFromPb(msg.Orderer).Type.(type) {
+		case *ordererpbtypes.Message_Pbft:
 			switch msg := msg.Pbft.Type.(type) {
-			case *pbftpb.Message_Preprepare:
+			case *pbftpbtypes.Message_Preprepare:
 				return orderer.applyMsgPreprepare(msg.Preprepare, from)
-			case *pbftpb.Message_Prepare:
+			case *pbftpbtypes.Message_Prepare:
 				return orderer.applyMsgPrepare(msg.Prepare, from)
-			case *pbftpb.Message_Commit:
+			case *pbftpbtypes.Message_Commit:
 				return orderer.applyMsgCommit(msg.Commit, from)
-			case *pbftpb.Message_SignedViewChange:
+			case *pbftpbtypes.Message_SignedViewChange:
 				return orderer.applyMsgSignedViewChange(msg.SignedViewChange, from)
-			case *pbftpb.Message_PreprepareRequest:
+			case *pbftpbtypes.Message_PreprepareRequest:
 				return orderer.applyMsgPreprepareRequest(msg.PreprepareRequest, from)
-			case *pbftpb.Message_MissingPreprepare:
+			case *pbftpbtypes.Message_MissingPreprepare:
 				return orderer.applyMsgMissingPreprepare(msg.MissingPreprepare.Preprepare, from)
-			case *pbftpb.Message_NewView:
+			case *pbftpbtypes.Message_NewView:
 				return orderer.applyMsgNewView(msg.NewView, from)
-			case *pbftpb.Message_Done:
+			case *pbftpbtypes.Message_Done:
 				return orderer.applyMsgDone(msg.Done, from)
-			case *pbftpb.Message_CatchUpRequest:
+			case *pbftpbtypes.Message_CatchUpRequest:
 				return orderer.applyMsgCatchUpRequest(msg.CatchUpRequest, from)
-			case *pbftpb.Message_CatchUpResponse:
+			case *pbftpbtypes.Message_CatchUpResponse:
 				return orderer.applyMsgCatchUpResponse(msg.CatchUpResponse.Resp, from)
 			default:
 				panic(fmt.Sprintf("unknown PBFT message type: %T", message.Type))
@@ -477,7 +491,7 @@ func (orderer *Orderer) initView(view t.PBFTViewNr) *events.EventList {
 	return timerEvents
 }
 
-func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *pbftpb.Preprepare {
+func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *pbftpbtypes.Preprepare {
 	// Traverse all views, starting in the current view.
 	for view := orderer.view; ; view-- {
 

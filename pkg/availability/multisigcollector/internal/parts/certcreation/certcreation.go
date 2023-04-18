@@ -11,10 +11,10 @@ import (
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -114,7 +114,7 @@ func IncludeCreatingCertificates(
 		}
 		state.Certificates[context.reqID].BatchID = batchID
 		// TODO: add persistent storage for crash-recovery.
-		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
+		transportpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
 		return nil
 	})
 
@@ -207,7 +207,7 @@ func IncludeCreatingCertificates(
 
 	// When a signature is generated, send it to the process that sent the request.
 	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signReceivedBatchContext) error {
-		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
+		transportpbdsl.SendMessage(m, mc.Net, mscpbmsgs.SigMessage(mc.Self, signature, context.reqID), []t.NodeID{context.sourceID})
 		return nil
 	})
 }

@@ -15,6 +15,7 @@ import (
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
+	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -89,12 +90,8 @@ func (w *Event_App) Unwrap() *apppb.Event {
 	return w.App
 }
 
-func (w *Event_SendMessage) Unwrap() *SendMessage {
-	return w.SendMessage
-}
-
-func (w *Event_MessageReceived) Unwrap() *MessageReceived {
-	return w.MessageReceived
+func (w *Event_Transport) Unwrap() *transportpb.Event {
+	return w.Transport
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {

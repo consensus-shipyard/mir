@@ -7,7 +7,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Preprepare(destModule types.ModuleID, sn uint64, view uint64, data []uint8, aborted bool) *types1.Message {
+func Preprepare(destModule types.ModuleID, sn types.SeqNr, view types.PBFTViewNr, data []uint8, aborted bool) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{
@@ -29,7 +29,7 @@ func Preprepare(destModule types.ModuleID, sn uint64, view uint64, data []uint8,
 	}
 }
 
-func Prepare(destModule types.ModuleID, sn uint64, view uint64, digest []uint8) *types1.Message {
+func Prepare(destModule types.ModuleID, sn types.SeqNr, view types.PBFTViewNr, digest []uint8) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{
@@ -50,7 +50,7 @@ func Prepare(destModule types.ModuleID, sn uint64, view uint64, digest []uint8) 
 	}
 }
 
-func Commit(destModule types.ModuleID, sn uint64, view uint64, digest []uint8) *types1.Message {
+func Commit(destModule types.ModuleID, sn types.SeqNr, view types.PBFTViewNr, digest []uint8) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{
@@ -90,7 +90,7 @@ func Done(destModule types.ModuleID, digests [][]uint8) *types1.Message {
 	}
 }
 
-func CatchUpRequest(destModule types.ModuleID, digest []uint8, sn uint64) *types1.Message {
+func CatchUpRequest(destModule types.ModuleID, digest []uint8, sn types.SeqNr) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{
@@ -149,7 +149,7 @@ func SignedViewChange(destModule types.ModuleID, viewChange *types3.ViewChange, 
 	}
 }
 
-func PreprepareRequest(destModule types.ModuleID, digest []uint8, sn uint64) *types1.Message {
+func PreprepareRequest(destModule types.ModuleID, digest []uint8, sn types.SeqNr) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{
@@ -188,7 +188,7 @@ func MissingPreprepare(destModule types.ModuleID, preprepare *types3.Preprepare)
 	}
 }
 
-func NewView(destModule types.ModuleID, view uint64, viewChangeSenders []string, signedViewChanges []*types3.SignedViewChange, preprepareSeqNrs []uint64, preprepares []*types3.Preprepare) *types1.Message {
+func NewView(destModule types.ModuleID, view types.PBFTViewNr, viewChangeSenders []string, signedViewChanges []*types3.SignedViewChange, preprepareSeqNrs []types.SeqNr, preprepares []*types3.Preprepare) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Orderer{

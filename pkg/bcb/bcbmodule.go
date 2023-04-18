@@ -9,7 +9,7 @@ import (
 	bcbpbmsgs "github.com/filecoin-project/mir/pkg/pb/bcbpb/msgs"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
@@ -86,7 +86,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 			return fmt.Errorf("only the leader node can receive requests")
 		}
 		state.request = data
-		eventpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.StartMessage(mc.Self, data), params.AllNodes)
+		transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.StartMessage(mc.Self, data), params.AllNodes)
 		return nil
 	})
 
@@ -104,7 +104,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
 		if !state.sentEcho {
 			state.sentEcho = true
-			eventpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
+			transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
 		}
 		return nil
 	})
@@ -132,7 +132,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 		if len(state.echoSigs) > (params.GetN()+params.GetF())/2 && !state.sentFinal {
 			state.sentFinal = true
 			certSigners, certSignatures := maputil.GetKeysAndValues(state.echoSigs)
-			eventpbdsl.SendMessage(m, mc.Net,
+			transportpbdsl.SendMessage(m, mc.Net,
 				bcbpbmsgs.FinalMessage(mc.Self, state.request, certSigners, certSignatures),
 				params.AllNodes)
 		}

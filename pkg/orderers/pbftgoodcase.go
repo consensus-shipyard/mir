@@ -13,6 +13,9 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
+	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -145,15 +148,11 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 	orderer.logger.Log(logging.LevelDebug, "Proposing.",
 		"sn", sn)
 
-	// Create the proposal (consisting of a Preprepare message).
-	preprepare := pbftPreprepareMsg(sn, orderer.view, data, false)
-
-	// Create a Preprepare message send OrdererEvent.
+	// Send a Preprepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	msgSendEvent := events.SendMessage(orderer.moduleConfig.Net,
-		OrdererMessage(PbftPreprepareSBMessage(preprepare),
-			orderer.moduleConfig.Self), //same moduleID as destination
+	msgSendEvent := transportpbevents.SendMessage(orderer.moduleConfig.Net,
+		pbftpbmsgs.Preprepare(orderer.moduleConfig.Self, sn, orderer.view, data, false),
 		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
@@ -165,19 +164,19 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 		t.TimeDuration(orderer.config.MaxProposeDelay),
 	).Pb()
 
-	return events.ListOf(msgSendEvent, timerEvent), nil
+	return events.ListOf(msgSendEvent.Pb(), timerEvent), nil
 }
 
 // applyMsgPreprepare applies a received preprepare message.
 // It performs the necessary checks and, if successful,
 // requests a confirmation from ISS that all contained requests have been received and authenticated.
-func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpb.Preprepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, from t.NodeID) *events.EventList {
 
 	// Convenience variable
-	sn := t.SeqNr(preprepare.Sn)
+	sn := preprepare.Sn
 
 	// Preprocess message, looking up the corresponding pbftSlot.
-	slot := orderer.preprocessMessage(sn, t.PBFTViewNr(preprepare.View), preprepare, from)
+	slot := orderer.preprocessMessage(sn, preprepare.View, preprepare.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
 		return events.EmptyList()
@@ -215,7 +214,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpb.Preprepare, from t
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
 		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare)),
+		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare.Pb())),
 	).Pb())
 }
 
@@ -236,7 +235,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 	slot.Preprepared = true
 
 	// Send a Prepare message.
-	eventsOut.PushBackList(orderer.sendPrepare(pbftPrepareMsg(sn, orderer.view, digest)))
+	eventsOut.PushBackList(orderer.sendPrepare(sn, orderer.view, digest))
 
 	// Advance the state of the pbftSlot even more if necessary
 	// (potentially sending a Commit message or even delivering).
@@ -247,27 +246,28 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 }
 
 // sendPrepare creates an event for sending a Prepare message.
-func (orderer *Orderer) sendPrepare(prepare *pbftpb.Prepare) *events.EventList {
+func (orderer *Orderer) sendPrepare(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *events.EventList {
 
 	// Return a list with a single element - the send event containing a PBFT prepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
-		OrdererMessage(PbftPrepareSBMessage(prepare), orderer.moduleConfig.Self),
+	return events.ListOf(transportpbevents.SendMessage(
+		orderer.moduleConfig.Net,
+		pbftpbmsgs.Prepare(orderer.moduleConfig.Self, sn, view, digest),
 		orderer.segment.NodeIDs(),
-	))
+	).Pb())
 }
 
 // applyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func (orderer *Orderer) applyMsgPrepare(prepare *pbftpb.Prepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPrepare(prepare *pbftpbtypes.Prepare, from t.NodeID) *events.EventList {
 
 	// Convenience variable
-	sn := t.SeqNr(prepare.Sn)
+	sn := prepare.Sn
 
 	// Preprocess message, looking up the corresponding pbftSlot.
-	slot := orderer.preprocessMessage(sn, t.PBFTViewNr(prepare.View), prepare, from)
+	slot := orderer.preprocessMessage(sn, prepare.View, prepare.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
 		return events.EmptyList()
@@ -287,26 +287,28 @@ func (orderer *Orderer) applyMsgPrepare(prepare *pbftpb.Prepare, from t.NodeID) 
 }
 
 // sendCommit creates an event for sending a Commit message.
-func (orderer *Orderer) sendCommit(commit *pbftpb.Commit) *events.EventList {
+func (orderer *Orderer) sendCommit(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *events.EventList {
 
 	// Emit a send event with a PBFT Commit message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	return events.ListOf(events.SendMessage(orderer.moduleConfig.Net,
-		OrdererMessage(PbftCommitSBMessage(commit), orderer.moduleConfig.Self),
-		orderer.segment.NodeIDs()))
+	return events.ListOf(transportpbevents.SendMessage(
+		orderer.moduleConfig.Net,
+		pbftpbmsgs.Commit(orderer.moduleConfig.Self, sn, view, digest),
+		orderer.segment.NodeIDs()).Pb(),
+	)
 }
 
 // applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func (orderer *Orderer) applyMsgCommit(commit *pbftpb.Commit, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgCommit(commit *pbftpbtypes.Commit, from t.NodeID) *events.EventList {
 
 	// Convenience variable
-	sn := t.SeqNr(commit.Sn)
+	sn := commit.Sn
 
 	// Preprocess message, looking up the corresponding pbftSlot.
-	slot := orderer.preprocessMessage(sn, t.PBFTViewNr(commit.View), commit, from)
+	slot := orderer.preprocessMessage(sn, commit.View, commit.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
 		return events.EmptyList()

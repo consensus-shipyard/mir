@@ -22,6 +22,9 @@ import (
 	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -108,30 +111,35 @@ func (gt *Transport) ApplyEvents(
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if t.NodeID(destID) == gt.ownID {
-					// Send message to myself bypassing the network.
-					// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
-					// (Processing of input events must be non-blocking.)
-					receivedEvent := events.MessageReceived(
-						t.ModuleID(e.SendMessage.Msg.DestModule),
-						gt.ownID,
-						e.SendMessage.Msg,
-					)
-					go func() {
-						select {
-						case gt.incomingMessages <- events.ListOf(receivedEvent):
-						case <-ctx.Done():
+		case *eventpb.Event_Transport:
+			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+			case *transportpbtypes.Event_SendMessage:
+				for _, destID := range e.SendMessage.Destinations {
+					if destID == gt.ownID {
+						// Send message to myself bypassing the network.
+						// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
+						// (Processing of input events must be non-blocking.)
+						receivedEvent := transportpbevents.MessageReceived(
+							e.SendMessage.Msg.DestModule,
+							gt.ownID,
+							e.SendMessage.Msg,
+						)
+						go func() {
+							select {
+							case gt.incomingMessages <- events.ListOf(receivedEvent.Pb()):
+							case <-ctx.Done():
+							}
+						}()
+					} else {
+						// Send message to another node.
+						if err := gt.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+							// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
+							gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 						}
-					}()
-				} else {
-					// Send message to another node.
-					if err := gt.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil {
-						// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
-						gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
+			default:
+				return fmt.Errorf("unexpected type of transport event: %T", e)
 			}
 		default:
 			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
@@ -170,7 +178,11 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
 		select {
 		case gt.incomingMessages <- events.ListOf(
-			events.MessageReceived(t.ModuleID(grpcMsg.Msg.DestModule), t.NodeID(grpcMsg.Sender), grpcMsg.Msg),
+			transportpbevents.MessageReceived(
+				t.ModuleID(grpcMsg.Msg.DestModule),
+				t.NodeID(grpcMsg.Sender),
+				messagepbtypes.MessageFromPb(grpcMsg.Msg),
+			).Pb(),
 		):
 			// Write the message to the channel. This channel will be read by the user of the module.
 

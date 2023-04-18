@@ -20,6 +20,7 @@ import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -46,156 +47,6 @@ func PbftViewChangeSegmentTimeout(view t.PBFTViewNr) *ordererpb.Event {
 	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
 		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: view.Pb()}},
 	}}
-}
-
-// ============================================================
-// PBFT Messages
-// ============================================================
-
-func PbftPreprepareSBMessage(content *pbftpb.Preprepare) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_Preprepare{Preprepare: content}},
-	}}
-}
-
-func PbftPrepareSBMessage(content *pbftpb.Prepare) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_Prepare{Prepare: content}},
-	}}
-}
-
-func PbftCommitSBMessage(content *pbftpb.Commit) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_Commit{Commit: content}},
-	}}
-}
-
-func PbftSignedViewChangeSBMessage(signedViewChange *pbftpb.SignedViewChange) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_SignedViewChange{SignedViewChange: signedViewChange}},
-	}}
-}
-
-func PbftPreprepareRequestSBMessage(preprepareRequest *pbftpb.PreprepareRequest) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_PreprepareRequest{PreprepareRequest: preprepareRequest}},
-	}}
-}
-
-func PbftMissingPreprepareSBMessage(preprepare *pbftpb.Preprepare) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_MissingPreprepare{MissingPreprepare: &pbftpb.MissingPreprepare{
-			Preprepare: preprepare,
-		}}},
-	}}
-}
-
-func PbftNewViewSBMessage(newView *pbftpb.NewView) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_NewView{NewView: newView}},
-	}}
-}
-
-func PbftDoneSBMessage(digests [][]byte) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_Done{Done: &pbftpb.Done{Digests: digests}}},
-	}}
-}
-
-func PbftCatchUpRequestSBMessage(sn t.SeqNr, digest []byte) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_CatchUpRequest{CatchUpRequest: &pbftpb.CatchUpRequest{
-			Digest: digest,
-			Sn:     sn.Pb(),
-		}}},
-	}}
-}
-
-func PbftCatchUpResponseSBMessage(preprepare *pbftpb.Preprepare) *ordererpb.Message {
-	return &ordererpb.Message{Type: &ordererpb.Message_Pbft{
-		Pbft: &pbftpb.Message{Type: &pbftpb.Message_CatchUpResponse{CatchUpResponse: &pbftpb.CatchUpResponse{
-			Resp: preprepare,
-		}}},
-	}}
-}
-
-// ============================================================
-// PBFT Message
-// ============================================================
-
-// pbftPreprepareMsg returns a protocol buffer representing a Preprepare message.
-// Instead of constructing the protocol buffer directly in the code, this function serves the purpose
-// of enforcing that all fields are explicitly set and none is forgotten.
-// Should the structure of the message change (e.g. by augmenting it by new fields),
-// using this function ensures that these the message is always constructed properly.
-func pbftPreprepareMsg(sn t.SeqNr, view t.PBFTViewNr, data []byte, aborted bool) *pbftpb.Preprepare {
-	return &pbftpb.Preprepare{
-		Sn:      sn.Pb(),
-		View:    view.Pb(),
-		Data:    data,
-		Aborted: aborted,
-	}
-}
-
-// pbftPrepareMsg returns a protocol buffer representing a Prepare message.
-// Analogous pbftPreprepareMsg, but for a Prepare message.
-func pbftPrepareMsg(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *pbftpb.Prepare {
-	return &pbftpb.Prepare{
-		Sn:     sn.Pb(),
-		View:   view.Pb(),
-		Digest: digest,
-	}
-}
-
-// pbftCommitMsg returns a protocol buffer representing a Commit message.
-// Analogous pbftPreprepareMsg, but for a Commit message.
-func pbftCommitMsg(sn t.SeqNr, view t.PBFTViewNr, digest []byte) *pbftpb.Commit {
-	return &pbftpb.Commit{
-		Sn:     sn.Pb(),
-		View:   view.Pb(),
-		Digest: digest,
-	}
-}
-
-// pbftViewChangeMsg returns a protocol buffer representing a ViewChange message.
-func pbftViewChangeMsg(view t.PBFTViewNr, pSet viewChangePSet, qSet viewChangeQSet) *pbftpb.ViewChange {
-	return &pbftpb.ViewChange{
-		View: view.Pb(),
-		PSet: pSet.Pb(),
-		QSet: qSet.Pb(),
-	}
-}
-
-// pbftSignedViewChangeMsg returns a protocol buffer representing a SignedViewChange message.
-func pbftSignedViewChangeMsg(viewChange *pbftpb.ViewChange, signature []byte) *pbftpb.SignedViewChange {
-	return &pbftpb.SignedViewChange{
-		ViewChange: viewChange,
-		Signature:  signature,
-	}
-}
-
-func pbftPreprepareRequestMsg(sn t.SeqNr, digest []byte) *pbftpb.PreprepareRequest {
-	return &pbftpb.PreprepareRequest{
-		Digest: digest,
-		Sn:     sn.Pb(),
-	}
-}
-
-// pbftNewViewMsg returns a protocol buffer representing a NewView message.
-func pbftNewViewMsg(
-	view t.PBFTViewNr,
-	viewChangeSenders []t.NodeID,
-	viewChanges []*pbftpb.SignedViewChange,
-	preprepareSeqNrs []t.SeqNr,
-	preprepares []*pbftpb.Preprepare,
-) *pbftpb.NewView {
-	return &pbftpb.NewView{
-		View:              view.Pb(),
-		ViewChangeSenders: t.NodeIDSlicePb(viewChangeSenders),
-		SignedViewChanges: viewChanges,
-		PreprepareSeqNrs:  t.SeqNrSlicePb(preprepareSeqNrs),
-		Preprepares:       preprepares,
-	}
 }
 
 // ============================================================
@@ -261,7 +112,7 @@ func catchUpResponseHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOri
 // Note that the view number is *not* serialized, as hashes must be consistent across views.
 // Even though the preprepare argument is a protocol buffer, this function is required to guarantee
 // that the serialization is deterministic, since the protobuf native serialization does not provide this guarantee.
-func serializePreprepareForHashing(preprepare *pbftpb.Preprepare) *commonpbtypes.HashData {
+func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *commonpbtypes.HashData {
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)
@@ -272,10 +123,10 @@ func serializePreprepareForHashing(preprepare *pbftpb.Preprepare) *commonpbtypes
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
 	// as the view change protocol might compare hashes of Preprepares across vies.
-	return &commonpbtypes.HashData{Data: [][]byte{t.SeqNr(preprepare.Sn).Bytes(), {aborted}, preprepare.Data}}
+	return &commonpbtypes.HashData{Data: [][]byte{preprepare.Sn.Bytes(), {aborted}, preprepare.Data}}
 }
 
-func serializeViewChangeForSigning(vc *pbftpb.ViewChange) *cryptopbtypes.SignedData {
+func serializeViewChangeForSigning(vc *pbftpbtypes.ViewChange) *cryptopbtypes.SignedData {
 	_ = &pbftpb.ViewChange{
 		View: 0,
 		PSet: nil,
@@ -286,19 +137,19 @@ func serializeViewChangeForSigning(vc *pbftpb.ViewChange) *cryptopbtypes.SignedD
 	data := make([][]byte, 0)
 
 	// Encode view number.
-	data = append(data, t.PBFTViewNr(vc.View).Bytes())
+	data = append(data, vc.View.Bytes())
 
 	// Encode P set.
 	for _, pSetEntry := range vc.PSet {
-		data = append(data, t.SeqNr(pSetEntry.Sn).Bytes())
-		data = append(data, t.PBFTViewNr(pSetEntry.View).Bytes())
+		data = append(data, pSetEntry.Sn.Bytes())
+		data = append(data, pSetEntry.View.Bytes())
 		data = append(data, pSetEntry.Digest)
 	}
 
 	// Encode Q set.
 	for _, qSetEntry := range vc.QSet {
-		data = append(data, t.SeqNr(qSetEntry.Sn).Bytes())
-		data = append(data, t.PBFTViewNr(qSetEntry.View).Bytes())
+		data = append(data, qSetEntry.Sn.Bytes())
+		data = append(data, qSetEntry.View.Bytes())
 		data = append(data, qSetEntry.Digest)
 	}
 

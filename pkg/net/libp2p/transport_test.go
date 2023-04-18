@@ -16,8 +16,11 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/types"
 	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -211,10 +214,11 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeI
 }
 
 func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
-	msg, valid := events.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
-	require.Equal(m.t, true, valid)
+	tEvent, valid := events.Iterator().Next().Type.(*eventpb.Event_Transport)
+	require.True(m.t, valid)
+	msg, valid := tEvent.Transport.Type.(*transportpb.Event_MessageReceived)
+	require.True(m.t, valid)
 	require.Equal(m.t, msg.MessageReceived.From, nodeID.Pb())
-
 }
 
 // testEventuallyHasConnection tests that there is a connection between the nodes initiated by initiator.
@@ -393,6 +397,78 @@ func TestSendReceive(t *testing.T) {
 	nodeD := types.NodeID("d")
 	// nodeE := types.NodeID("e")
 
+	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+
+	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
+
+	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
+	m.StartAllTransports()
+
+	require.Equal(t, nodeA, a.ownID)
+	require.Equal(t, nodeB, b.ownID)
+	require.Equal(t, nodeC, c.ownID)
+	require.Equal(t, nodeD, d.ownID)
+
+	// eAddr := libp2putil.NewFakeMultiaddr(100, 0)
+
+	t.Log(">>> membership")
+	initialNodes := m.Membership(nodeA, nodeB, nodeC, nodeD)
+	// initialNodes[nodeE] = eAddr
+	t.Log(initialNodes)
+
+	t.Log(">>> connecting nodes")
+	a.Connect(initialNodes)
+	b.Connect(initialNodes)
+	c.Connect(initialNodes)
+	d.Connect(initialNodes)
+
+	m.testEventuallyConnected(nodeA, nodeB)
+	m.testEventuallyConnected(nodeA, nodeC)
+	m.testEventuallyConnected(nodeA, nodeD)
+	m.testEventuallyConnected(nodeB, nodeC)
+	m.testEventuallyConnected(nodeB, nodeD)
+	m.testEventuallyConnected(nodeC, nodeD)
+
+	t.Log(">>> sending messages")
+
+	nodeBEventsChan := b.EventsOut()
+	nodeCEventsChan := c.EventsOut()
+
+	err := a.Send(nodeB, testMsg.Pb())
+	require.NoError(t, err)
+	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
+
+	err = a.Send(nodeC, testMsg.Pb())
+	require.NoError(t, err)
+	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
+
+	t.Log(">>> disconnecting nodes")
+	m.disconnect(nodeA, nodeB)
+	m.testEventuallyNotConnected(nodeA, nodeB)
+
+	t.Log(">>> cleaning")
+	m.StopAllTransports()
+	m.testEventuallyNoStreams(nodeA)
+	m.testEventuallyNoStreams(nodeB)
+	m.testEventuallyNoStreams(nodeC)
+	m.testEventuallyNoStreams(nodeD)
+	m.testConnectionsEmpty()
+	m.CloseAllHosts()
+	m.testNoHostConnections()
+}
+
+// TestSendReceive tests that even empty messages can be sent and received.
+// TODO: Enable this test ASAP (by removing the 'x'), when support for nil values in generated types is implemented.
+// Also remove the nolint:unused tag.
+func xTestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
+	logger := logging.ConsoleDebugLogger
+
+	nodeA := types.NodeID("a")
+	nodeB := types.NodeID("b")
+	nodeC := types.NodeID("c")
+	nodeD := types.NodeID("d")
+	// nodeE := types.NodeID("e")
+
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
@@ -518,6 +594,8 @@ func TestMessaging(t *testing.T) {
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 
+	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
 
 	a := m.transports[nodeA]
@@ -594,7 +672,7 @@ func TestMessaging(t *testing.T) {
 				sentBeforeDisconnect = sent
 				disconnect <- struct{}{}
 			case <-send.C:
-				err := a.Send(nodeB, &messagepb.Message{})
+				err := a.Send(nodeB, testMsg.Pb())
 				if err != nil {
 					m.t.Log(err)
 				} else {
@@ -630,6 +708,8 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 
+	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
@@ -649,7 +729,7 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 
 	t.Log(">>> sending messages")
 	nodeBEventsChan := b.EventsOut()
-	err := a.Send(nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, testMsg.Pb())
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -709,6 +789,8 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 
+	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+
 	t.Log(">>> connecting nodes")
 
 	initialNodes := m.Membership(nodeA, nodeB)
@@ -722,7 +804,7 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	a.WaitFor(2)
 
 	t.Log(">>> send a message")
-	err := a.Send(nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, testMsg.Pb())
 	require.NoError(t, err)
 
 	nodeBEventsChan := b.incomingMessages
@@ -733,13 +815,13 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 
 	go func() {
 		b.incomingMessages <- events.ListOf(
-			events.MessageReceived("1", "blocker", &messagepb.Message{}),
+			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
 		)
 		b.incomingMessages <- events.ListOf(
-			events.MessageReceived("1", "blocker", &messagepb.Message{}),
+			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
 		)
 	}()
-	err = a.Send(nodeB, &messagepb.Message{})
+	err = a.Send(nodeB, testMsg.Pb())
 	time.Sleep(5 * time.Second)
 	require.NoError(t, err)
 
@@ -848,6 +930,8 @@ func TestMessagingWithNewNodes(t *testing.T) {
 	initialNodes := m.Membership(nodes[:N]...)
 	allNodes := m.Membership(nodes...)
 
+	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+
 	t.Logf(">>> connecting nodes")
 	for i := 0; i < N; i++ {
 		m.transports[nodes[i]].Connect(initialNodes)
@@ -871,7 +955,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 
 		for i := 0; i < 100; i++ {
 			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond) // nolint
-			err := m.transports[src].Send(dst, &messagepb.Message{DestModule: "iss", Type: &messagepb.Message_Iss{}})
+			err := m.transports[src].Send(dst, testMsg.Pb())
 			if err != nil {
 				t.Logf("%v->%v failed to send: %v", src, dst, err)
 			} else {
@@ -891,7 +975,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 				if !ok {
 					return
 				}
-				_, valid := e.Iterator().Next().Type.(*eventpb.Event_MessageReceived)
+				_, valid := e.Iterator().Next().Type.(*eventpb.Event_Transport).Transport.Type.(*transportpb.Event_MessageReceived)
 				require.Equal(m.t, true, valid)
 				atomic.AddInt64(&received, 1)
 			}

@@ -7,11 +7,14 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/pb/apppb"
+	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/pkg/errors"
@@ -163,17 +166,22 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 		default:
 			return nil, errors.Errorf("unexpected batch fetcher event type: %T", e)
 		}
-	case *eventpb.Event_MessageReceived:
-		switch msg := e.MessageReceived.Msg.Type.(type) {
-		case *messagepb.Message_Checkpoint:
-			switch m := msg.Checkpoint.Type.(type) {
-			case *checkpointpb.Message_Checkpoint:
-				return p.applyMessage(m.Checkpoint, t.NodeID(e.MessageReceived.From)), nil
+	case *eventpb.Event_Transport:
+		switch e := e.Transport.Type.(type) {
+		case *transportpb.Event_MessageReceived:
+			switch msg := e.MessageReceived.Msg.Type.(type) {
+			case *messagepb.Message_Checkpoint:
+				switch m := msg.Checkpoint.Type.(type) {
+				case *checkpointpb.Message_Checkpoint:
+					return p.applyMessage(m.Checkpoint, t.NodeID(e.MessageReceived.From)), nil
+				default:
+					return nil, errors.Errorf("unexpected checkpoint message type: %T", m)
+				}
 			default:
-				return nil, errors.Errorf("unexpected checkpoint message type: %T", m)
+				return nil, errors.Errorf("unexpected message type: %T", e.MessageReceived.Msg.Type)
 			}
 		default:
-			return nil, errors.Errorf("unexpected message type: %T", e.MessageReceived.Msg.Type)
+			return nil, errors.Errorf("unexpected transport event type: %T", e)
 		}
 	default:
 		return nil, errors.Errorf("unknown event type: %T", e)
@@ -257,10 +265,10 @@ func (p *Protocol) applySignResult(result *cryptopb.SignResult) (*events.EventLi
 	}
 
 	// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-	chkpMessage := protobufs.CheckpointMessage(p.moduleConfig.Self, p.epoch, p.seqNr, p.stateSnapshotHash, result.Signature)
+	chkpMessage := checkpointpbmsgs.Checkpoint(p.moduleConfig.Self, p.epoch, p.seqNr, p.stateSnapshotHash, result.Signature)
 	eventsOut.PushBack(eventpbevents.TimerRepeat(
 		"timer",
-		[]*eventpbtypes.Event{eventpbevents.SendMessage(p.moduleConfig.Net, chkpMessage, p.membership)},
+		[]*eventpbtypes.Event{transportpbevents.SendMessage(p.moduleConfig.Net, chkpMessage, p.membership)},
 		p.resendPeriod,
 		t.RetentionIndex(p.epoch)).Pb(),
 	)

@@ -12,7 +12,10 @@ import (
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/pingpong/protobufs"
 )
@@ -39,8 +42,13 @@ func (p *Pingpong) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return p.applyInit()
-	case *eventpb.Event_MessageReceived:
-		return p.applyMessageReceived(e.MessageReceived)
+	case *eventpb.Event_Transport:
+		switch e := e.Transport.Type.(type) {
+		case *transportpb.Event_MessageReceived:
+			return p.applyMessageReceived(e.MessageReceived)
+		default:
+			return nil, errors.Errorf("unknown transport event type: %T", e)
+		}
 	case *eventpb.Event_PingPong:
 		switch e := e.PingPong.Type.(type) {
 		case *pingpongpb.Event_PingTime:
@@ -78,11 +86,11 @@ func (p *Pingpong) sendPing() (*events.EventList, error) {
 
 	ping := protobufs.PingMessage("pingpong", p.nextSn)
 	p.nextSn++
-	sendMsgEvent := events.SendMessage("transport", ping, []t.NodeID{destID})
-	return events.ListOf(sendMsgEvent), nil
+	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []t.NodeID{destID})
+	return events.ListOf(sendMsgEvent.Pb()), nil
 }
 
-func (p *Pingpong) applyMessageReceived(msg *eventpb.MessageReceived) (*events.EventList, error) {
+func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*events.EventList, error) {
 	switch message := msg.Msg.Type.(type) {
 	case *messagepb.Message_Pingpong:
 		switch m := message.Pingpong.Type.(type) {
@@ -101,8 +109,8 @@ func (p *Pingpong) applyMessageReceived(msg *eventpb.MessageReceived) (*events.E
 func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*events.EventList, error) {
 	fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
 	pong := protobufs.PongMessage("pingpong", ping.SeqNr)
-	sendMsgEvent := events.SendMessage("transport", pong, []t.NodeID{from})
-	return events.ListOf(sendMsgEvent), nil
+	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []t.NodeID{from})
+	return events.ListOf(sendMsgEvent.Pb()), nil
 }
 
 func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from t.NodeID) (*events.EventList, error) {

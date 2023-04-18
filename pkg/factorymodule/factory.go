@@ -11,6 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -187,8 +188,17 @@ func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, 
 }
 
 func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
-	msg, ok := event.Type.(*eventpb.Event_MessageReceived)
-	if !ok {
+
+	// Check if this is a MessageReceived event.
+	isMessageReceivedEvent := false
+	var msg *transportpb.Event_MessageReceived
+	e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+	if isTransportEvent {
+		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
+	}
+
+	if !isMessageReceivedEvent {
+		// Events other than MessageReceived are ignored.
 		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
 			"moduleID", t.ModuleID(event.DestModule),
 			"eventType", fmt.Sprintf("%T", event.Type),

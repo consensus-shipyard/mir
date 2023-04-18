@@ -12,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -74,33 +73,6 @@ func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
 // This event is the first to be applied to a module.
 func Init(destModule t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
-}
-
-// SendMessage returns an event of sending the message message to destinations.
-// destinations is a slice of replica IDs that will be translated to actual addresses later.
-func SendMessage(destModule t.ModuleID, message *messagepb.Message, destinations []t.NodeID) *eventpb.Event {
-
-	// TODO: This conversion can potentially be very inefficient!
-
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_SendMessage{SendMessage: &eventpb.SendMessage{
-			Destinations: t.NodeIDSlicePb(destinations),
-			Msg:          message,
-		}},
-	}
-}
-
-// MessageReceived returns an event representing the reception of a message from another node.
-// The from parameter is the ID of the node the message was received from.
-func MessageReceived(destModule t.ModuleID, from t.NodeID, message *messagepb.Message) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_MessageReceived{MessageReceived: &eventpb.MessageReceived{
-			From: from.Pb(),
-			Msg:  message,
-		}},
-	}
 }
 
 // EpochConfig represents the configuration of the system during one epoch

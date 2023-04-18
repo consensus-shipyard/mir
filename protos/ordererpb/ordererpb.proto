@@ -67,8 +67,6 @@ message SBPendingRequests {
 }
 
 message HashOrigin {
-  uint64 epoch    = 1;
-  uint64 instance = 2;
   oneof type {
     pbftpb.HashOrigin pbft = 3;
   }

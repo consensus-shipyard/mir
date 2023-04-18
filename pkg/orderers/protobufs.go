@@ -9,7 +9,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -38,22 +37,6 @@ func (orderer *Orderer) requestCertOrigin() *events.EventList {
 		},
 	).Pb())
 }
-
-//func (orderer *Orderer) requestCertOrigin() *events.EventList {
-//	return events.ListOf(
-//		&eventpb.Event{
-//			DestModule: orderer.moduleConfig.Ava.Pb(),
-//			Type: &eventpb.Event_Availability{
-//				Availability: &availabilitypb.Event{
-//					Type: apbtypes.RequestCert{
-//						&apbtypes.RequestCertOrigin{
-//							Module: orderer.moduleConfig.Self,
-//							Type: &apbtypes.RequestCertOrigin_ContextStore{ContextStore: &contextstorepbtypes.Origin{
-//								ItemID: 0, // TODO remove this parameter. It is deprecated as now ModuleID is a particular PBFT orderer.
-//							}},
-//						},
-//					}.Pb()}}})
-//}
 
 func HashOrigin(module t.ModuleID, origin *ordererpb.HashOrigin) *hasherpbtypes.HashOrigin {
 	return &hasherpbtypes.HashOrigin{
@@ -90,8 +73,4 @@ func InstanceParams(
 			ValidityChecker: uint64(validityCheckerType),
 		},
 	}}
-}
-
-func OrdererMessage(msg *ordererpb.Message, destModule t.ModuleID) *messagepb.Message {
-	return &messagepb.Message{DestModule: string(destModule), Type: &messagepb.Message_Orderer{Orderer: msg}}
 }
