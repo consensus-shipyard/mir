@@ -3,7 +3,6 @@ syntax = "proto3";
 package eventpb;
 
 import "apppb/apppb.proto";
-import "requestpb/requestpb.proto";
 import "messagepb/messagepb.proto";
 import "isspb/isspb.proto";
 import "google/protobuf/wrappers.proto";
@@ -52,7 +51,6 @@ message Event {
 
     SendMessage             send_message            = 15;
     MessageReceived         message_received        = 16;
-    NewRequests             new_requests            = 7;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -73,11 +71,6 @@ message Event {
 
 message Init {
   option (mir.event) = true;
-}
-
-message NewRequests {
-  option (mir.event) = true;
-  repeated requestpb.Request requests = 1;
 }
 
 message SendMessage {

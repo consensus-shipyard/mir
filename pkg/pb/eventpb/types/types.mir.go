@@ -15,11 +15,9 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	types10 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types15 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types14 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types14 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -81,8 +79,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
 	case *eventpb.Event_MessageReceived:
 		return &Event_MessageReceived{MessageReceived: MessageReceivedFromPb(pb.MessageReceived)}
-	case *eventpb.Event_NewRequests:
-		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
@@ -415,24 +411,6 @@ func (*Event_MessageReceived) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_MessageReceived]()}
 }
 
-type Event_NewRequests struct {
-	NewRequests *NewRequests
-}
-
-func (*Event_NewRequests) isEvent_Type() {}
-
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
-}
-
-func (w *Event_NewRequests) Pb() eventpb.Event_Type {
-	return &eventpb.Event_NewRequests{NewRequests: (w.NewRequests).Pb()}
-}
-
-func (*Event_NewRequests) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_NewRequests]()}
-}
-
 type Event_TestingString struct {
 	TestingString *wrapperspb.StringValue
 }
@@ -507,38 +485,14 @@ func (*Init) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Init]()}
 }
 
-type NewRequests struct {
-	Requests []*types14.Request
-}
-
-func NewRequestsFromPb(pb *eventpb.NewRequests) *NewRequests {
-	return &NewRequests{
-		Requests: types13.ConvertSlice(pb.Requests, func(t *requestpb.Request) *types14.Request {
-			return types14.RequestFromPb(t)
-		}),
-	}
-}
-
-func (m *NewRequests) Pb() *eventpb.NewRequests {
-	return &eventpb.NewRequests{
-		Requests: types13.ConvertSlice(m.Requests, func(t *types14.Request) *requestpb.Request {
-			return (t).Pb()
-		}),
-	}
-}
-
-func (*NewRequests) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.NewRequests]()}
-}
-
 type SendMessage struct {
-	Msg          *types15.Message
+	Msg          *types14.Message
 	Destinations []types.NodeID
 }
 
 func SendMessageFromPb(pb *eventpb.SendMessage) *SendMessage {
 	return &SendMessage{
-		Msg: types15.MessageFromPb(pb.Msg),
+		Msg: types14.MessageFromPb(pb.Msg),
 		Destinations: types13.ConvertSlice(pb.Destinations, func(t string) types.NodeID {
 			return (types.NodeID)(t)
 		}),
@@ -560,13 +514,13 @@ func (*SendMessage) MirReflect() mirreflect.Type {
 
 type MessageReceived struct {
 	From types.NodeID
-	Msg  *types15.Message
+	Msg  *types14.Message
 }
 
 func MessageReceivedFromPb(pb *eventpb.MessageReceived) *MessageReceived {
 	return &MessageReceived{
 		From: (types.NodeID)(pb.From),
-		Msg:  types15.MessageFromPb(pb.Msg),
+		Msg:  types14.MessageFromPb(pb.Msg),
 	}
 }
 

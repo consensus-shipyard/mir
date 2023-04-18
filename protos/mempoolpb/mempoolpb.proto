@@ -27,7 +27,14 @@ message Event {
     TransactionIDsResponse transaction_ids_response = 6;
     RequestBatchID         request_batch_id         = 7;
     BatchIDResponse        batch_id_response        = 8;
+    NewRequests            new_requests             = 9;
   }
+}
+
+message NewRequests {
+  option (mir.event) = true;
+
+  repeated requestpb.Request requests = 1;
 }
 
 // RequestBatch is used by the availability layer to request a new batch of transactions from the mempool.

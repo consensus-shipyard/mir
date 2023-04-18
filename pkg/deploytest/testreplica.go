@@ -13,7 +13,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -166,14 +167,14 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 			break
 		default:
 			// Otherwise, submit next request.
-			eventList := events.ListOf(events.NewClientRequests(
+			eventList := events.ListOf(mempoolpbevents.NewRequests(
 				destModule,
-				[]*requestpb.Request{events.ClientRequest(
-					t.NewClientIDFromInt(0),
-					t.ReqNo(i),
-					[]byte(fmt.Sprintf("Request %d", i)),
-				)},
-			))
+				[]*requestpbtypes.Request{{
+					ClientId: t.NewClientIDFromInt(0),
+					ReqNo:    t.ReqNo(i),
+					Data:     []byte(fmt.Sprintf("Request %d", i)),
+				}},
+			).Pb())
 
 			if err := node.InjectEvents(ctx, eventList); err != nil {
 				tr.Config.Logger.Log(logging.LevelError, "failed to inject events", "err", err)

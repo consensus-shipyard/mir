@@ -4,7 +4,6 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -54,11 +53,5 @@ func UponSendMessage(m dsl.Module, handler func(msg *types2.Message, destination
 func UponMessageReceived(m dsl.Module, handler func(from types1.NodeID, msg *types2.Message) error) {
 	dsl.UponMirEvent[*types.Event_MessageReceived](m, func(ev *types.MessageReceived) error {
 		return handler(ev.From, ev.Msg)
-	})
-}
-
-func UponNewRequests(m dsl.Module, handler func(requests []*types3.Request) error) {
-	dsl.UponMirEvent[*types.Event_NewRequests](m, func(ev *types.NewRequests) error {
-		return handler(ev.Requests)
 	})
 }

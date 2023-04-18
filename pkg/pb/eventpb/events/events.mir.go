@@ -3,7 +3,6 @@ package eventpbevents
 import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -83,17 +82,6 @@ func MessageReceived(destModule types.ModuleID, from types.NodeID, msg *types2.M
 			MessageReceived: &types1.MessageReceived{
 				From: from,
 				Msg:  msg,
-			},
-		},
-	}
-}
-
-func NewRequests(destModule types.ModuleID, requests []*types3.Request) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_NewRequests{
-			NewRequests: &types1.NewRequests{
-				Requests: requests,
 			},
 		},
 	}

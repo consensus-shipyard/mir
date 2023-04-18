@@ -97,10 +97,6 @@ func (w *Event_MessageReceived) Unwrap() *MessageReceived {
 	return w.MessageReceived
 }
 
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
-}
-
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 	return w.TestingString
 }

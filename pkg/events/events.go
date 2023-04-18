@@ -13,7 +13,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -102,22 +101,6 @@ func MessageReceived(destModule t.ModuleID, from t.NodeID, message *messagepb.Me
 			Msg:  message,
 		}},
 	}
-}
-
-// ClientRequest returns an event representing the reception of a request from a client.
-func ClientRequest(clientID t.ClientID, reqNo t.ReqNo, data []byte) *requestpb.Request {
-	return &requestpb.Request{
-		ClientId: clientID.Pb(),
-		ReqNo:    reqNo.Pb(),
-		Data:     data,
-	}
-}
-
-// NewClientRequests returns an event representing the reception of new requests from clients.
-func NewClientRequests(destModule t.ModuleID, requests []*requestpb.Request) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_NewRequests{
-		NewRequests: &eventpb.NewRequests{Requests: requests},
-	}}
 }
 
 // EpochConfig represents the configuration of the system during one epoch

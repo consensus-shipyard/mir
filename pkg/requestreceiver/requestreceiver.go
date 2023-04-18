@@ -18,7 +18,9 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -87,10 +89,10 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.ReqNo)
 
 		// Submit the request to the Node.
-		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(events.NewClientRequests(
+		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewRequests(
 			rr.moduleID,
-			[]*requestpb.Request{req},
-		))); srErr != nil {
+			[]*requestpbtypes.Request{requestpbtypes.RequestFromPb(req)},
+		).Pb())); srErr != nil {
 
 			// If submitting fails, stop receiving further request (and close connection).
 			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%v-%d): %v. Closing connection.",

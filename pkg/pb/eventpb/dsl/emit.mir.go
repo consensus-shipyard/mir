@@ -5,7 +5,6 @@ import (
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -33,8 +32,4 @@ func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types2.Message, d
 
 func MessageReceived(m dsl.Module, destModule types.ModuleID, from types.NodeID, msg *types2.Message) {
 	dsl.EmitMirEvent(m, events.MessageReceived(destModule, from, msg))
-}
-
-func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types3.Request) {
-	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }
