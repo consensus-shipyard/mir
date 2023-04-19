@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package pbftpb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/pbftpb";
+
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/pbftpb";
 
 // ============================================================
 // Messages
@@ -41,26 +41,26 @@ message Message {
 message Preprepare {
   option (net.message) = true;
 
-  uint64 sn = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
-  uint64 view = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
-  bytes data = 3;
-  bool aborted = 4;
+  uint64 sn      = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  data    = 3;
+  bool   aborted = 4;
 }
 
 message Prepare {
   option (net.message) = true;
 
-  uint64 sn = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
-  uint64 view = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
-  bytes digest = 3;
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
 }
 
 message Commit {
   option (net.message) = true;
 
-  uint64 sn = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
-  uint64 view = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
-  bytes digest = 3;
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
 }
 
 // ============================================================
@@ -124,9 +124,9 @@ message NewView {
 message ViewChange {
   option (mir.struct) = true;
 
-  uint64             view       = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
-  repeated PSetEntry p_set      = 2;
-  repeated QSetEntry q_set      = 3;
+  uint64             view  = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  repeated PSetEntry p_set = 2;
+  repeated QSetEntry q_set = 3;
 }
 
 message PSetEntry {
@@ -167,6 +167,8 @@ message VCSNTimeout {
   uint64 view         = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
   uint64 numCommitted = 2;
 }
+
+// TODO: Get rid of the `Origin` types when new DSL is used for this module.
 
 message HashOrigin {
   option (mir.struct) = true;

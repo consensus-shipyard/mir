@@ -8,6 +8,8 @@ syntax = "proto3";
 
 package isspb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
+
 import "requestpb/requestpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "availabilitypb/availabilitypb.proto";
@@ -15,8 +17,6 @@ import "commonpb/commonpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
 // ============================================================
 // Messages
@@ -27,6 +27,7 @@ message ISSMessage {
 
   oneof type {
     option (net.message_type) = true;
+
     checkpointpb.StableCheckpoint   stable_checkpoint   = 3;
   }
 }
@@ -47,10 +48,10 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    PushCheckpoint push_checkpoint = 5;
-    SBDeliver      sb_deliver      = 6;
-    DeliverCert    deliver_cert    = 7;
-    NewConfig      new_config      = 8;
+    PushCheckpoint push_checkpoint = 1;
+    SBDeliver      sb_deliver      = 2;
+    DeliverCert    deliver_cert    = 3;
+    NewConfig      new_config      = 4;
   }
 }
 

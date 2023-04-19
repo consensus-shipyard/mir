@@ -54,14 +54,14 @@ func HashOrigin(module t.ModuleID) *hasherpbtypes.HashOrigin {
 func SignOrigin(module t.ModuleID) *cryptopbtypes.SignOrigin {
 	return &cryptopbtypes.SignOrigin{
 		Module: module,
-		Type:   &cryptopbtypes.SignOrigin_Checkpoint{Checkpoint: &checkpointpb.SignOrigin{}},
+		Type:   &cryptopbtypes.SignOrigin_Checkpoint{Checkpoint: &checkpointpbtypes.SignOrigin{}},
 	}
 }
 
 func SigVerOrigin(module t.ModuleID) *cryptopbtypes.SigVerOrigin {
 	return &cryptopbtypes.SigVerOrigin{
 		Module: module,
-		Type:   &cryptopbtypes.SigVerOrigin_Checkpoint{Checkpoint: &checkpointpb.SigVerOrigin{}},
+		Type:   &cryptopbtypes.SigVerOrigin_Checkpoint{Checkpoint: &checkpointpbtypes.SigVerOrigin{}},
 	}
 }
 

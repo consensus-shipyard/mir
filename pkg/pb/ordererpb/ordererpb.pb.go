@@ -7,12 +7,10 @@
 package ordererpb
 
 import (
-	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	_ "github.com/filecoin-project/mir/pkg/pb/mir"
 	_ "github.com/filecoin-project/mir/pkg/pb/net"
 	pbftpb "github.com/filecoin-project/mir/pkg/pb/pbftpb"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,13 +30,6 @@ type Event struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Type:
-	//	*Event_Init
-	//	*Event_Deliver
-	//	*Event_MessageReceived
-	//	*Event_PendingRequests
-	//	*Event_CertRequest
-	//	*Event_BatchReady
-	//	*Event_CertReady
 	//	*Event_Pbft
 	Type isEvent_Type `protobuf_oneof:"type"`
 }
@@ -82,55 +73,6 @@ func (m *Event) GetType() isEvent_Type {
 	return nil
 }
 
-func (x *Event) GetInit() *SBInit {
-	if x, ok := x.GetType().(*Event_Init); ok {
-		return x.Init
-	}
-	return nil
-}
-
-func (x *Event) GetDeliver() *SBDeliver {
-	if x, ok := x.GetType().(*Event_Deliver); ok {
-		return x.Deliver
-	}
-	return nil
-}
-
-func (x *Event) GetMessageReceived() *SBMessageReceived {
-	if x, ok := x.GetType().(*Event_MessageReceived); ok {
-		return x.MessageReceived
-	}
-	return nil
-}
-
-func (x *Event) GetPendingRequests() *SBPendingRequests {
-	if x, ok := x.GetType().(*Event_PendingRequests); ok {
-		return x.PendingRequests
-	}
-	return nil
-}
-
-func (x *Event) GetCertRequest() *SBCertRequest {
-	if x, ok := x.GetType().(*Event_CertRequest); ok {
-		return x.CertRequest
-	}
-	return nil
-}
-
-func (x *Event) GetBatchReady() *SBBatchReady {
-	if x, ok := x.GetType().(*Event_BatchReady); ok {
-		return x.BatchReady
-	}
-	return nil
-}
-
-func (x *Event) GetCertReady() *SBCertReady {
-	if x, ok := x.GetType().(*Event_CertReady); ok {
-		return x.CertReady
-	}
-	return nil
-}
-
 func (x *Event) GetPbft() *pbftpb.Event {
 	if x, ok := x.GetType().(*Event_Pbft); ok {
 		return x.Pbft
@@ -142,51 +84,9 @@ type isEvent_Type interface {
 	isEvent_Type()
 }
 
-type Event_Init struct {
-	Init *SBInit `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
-}
-
-type Event_Deliver struct {
-	Deliver *SBDeliver `protobuf:"bytes,2,opt,name=deliver,proto3,oneof"`
-}
-
-type Event_MessageReceived struct {
-	MessageReceived *SBMessageReceived `protobuf:"bytes,3,opt,name=message_received,json=messageReceived,proto3,oneof"`
-}
-
-type Event_PendingRequests struct {
-	PendingRequests *SBPendingRequests `protobuf:"bytes,4,opt,name=pending_requests,json=pendingRequests,proto3,oneof"`
-}
-
-type Event_CertRequest struct {
-	CertRequest *SBCertRequest `protobuf:"bytes,6,opt,name=cert_request,json=certRequest,proto3,oneof"`
-}
-
-type Event_BatchReady struct {
-	BatchReady *SBBatchReady `protobuf:"bytes,7,opt,name=batch_ready,json=batchReady,proto3,oneof"`
-}
-
-type Event_CertReady struct {
-	CertReady *SBCertReady `protobuf:"bytes,8,opt,name=cert_ready,json=certReady,proto3,oneof"`
-}
-
 type Event_Pbft struct {
-	Pbft *pbftpb.Event `protobuf:"bytes,14,opt,name=pbft,proto3,oneof"`
+	Pbft *pbftpb.Event `protobuf:"bytes,1,opt,name=pbft,proto3,oneof"`
 }
-
-func (*Event_Init) isEvent_Type() {}
-
-func (*Event_Deliver) isEvent_Type() {}
-
-func (*Event_MessageReceived) isEvent_Type() {}
-
-func (*Event_PendingRequests) isEvent_Type() {}
-
-func (*Event_CertRequest) isEvent_Type() {}
-
-func (*Event_BatchReady) isEvent_Type() {}
-
-func (*Event_CertReady) isEvent_Type() {}
 
 func (*Event_Pbft) isEvent_Type() {}
 
@@ -256,349 +156,6 @@ type Message_Pbft struct {
 
 func (*Message_Pbft) isMessage_Type() {}
 
-type SBInit struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *SBInit) Reset() {
-	*x = SBInit{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBInit) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBInit) ProtoMessage() {}
-
-func (x *SBInit) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBInit.ProtoReflect.Descriptor instead.
-func (*SBInit) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{2}
-}
-
-type SBCertRequest struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-}
-
-func (x *SBCertRequest) Reset() {
-	*x = SBCertRequest{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBCertRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBCertRequest) ProtoMessage() {}
-
-func (x *SBCertRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBCertRequest.ProtoReflect.Descriptor instead.
-func (*SBCertRequest) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{3}
-}
-
-type SBBatchReady struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Batch               *requestpb.Batch `protobuf:"bytes,1,opt,name=batch,proto3" json:"batch,omitempty"`
-	PendingRequestsLeft uint64           `protobuf:"varint,2,opt,name=pending_requests_left,json=pendingRequestsLeft,proto3" json:"pending_requests_left,omitempty"`
-}
-
-func (x *SBBatchReady) Reset() {
-	*x = SBBatchReady{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[4]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBBatchReady) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBBatchReady) ProtoMessage() {}
-
-func (x *SBBatchReady) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[4]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBBatchReady.ProtoReflect.Descriptor instead.
-func (*SBBatchReady) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SBBatchReady) GetBatch() *requestpb.Batch {
-	if x != nil {
-		return x.Batch
-	}
-	return nil
-}
-
-func (x *SBBatchReady) GetPendingRequestsLeft() uint64 {
-	if x != nil {
-		return x.PendingRequestsLeft
-	}
-	return 0
-}
-
-type SBCertReady struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Cert *availabilitypb.Cert `protobuf:"bytes,1,opt,name=cert,proto3" json:"cert,omitempty"`
-}
-
-func (x *SBCertReady) Reset() {
-	*x = SBCertReady{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[5]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBCertReady) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBCertReady) ProtoMessage() {}
-
-func (x *SBCertReady) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[5]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBCertReady.ProtoReflect.Descriptor instead.
-func (*SBCertReady) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *SBCertReady) GetCert() *availabilitypb.Cert {
-	if x != nil {
-		return x.Cert
-	}
-	return nil
-}
-
-type SBDeliver struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Sn       uint64 `protobuf:"varint,1,opt,name=sn,proto3" json:"sn,omitempty"`
-	CertData []byte `protobuf:"bytes,2,opt,name=cert_data,json=certData,proto3" json:"cert_data,omitempty"`
-	Aborted  bool   `protobuf:"varint,3,opt,name=aborted,proto3" json:"aborted,omitempty"`
-}
-
-func (x *SBDeliver) Reset() {
-	*x = SBDeliver{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[6]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBDeliver) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBDeliver) ProtoMessage() {}
-
-func (x *SBDeliver) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[6]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBDeliver.ProtoReflect.Descriptor instead.
-func (*SBDeliver) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *SBDeliver) GetSn() uint64 {
-	if x != nil {
-		return x.Sn
-	}
-	return 0
-}
-
-func (x *SBDeliver) GetCertData() []byte {
-	if x != nil {
-		return x.CertData
-	}
-	return nil
-}
-
-func (x *SBDeliver) GetAborted() bool {
-	if x != nil {
-		return x.Aborted
-	}
-	return false
-}
-
-type SBMessageReceived struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	From string   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
-	Msg  *Message `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
-}
-
-func (x *SBMessageReceived) Reset() {
-	*x = SBMessageReceived{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBMessageReceived) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBMessageReceived) ProtoMessage() {}
-
-func (x *SBMessageReceived) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBMessageReceived.ProtoReflect.Descriptor instead.
-func (*SBMessageReceived) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *SBMessageReceived) GetFrom() string {
-	if x != nil {
-		return x.From
-	}
-	return ""
-}
-
-func (x *SBMessageReceived) GetMsg() *Message {
-	if x != nil {
-		return x.Msg
-	}
-	return nil
-}
-
-type SBPendingRequests struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	NumRequests uint64 `protobuf:"varint,1,opt,name=numRequests,proto3" json:"numRequests,omitempty"`
-}
-
-func (x *SBPendingRequests) Reset() {
-	*x = SBPendingRequests{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SBPendingRequests) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SBPendingRequests) ProtoMessage() {}
-
-func (x *SBPendingRequests) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SBPendingRequests.ProtoReflect.Descriptor instead.
-func (*SBPendingRequests) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *SBPendingRequests) GetNumRequests() uint64 {
-	if x != nil {
-		return x.NumRequests
-	}
-	return 0
-}
-
 type HashOrigin struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -612,7 +169,7 @@ type HashOrigin struct {
 func (x *HashOrigin) Reset() {
 	*x = HashOrigin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[9]
+		mi := &file_ordererpb_ordererpb_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -625,7 +182,7 @@ func (x *HashOrigin) String() string {
 func (*HashOrigin) ProtoMessage() {}
 
 func (x *HashOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[9]
+	mi := &file_ordererpb_ordererpb_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -638,7 +195,7 @@ func (x *HashOrigin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HashOrigin.ProtoReflect.Descriptor instead.
 func (*HashOrigin) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{9}
+	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{2}
 }
 
 func (m *HashOrigin) GetType() isHashOrigin_Type {
@@ -680,7 +237,7 @@ type SignOrigin struct {
 func (x *SignOrigin) Reset() {
 	*x = SignOrigin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[10]
+		mi := &file_ordererpb_ordererpb_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -693,7 +250,7 @@ func (x *SignOrigin) String() string {
 func (*SignOrigin) ProtoMessage() {}
 
 func (x *SignOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[10]
+	mi := &file_ordererpb_ordererpb_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +263,7 @@ func (x *SignOrigin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignOrigin.ProtoReflect.Descriptor instead.
 func (*SignOrigin) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{10}
+	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SignOrigin) GetEpoch() uint64 {
@@ -762,7 +319,7 @@ type SigVerOrigin struct {
 func (x *SigVerOrigin) Reset() {
 	*x = SigVerOrigin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[11]
+		mi := &file_ordererpb_ordererpb_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -775,7 +332,7 @@ func (x *SigVerOrigin) String() string {
 func (*SigVerOrigin) ProtoMessage() {}
 
 func (x *SigVerOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[11]
+	mi := &file_ordererpb_ordererpb_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -788,7 +345,7 @@ func (x *SigVerOrigin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SigVerOrigin.ProtoReflect.Descriptor instead.
 func (*SigVerOrigin) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{11}
+	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SigVerOrigin) GetEpoch() uint64 {
@@ -842,7 +399,7 @@ type PBFTSegment struct {
 func (x *PBFTSegment) Reset() {
 	*x = PBFTSegment{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[12]
+		mi := &file_ordererpb_ordererpb_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -855,7 +412,7 @@ func (x *PBFTSegment) String() string {
 func (*PBFTSegment) ProtoMessage() {}
 
 func (x *PBFTSegment) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[12]
+	mi := &file_ordererpb_ordererpb_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -868,7 +425,7 @@ func (x *PBFTSegment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PBFTSegment.ProtoReflect.Descriptor instead.
 func (*PBFTSegment) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{12}
+	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PBFTSegment) GetLeader() string {
@@ -906,7 +463,7 @@ type PBFTModule struct {
 func (x *PBFTModule) Reset() {
 	*x = PBFTModule{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ordererpb_ordererpb_proto_msgTypes[13]
+		mi := &file_ordererpb_ordererpb_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -919,7 +476,7 @@ func (x *PBFTModule) String() string {
 func (*PBFTModule) ProtoMessage() {}
 
 func (x *PBFTModule) ProtoReflect() protoreflect.Message {
-	mi := &file_ordererpb_ordererpb_proto_msgTypes[13]
+	mi := &file_ordererpb_ordererpb_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -932,7 +489,7 @@ func (x *PBFTModule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PBFTModule.ProtoReflect.Descriptor instead.
 func (*PBFTModule) Descriptor() ([]byte, []int) {
-	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{13}
+	return file_ordererpb_ordererpb_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PBFTModule) GetSegment() *PBFTSegment {
@@ -971,74 +528,18 @@ var file_ordererpb_ordererpb_proto_rawDesc = []byte{
 	0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x1a, 0x17, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x70, 0x62,
 	0x2f, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x70, 0x62, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a,
 	0x13, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2f, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x19, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x70, 0x62, 0x2f,
-	0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x70, 0x62, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a,
-	0x23, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x70, 0x62, 0x2f,
-	0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x70, 0x62, 0x2e, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x1c, 0x6d, 0x69, 0x72, 0x2f, 0x63, 0x6f, 0x64, 0x65, 0x67, 0x65,
 	0x6e, 0x5f, 0x65, 0x78, 0x74, 0x65, 0x6e, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f,
 	0x74, 0x6f, 0x1a, 0x1c, 0x6e, 0x65, 0x74, 0x2f, 0x63, 0x6f, 0x64, 0x65, 0x67, 0x65, 0x6e, 0x5f,
 	0x65, 0x78, 0x74, 0x65, 0x6e, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x22, 0xd9, 0x03, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x27, 0x0a, 0x04, 0x69, 0x6e,
-	0x69, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72,
-	0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x49, 0x6e, 0x69, 0x74, 0x48, 0x00, 0x52, 0x04, 0x69,
-	0x6e, 0x69, 0x74, 0x12, 0x30, 0x0a, 0x07, 0x64, 0x65, 0x6c, 0x69, 0x76, 0x65, 0x72, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x70, 0x62,
-	0x2e, 0x53, 0x42, 0x44, 0x65, 0x6c, 0x69, 0x76, 0x65, 0x72, 0x48, 0x00, 0x52, 0x07, 0x64, 0x65,
-	0x6c, 0x69, 0x76, 0x65, 0x72, 0x12, 0x49, 0x0a, 0x10, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-	0x5f, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1c, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x4d, 0x65,
-	0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64, 0x48, 0x00, 0x52,
-	0x0f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64,
-	0x12, 0x49, 0x0a, 0x10, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x5f, 0x72, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x6f, 0x72, 0x64,
-	0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x48, 0x00, 0x52, 0x0f, 0x70, 0x65, 0x6e, 0x64,
-	0x69, 0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x12, 0x3d, 0x0a, 0x0c, 0x63,
-	0x65, 0x72, 0x74, 0x5f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x18, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42,
-	0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x0b, 0x63,
-	0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3a, 0x0a, 0x0b, 0x62, 0x61,
-	0x74, 0x63, 0x68, 0x5f, 0x72, 0x65, 0x61, 0x64, 0x79, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x17, 0x2e, 0x6f, 0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x42, 0x61,
-	0x74, 0x63, 0x68, 0x52, 0x65, 0x61, 0x64, 0x79, 0x48, 0x00, 0x52, 0x0a, 0x62, 0x61, 0x74, 0x63,
-	0x68, 0x52, 0x65, 0x61, 0x64, 0x79, 0x12, 0x37, 0x0a, 0x0a, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x72,
-	0x65, 0x61, 0x64, 0x79, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x6f, 0x72, 0x64,
-	0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x53, 0x42, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x61,
-	0x64, 0x79, 0x48, 0x00, 0x52, 0x09, 0x63, 0x65, 0x72, 0x74, 0x52, 0x65, 0x61, 0x64, 0x79, 0x12,
-	0x23, 0x0a, 0x04, 0x70, 0x62, 0x66, 0x74, 0x18, 0x0e, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e,
-	0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x04,
-	0x70, 0x62, 0x66, 0x74, 0x42, 0x06, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x44, 0x0a, 0x07,
-	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x25, 0x0a, 0x04, 0x70, 0x62, 0x66, 0x74, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x4d,
-	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x48, 0x00, 0x52, 0x04, 0x70, 0x62, 0x66, 0x74, 0x3a, 0x04,
-	0xc8, 0xe4, 0x1d, 0x01, 0x42, 0x0c, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x04, 0xc8, 0xe4,
-	0x1d, 0x01, 0x22, 0x08, 0x0a, 0x06, 0x53, 0x42, 0x49, 0x6e, 0x69, 0x74, 0x22, 0x0f, 0x0a, 0x0d,
-	0x53, 0x42, 0x43, 0x65, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x6a, 0x0a,
-	0x0c, 0x53, 0x42, 0x42, 0x61, 0x74, 0x63, 0x68, 0x52, 0x65, 0x61, 0x64, 0x79, 0x12, 0x26, 0x0a,
-	0x05, 0x62, 0x61, 0x74, 0x63, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x72,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x70, 0x62, 0x2e, 0x42, 0x61, 0x74, 0x63, 0x68, 0x52, 0x05,
-	0x62, 0x61, 0x74, 0x63, 0x68, 0x12, 0x32, 0x0a, 0x15, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67,
-	0x5f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x5f, 0x6c, 0x65, 0x66, 0x74, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x04, 0x52, 0x13, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x73, 0x4c, 0x65, 0x66, 0x74, 0x22, 0x37, 0x0a, 0x0b, 0x53, 0x42, 0x43,
-	0x65, 0x72, 0x74, 0x52, 0x65, 0x61, 0x64, 0x79, 0x12, 0x28, 0x0a, 0x04, 0x63, 0x65, 0x72, 0x74,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62,
-	0x69, 0x6c, 0x69, 0x74, 0x79, 0x70, 0x62, 0x2e, 0x43, 0x65, 0x72, 0x74, 0x52, 0x04, 0x63, 0x65,
-	0x72, 0x74, 0x22, 0x52, 0x0a, 0x09, 0x53, 0x42, 0x44, 0x65, 0x6c, 0x69, 0x76, 0x65, 0x72, 0x12,
-	0x0e, 0x0a, 0x02, 0x73, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x02, 0x73, 0x6e, 0x12,
-	0x1b, 0x0a, 0x09, 0x63, 0x65, 0x72, 0x74, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x08, 0x63, 0x65, 0x72, 0x74, 0x44, 0x61, 0x74, 0x61, 0x12, 0x18, 0x0a, 0x07,
-	0x61, 0x62, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x61,
-	0x62, 0x6f, 0x72, 0x74, 0x65, 0x64, 0x22, 0x4d, 0x0a, 0x11, 0x53, 0x42, 0x4d, 0x65, 0x73, 0x73,
-	0x61, 0x67, 0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x66,
-	0x72, 0x6f, 0x6d, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x66, 0x72, 0x6f, 0x6d, 0x12,
-	0x24, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x6f,
-	0x72, 0x64, 0x65, 0x72, 0x65, 0x72, 0x70, 0x62, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-	0x52, 0x03, 0x6d, 0x73, 0x67, 0x22, 0x35, 0x0a, 0x11, 0x53, 0x42, 0x50, 0x65, 0x6e, 0x64, 0x69,
-	0x6e, 0x67, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x12, 0x20, 0x0a, 0x0b, 0x6e, 0x75,
-	0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52,
-	0x0b, 0x6e, 0x75, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x22, 0x3e, 0x0a, 0x0a,
+	0x22, 0x34, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x23, 0x0a, 0x04, 0x70, 0x62, 0x66,
+	0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62,
+	0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x04, 0x70, 0x62, 0x66, 0x74, 0x42, 0x06,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x44, 0x0a, 0x07, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x12, 0x25, 0x0a, 0x04, 0x70, 0x62, 0x66, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x0f, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x48, 0x00, 0x52, 0x04, 0x70, 0x62, 0x66, 0x74, 0x3a, 0x04, 0xc8, 0xe4, 0x1d, 0x01, 0x42, 0x0c,
+	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x04, 0xc8, 0xe4, 0x1d, 0x01, 0x22, 0x3e, 0x0a, 0x0a,
 	0x48, 0x61, 0x73, 0x68, 0x4f, 0x72, 0x69, 0x67, 0x69, 0x6e, 0x12, 0x28, 0x0a, 0x04, 0x70, 0x62,
 	0x66, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70,
 	0x62, 0x2e, 0x48, 0x61, 0x73, 0x68, 0x4f, 0x72, 0x69, 0x67, 0x69, 0x6e, 0x48, 0x00, 0x52, 0x04,
@@ -1101,56 +602,37 @@ func file_ordererpb_ordererpb_proto_rawDescGZIP() []byte {
 	return file_ordererpb_ordererpb_proto_rawDescData
 }
 
-var file_ordererpb_ordererpb_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ordererpb_ordererpb_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ordererpb_ordererpb_proto_goTypes = []interface{}{
 	(*Event)(nil),               // 0: ordererpb.Event
 	(*Message)(nil),             // 1: ordererpb.Message
-	(*SBInit)(nil),              // 2: ordererpb.SBInit
-	(*SBCertRequest)(nil),       // 3: ordererpb.SBCertRequest
-	(*SBBatchReady)(nil),        // 4: ordererpb.SBBatchReady
-	(*SBCertReady)(nil),         // 5: ordererpb.SBCertReady
-	(*SBDeliver)(nil),           // 6: ordererpb.SBDeliver
-	(*SBMessageReceived)(nil),   // 7: ordererpb.SBMessageReceived
-	(*SBPendingRequests)(nil),   // 8: ordererpb.SBPendingRequests
-	(*HashOrigin)(nil),          // 9: ordererpb.HashOrigin
-	(*SignOrigin)(nil),          // 10: ordererpb.SignOrigin
-	(*SigVerOrigin)(nil),        // 11: ordererpb.SigVerOrigin
-	(*PBFTSegment)(nil),         // 12: ordererpb.PBFTSegment
-	(*PBFTModule)(nil),          // 13: ordererpb.PBFTModule
-	nil,                         // 14: ordererpb.PBFTSegment.ProposalsEntry
-	(*pbftpb.Event)(nil),        // 15: pbftpb.Event
-	(*pbftpb.Message)(nil),      // 16: pbftpb.Message
-	(*requestpb.Batch)(nil),     // 17: requestpb.Batch
-	(*availabilitypb.Cert)(nil), // 18: availabilitypb.Cert
-	(*pbftpb.HashOrigin)(nil),   // 19: pbftpb.HashOrigin
-	(*pbftpb.SignOrigin)(nil),   // 20: pbftpb.SignOrigin
-	(*pbftpb.SigVerOrigin)(nil), // 21: pbftpb.SigVerOrigin
-	(*commonpb.Membership)(nil), // 22: commonpb.Membership
+	(*HashOrigin)(nil),          // 2: ordererpb.HashOrigin
+	(*SignOrigin)(nil),          // 3: ordererpb.SignOrigin
+	(*SigVerOrigin)(nil),        // 4: ordererpb.SigVerOrigin
+	(*PBFTSegment)(nil),         // 5: ordererpb.PBFTSegment
+	(*PBFTModule)(nil),          // 6: ordererpb.PBFTModule
+	nil,                         // 7: ordererpb.PBFTSegment.ProposalsEntry
+	(*pbftpb.Event)(nil),        // 8: pbftpb.Event
+	(*pbftpb.Message)(nil),      // 9: pbftpb.Message
+	(*pbftpb.HashOrigin)(nil),   // 10: pbftpb.HashOrigin
+	(*pbftpb.SignOrigin)(nil),   // 11: pbftpb.SignOrigin
+	(*pbftpb.SigVerOrigin)(nil), // 12: pbftpb.SigVerOrigin
+	(*commonpb.Membership)(nil), // 13: commonpb.Membership
 }
 var file_ordererpb_ordererpb_proto_depIdxs = []int32{
-	2,  // 0: ordererpb.Event.init:type_name -> ordererpb.SBInit
-	6,  // 1: ordererpb.Event.deliver:type_name -> ordererpb.SBDeliver
-	7,  // 2: ordererpb.Event.message_received:type_name -> ordererpb.SBMessageReceived
-	8,  // 3: ordererpb.Event.pending_requests:type_name -> ordererpb.SBPendingRequests
-	3,  // 4: ordererpb.Event.cert_request:type_name -> ordererpb.SBCertRequest
-	4,  // 5: ordererpb.Event.batch_ready:type_name -> ordererpb.SBBatchReady
-	5,  // 6: ordererpb.Event.cert_ready:type_name -> ordererpb.SBCertReady
-	15, // 7: ordererpb.Event.pbft:type_name -> pbftpb.Event
-	16, // 8: ordererpb.Message.pbft:type_name -> pbftpb.Message
-	17, // 9: ordererpb.SBBatchReady.batch:type_name -> requestpb.Batch
-	18, // 10: ordererpb.SBCertReady.cert:type_name -> availabilitypb.Cert
-	1,  // 11: ordererpb.SBMessageReceived.msg:type_name -> ordererpb.Message
-	19, // 12: ordererpb.HashOrigin.pbft:type_name -> pbftpb.HashOrigin
-	20, // 13: ordererpb.SignOrigin.pbft:type_name -> pbftpb.SignOrigin
-	21, // 14: ordererpb.SigVerOrigin.pbft:type_name -> pbftpb.SigVerOrigin
-	22, // 15: ordererpb.PBFTSegment.membership:type_name -> commonpb.Membership
-	14, // 16: ordererpb.PBFTSegment.proposals:type_name -> ordererpb.PBFTSegment.ProposalsEntry
-	12, // 17: ordererpb.PBFTModule.segment:type_name -> ordererpb.PBFTSegment
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	8,  // 0: ordererpb.Event.pbft:type_name -> pbftpb.Event
+	9,  // 1: ordererpb.Message.pbft:type_name -> pbftpb.Message
+	10, // 2: ordererpb.HashOrigin.pbft:type_name -> pbftpb.HashOrigin
+	11, // 3: ordererpb.SignOrigin.pbft:type_name -> pbftpb.SignOrigin
+	12, // 4: ordererpb.SigVerOrigin.pbft:type_name -> pbftpb.SigVerOrigin
+	13, // 5: ordererpb.PBFTSegment.membership:type_name -> commonpb.Membership
+	7,  // 6: ordererpb.PBFTSegment.proposals:type_name -> ordererpb.PBFTSegment.ProposalsEntry
+	5,  // 7: ordererpb.PBFTModule.segment:type_name -> ordererpb.PBFTSegment
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ordererpb_ordererpb_proto_init() }
@@ -1184,90 +666,6 @@ func file_ordererpb_ordererpb_proto_init() {
 			}
 		}
 		file_ordererpb_ordererpb_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBInit); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBCertRequest); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBBatchReady); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBCertReady); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBDeliver); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBMessageReceived); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SBPendingRequests); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_ordererpb_ordererpb_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*HashOrigin); i {
 			case 0:
 				return &v.state
@@ -1279,7 +677,7 @@ func file_ordererpb_ordererpb_proto_init() {
 				return nil
 			}
 		}
-		file_ordererpb_ordererpb_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_ordererpb_ordererpb_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SignOrigin); i {
 			case 0:
 				return &v.state
@@ -1291,7 +689,7 @@ func file_ordererpb_ordererpb_proto_init() {
 				return nil
 			}
 		}
-		file_ordererpb_ordererpb_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_ordererpb_ordererpb_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SigVerOrigin); i {
 			case 0:
 				return &v.state
@@ -1303,7 +701,7 @@ func file_ordererpb_ordererpb_proto_init() {
 				return nil
 			}
 		}
-		file_ordererpb_ordererpb_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_ordererpb_ordererpb_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PBFTSegment); i {
 			case 0:
 				return &v.state
@@ -1315,7 +713,7 @@ func file_ordererpb_ordererpb_proto_init() {
 				return nil
 			}
 		}
-		file_ordererpb_ordererpb_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_ordererpb_ordererpb_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PBFTModule); i {
 			case 0:
 				return &v.state
@@ -1329,25 +727,18 @@ func file_ordererpb_ordererpb_proto_init() {
 		}
 	}
 	file_ordererpb_ordererpb_proto_msgTypes[0].OneofWrappers = []interface{}{
-		(*Event_Init)(nil),
-		(*Event_Deliver)(nil),
-		(*Event_MessageReceived)(nil),
-		(*Event_PendingRequests)(nil),
-		(*Event_CertRequest)(nil),
-		(*Event_BatchReady)(nil),
-		(*Event_CertReady)(nil),
 		(*Event_Pbft)(nil),
 	}
 	file_ordererpb_ordererpb_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*Message_Pbft)(nil),
 	}
-	file_ordererpb_ordererpb_proto_msgTypes[9].OneofWrappers = []interface{}{
+	file_ordererpb_ordererpb_proto_msgTypes[2].OneofWrappers = []interface{}{
 		(*HashOrigin_Pbft)(nil),
 	}
-	file_ordererpb_ordererpb_proto_msgTypes[10].OneofWrappers = []interface{}{
+	file_ordererpb_ordererpb_proto_msgTypes[3].OneofWrappers = []interface{}{
 		(*SignOrigin_Pbft)(nil),
 	}
-	file_ordererpb_ordererpb_proto_msgTypes[11].OneofWrappers = []interface{}{
+	file_ordererpb_ordererpb_proto_msgTypes[4].OneofWrappers = []interface{}{
 		(*SigVerOrigin_Pbft)(nil),
 	}
 	type x struct{}
@@ -1356,7 +747,7 @@ func file_ordererpb_ordererpb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ordererpb_ordererpb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -62,10 +62,6 @@ func (w *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
 	return w.ThreshCrypto
 }
 
-func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
-	return w.PingPong
-}
-
 func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
 	return w.Checkpoint
 }
@@ -92,6 +88,10 @@ func (w *Event_App) Unwrap() *apppb.Event {
 
 func (w *Event_Transport) Unwrap() *transportpb.Event {
 	return w.Transport
+}
+
+func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
+	return w.PingPong
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {

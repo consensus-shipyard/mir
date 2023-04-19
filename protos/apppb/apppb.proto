@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package apppb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/apppb";
+
 import "checkpointpb/checkpointpb.proto";
 
 import "mir/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/apppb";
 
 message Event {
   option (mir.event_class) = true;
@@ -14,10 +14,10 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    SnapshotRequest      snapshot_request    = 22;
-    Snapshot             snapshot            = 23;
-    RestoreState         restore_state       = 24;
-    NewEpoch             new_epoch           = 31;
+    SnapshotRequest snapshot_request = 1;
+    Snapshot        snapshot         = 2;
+    RestoreState    restore_state    = 3;
+    NewEpoch        new_epoch        = 4;
   }
 }
 
@@ -30,16 +30,18 @@ message SnapshotRequest {
 message Snapshot {
   option (mir.event) = true;
 
-  bytes                 app_data = 1;
+  bytes app_data = 1;
 }
 
 message RestoreState {
   option (mir.event) = true;
+
   checkpointpb.StableCheckpoint checkpoint = 1;
 }
 
 message NewEpoch {
   option (mir.event) = true;
+
   uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
 }
 

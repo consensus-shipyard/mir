@@ -6,13 +6,18 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/commonpb";
 
 import "mir/codegen_extensions.proto";
 
+// TODO: This is an ugly ugly package that was created ad-hoc to avoid circular references.
+//   Clean it ups and use a more meaningful package structure that does not need a "common" package.
+
 message HashData {
   option (mir.struct) = true;
+
   repeated bytes data = 1;
 }
 
 message StateSnapshot {
   option (mir.struct) = true;
+
   bytes     app_data   = 1;
   EpochData epoch_data = 2;
 }
@@ -42,10 +47,13 @@ message Membership {
 
 message ClientProgress {
   option (mir.event) = true;
+
   map<string, DeliveredReqs> progress = 1;
 }
 
 message DeliveredReqs {
+  option (mir.struct) = true;
+
   uint64          low_wm    = 1;
   repeated uint64 delivered = 2;
 }

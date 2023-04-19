@@ -93,7 +93,7 @@ message TransactionIDsResponse {
 message RequestBatchID {
   option (mir.event) = true;
 
-  repeated bytes        tx_ids = 1;
+  repeated bytes       tx_ids = 1;
   RequestBatchIDOrigin origin = 2 [(mir.origin_request) = true];
 }
 

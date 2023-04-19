@@ -4,8 +4,6 @@ package hasherpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/hasherpb";
 
-import "mir/codegen_extensions.proto";
-
 import "commonpb/commonpb.proto";
 import "contextstorepb/contextstorepb.proto";
 import "requestpb/requestpb.proto";
@@ -13,6 +11,7 @@ import "dslpb/dslpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
 
+import "mir/codegen_extensions.proto";
 
 message Event {
   option (mir.event_class) = true;
@@ -62,8 +61,8 @@ message HashOrigin {
   oneof type {
     contextstorepb.Origin           context_store = 2;
     requestpb.Request               request       = 3;
-    dslpb.Origin                    dsl           = 5;
-    checkpointpb.HashOrigin         checkpoint    = 6;
-    ordererpb.HashOrigin            sb            = 7;
+    dslpb.Origin                    dsl           = 4;
+    checkpointpb.HashOrigin         checkpoint    = 5;
+    ordererpb.HashOrigin            sb            = 6;
   }
 }

@@ -2,28 +2,17 @@ syntax = "proto3";
 
 package ordererpb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb";
+
 import "commonpb/commonpb.proto";
 import "pbftpb/pbftpb.proto";
-import "requestpb/requestpb.proto";
-import "availabilitypb/availabilitypb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
 
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb";
-
 message Event {
   oneof type {
-    SBInit             init               = 1;
-    SBDeliver          deliver            = 2;
-    SBMessageReceived  message_received   = 3;
-    SBPendingRequests  pending_requests   = 4;
-    SBCertRequest      cert_request       = 6;
-    SBBatchReady       batch_ready        = 7;
-    SBCertReady        cert_ready         = 8;
-
-    pbftpb.Event       pbft               = 14;
+    pbftpb.Event pbft = 1;
   }
 }
 
@@ -37,34 +26,7 @@ message Message {
   }
 }
 
-message SBInit {}
-
-message SBCertRequest {
-}
-
-message SBBatchReady {
-  requestpb.Batch batch = 1;
-  uint64 pending_requests_left = 2;
-}
-
-message SBCertReady {
-  availabilitypb.Cert cert = 1;
-}
-
-message SBDeliver {
-  uint64          sn      = 1;
-  bytes           cert_data = 2;
-  bool            aborted = 3;
-}
-
-message SBMessageReceived {
-  string  from = 1;
-  Message msg  = 2;
-}
-
-message SBPendingRequests {
-  uint64 numRequests = 1;
-}
+// TODO: Get rid of the `Origin` types when DSL is used for this module.
 
 message HashOrigin {
   oneof type {
@@ -81,8 +43,8 @@ message SignOrigin {
 }
 
 message SigVerOrigin {
-  uint64                 epoch    = 1;
-  uint64                 instance = 2;
+  uint64 epoch    = 1;
+  uint64 instance = 2;
   oneof type {
     pbftpb.SigVerOrigin pbft = 3;
   }

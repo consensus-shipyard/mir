@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package eventpb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
+
 import "apppb/apppb.proto";
 import "isspb/isspb.proto";
 import "google/protobuf/wrappers.proto";
@@ -21,38 +23,39 @@ import "transportpb/transportpb.proto";
 
 import "mir/codegen_extensions.proto";
 
-option go_package = "github.com/filecoin-project/mir/pkg/pb/eventpb";
-
 // Event represents a state event to be injected into the state machine
 message Event {
   option (mir.event_root) = true;
 
-  // TODO, normalize naming, for instance Complete/Completed
+  string dest_module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+
   oneof type {
     option (mir.event_type) = true;
 
     // Special global event produced by the runtime itself and sent to each module on initialization.
-    Init init = 1;
+    Init init = 2;
 
     // Timer events are recursive and must be defined in this file for protobuf-specific reasons, see below.
-    TimerEvent timer = 2;
+    TimerEvent timer = 3;
 
     // Module-specific events
-          hasherpb.Event hasher                  = 8;
-             bcbpb.Event bcb                     = 28;
-         mempoolpb.Event mempool                 = 29;
-    availabilitypb.Event availability            = 30;
-         batchdbpb.Event batch_db                = 34;
-    batchfetcherpb.Event batch_fetcher           = 35;
-    threshcryptopb.Event thresh_crypto           = 36;
-        pingpongpb.Event ping_pong               = 37;
-      checkpointpb.Event checkpoint              = 38;
-         factorypb.Event factory                 = 33;
-             isspb.Event iss                     = 18;
-         ordererpb.Event orderer                 = 39;
-          cryptopb.Event crypto                  = 40;
-             apppb.Event app                     = 41;
-       transportpb.Event transport               = 42;
+          hasherpb.Event hasher        = 10;
+             bcbpb.Event bcb           = 11;
+         mempoolpb.Event mempool       = 12;
+    availabilitypb.Event availability  = 13;
+         batchdbpb.Event batch_db      = 14;
+    batchfetcherpb.Event batch_fetcher = 15;
+    threshcryptopb.Event thresh_crypto = 16;
+      checkpointpb.Event checkpoint    = 17;
+         factorypb.Event factory       = 18;
+             isspb.Event iss           = 19;
+         ordererpb.Event orderer       = 20;
+          cryptopb.Event crypto        = 21;
+             apppb.Event app           = 22;
+       transportpb.Event transport     = 23;
+
+    // Events for code samples
+    pingpongpb.Event ping_pong = 200;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
@@ -66,9 +69,7 @@ message Event {
   // In this case, the WAL append event would be this event
   // and the next field would contain the message sending event.
   // (This is a hypothetical example, the WAL functionality is not implemented at a moment.)
-  repeated Event next = 100 [(mir.omit_in_event_constructors) = true];
-
-  string dest_module = 200 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  repeated Event next = 400 [(mir.omit_in_event_constructors) = true];
 }
 
 message Init {
@@ -110,6 +111,7 @@ message TimerDelay {
 
 message TimerRepeat {
   option (mir.event) = true;
+
   repeated Event events_to_repeat = 1;
   uint64         delay            = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TimeDuration"];
   uint64         retention_index  = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
@@ -117,5 +119,6 @@ message TimerRepeat {
 
 message TimerGarbageCollect {
   option (mir.event) = true;
+
   uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
 }

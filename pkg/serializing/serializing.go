@@ -31,20 +31,6 @@ func RequestForHash(req *requestpb.Request) [][]byte {
 	return [][]byte{clientIDBuf, reqNoBuf, req.Data}
 }
 
-func BatchForHash(batch *requestpb.Batch) [][]byte {
-
-	// Allocate output slice.
-	data := make([][]byte, len(batch.Requests))
-
-	// Collect all request digests in the batch.
-	for i, reqRef := range batch.Requests {
-		data[i] = reqRef.Digest
-	}
-
-	// Return populated output slice.
-	return data
-}
-
 func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
 	epochBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(epochBytes, uint64(epoch))
@@ -122,8 +108,4 @@ func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, n)
 	return buf
-}
-
-func BytesToUint64(data []byte) uint64 {
-	return binary.LittleEndian.Uint64(data)
 }

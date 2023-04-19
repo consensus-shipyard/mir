@@ -25,9 +25,9 @@ import (
 )
 
 type Event struct {
+	DestModule types.ModuleID
 	Type       Event_Type
 	Next       []*Event
-	DestModule types.ModuleID
 }
 
 type Event_Type interface {
@@ -61,8 +61,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_BatchFetcher{BatchFetcher: types6.EventFromPb(pb.BatchFetcher)}
 	case *eventpb.Event_ThreshCrypto:
 		return &Event_ThreshCrypto{ThreshCrypto: types7.EventFromPb(pb.ThreshCrypto)}
-	case *eventpb.Event_PingPong:
-		return &Event_PingPong{PingPong: pb.PingPong}
 	case *eventpb.Event_Checkpoint:
 		return &Event_Checkpoint{Checkpoint: types8.EventFromPb(pb.Checkpoint)}
 	case *eventpb.Event_Factory:
@@ -77,6 +75,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_App{App: types12.EventFromPb(pb.App)}
 	case *eventpb.Event_Transport:
 		return &Event_Transport{Transport: types13.EventFromPb(pb.Transport)}
+	case *eventpb.Event_PingPong:
+		return &Event_PingPong{PingPong: pb.PingPong}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
@@ -247,24 +247,6 @@ func (*Event_ThreshCrypto) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_ThreshCrypto]()}
 }
 
-type Event_PingPong struct {
-	PingPong *pingpongpb.Event
-}
-
-func (*Event_PingPong) isEvent_Type() {}
-
-func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
-	return w.PingPong
-}
-
-func (w *Event_PingPong) Pb() eventpb.Event_Type {
-	return &eventpb.Event_PingPong{PingPong: w.PingPong}
-}
-
-func (*Event_PingPong) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_PingPong]()}
-}
-
 type Event_Checkpoint struct {
 	Checkpoint *types8.Event
 }
@@ -391,6 +373,24 @@ func (*Event_Transport) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Transport]()}
 }
 
+type Event_PingPong struct {
+	PingPong *pingpongpb.Event
+}
+
+func (*Event_PingPong) isEvent_Type() {}
+
+func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
+	return w.PingPong
+}
+
+func (w *Event_PingPong) Pb() eventpb.Event_Type {
+	return &eventpb.Event_PingPong{PingPong: w.PingPong}
+}
+
+func (*Event_PingPong) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_PingPong]()}
+}
+
 type Event_TestingString struct {
 	TestingString *wrapperspb.StringValue
 }
@@ -429,21 +429,21 @@ func (*Event_TestingUint) MirReflect() mirreflect.Type {
 
 func EventFromPb(pb *eventpb.Event) *Event {
 	return &Event{
-		Type: Event_TypeFromPb(pb.Type),
+		DestModule: (types.ModuleID)(pb.DestModule),
+		Type:       Event_TypeFromPb(pb.Type),
 		Next: types14.ConvertSlice(pb.Next, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		DestModule: (types.ModuleID)(pb.DestModule),
 	}
 }
 
 func (m *Event) Pb() *eventpb.Event {
 	return &eventpb.Event{
-		Type: (m.Type).Pb(),
+		DestModule: (string)(m.DestModule),
+		Type:       (m.Type).Pb(),
 		Next: types14.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		}),
-		DestModule: (string)(m.DestModule),
 	}
 }
 

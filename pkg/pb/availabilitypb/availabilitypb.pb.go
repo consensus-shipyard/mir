@@ -175,8 +175,8 @@ func (*Event_ProvideTransactions) isEvent_Type() {}
 
 func (*Event_ComputeCert) isEvent_Type() {}
 
-// RequestCert is used by the consensus layer to request an availability certificate for a batch of transactions
-// from the availability layer.
+// RequestCert is used by the consensus component to request an availability certificate for a batch of transactions
+// from the availability component.
 type RequestCert struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

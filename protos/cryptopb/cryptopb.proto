@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package cryptopb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/cryptopb";
+
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
 
 import "mir/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/cryptopb";
 
 // ============================================================
 // Events
@@ -99,7 +99,6 @@ message SigVerOrigin {
   option (mir.struct) = true;
 
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-
   oneof type {
     contextstorepb.Origin     context_store = 2;
     dslpb.Origin              dsl           = 4;

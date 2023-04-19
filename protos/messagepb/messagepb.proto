@@ -8,6 +8,8 @@ syntax = "proto3";
 
 package messagepb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
+
 import "isspb/isspb.proto";
 import "bcbpb/bcbpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
@@ -17,8 +19,6 @@ import "ordererpb/ordererpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/messagepb";
 
 message Message {
   option (net.message_root) = true;

@@ -197,8 +197,6 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 		}
 	case *eventpb.Event_Orderer:
 		switch e := ev.Orderer.Type.(type) {
-		case *ordererpb.Event_Init:
-			return orderer.applyInit(), nil
 		case *ordererpb.Event_Pbft:
 			switch e := e.Pbft.Type.(type) {
 			case *pbftpb.Event_ProposeTimeout:
@@ -211,10 +209,10 @@ func (orderer *Orderer) ApplyEvent(event *eventpb.Event) (*events.EventList, err
 				return nil, fmt.Errorf("unknown PBFT event type: %T", e)
 			}
 		default:
-			return nil, fmt.Errorf("unknown orderer instance event type: %T", e)
+			return nil, fmt.Errorf("unknown orderer event type: %T", e)
 		}
 	default:
-		return nil, fmt.Errorf("unknown Orderer event type: %T", event.Type)
+		return nil, fmt.Errorf("unknown event type: %T", event.Type)
 	}
 
 }

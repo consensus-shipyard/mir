@@ -360,9 +360,6 @@ func (x *ProvideBatchMessage) GetBatchId() []byte {
 	return nil
 }
 
-// ============================================================
-// Data structures
-// ============================================================
 type Cert struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
