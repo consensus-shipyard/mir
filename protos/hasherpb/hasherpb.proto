@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package hasherpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/hasherpb";
+
+import "commonpb/commonpb.proto";
+import "contextstorepb/contextstorepb.proto";
+import "requestpb/requestpb.proto";
+import "dslpb/dslpb.proto";
+import "checkpointpb/checkpointpb.proto";
+import "ordererpb/ordererpb.proto";
+
+import "mir/codegen_extensions.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof Type {
+    option (mir.event_type) = true;
+
+    Request request        = 1;
+    Result  result         = 2;
+    RequestOne request_one = 3;
+    ResultOne  result_one  = 4;
+  }
+}
+
+message Request {
+  option (mir.event) = true;
+
+  repeated commonpb.HashData data   = 1;
+  HashOrigin                 origin = 2 [(mir.origin_request) = true];
+}
+
+message Result {
+  option (mir.event) = true;
+
+  repeated bytes digests = 1;
+  HashOrigin     origin  = 2 [(mir.origin_response) = true];
+}
+
+message RequestOne {
+  option (mir.event) = true;
+
+  commonpb.HashData data   = 1;
+  HashOrigin        origin = 2 [(mir.origin_request) = true];
+}
+
+message ResultOne {
+  option (mir.event) = true;
+
+  bytes      digest = 1;
+  HashOrigin origin = 2 [(mir.origin_response) = true];
+}
+
+message HashOrigin {
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  oneof type {
+    contextstorepb.Origin           context_store = 2;
+    requestpb.Request               request       = 3;
+    dslpb.Origin                    dsl           = 4;
+    checkpointpb.HashOrigin         checkpoint    = 5;
+    ordererpb.HashOrigin            sb            = 6;
+  }
+}

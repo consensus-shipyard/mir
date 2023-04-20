@@ -6,8 +6,9 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batch
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
-import "mir/codegen_extensions.proto";
 import "requestpb/requestpb.proto";
+
+import "mir/codegen_extensions.proto";
 
 // ============================================================
 // Events
@@ -38,20 +39,20 @@ message LookupBatch {
 message LookupBatchResponse {
   option (mir.event) = true;
 
-  bool                       found    = 1;
-  repeated requestpb.Request txs      = 2;
-  LookupBatchOrigin          origin   = 4 [(mir.origin_response) = true];
+  bool                       found  = 1;
+  repeated requestpb.Request txs    = 2;
+  LookupBatchOrigin          origin = 3 [(mir.origin_response) = true];
 }
 
 // StoreBatch is used to store a new batch in the local batch database.
 message StoreBatch {
   option (mir.event) = true;
 
-  bytes batch_id                = 1;
-  repeated bytes tx_ids         = 2;
-  repeated requestpb.Request txs = 3;
-  bytes metadata                 = 4; // not used at the moment
-  StoreBatchOrigin origin        = 5 [(mir.origin_request) = true];
+  bytes                      batch_id = 1;
+  repeated bytes             tx_ids   = 2;
+  repeated requestpb.Request txs      = 3;
+  bytes                      metadata = 4; // not used at the moment
+  StoreBatchOrigin           origin   = 5 [(mir.origin_request) = true];
 }
 
 // BatchStored is a response to a VerifyCert event.

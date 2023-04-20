@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
@@ -64,7 +65,7 @@ func IncludeVerificationOfCertificates(
 				allEmpty = false
 				state.RequestState[reqID].certVerifiedValid[t.BatchIDString(mscCert.BatchId)] = false
 				sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
-				dsl.VerifyNodeSigs(m, mc.Crypto,
+				cryptopbdsl.VerifySigs(m, mc.Crypto,
 					/*data*/ sliceutil.Repeat(sigMsg, len(mscCert.Signers)),
 					/*signatures*/ mscCert.Signatures,
 					/*nodeIDs*/ mscCert.Signers,
@@ -83,7 +84,7 @@ func IncludeVerificationOfCertificates(
 	})
 
 	// When the signatures in a certificate are verified, output the result of certificate verification.
-	dsl.UponNodeSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *verifySigsInCertContext) error {
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *verifySigsInCertContext) error {
 		reqID := context.reqID
 
 		if _, ok := state.RequestState[reqID]; !ok {

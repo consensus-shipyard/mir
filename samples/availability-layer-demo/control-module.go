@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 
 	"google.golang.org/protobuf/proto"
 
@@ -17,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 )
 
 type controlModule struct {
@@ -128,8 +129,8 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 			break
 		}
 
-		request := &requestpb.Request{Data: []byte(text)}
-		m.eventsOut <- events.ListOf(events.NewClientRequests("mempool", []*requestpb.Request{request}))
+		request := &requestpbtypes.Request{Data: []byte(text)}
+		m.eventsOut <- events.ListOf(mempoolpbevents.NewRequests("mempool", []*requestpbtypes.Request{request}).Pb())
 	}
 
 	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{

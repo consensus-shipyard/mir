@@ -36,7 +36,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
@@ -228,7 +229,7 @@ func run() error {
 		return errors.Wrap(err, "could not create new recorder")
 	}
 	// Create a Mir node, passing it all the modules of the SMR system.
-	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), trantorSystem.Modules(), nil, interceptor)
+	node, err := mir.NewNode(args.OwnID, mir.DefaultNodeConfig().WithLogger(logger), trantorSystem.Modules(), interceptor)
 	if err != nil {
 		return errors.Wrap(err, "could not create node")
 	}
@@ -265,9 +266,14 @@ func run() error {
 	for scanner.Scan() {
 
 		// Submit the chat message as request payload to the mempool module.
-		err := node.InjectEvents(ctx, events.ListOf(events.NewClientRequests(
+		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
 			"mempool",
-			[]*requestpb.Request{events.ClientRequest(t.ClientID(args.OwnID), nextReqNo, scanner.Bytes())})),
+			[]*requestpbtypes.Request{{
+				ClientId: t.ClientID(args.OwnID),
+				ReqNo:    nextReqNo,
+				Type:     0,
+				Data:     scanner.Bytes(),
+			}}).Pb()),
 		)
 
 		// Print error if occurred.

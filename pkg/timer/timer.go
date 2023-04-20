@@ -43,21 +43,24 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
-		case *eventpb.Event_TimerDelay:
-			tm.Delay(
-				ctx,
-				events.EmptyList().PushBackSlice(e.TimerDelay.Events),
-				t.TimeDuration(e.TimerDelay.Delay),
-			)
-		case *eventpb.Event_TimerRepeat:
-			tm.Repeat(
-				ctx,
-				events.EmptyList().PushBackSlice(e.TimerRepeat.EventsToRepeat),
-				t.TimeDuration(e.TimerRepeat.Delay),
-				t.RetentionIndex(e.TimerRepeat.RetentionIndex),
-			)
-		case *eventpb.Event_TimerGarbageCollect:
-			tm.GarbageCollect(t.RetentionIndex(e.TimerGarbageCollect.RetentionIndex))
+		case *eventpb.Event_Timer:
+			switch e := e.Timer.Type.(type) {
+			case *eventpb.TimerEvent_Delay:
+				tm.Delay(
+					ctx,
+					events.ListOf(e.Delay.EventsToDelay...),
+					t.TimeDuration(e.Delay.Delay),
+				)
+			case *eventpb.TimerEvent_Repeat:
+				tm.Repeat(
+					ctx,
+					events.ListOf(e.Repeat.EventsToRepeat...),
+					t.TimeDuration(e.Repeat.Delay),
+					t.RetentionIndex(e.Repeat.RetentionIndex),
+				)
+			case *eventpb.TimerEvent_GarbageCollect:
+				tm.GarbageCollect(t.RetentionIndex(e.GarbageCollect.RetentionIndex))
+			}
 		default:
 			return fmt.Errorf("unexpected type of Timer event: %T", event.Type)
 		}

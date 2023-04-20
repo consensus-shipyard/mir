@@ -48,9 +48,8 @@ vulncheck:
 
 .PHONY: generate
 generate:
-	go generate ./protos # Generate basic protobufs first, as those might be necessary to generate the rest.
+	rm -rf pkg/pb/*
 	go generate ./...
-
 
 cmd: $(targetdir)/bench $(targetdir)/mircat
 

@@ -135,3 +135,18 @@ func BatchIDResponse(destModule types.ModuleID, batchId []uint8, origin *types1.
 		},
 	}
 }
+
+func NewRequests(destModule types.ModuleID, requests []*types3.Request) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Mempool{
+			Mempool: &types1.Event{
+				Type: &types1.Event_NewRequests{
+					NewRequests: &types1.NewRequests{
+						Requests: requests,
+					},
+				},
+			},
+		},
+	}
+}

@@ -31,20 +31,21 @@ message Event {
     ProvideTransactions provide_transactions = 6;
 
     ComputeCert compute_cert = 7;
-
   }
 }
 
-// RequestCert is used by the consensus layer to request an availability certificate for a batch of transactions
-// from the availability layer.
+// RequestCert is used by the consensus component to request an availability certificate for a batch of transactions
+// from the availability component.
 message RequestCert {
   option (mir.event) = true;
+
   RequestCertOrigin origin = 1 [(mir.origin_request) = true];
 }
 
 // NewCert is a response to a RequestCert event.
 message NewCert {
   option (mir.event) = true;
+
   Cert              cert   = 1;
   RequestCertOrigin origin = 2 [(mir.origin_response) = true];
 }
@@ -52,6 +53,7 @@ message NewCert {
 // VerifyCert can be used to verify validity of an availability certificate.
 message VerifyCert {
   option (mir.event) = true;
+
   Cert cert               = 1;
   VerifyCertOrigin origin = 2 [(mir.origin_request) = true];
 }
@@ -101,6 +103,7 @@ message RequestCertOrigin {
 
 message RequestTransactionsOrigin {
   option (mir.struct) = true;
+
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
@@ -128,5 +131,4 @@ message Cert {
 
 message ComputeCert {
   option (mir.event) = true;
-
 }

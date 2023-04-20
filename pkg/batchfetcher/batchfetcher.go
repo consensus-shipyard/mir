@@ -6,8 +6,12 @@ import (
 	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
+	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
+	apppbevents "github.com/filecoin-project/mir/pkg/pb/apppb/events"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
@@ -71,10 +75,10 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	}
 
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
-	eventpbdsl.UponNewEpoch(m, func(newEpochNr t.EpochNr) error {
+	apppbdsl.UponNewEpoch(m, func(newEpochNr t.EpochNr) error {
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
-			event: events.NewEpoch(mc.Destination, epochNr),
+			event: apppbevents.NewEpoch(mc.Destination, epochNr).Pb(),
 		})
 		output.Flush(m)
 		return nil
@@ -82,7 +86,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	eventpbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
+	isspbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.
@@ -126,13 +130,13 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The AppSnapshotRequest handler triggers a ClientProgress event (for the checkpointing protocol)
 	// and forwards the original snapshot request event to the output.
-	eventpbdsl.UponAppSnapshotRequest(m, func(replyTo t.ModuleID) error {
+	apppbdsl.UponSnapshotRequest(m, func(replyTo t.ModuleID) error {
 		// Save the number of the epoch when the AppSnapshotRequest has been received.
 		// This is necessary in case the epoch number changes
 		// by the time the AppSnapshotRequest event is output and the hook function (added below) executed.
 		// Forward the original event to the output.
 		output.Enqueue(&outputItem{
-			event: events.AppSnapshotRequest(mc.Destination, replyTo),
+			event: apppbevents.SnapshotRequest(mc.Destination, replyTo).Pb(),
 
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
 			f: func(_ *eventpb.Event) {
@@ -150,7 +154,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The AppRestoreState handler restores the batch fetcher's state from a checkpoint
 	// and forwards the event to the application, so it can restore its state too.
-	eventpbdsl.UponAppRestoreState(m, func(mirChkp *checkpointpbtypes.StableCheckpoint) error {
+	apppbdsl.UponRestoreState(m, func(mirChkp *checkpointpbtypes.StableCheckpoint) error {
 
 		chkp := checkpoint.StableCheckpointFromPb(mirChkp.Pb())
 
@@ -168,7 +172,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		// Forward the RestoreState event to the application.
 		// We can output it directly without passing through the queue,
 		// since we've just reset it and know this would be its first and only item.
-		eventpbdsl.AppRestoreState(m, mc.Destination, mirChkp)
+		apppbdsl.RestoreState(m, mc.Destination, mirChkp)
 
 		return nil
 	})
@@ -195,7 +199,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	// All other events simply pass through the batch fetcher unchanged (except their destination module).
 	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
 		output.Enqueue(&outputItem{
-			event: events.Redirect(ev, mc.Destination),
+			event: events.Redirect(eventpbtypes.EventFromPb(ev), mc.Destination).Pb(),
 		})
 		output.Flush(m)
 		return nil

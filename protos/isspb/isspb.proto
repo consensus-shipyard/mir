@@ -8,13 +8,15 @@ syntax = "proto3";
 
 package isspb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
+
 import "requestpb/requestpb.proto";
 import "checkpointpb/checkpointpb.proto";
+import "availabilitypb/availabilitypb.proto";
+import "commonpb/commonpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
 // ============================================================
 // Messages
@@ -25,6 +27,7 @@ message ISSMessage {
 
   oneof type {
     option (net.message_type) = true;
+
     checkpointpb.StableCheckpoint   stable_checkpoint   = 3;
   }
 }
@@ -39,12 +42,16 @@ message RetransmitRequests {
 // Events
 // ============================================================
 
-message ISSEvent {
+message Event {
   option (mir.event_class) = true;
+
   oneof type {
     option (mir.event_type) = true;
-    PushCheckpoint          push_checkpoint           = 5;
-    SBDeliver sb_deliver = 6;
+
+    PushCheckpoint push_checkpoint = 1;
+    SBDeliver      sb_deliver      = 2;
+    DeliverCert    deliver_cert    = 3;
+    NewConfig      new_config      = 4;
   }
 }
 
@@ -61,3 +68,18 @@ message SBDeliver {
   string leader      = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   string instance_id = 5 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
 }
+
+message DeliverCert {
+  option (mir.event) = true;
+
+  uint64              sn   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  availabilitypb.Cert cert = 2;
+}
+
+message NewConfig {
+  option (mir.event) = true;
+
+  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  commonpb.Membership membership = 2;
+}
+

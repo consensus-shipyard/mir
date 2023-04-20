@@ -147,8 +147,8 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 
 	// Check whether all signatures are valid.
 	snapshotData := serializing.SnapshotForHash(sc.StateSnapshot())
-	snapshotHash := hash(snapshotData, h)
-	sigData := serializing.CheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
+	snapshotHash := hash(snapshotData.Data, h)
+	signedData := serializing.CheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
 	for nodeID, sig := range sc.Cert {
 		// For each signature in the certificate...
 
@@ -160,7 +160,7 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 		}
 
 		// Check if the signature is valid.
-		if err := v.Verify(sigData, sig, t.NodeID(nodeID)); err != nil {
+		if err := v.Verify(signedData.Data, sig, t.NodeID(nodeID)); err != nil {
 			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
 		}
 	}

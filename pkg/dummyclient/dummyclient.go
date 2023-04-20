@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -106,7 +106,12 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Create new request message.
-	reqMsg := events.ClientRequest(dc.ownID, dc.nextReqNo, data)
+	reqMsg := &requestpbtypes.Request{
+		ClientId: dc.ownID,
+		ReqNo:    dc.nextReqNo,
+		Type:     0,
+		Data:     data,
+	}
 	dc.nextReqNo++
 
 	// Declare variables keeping track of failed send attempts.
@@ -115,7 +120,7 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Send the request to all nodes.
 	for nID, client := range dc.clients {
-		if err := client.Send(reqMsg); err != nil {
+		if err := client.Send(reqMsg.Pb()); err != nil {
 
 			// If sending the request to a node fails, record that node's ID.
 			sendFailures = append(sendFailures, nID)

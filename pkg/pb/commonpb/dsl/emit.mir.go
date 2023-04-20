@@ -2,7 +2,6 @@ package commonpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	events "github.com/filecoin-project/mir/pkg/pb/commonpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
@@ -10,7 +9,7 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[string]*commonpb.DeliveredReqs) {
+func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[string]*types1.DeliveredReqs) {
 	dsl.EmitMirEvent(m, events.ClientProgress(destModule, progress))
 }
 

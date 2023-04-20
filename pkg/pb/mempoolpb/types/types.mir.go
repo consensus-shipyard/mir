@@ -45,6 +45,8 @@ func Event_TypeFromPb(pb mempoolpb.Event_Type) Event_Type {
 		return &Event_RequestBatchId{RequestBatchId: RequestBatchIDFromPb(pb.RequestBatchId)}
 	case *mempoolpb.Event_BatchIdResponse:
 		return &Event_BatchIdResponse{BatchIdResponse: BatchIDResponseFromPb(pb.BatchIdResponse)}
+	case *mempoolpb.Event_NewRequests:
+		return &Event_NewRequests{NewRequests: NewRequestsFromPb(pb.NewRequests)}
 	}
 	return nil
 }
@@ -193,6 +195,24 @@ func (*Event_BatchIdResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event_BatchIdResponse]()}
 }
 
+type Event_NewRequests struct {
+	NewRequests *NewRequests
+}
+
+func (*Event_NewRequests) isEvent_Type() {}
+
+func (w *Event_NewRequests) Unwrap() *NewRequests {
+	return w.NewRequests
+}
+
+func (w *Event_NewRequests) Pb() mempoolpb.Event_Type {
+	return &mempoolpb.Event_NewRequests{NewRequests: (w.NewRequests).Pb()}
+}
+
+func (*Event_NewRequests) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event_NewRequests]()}
+}
+
 func EventFromPb(pb *mempoolpb.Event) *Event {
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
@@ -207,6 +227,30 @@ func (m *Event) Pb() *mempoolpb.Event {
 
 func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event]()}
+}
+
+type NewRequests struct {
+	Requests []*types.Request
+}
+
+func NewRequestsFromPb(pb *mempoolpb.NewRequests) *NewRequests {
+	return &NewRequests{
+		Requests: types1.ConvertSlice(pb.Requests, func(t *requestpb.Request) *types.Request {
+			return types.RequestFromPb(t)
+		}),
+	}
+}
+
+func (m *NewRequests) Pb() *mempoolpb.NewRequests {
+	return &mempoolpb.NewRequests{
+		Requests: types1.ConvertSlice(m.Requests, func(t *types.Request) *requestpb.Request {
+			return (t).Pb()
+		}),
+	}
+}
+
+func (*NewRequests) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.NewRequests]()}
 }
 
 type RequestBatch struct {

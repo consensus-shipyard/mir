@@ -92,7 +92,7 @@ func eventName(event *eventpb.Event) string {
 }
 
 // issEventName returns a string name of an ISS event.
-func issEventName(issEvent *isspb.ISSEvent) string {
+func issEventName(issEvent *isspb.Event) string {
 	return strings.ReplaceAll(
 		reflect.TypeOf(issEvent.Type).Elem().Name(), // gets the type's name i.e. ISSEvent_sb , ISSEvent_PersistCheckpoint,etc
 		"ISSEvent_", "") // replaces the given substring from the name

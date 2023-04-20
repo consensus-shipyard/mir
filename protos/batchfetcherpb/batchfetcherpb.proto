@@ -14,8 +14,9 @@ message Event {
 
   oneof Type {
     option (mir.event_type) = true;
-    NewOrderedBatch new_ordered_batch = 1;
-    commonpb.ClientProgress client_progress = 2;
+
+    NewOrderedBatch         new_ordered_batch = 1;
+    commonpb.ClientProgress client_progress   = 2;
   }
 }
 

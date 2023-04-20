@@ -1,0 +1,197 @@
+syntax = "proto3";
+
+package pbftpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/pbftpb";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+// ============================================================
+// Messages
+// ============================================================
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    // Good case messages
+    Preprepare        preprepare         = 1;
+    Prepare           prepare            = 2;
+    Commit            commit             = 3;
+
+    // Segment-level checkpoint messages
+    Done              done               = 4;
+    CatchUpRequest    catch_up_request   = 5;
+    CatchUpResponse   catch_up_response  = 6;
+
+    // View change messages
+    SignedViewChange  signed_view_change = 7;
+    PreprepareRequest preprepare_request = 8;
+    MissingPreprepare missing_preprepare = 9;
+    NewView           new_view           = 10;
+  }
+}
+
+// ============================================================
+// Good case messages
+
+message Preprepare {
+  option (net.message) = true;
+
+  uint64 sn      = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  data    = 3;
+  bool   aborted = 4;
+}
+
+message Prepare {
+  option (net.message) = true;
+
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
+}
+
+message Commit {
+  option (net.message) = true;
+
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
+}
+
+// ============================================================
+// Segment-level checkpoint messages
+
+message Done {
+  option (net.message) = true;
+
+  repeated bytes digests = 1;
+}
+
+message CatchUpRequest {
+  option (net.message) = true;
+
+  bytes  digest = 1;
+  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+}
+
+message CatchUpResponse {
+  option (net.message) = true;
+
+  Preprepare resp = 1;
+}
+
+// ============================================================
+// View change messages
+
+message SignedViewChange {
+  option (net.message) = true;
+
+  ViewChange view_change = 1;
+  bytes      signature   = 2;
+}
+
+message PreprepareRequest {
+  option (net.message) = true;
+
+  bytes  digest = 1;
+  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+}
+
+message MissingPreprepare {
+  option (net.message) = true;
+
+  Preprepare preprepare = 1;
+}
+
+message NewView {
+  option (net.message) = true;
+
+  uint64                    view                = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  repeated string           view_change_senders = 3;
+  repeated SignedViewChange signed_view_changes = 2;
+  repeated uint64           preprepare_seq_nrs  = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  repeated Preprepare       preprepares         = 5;
+}
+
+// ============================================================
+// View change message contents
+
+message ViewChange {
+  option (mir.struct) = true;
+
+  uint64             view  = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  repeated PSetEntry p_set = 2;
+  repeated QSetEntry q_set = 3;
+}
+
+message PSetEntry {
+  option (mir.struct) = true;
+
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
+}
+
+message QSetEntry {
+  option (mir.struct) = true;
+
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  bytes  digest = 3;
+}
+
+// ============================================================
+// Events
+// ============================================================
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    uint64             propose_timeout         = 1;
+    pbftpb.VCSNTimeout view_change_sn_timeout  = 2;
+    uint64             view_change_seg_timeout = 3;
+  }
+}
+
+message VCSNTimeout {
+  option (mir.event) = true;
+
+  uint64 view         = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.PBFTViewNr"];
+  uint64 numCommitted = 2;
+}
+
+// TODO: Get rid of the `Origin` types when new DSL is used for this module.
+
+message HashOrigin {
+  option (mir.struct) = true;
+
+  oneof type {
+    Preprepare preprepare         = 1;
+    Preprepare missing_preprepare = 2;
+    NewView    new_view           = 3;
+    uint64     empty_preprepares  = 4;
+    Preprepare catch_up_response  = 5;
+  }
+}
+
+message SignOrigin {
+  oneof type {
+    ViewChange view_change = 1;
+  }
+}
+
+message SigVerOrigin {
+  oneof type {
+    SignedViewChange signed_view_change = 1;
+    NewView          new_view           = 2;
+  }
+}
+

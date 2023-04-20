@@ -7,6 +7,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -107,7 +109,12 @@ func (conn *selfConnection) process() {
 			select {
 			case <-conn.stop:
 				return
-			case conn.deliverChan <- events.ListOf(events.MessageReceived(t.ModuleID(msg.DestModule), conn.ownID, msg)):
+			case conn.deliverChan <- events.ListOf(transportpbevents.MessageReceived(
+				t.ModuleID(msg.DestModule),
+				conn.ownID,
+				messagepbtypes.MessageFromPb(msg)).Pb(),
+			):
+				// Nothing to do in this case, message has been delivered.
 			}
 		}
 	}

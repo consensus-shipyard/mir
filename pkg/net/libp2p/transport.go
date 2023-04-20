@@ -14,6 +14,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -58,11 +61,16 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if err := tr.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil {
-					tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
+		case *eventpb.Event_Transport:
+			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+			case *transportpbtypes.Event_SendMessage:
+				for _, destID := range e.SendMessage.Destinations {
+					if err := tr.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+						tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
+					}
 				}
+			default:
+				return fmt.Errorf("unexpected transport event: %T", e)
 			}
 		default:
 			return fmt.Errorf("unexpected event: %T", event.Type)
@@ -280,11 +288,15 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 		select {
 		// TODO: Think of a smarter way of batching the incoming messages on the channel,
 		//       instead of sending each individual message as a list of length one.
-		case tr.incomingMessages <- events.ListOf(
-			events.MessageReceived(t.ModuleID(msg.DestModule), sender, msg),
-		):
+		case tr.incomingMessages <- events.ListOf(transportpbevents.MessageReceived(
+			t.ModuleID(msg.DestModule),
+			sender,
+			messagepbtypes.MessageFromPb(msg),
+		).Pb()):
+			// Nothing to do in this case message has written to the receiving channel.
 		case <-tr.stop:
-			tr.logger.Log(logging.LevelError, "Shutdown. Stopping incoming connection.", "nodeID", sender, "remotePeer", peerID)
+			tr.logger.Log(logging.LevelError, "Shutdown. Stopping incoming connection.",
+				"nodeID", sender, "remotePeer", peerID)
 			return
 		}
 	}

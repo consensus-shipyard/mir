@@ -138,21 +138,48 @@ func (*Membership) MirReflect() mirreflect.Type {
 }
 
 type ClientProgress struct {
-	Progress map[string]*commonpb.DeliveredReqs
+	Progress map[string]*DeliveredReqs
 }
 
 func ClientProgressFromPb(pb *commonpb.ClientProgress) *ClientProgress {
 	return &ClientProgress{
-		Progress: pb.Progress,
+		Progress: types1.ConvertMap(pb.Progress, func(k string, v *commonpb.DeliveredReqs) (string, *DeliveredReqs) {
+			return k, DeliveredReqsFromPb(v)
+		}),
 	}
 }
 
 func (m *ClientProgress) Pb() *commonpb.ClientProgress {
 	return &commonpb.ClientProgress{
-		Progress: m.Progress,
+		Progress: types1.ConvertMap(m.Progress, func(k string, v *DeliveredReqs) (string, *commonpb.DeliveredReqs) {
+			return k, (v).Pb()
+		}),
 	}
 }
 
 func (*ClientProgress) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.ClientProgress]()}
+}
+
+type DeliveredReqs struct {
+	LowWm     uint64
+	Delivered []uint64
+}
+
+func DeliveredReqsFromPb(pb *commonpb.DeliveredReqs) *DeliveredReqs {
+	return &DeliveredReqs{
+		LowWm:     pb.LowWm,
+		Delivered: pb.Delivered,
+	}
+}
+
+func (m *DeliveredReqs) Pb() *commonpb.DeliveredReqs {
+	return &commonpb.DeliveredReqs{
+		LowWm:     m.LowWm,
+		Delivered: m.Delivered,
+	}
+}
+
+func (*DeliveredReqs) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.DeliveredReqs]()}
 }

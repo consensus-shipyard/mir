@@ -111,3 +111,9 @@ func UponBatchIDResponse[C any](m dsl.Module, handler func(batchId []uint8, cont
 		return handler(ev.BatchId, context)
 	})
 }
+
+func UponNewRequests(m dsl.Module, handler func(requests []*types2.Request) error) {
+	UponEvent[*types.Event_NewRequests](m, func(ev *types.NewRequests) error {
+		return handler(ev.Requests)
+	})
+}

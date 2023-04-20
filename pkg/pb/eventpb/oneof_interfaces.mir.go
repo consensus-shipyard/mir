@@ -1,22 +1,22 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
+	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
-	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
-	factorymodulepb "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
+	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
+	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	ordererspb "github.com/filecoin-project/mir/pkg/pb/ordererspb"
+	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
+	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -30,104 +30,12 @@ func (w *Event_Init) Unwrap() *Init {
 	return w.Init
 }
 
-func (w *Event_Tick) Unwrap() *Tick {
-	return w.Tick
+func (w *Event_Timer) Unwrap() *TimerEvent {
+	return w.Timer
 }
 
-func (w *Event_WalAppend) Unwrap() *WALAppend {
-	return w.WalAppend
-}
-
-func (w *Event_WalEntry) Unwrap() *WALEntry {
-	return w.WalEntry
-}
-
-func (w *Event_WalTruncate) Unwrap() *WALTruncate {
-	return w.WalTruncate
-}
-
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
-}
-
-func (w *Event_HashRequest) Unwrap() *HashRequest {
-	return w.HashRequest
-}
-
-func (w *Event_HashResult) Unwrap() *HashResult {
-	return w.HashResult
-}
-
-func (w *Event_SignRequest) Unwrap() *SignRequest {
-	return w.SignRequest
-}
-
-func (w *Event_SignResult) Unwrap() *SignResult {
-	return w.SignResult
-}
-
-func (w *Event_VerifyNodeSigs) Unwrap() *VerifyNodeSigs {
-	return w.VerifyNodeSigs
-}
-
-func (w *Event_NodeSigsVerified) Unwrap() *NodeSigsVerified {
-	return w.NodeSigsVerified
-}
-
-func (w *Event_RequestReady) Unwrap() *RequestReady {
-	return w.RequestReady
-}
-
-func (w *Event_SendMessage) Unwrap() *SendMessage {
-	return w.SendMessage
-}
-
-func (w *Event_MessageReceived) Unwrap() *MessageReceived {
-	return w.MessageReceived
-}
-
-func (w *Event_DeliverCert) Unwrap() *DeliverCert {
-	return w.DeliverCert
-}
-
-func (w *Event_Iss) Unwrap() *isspb.ISSEvent {
-	return w.Iss
-}
-
-func (w *Event_VerifyRequestSig) Unwrap() *VerifyRequestSig {
-	return w.VerifyRequestSig
-}
-
-func (w *Event_RequestSigVerified) Unwrap() *RequestSigVerified {
-	return w.RequestSigVerified
-}
-
-func (w *Event_StoreVerifiedRequest) Unwrap() *StoreVerifiedRequest {
-	return w.StoreVerifiedRequest
-}
-
-func (w *Event_AppSnapshotRequest) Unwrap() *AppSnapshotRequest {
-	return w.AppSnapshotRequest
-}
-
-func (w *Event_AppSnapshot) Unwrap() *AppSnapshot {
-	return w.AppSnapshot
-}
-
-func (w *Event_AppRestoreState) Unwrap() *AppRestoreState {
-	return w.AppRestoreState
-}
-
-func (w *Event_TimerDelay) Unwrap() *TimerDelay {
-	return w.TimerDelay
-}
-
-func (w *Event_TimerRepeat) Unwrap() *TimerRepeat {
-	return w.TimerRepeat
-}
-
-func (w *Event_TimerGarbageCollect) Unwrap() *TimerGarbageCollect {
-	return w.TimerGarbageCollect
+func (w *Event_Hasher) Unwrap() *hasherpb.Event {
+	return w.Hasher
 }
 
 func (w *Event_Bcb) Unwrap() *bcbpb.Event {
@@ -142,18 +50,6 @@ func (w *Event_Availability) Unwrap() *availabilitypb.Event {
 	return w.Availability
 }
 
-func (w *Event_NewEpoch) Unwrap() *NewEpoch {
-	return w.NewEpoch
-}
-
-func (w *Event_NewConfig) Unwrap() *NewConfig {
-	return w.NewConfig
-}
-
-func (w *Event_Factory) Unwrap() *factorymodulepb.Factory {
-	return w.Factory
-}
-
 func (w *Event_BatchDb) Unwrap() *batchdbpb.Event {
 	return w.BatchDb
 }
@@ -166,16 +62,36 @@ func (w *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
 	return w.ThreshCrypto
 }
 
-func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
-	return w.PingPong
-}
-
 func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
 	return w.Checkpoint
 }
 
-func (w *Event_SbEvent) Unwrap() *ordererspb.SBInstanceEvent {
-	return w.SbEvent
+func (w *Event_Factory) Unwrap() *factorypb.Event {
+	return w.Factory
+}
+
+func (w *Event_Iss) Unwrap() *isspb.Event {
+	return w.Iss
+}
+
+func (w *Event_Orderer) Unwrap() *ordererpb.Event {
+	return w.Orderer
+}
+
+func (w *Event_Crypto) Unwrap() *cryptopb.Event {
+	return w.Crypto
+}
+
+func (w *Event_App) Unwrap() *apppb.Event {
+	return w.App
+}
+
+func (w *Event_Transport) Unwrap() *transportpb.Event {
+	return w.Transport
+}
+
+func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
+	return w.PingPong
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
@@ -186,75 +102,21 @@ func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 	return w.TestingUint
 }
 
-type HashOrigin_Type = isHashOrigin_Type
+type TimerEvent_Type = isTimerEvent_Type
 
-type HashOrigin_TypeWrapper[T any] interface {
-	HashOrigin_Type
+type TimerEvent_TypeWrapper[T any] interface {
+	TimerEvent_Type
 	Unwrap() *T
 }
 
-func (w *HashOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
-	return w.ContextStore
+func (w *TimerEvent_Delay) Unwrap() *TimerDelay {
+	return w.Delay
 }
 
-func (w *HashOrigin_Request) Unwrap() *requestpb.Request {
-	return w.Request
+func (w *TimerEvent_Repeat) Unwrap() *TimerRepeat {
+	return w.Repeat
 }
 
-func (w *HashOrigin_Dsl) Unwrap() *dslpb.Origin {
-	return w.Dsl
-}
-
-func (w *HashOrigin_Checkpoint) Unwrap() *checkpointpb.HashOrigin {
-	return w.Checkpoint
-}
-
-func (w *HashOrigin_Sb) Unwrap() *ordererspb.SBInstanceHashOrigin {
-	return w.Sb
-}
-
-type SignOrigin_Type = isSignOrigin_Type
-
-type SignOrigin_TypeWrapper[T any] interface {
-	SignOrigin_Type
-	Unwrap() *T
-}
-
-func (w *SignOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
-	return w.ContextStore
-}
-
-func (w *SignOrigin_Dsl) Unwrap() *dslpb.Origin {
-	return w.Dsl
-}
-
-func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
-	return w.Checkpoint
-}
-
-func (w *SignOrigin_Sb) Unwrap() *ordererspb.SBInstanceSignOrigin {
-	return w.Sb
-}
-
-type SigVerOrigin_Type = isSigVerOrigin_Type
-
-type SigVerOrigin_TypeWrapper[T any] interface {
-	SigVerOrigin_Type
-	Unwrap() *T
-}
-
-func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
-	return w.ContextStore
-}
-
-func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {
-	return w.Dsl
-}
-
-func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
-	return w.Checkpoint
-}
-
-func (w *SigVerOrigin_Sb) Unwrap() *ordererspb.SBInstanceSigVerOrigin {
-	return w.Sb
+func (w *TimerEvent_GarbageCollect) Unwrap() *TimerGarbageCollect {
+	return w.GarbageCollect
 }

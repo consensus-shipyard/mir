@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package ordererpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb";
+
+import "commonpb/commonpb.proto";
+import "pbftpb/pbftpb.proto";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+message Event {
+  oneof type {
+    pbftpb.Event pbft = 1;
+  }
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    pbftpb.Message pbft = 1;
+  }
+}
+
+// TODO: Get rid of the `Origin` types when DSL is used for this module.
+
+message HashOrigin {
+  oneof type {
+    pbftpb.HashOrigin pbft = 3;
+  }
+}
+
+message SignOrigin {
+  uint64 epoch    = 1;
+  uint64 instance = 2;
+  oneof type {
+    pbftpb.SignOrigin pbft = 3;
+  }
+}
+
+message SigVerOrigin {
+  uint64 epoch    = 1;
+  uint64 instance = 2;
+  oneof type {
+    pbftpb.SigVerOrigin pbft = 3;
+  }
+}
+
+message PBFTSegment {
+  option (mir.struct) = true;
+
+  string              leader     = 1;
+  commonpb.Membership membership = 2;
+  map<uint64, bytes>  proposals  = 3;
+}
+
+message PBFTModule{
+  option (mir.struct) = true;
+
+  PBFTSegment segment          = 1;
+  string      availability_id  = 2;
+  uint64      epoch            = 3;
+  uint64      validity_checker = 4;
+}
