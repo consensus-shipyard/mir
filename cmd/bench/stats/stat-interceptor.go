@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -38,9 +39,12 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 	for evt := it.Next(); evt != nil; evt = it.Next() {
 
 		switch e := evt.Type.(type) {
-		case *eventpb.Event_NewRequests:
-			for _, req := range e.NewRequests.Requests {
-				i.Stats.NewRequest(req)
+		case *eventpb.Event_Mempool:
+			switch e := e.Mempool.Type.(type) {
+			case *mempoolpb.Event_NewRequests:
+				for _, req := range e.NewRequests.Requests {
+					i.Stats.NewRequest(req)
+				}
 			}
 		case *eventpb.Event_BatchFetcher:
 

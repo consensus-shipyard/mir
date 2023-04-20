@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/wal"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
@@ -40,13 +39,8 @@ type Node struct {
 	// If this channel is nil, those Events are discarded.
 	debugOut chan *events.EventList
 
-	// Implementations of networking, hashing, request store, WAL, etc.
-	// The state machine is also a module of the node.
+	// All the modules that are part of the node.
 	modules modules.Modules
-
-	// Write-ahead log.
-	// If not nil, it will be used at initialization to load all events stored in the WAL.
-	wal wal.WAL
 
 	// Interceptor of processed events.
 	// If not nil, every event is passed to the interceptor (by calling its Intercept method)
@@ -91,7 +85,6 @@ func NewNode(
 	id t.NodeID,
 	config *NodeConfig,
 	m modules.Modules,
-	wal wal.WAL,
 	interceptor eventlog.Interceptor,
 ) (*Node, error) {
 
@@ -117,7 +110,6 @@ func NewNode(
 
 		workChans:   newWorkChans(m),
 		modules:     m,
-		wal:         wal,
 		interceptor: interceptor,
 
 		workItems:       newEventBuffer(m),
@@ -131,8 +123,7 @@ func NewNode(
 }
 
 // Debug runs the Node in debug mode.
-// If the node has been instantiated with a WAL, its contents will be loaded.
-// Then, the Node will ony process events submitted through the Step method.
+// The Node will ony process events submitted through the Step method.
 // All internally generated events will be ignored
 // and, if the eventsOut argument is not nil, written to eventsOut instead.
 // Note that if the caller supplies such a channel, the caller is expected to read from it.
@@ -144,15 +135,6 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 
 	// Enable debug mode
 	n.debugMode = true
-
-	// If a WAL implementation is available,
-	// load the contents of the WAL and enqueue it for processing.
-	if n.wal != nil {
-		if err := n.processWAL(ctx); err != nil {
-			n.workErrNotifier.Fail(err)
-			return fmt.Errorf("could not process WAL: %w", err)
-		}
-	}
 
 	// Set up channel for outputting internal events
 	n.debugOut = eventsOut
@@ -177,10 +159,8 @@ func (n *Node) InjectEvents(ctx context.Context, events *events.EventList) error
 }
 
 // Run starts the Node.
-// First, it loads the contents of the WAL and enqueues all its contents for processing.
-// This makes sure that the WAL events end up first in all the modules' processing queues.
-// Then it adds an Init event to the work items, giving the modules the possibility
-// to perform additional initialization based on the state recovered from the WAL.
+// It first adds an Init event to the work items, giving the modules the possibility
+// to perform any initialization.
 // Run then launches the processing of incoming messages, and internal events.
 // The node stops when the ctx is canceled.
 // The function call is blocking and only returns when the node stops.
@@ -188,15 +168,6 @@ func (n *Node) Run(ctx context.Context) error {
 
 	// When done, indicate to the Stop method that it can return.
 	defer close(n.stopped)
-
-	// If a WAL implementation is available,
-	// load the contents of the WAL and enqueue it for processing.
-	if n.wal != nil {
-		if err := n.processWAL(ctx); err != nil {
-			n.workErrNotifier.Fail(err)
-			return fmt.Errorf("could not process WAL: %w", err)
-		}
-	}
 
 	// Submit the Init event to the modules.
 	if err := n.workItems.AddEvents(createInitEvents(n.modules)); err != nil {
@@ -217,27 +188,6 @@ func (n *Node) Stop() {
 
 	// Wait until event processing stops.
 	<-n.stopped
-}
-
-// Loads all events stored in the WAL and enqueues them in the node's processing queues.
-func (n *Node) processWAL(ctx context.Context) error {
-
-	var storedEvents *events.EventList
-	var err error
-
-	// Add all events from the WAL to the new EventList.
-	if storedEvents, err = n.wal.LoadAll(ctx); err != nil {
-		return fmt.Errorf("could not load WAL events: %w", err)
-	}
-
-	// Enqueue all events to the eventBuffer buffers.
-	if err = n.workItems.AddEvents(storedEvents); err != nil {
-		return fmt.Errorf("could not enqueue WAL events for processing: %w", err)
-	}
-
-	// If we made it all the way here, no error occurred.
-	return nil
-
 }
 
 // Performs all internal work of the node,

@@ -17,8 +17,8 @@ service GrpcTransport {
 }
 
 message GrpcMessage {
-	string sender = 1;
-	messagepb.Message msg = 2;
+	string            sender = 1;
+	messagepb.Message msg    = 2;
 }
 
 message ByeBye {

@@ -2,8 +2,8 @@ package messagepbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	dsl1 "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	dsl1 "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 

@@ -19,6 +19,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -40,28 +43,34 @@ func (fl *FakeLink) ApplyEvents(
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
-		case *eventpb.Event_SendMessage:
-			for _, destID := range e.SendMessage.Destinations {
-				if t.NodeID(destID) == fl.Source {
-					// Send message to myself bypassing the network.
-					receivedEvent := events.MessageReceived(
-						t.ModuleID(e.SendMessage.Msg.DestModule),
-						fl.Source,
-						e.SendMessage.Msg,
-					)
-					eventsOut := fl.FakeTransport.NodeSinks[fl.Source]
-					go func() {
-						select {
-						case eventsOut <- events.ListOf(receivedEvent):
-						case <-ctx.Done():
+		case *eventpb.Event_Transport:
+			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+			case *transportpbtypes.Event_SendMessage:
+				for _, destID := range e.SendMessage.Destinations {
+					if destID == fl.Source {
+						// Send message to myself bypassing the network.
+
+						receivedEvent := transportpbevents.MessageReceived(
+							e.SendMessage.Msg.DestModule,
+							fl.Source,
+							e.SendMessage.Msg,
+						)
+						eventsOut := fl.FakeTransport.NodeSinks[fl.Source]
+						go func() {
+							select {
+							case eventsOut <- events.ListOf(receivedEvent.Pb()):
+							case <-ctx.Done():
+							}
+						}()
+					} else {
+						// Send message to another node.
+						if err := fl.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+							fl.FakeTransport.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 						}
-					}()
-				} else {
-					// Send message to another node.
-					if err := fl.Send(t.NodeID(destID), e.SendMessage.Msg); err != nil {
-						fl.FakeTransport.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
+			default:
+				return fmt.Errorf("unexpected transport event type: %T", e)
 			}
 		default:
 			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
@@ -116,7 +125,7 @@ func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
 	case ft.Buffers[source][dest] <- events.ListOf(
-		events.MessageReceived(t.ModuleID(msg.DestModule), source, msg),
+		transportpbevents.MessageReceived(t.ModuleID(msg.DestModule), source, messagepbtypes.MessageFromPb(msg)).Pb(),
 	):
 	default:
 		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)

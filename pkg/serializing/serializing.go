@@ -10,6 +10,8 @@ import (
 	"encoding/binary"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -29,32 +31,18 @@ func RequestForHash(req *requestpb.Request) [][]byte {
 	return [][]byte{clientIDBuf, reqNoBuf, req.Data}
 }
 
-func BatchForHash(batch *requestpb.Batch) [][]byte {
-
-	// Allocate output slice.
-	data := make([][]byte, len(batch.Requests))
-
-	// Collect all request digests in the batch.
-	for i, reqRef := range batch.Requests {
-		data[i] = reqRef.Digest
-	}
-
-	// Return populated output slice.
-	return data
-}
-
-func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) [][]byte {
+func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
 	epochBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(epochBytes, uint64(epoch))
 
 	snBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(snBytes, uint64(seqNr))
 
-	return [][]byte{epochBytes, snBytes, snapshotHash}
+	return &cryptopbtypes.SignedData{Data: [][]byte{epochBytes, snBytes, snapshotHash}}
 }
 
-func SnapshotForHash(snapshot *commonpb.StateSnapshot) [][]byte {
-	return append(EpochDataForHash(snapshot.EpochData), snapshot.AppData)
+func SnapshotForHash(snapshot *commonpb.StateSnapshot) *commonpbtypes.HashData {
+	return &commonpbtypes.HashData{Data: append(EpochDataForHash(snapshot.EpochData), snapshot.AppData)}
 }
 
 func EpochDataForHash(epochData *commonpb.EpochData) [][]byte {
@@ -120,8 +108,4 @@ func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, n)
 	return buf
-}
-
-func BytesToUint64(data []byte) uint64 {
-	return binary.LittleEndian.Uint64(data)
 }

@@ -65,7 +65,7 @@ message EchoMessage {
 message FinalMessage {
   option (net.message) = true;
 
-  bytes data = 1;
-  repeated string signers = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  repeated bytes signatures = 3;
+  bytes           data       = 1;
+  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  repeated bytes  signatures = 3;
 }

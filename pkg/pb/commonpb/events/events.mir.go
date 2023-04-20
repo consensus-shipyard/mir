@@ -1,21 +1,20 @@
 package commonpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func ClientProgress(destModule types.ModuleID, progress map[string]*commonpb.DeliveredReqs) *types1.Event {
-	return &types1.Event{
+func ClientProgress(destModule types.ModuleID, progress map[string]*types1.DeliveredReqs) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_BatchFetcher{
-			BatchFetcher: &types2.Event{
-				Type: &types2.Event_ClientProgress{
-					ClientProgress: &types3.ClientProgress{
+		Type: &types2.Event_BatchFetcher{
+			BatchFetcher: &types3.Event{
+				Type: &types3.Event_ClientProgress{
+					ClientProgress: &types1.ClientProgress{
 						Progress: progress,
 					},
 				},
@@ -24,13 +23,13 @@ func ClientProgress(destModule types.ModuleID, progress map[string]*commonpb.Del
 	}
 }
 
-func EpochConfig(destModule types.ModuleID, epochNr types.EpochNr, firstSn types.SeqNr, length uint64, memberships []*types3.Membership) *types1.Event {
-	return &types1.Event{
+func EpochConfig(destModule types.ModuleID, epochNr types.EpochNr, firstSn types.SeqNr, length uint64, memberships []*types1.Membership) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Checkpoint{
+		Type: &types2.Event_Checkpoint{
 			Checkpoint: &types4.Event{
 				Type: &types4.Event_EpochConfig{
-					EpochConfig: &types3.EpochConfig{
+					EpochConfig: &types1.EpochConfig{
 						EpochNr:     epochNr,
 						FirstSn:     firstSn,
 						Length:      length,

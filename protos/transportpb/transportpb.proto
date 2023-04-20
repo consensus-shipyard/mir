@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package transportpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/transportpb";
+
+import "messagepb/messagepb.proto";
+
+import "mir/codegen_extensions.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof Type {
+    option (mir.event_type) = true;
+
+    SendMessage     send_message     = 1;
+    MessageReceived message_received = 2;
+  }
+}
+
+message SendMessage {
+  option (mir.event) = true;
+
+  messagepb.Message msg          = 1;
+  repeated string   destinations = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+}
+
+message MessageReceived {
+  option (mir.event) = true;
+
+  string            from = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  messagepb.Message msg  = 2;
+}

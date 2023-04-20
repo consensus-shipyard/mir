@@ -26,6 +26,7 @@ import (
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/systems/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -134,8 +135,11 @@ func runNode() error {
 		logging.Decorate(logger, "EVTLOG: "),
 		eventlog.EventFilterOpt(func(e *eventpb.Event) bool {
 			switch e := e.Type.(type) {
-			case *eventpb.Event_NewRequests:
-				return true
+			case *eventpb.Event_Mempool:
+				switch e.Mempool.Type.(type) {
+				case *mempoolpb.Event_NewRequests:
+					return true
+				}
 			case *eventpb.Event_BatchFetcher:
 				switch e.BatchFetcher.Type.(type) {
 				case *batchfetcherpb.Event_NewOrderedBatch:
@@ -155,7 +159,7 @@ func runNode() error {
 	)
 
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
-	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), nil, interceptor)
+	node, err := mir.NewNode(t.NodeID(id), nodeConfig, benchApp.Modules(), interceptor)
 	if err != nil {
 		return fmt.Errorf("could not create node: %w", err)
 	}

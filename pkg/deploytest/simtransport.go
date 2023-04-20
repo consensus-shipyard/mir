@@ -14,6 +14,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -115,9 +118,14 @@ func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) e
 	switch e := e.Type.(type) {
 	case *eventpb.Event_Init:
 		// do nothing
-	case *eventpb.Event_SendMessage:
-		targets := t.NodeIDSlice(e.SendMessage.Destinations)
-		m.multicastMessage(ctx, e.SendMessage.Msg, targets)
+	case *eventpb.Event_Transport:
+		switch e := e.Transport.Type.(type) {
+		case *transportpb.Event_SendMessage:
+			targets := t.NodeIDSlice(e.SendMessage.Destinations)
+			m.multicastMessage(ctx, e.SendMessage.Msg, targets)
+		default:
+			return fmt.Errorf("unexpected transport event type: %T", e)
+		}
 	default:
 		return fmt.Errorf("unexpected type of Net event: %T", e)
 	}
@@ -180,7 +188,11 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 		msg := v.(message)
 
 		destModule := t.ModuleID(msg.message.DestModule)
-		eventList := events.ListOf(events.MessageReceived(destModule, msg.from, msg.message))
+		eventList := events.ListOf(transportpbevents.MessageReceived(
+			destModule,
+			msg.from,
+			messagepbtypes.MessageFromPb(msg.message),
+		).Pb())
 
 		select {
 		case eventsOut := <-m.outChan:

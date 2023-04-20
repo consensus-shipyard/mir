@@ -22,22 +22,26 @@ package protos
 //go:generate protoc-events messagepb/messagepb.proto
 //go:generate protoc-events requestpb/requestpb.proto
 //go:generate protoc-events eventpb/eventpb.proto
+//go:generate protoc-events hasherpb/hasherpb.proto
 //go:generate protoc-events recordingpb/recordingpb.proto
 //go:generate protoc-events isspb/isspb.proto
 //go:generate protoc-events bcbpb/bcbpb.proto
-//go:generate protoc-events ordererspbftpb/ordererspbftpb.proto
+//go:generate protoc-events pbftpb/pbftpb.proto
 //go:generate protoc-events contextstorepb/contextstorepb.proto
 //go:generate protoc-events dslpb/dslpb.proto
 //go:generate protoc-events mempoolpb/mempoolpb.proto
 //go:generate protoc-events availabilitypb/availabilitypb.proto
 //go:generate protoc-events availabilitypb/mscpb/mscpb.proto
-//go:generate protoc-events factorymodulepb/factorymodulepb.proto
+//go:generate protoc-events factorypb/factorypb.proto
 //go:generate protoc-events availabilitypb/batchdbpb/batchdbpb.proto
 //go:generate protoc-events batchfetcherpb/batchfetcherpb.proto
 //go:generate protoc-events threshcryptopb/threshcryptopb.proto
 //go:generate protoc-events pingpongpb/pingpongpb.proto
 //go:generate protoc-events checkpointpb/checkpointpb.proto
-//go:generate protoc-events ordererspb/ordererspb.proto
+//go:generate protoc-events ordererpb/ordererpb.proto
+//go:generate protoc-events cryptopb/cryptopb.proto
+//go:generate protoc-events apppb/apppb.proto
+//go:generate protoc-events transportpb/transportpb.proto
 
 // Build the custom code generators.
 //go:generate go build -o ../codegen/generators/mir-std-gen/mir-std-gen.bin ../codegen/generators/mir-std-gen
@@ -59,12 +63,15 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/requestpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererspb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorypb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/cryptopb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/apppb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/transportpb"
 
 // Generate other things.
-//go:generate protoc --proto_path=. --go_out=:../pkg/ --go_opt=paths=source_relative simplewal/simplewal.proto
-//go:generate protoc --proto_path=. --go_out=:../samples/ --go_opt=paths=source_relative chat-demo/chatdemo.proto
 //go:generate protoc --go_out=../pkg/ --go_opt=paths=source_relative --go-grpc_out=../pkg/ --go-grpc_opt=paths=source_relative requestreceiver/requestreceiver.proto
 //go:generate protoc --go_out=../pkg/ --go_opt=paths=source_relative --go-grpc_out=../pkg/ --go-grpc_opt=paths=source_relative net/grpc/grpctransport.proto
 //xgo:generate protoc --proto_path=. --go_out=plugins=grpc:../pkg/ --go_opt=paths=source_relative grpctransport/grpctransport.proto

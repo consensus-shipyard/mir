@@ -2,11 +2,11 @@ syntax = "proto3";
 
 package threshcryptopb;
 
+option go_package = "github.com/filecoin-project/mir/pkg/pb/threshcryptopb";
+
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "mir/codegen_extensions.proto";
-
-option go_package = "github.com/filecoin-project/mir/pkg/pb/threshcryptopb";
 
 message Event {
   option (mir.event_class) = true;

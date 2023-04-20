@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
@@ -16,7 +17,6 @@ import (
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -104,7 +104,7 @@ func IncludeBatchReconstruction(
 		} else {
 			// TODO optimize: do not ask everyone at once
 			// TODO periodically send requests if nodes do not respond
-			eventpbdsl.SendMessage(m, mc.Net,
+			transportpbdsl.SendMessage(m, mc.Net,
 				mscpbmsgs.RequestBatchMessage(mc.Self, context.cert.BatchId, context.reqID),
 				context.cert.Signers)
 		}
@@ -130,7 +130,7 @@ func IncludeBatchReconstruction(
 			return nil
 		}
 
-		eventpbdsl.SendMessage(m, mc.Net, mscpbmsgs.ProvideBatchMessage(mc.Self, txs, context.reqID, context.batchID), []t.NodeID{context.requester})
+		transportpbdsl.SendMessage(m, mc.Net, mscpbmsgs.ProvideBatchMessage(mc.Self, txs, context.reqID, context.batchID), []t.NodeID{context.requester})
 		return nil
 	})
 

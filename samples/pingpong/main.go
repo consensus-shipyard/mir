@@ -47,7 +47,6 @@ func main() {
 			"timer":     timer.New(),
 		},
 		nil,
-		nil,
 	)
 	if err != nil {
 		panic(err)

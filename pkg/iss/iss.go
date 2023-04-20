@@ -15,39 +15,40 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/modules"
-
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
+	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/events"
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/orderers"
+	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/dsl"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorymodulepb/types"
+	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-
-	"github.com/filecoin-project/mir/pkg/checkpoint"
-	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
-	"github.com/filecoin-project/mir/pkg/clientprogress"
-	"github.com/filecoin-project/mir/pkg/crypto"
-	"github.com/filecoin-project/mir/pkg/events"
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
-	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/orderers"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // The ISS type represents the ISS protocol module to be used when instantiating a node.
@@ -210,7 +211,7 @@ func New(
 	eventpbdsl.UponInit(iss.m, func() error {
 
 		// Initialize application state according to the initial checkpoint.
-		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
+		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
@@ -246,7 +247,7 @@ func New(
 		return iss.deliverCert(context.sn, context.data, context.aborted, context.leader)
 	})
 
-	eventpbdsl.UponNewConfig(iss.m, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
+	isspbdsl.UponNewConfig(iss.m, func(epochNr t.EpochNr, membershippb *commonpbtypes.Membership) error {
 		membership := maputil.Transform(membershippb.Membership, func(nodeID t.NodeID, nodeAddr string) (t.NodeID, t.NodeAddress) {
 			multiAddr, _ := multiaddr.NewMultiaddr(nodeAddr)
 			return nodeID, t.NodeAddress(multiAddr)
@@ -357,12 +358,12 @@ func New(
 			iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
 			t.RetentionIndex(epoch),
-			factorypbtypes.GeneratorParamsFromPb(orderers.InstanceParams(
+			orderers.InstanceParams(
 				orderers.NewSegment(leader, membership, map[t.SeqNr][]byte{0: chkpData}),
 				"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
 				epoch,
 				orderers.CheckpointValidityChecker,
-			)))
+			))
 
 		return nil
 	})
@@ -400,7 +401,7 @@ func New(
 				"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
 		}
 
-		eventpbdsl.SendMessage(iss.m,
+		transportpbdsl.SendMessage(iss.m,
 			iss.moduleConfig.Net,
 			chkppbmsgs.StableCheckpoint(iss.moduleConfig.Self, iss.lastStableCheckpoint.SeqNr(),
 				commonpbtypes.StateSnapshotFromPb(iss.lastStableCheckpoint.StateSnapshot()),
@@ -493,7 +494,7 @@ func New(
 		// Create an event to request the application module for
 		// restoring its state from the snapshot received in the new
 		// stable checkpoint message.
-		eventpbdsl.AppRestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
+		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
 
 		// Start executing the current epoch (the one the checkpoint corresponds to).
 		// This must happen after the state is restored,
@@ -537,10 +538,12 @@ func InitialStateSnapshot(
 ) (*commonpb.StateSnapshot, error) {
 
 	// Create the first membership and all ConfigOffset following ones (by using the initial one).
-	memberships := make([]map[t.NodeID]t.NodeAddress, params.ConfigOffset+1)
-	for i := 0; i < params.ConfigOffset+1; i++ {
-		memberships[i] = params.InitialMembership
-	}
+	memberships := sliceutil.Repeat(&commonpbtypes.Membership{Membership: maputil.Transform(
+		params.InitialMembership,
+		func(nodeID t.NodeID, nodeAddr t.NodeAddress) (t.NodeID, string) {
+			return nodeID, nodeAddr.String()
+		},
+	)}, params.ConfigOffset+1)
 
 	// Create the initial leader selection policy.
 	var leaderPolicyData []byte
@@ -562,16 +565,21 @@ func InitialStateSnapshot(
 		return nil, err
 	}
 
-	firstEpochLength := params.SegmentLength * len(params.InitialMembership)
-	return &commonpb.StateSnapshot{
+	firstEpochLength := uint64(params.SegmentLength * len(params.InitialMembership))
+	return (&commonpbtypes.StateSnapshot{
 		AppData: appState,
-		EpochData: &commonpb.EpochData{
-			EpochConfig:        events.EpochConfig(0, 0, firstEpochLength, memberships),
-			ClientProgress:     clientprogress.NewClientProgress(nil).Pb(),
+		EpochData: &commonpbtypes.EpochData{
+			EpochConfig: &commonpbtypes.EpochConfig{
+				EpochNr:     0,
+				FirstSn:     0,
+				Length:      firstEpochLength,
+				Memberships: memberships,
+			},
+			ClientProgress:     commonpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
 			LeaderPolicy:       leaderPolicyData,
-			PreviousMembership: t.MembershipPb(make(map[t.NodeID]t.NodeAddress)), // empty map
+			PreviousMembership: &commonpbtypes.Membership{Membership: make(map[t.NodeID]string)}, // empty map
 		},
-	}, nil
+	}).Pb(), nil
 }
 
 // ============================================================
@@ -582,7 +590,6 @@ func InitialStateSnapshot(
 // This includes informing the application about the new epoch and initializing all the necessary external modules
 // such as availability and orderers.
 func (iss *ISS) startEpoch(epochNr t.EpochNr) {
-	eventsOut := events.EmptyList()
 
 	// Initialize the internal data structures for the new epoch.
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, iss.memberships[0], iss.LeaderPolicy)
@@ -592,8 +599,7 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) {
 		"epochNr", epochNr, "nodes", maputil.GetSortedKeys(iss.memberships[0]), "leaders", iss.LeaderPolicy.Leaders())
 
 	// Signal the new epoch to the application.
-	eventsOut.PushBack(events.NewEpoch(iss.moduleConfig.App, iss.epoch.Nr()))
-	eventpbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
+	apppbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
 
 	// Initialize the new availability module.
 	iss.initAvailability()
@@ -608,12 +614,20 @@ func (iss *ISS) initAvailability() {
 	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	//events := make([]*eventpb.Event, 0)
 
-	factorypbdsl.NewModule(iss.m, iss.moduleConfig.Availability, availabilityID, t.RetentionIndex(iss.epoch.Nr()), &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_MultisigCollector{
-		MultisigCollector: &mscpbtypes.InstanceParams{
-			Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
-			Limit:       5, // hardcoded right now
-			MaxRequests: uint64(iss.Params.SegmentLength)},
-	}})
+	factorypbdsl.NewModule(
+		iss.m,
+		iss.moduleConfig.Availability,
+		availabilityID,
+		t.RetentionIndex(iss.epoch.Nr()),
+		&factorypbtypes.GeneratorParams{
+			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
+				MultisigCollector: &mscpbtypes.InstanceParams{
+					Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
+					Limit:       5, // hardcoded right now
+					MaxRequests: uint64(iss.Params.SegmentLength)},
+			},
+		},
+	)
 
 	apbdsl.ComputeCert(iss.m, availabilityID)
 }
@@ -634,13 +648,12 @@ func (iss *ISS) initOrderers() {
 		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))),
 			t.RetentionIndex(iss.epoch.Nr()),
-			factorypbtypes.GeneratorParamsFromPb(
-				orderers.InstanceParams(
-					seg,
-					iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
-					iss.epoch.Nr(),
-					orderers.PermissiveValidityChecker,
-				)))
+			orderers.InstanceParams(
+				seg,
+				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+				iss.epoch.Nr(),
+				orderers.PermissiveValidityChecker,
+			))
 
 		//Add the segment to the list of segments.
 		iss.epoch.Segments = append(iss.epoch.Segments, seg)
@@ -700,8 +713,7 @@ func (iss *ISS) processCommitted() error {
 		} else {
 			_cert = apbtypes.CertFromPb(&cert)
 		}
-		eventpbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
-		// Output debugging information.
+		isspbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
 		// Remove just delivered certificate from the temporary
@@ -765,13 +777,12 @@ func (iss *ISS) advanceEpoch() error {
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
 		t.RetentionIndex(newEpochNr),
-		factorypbtypes.GeneratorParamsFromPb(
-			chkpprotos.InstanceParams(
-				oldMembership,
-				checkpoint.DefaultResendPeriod,
-				leaderPolicyData,
-				events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
-			)),
+		chkpprotos.InstanceParams(
+			oldMembership,
+			checkpoint.DefaultResendPeriod,
+			leaderPolicyData,
+			events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
+		),
 	)
 
 	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.
@@ -779,7 +790,7 @@ func (iss *ISS) advanceEpoch() error {
 	// but it is guaranteed to be created before the application's response.
 	// This is because the NewModule event will already be enqueued for the checkpoint factory
 	// when the application receives the snapshot request.
-	eventpbdsl.AppSnapshotRequest(iss.m, iss.moduleConfig.App, chkpModuleID)
+	apppbdsl.SnapshotRequest(iss.m, iss.moduleConfig.App, chkpModuleID)
 
 	return nil
 }

@@ -3,7 +3,6 @@ package formbatchesint
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
@@ -27,7 +26,7 @@ func IncludeBatchCreation(
 		NewTxIDs: nil,
 	}
 
-	eventpbdsl.UponNewRequests(m, func(txs []*requestpbtypes.Request) error {
+	mpdsl.UponNewRequests(m, func(txs []*requestpbtypes.Request) error {
 		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
 		return nil
 	})

@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/factorymodulepb"
+	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -62,10 +62,10 @@ func NewReconfigurableModule(mc *ModuleConfig, logger logging.Logger) modules.Pa
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the multisig collector.
-			func(mscID t.ModuleID, params *factorymodulepb.GeneratorParams) (modules.PassiveModule, error) {
+			func(mscID t.ModuleID, params *factorypb.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Extract the IDs of the nodes in the membership associated with this instance
-				mscParams := params.Type.(*factorymodulepb.GeneratorParams_MultisigCollector).MultisigCollector
+				mscParams := params.Type.(*factorypb.GeneratorParams_MultisigCollector).MultisigCollector
 
 				mscNodeIDs := maputil.GetSortedKeys(t.Membership(mscParams.Membership))
 

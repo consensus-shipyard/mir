@@ -19,7 +19,7 @@ func GenerateDslFunctionsForNetMessages(hierarchyRoot *messages.NetMessageNode) 
 	jenFileBySourcePackagePath := make(map[string]*jen.File)
 
 	uponMessageReceived := jen.Qual(
-		"github.com/filecoin-project/mir/pkg/pb/eventpb/dsl", "UponMessageReceived")
+		"github.com/filecoin-project/mir/pkg/pb/transportpb/dsl", "UponMessageReceived")
 
 	generateDslFunctionsForHandlingNetMessagesRecursively(
 		/*hierarchyNode*/ hierarchyRoot,
