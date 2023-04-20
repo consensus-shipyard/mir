@@ -33,7 +33,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	hasherevt "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -232,7 +231,7 @@ func (p *Protocol) processStateSnapshot() (*events.EventList, error) {
 	// Initiate computing the hash of the snapshot.
 	return events.ListOf(hasherevt.Request(
 		p.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializing.SnapshotForHash(p.stateSnapshot)},
+		[]*commonpbtypes.HashData{serializeSnapshotForHash(p.stateSnapshot)},
 		protobufs.HashOrigin(p.moduleConfig.Self),
 	).Pb()), nil
 }
@@ -243,7 +242,7 @@ func (p *Protocol) applyHashResult(result *hasherpb.Result) (*events.EventList, 
 	p.stateSnapshotHash = result.Digests[0]
 
 	// Request signature
-	sigData := serializing.CheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
+	sigData := serializeCheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
 
 	return events.ListOf(cryptopbevents.SignRequest(
 		p.moduleConfig.Crypto,
@@ -331,7 +330,7 @@ func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *
 	p.signatures[source] = msg.Signature
 
 	// Verify signature of the sender.
-	sigData := serializing.CheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
+	sigData := serializeCheckpointForSig(p.epoch, p.seqNr, p.stateSnapshotHash)
 	eventsOut.PushBack(cryptopbevents.VerifySigs(
 		p.moduleConfig.Crypto,
 		[]*cryptopbtypes.SignedData{sigData},

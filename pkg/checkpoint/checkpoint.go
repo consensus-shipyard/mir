@@ -11,7 +11,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -147,9 +146,9 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	}
 
 	// Check whether all signatures are valid.
-	snapshotData := serializing.SnapshotForHash(sc.StateSnapshot())
+	snapshotData := serializeSnapshotForHash(sc.StateSnapshot())
 	snapshotHash := hash(snapshotData.Data, h)
-	signedData := serializing.CheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
+	signedData := serializeCheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
 	for nodeID, sig := range sc.Cert {
 		// For each signature in the certificate...
 

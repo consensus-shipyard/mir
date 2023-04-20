@@ -1,4 +1,6 @@
-package serializing
+// This is just a "Hello World" example of fuzz testing. It is not meant to be exhaustive.
+
+package checkpoint
 
 import (
 	"fmt"
@@ -6,25 +8,15 @@ import (
 	"testing"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 )
-
-func FuzzRequestForHash(f *testing.F) {
-	f.Add("/ip4/7.7.7.7/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N", 0, 1, []byte("13242342342342"))
-
-	f.Fuzz(func(t *testing.T, id string, tp, n int, data []byte) {
-		req := requestpb.Request{ClientId: id, ReqNo: uint64(n), Type: uint64(tp), Data: data}
-		RequestForHash(&req)
-	})
-}
 
 func FuzzCheckpointForSig(f *testing.F) {
 	f.Add(uint64(0), uint64(0), []byte("13242342342342"))
 
 	f.Fuzz(func(t *testing.T, s, n uint64, data []byte) {
-		CheckpointForSig(tt.EpochNr(s), tt.SeqNr(n), data)
+		serializeCheckpointForSig(tt.EpochNr(s), tt.SeqNr(n), data)
 	})
 }
 
@@ -47,6 +39,6 @@ func FuzzSnapshotForHash(f *testing.F) {
 			ClientProgress:     &clProgress,
 			PreviousMembership: types.MembershipPb(make(map[types.NodeID]types.NodeAddress)),
 		}}
-		SnapshotForHash(&state)
+		serializeSnapshotForHash(&state)
 	})
 }
