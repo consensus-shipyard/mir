@@ -3,6 +3,7 @@ package leaderselectionpolicy
 import (
 	"sort"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
 	"github.com/fxamacker/cbor/v2"
 
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -104,7 +105,7 @@ func (l *BlacklistLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Blacklist))
+	out := serializing.Uint64ToBytes(uint64(Blacklist))
 	out = append(out, ser...)
 	return out, nil
 }

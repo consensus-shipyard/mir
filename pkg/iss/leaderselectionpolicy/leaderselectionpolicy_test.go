@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/stretchr/testify/assert"
 
@@ -90,7 +91,7 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 	}
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := types.Uint64FromBytes(bytes[0:8])
+	policyType := serializing.Uint64FromBytes(bytes[0:8])
 	assert.Equal(t, uint64(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
@@ -135,7 +136,7 @@ func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
 	}
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := types.Uint64FromBytes(bytes[0:8])
+	policyType := serializing.Uint64FromBytes(bytes[0:8])
 	assert.Equal(t, uint64(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)

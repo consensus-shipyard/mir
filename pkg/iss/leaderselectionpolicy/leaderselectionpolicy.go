@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
@@ -50,7 +51,7 @@ type LeaderSelectionPolicy interface {
 }
 
 func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
-	leaderPolicyType := t.Uint64FromBytes(bytes[0:8])
+	leaderPolicyType := serializing.Uint64FromBytes(bytes[0:8])
 
 	switch LeaderPolicyType(leaderPolicyType) {
 	case Simple:

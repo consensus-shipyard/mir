@@ -1,6 +1,8 @@
 package types
 
-import "encoding/binary"
+import (
+	"github.com/filecoin-project/mir/pkg/serializing"
+)
 
 // ViewNr represents the view number in the PBFT protocol (used as a sub-protocol of ISS)
 type ViewNr uint64
@@ -12,12 +14,5 @@ func (v ViewNr) Pb() uint64 {
 
 // Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
 func (v ViewNr) Bytes() []byte {
-	return uint64ToBytes(uint64(v))
-}
-
-// Encode view number.
-func uint64ToBytes(n uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, n)
-	return buf
+	return serializing.Uint64ToBytes(uint64(v))
 }

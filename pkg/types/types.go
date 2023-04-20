@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package types
 
 import (
-	"encoding/binary"
 	"strconv"
 
 	"github.com/multiformats/go-multiaddr"
@@ -110,15 +109,3 @@ func ErrorFromPb(ok bool, errStr string) error {
 // ================================================================================
 // Auxiliary functions
 // ================================================================================
-
-// TODO: These functions should not be defined here.
-
-func Uint64ToBytes(n uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, n)
-	return buf
-}
-
-func Uint64FromBytes(bytes []byte) uint64 {
-	return binary.LittleEndian.Uint64(bytes)
-}

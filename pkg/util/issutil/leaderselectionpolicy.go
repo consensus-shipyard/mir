@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
@@ -60,7 +61,7 @@ type LeaderSelectionPolicy interface {
 }
 
 func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
-	leaderPolicyType := t.Uint64FromBytes(bytes[0:8])
+	leaderPolicyType := serializing.Uint64FromBytes(bytes[0:8])
 
 	switch LeaderPolicyType(leaderPolicyType) {
 	case Simple:
@@ -109,7 +110,7 @@ func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Simple))
+	out := serializing.Uint64ToBytes(uint64(Simple))
 	out = append(out, ser...)
 	return out, nil
 }
@@ -219,7 +220,7 @@ func (l *BlacklistLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Blacklist))
+	out := serializing.Uint64ToBytes(uint64(Blacklist))
 	out = append(out, ser...)
 	return out, nil
 }

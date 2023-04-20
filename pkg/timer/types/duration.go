@@ -1,8 +1,9 @@
 package types
 
 import (
-	"encoding/binary"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/serializing"
 )
 
 // Duration represents an interval of real time.
@@ -14,11 +15,5 @@ func (td Duration) Pb() uint64 {
 }
 
 func (td Duration) Bytes() []byte {
-	return uint64ToBytes(uint64(td))
-}
-
-func uint64ToBytes(n uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, n)
-	return buf
+	return serializing.Uint64ToBytes(uint64(td))
 }

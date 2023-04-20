@@ -1,6 +1,7 @@
 package leaderselectionpolicy
 
 import (
+	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
@@ -43,7 +44,7 @@ func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Simple))
+	out := serializing.Uint64ToBytes(uint64(Simple))
 	out = append(out, ser...)
 	return out, nil
 }

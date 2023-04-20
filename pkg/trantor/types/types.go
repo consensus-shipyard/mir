@@ -1,8 +1,9 @@
 package types
 
 import (
-	"encoding/binary"
 	"strconv"
+
+	"github.com/filecoin-project/mir/pkg/serializing"
 )
 
 // ================================================================================
@@ -35,7 +36,7 @@ func (sn SeqNr) Pb() uint64 {
 
 // Bytes converts a SeqNr to a slice of bytes (useful for serialization).
 func (sn SeqNr) Bytes() []byte {
-	return uint64ToBytes(uint64(sn))
+	return serializing.Uint64ToBytes(uint64(sn))
 }
 
 // SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
@@ -70,7 +71,7 @@ func (rn ReqNo) Pb() uint64 {
 
 // Bytes converts a ReqNo to a slice of bytes (useful for serialization).
 func (rn ReqNo) Bytes() []byte {
-	return uint64ToBytes(uint64(rn))
+	return serializing.Uint64ToBytes(uint64(rn))
 }
 
 // ================================================================================
@@ -89,7 +90,7 @@ func (ri RetentionIndex) Pb() uint64 {
 
 // Bytes converts a RetentionIndex to a slice of bytes (useful for serialization).
 func (ri RetentionIndex) Bytes() []byte {
-	return uint64ToBytes(uint64(ri))
+	return serializing.Uint64ToBytes(uint64(ri))
 }
 
 // ================================================================================
@@ -103,7 +104,7 @@ func (e EpochNr) Pb() uint64 {
 }
 
 func (e EpochNr) Bytes() []byte {
-	return uint64ToBytes(uint64(e))
+	return serializing.Uint64ToBytes(uint64(e))
 }
 
 // ================================================================================
@@ -128,10 +129,3 @@ func TxIDSlicePb(ids []TxID) [][]byte {
 }
 
 // ================================================================================
-
-// Encode view number.
-func uint64ToBytes(n uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, n)
-	return buf
-}
