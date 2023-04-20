@@ -97,6 +97,7 @@ func IncludeVerificationOfCertificates(
 			valid, errStr := t.ErrorPb(err)
 			apbdsl.CertVerified(m, context.origin.Module, valid, errStr, context.origin)
 			delete(state.RequestState, reqID)
+			return nil
 		}
 
 		// if we get here, that means so far all received signatures for all certificates in the reqID are verified valid or yet to be verified
