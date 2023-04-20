@@ -18,6 +18,7 @@ import (
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -74,7 +75,7 @@ type Orderer struct {
 
 	// For each view, slots contains one pbftSlot per sequence number this Orderer is responsible for.
 	// Each slot tracks the state of the agreement protocol for one sequence number.
-	slots map[types2.ViewNr]map[t.SeqNr]*pbftSlot
+	slots map[types2.ViewNr]map[tt.SeqNr]*pbftSlot
 
 	// Tracks the state of the segment-local checkpoint.
 	segmentCheckpoint *pbftSegmentChkp
@@ -124,7 +125,7 @@ func NewOrdererModule(
 		moduleConfig:      moduleConfig,
 		config:            config,
 		externalValidator: externalValidator,
-		slots:             make(map[types2.ViewNr]map[t.SeqNr]*pbftSlot),
+		slots:             make(map[types2.ViewNr]map[tt.SeqNr]*pbftSlot),
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:     0,
@@ -145,7 +146,7 @@ func NewOrdererModule(
 	}
 }
 
-func newOrdererConfig(issParams *issconfig.ModuleParams, membership []t.NodeID, epochNr t.EpochNr) *PBFTConfig {
+func newOrdererConfig(issParams *issconfig.ModuleParams, membership []t.NodeID, epochNr tt.EpochNr) *PBFTConfig {
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &PBFTConfig{
@@ -458,7 +459,7 @@ func (orderer *Orderer) initView(view types2.ViewNr) *events.EventList {
 	orderer.logger.Log(logging.LevelInfo, "Initializing new view.", "view", view)
 
 	// Initialize PBFT slots for the new view, one for each sequence number.
-	orderer.slots[view] = make(map[t.SeqNr]*pbftSlot)
+	orderer.slots[view] = make(map[tt.SeqNr]*pbftSlot)
 	for _, sn := range orderer.segment.SeqNrs() {
 
 		// Create a fresh, empty slot.
@@ -491,7 +492,7 @@ func (orderer *Orderer) initView(view types2.ViewNr) *events.EventList {
 	return timerEvents
 }
 
-func (orderer *Orderer) lookUpPreprepare(sn t.SeqNr, digest []byte) *pbftpbtypes.Preprepare {
+func (orderer *Orderer) lookUpPreprepare(sn tt.SeqNr, digest []byte) *pbftpbtypes.Preprepare {
 	// Traverse all views, starting in the current view.
 	for view := orderer.view; ; view-- {
 

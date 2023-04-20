@@ -2,25 +2,25 @@ package client
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // VolatileClient is a simple implementation of the SMR Client interface that does not provide any persistence.
 // It is meant for testing purposes and for cases where the machine running it is assumed to never crash.
 type VolatileClient struct {
-	clientID  t.ClientID
-	nextTxNo  t.ReqNo
-	pendingTX map[t.ReqNo]*requestpb.Request
+	clientID  tt.ClientID
+	nextTxNo  tt.ReqNo
+	pendingTX map[tt.ReqNo]*requestpb.Request
 }
 
 // NewVolatileClient returns a new instance of VolatileClient.
 // All transaction it produces will be identified with the given clientID.
-func NewVolatileClient(clientID t.ClientID) *VolatileClient {
+func NewVolatileClient(clientID tt.ClientID) *VolatileClient {
 	return &VolatileClient{
 		clientID:  clientID,
 		nextTxNo:  0,
-		pendingTX: make(map[t.ReqNo]*requestpb.Request),
+		pendingTX: make(map[tt.ReqNo]*requestpb.Request),
 	}
 }
 
@@ -42,7 +42,7 @@ func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*requestpb.Request,
 }
 
 // Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
-func (vc *VolatileClient) Done(txNo t.ReqNo) error {
+func (vc *VolatileClient) Done(txNo tt.ReqNo) error {
 	delete(vc.pendingTX, txNo)
 	return nil
 }

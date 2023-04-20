@@ -5,6 +5,7 @@ import (
 
 	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -224,7 +225,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 	eventsOut := events.EmptyList()
 
 	// Convenience variable.
-	sn := t.SeqNr(preprepare.Sn)
+	sn := tt.SeqNr(preprepare.Sn)
 
 	// Stop processing the Preprepare if view advanced in the meantime.
 	if types2.ViewNr(preprepare.View) < orderer.view {
@@ -248,7 +249,7 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 }
 
 // sendPrepare creates an event for sending a Prepare message.
-func (orderer *Orderer) sendPrepare(sn t.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
+func (orderer *Orderer) sendPrepare(sn tt.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
 
 	// Return a list with a single element - the send event containing a PBFT prepare message.
 	// No need for periodic re-transmission.
@@ -289,7 +290,7 @@ func (orderer *Orderer) applyMsgPrepare(prepare *pbftpbtypes.Prepare, from t.Nod
 }
 
 // sendCommit creates an event for sending a Commit message.
-func (orderer *Orderer) sendCommit(sn t.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
+func (orderer *Orderer) sendCommit(sn tt.SeqNr, view types2.ViewNr, digest []byte) *events.EventList {
 
 	// Emit a send event with a PBFT Commit message.
 	// No need for periodic re-transmission.
@@ -334,7 +335,7 @@ func (orderer *Orderer) applyMsgCommit(commit *pbftpbtypes.Commit, from t.NodeID
 // If the message is from a future view, preprocessMessage will try to buffer it for later processing and returns nil.
 // If the message can be processed, preprocessMessage returns the pbftSlot tracking the corresponding state.
 // The slot returned by preprocessMessage always belongs to the current view.
-func (orderer *Orderer) preprocessMessage(sn t.SeqNr, view types2.ViewNr, msg proto.Message, from t.NodeID) *pbftSlot {
+func (orderer *Orderer) preprocessMessage(sn tt.SeqNr, view types2.ViewNr, msg proto.Message, from t.NodeID) *pbftSlot {
 
 	if view < orderer.view {
 		// Ignore messages from old views.

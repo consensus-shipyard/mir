@@ -10,6 +10,7 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -25,7 +26,7 @@ func Event(destModule t.ModuleID, event *checkpointpb.Event) *eventpb.Event {
 func EpochProgressEvent(
 	destModule t.ModuleID,
 	nodeID t.NodeID,
-	epochNr t.EpochNr,
+	epochNr tt.EpochNr,
 ) *eventpb.Event {
 	return Event(
 		destModule,

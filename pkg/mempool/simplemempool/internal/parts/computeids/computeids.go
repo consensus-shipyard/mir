@@ -10,7 +10,7 @@ import (
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // IncludeComputationOfTransactionAndBatchIDs registers event handler for processing RequestTransactionIDs and
@@ -32,14 +32,14 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	hasherpbdsl.UponResult(m, func(hashes [][]uint8, context *computeHashForTransactionIDsContext) error {
-		txIDs := make([]t.TxID, len(hashes))
+		txIDs := make([]tt.TxID, len(hashes))
 		copy(txIDs, hashes)
 
 		mppbdsl.TransactionIDsResponse(m, context.origin.Module, txIDs, context.origin)
 		return nil
 	})
 
-	mppbdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
+	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
 		copy(data, txIDs)
 

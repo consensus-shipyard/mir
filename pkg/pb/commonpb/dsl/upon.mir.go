@@ -7,7 +7,7 @@ import (
 	dsl2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // Module-specific dsl functions for processing events.

@@ -28,7 +28,7 @@ message NewModule {
   option (mir.event) = true;
 
   string          module_id       = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-  uint64          retention_index = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
+  uint64          retention_index = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
   GeneratorParams params          = 3;
 }
 
@@ -36,7 +36,7 @@ message NewModule {
 message GarbageCollect {
   option (mir.event) = true;
 
-  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.RetentionIndex"];
+  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
 }
 
 // GeneratorParams is a union of all possible types of module parameters

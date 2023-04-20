@@ -7,6 +7,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -23,7 +24,7 @@ func FuzzCheckpointForSig(f *testing.F) {
 	f.Add(uint64(0), uint64(0), []byte("13242342342342"))
 
 	f.Fuzz(func(t *testing.T, s, n uint64, data []byte) {
-		CheckpointForSig(types.EpochNr(s), types.SeqNr(n), data)
+		CheckpointForSig(tt.EpochNr(s), tt.SeqNr(n), data)
 	})
 }
 

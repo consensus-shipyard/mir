@@ -3,6 +3,7 @@ package orderers
 import (
 	"time"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -52,5 +53,5 @@ type PBFTConfig struct {
 	ViewChangeResendPeriod time.Duration
 
 	// The current epoch number
-	epochNr t.EpochNr
+	epochNr tt.EpochNr
 }

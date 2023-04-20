@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"sync"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -29,16 +30,16 @@ const (
 // TODO: Update the comments around crypto, hasher, and request signing.
 
 type DummyClient struct {
-	ownID     t.ClientID
+	ownID     tt.ClientID
 	hasher    crypto.Hash
-	nextReqNo t.ReqNo
+	nextReqNo tt.ReqNo
 	conns     map[t.NodeID]*grpc.ClientConn
 	clients   map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
 	logger    logging.Logger
 }
 
 func NewDummyClient(
-	clientID t.ClientID,
+	clientID tt.ClientID,
 	hasher crypto.Hash,
 	l logging.Logger,
 ) *DummyClient {

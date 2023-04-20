@@ -5,6 +5,7 @@ import (
 	events "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/timer/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -18,10 +19,10 @@ func TimerDelay(m dsl.Module, destModule types.ModuleID, eventsToDelay []*types1
 	dsl.EmitMirEvent(m, events.TimerDelay(destModule, eventsToDelay, delay))
 }
 
-func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types.RetentionIndex) {
+func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types3.RetentionIndex) {
 	dsl.EmitMirEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
 }
 
-func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types.RetentionIndex) {
+func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types3.RetentionIndex) {
 	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
 }

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 
@@ -108,7 +109,7 @@ func TestFactoryModule(t *testing.T) {
 				evOut, err := echoFactory.ApplyEvents(events.ListOf(factorypbevents.NewModule(
 					echoFactoryID,
 					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
-					tp.RetentionIndex(i),
+					tt.RetentionIndex(i),
 					EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
 				).Pb()))
 				assert.NoError(t, err)

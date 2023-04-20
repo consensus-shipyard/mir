@@ -5,7 +5,7 @@ import (
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	types1 "github.com/filecoin-project/mir/pkg/orderers/types"
 	pbftpb "github.com/filecoin-project/mir/pkg/pb/pbftpb"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 

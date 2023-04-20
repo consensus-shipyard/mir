@@ -5,6 +5,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -39,7 +40,7 @@ func UponRestoreState(m dsl.Module, handler func(checkpoint *types3.StableCheckp
 	})
 }
 
-func UponNewEpoch(m dsl.Module, handler func(epochNr types2.EpochNr) error) {
+func UponNewEpoch(m dsl.Module, handler func(epochNr types4.EpochNr) error) {
 	UponEvent[*types.Event_NewEpoch](m, func(ev *types.NewEpoch) error {
 		return handler(ev.EpochNr)
 	})

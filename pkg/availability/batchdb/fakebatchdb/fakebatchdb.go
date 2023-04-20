@@ -8,6 +8,7 @@ import (
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -31,7 +32,7 @@ type moduleState struct {
 }
 
 type batchInfo struct {
-	txIDs    []t.TxID
+	txIDs    []tt.TxID
 	metadata []byte
 }
 
@@ -46,7 +47,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []t.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
 		state.BatchStore[msctypes.BatchIDString(batchID)] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,

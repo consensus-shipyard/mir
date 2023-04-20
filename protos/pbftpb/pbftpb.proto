@@ -41,7 +41,7 @@ message Message {
 message Preprepare {
   option (net.message) = true;
 
-  uint64 sn      = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn      = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  data    = 3;
   bool   aborted = 4;
@@ -50,7 +50,7 @@ message Preprepare {
 message Prepare {
   option (net.message) = true;
 
-  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
 }
@@ -58,7 +58,7 @@ message Prepare {
 message Commit {
   option (net.message) = true;
 
-  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
 }
@@ -76,7 +76,7 @@ message CatchUpRequest {
   option (net.message) = true;
 
   bytes  digest = 1;
-  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
 }
 
 message CatchUpResponse {
@@ -99,7 +99,7 @@ message PreprepareRequest {
   option (net.message) = true;
 
   bytes  digest = 1;
-  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
 }
 
 message MissingPreprepare {
@@ -114,7 +114,7 @@ message NewView {
   uint64                    view                = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   repeated string           view_change_senders = 3;
   repeated SignedViewChange signed_view_changes = 2;
-  repeated uint64           preprepare_seq_nrs  = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  repeated uint64           preprepare_seq_nrs  = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   repeated Preprepare       preprepares         = 5;
 }
 
@@ -132,7 +132,7 @@ message ViewChange {
 message PSetEntry {
   option (mir.struct) = true;
 
-  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
 }
@@ -140,7 +140,7 @@ message PSetEntry {
 message QSetEntry {
   option (mir.struct) = true;
 
-  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
 }

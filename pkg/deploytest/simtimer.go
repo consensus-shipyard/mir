@@ -14,13 +14,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 type simTimerModule struct {
 	*SimNode
 	eventsOut chan *events.EventList
-	processes map[t.RetentionIndex]*testsim.Process
+	processes map[tt.RetentionIndex]*testsim.Process
 }
 
 // NewSimTimerModule returns a Timer modules to be used in simulation.
@@ -28,7 +28,7 @@ func NewSimTimerModule(node *SimNode) modules.ActiveModule {
 	return &simTimerModule{
 		SimNode:   node,
 		eventsOut: make(chan *events.EventList, 1),
-		processes: map[t.RetentionIndex]*testsim.Process{},
+		processes: map[tt.RetentionIndex]*testsim.Process{},
 	}
 }
 
@@ -58,10 +58,10 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 		case *eventpb.TimerEvent_Repeat:
 			evtsOut := events.ListOf(e.Repeat.EventsToRepeat...)
 			d := types.Duration(e.Repeat.Delay)
-			retIdx := t.RetentionIndex(e.Repeat.RetentionIndex)
+			retIdx := tt.RetentionIndex(e.Repeat.RetentionIndex)
 			m.repeat(ctx, evtsOut, d, retIdx)
 		case *eventpb.TimerEvent_GarbageCollect:
-			retIdx := t.RetentionIndex(e.GarbageCollect.RetentionIndex)
+			retIdx := tt.RetentionIndex(e.GarbageCollect.RetentionIndex)
 			m.garbageCollect(retIdx)
 		default:
 			return fmt.Errorf("unexpected type of Timer sub-event: %T", e)
@@ -105,7 +105,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList,
 	}()
 }
 
-func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d types.Duration, retIdx t.RetentionIndex) {
+func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d types.Duration, retIdx tt.RetentionIndex) {
 	proc := m.Spawn()
 	m.processes[retIdx] = proc
 
@@ -138,7 +138,7 @@ func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList
 	}()
 }
 
-func (m *simTimerModule) garbageCollect(retIdx t.RetentionIndex) {
+func (m *simTimerModule) garbageCollect(retIdx tt.RetentionIndex) {
 	for i, proc := range m.processes {
 		if i < retIdx {
 			proc.Kill()

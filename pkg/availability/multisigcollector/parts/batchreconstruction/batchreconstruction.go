@@ -7,6 +7,7 @@ import (
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/logging"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
@@ -153,7 +154,7 @@ func IncludeBatchReconstruction(
 	})
 
 	// When transaction ids are computed, compute the id of the batch.
-	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
+	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestBatchIDContext{context.reqID, context.txs, txIDs, context.batchID})
 		return nil
 	})
@@ -206,7 +207,7 @@ type requestTxIDsContext struct {
 type requestBatchIDContext struct {
 	reqID   msctypes.RequestID
 	txs     []*requestpbtypes.Request
-	txIDs   []t.TxID
+	txIDs   []tt.TxID
 	batchID msctypes.BatchID
 }
 

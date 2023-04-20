@@ -9,7 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // The Timer module abstracts the passage of real time.
@@ -18,7 +18,7 @@ type Timer struct {
 	eventsOut chan *events.EventList
 
 	retIndexMutex sync.RWMutex
-	retIndex      t.RetentionIndex
+	retIndex      tt.RetentionIndex
 }
 
 func New() *Timer {
@@ -57,10 +57,10 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 					ctx,
 					events.ListOf(e.Repeat.EventsToRepeat...),
 					types.Duration(e.Repeat.Delay),
-					t.RetentionIndex(e.Repeat.RetentionIndex),
+					tt.RetentionIndex(e.Repeat.RetentionIndex),
 				)
 			case *eventpb.TimerEvent_GarbageCollect:
-				tm.GarbageCollect(t.RetentionIndex(e.GarbageCollect.RetentionIndex))
+				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
 			}
 		default:
 			return fmt.Errorf("unexpected type of Timer event: %T", event.Type)
@@ -106,7 +106,7 @@ func (tm *Timer) Repeat(
 	ctx context.Context,
 	events *events.EventList,
 	period types.Duration,
-	retIndex t.RetentionIndex,
+	retIndex tt.RetentionIndex,
 ) {
 	go func() {
 
@@ -142,7 +142,7 @@ func (tm *Timer) Repeat(
 // When GarbageCollect is called, the Timer stops repeatedly producing events associated with a retention index
 // smaller than retIndex.
 // If GarbageCollect already has been invoked with the same or higher retention index, the call has no effect.
-func (tm *Timer) GarbageCollect(retIndex t.RetentionIndex) {
+func (tm *Timer) GarbageCollect(retIndex tt.RetentionIndex) {
 	tm.retIndexMutex.Lock()
 	defer tm.retIndexMutex.Unlock()
 
@@ -152,7 +152,7 @@ func (tm *Timer) GarbageCollect(retIndex t.RetentionIndex) {
 	}
 }
 
-func (tm *Timer) getRetIndex() t.RetentionIndex {
+func (tm *Timer) getRetIndex() tt.RetentionIndex {
 	tm.retIndexMutex.RLock()
 	defer tm.retIndexMutex.RUnlock()
 

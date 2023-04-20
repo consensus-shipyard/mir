@@ -4,7 +4,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/timer/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // Module-specific dsl functions for processing events.

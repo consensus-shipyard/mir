@@ -11,6 +11,7 @@ import (
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -84,7 +85,7 @@ func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view types2.ViewN
 // advanceSlotState checks whether the state of the pbftSlot can be advanced.
 // If it can, advanceSlotState updates the state of the pbftSlot and returns a list of Events that result from it.
 // Requires the PBFT instance as an argument to use it to generate the proper events.
-func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList {
+func (slot *pbftSlot) advanceState(pbft *Orderer, sn tt.SeqNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// If the slot just became prepared, send the Commit message.

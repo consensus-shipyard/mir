@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -262,14 +263,14 @@ func run() error {
 	fmt.Println("Type in your messages and press 'Enter' to send.")
 
 	// Read chat message from stdin.
-	nextReqNo := t.ReqNo(0)
+	nextReqNo := tt.ReqNo(0)
 	for scanner.Scan() {
 
 		// Submit the chat message as request payload to the mempool module.
 		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
 			"mempool",
 			[]*requestpbtypes.Request{{
-				ClientId: t.ClientID(args.OwnID),
+				ClientId: tt.ClientID(args.OwnID),
 				ReqNo:    nextReqNo,
 				Type:     0,
 				Data:     scanner.Bytes(),

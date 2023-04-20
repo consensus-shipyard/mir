@@ -2,9 +2,10 @@ package commonpbevents
 
 import (
 	types3 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -23,12 +24,12 @@ func ClientProgress(destModule types.ModuleID, progress map[string]*types1.Deliv
 	}
 }
 
-func EpochConfig(destModule types.ModuleID, epochNr types.EpochNr, firstSn types.SeqNr, length uint64, memberships []*types1.Membership) *types2.Event {
+func EpochConfig(destModule types.ModuleID, epochNr types4.EpochNr, firstSn types4.SeqNr, length uint64, memberships []*types1.Membership) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Checkpoint{
-			Checkpoint: &types4.Event{
-				Type: &types4.Event_EpochConfig{
+			Checkpoint: &types5.Event{
+				Type: &types5.Event_EpochConfig{
 					EpochConfig: &types1.EpochConfig{
 						EpochNr:     epochNr,
 						FirstSn:     firstSn,

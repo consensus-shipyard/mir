@@ -3,6 +3,7 @@ package eventpbevents
 import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/timer/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -31,7 +32,7 @@ func TimerDelay(destModule types.ModuleID, eventsToDelay []*types1.Event, delay 
 	}
 }
 
-func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types.RetentionIndex) *types1.Event {
+func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types3.RetentionIndex) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Timer{
@@ -48,7 +49,7 @@ func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, dela
 	}
 }
 
-func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types.RetentionIndex) *types1.Event {
+func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types3.RetentionIndex) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Timer{

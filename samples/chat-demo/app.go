@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -144,7 +145,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 
 // NewEpoch callback is invoked by the SMR system when it transitions to a new epoch.
 // The membership returned from NewEpoch will eventually be used by the system.
-func (chat *ChatApp) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+func (chat *ChatApp) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return maputil.Copy(chat.newMembership), nil
 }
 

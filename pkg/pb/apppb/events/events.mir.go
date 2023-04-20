@@ -4,6 +4,7 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -52,7 +53,7 @@ func RestoreState(destModule types.ModuleID, checkpoint *types3.StableCheckpoint
 	}
 }
 
-func NewEpoch(destModule types.ModuleID, epochNr types.EpochNr) *types1.Event {
+func NewEpoch(destModule types.ModuleID, epochNr types4.EpochNr) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_App{

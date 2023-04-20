@@ -6,7 +6,7 @@ import (
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
@@ -16,7 +16,7 @@ func IncludeBatchCreation(
 	fetchTransactions func() []*requestpbtypes.Request,
 ) {
 
-	mpdsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
+	mpdsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
 		mpdsl.NewBatch(m, context.origin.Module, txIDs, context.txs, context.origin)
 		return nil
 	})

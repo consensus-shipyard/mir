@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/modules"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -138,7 +139,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 
 		// Create new DummyClient
 		netClients = append(netClients, dummyclient.NewDummyClient(
-			t.NewClientIDFromInt(i),
+			tt.NewClientIDFromInt(i),
 			crypto.SHA256,
 			conf.Logger,
 		))

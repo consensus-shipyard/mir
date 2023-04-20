@@ -20,6 +20,7 @@ import (
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types13 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	types15 "github.com/filecoin-project/mir/pkg/timer/types"
+	types16 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -593,7 +594,7 @@ func (*TimerDelay) MirReflect() mirreflect.Type {
 type TimerRepeat struct {
 	EventsToRepeat []*Event
 	Delay          types15.Duration
-	RetentionIndex types.RetentionIndex
+	RetentionIndex types16.RetentionIndex
 }
 
 func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
@@ -602,7 +603,7 @@ func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 			return EventFromPb(t)
 		}),
 		Delay:          (types15.Duration)(pb.Delay),
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types16.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -621,12 +622,12 @@ func (*TimerRepeat) MirReflect() mirreflect.Type {
 }
 
 type TimerGarbageCollect struct {
-	RetentionIndex types.RetentionIndex
+	RetentionIndex types16.RetentionIndex
 }
 
 func TimerGarbageCollectFromPb(pb *eventpb.TimerGarbageCollect) *TimerGarbageCollect {
 	return &TimerGarbageCollect{
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types16.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 

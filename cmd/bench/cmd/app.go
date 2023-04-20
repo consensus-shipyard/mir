@@ -10,6 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -27,7 +28,7 @@ func (a *App) ApplyTXs(txs []*requestpb.Request) error {
 	return nil
 }
 
-func (a *App) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+func (a *App) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return maputil.Copy(a.Membership), nil
 }
 

@@ -3,6 +3,7 @@ package trantor
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -20,7 +21,7 @@ func (ra *reconfigurableAppLogic) ApplyTXs(txs []*requestpb.Request) error {
 }
 
 // NewEpoch always returns the same static pre-configured membership.
-func (ra *reconfigurableAppLogic) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+func (ra *reconfigurableAppLogic) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return ra.membership, nil
 }
 

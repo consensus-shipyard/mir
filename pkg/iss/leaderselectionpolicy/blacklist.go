@@ -5,12 +5,13 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type BlacklistLeaderPolicy struct {
 	Membership map[t.NodeID]struct{}
-	Suspected  map[t.NodeID]t.EpochNr
+	Suspected  map[t.NodeID]tt.EpochNr
 	MinLeaders int
 }
 
@@ -21,7 +22,7 @@ func NewBlackListLeaderPolicy(members []t.NodeID, MinLeaders int) *BlacklistLead
 	}
 	return &BlacklistLeaderPolicy{
 		membership,
-		make(map[t.NodeID]t.EpochNr, len(members)),
+		make(map[t.NodeID]tt.EpochNr, len(members)),
 		MinLeaders,
 	}
 }
@@ -67,7 +68,7 @@ func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
 // if this one is more recent than the one it already has
-func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (l *BlacklistLeaderPolicy) Suspect(e tt.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
 		//TODO error but cannot be passed through
 		return
@@ -81,7 +82,7 @@ func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 // Reconfigure informs the leader selection policy about a change in the membership.
 func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
 	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
-	suspected := make(map[t.NodeID]t.EpochNr, len(nodeIDs))
+	suspected := make(map[t.NodeID]tt.EpochNr, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		membership[nodeID] = struct{}{}
 		if epoch, ok := l.Suspected[nodeID]; ok {

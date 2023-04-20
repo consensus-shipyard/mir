@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package events
 
 import (
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
@@ -77,8 +78,8 @@ func Init(destModule t.ModuleID) *eventpb.Event {
 
 // EpochConfig represents the configuration of the system during one epoch
 func EpochConfig(
-	epochNr t.EpochNr,
-	firstSn t.SeqNr,
+	epochNr tt.EpochNr,
+	firstSn tt.SeqNr,
 	length int,
 	memberships []map[t.NodeID]t.NodeAddress,
 ) *commonpb.EpochConfig {

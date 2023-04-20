@@ -1,6 +1,7 @@
 package leaderselectionpolicy
 
 import (
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -26,7 +27,7 @@ func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
 }
 
 // Suspect does nothing for the SimpleLeaderPolicy.
-func (simple *SimpleLeaderPolicy) Suspect(_ t.EpochNr, _ t.NodeID) {
+func (simple *SimpleLeaderPolicy) Suspect(_ tt.EpochNr, _ t.NodeID) {
 	// Do nothing.
 }
 

@@ -6,12 +6,12 @@ import (
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 type State struct {
 	*common.State
-	NewTxIDs []t.TxID
+	NewTxIDs []tt.TxID
 }
 
 // IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
@@ -31,7 +31,7 @@ func IncludeBatchCreation(
 		return nil
 	})
 
-	mpdsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *requestTxIDsContext) error {
+	mpdsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
 		for i := range txIDs {
 			if _, ok := state.TxByID[string(txIDs[i])]; !ok {
 				state.TxByID[string(txIDs[i])] = context.txs[i]
@@ -42,7 +42,7 @@ func IncludeBatchCreation(
 	})
 
 	mpdsl.UponRequestBatch(m, func(origin *mppbtypes.RequestBatchOrigin) error {
-		var txIDs []t.TxID
+		var txIDs []tt.TxID
 		var txs []*requestpbtypes.Request
 		batchSize := 0
 

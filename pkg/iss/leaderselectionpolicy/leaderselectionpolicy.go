@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -38,7 +39,7 @@ type LeaderSelectionPolicy interface {
 	Leaders() []t.NodeID
 
 	// Suspect updates the state of the policy object by announcing it that node `node` has been suspected in epoch `e`.
-	Suspect(e t.EpochNr, node t.NodeID)
+	Suspect(e tt.EpochNr, node t.NodeID)
 
 	// Reconfigure returns a new LeaderSelectionPolicy based on the state of the current one,
 	// but using a new configuration.

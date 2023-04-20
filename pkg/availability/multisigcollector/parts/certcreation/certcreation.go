@@ -13,6 +13,7 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -92,7 +93,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []tt.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
 			delete(state.Certificates, context.reqID)
 			if len(state.RequestStates) > 0 { // do not do work for the empty batch if there is not even a request to answer
@@ -185,7 +186,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the ids of the received transactions are computed, compute the id of the batch.
-	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *computeIDsOfReceivedTxsContext) error {
+	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *computeIDsOfReceivedTxsContext) error {
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs,
 			&computeIDOfReceivedBatchContext{context.sourceID, txIDs, context.txs, context.reqID})
 		return nil
@@ -304,7 +305,7 @@ type computeIDsOfReceivedTxsContext struct {
 
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
-	txIDs    []t.TxID
+	txIDs    []tt.TxID
 	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }

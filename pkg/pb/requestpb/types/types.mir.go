@@ -3,7 +3,7 @@ package requestpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 

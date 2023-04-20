@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/spf13/cobra"
 	rateLimiter "golang.org/x/time/rate"
 
@@ -83,7 +84,7 @@ func runClient() error {
 	ctx, stop := context.WithCancel(context.Background())
 
 	client := dummyclient.NewDummyClient(
-		t.ClientID(id),
+		tt.ClientID(id),
 		crypto.SHA256,
 		logger,
 	)

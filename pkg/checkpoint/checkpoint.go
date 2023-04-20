@@ -3,6 +3,7 @@ package checkpoint
 import (
 	"fmt"
 
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
@@ -73,8 +74,8 @@ func (sc *StableCheckpoint) AttachCert(cert *Certificate) *StableCheckpoint {
 // SeqNr returns the sequence number of the stable checkpoint.
 // It is defined as the number of sequence numbers comprised in the checkpoint, or, in other words,
 // the first (i.e., lowest) sequence number not included in the checkpoint.
-func (sc *StableCheckpoint) SeqNr() t.SeqNr {
-	return t.SeqNr(sc.Sn)
+func (sc *StableCheckpoint) SeqNr() tt.SeqNr {
+	return tt.SeqNr(sc.Sn)
 }
 
 // Memberships returns the memberships configured for the epoch of this checkpoint
@@ -95,8 +96,8 @@ func (sc *StableCheckpoint) PreviousMembership() map[t.NodeID]t.NodeAddress {
 
 // Epoch returns the epoch associated with this checkpoint.
 // It is the epoch **started** by this checkpoint, **not** the last one included in it.
-func (sc *StableCheckpoint) Epoch() t.EpochNr {
-	return t.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
+func (sc *StableCheckpoint) Epoch() tt.EpochNr {
+	return tt.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
 }
 
 // StateSnapshot returns the serialized application state and system configuration associated with this checkpoint.

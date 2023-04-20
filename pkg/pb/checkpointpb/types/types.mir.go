@@ -2,10 +2,11 @@ package checkpointpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types2 "github.com/filecoin-project/mir/codegen/model/types"
+	types3 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -195,15 +196,15 @@ func (*Event) MirReflect() mirreflect.Type {
 type StableCheckpoint struct {
 	Sn       types.SeqNr
 	Snapshot *types1.StateSnapshot
-	Cert     map[types.NodeID][]uint8
+	Cert     map[types2.NodeID][]uint8
 }
 
 func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint {
 	return &StableCheckpoint{
 		Sn:       (types.SeqNr)(pb.Sn),
 		Snapshot: types1.StateSnapshotFromPb(pb.Snapshot),
-		Cert: types2.ConvertMap(pb.Cert, func(k string, v []uint8) (types.NodeID, []uint8) {
-			return (types.NodeID)(k), v
+		Cert: types3.ConvertMap(pb.Cert, func(k string, v []uint8) (types2.NodeID, []uint8) {
+			return (types2.NodeID)(k), v
 		}),
 	}
 }
@@ -212,7 +213,7 @@ func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 	return &checkpointpb.StableCheckpoint{
 		Sn:       (uint64)(m.Sn),
 		Snapshot: (m.Snapshot).Pb(),
-		Cert: types2.ConvertMap(m.Cert, func(k types.NodeID, v []uint8) (string, []uint8) {
+		Cert: types3.ConvertMap(m.Cert, func(k types2.NodeID, v []uint8) (string, []uint8) {
 			return (string)(k), v
 		}),
 	}
@@ -223,13 +224,13 @@ func (*StableCheckpoint) MirReflect() mirreflect.Type {
 }
 
 type EpochProgress struct {
-	NodeId types.NodeID
+	NodeId types2.NodeID
 	Epoch  types.EpochNr
 }
 
 func EpochProgressFromPb(pb *checkpointpb.EpochProgress) *EpochProgress {
 	return &EpochProgress{
-		NodeId: (types.NodeID)(pb.NodeId),
+		NodeId: (types2.NodeID)(pb.NodeId),
 		Epoch:  (types.EpochNr)(pb.Epoch),
 	}
 }

@@ -16,7 +16,8 @@ import (
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	"github.com/filecoin-project/mir/pkg/timer/types"
+	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -126,8 +127,8 @@ func (orderer *Orderer) applyViewChangeSignResult(signature []byte, viewChange *
 			pbftpbmsgs.SignedViewChange(orderer.moduleConfig.Self, pbftpbtypes.ViewChangeFromPb(viewChange), signature),
 			[]t.NodeID{primary},
 		)},
-		types.Duration(orderer.config.ViewChangeResendPeriod),
-		t.RetentionIndex(orderer.config.epochNr),
+		timertypes.Duration(orderer.config.ViewChangeResendPeriod),
+		tt.RetentionIndex(orderer.config.epochNr),
 	)
 	return events.ListOf(repeatedSendEvent.Pb())
 }
@@ -331,9 +332,9 @@ func (orderer *Orderer) sendNewView(view types2.ViewNr, vcState *pbftViewChangeS
 	)
 
 	// Extract re-proposed Preprepares and their corresponding sequence numbers from the view change state.
-	preprepareSeqNrs := make([]t.SeqNr, 0, len(vcState.preprepares))
+	preprepareSeqNrs := make([]tt.SeqNr, 0, len(vcState.preprepares))
 	preprepares := make([]*pbftpbtypes.Preprepare, 0, len(vcState.preprepares))
-	maputil.IterateSorted(vcState.preprepares, func(sn t.SeqNr, preprepare *pbftpbtypes.Preprepare) bool {
+	maputil.IterateSorted(vcState.preprepares, func(sn tt.SeqNr, preprepare *pbftpbtypes.Preprepare) bool {
 		preprepareSeqNrs = append(preprepareSeqNrs, sn)
 		preprepares = append(preprepares, preprepare)
 		return true
@@ -425,7 +426,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *pbftpb
 	// Verify if the re-proposed hashes match the obtained Preprepares.
 	i := 0
 	prepreparesMatching := true
-	maputil.IterateSorted(vcState.reproposals, func(sn t.SeqNr, digest []byte) (cont bool) {
+	maputil.IterateSorted(vcState.reproposals, func(sn tt.SeqNr, digest []byte) (cont bool) {
 
 		// If the expected digest is empty, it means that the corresponding Preprepare is an "aborted" one.
 		// In this case, check the Preprepare directly.
@@ -461,7 +462,7 @@ func (orderer *Orderer) applyNewViewHashResult(digests [][]byte, newView *pbftpb
 // Auxiliary functions
 // ============================================================
 
-func validFreshPreprepare(preprepare *pbftpbtypes.Preprepare, view types2.ViewNr, sn t.SeqNr) bool {
+func validFreshPreprepare(preprepare *pbftpbtypes.Preprepare, view types2.ViewNr, sn tt.SeqNr) bool {
 	return preprepare.Aborted &&
 		preprepare.Sn == sn &&
 		preprepare.View == view
@@ -507,7 +508,7 @@ func (orderer *Orderer) latestPendingVCState() (*pbftViewChangeState, types2.Vie
 // viewChangePSet represents the P set of a PBFT view change message.
 // For each sequence number, it holds the digest of the last prepared certificate,
 // along with the view in which it was prepared.
-type viewChangePSet map[t.SeqNr]*pbftpbtypes.PSetEntry
+type viewChangePSet map[tt.SeqNr]*pbftpbtypes.PSetEntry
 
 // PbType returns a protobuf type representation (not a raw protobuf, but the generated type) of a viewChangePSet,
 // Where all entries are stored in a simple list.
@@ -552,7 +553,7 @@ func reconstructPSet(entries []*pbftpbtypes.PSetEntry) (viewChangePSet, error) {
 // For each sequence number, it holds the digests (encoded as string map keys)
 // of all certificates preprepared for that sequence number,
 // along with the latest view in which each of them was preprepared.
-type viewChangeQSet map[t.SeqNr]map[string]types2.ViewNr
+type viewChangeQSet map[tt.SeqNr]map[string]types2.ViewNr
 
 // PbType returns a protobuf tye representation (not a raw protobuf, but the generated type) of a viewChangeQSet,
 // where all entries, represented as (sn, view, digest) tuples, are stored in a simple list.
@@ -646,10 +647,10 @@ func reconstructPSetQSet(
 // They must first be transformed to a serializable representation that adheres to the message format.
 func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet) {
 	// Initialize the PSet.
-	pSet = make(map[t.SeqNr]*pbftpbtypes.PSetEntry)
+	pSet = make(map[tt.SeqNr]*pbftpbtypes.PSetEntry)
 
 	// Initialize the QSet.
-	qSet = make(map[t.SeqNr]map[string]types2.ViewNr)
+	qSet = make(map[tt.SeqNr]map[string]types2.ViewNr)
 
 	// For each sequence number, compute the PSet and the QSet.
 	for _, sn := range orderer.segment.SeqNrs() {
@@ -696,7 +697,7 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 func reproposal(
 	pSets map[t.NodeID]viewChangePSet,
 	qSets map[t.NodeID]viewChangeQSet,
-	sn t.SeqNr,
+	sn tt.SeqNr,
 	numNodes int,
 ) ([]byte, []t.NodeID) {
 
@@ -722,7 +723,7 @@ func reproposal(
 
 func noPrepareConflictsA1(
 	pSets map[t.NodeID]viewChangePSet,
-	sn t.SeqNr,
+	sn tt.SeqNr,
 	digest []byte,
 	view types2.ViewNr,
 	numNodes int,
@@ -745,7 +746,7 @@ func noPrepareConflictsA1(
 
 func enoughPrepreparesA2(
 	qSets map[t.NodeID]viewChangeQSet,
-	sn t.SeqNr,
+	sn tt.SeqNr,
 	digest []byte,
 	view types2.ViewNr,
 	numNodes int,
@@ -766,7 +767,7 @@ func enoughPrepreparesA2(
 	return numPrepares >= config.WeakQuorum(numNodes), nodeIDs
 }
 
-func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn t.SeqNr, numNodes int) bool {
+func nothingPreparedB(pSets map[t.NodeID]viewChangePSet, sn tt.SeqNr, numNodes int) bool {
 	nothingPrepared := 0
 
 	for _, pSet := range pSets {

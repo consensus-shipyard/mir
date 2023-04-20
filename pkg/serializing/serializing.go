@@ -13,7 +13,7 @@ import (
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -31,7 +31,7 @@ func RequestForHash(req *requestpb.Request) [][]byte {
 	return [][]byte{clientIDBuf, reqNoBuf, req.Data}
 }
 
-func CheckpointForSig(epoch t.EpochNr, seqNr t.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
+func CheckpointForSig(epoch tt.EpochNr, seqNr tt.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
 	epochBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(epochBytes, uint64(epoch))
 
@@ -59,7 +59,7 @@ func EpochConfigForHash(epochConfig *commonpb.EpochConfig) [][]byte {
 
 	// Add simple values.
 	data := [][]byte{
-		t.EpochNr(epochConfig.EpochNr).Bytes(),
+		tt.EpochNr(epochConfig.EpochNr).Bytes(),
 		Uint64ToBytes(epochConfig.Length),
 		Uint64ToBytes(epochConfig.FirstSn),
 	}
@@ -91,7 +91,7 @@ func ClientProgressForHash(clientProgress *commonpb.ClientProgress) [][]byte {
 		clientProgress.Progress,
 		func(clientID string, deliveredReqs *commonpb.DeliveredReqs) (cont bool) {
 			// Append client ID and low watermark.
-			data = append(data, []byte(t.ClientID(clientID).Pb()), Uint64ToBytes(deliveredReqs.LowWm))
+			data = append(data, []byte(tt.ClientID(clientID).Pb()), Uint64ToBytes(deliveredReqs.LowWm))
 
 			// Append all request numbers delivered after the watermark.
 			for _, reqNo := range deliveredReqs.Delivered {
