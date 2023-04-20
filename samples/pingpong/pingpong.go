@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -17,6 +16,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/pingpong/protobufs"
 )

@@ -3,7 +3,6 @@ package checkpoint
 import (
 	"fmt"
 
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
@@ -11,6 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )

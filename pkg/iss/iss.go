@@ -15,8 +15,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/timer/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
@@ -48,6 +46,8 @@ import (
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"

@@ -22,7 +22,6 @@ import (
 	"os"
 	"strconv"
 
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -40,6 +39,7 @@ import (
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"

@@ -1,10 +1,10 @@
 package leaderselectionpolicy
 
 import (
-	"github.com/filecoin-project/mir/pkg/serializing"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/fxamacker/cbor/v2"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 

@@ -14,13 +14,13 @@ import (
 	"strconv"
 	"time"
 
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/spf13/cobra"
 	rateLimiter "golang.org/x/time/rate"
 
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 

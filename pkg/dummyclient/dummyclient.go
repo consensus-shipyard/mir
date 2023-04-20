@@ -12,13 +12,13 @@ import (
 	"fmt"
 	"sync"
 
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
