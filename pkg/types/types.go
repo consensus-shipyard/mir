@@ -19,8 +19,6 @@ import (
 
 // ================================================================================
 
-type BatchIDString string
-
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
 
@@ -105,29 +103,6 @@ func TxIDSlice(ids [][]byte) []TxID {
 // TxIDSlicePb converts a slice of TxIDs to a slice of the native type underlying TxID.
 // This is required for serialization using Protocol Buffers.
 func TxIDSlicePb(ids []TxID) [][]byte {
-	pbSlice := make([][]byte, len(ids))
-	copy(pbSlice, ids)
-	return pbSlice
-}
-
-// ================================================================================
-// RequestID is used to uniquely identify an outgoing request.
-type RequestID = uint64
-
-// BatchID is a unique identifier of a batch.
-type BatchID = []byte
-
-// BatchIDSlice converts a slice of BatchIDs represented directly as their underlying native type
-// to a slice of abstractly typed batch IDs.
-func BatchIDSlice(ids [][]byte) []BatchID {
-	batchIDs := make([]BatchID, len(ids))
-	copy(batchIDs, ids)
-	return batchIDs
-}
-
-// BatchIDSlicePb converts a slice of BatchIDs to a slice of the native type underlying BatchID.
-// This is required for serialization using Protocol Buffers.
-func BatchIDSlicePb(ids []BatchID) [][]byte {
 	pbSlice := make([][]byte, len(ids))
 	copy(pbSlice, ids)
 	return pbSlice

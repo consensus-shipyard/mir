@@ -3,13 +3,14 @@ package batchreconstruction
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
+	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/logging"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
@@ -24,15 +25,15 @@ import (
 
 // State represents the state related to this part of the module.
 type State struct {
-	NextReqID    t.RequestID
-	RequestState map[t.RequestID]*RequestState
+	NextReqID    msctypes.RequestID
+	RequestState map[msctypes.RequestID]*RequestState
 }
 
 // RequestState represents the state related to a request on the source node of the request.
 // The node disposes of this state as soon as the request is completed.
 type RequestState struct {
-	NonEmptyCerts []t.BatchIDString
-	Txs           map[t.BatchIDString][]*requestpbtypes.Request
+	NonEmptyCerts []msctypes.BatchIDString
+	Txs           map[msctypes.BatchIDString][]*requestpbtypes.Request
 	ReqOrigin     *apbtypes.RequestTransactionsOrigin
 }
 
@@ -56,8 +57,8 @@ func IncludeBatchReconstruction(
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.RequestState[reqID] = &RequestState{
-			NonEmptyCerts: make([]t.BatchIDString, 0),
-			Txs:           make(map[t.BatchIDString][]*requestpbtypes.Request),
+			NonEmptyCerts: make([]msctypes.BatchIDString, 0),
+			Txs:           make(map[msctypes.BatchIDString][]*requestpbtypes.Request),
 			ReqOrigin:     origin,
 		}
 
@@ -76,7 +77,7 @@ func IncludeBatchReconstruction(
 
 		if len(nonEmptyCerts) > 0 {
 			for _, c := range nonEmptyCerts {
-				batchIDString := t.BatchIDString(c.BatchId)
+				batchIDString := msctypes.BatchIDString(c.BatchId)
 				state.RequestState[reqID].NonEmptyCerts = append(state.RequestState[reqID].NonEmptyCerts, batchIDString) // save the order in which the batches were decided
 				state.RequestState[reqID].Txs[batchIDString] = nil
 				batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
@@ -112,7 +113,7 @@ func IncludeBatchReconstruction(
 	})
 
 	// When receive a request for batch from another node, lookup the batch in the local storage.
-	mscpbdsl.UponRequestBatchMessageReceived(m, func(from t.NodeID, batchID t.BatchID, reqID t.RequestID) error {
+	mscpbdsl.UponRequestBatchMessageReceived(m, func(from t.NodeID, batchID msctypes.BatchID, reqID msctypes.RequestID) error {
 		// check that sender is a member
 		if !sliceutil.Contains(params.AllNodes, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
@@ -135,7 +136,7 @@ func IncludeBatchReconstruction(
 	})
 
 	// When receive a requested batch, compute the ids of the received transactions.
-	mscpbdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID t.RequestID, batchID t.BatchID) error {
+	mscpbdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID msctypes.RequestID, batchID msctypes.BatchID) error {
 		// check that sender is a member
 		if !sliceutil.Contains(params.AllNodes, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
@@ -158,7 +159,7 @@ func IncludeBatchReconstruction(
 	})
 
 	// When the id of the batch is computed, check if it is correct, store the transactions, and complete the request.
-	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *requestBatchIDContext) error {
+	mempooldsl.UponBatchIDResponse(m, func(batchID msctypes.BatchID, context *requestBatchIDContext) error {
 		requestState, ok := state.RequestState[context.reqID]
 		if !ok {
 			// The request has already been completed.
@@ -187,33 +188,33 @@ func IncludeBatchReconstruction(
 type lookupBatchLocallyContext struct {
 	cert   *mscpbtypes.Cert
 	origin *apbtypes.RequestTransactionsOrigin
-	reqID  t.RequestID
+	reqID  msctypes.RequestID
 }
 
 type lookupBatchOnRemoteRequestContext struct {
 	requester t.NodeID
-	reqID     t.RequestID
-	batchID   t.BatchID
+	reqID     msctypes.RequestID
+	batchID   msctypes.BatchID
 }
 
 type requestTxIDsContext struct {
-	reqID   t.RequestID
+	reqID   msctypes.RequestID
 	txs     []*requestpbtypes.Request
-	batchID t.BatchID
+	batchID msctypes.BatchID
 }
 
 type requestBatchIDContext struct {
-	reqID   t.RequestID
+	reqID   msctypes.RequestID
 	txs     []*requestpbtypes.Request
 	txIDs   []t.TxID
-	batchID t.BatchID
+	batchID msctypes.BatchID
 }
 
 type storeBatchContext struct{}
 
 // saveAndFinish saves the received txs and if all requested batches have been received, it completes the request. Returns a bool indicating if the request has been completed.
-func saveAndFinish(m dsl.Module, reqID t.RequestID, txs []*requestpbtypes.Request, batchID t.BatchID, origin *apbtypes.RequestTransactionsOrigin, state *State) bool {
-	state.RequestState[reqID].Txs[t.BatchIDString(batchID)] = txs
+func saveAndFinish(m dsl.Module, reqID msctypes.RequestID, txs []*requestpbtypes.Request, batchID msctypes.BatchID, origin *apbtypes.RequestTransactionsOrigin, state *State) bool {
+	state.RequestState[reqID].Txs[msctypes.BatchIDString(batchID)] = txs
 	allFound := true
 	allTxs := make([]*requestpbtypes.Request, 0)
 
