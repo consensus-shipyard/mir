@@ -2,9 +2,12 @@ package ordererpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types4 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -66,24 +69,28 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type PBFTSegment struct {
-	Leader     string
-	Membership *types1.Membership
-	Proposals  map[uint64][]uint8
+	Leader     types1.NodeID
+	Membership *types2.Membership
+	Proposals  map[types3.SeqNr][]uint8
 }
 
 func PBFTSegmentFromPb(pb *ordererpb.PBFTSegment) *PBFTSegment {
 	return &PBFTSegment{
-		Leader:     pb.Leader,
-		Membership: types1.MembershipFromPb(pb.Membership),
-		Proposals:  pb.Proposals,
+		Leader:     (types1.NodeID)(pb.Leader),
+		Membership: types2.MembershipFromPb(pb.Membership),
+		Proposals: types4.ConvertMap(pb.Proposals, func(k uint64, v []uint8) (types3.SeqNr, []uint8) {
+			return (types3.SeqNr)(k), v
+		}),
 	}
 }
 
 func (m *PBFTSegment) Pb() *ordererpb.PBFTSegment {
 	return &ordererpb.PBFTSegment{
-		Leader:     m.Leader,
+		Leader:     (string)(m.Leader),
 		Membership: (m.Membership).Pb(),
-		Proposals:  m.Proposals,
+		Proposals: types4.ConvertMap(m.Proposals, func(k types3.SeqNr, v []uint8) (uint64, []uint8) {
+			return (uint64)(k), v
+		}),
 	}
 }
 

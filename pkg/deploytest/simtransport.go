@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -48,12 +49,17 @@ func (st *SimTransport) Link(source t.NodeID) (net.Transport, error) {
 	return st.nodes[source], nil
 }
 
-func (st *SimTransport) Nodes() map[t.NodeID]t.NodeAddress {
-	membership := make(map[t.NodeID]t.NodeAddress)
+func (st *SimTransport) Membership() *commonpbtypes.Membership {
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range st.nodes {
-		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+			nID,
+			libp2p.NewDummyHostAddr(0, 0).String(),
+			nil,
+			0,
+		}
 	}
 
 	return membership
@@ -96,10 +102,10 @@ func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return nil
 }
 
-func (m *simTransportModule) CloseOldConnections(_ map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) CloseOldConnections(_ *commonpbtypes.Membership) {
 }
 
-func (m *simTransportModule) Connect(_ map[t.NodeID]t.NodeAddress) {
+func (m *simTransportModule) Connect(_ *commonpbtypes.Membership) {
 	go m.handleOutChan(m.SimTransport.Simulation.Spawn())
 }
 

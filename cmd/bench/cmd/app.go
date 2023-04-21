@@ -9,16 +9,15 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 type App struct {
 	logging.Logger
 
-	Membership map[t.NodeID]t.NodeAddress
+	Membership *commonpbtypes.Membership
 }
 
 func (a *App) ApplyTXs(txs []*requestpb.Request) error {
@@ -28,8 +27,8 @@ func (a *App) ApplyTXs(txs []*requestpb.Request) error {
 	return nil
 }
 
-func (a *App) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
-	return maputil.Copy(a.Membership), nil
+func (a *App) NewEpoch(_ tt.EpochNr) (*commonpbtypes.Membership, error) {
+	return a.Membership, nil
 }
 
 func (a *App) Snapshot() ([]byte, error) {

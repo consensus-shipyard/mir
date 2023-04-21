@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/pb/apppb"
+	batchfetcherpbtypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
+	checkpointpbevents "github.com/filecoin-project/mir/pkg/pb/checkpointpb/events"
 	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
@@ -25,9 +27,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
@@ -70,7 +70,7 @@ type Protocol struct {
 	membership []t.NodeID
 
 	// State snapshot associated with this checkpoint.
-	stateSnapshot *commonpb.StateSnapshot
+	stateSnapshot *commonpbtypes.StateSnapshot
 
 	// Hash of the state snapshot data associated with this checkpoint.
 	stateSnapshotHash []byte
@@ -97,8 +97,8 @@ type Protocol struct {
 func NewProtocol(
 	moduleConfig *ModuleConfig,
 	ownID t.NodeID,
-	membership map[t.NodeID]t.NodeAddress,
-	epochConfig *commonpb.EpochConfig,
+	membership *commonpbtypes.Membership,
+	epochConfig *commonpbtypes.EpochConfig,
 	leaderPolicyData []byte,
 	resendPeriod types.Duration,
 	logger logging.Logger,
@@ -107,21 +107,21 @@ func NewProtocol(
 		Logger:          logger,
 		moduleConfig:    moduleConfig,
 		ownID:           ownID,
-		seqNr:           tt.SeqNr(epochConfig.FirstSn),
-		epoch:           tt.EpochNr(epochConfig.EpochNr),
+		seqNr:           epochConfig.FirstSn,
+		epoch:           epochConfig.EpochNr,
 		resendPeriod:    resendPeriod,
 		announced:       false,
 		signatures:      make(map[t.NodeID][]byte),
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
-		membership:      maputil.GetSortedKeys(membership),
-		stateSnapshot: &commonpb.StateSnapshot{
+		membership:      maputil.GetSortedKeys(membership.Nodes),
+		stateSnapshot: &commonpbtypes.StateSnapshot{
 			AppData: nil,
-			EpochData: &commonpb.EpochData{
+			EpochData: &commonpbtypes.EpochData{
 				EpochConfig:        epochConfig,
 				ClientProgress:     nil, // This will be filled by a separate event.
 				LeaderPolicy:       leaderPolicyData,
-				PreviousMembership: t.MembershipPb(membership),
+				PreviousMembership: membership,
 			},
 		},
 	}
@@ -161,8 +161,8 @@ func (p *Protocol) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return nil, errors.Errorf("unexpected crypto event type: %T", e)
 		}
 	case *eventpb.Event_BatchFetcher:
-		switch e := e.BatchFetcher.Type.(type) {
-		case *batchfetcherpb.Event_ClientProgress:
+		switch e := batchfetcherpbtypes.EventFromPb(e.BatchFetcher).Type.(type) {
+		case *batchfetcherpbtypes.Event_ClientProgress:
 			return p.applyClientProgress(e.ClientProgress)
 		default:
 			return nil, errors.Errorf("unexpected batch fetcher event type: %T", e)
@@ -209,7 +209,7 @@ func (p *Protocol) applyAppSnapshot(appSnapshot *apppb.Snapshot) (*events.EventL
 	return events.EmptyList(), nil
 }
 
-func (p *Protocol) applyClientProgress(clientProgress *commonpb.ClientProgress) (*events.EventList, error) {
+func (p *Protocol) applyClientProgress(clientProgress *commonpbtypes.ClientProgress) (*events.EventList, error) {
 
 	// Save the received client progress if there is none yet.
 	if p.stateSnapshot.EpochData.ClientProgress == nil {
@@ -378,20 +378,13 @@ func (p *Protocol) announceStable() *events.EventList {
 	p.announced = true
 
 	// Assemble a multisig certificate from the received signatures.
-	cert := make(map[string][]byte)
+	cert := make(map[t.NodeID][]byte)
 	for node := range p.confirmations {
-		cert[node.Pb()] = p.signatures[node]
-	}
-
-	// Create a stable checkpoint object.
-	stableCheckpoint := &checkpointpb.StableCheckpoint{
-		Sn:       p.seqNr.Pb(),
-		Snapshot: p.stateSnapshot,
-		Cert:     cert,
+		cert[node] = p.signatures[node]
 	}
 
 	// Announce the stable checkpoint to the ordering protocol.
-	return events.ListOf(protobufs.StableCheckpointEvent(p.moduleConfig.Ord, stableCheckpoint))
+	return events.ListOf(checkpointpbevents.StableCheckpoint(p.moduleConfig.Ord, p.seqNr, p.stateSnapshot, cert).Pb())
 }
 
 func maxFaulty(n int) int {

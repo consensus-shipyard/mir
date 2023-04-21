@@ -23,7 +23,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/membership"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -40,7 +40,7 @@ type ChatApp struct {
 	messages []string
 
 	// Stores the next membership to be submitted to the Node on the next NewEpoch event.
-	newMembership map[t.NodeID]t.NodeAddress
+	newMembership *commonpbtypes.Membership
 
 	// Name of the directory in which to store the checkpoint files.
 	chkpDir string
@@ -50,7 +50,7 @@ type ChatApp struct {
 // The initialMembership argument describes the initial set of nodes that are part of the system.
 // The application needs to keep track of the membership, as it will be deciding about when and how it changes.
 // If chkpDir is not an empty string, it will be interpreted as a path to the directory to store checkpoint files.
-func NewChatApp(initialMembership map[t.NodeID]t.NodeAddress, chkpDir string) *ChatApp {
+func NewChatApp(initialMembership *commonpbtypes.Membership, chkpDir string) *ChatApp {
 	return &ChatApp{
 		messages:      make([]string, 0),
 		newMembership: initialMembership,
@@ -110,33 +110,37 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 			fmt.Printf("Ignoring config message: %s (tokens: %v). Need 3 tokens.\n", configMsg, tokens)
 		}
 
-		// Parse out the node ID and address
+		// Parse out the node ID and address.
+		// Note that we need to pass the address (inside a temporary membership structure)
+		// through the DummyMultiAddrs function to generate a proper (dummy) key.
 		nodeID := t.NodeID(tokens[1])
 		netAddr, err := multiaddr.NewMultiaddr(tokens[2])
 		if err != nil {
 			fmt.Printf("Adding node failed. Invalid address: %v\n", err)
 		}
-		nodeAddrs, err := membership.DummyMultiAddrs(map[t.NodeID]t.NodeAddress{nodeID: netAddr})
+		tmpMembership, err := membership.DummyMultiAddrs(&commonpbtypes.Membership{ // nolint:govet
+			map[t.NodeID]*commonpbtypes.NodeIdentity{nodeID: {nodeID, netAddr.String(), nil, 0}}, // nolint:govet
+		})
 		if err != nil {
 			fmt.Printf("Adding node failed. Could not construct dummy multiaddress: %v\n", err)
 		}
-		nodeAddr := nodeAddrs[nodeID]
+		nodeAddr := tmpMembership.Nodes[nodeID].Addr
 
 		// Add the node to the next membership.
 		fmt.Printf("Adding node: %v (%v)\n", nodeID, nodeAddr)
-		if _, ok := chat.newMembership[nodeID]; ok {
+		if _, ok := chat.newMembership.Nodes[nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
 		} else {
-			chat.newMembership[nodeID] = nodeAddr
+			chat.newMembership.Nodes[nodeID] = &commonpbtypes.NodeIdentity{nodeID, nodeAddr, nil, 0} // nolint:govet
 		}
 	case "remove-node":
 		// Parse out the node ID and remove it from the next membership.
 		nodeID := t.NodeID(tokens[1])
 		fmt.Printf("Removing node: %v\n", nodeID)
-		if _, ok := chat.newMembership[nodeID]; !ok {
+		if _, ok := chat.newMembership.Nodes[nodeID]; !ok {
 			fmt.Printf("Removing node failed. Node not present in membership: %v\n", nodeID)
 		} else {
-			delete(chat.newMembership, nodeID)
+			delete(chat.newMembership.Nodes, nodeID)
 		}
 	default:
 		fmt.Printf("Ignoring config message: %s (tokens: %v)\n", configMsg, tokens)
@@ -145,8 +149,8 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 
 // NewEpoch callback is invoked by the SMR system when it transitions to a new epoch.
 // The membership returned from NewEpoch will eventually be used by the system.
-func (chat *ChatApp) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
-	return maputil.Copy(chat.newMembership), nil
+func (chat *ChatApp) NewEpoch(_ tt.EpochNr) (*commonpbtypes.Membership, error) {
+	return &commonpbtypes.Membership{maputil.Copy(chat.newMembership.Nodes)}, nil // nolint:govet
 }
 
 // Snapshot produces a StateSnapshotResponse event containing the current snapshot of the chat app state.
@@ -195,8 +199,8 @@ func (chat *ChatApp) restoreChat(data []byte) {
 }
 
 // restoreConfiguration saves the system membership, so it can be further updated by subsequent config transactions.
-func (chat *ChatApp) restoreConfiguration(config *commonpb.EpochConfig) error {
-	chat.newMembership = t.Membership(config.Memberships[len(config.Memberships)-1])
+func (chat *ChatApp) restoreConfiguration(config *commonpbtypes.EpochConfig) error {
+	chat.newMembership = config.Memberships[len(config.Memberships)-1]
 	return nil
 }
 

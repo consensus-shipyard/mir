@@ -9,25 +9,25 @@ import (
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // StableCheckpoint represents a stable checkpoint.
-type StableCheckpoint checkpointpb.StableCheckpoint
+type StableCheckpoint checkpointpbtypes.StableCheckpoint
 
 // StableCheckpointFromPb creates a new StableCheckpoint from its protobuf representation.
 // The given protobuf object is assumed to not be modified after calling StableCheckpointFromPb.
 // Modifying it may lead to undefined behavior.
 func StableCheckpointFromPb(checkpoint *checkpointpb.StableCheckpoint) *StableCheckpoint {
-	return (*StableCheckpoint)(checkpoint)
+	return (*StableCheckpoint)(checkpointpbtypes.StableCheckpointFromPb(checkpoint))
 }
 
 // Pb returns a protobuf representation of the stable checkpoint.
 func (sc *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
-	return (*checkpointpb.StableCheckpoint)(sc)
+	return (*checkpointpbtypes.StableCheckpoint)(sc).Pb()
 }
 
 // Serialize returns the stable checkpoint serialized as a byte slice.
@@ -53,7 +53,7 @@ func (sc *StableCheckpoint) Deserialize(data []byte) error {
 // StripCert returns a stable new stable checkpoint with the certificate stripped off.
 // The returned copy is a shallow one, sharing the data with the original.
 func (sc *StableCheckpoint) StripCert() *StableCheckpoint {
-	return StableCheckpointFromPb(&checkpointpb.StableCheckpoint{
+	return (*StableCheckpoint)(&checkpointpbtypes.StableCheckpoint{
 		Sn:       sc.Sn,
 		Snapshot: sc.Snapshot,
 		Cert:     nil,
@@ -63,10 +63,10 @@ func (sc *StableCheckpoint) StripCert() *StableCheckpoint {
 // AttachCert returns a new stable checkpoint with the given certificate attached.
 // If the stable checkpoint already had a certificate attached, the old certificate is replaced by the new one.
 func (sc *StableCheckpoint) AttachCert(cert *Certificate) *StableCheckpoint {
-	return StableCheckpointFromPb(&checkpointpb.StableCheckpoint{
+	return (*StableCheckpoint)(&checkpointpbtypes.StableCheckpoint{
 		Sn:       sc.Sn,
 		Snapshot: sc.Snapshot,
-		Cert:     cert.Pb(),
+		Cert:     *cert,
 	})
 }
 
@@ -74,13 +74,13 @@ func (sc *StableCheckpoint) AttachCert(cert *Certificate) *StableCheckpoint {
 // It is defined as the number of sequence numbers comprised in the checkpoint, or, in other words,
 // the first (i.e., lowest) sequence number not included in the checkpoint.
 func (sc *StableCheckpoint) SeqNr() tt.SeqNr {
-	return tt.SeqNr(sc.Sn)
+	return sc.Sn
 }
 
 // Memberships returns the memberships configured for the epoch of this checkpoint
 // and potentially several subsequent ones.
-func (sc *StableCheckpoint) Memberships() []map[t.NodeID]t.NodeAddress {
-	return t.MembershipSlice(sc.Snapshot.EpochData.EpochConfig.Memberships)
+func (sc *StableCheckpoint) Memberships() []*commonpbtypes.Membership {
+	return sc.Snapshot.EpochData.EpochConfig.Memberships
 }
 
 // PreviousMembership returns the membership of the epoch preceding the epoch the checkpoint is associated with
@@ -89,32 +89,27 @@ func (sc *StableCheckpoint) Memberships() []map[t.NodeID]t.NodeAddress {
 // Note that this membership is contained in the checkpoint itself and thus can be forged.
 // Using PreviousMembership as an argument to VerifyCert without independently checking its validity is not secure
 // (in this sense, the checkpoint certificate is self-signed).
-func (sc *StableCheckpoint) PreviousMembership() map[t.NodeID]t.NodeAddress {
-	return t.Membership(sc.Snapshot.EpochData.PreviousMembership)
+func (sc *StableCheckpoint) PreviousMembership() *commonpbtypes.Membership {
+	return sc.Snapshot.EpochData.PreviousMembership
 }
 
 // Epoch returns the epoch associated with this checkpoint.
 // It is the epoch **started** by this checkpoint, **not** the last one included in it.
 func (sc *StableCheckpoint) Epoch() tt.EpochNr {
-	return tt.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
+	return sc.Snapshot.EpochData.EpochConfig.EpochNr
 }
 
 // StateSnapshot returns the serialized application state and system configuration associated with this checkpoint.
-func (sc *StableCheckpoint) StateSnapshot() *commonpb.StateSnapshot {
+func (sc *StableCheckpoint) StateSnapshot() *commonpbtypes.StateSnapshot {
 	return sc.Snapshot
 }
 
 func (sc *StableCheckpoint) ClientProgress(logger logging.Logger) *clientprogress.ClientProgress {
-	return clientprogress.FromPb(sc.Snapshot.EpochData.ClientProgress, logger)
+	return clientprogress.FromPb(sc.Snapshot.EpochData.ClientProgress.Pb(), logger)
 }
 
-func (sc *StableCheckpoint) Certificate() *Certificate {
-	m := maputil.Transform(sc.Cert,
-		func(k string, v []byte) (t.NodeID, []byte) {
-			return t.NodeID(k), v
-		},
-	)
-	return (*Certificate)(&m)
+func (sc *StableCheckpoint) Certificate() Certificate {
+	return sc.Cert
 }
 
 // VerifyCert verifies the certificate of the stable checkpoint using the provided hash implementation and verifier.
@@ -135,10 +130,10 @@ func (sc *StableCheckpoint) Certificate() *Certificate {
 // For simplicity, we require all nodes that signed the certificate to be contained in the provided membership,
 // as well as all signatures to be valid.
 // Moreover, the number of nodes that signed the certificate must be greater than one third of the membership size.
-func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership map[t.NodeID]t.NodeAddress) error {
+func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership *commonpbtypes.Membership) error {
 
 	// Check if there is enough signatures.
-	n := len(membership)
+	n := len(membership.Nodes)
 	f := (n - 1) / 3
 	if len(sc.Cert) < f+1 {
 		return fmt.Errorf("not enough signatures in certificate: got %d, expected more than %d",
@@ -155,12 +150,12 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 		// Check if the signing node is also in the given membership, thus "authorized" to sign.
 		// TODO: Once nodes are identified by more than their ID
 		//   (e.g., if a separate putlic key is part of their identity), adapt the check accordingly.
-		if _, ok := membership[t.NodeID(nodeID)]; !ok {
+		if _, ok := membership.Nodes[nodeID]; !ok {
 			return fmt.Errorf("node %v not in membership", nodeID)
 		}
 
 		// Check if the signature is valid.
-		if err := v.Verify(signedData.Data, sig, t.NodeID(nodeID)); err != nil {
+		if err := v.Verify(signedData.Data, sig, nodeID); err != nil {
 			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
 		}
 	}
@@ -170,11 +165,11 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 // Genesis returns a stable checkpoint that serves as the starting checkpoint of the first epoch (epoch 0).
 // Its certificate is empty and is always considered valid,
 // as there is no previous epoch's membership to verify it against.
-func Genesis(initialStateSnapshot *commonpb.StateSnapshot) *StableCheckpoint {
+func Genesis(initialStateSnapshot *commonpbtypes.StateSnapshot) *StableCheckpoint {
 	return &StableCheckpoint{
 		Sn:       0,
 		Snapshot: initialStateSnapshot,
-		Cert:     (&Certificate{}).Pb(),
+		Cert:     Certificate{},
 	}
 }
 

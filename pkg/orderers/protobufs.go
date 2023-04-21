@@ -68,7 +68,7 @@ func InstanceParams(
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
 		PbftModule: &ordererpbtypes.PBFTModule{
-			Segment:         ordererpbtypes.PBFTSegmentFromPb(segment.Pb()),
+			Segment:         segment.PbType(),
 			AvailabilityId:  availabilityID.Pb(),
 			Epoch:           epoch.Pb(),
 			ValidityChecker: uint64(validityCheckerType),

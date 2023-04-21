@@ -11,9 +11,6 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
-
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // ================================================================================
@@ -59,32 +56,6 @@ func NodeIDSlicePb(nids []NodeID) []string {
 
 // NodeAddress represents the address of a node.
 type NodeAddress multiaddr.Multiaddr
-
-func MembershipPb(membership map[NodeID]NodeAddress) *commonpb.Membership {
-	nodeAddresses := make(map[string]string, len(membership))
-	maputil.IterateSorted(membership, func(nodeID NodeID, nodeAddr NodeAddress) (cont bool) {
-		nodeAddresses[nodeID.Pb()] = nodeAddr.String()
-		return true
-	})
-	return &commonpb.Membership{Membership: nodeAddresses}
-}
-
-func Membership(membershipPb *commonpb.Membership) map[NodeID]NodeAddress {
-	membership := make(map[NodeID]NodeAddress)
-	for _, nID := range maputil.GetKeys(membershipPb.Membership) {
-		membership[NodeID(nID)], _ = multiaddr.NewMultiaddr(membershipPb.Membership[nID])
-		// TODO: Handle errors here!!!
-	}
-	return membership
-}
-
-func MembershipSlice(membershipsPb []*commonpb.Membership) []map[NodeID]NodeAddress {
-	memberships := make([]map[NodeID]NodeAddress, len(membershipsPb))
-	for i, membershipPb := range membershipsPb {
-		memberships[i] = Membership(membershipPb)
-	}
-	return memberships
-}
 
 // ================================================================================
 

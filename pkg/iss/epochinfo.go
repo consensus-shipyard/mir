@@ -3,8 +3,8 @@ package iss
 import (
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // epochInfo holds epoch-specific information that becomes irrelevant on advancing to the next epoch.
@@ -17,7 +17,7 @@ type epochInfo struct {
 	firstSN tt.SeqNr
 
 	// This epoch's membership.
-	Membership map[t.NodeID]t.NodeAddress
+	Membership *commonpbtypes.Membership
 
 	// Orderers' segments associated with the epoch.
 	Segments []*orderers.Segment
@@ -29,7 +29,7 @@ type epochInfo struct {
 func newEpochInfo(
 	nr tt.EpochNr,
 	firstSN tt.SeqNr,
-	membership map[t.NodeID]t.NodeAddress,
+	membership *commonpbtypes.Membership,
 	leaderPolicy lsp.LeaderSelectionPolicy,
 ) epochInfo {
 	ei := epochInfo{

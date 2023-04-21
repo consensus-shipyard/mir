@@ -15,7 +15,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -23,7 +22,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/events"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -37,7 +35,6 @@ import (
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -90,13 +87,13 @@ type ISS struct {
 	// The memberships for the current epoch and the params.ConfigOffset following epochs
 	// (totalling params.ConfigOffset memberships).
 	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, 7 and 8.
-	memberships []map[t.NodeID]t.NodeAddress
+	memberships []*commonpbtypes.Membership
 
 	// The latest new membership obtained from the application.
 	// To be included as last of the list of membership in the next new configuration.
 	// The epoch number this membership corresponds to is the current epoch number + params.ConfigOffset.
 	// At epoch initialization, this is set to nil. We then set it to the next membership announced by the application.
-	nextNewMembership map[t.NodeID]t.NodeAddress
+	nextNewMembership *commonpbtypes.Membership
 
 	// The final log of committed availability certificates.
 	// For each sequence number, it holds the committed certificate (or the special abort value).
@@ -213,7 +210,11 @@ func New(
 	eventpbdsl.UponInit(iss.m, func() error {
 
 		// Initialize application state according to the initial checkpoint.
-		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()))
+		apppbdsl.RestoreState(
+			iss.m,
+			iss.moduleConfig.App,
+			chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()),
+		)
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
@@ -249,13 +250,9 @@ func New(
 		return iss.deliverCert(context.sn, context.data, context.aborted, context.leader)
 	})
 
-	isspbdsl.UponNewConfig(iss.m, func(epochNr tt.EpochNr, membershippb *commonpbtypes.Membership) error {
-		membership := maputil.Transform(membershippb.Membership, func(nodeID t.NodeID, nodeAddr string) (t.NodeID, t.NodeAddress) {
-			multiAddr, _ := multiaddr.NewMultiaddr(nodeAddr)
-			return nodeID, t.NodeAddress(multiAddr)
-		})
+	isspbdsl.UponNewConfig(iss.m, func(epochNr tt.EpochNr, membership *commonpbtypes.Membership) error {
 		iss.logger.Log(logging.LevelDebug, "Received new configuration.",
-			"numNodes", len(membership), "epochNr", epochNr, "currentEpoch", iss.epoch.Nr())
+			"numNodes", len(membership.Nodes), "epochNr", epochNr, "currentEpoch", iss.epoch.Nr())
 
 		// Check whether this event is not outdated.
 		// This can (and did) happen in a corner case where the state gets restored from a checkpoint
@@ -281,7 +278,7 @@ func New(
 		iss.logger.Log(logging.LevelDebug, "Adding configuration",
 			"forEpoch", newMembershipEpoch,
 			"currentEpoch", iss.epoch.Nr(),
-			"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership))
+			"newConfigNodes", maputil.GetSortedKeys(iss.nextNewMembership.Nodes))
 
 		// Advance to the next epoch if this configuration was the last missing bit.
 		if iss.epochFinished() {
@@ -317,11 +314,7 @@ func New(
 		iss.lastPendingCheckpointSN = sn
 
 		// Convenience variables
-		membership := maputil.Transform(snapshot.EpochData.PreviousMembership.Membership, func(nodeID t.NodeID, nodeAddr string) (t.NodeID, t.NodeAddress) {
-			multiAddr, _ := multiaddr.NewMultiaddr(nodeAddr)
-			return nodeID, t.NodeAddress(multiAddr)
-		})
-
+		membership := snapshot.EpochData.PreviousMembership
 		epoch := snapshot.EpochData.EpochConfig.EpochNr
 
 		// If this is the most recent checkpoint observed, save it.
@@ -342,7 +335,7 @@ func New(
 
 		// Choose a leader for the new orderer instance.
 		// TODO: Use the corresponding epoch's leader set to pick a leader, instead of just selecting one from all nodes.
-		leader := maputil.GetSortedKeys(membership)[int(epoch)%len(membership)]
+		leader := maputil.GetSortedKeys(membership.Nodes)[int(epoch)%len(membership.Nodes)]
 
 		// Serialize checkpoint, so it can be proposed as a value.
 		stableCheckpoint := chkppbtypes.StableCheckpoint{
@@ -392,7 +385,7 @@ func New(
 		// This is required to avoid sending old checkpoints to replicas
 		// that are not yet part of the system for those checkpoints.
 		var delayed []t.NodeID
-		for n := range membership {
+		for n := range membership.Nodes {
 			if epoch > iss.nodeEpochMap[n]+tt.EpochNr(iss.Params.RetainedEpochs) {
 				delayed = append(delayed, n)
 			}
@@ -400,14 +393,14 @@ func New(
 
 		if len(delayed) > 0 {
 			iss.logger.Log(logging.LevelDebug, "Pushing state to nodes.",
-				"delayed", delayed, "numNodes", len(iss.epoch.Membership), "nodeEpochMap", iss.nodeEpochMap)
+				"delayed", delayed, "numNodes", len(iss.epoch.Membership.Nodes), "nodeEpochMap", iss.nodeEpochMap)
 		}
 
 		transportpbdsl.SendMessage(iss.m,
 			iss.moduleConfig.Net,
 			chkppbmsgs.StableCheckpoint(iss.moduleConfig.Self, iss.lastStableCheckpoint.SeqNr(),
-				commonpbtypes.StateSnapshotFromPb(iss.lastStableCheckpoint.StateSnapshot()),
-				*iss.lastStableCheckpoint.Certificate()),
+				iss.lastStableCheckpoint.StateSnapshot(),
+				iss.lastStableCheckpoint.Certificate()),
 			delayed)
 
 		return nil
@@ -432,7 +425,7 @@ func New(
 		// Ignore checkpoint if we are not part of its membership
 		// (more precisely, membership of the epoch the checkpoint is at the start of).
 		// Correct nodes should never send such checkpoints, but faulty ones could.
-		if _, ok := chkp.Memberships()[0][iss.ownID]; !ok {
+		if _, ok := chkp.Memberships()[0].Nodes[iss.ownID]; !ok {
 			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Not in membership.",
 				"sender", sender, "memberships", chkp.Memberships())
 			return nil
@@ -512,8 +505,8 @@ func New(
 		chkppbdsl.StableCheckpoint(iss.m,
 			iss.moduleConfig.App,
 			chkp.SeqNr(),
-			commonpbtypes.StateSnapshotFromPb(chkp.StateSnapshot()),
-			*chkp.Certificate(),
+			chkp.StateSnapshot(),
+			chkp.Certificate(),
 		)
 
 		// Prune the old state of all related modules.
@@ -537,15 +530,10 @@ func New(
 func InitialStateSnapshot(
 	appState []byte,
 	params *issconfig.ModuleParams,
-) (*commonpb.StateSnapshot, error) {
+) (*commonpbtypes.StateSnapshot, error) {
 
 	// Create the first membership and all ConfigOffset following ones (by using the initial one).
-	memberships := sliceutil.Repeat(&commonpbtypes.Membership{Membership: maputil.Transform(
-		params.InitialMembership,
-		func(nodeID t.NodeID, nodeAddr t.NodeAddress) (t.NodeID, string) {
-			return nodeID, nodeAddr.String()
-		},
-	)}, params.ConfigOffset+1)
+	memberships := sliceutil.Repeat(params.InitialMembership, params.ConfigOffset+1)
 
 	// Create the initial leader selection policy.
 	var leaderPolicyData []byte
@@ -553,12 +541,12 @@ func InitialStateSnapshot(
 	switch params.LeaderSelectionPolicy {
 	case lsp.Simple:
 		leaderPolicyData, err = lsp.NewSimpleLeaderPolicy(
-			maputil.GetSortedKeys(params.InitialMembership),
+			maputil.GetSortedKeys(params.InitialMembership.Nodes),
 		).Bytes()
 	case lsp.Blacklist:
 		leaderPolicyData, err = lsp.NewBlackListLeaderPolicy(
-			maputil.GetSortedKeys(params.InitialMembership),
-			issconfig.StrongQuorum(len(params.InitialMembership)),
+			maputil.GetSortedKeys(params.InitialMembership.Nodes),
+			issconfig.StrongQuorum(len(params.InitialMembership.Nodes)),
 		).Bytes()
 	default:
 		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
@@ -567,8 +555,8 @@ func InitialStateSnapshot(
 		return nil, err
 	}
 
-	firstEpochLength := uint64(params.SegmentLength * len(params.InitialMembership))
-	return (&commonpbtypes.StateSnapshot{
+	firstEpochLength := uint64(params.SegmentLength * len(params.InitialMembership.Nodes))
+	return &commonpbtypes.StateSnapshot{
 		AppData: appState,
 		EpochData: &commonpbtypes.EpochData{
 			EpochConfig: &commonpbtypes.EpochConfig{
@@ -577,11 +565,12 @@ func InitialStateSnapshot(
 				Length:      firstEpochLength,
 				Memberships: memberships,
 			},
-			ClientProgress:     commonpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
-			LeaderPolicy:       leaderPolicyData,
-			PreviousMembership: &commonpbtypes.Membership{Membership: make(map[t.NodeID]string)}, // empty map
+			ClientProgress: commonpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
+			LeaderPolicy:   leaderPolicyData,
+			// TODO: Revisit this when nil values are properly supported in generated types.
+			PreviousMembership: &commonpbtypes.Membership{Nodes: make(map[t.NodeID]*commonpbtypes.NodeIdentity)},
 		},
-	}).Pb(), nil
+	}, nil
 }
 
 // ============================================================
@@ -598,7 +587,10 @@ func (iss *ISS) startEpoch(epochNr tt.EpochNr) {
 	iss.epochs[epochNr] = &epoch
 	iss.epoch = &epoch
 	iss.logger.Log(logging.LevelInfo, "Initializing new epoch",
-		"epochNr", epochNr, "nodes", maputil.GetSortedKeys(iss.memberships[0]), "leaders", iss.LeaderPolicy.Leaders())
+		"epochNr", epochNr,
+		"nodes", maputil.GetSortedKeys(iss.memberships[0].Nodes),
+		"leaders", iss.LeaderPolicy.Leaders(),
+	)
 
 	// Signal the new epoch to the application.
 	apppbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
@@ -624,7 +616,7 @@ func (iss *ISS) initAvailability() {
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 				MultisigCollector: &mscpbtypes.InstanceParams{
-					Membership:  commonpbtypes.MembershipFromPb(t.MembershipPb(iss.memberships[0])),
+					Membership:  iss.memberships[0],
 					Limit:       5, // hardcoded right now
 					MaxRequests: uint64(iss.Params.SegmentLength)},
 			},
@@ -665,7 +657,7 @@ func (iss *ISS) initOrderers() {
 
 // hasEpochCheckpoint returns true if the current epoch's checkpoint protocol has already produced a stable checkpoint.
 func (iss *ISS) hasEpochCheckpoint() bool {
-	return tt.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN()
+	return iss.lastStableCheckpoint.Sn == iss.epoch.FirstSN()
 }
 
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed,
@@ -752,7 +744,7 @@ func (iss *ISS) advanceEpoch() error {
 	oldMembership := iss.memberships[0]
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
-	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0]))
+	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0].Nodes))
 
 	// Serialize current leader selection policy.
 	leaderPolicyData, err := iss.LeaderPolicy.Bytes()
@@ -783,7 +775,12 @@ func (iss *ISS) advanceEpoch() error {
 			oldMembership,
 			checkpoint.DefaultResendPeriod,
 			leaderPolicyData,
-			events.EpochConfig(iss.epoch.Nr(), iss.epoch.FirstSN(), iss.epoch.Len(), iss.memberships),
+			&commonpbtypes.EpochConfig{ // nolint:govet
+				iss.epoch.Nr(),
+				iss.epoch.FirstSN(),
+				uint64(iss.epoch.Len()),
+				iss.memberships,
+			},
 		),
 	)
 
@@ -881,12 +878,8 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 	chkppbdsl.StableCheckpoint(iss.m,
 		iss.moduleConfig.App,
 		chkp.SeqNr(),
-		commonpbtypes.StateSnapshotFromPb(chkp.Snapshot),
-		maputil.Transform(chkp.Cert,
-			func(ki string, vi []byte) (t.NodeID, []byte) {
-				return t.NodeID(ki), vi
-			},
-		),
+		chkp.Snapshot,
+		chkp.Certificate(),
 	)
 
 	err := iss.processCommitted()

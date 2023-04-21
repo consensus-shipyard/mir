@@ -47,7 +47,7 @@ func (orderer *Orderer) applyViewChangeSNTimeout(timeoutEvent *pbftpb.VCSNTimeou
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
 	if types2.ViewNr(timeoutEvent.View) == orderer.view &&
 		int(timeoutEvent.NumCommitted) == orderer.numCommitted(orderer.view) &&
-		!orderer.segmentCheckpoint.Stable(len(orderer.segment.Membership)) {
+		!orderer.segmentCheckpoint.Stable(len(orderer.segment.Membership.Nodes)) {
 
 		// Start the view change sub-protocol.
 		orderer.logger.Log(logging.LevelWarn, "View change SN timer expired.",
@@ -68,7 +68,7 @@ func (orderer *Orderer) applyViewChangeSegmentTimeout(view types2.ViewNr) *event
 	//       An instance-local stable checkpoint must be created as well.
 
 	// If the view is still the same as when the timer was set up and the segment-level checkpoint is not yet stable
-	if view == orderer.view && !orderer.segmentCheckpoint.Stable(len(orderer.segment.Membership)) {
+	if view == orderer.view && !orderer.segmentCheckpoint.Stable(len(orderer.segment.Membership.Nodes)) {
 		// Start the view change sub-protocol.
 		orderer.logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", orderer.view)
 		return orderer.startViewChange()

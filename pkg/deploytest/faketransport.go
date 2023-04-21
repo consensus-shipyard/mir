@@ -17,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -140,12 +141,18 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 	}, nil
 }
 
-func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
-	membership := make(map[t.NodeID]t.NodeAddress)
+func (ft *FakeTransport) Membership() *commonpbtypes.Membership {
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range ft.Buffers {
-		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+			nID,
+			libp2p.NewDummyHostAddr(0,
+				0).String(),
+			nil,
+			0,
+		}
 	}
 
 	return membership
@@ -153,7 +160,7 @@ func (ft *FakeTransport) Nodes() map[t.NodeID]t.NodeAddress {
 
 func (ft *FakeTransport) Close() {}
 
-func (fl *FakeLink) CloseOldConnections(_ map[t.NodeID]t.NodeAddress) {}
+func (fl *FakeLink) CloseOldConnections(_ *commonpbtypes.Membership) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]
@@ -163,7 +170,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) Connect(_ map[t.NodeID]t.NodeAddress) {
+func (fl *FakeLink) Connect(_ *commonpbtypes.Membership) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	fl.wg.Add(len(sourceBuffers))

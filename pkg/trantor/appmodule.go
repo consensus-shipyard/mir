@@ -7,14 +7,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/apppb"
 	apppbevents "github.com/filecoin-project/mir/pkg/pb/apppb/events"
+	apppbtypes "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -61,19 +59,19 @@ func (m *AppModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 			return nil, fmt.Errorf("unexpected availability event type: %T", e)
 		}
 	case *eventpb.Event_App:
-		switch e := e.App.Type.(type) {
-		case *apppb.Event_SnapshotRequest:
+		switch e := apppbtypes.EventFromPb(e.App).Type.(type) {
+		case *apppbtypes.Event_SnapshotRequest:
 			return m.applyAppSnapshotRequest(e.SnapshotRequest)
-		case *apppb.Event_RestoreState:
+		case *apppbtypes.Event_RestoreState:
 			return m.applyAppRestoreState(e.RestoreState)
-		case *apppb.Event_NewEpoch:
+		case *apppbtypes.Event_NewEpoch:
 			return m.applyNewEpoch(e.NewEpoch)
 		default:
 			return nil, fmt.Errorf("unexpected app event type: %T", e)
 		}
 	case *eventpb.Event_Checkpoint:
-		switch e := e.Checkpoint.Type.(type) {
-		case *checkpointpb.Event_StableCheckpoint:
+		switch e := checkpointpbtypes.EventFromPb(e.Checkpoint).Type.(type) {
+		case *checkpointpbtypes.Event_StableCheckpoint:
 			return m.applyStableCheckpoint((*checkpoint.StableCheckpoint)(e.StableCheckpoint))
 		default:
 			return nil, fmt.Errorf("unexpected checkpoint event type: %T", e)
@@ -100,13 +98,13 @@ func (m *AppModule) applyNewOrderedBatch(batch *bfpb.NewOrderedBatch) (*events.E
 
 // applyAppSnapshotRequest takes a snapshot of the application state
 // and returns an event that contains the snapshot back to the originator of the request.
-func (m *AppModule) applyAppSnapshotRequest(snapshotRequest *apppb.SnapshotRequest) (*events.EventList, error) {
+func (m *AppModule) applyAppSnapshotRequest(snapshotRequest *apppbtypes.SnapshotRequest) (*events.EventList, error) {
 	snapshot, err := m.appLogic.Snapshot()
 	if err != nil {
 		return nil, err
 	}
 	return events.ListOf(apppbevents.Snapshot(
-		t.ModuleID(snapshotRequest.ReplyTo),
+		snapshotRequest.ReplyTo,
 		snapshot,
 	).Pb()), nil
 }
@@ -114,8 +112,8 @@ func (m *AppModule) applyAppSnapshotRequest(snapshotRequest *apppb.SnapshotReque
 // applyRestoreState restores the application state from a snapshot.
 // The snapshot contains both the application state and the configuration corresponding to that version of the state.
 // applyRestoreState returns an empty event list.
-func (m *AppModule) applyAppRestoreState(restoreState *apppb.RestoreState) (*events.EventList, error) {
-	if err := m.appLogic.RestoreState(checkpoint.StableCheckpointFromPb(restoreState.Checkpoint)); err != nil {
+func (m *AppModule) applyAppRestoreState(restoreState *apppbtypes.RestoreState) (*events.EventList, error) {
+	if err := m.appLogic.RestoreState((*checkpoint.StableCheckpoint)(restoreState.Checkpoint)); err != nil {
 		return nil, fmt.Errorf("app restore state error: %w", err)
 	}
 	return events.EmptyList(), nil
@@ -124,8 +122,8 @@ func (m *AppModule) applyAppRestoreState(restoreState *apppb.RestoreState) (*eve
 // applyNewEpoch applies a new epoch event.
 // It informs the application logic of the new epoch and returns an event (to the protocol module)
 // containing the configuration for the new epoch.
-func (m *AppModule) applyNewEpoch(newEpoch *apppb.NewEpoch) (*events.EventList, error) {
-	membership, err := m.appLogic.NewEpoch(tt.EpochNr(newEpoch.EpochNr))
+func (m *AppModule) applyNewEpoch(newEpoch *apppbtypes.NewEpoch) (*events.EventList, error) {
+	membership, err := m.appLogic.NewEpoch(newEpoch.EpochNr)
 	if err != nil {
 		return nil, fmt.Errorf("error handling NewEpoch event: %w", err)
 	}
@@ -133,9 +131,9 @@ func (m *AppModule) applyNewEpoch(newEpoch *apppb.NewEpoch) (*events.EventList, 
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 	return events.ListOf(isspbevents.NewConfig(
 		m.protocolModule,
-		tt.EpochNr(newEpoch.EpochNr),
-		commonpbtypes.MembershipFromPb(t.MembershipPb(membership))).Pb(),
-	), nil
+		newEpoch.EpochNr,
+		membership,
+	).Pb()), nil
 }
 
 func (m *AppModule) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpoint) (*events.EventList, error) {

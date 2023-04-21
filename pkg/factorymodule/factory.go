@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -81,10 +81,10 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 		case *eventpb.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
-			switch e := e.Factory.Type.(type) {
-			case *factorypb.Event_NewModule:
+			switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
+			case *factorypbtypes.Event_NewModule:
 				return fm.applyNewModule(e.NewModule)
-			case *factorypb.Event_GarbageCollect:
+			case *factorypbtypes.Event_GarbageCollect:
 				return fm.applyGarbageCollect(e.GarbageCollect)
 			default:
 				return nil, fmt.Errorf("unsupported factory event subtype: %T", e)
@@ -96,11 +96,11 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 	return fm.forwardEvent(event)
 }
 
-func (fm *FactoryModule) applyNewModule(newModule *factorypb.NewModule) (*events.EventList, error) {
+func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*events.EventList, error) {
 
 	// Convenience variables
-	id := t.ModuleID(newModule.ModuleId)
-	retIdx := tt.RetentionIndex(newModule.RetentionIndex)
+	id := newModule.ModuleId
+	retIdx := newModule.RetentionIndex
 
 	// The new module's ID must have the factory's ID as a prefix.
 	if id.Top() != fm.ownID {
@@ -152,9 +152,9 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypb.NewModule) (*events
 	return eventsOut, nil
 }
 
-func (fm *FactoryModule) applyGarbageCollect(gc *factorypb.GarbageCollect) (*events.EventList, error) {
+func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) (*events.EventList, error) {
 	// While the new retention index is larger than the current one
-	for tt.RetentionIndex(gc.RetentionIndex) > fm.retIdx {
+	for gc.RetentionIndex > fm.retIdx {
 
 		// Delete all modules associated with the current retention index.
 		for _, mID := range fm.moduleRetention[fm.retIdx] {

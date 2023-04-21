@@ -107,7 +107,7 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn tt.SeqNr) *events.EventList
 		// The timeout event contains the current view and the number of committed slots.
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all certificates.
-		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership)) {
+		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership.Nodes)) {
 			eventsOut.PushBack(eventpbevents.TimerDelay(
 				pbft.moduleConfig.Timer,
 				[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(pbft.moduleConfig.Self,

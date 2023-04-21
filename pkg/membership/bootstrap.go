@@ -1,7 +1,7 @@
 package membership
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,18 +10,18 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
-func FromFileName(fileName string) (map[t.NodeID]t.NodeAddress, error) {
+func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
 
 	// Open file.
 	f, err := os.Open(fileName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not open file: %w", err)
 	}
 
 	// Schedule closing file.
@@ -35,30 +35,77 @@ func FromFileName(fileName string) (map[t.NodeID]t.NodeAddress, error) {
 	return FromFile(f)
 }
 
-func FromFile(f *os.File) (map[t.NodeID]t.NodeAddress, error) {
+// FromFile reads a membership for a file. It expects a text file containing valid JSON with the following format.
+// (The strange field names are a result of trying to be compatible with the format used by Lotus/Eudico.)
+// TODO: Use a better format for the membership, maybe even if it's incompatible with Eudico.
+func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
+	// Sample input:
+	// {
+	//     "configuration_number": 0,
+	//     "validators": [
+	//         {
+	//             "addr": "t1dgw4345grpw53zdhu75dc6jj4qhrh4zoyrtq6di",
+	//             "net_addr": "/ip4/172.31.39.78/tcp/43077/p2p/12D3KooWNzTunrQtcoo4SLWNdQ4EdFWSZtah6mgU44Q5XWM61aan",
+	//             "weight": "0"
+	//         },
+	//         {
+	//             "addr": "t1a5gxsoogaofa5nzfdh66l6uynx4m6m4fiqvcx6y",
+	//             "net_addr": "/ip4/172.31.33.169/tcp/38257/p2p/12D3KooWABvxn3CHjz9r5TYGXGDqm8549VEuAyFpbkH8xWkNLSmr",
+	//             "weight": "0"
+	//         },
+	//         {
+	//             "addr": "t1q4j6esoqvfckm7zgqfjynuytjanbhirnbwfrsty",
+	//             "net_addr": "/ip4/172.31.42.15/tcp/44407/p2p/12D3KooWGdQGu1utYP6KD1Cq4iXTLV6hbZa8yQN34zwuHNP5YbCi",
+	//             "weight": "0"
+	//         },
+	//         {
+	//             "addr": "t16biatgyushsfcidabfy2lm5wo22ppe6r7ddir6y",
+	//             "net_addr": "/ip4/172.31.47.117/tcp/34355/p2p/12D3KooWEtfTyoWW7pFLsErAb6jPiQQCC3y3junHtLn9jYnFHei8",
+	//             "weight": "0"
+	//         }
+	//     ]
+	// }
 
-	membership := make(map[t.NodeID]t.NodeAddress)
+	// Define data structure to load from JSON.
+	data := struct {
+		// The configuration_number field (if present) is ignored.
+		Identities []struct {
+			ID     string `json:"addr"`
+			Addr   string `json:"net_addr"`
+			Weight uint64 `json:"weight,string"`
+		} `json:"validators"`
+	}{}
 
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		if len(scanner.Text()) > 0 {
-			tokens := strings.Fields(scanner.Text())
-			var err error
-			membership[t.NodeID(tokens[0])], err = multiaddr.NewMultiaddr(tokens[1])
-			if err != nil {
-				return nil, err
-			}
+	// Decode the JSON data.
+	decoder := json.NewDecoder(f)
+	if err := decoder.Decode(&data); err != nil {
+		return nil, err
+	}
+
+	// Construct membership from dedoced data.
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+	for _, identity := range data.Identities {
+		membership.Nodes[t.NodeID(identity.ID)] = &commonpbtypes.NodeIdentity{ // nolint:govet
+			t.NodeID(identity.ID),
+			identity.Addr,
+			nil,
+			identity.Weight,
 		}
 	}
 
 	return membership, nil
 }
 
-func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) {
+func GetIPs(membership *commonpbtypes.Membership) (map[t.NodeID]string, error) {
 	ips := make(map[t.NodeID]string)
-	for nodeID, multiAddr := range membership {
-		_, addrPort, err := manet.DialArgs(multiAddr)
+	for nodeID, identity := range membership.Nodes {
+
+		address, err := multiaddr.NewMultiaddr(identity.Addr)
+		if err != nil {
+			return nil, err
+		}
+
+		_, addrPort, err := manet.DialArgs(address)
 		if err != nil {
 			return nil, err
 		}
@@ -67,23 +114,33 @@ func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) 
 	return ips, nil
 }
 
-func GetIDs(membership map[t.NodeID]t.NodeAddress) []t.NodeID {
-	return maputil.GetSortedKeys(membership)
+func GetIDs(membership *commonpbtypes.Membership) []t.NodeID {
+	return maputil.GetSortedKeys(membership.Nodes)
 }
 
-// DummyMultiAddrs returns a set of libp2p multiaddresses based on the given membership,
-// generating host keys deterministically based on node IDs.
+// DummyMultiAddrs augments a membership by deterministically generated host keys based on node IDs.
 // The node IDs must be convertable to numbers, otherwise DummyMultiAddrs returns an error.
-func DummyMultiAddrs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]t.NodeAddress, error) {
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Membership, error) {
+	membershipOut := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
-	for nodeID, nodeAddr := range membership {
+	for nodeID, identity := range membershipIn.Nodes {
 		numericID, err := strconv.Atoi(string(nodeID))
 		if err != nil {
 			return nil, fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 		}
-		nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
+
+		newAddr, err := multiaddr.NewMultiaddr(identity.Addr)
+		if err != nil {
+			return nil, err
+		}
+
+		membershipOut.Nodes[nodeID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+			identity.Id,
+			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
+			nil,
+			0,
+		}
 	}
 
-	return nodeAddrs, nil
+	return membershipOut, nil
 }
