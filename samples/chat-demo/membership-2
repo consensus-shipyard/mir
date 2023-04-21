@@ -1,2 +1,15 @@
-0 /ip4/127.0.0.1/tcp/10000
-1 /ip4/127.0.0.1/tcp/10001
+{
+    "configuration_number": 0,
+    "validators": [
+        {
+            "addr": "0",
+            "net_addr": "/ip4/127.0.0.1/tcp/10000",
+            "weight": "0"
+        },
+        {
+            "addr": "1",
+            "net_addr": "/ip4/127.0.0.1/tcp/10001",
+            "weight": "0"
+        }
+    ]
+}
