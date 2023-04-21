@@ -5,7 +5,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"
-	t "github.com/filecoin-project/mir/pkg/types"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 )
 
 // ======================================================================
@@ -31,13 +31,13 @@ func (pvc *permissiveValidityChecker) Check(_ []byte) error {
 type checkpointValidityChecker struct {
 	hashImpl     crypto.HashImpl
 	certVerifier checkpoint.Verifier
-	membership   map[t.NodeID]t.NodeAddress
+	membership   *commonpbtypes.Membership
 }
 
 func newCheckpointValidityChecker(
 	hashImpl crypto.HashImpl,
 	certVerifier checkpoint.Verifier,
-	membership map[t.NodeID]t.NodeAddress,
+	membership *commonpbtypes.Membership,
 ) *checkpointValidityChecker {
 	return &checkpointValidityChecker{
 		hashImpl:     hashImpl,

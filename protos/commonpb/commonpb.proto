@@ -15,6 +15,9 @@ message HashData {
   repeated bytes data = 1;
 }
 
+// ================================================================================
+// State snapshot
+
 message StateSnapshot {
   option (mir.struct) = true;
 
@@ -40,15 +43,31 @@ message EpochConfig {
   repeated Membership memberships = 4;
 }
 
+// ================================================================================
+// Membership
+
 message Membership {
   option (mir.struct) = true;
-  map<string, string> membership = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"]; // value type is Multiaddr, convert in code directly
+
+  map<string, NodeIdentity> nodes = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
+
+message NodeIdentity {
+  option (mir.struct) = true;
+
+  string id     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string addr   = 2; // Value type is Multiaddr, convert in code directly.
+  bytes  key    = 3;
+  uint64 weight = 4; // TODO: Make a Mir type for this.
+}
+
+// ================================================================================
+// Client Progress
 
 message ClientProgress {
   option (mir.event) = true;
 
-  map<string, DeliveredReqs> progress = 1;
+  map<string, DeliveredReqs> progress = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/trantor/types.ClientID"];
 }
 
 message DeliveredReqs {

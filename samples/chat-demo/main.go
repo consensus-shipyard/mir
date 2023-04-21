@@ -132,7 +132,7 @@ func run() error {
 
 	// Assemble listening address.
 	// In this demo code, we always listen on tha address 0.0.0.0.
-	portStr, err := getPortStr(initialMembership[args.OwnID])
+	portStr, err := getPortStr(initialMembership.Nodes[args.OwnID].Addr)
 	if err != nil {
 		return fmt.Errorf("could not parse port from own address: %w", err)
 	}
@@ -335,7 +335,12 @@ func parseArgs(args []string) *parsedArgs {
 	}
 }
 
-func getPortStr(address t.NodeAddress) (string, error) {
+func getPortStr(addressStr string) (string, error) {
+	address, err := multiaddr.NewMultiaddr(addressStr)
+	if err != nil {
+		return "", err
+	}
+
 	_, addrStr, err := manet.DialArgs(address)
 	if err != nil {
 		return "", err

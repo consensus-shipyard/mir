@@ -2,9 +2,9 @@ package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // reconfigurableAppLogic is a wrapper around a static app logic that allows a static app logic
@@ -12,7 +12,7 @@ import (
 // It implements a trivial reconfiguration logic that always returns the same membership.
 type reconfigurableAppLogic struct {
 	staticAppLogic StaticAppLogic
-	membership     map[t.NodeID]t.NodeAddress
+	membership     *commonpbtypes.Membership
 }
 
 // ApplyTXs only delegates to the static app logic.
@@ -21,7 +21,7 @@ func (ra *reconfigurableAppLogic) ApplyTXs(txs []*requestpb.Request) error {
 }
 
 // NewEpoch always returns the same static pre-configured membership.
-func (ra *reconfigurableAppLogic) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+func (ra *reconfigurableAppLogic) NewEpoch(_ tt.EpochNr) (*commonpbtypes.Membership, error) {
 	return ra.membership, nil
 }
 

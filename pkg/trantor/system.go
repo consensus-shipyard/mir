@@ -3,6 +3,7 @@ package trantor
 import (
 	"crypto"
 
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
@@ -33,7 +34,7 @@ type System struct {
 
 	// initialMemberships is a slice of initial memberships of the system specified at creation of the system.
 	// They correspond to the starting epoch of the system and configOffset subsequent epochs.
-	initialMemberships []map[t.NodeID]t.NodeAddress
+	initialMemberships []*commonpbtypes.Membership
 }
 
 // Modules returns the Mir modules that make up the system.

@@ -12,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -56,11 +55,11 @@ func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error
 func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 	return New(
 		echoFactoryID,
-		DefaultParams(func(id tp.ModuleID, params *factorypb.GeneratorParams) (modules.PassiveModule, error) {
+		DefaultParams(func(id tp.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 			return &echoModule{
 				t:      t,
 				id:     id,
-				prefix: params.Type.(*factorypb.GeneratorParams_EchoTestModule).EchoTestModule.Prefix,
+				prefix: params.Type.(*factorypbtypes.GeneratorParams_EchoTestModule).EchoTestModule.Prefix,
 			}, nil
 		}),
 		logger)

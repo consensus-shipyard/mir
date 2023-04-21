@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
@@ -16,7 +17,7 @@ import (
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
-func FromFileName(fileName string) (map[t.NodeID]t.NodeAddress, error) {
+func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
 
 	// Open file.
 	f, err := os.Open(fileName)
@@ -35,30 +36,42 @@ func FromFileName(fileName string) (map[t.NodeID]t.NodeAddress, error) {
 	return FromFile(f)
 }
 
-func FromFile(f *os.File) (map[t.NodeID]t.NodeAddress, error) {
+func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
+	// TODO: Make this function parse the standard JSON membership format.
 
-	membership := make(map[t.NodeID]t.NodeAddress)
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
 
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		if len(scanner.Text()) > 0 {
 			tokens := strings.Fields(scanner.Text())
-			var err error
-			membership[t.NodeID(tokens[0])], err = multiaddr.NewMultiaddr(tokens[1])
+			id := t.NodeID(tokens[0])
+
+			// Converting the parsed string to (and later back from) multiaddress
+			// serves as a check that the address is correct.
+			addr, err := multiaddr.NewMultiaddr(tokens[1])
 			if err != nil {
 				return nil, err
 			}
+
+			membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, addr.String(), nil, 0}
 		}
 	}
 
 	return membership, nil
 }
 
-func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) {
+func GetIPs(membership *commonpbtypes.Membership) (map[t.NodeID]string, error) {
 	ips := make(map[t.NodeID]string)
-	for nodeID, multiAddr := range membership {
-		_, addrPort, err := manet.DialArgs(multiAddr)
+	for nodeID, identity := range membership.Nodes {
+
+		address, err := multiaddr.NewMultiaddr(identity.Addr)
+		if err != nil {
+			return nil, err
+		}
+
+		_, addrPort, err := manet.DialArgs(address)
 		if err != nil {
 			return nil, err
 		}
@@ -67,23 +80,33 @@ func GetIPs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]string, error) 
 	return ips, nil
 }
 
-func GetIDs(membership map[t.NodeID]t.NodeAddress) []t.NodeID {
-	return maputil.GetSortedKeys(membership)
+func GetIDs(membership *commonpbtypes.Membership) []t.NodeID {
+	return maputil.GetSortedKeys(membership.Nodes)
 }
 
-// DummyMultiAddrs returns a set of libp2p multiaddresses based on the given membership,
-// generating host keys deterministically based on node IDs.
+// DummyMultiAddrs augments a membership by deterministically generated host keys based on node IDs.
 // The node IDs must be convertable to numbers, otherwise DummyMultiAddrs returns an error.
-func DummyMultiAddrs(membership map[t.NodeID]t.NodeAddress) (map[t.NodeID]t.NodeAddress, error) {
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Membership, error) {
+	membershipOut := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
 
-	for nodeID, nodeAddr := range membership {
+	for nodeID, identity := range membershipIn.Nodes {
 		numericID, err := strconv.Atoi(string(nodeID))
 		if err != nil {
 			return nil, fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
 		}
-		nodeAddrs[nodeID] = t.NodeAddress(libp2ptools.NewDummyMultiaddr(numericID, nodeAddr))
+
+		newAddr, err := multiaddr.NewMultiaddr(identity.Addr)
+		if err != nil {
+			return nil, err
+		}
+
+		membershipOut.Nodes[nodeID] = &commonpbtypes.NodeIdentity{
+			identity.Id,
+			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
+			nil,
+			0,
+		}
 	}
 
-	return nodeAddrs, nil
+	return membershipOut, nil
 }

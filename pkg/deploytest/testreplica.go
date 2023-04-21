@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
@@ -41,7 +42,7 @@ type TestReplica struct {
 	NodeIDs []t.NodeID
 
 	// List of replicas.
-	Nodes map[t.NodeID]t.NodeAddress
+	Membership *commonpbtypes.Membership
 
 	// Node's representation within the simulation runtime
 	Sim *SimNode
@@ -129,7 +130,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error starting the network link: %w", err)
 		}
-		transport.Connect(tr.Nodes)
+		transport.Connect(tr.Membership)
 		defer transport.Stop()
 	}
 

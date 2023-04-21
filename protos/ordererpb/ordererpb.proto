@@ -53,9 +53,19 @@ message SigVerOrigin {
 message PBFTSegment {
   option (mir.struct) = true;
 
-  string              leader     = 1;
+  // The leader node of the orderer.
+  string leader = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+
+  // All nodes executing the orderer implementation.
   commonpb.Membership membership = 2;
-  map<uint64, bytes>  proposals  = 3;
+
+  // Sequence numbers for which the orderer is responsible, along with corresponding (optional) pre-defined proposals.
+  // The keys of this map are the actual "segment" of the commit log.
+  // A nil value means that no proposal is specified (and the protocol implementation will decide what to propose).
+  // A non-nil value will be proposed (by this node) for that sequence number whenever possible.
+  // Currently, such a "free" proposal is a new availability certificate in view 0,
+  // and a special empty one in other views.
+  map<uint64, bytes> proposals = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
 }
 
 message PBFTModule{

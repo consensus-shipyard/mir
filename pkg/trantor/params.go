@@ -6,7 +6,7 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
-	t "github.com/filecoin-project/mir/pkg/types"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 )
 
 type Params struct {
@@ -15,7 +15,7 @@ type Params struct {
 	Net     libp2p.Params
 }
 
-func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) Params {
+func DefaultParams(initialMembership *commonpbtypes.Membership) Params {
 	return Params{
 		Mempool: simplemempool.DefaultModuleParams(),
 		Iss:     issconfig.DefaultParams(initialMembership),
