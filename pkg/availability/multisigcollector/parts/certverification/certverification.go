@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
+	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
@@ -12,7 +14,6 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -28,7 +29,7 @@ type State struct {
 type RequestID = uint64
 
 type RequestState struct {
-	certVerifiedValid map[t.BatchIDString]bool
+	certVerifiedValid map[msctypes.BatchIDString]bool
 }
 
 // IncludeVerificationOfCertificates registers event handlers for processing availabilitypb.VerifyCert events.
@@ -56,14 +57,14 @@ func IncludeVerificationOfCertificates(
 		}
 
 		state.RequestState[reqID] = &RequestState{
-			certVerifiedValid: make(map[t.BatchIDString]bool),
+			certVerifiedValid: make(map[msctypes.BatchIDString]bool),
 		}
 
 		allEmpty := true
 		for _, mscCert := range mscCerts {
 			if !emptycert.IsEmpty(mscCert) {
 				allEmpty = false
-				state.RequestState[reqID].certVerifiedValid[t.BatchIDString(mscCert.BatchId)] = false
+				state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(mscCert.BatchId)] = false
 				sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
 				cryptopbdsl.VerifySigs(m, mc.Crypto,
 					/*data*/ sliceutil.Repeat(sigMsg, len(mscCert.Signers)),
@@ -91,7 +92,7 @@ func IncludeVerificationOfCertificates(
 			return nil
 		}
 
-		state.RequestState[reqID].certVerifiedValid[t.BatchIDString(context.cert.BatchId)] = allOK
+		state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(context.cert.BatchId)] = allOK
 		var err error
 		if !allOK {
 			err = errors.New("some signatures are invalid")

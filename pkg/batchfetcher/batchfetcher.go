@@ -13,6 +13,7 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -43,7 +44,7 @@ import (
 // and provides it to the checkpoint module when relaying a state snapshot request to the application.
 // Analogously, when relaying a RestoreState event, it restores its state (including the delivered transactions)
 // using the relayed information.
-func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogress.ClientProgress, logger logging.Logger) modules.Module {
+func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogress.ClientProgress, logger logging.Logger) modules.Module {
 	m := dsl.NewModule(mc.Self)
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
@@ -61,8 +62,8 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 		for _, tx := range newOrderedBatch.Txs {
 
 			// Convenience variables
-			clID := t.ClientID(tx.ClientId)
-			reqNo := t.ReqNo(tx.ReqNo)
+			clID := tt.ClientID(tx.ClientId)
+			reqNo := tt.ReqNo(tx.ReqNo)
 
 			// Only keep transaction if it has not yet been delivered.
 			if clientProgress.Add(clID, reqNo) {
@@ -75,7 +76,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 	}
 
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
-	apppbdsl.UponNewEpoch(m, func(newEpochNr t.EpochNr) error {
+	apppbdsl.UponNewEpoch(m, func(newEpochNr tt.EpochNr) error {
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr).Pb(),
@@ -86,7 +87,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	isspbdsl.UponDeliverCert(m, func(sn t.SeqNr, cert *apbtypes.Cert) error {
+	isspbdsl.UponDeliverCert(m, func(sn tt.SeqNr, cert *apbtypes.Cert) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.

@@ -34,8 +34,8 @@ message EpochData {
 message EpochConfig {
   option (mir.event) = true;
 
-  uint64              epoch_nr    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
-  uint64              first_sn    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64              epoch_nr    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  uint64              first_sn    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64              length      = 3;
   repeated Membership memberships = 4;
 }

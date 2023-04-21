@@ -4,6 +4,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/apppb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,6 +22,6 @@ func RestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types1.St
 	dsl.EmitMirEvent(m, events.RestoreState(destModule, checkpoint))
 }
 
-func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types.EpochNr) {
+func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types2.EpochNr) {
 	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
 }

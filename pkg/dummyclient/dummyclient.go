@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -29,16 +30,16 @@ const (
 // TODO: Update the comments around crypto, hasher, and request signing.
 
 type DummyClient struct {
-	ownID     t.ClientID
+	ownID     tt.ClientID
 	hasher    crypto.Hash
-	nextReqNo t.ReqNo
+	nextReqNo tt.ReqNo
 	conns     map[t.NodeID]*grpc.ClientConn
 	clients   map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
 	logger    logging.Logger
 }
 
 func NewDummyClient(
-	clientID t.ClientID,
+	clientID tt.ClientID,
 	hasher crypto.Hash,
 	l logging.Logger,
 ) *DummyClient {

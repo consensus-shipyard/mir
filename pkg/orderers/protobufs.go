@@ -11,6 +11,7 @@ import (
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -62,7 +63,7 @@ func SigVerOrigin(module t.ModuleID, origin *ordererpb.SigVerOrigin) *cryptopbty
 func InstanceParams(
 	segment *Segment,
 	availabilityID t.ModuleID,
-	epoch t.EpochNr,
+	epoch tt.EpochNr,
 	validityCheckerType ValidityCheckerType,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{

@@ -14,6 +14,8 @@ import (
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -42,7 +44,7 @@ type pbftSegmentChkp struct {
 
 	// Once enough Done messages have been received,
 	// digests will contain the Preprepare digests for all sequence numbers in the segment.
-	digests map[t.SeqNr][]byte
+	digests map[tt.SeqNr][]byte
 
 	// Set to true when sending the Done message.
 	// This happens when the node locally commits all slots of the segment.
@@ -74,7 +76,7 @@ func (chkp *pbftSegmentChkp) SetDone() {
 // Digests returns, for each sequence number of the associated segment, the digest of the committed certificate
 // (more precisely, the digest of the corresponding Preprepare message).
 // If the information is not yet available (not enough Done messages have been received), Digests returns nil.
-func (chkp *pbftSegmentChkp) Digests() map[t.SeqNr][]byte {
+func (chkp *pbftSegmentChkp) Digests() map[tt.SeqNr][]byte {
 	return chkp.digests
 }
 
@@ -129,7 +131,7 @@ func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *pbftpbtypes.Done
 		// Save, for each sequence number of the segment,
 		// the corresponding Preprepare digest of the committed certificate.
 		if chkp.digests == nil {
-			chkp.digests = make(map[t.SeqNr][]byte, segment.Len())
+			chkp.digests = make(map[tt.SeqNr][]byte, segment.Len())
 			for i, sn := range segment.SeqNrs() {
 				chkp.digests[sn] = doneMsg.Digests[i]
 			}
@@ -157,7 +159,7 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 
 	// Collect the preprepare digests of all committed certificates.
 	digests := make([][]byte, 0, orderer.segment.Len())
-	maputil.IterateSorted(orderer.slots[orderer.view], func(sn t.SeqNr, slot *pbftSlot) bool {
+	maputil.IterateSorted(orderer.slots[orderer.view], func(sn tt.SeqNr, slot *pbftSlot) bool {
 		digests = append(digests, slot.Digest)
 		return true
 	})
@@ -170,8 +172,8 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 			pbftpbmsgs.Done(orderer.moduleConfig.Self, digests),
 			orderer.segment.NodeIDs(),
 		)},
-		t.TimeDuration(orderer.config.DoneResendPeriod),
-		t.RetentionIndex(orderer.config.epochNr),
+		types.Duration(orderer.config.DoneResendPeriod),
+		tt.RetentionIndex(orderer.config.epochNr),
 	).Pb())
 }
 
@@ -203,9 +205,9 @@ func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *
 		[]*eventpbtypes.Event{eventpbevents.TimerRepeat(
 			orderer.moduleConfig.Timer,
 			orderer.catchUpRequests(doneNodes, orderer.segmentCheckpoint.Digests()),
-			t.TimeDuration(orderer.config.CatchUpDelay),
-			t.RetentionIndex(orderer.config.epochNr))},
-		t.TimeDuration(orderer.config.CatchUpDelay),
+			types.Duration(orderer.config.CatchUpDelay),
+			tt.RetentionIndex(orderer.config.epochNr))},
+		types.Duration(orderer.config.CatchUpDelay),
 	).Pb())
 
 	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,
@@ -215,13 +217,13 @@ func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *
 // catchUpRequests assembles and returns a list of Events
 // representing requests for retransmission of committed certificates.
 // The list contains one request for each slot of the segment that has not yet been committed.
-func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[t.SeqNr][]byte) []*eventpbtypes.Event {
+func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[tt.SeqNr][]byte) []*eventpbtypes.Event {
 
 	catchUpRequests := make([]*eventpbtypes.Event, 0)
 
 	// Deterministically iterate through all the (sequence number, certificate) pairs
 	// received in a quorum of Done messages.
-	maputil.IterateSorted(digests, func(sn t.SeqNr, digest []byte) bool {
+	maputil.IterateSorted(digests, func(sn tt.SeqNr, digest []byte) bool {
 
 		// If no certificate has been committed for the sequence number, create a retransmission request.
 		if !orderer.slots[orderer.view][sn].Committed {

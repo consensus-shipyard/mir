@@ -42,7 +42,7 @@ message RestoreState {
 message NewEpoch {
   option (mir.event) = true;
 
-  uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
 }
 
 

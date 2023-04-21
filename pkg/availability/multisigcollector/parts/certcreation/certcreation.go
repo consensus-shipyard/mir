@@ -1,8 +1,9 @@
 package certcreation
 
 import (
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/common"
+	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
@@ -12,6 +13,7 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -39,7 +41,7 @@ type RequestState struct {
 }
 
 type Certificate struct {
-	BatchID     t.BatchID
+	BatchID     msctypes.BatchID
 	sigs        map[t.NodeID][]byte
 	receivedSig map[t.NodeID]bool
 }
@@ -91,7 +93,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []t.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []tt.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
 			delete(state.Certificates, context.reqID)
 			if len(state.RequestStates) > 0 { // do not do work for the empty batch if there is not even a request to answer
@@ -108,7 +110,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the id of the batch is computed, request signatures for the batch from all nodes.
-	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *requestIDOfOwnBatchContext) error {
+	mempooldsl.UponBatchIDResponse(m, func(batchID msctypes.BatchID, context *requestIDOfOwnBatchContext) error {
 		if _, ok := state.Certificates[context.reqID]; !ok {
 			return nil
 		}
@@ -184,14 +186,14 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the ids of the received transactions are computed, compute the id of the batch.
-	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []t.TxID, context *computeIDsOfReceivedTxsContext) error {
+	mempooldsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *computeIDsOfReceivedTxsContext) error {
 		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs,
 			&computeIDOfReceivedBatchContext{context.sourceID, txIDs, context.txs, context.reqID})
 		return nil
 	})
 
 	// When the id of the batch is computed, store the batch persistently.
-	mempooldsl.UponBatchIDResponse(m, func(batchID t.BatchID, context *computeIDOfReceivedBatchContext) error {
+	mempooldsl.UponBatchIDResponse(m, func(batchID msctypes.BatchID, context *computeIDOfReceivedBatchContext) error {
 		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txIDs, context.txs, nil, /*metadata*/
 			&storeBatchContext{context.sourceID, context.reqID, batchID})
 		// TODO minor optimization: start computing cert without waiting for reply (maybe do not even get a reply from batchdb)
@@ -214,18 +216,18 @@ func IncludeCreatingCertificates(
 
 func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEmptyIfNoneReady bool) {
 	certFinished := make([]*Certificate, 0)
-	certsToDelete := make(map[t.BatchIDString]struct{}, 0)
+	certsToDelete := make(map[msctypes.BatchIDString]struct{}, 0)
 	for _, cert := range state.Certificates {
 		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
 			certFinished = append(certFinished, cert)
-			certsToDelete[t.BatchIDString(cert.BatchID)] = struct{}{}
+			certsToDelete[msctypes.BatchIDString(cert.BatchID)] = struct{}{}
 		}
 	}
 
 	if len(certFinished) > 0 { // if any certificate is ready
 		maputil.FindAndDeleteAll(state.Certificates,
 			func(key RequestID, val *Certificate) bool {
-				_, ok := certsToDelete[t.BatchIDString(val.BatchID)]
+				_, ok := certsToDelete[msctypes.BatchIDString(val.BatchID)]
 				return ok
 			}) // prevent duplicates
 
@@ -303,7 +305,7 @@ type computeIDsOfReceivedTxsContext struct {
 
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
-	txIDs    []t.TxID
+	txIDs    []tt.TxID
 	txs      []*requestpbtypes.Request
 	reqID    RequestID
 }
@@ -311,7 +313,7 @@ type computeIDOfReceivedBatchContext struct {
 type storeBatchContext struct {
 	sourceID t.NodeID
 	reqID    RequestID
-	batchID  t.BatchID
+	batchID  msctypes.BatchID
 }
 
 type signReceivedBatchContext struct {

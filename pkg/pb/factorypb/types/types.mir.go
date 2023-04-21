@@ -2,10 +2,11 @@ package factorypbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -89,14 +90,14 @@ func (*Event) MirReflect() mirreflect.Type {
 
 type NewModule struct {
 	ModuleId       types.ModuleID
-	RetentionIndex types.RetentionIndex
+	RetentionIndex types1.RetentionIndex
 	Params         *GeneratorParams
 }
 
 func NewModuleFromPb(pb *factorypb.NewModule) *NewModule {
 	return &NewModule{
 		ModuleId:       (types.ModuleID)(pb.ModuleId),
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types1.RetentionIndex)(pb.RetentionIndex),
 		Params:         GeneratorParamsFromPb(pb.Params),
 	}
 }
@@ -114,12 +115,12 @@ func (*NewModule) MirReflect() mirreflect.Type {
 }
 
 type GarbageCollect struct {
-	RetentionIndex types.RetentionIndex
+	RetentionIndex types1.RetentionIndex
 }
 
 func GarbageCollectFromPb(pb *factorypb.GarbageCollect) *GarbageCollect {
 	return &GarbageCollect{
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types1.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -151,24 +152,24 @@ type GeneratorParams_TypeWrapper[T any] interface {
 func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorParams_Type {
 	switch pb := pb.(type) {
 	case *factorypb.GeneratorParams_MultisigCollector:
-		return &GeneratorParams_MultisigCollector{MultisigCollector: types1.InstanceParamsFromPb(pb.MultisigCollector)}
+		return &GeneratorParams_MultisigCollector{MultisigCollector: types2.InstanceParamsFromPb(pb.MultisigCollector)}
 	case *factorypb.GeneratorParams_Checkpoint:
-		return &GeneratorParams_Checkpoint{Checkpoint: types2.InstanceParamsFromPb(pb.Checkpoint)}
+		return &GeneratorParams_Checkpoint{Checkpoint: types3.InstanceParamsFromPb(pb.Checkpoint)}
 	case *factorypb.GeneratorParams_EchoTestModule:
 		return &GeneratorParams_EchoTestModule{EchoTestModule: EchoModuleParamsFromPb(pb.EchoTestModule)}
 	case *factorypb.GeneratorParams_PbftModule:
-		return &GeneratorParams_PbftModule{PbftModule: types3.PBFTModuleFromPb(pb.PbftModule)}
+		return &GeneratorParams_PbftModule{PbftModule: types4.PBFTModuleFromPb(pb.PbftModule)}
 	}
 	return nil
 }
 
 type GeneratorParams_MultisigCollector struct {
-	MultisigCollector *types1.InstanceParams
+	MultisigCollector *types2.InstanceParams
 }
 
 func (*GeneratorParams_MultisigCollector) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_MultisigCollector) Unwrap() *types1.InstanceParams {
+func (w *GeneratorParams_MultisigCollector) Unwrap() *types2.InstanceParams {
 	return w.MultisigCollector
 }
 
@@ -181,12 +182,12 @@ func (*GeneratorParams_MultisigCollector) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_Checkpoint struct {
-	Checkpoint *types2.InstanceParams
+	Checkpoint *types3.InstanceParams
 }
 
 func (*GeneratorParams_Checkpoint) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_Checkpoint) Unwrap() *types2.InstanceParams {
+func (w *GeneratorParams_Checkpoint) Unwrap() *types3.InstanceParams {
 	return w.Checkpoint
 }
 
@@ -217,12 +218,12 @@ func (*GeneratorParams_EchoTestModule) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_PbftModule struct {
-	PbftModule *types3.PBFTModule
+	PbftModule *types4.PBFTModule
 }
 
 func (*GeneratorParams_PbftModule) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_PbftModule) Unwrap() *types3.PBFTModule {
+func (w *GeneratorParams_PbftModule) Unwrap() *types4.PBFTModule {
 	return w.PbftModule
 }
 

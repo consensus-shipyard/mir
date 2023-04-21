@@ -3,7 +3,7 @@ package clientprogress
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -11,11 +11,11 @@ import (
 type DeliveredReqs struct {
 
 	// LowWM is the lowest watermark of the client.
-	lowWM t.ReqNo
+	lowWM tt.ReqNo
 
 	// Set of request numbers indicating whether the corresponding transaction has been delivered.
 	// In addition, all request numbers strictly smaller than LowWM are considered delivered.
-	delivered map[t.ReqNo]struct{}
+	delivered map[tt.ReqNo]struct{}
 
 	// Logger to use for logging output.
 	logger logging.Logger
@@ -25,16 +25,16 @@ type DeliveredReqs struct {
 func EmptyDeliveredReqs(logger logging.Logger) *DeliveredReqs {
 	return &DeliveredReqs{
 		lowWM:     0,
-		delivered: make(map[t.ReqNo]struct{}),
+		delivered: make(map[tt.ReqNo]struct{}),
 		logger:    logger,
 	}
 }
 
 func DeliveredReqsFromPb(pb *commonpb.DeliveredReqs, logger logging.Logger) *DeliveredReqs {
 	dr := EmptyDeliveredReqs(logger)
-	dr.lowWM = t.ReqNo(pb.LowWm)
+	dr.lowWM = tt.ReqNo(pb.LowWm)
 	for _, reqNo := range pb.Delivered {
-		dr.delivered[t.ReqNo(reqNo)] = struct{}{}
+		dr.delivered[tt.ReqNo(reqNo)] = struct{}{}
 	}
 	return dr
 }
@@ -42,7 +42,7 @@ func DeliveredReqsFromPb(pb *commonpb.DeliveredReqs, logger logging.Logger) *Del
 // Add adds a request number that is considered delivered to the DeliveredReqs.
 // Returns true if the request number has been added now (after not being previously present).
 // Returns false if the request number has already been added before the call to Add.
-func (dr *DeliveredReqs) Add(reqNo t.ReqNo) bool {
+func (dr *DeliveredReqs) Add(reqNo tt.ReqNo) bool {
 
 	if reqNo < dr.lowWM {
 		dr.logger.Log(logging.LevelDebug, "Request sequence number below client's watermark window.",
@@ -59,7 +59,7 @@ func (dr *DeliveredReqs) Add(reqNo t.ReqNo) bool {
 // by deleting a contiguous prefix of delivered request numbers
 // and increasing the low watermark accordingly.
 // Returns the new low watermark.
-func (dr *DeliveredReqs) GarbageCollect() t.ReqNo {
+func (dr *DeliveredReqs) GarbageCollect() tt.ReqNo {
 
 	for _, ok := dr.delivered[dr.lowWM]; ok; _, ok = dr.delivered[dr.lowWM] {
 		delete(dr.delivered, dr.lowWM)

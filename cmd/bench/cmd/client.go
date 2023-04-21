@@ -20,6 +20,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -83,7 +84,7 @@ func runClient() error {
 	ctx, stop := context.WithCancel(context.Background())
 
 	client := dummyclient.NewDummyClient(
-		t.ClientID(id),
+		tt.ClientID(id),
 		crypto.SHA256,
 		logger,
 	)

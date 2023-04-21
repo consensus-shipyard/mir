@@ -16,6 +16,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/pingpong/protobufs"
 )
@@ -66,7 +67,7 @@ func (p *Pingpong) applyInit() (*events.EventList, error) {
 	timerEvent := eventpbevents.TimerRepeat(
 		"timer",
 		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(protobufs.PingTimeEvent("pingpong"))},
-		t.TimeDuration(time.Second),
+		types.Duration(time.Second),
 		0,
 	)
 	return events.ListOf(timerEvent.Pb()), nil

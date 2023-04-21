@@ -25,6 +25,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/membership"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -144,7 +145,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 
 // NewEpoch callback is invoked by the SMR system when it transitions to a new epoch.
 // The membership returned from NewEpoch will eventually be used by the system.
-func (chat *ChatApp) NewEpoch(_ t.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
+func (chat *ChatApp) NewEpoch(_ tt.EpochNr) (map[t.NodeID]t.NodeAddress, error) {
 	return maputil.Copy(chat.newMembership), nil
 }
 

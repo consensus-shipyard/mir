@@ -3,6 +3,8 @@ package leaderselectionpolicy
 import (
 	"github.com/fxamacker/cbor/v2"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -26,7 +28,7 @@ func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
 }
 
 // Suspect does nothing for the SimpleLeaderPolicy.
-func (simple *SimpleLeaderPolicy) Suspect(_ t.EpochNr, _ t.NodeID) {
+func (simple *SimpleLeaderPolicy) Suspect(_ tt.EpochNr, _ t.NodeID) {
 	// Do nothing.
 }
 
@@ -42,7 +44,7 @@ func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Simple))
+	out := serializing.Uint64ToBytes(uint64(Simple))
 	out = append(out, ser...)
 	return out, nil
 }

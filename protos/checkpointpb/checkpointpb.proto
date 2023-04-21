@@ -26,8 +26,8 @@ message Message {
 message Checkpoint {
   option (net.message) = true;
 
-  uint64 epoch        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
-  uint64 sn           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 epoch        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  uint64 sn           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   bytes  snapshotHash = 3;
   bytes  signature    = 4;
 }
@@ -52,7 +52,7 @@ message StableCheckpoint {
   option (mir.event) = true;
   option (net.message) = true;
 
-  uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   commonpb.StateSnapshot snapshot = 2;
   map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
@@ -61,7 +61,7 @@ message EpochProgress {
   option (mir.event) = true;
 
   string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  uint64 epoch   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  uint64 epoch   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
 }
 
 message HashOrigin {

@@ -5,10 +5,13 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
+	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	"github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -69,7 +72,7 @@ func newPbftSlot(numNodes int) *pbftSlot {
 // populateFromPrevious carries over state from a pbftSlot used in the previous view to this pbftSlot,
 // based on the state of the previous slot.
 // This is used during view change, when the protocol initializes a new PBFT view.
-func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr) {
+func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view types2.ViewNr) {
 
 	// If the slot has already committed a certificate, just copy over the result.
 	if prevSlot.Committed {
@@ -82,7 +85,7 @@ func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view t.PBFTViewNr
 // advanceSlotState checks whether the state of the pbftSlot can be advanced.
 // If it can, advanceSlotState updates the state of the pbftSlot and returns a list of Events that result from it.
 // Requires the PBFT instance as an argument to use it to generate the proper events.
-func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList {
+func (slot *pbftSlot) advanceState(pbft *Orderer, sn tt.SeqNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
 	// If the slot just became prepared, send the Commit message.
@@ -111,7 +114,7 @@ func (slot *pbftSlot) advanceState(pbft *Orderer, sn t.SeqNr) *events.EventList 
 					PbftViewChangeSNTimeout(
 						pbft.view,
 						pbft.numCommitted(pbft.view))))},
-				t.TimeDuration(pbft.config.ViewChangeSNTimeout),
+				types.Duration(pbft.config.ViewChangeSNTimeout),
 			).Pb())
 		}
 
