@@ -43,7 +43,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 
 	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
-		copy(data, txIDs)
+		copy(data, txIDs) // TODO: Why do we copy the txIDs here? Is it because the hasher, technically, doesn't promise be read-only?
 
 		if len(txIDs) == 0 {
 			mppbdsl.BatchIDResponse(m, origin.Module, emptybatchid.EmptyBatchID(), origin)
