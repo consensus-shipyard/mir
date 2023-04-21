@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 )
@@ -25,19 +25,27 @@ func FuzzSnapshotForHash(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, n int, e uint64, k, v string, data []byte) {
 		n = n % 5000
-		membership := make(map[string]string)
+		membership := commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 		for i := 0; i < n; i++ {
-			membership[fmt.Sprintf("%s/%s", k, strconv.Itoa(i))] = fmt.Sprintf("%s%s", v, strconv.Itoa(i))
+			id := types.NodeID(fmt.Sprintf("%s/%s", k, strconv.Itoa(i)))
+			addr := fmt.Sprintf("%s%s", v, strconv.Itoa(i))
+			membership.Nodes[id] = &commonpbtypes.NodeIdentity{
+				Id:     id,
+				Addr:   addr,
+				Key:    nil,
+				Weight: 0,
+			}
 		}
 
-		mb := commonpb.Membership{Membership: membership}
-		cfg := commonpb.EpochConfig{EpochNr: e, Memberships: []*commonpb.Membership{&mb}}
-		clProgress := commonpb.ClientProgress{Progress: map[string]*commonpb.DeliveredReqs{}} // TODO: add actual values
-		state := commonpb.StateSnapshot{AppData: data, EpochData: &commonpb.EpochData{
-			EpochConfig:        &cfg,
-			ClientProgress:     &clProgress,
-			PreviousMembership: types.MembershipPb(make(map[types.NodeID]types.NodeAddress)),
+		cfg := commonpbtypes.EpochConfig{EpochNr: tt.EpochNr(e), Memberships: []*commonpbtypes.Membership{&membership}}
+		clProgress := commonpbtypes.ClientProgress{Progress: map[tt.ClientID]*commonpbtypes.DeliveredReqs{}} // TODO: add actual values
+		state := commonpbtypes.StateSnapshot{AppData: data, EpochData: &commonpbtypes.EpochData{
+			EpochConfig:    &cfg,
+			ClientProgress: &clProgress,
+			PreviousMembership: &commonpbtypes.Membership{ // nolint:govet
+				make(map[types.NodeID]*commonpbtypes.NodeIdentity),
+			},
 		}}
 		serializeSnapshotForHash(&state)
 	})

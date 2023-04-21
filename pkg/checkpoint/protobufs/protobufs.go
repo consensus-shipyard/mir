@@ -3,13 +3,12 @@ package protobufs
 import (
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
+	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -37,15 +36,6 @@ func EpochProgressEvent(
 	)
 }
 
-func StableCheckpointEvent(ownModuleID t.ModuleID, stableCheckpoint *checkpointpb.StableCheckpoint) *eventpb.Event {
-	return Event(
-		ownModuleID,
-		&checkpointpb.Event{Type: &checkpointpb.Event_StableCheckpoint{
-			StableCheckpoint: stableCheckpoint,
-		}},
-	)
-}
-
 func HashOrigin(module t.ModuleID) *hasherpbtypes.HashOrigin {
 	return &hasherpbtypes.HashOrigin{
 		Module: module,
@@ -68,17 +58,15 @@ func SigVerOrigin(module t.ModuleID) *cryptopbtypes.SigVerOrigin {
 }
 
 func InstanceParams(
-	membership map[t.NodeID]t.NodeAddress,
-	resendPeriod types.Duration,
+	membership *commonpbtypes.Membership,
+	resendPeriod timertypes.Duration,
 	leaderPolicyData []byte,
-	epochConfig *commonpb.EpochConfig,
+	epochConfig *commonpbtypes.EpochConfig,
 ) *factorypbtypes.GeneratorParams {
-	return factorypbtypes.GeneratorParamsFromPb(&factorypb.GeneratorParams{Type: &factorypb.GeneratorParams_Checkpoint{
-		Checkpoint: &checkpointpb.InstanceParams{
-			Membership:       t.MembershipPb(membership),
-			ResendPeriod:     resendPeriod.Pb(),
-			LeaderPolicyData: leaderPolicyData,
-			EpochConfig:      epochConfig,
-		},
-	}})
+	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_Checkpoint{Checkpoint: &checkpointpbtypes.InstanceParams{
+		Membership:       membership,
+		ResendPeriod:     resendPeriod,
+		LeaderPolicyData: leaderPolicyData,
+		EpochConfig:      epochConfig,
+	}}}
 }

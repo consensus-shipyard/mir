@@ -123,7 +123,7 @@ func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *pbftpbtypes.Done
 	chkp.doneMsgIndex[strKey] = append(chkp.doneMsgIndex[strKey], nodeID)
 
 	// If a quorum of nodes has sent a Done message
-	if len(chkp.doneMsgIndex[strKey]) >= config.WeakQuorum(len(segment.Membership)) {
+	if len(chkp.doneMsgIndex[strKey]) >= config.WeakQuorum(len(segment.Membership.Nodes)) {
 
 		// Save the IDs of the nodes that are done with the segment
 		chkp.doneNodes = chkp.doneMsgIndex[strKey]

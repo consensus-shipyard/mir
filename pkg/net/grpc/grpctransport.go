@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,6 +21,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mirnet "github.com/filecoin-project/mir/pkg/net"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -77,7 +79,13 @@ type Transport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewTransport(id t.NodeID, addr t.NodeAddress, l logging.Logger) (*Transport, error) {
+func NewTransport(id t.NodeID, addrStr string, l logging.Logger) (*Transport, error) {
+
+	// Parse own address.
+	addr, err := multiaddr.NewMultiaddr(addrStr)
+	if err != nil {
+		return nil, err
+	}
 
 	// If no logger was given, only write errors to the console.
 	if l == nil {
@@ -288,14 +296,14 @@ func (gt *Transport) ServerError() error {
 	return gt.grpcServerError
 }
 
-func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
+func (gt *Transport) CloseOldConnections(newNodes *commonpbtypes.Membership) {
 	for id, client := range gt.clients {
 		if client == nil {
 			continue
 		}
 
 		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := newNodes[id]; !newConn {
+		if _, newConn := newNodes.Nodes[id]; !newConn {
 			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
 
 			if err := client.CloseSend(); err != nil {
@@ -314,7 +322,7 @@ func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 		}
 
 		// Close an old connection to a node if we don't need to connect to this node further.
-		if _, newConn := newNodes[id]; !newConn {
+		if _, newConn := newNodes.Nodes[id]; !newConn {
 			gt.logger.Log(logging.LevelDebug, "Closing old connection", "to", id)
 
 			if err := conn.Close(); err != nil {
@@ -333,21 +341,29 @@ func (gt *Transport) CloseOldConnections(newNodes map[t.NodeID]t.NodeAddress) {
 // The other nodes' GrpcTransport modules must be running.
 // Only after Connect() returns, sending messages over this GrpcTransport is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
-func (gt *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
+func (gt *Transport) Connect(membership *commonpbtypes.Membership) {
 
 	// Initialize wait group used by the connecting goroutines
 	wg := sync.WaitGroup{}
-	wg.Add(len(nodes))
+	wg.Add(len(membership.Nodes))
 
 	// Synchronizes concurrent access to connections.
 	lock := sync.Mutex{}
 
 	// For each node in the membership
-	for nodeID, nodeAddr := range nodes {
+	for nodeID, identity := range membership.Nodes {
+
+		nodeAddr, err := multiaddr.NewMultiaddr(identity.Addr)
+		if err != nil {
+			gt.logger.Log(logging.LevelWarn, "Failed parsing address. Ignoring.", "addr", identity.Addr)
+			wg.Done()
+			continue
+		}
 
 		// Get net.Dial compatible address.
 		_, dialAddr, err := manet.DialArgs(nodeAddr)
 		if err != nil {
+			gt.logger.Log(logging.LevelWarn, "Failed getting dial args. Ignoring.", "addr", identity.Addr)
 			wg.Done()
 			continue
 		}

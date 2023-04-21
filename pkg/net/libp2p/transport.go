@@ -8,10 +8,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -92,11 +94,12 @@ func (tr *Transport) Start() error {
 func (tr *Transport) Stop() {
 	tr.host.RemoveStreamHandler(tr.params.ProtocolID)
 	close(tr.stop)
-	tr.CloseOldConnections(map[t.NodeID]t.NodeAddress{}) // Passing an empty map means that no connections will be kept.
+	// Passing an empty membership means that no connections will be kept.
+	tr.CloseOldConnections(&commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{}}) // nolint:govet
 	// TODO: Force the termination of incoming connections too and wait here until that happens.
 }
 
-func (tr *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
+func (tr *Transport) Connect(membership *commonpbtypes.Membership) {
 	tr.connectionsLock.Lock()
 	defer tr.connectionsLock.Unlock()
 
@@ -107,17 +110,23 @@ func (tr *Transport) Connect(nodes map[t.NodeID]t.NodeAddress) {
 	default:
 	}
 
-	for nodeID, addr := range nodes {
+	for nodeID, identity := range membership.Nodes {
 		// For each given node
 
 		if _, ok := tr.connections[nodeID]; !ok {
 			// If connection doesn't yet exist
 
+			// Parse node address.
+			addr, err := multiaddr.NewMultiaddr(identity.Addr)
+			if err != nil {
+				tr.logger.Log(logging.LevelError, "Failed parsing address. Ignoring.", "addr", identity.Addr)
+				continue
+			}
+
 			// Create a new connection.
 			// This is a non-blocking call - all I/O will be done by the connection in the background.
 			// A connection to self needs a special treatment, as libp2p does not allow to dial oneself.
 			var conn connection
-			var err error
 			if nodeID == tr.ownID {
 				conn, err = newSelfConnection(tr.params, tr.ownID, addr, tr.incomingMessages)
 			} else {
@@ -194,7 +203,7 @@ func (tr *Transport) WaitFor(n int) {
 	}
 }
 
-func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddress) {
+func (tr *Transport) CloseOldConnections(newMembership *commonpbtypes.Membership) {
 
 	// Select connections to nodes that are NOT part of the new membership.
 	// We first select the connections (while holding a lock) and only then close them (after releasing the lock),
@@ -202,7 +211,7 @@ func (tr *Transport) CloseOldConnections(newMembership map[t.NodeID]t.NodeAddres
 	toClose := make(map[t.NodeID]connection)
 	tr.connectionsLock.Lock()
 	for nodeID, conn := range tr.connections {
-		if _, ok := newMembership[nodeID]; !ok {
+		if _, ok := newMembership.Nodes[nodeID]; !ok {
 			toClose[nodeID] = conn
 			delete(tr.nodeIDs, conn.PeerID())
 			delete(tr.connections, nodeID)

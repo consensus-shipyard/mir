@@ -11,7 +11,7 @@ import (
 	"time"
 
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	t "github.com/filecoin-project/mir/pkg/types"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -21,7 +21,7 @@ type ModuleParams struct {
 
 	// The identities of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
-	InitialMembership map[t.NodeID]t.NodeAddress
+	InitialMembership *commonpbtypes.Membership
 
 	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
@@ -57,6 +57,7 @@ type ModuleParams struct {
 	// Total number of buckets used by ISS.
 	// In each epoch, these buckets are re-distributed evenly among the orderers.
 	// Must be greater than 0.
+	// TODO: Remove this parameter.
 	NumBuckets int
 
 	// Number of logical time ticks to wait until demanding retransmission of missing requests.
@@ -107,7 +108,7 @@ type ModuleParams struct {
 func CheckParams(c *ModuleParams) error {
 
 	// The membership must not be empty.
-	if len(c.InitialMembership) == 0 {
+	if len(c.InitialMembership.Nodes) == 0 {
 		return fmt.Errorf("empty membership")
 	}
 
@@ -166,7 +167,7 @@ func CheckParams(c *ModuleParams) error {
 // DefaultParams is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultParams can serve as a starting point.
-func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
+func DefaultParams(initialMembership *commonpbtypes.Membership) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
@@ -174,7 +175,7 @@ func DefaultParams(initialMembership map[t.NodeID]t.NodeAddress) *ModuleParams {
 		InitialMembership:     initialMembership,
 		ConfigOffset:          2,
 		SegmentLength:         4,
-		NumBuckets:            len(initialMembership),
+		NumBuckets:            len(initialMembership.Nodes),
 		RequestNAckTimeout:    16,
 		MsgBufCapacity:        32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:        1,

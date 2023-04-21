@@ -6,12 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/multiformats/go-multiaddr"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -19,24 +18,20 @@ import (
 func main() {
 	fmt.Println("Starting ping-pong.")
 
-	addrs := make(map[t.NodeID]t.NodeAddress)
-	var err error
-	if addrs["0"], err = multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/10000"); err != nil {
-		panic(err)
-	}
-	if addrs["1"], err = multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/10001"); err != nil {
-		panic(err)
-	}
+	membership := &commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{ // nolint:govet
+		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, 0}, // nolint:govet
+		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, 0}, // nolint:govet
+	}}
 
 	ownID := t.NodeID(os.Args[1])
-	tranport, err := grpc.NewTransport(ownID, addrs[ownID], logging.ConsoleWarnLogger)
+	tranport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
 	if err != nil {
 		panic(err)
 	}
 	if err := tranport.Start(); err != nil {
 		panic(err)
 	}
-	tranport.Connect(addrs)
+	tranport.Connect(membership)
 
 	node, err := mir.NewNode(
 		ownID,

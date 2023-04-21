@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/modules"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	"github.com/filecoin-project/mir"
@@ -47,7 +48,7 @@ type TestConfig struct {
 	NodeIDs []t.NodeID
 
 	// List of nodes.
-	Nodes map[t.NodeID]t.NodeAddress
+	Membership *commonpbtypes.Membership
 
 	// The modules that will be run by each replica.
 	NodeModules map[t.NodeID]modules.Modules
@@ -117,7 +118,7 @@ func NewDeployment(conf *TestConfig) (*Deployment, error) {
 			ID:                     nodeID,
 			Config:                 config,
 			NodeIDs:                conf.NodeIDs,
-			Nodes:                  conf.Nodes,
+			Membership:             conf.Membership,
 			Dir:                    filepath.Join(conf.Directory, fmt.Sprintf("node%d", i)),
 			NumFakeRequests:        conf.NumFakeRequests,
 			Modules:                conf.NodeModules[nodeID],

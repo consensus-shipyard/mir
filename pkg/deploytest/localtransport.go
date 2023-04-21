@@ -6,13 +6,14 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type LocalTransportLayer interface {
 	Link(source t.NodeID) (net.Transport, error)
-	Nodes() map[t.NodeID]t.NodeAddress
+	Membership() *commonpbtypes.Membership
 	Close()
 }
 

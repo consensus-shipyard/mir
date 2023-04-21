@@ -2,9 +2,9 @@ package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // AppLogic represents the application logic of an SMR system.
@@ -20,7 +20,7 @@ type AppLogic interface {
 	// Note that, due to pipelining, the membership NewEpoch returns is not necessarily used immediately
 	// in the epoch that is just starting.
 	// It might define the membership of a future epoch.
-	NewEpoch(nr tt.EpochNr) (map[t.NodeID]t.NodeAddress, error)
+	NewEpoch(nr tt.EpochNr) (*commonpbtypes.Membership, error)
 
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)
@@ -57,7 +57,7 @@ type StaticAppLogic interface {
 
 // AppLogicFromStatic augments the static application logic with a default implementation of the reconfiguration logic
 // that simply always uses the same membership.
-func AppLogicFromStatic(staticAppLogic StaticAppLogic, membership map[t.NodeID]t.NodeAddress) AppLogic {
+func AppLogicFromStatic(staticAppLogic StaticAppLogic, membership *commonpbtypes.Membership) AppLogic {
 	return &reconfigurableAppLogic{
 		staticAppLogic: staticAppLogic,
 		membership:     membership,

@@ -115,21 +115,21 @@ func (*EpochConfig) MirReflect() mirreflect.Type {
 }
 
 type Membership struct {
-	Membership map[types2.NodeID]string
+	Nodes map[types2.NodeID]*NodeIdentity
 }
 
 func MembershipFromPb(pb *commonpb.Membership) *Membership {
 	return &Membership{
-		Membership: types1.ConvertMap(pb.Membership, func(k string, v string) (types2.NodeID, string) {
-			return (types2.NodeID)(k), v
+		Nodes: types1.ConvertMap(pb.Nodes, func(k string, v *commonpb.NodeIdentity) (types2.NodeID, *NodeIdentity) {
+			return (types2.NodeID)(k), NodeIdentityFromPb(v)
 		}),
 	}
 }
 
 func (m *Membership) Pb() *commonpb.Membership {
 	return &commonpb.Membership{
-		Membership: types1.ConvertMap(m.Membership, func(k types2.NodeID, v string) (string, string) {
-			return (string)(k), v
+		Nodes: types1.ConvertMap(m.Nodes, func(k types2.NodeID, v *NodeIdentity) (string, *commonpb.NodeIdentity) {
+			return (string)(k), (v).Pb()
 		}),
 	}
 }
@@ -138,22 +138,51 @@ func (*Membership) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.Membership]()}
 }
 
+type NodeIdentity struct {
+	Id     types2.NodeID
+	Addr   string
+	Key    []uint8
+	Weight uint64
+}
+
+func NodeIdentityFromPb(pb *commonpb.NodeIdentity) *NodeIdentity {
+	return &NodeIdentity{
+		Id:     (types2.NodeID)(pb.Id),
+		Addr:   pb.Addr,
+		Key:    pb.Key,
+		Weight: pb.Weight,
+	}
+}
+
+func (m *NodeIdentity) Pb() *commonpb.NodeIdentity {
+	return &commonpb.NodeIdentity{
+		Id:     (string)(m.Id),
+		Addr:   m.Addr,
+		Key:    m.Key,
+		Weight: m.Weight,
+	}
+}
+
+func (*NodeIdentity) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.NodeIdentity]()}
+}
+
 type ClientProgress struct {
-	Progress map[string]*DeliveredReqs
+	Progress map[types.ClientID]*DeliveredReqs
 }
 
 func ClientProgressFromPb(pb *commonpb.ClientProgress) *ClientProgress {
 	return &ClientProgress{
-		Progress: types1.ConvertMap(pb.Progress, func(k string, v *commonpb.DeliveredReqs) (string, *DeliveredReqs) {
-			return k, DeliveredReqsFromPb(v)
+		Progress: types1.ConvertMap(pb.Progress, func(k string, v *commonpb.DeliveredReqs) (types.ClientID, *DeliveredReqs) {
+			return (types.ClientID)(k), DeliveredReqsFromPb(v)
 		}),
 	}
 }
 
 func (m *ClientProgress) Pb() *commonpb.ClientProgress {
 	return &commonpb.ClientProgress{
-		Progress: types1.ConvertMap(m.Progress, func(k string, v *DeliveredReqs) (string, *commonpb.DeliveredReqs) {
-			return k, (v).Pb()
+		Progress: types1.ConvertMap(m.Progress, func(k types.ClientID, v *DeliveredReqs) (string, *commonpb.DeliveredReqs) {
+			return (string)(k), (v).Pb()
 		}),
 	}
 }

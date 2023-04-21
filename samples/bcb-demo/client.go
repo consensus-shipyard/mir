@@ -13,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 )
@@ -71,19 +72,33 @@ func run() error {
 		nodeIDs[i] = t.NewNodeIDFromInt(i)
 	}
 
-	nodeAddrs := make(map[t.NodeID]t.NodeAddress)
+	// Construct membership, remembering own address.
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+	var ownAddr t.NodeAddress
 	for i := range nodeIDs {
-		nodeAddrs[t.NewNodeIDFromInt(i)] = t.NodeAddress(grpctools.NewDummyMultiaddr(i + nodeBasePort))
+		id := t.NewNodeIDFromInt(i)
+		addr := grpctools.NewDummyMultiaddr(i + nodeBasePort)
+
+		if id == args.OwnID {
+			ownAddr = addr
+		}
+
+		membership.Nodes[id] = &commonpbtypes.NodeIdentity{
+			Id:     id,
+			Addr:   addr.String(),
+			Key:    nil,
+			Weight: 0,
+		}
 	}
 
-	transportModule, err := grpc.NewTransport(args.OwnID, nodeAddrs[args.OwnID], logger)
+	transportModule, err := grpc.NewTransport(args.OwnID, ownAddr.String(), logger)
 	if err != nil {
 		return fmt.Errorf("failed to get network transport %w", err)
 	}
 	if err := transportModule.Start(); err != nil {
 		return fmt.Errorf("could not start network transport: %w", err)
 	}
-	transportModule.Connect(nodeAddrs)
+	transportModule.Connect(membership)
 
 	bcbModule := bcb.NewModule(
 		&bcb.ModuleConfig{

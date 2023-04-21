@@ -5,6 +5,7 @@ import (
 	types3 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/timer/types"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -290,7 +291,7 @@ func (*SigVerOrigin) MirReflect() mirreflect.Type {
 
 type InstanceParams struct {
 	Membership       *types1.Membership
-	ResendPeriod     uint64
+	ResendPeriod     types4.Duration
 	LeaderPolicyData []uint8
 	EpochConfig      *types1.EpochConfig
 }
@@ -298,7 +299,7 @@ type InstanceParams struct {
 func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
 	return &InstanceParams{
 		Membership:       types1.MembershipFromPb(pb.Membership),
-		ResendPeriod:     pb.ResendPeriod,
+		ResendPeriod:     (types4.Duration)(pb.ResendPeriod),
 		LeaderPolicyData: pb.LeaderPolicyData,
 		EpochConfig:      types1.EpochConfigFromPb(pb.EpochConfig),
 	}
@@ -307,7 +308,7 @@ func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
 func (m *InstanceParams) Pb() *checkpointpb.InstanceParams {
 	return &checkpointpb.InstanceParams{
 		Membership:       (m.Membership).Pb(),
-		ResendPeriod:     m.ResendPeriod,
+		ResendPeriod:     (uint64)(m.ResendPeriod),
 		LeaderPolicyData: m.LeaderPolicyData,
 		EpochConfig:      (m.EpochConfig).Pb(),
 	}

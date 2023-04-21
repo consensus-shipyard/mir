@@ -80,7 +80,7 @@ message InstanceParams {
   option (mir.struct) = true;
 
   commonpb.Membership  membership         = 1;
-  uint64               resend_period      = 2; // in milliseconds
+  uint64               resend_period      = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/timer/types.Duration"];
   bytes                leader_policy_data = 3;
   commonpb.EpochConfig epoch_config       = 4;
 }

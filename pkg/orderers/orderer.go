@@ -463,7 +463,7 @@ func (orderer *Orderer) initView(view types2.ViewNr) *events.EventList {
 
 		// Create a fresh, empty slot.
 		// For n being the membership size, f = (n-1) / 3
-		orderer.slots[view][sn] = newPbftSlot(len(orderer.segment.Membership))
+		orderer.slots[view][sn] = newPbftSlot(len(orderer.segment.Membership.Nodes))
 
 		// Except for initialization of view 0, carry over state from the previous view.
 		if view > 0 {

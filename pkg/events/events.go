@@ -9,10 +9,8 @@ package events
 import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -74,25 +72,4 @@ func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
 // This event is the first to be applied to a module.
 func Init(destModule t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
-}
-
-// EpochConfig represents the configuration of the system during one epoch
-func EpochConfig(
-	epochNr tt.EpochNr,
-	firstSn tt.SeqNr,
-	length int,
-	memberships []map[t.NodeID]t.NodeAddress,
-) *commonpb.EpochConfig {
-
-	m := make([]*commonpb.Membership, len(memberships))
-	for i, membership := range memberships {
-		m[i] = t.MembershipPb(membership)
-	}
-
-	return &commonpb.EpochConfig{
-		EpochNr:     epochNr.Pb(),
-		FirstSn:     firstSn.Pb(),
-		Length:      uint64(length),
-		Memberships: m,
-	}
 }

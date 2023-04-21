@@ -10,9 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/alecthomas/kingpin.v2"
-
 	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -24,6 +23,7 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	"github.com/filecoin-project/mir/pkg/trantor"
@@ -36,9 +36,14 @@ import (
 func debug(args *arguments) error {
 
 	// TODO: Empty addresses might not work here, as they will probably produce wrong snapshots.
-	membership := make(map[t.NodeID]t.NodeAddress)
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 	for _, nID := range args.membership {
-		membership[nID] = libp2p.NewDummyHostAddr(0, 0)
+		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{
+			Id:     nID,
+			Addr:   libp2p.NewDummyHostAddr(0, 0).String(),
+			Key:    nil,
+			Weight: 0,
+		}
 	}
 
 	// Create a debugger node and a new Context.
@@ -143,7 +148,7 @@ func debug(args *arguments) error {
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
-func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node, error) {
+func debuggerNode(id t.NodeID, membership *commonpbtypes.Membership) (*mir.Node, error) {
 
 	// Logger used by the node.
 	logger := logging.ConsoleDebugLogger
@@ -177,7 +182,10 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		"net":    nullTransport,
 		"crypto": mirCrypto.New(cryptoImpl),
 		"app": trantor.NewAppModule(
-			trantor.AppLogicFromStatic(deploytest.NewFakeApp(), map[t.NodeID]t.NodeAddress{}),
+			trantor.AppLogicFromStatic(
+				deploytest.NewFakeApp(),
+				&commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}, // nolint:govet
+			),
 			nullTransport,
 			"iss",
 		),
