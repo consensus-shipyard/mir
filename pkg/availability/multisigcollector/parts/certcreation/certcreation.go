@@ -216,18 +216,18 @@ func IncludeCreatingCertificates(
 
 func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEmptyIfNoneReady bool) {
 	certFinished := make([]*Certificate, 0)
-	certsToDelete := make(map[msctypes.BatchIDString]struct{}, 0)
-	for _, cert := range state.Certificates {
+	certsToDelete := make(map[RequestID]struct{}, 0)
+	for reqID, cert := range state.Certificates {
 		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
 			certFinished = append(certFinished, cert)
-			certsToDelete[msctypes.BatchIDString(cert.BatchID)] = struct{}{}
+			certsToDelete[reqID] = struct{}{}
 		}
 	}
 
 	if len(certFinished) > 0 { // if any certificate is ready
 		maputil.FindAndDeleteAll(state.Certificates,
-			func(key RequestID, val *Certificate) bool {
-				_, ok := certsToDelete[msctypes.BatchIDString(val.BatchID)]
+			func(key RequestID, _ *Certificate) bool {
+				_, ok := certsToDelete[key]
 				return ok
 			}) // prevent duplicates
 
