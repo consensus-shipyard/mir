@@ -2,9 +2,10 @@ package pbftpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
+	types1 "github.com/filecoin-project/mir/pkg/orderers/types"
 	pbftpb "github.com/filecoin-project/mir/pkg/pb/pbftpb"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -247,7 +248,7 @@ func (*Message) MirReflect() mirreflect.Type {
 
 type Preprepare struct {
 	Sn      types.SeqNr
-	View    types.PBFTViewNr
+	View    types1.ViewNr
 	Data    []uint8
 	Aborted bool
 }
@@ -255,7 +256,7 @@ type Preprepare struct {
 func PreprepareFromPb(pb *pbftpb.Preprepare) *Preprepare {
 	return &Preprepare{
 		Sn:      (types.SeqNr)(pb.Sn),
-		View:    (types.PBFTViewNr)(pb.View),
+		View:    (types1.ViewNr)(pb.View),
 		Data:    pb.Data,
 		Aborted: pb.Aborted,
 	}
@@ -276,14 +277,14 @@ func (*Preprepare) MirReflect() mirreflect.Type {
 
 type Prepare struct {
 	Sn     types.SeqNr
-	View   types.PBFTViewNr
+	View   types1.ViewNr
 	Digest []uint8
 }
 
 func PrepareFromPb(pb *pbftpb.Prepare) *Prepare {
 	return &Prepare{
 		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types.PBFTViewNr)(pb.View),
+		View:   (types1.ViewNr)(pb.View),
 		Digest: pb.Digest,
 	}
 }
@@ -302,14 +303,14 @@ func (*Prepare) MirReflect() mirreflect.Type {
 
 type Commit struct {
 	Sn     types.SeqNr
-	View   types.PBFTViewNr
+	View   types1.ViewNr
 	Digest []uint8
 }
 
 func CommitFromPb(pb *pbftpb.Commit) *Commit {
 	return &Commit{
 		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types.PBFTViewNr)(pb.View),
+		View:   (types1.ViewNr)(pb.View),
 		Digest: pb.Digest,
 	}
 }
@@ -456,7 +457,7 @@ func (*MissingPreprepare) MirReflect() mirreflect.Type {
 }
 
 type NewView struct {
-	View              types.PBFTViewNr
+	View              types1.ViewNr
 	ViewChangeSenders []string
 	SignedViewChanges []*SignedViewChange
 	PreprepareSeqNrs  []types.SeqNr
@@ -465,15 +466,15 @@ type NewView struct {
 
 func NewViewFromPb(pb *pbftpb.NewView) *NewView {
 	return &NewView{
-		View:              (types.PBFTViewNr)(pb.View),
+		View:              (types1.ViewNr)(pb.View),
 		ViewChangeSenders: pb.ViewChangeSenders,
-		SignedViewChanges: types1.ConvertSlice(pb.SignedViewChanges, func(t *pbftpb.SignedViewChange) *SignedViewChange {
+		SignedViewChanges: types2.ConvertSlice(pb.SignedViewChanges, func(t *pbftpb.SignedViewChange) *SignedViewChange {
 			return SignedViewChangeFromPb(t)
 		}),
-		PreprepareSeqNrs: types1.ConvertSlice(pb.PreprepareSeqNrs, func(t uint64) types.SeqNr {
+		PreprepareSeqNrs: types2.ConvertSlice(pb.PreprepareSeqNrs, func(t uint64) types.SeqNr {
 			return (types.SeqNr)(t)
 		}),
-		Preprepares: types1.ConvertSlice(pb.Preprepares, func(t *pbftpb.Preprepare) *Preprepare {
+		Preprepares: types2.ConvertSlice(pb.Preprepares, func(t *pbftpb.Preprepare) *Preprepare {
 			return PreprepareFromPb(t)
 		}),
 	}
@@ -483,13 +484,13 @@ func (m *NewView) Pb() *pbftpb.NewView {
 	return &pbftpb.NewView{
 		View:              (uint64)(m.View),
 		ViewChangeSenders: m.ViewChangeSenders,
-		SignedViewChanges: types1.ConvertSlice(m.SignedViewChanges, func(t *SignedViewChange) *pbftpb.SignedViewChange {
+		SignedViewChanges: types2.ConvertSlice(m.SignedViewChanges, func(t *SignedViewChange) *pbftpb.SignedViewChange {
 			return (t).Pb()
 		}),
-		PreprepareSeqNrs: types1.ConvertSlice(m.PreprepareSeqNrs, func(t types.SeqNr) uint64 {
+		PreprepareSeqNrs: types2.ConvertSlice(m.PreprepareSeqNrs, func(t types.SeqNr) uint64 {
 			return (uint64)(t)
 		}),
-		Preprepares: types1.ConvertSlice(m.Preprepares, func(t *Preprepare) *pbftpb.Preprepare {
+		Preprepares: types2.ConvertSlice(m.Preprepares, func(t *Preprepare) *pbftpb.Preprepare {
 			return (t).Pb()
 		}),
 	}
@@ -500,18 +501,18 @@ func (*NewView) MirReflect() mirreflect.Type {
 }
 
 type ViewChange struct {
-	View types.PBFTViewNr
+	View types1.ViewNr
 	PSet []*PSetEntry
 	QSet []*QSetEntry
 }
 
 func ViewChangeFromPb(pb *pbftpb.ViewChange) *ViewChange {
 	return &ViewChange{
-		View: (types.PBFTViewNr)(pb.View),
-		PSet: types1.ConvertSlice(pb.PSet, func(t *pbftpb.PSetEntry) *PSetEntry {
+		View: (types1.ViewNr)(pb.View),
+		PSet: types2.ConvertSlice(pb.PSet, func(t *pbftpb.PSetEntry) *PSetEntry {
 			return PSetEntryFromPb(t)
 		}),
-		QSet: types1.ConvertSlice(pb.QSet, func(t *pbftpb.QSetEntry) *QSetEntry {
+		QSet: types2.ConvertSlice(pb.QSet, func(t *pbftpb.QSetEntry) *QSetEntry {
 			return QSetEntryFromPb(t)
 		}),
 	}
@@ -520,10 +521,10 @@ func ViewChangeFromPb(pb *pbftpb.ViewChange) *ViewChange {
 func (m *ViewChange) Pb() *pbftpb.ViewChange {
 	return &pbftpb.ViewChange{
 		View: (uint64)(m.View),
-		PSet: types1.ConvertSlice(m.PSet, func(t *PSetEntry) *pbftpb.PSetEntry {
+		PSet: types2.ConvertSlice(m.PSet, func(t *PSetEntry) *pbftpb.PSetEntry {
 			return (t).Pb()
 		}),
-		QSet: types1.ConvertSlice(m.QSet, func(t *QSetEntry) *pbftpb.QSetEntry {
+		QSet: types2.ConvertSlice(m.QSet, func(t *QSetEntry) *pbftpb.QSetEntry {
 			return (t).Pb()
 		}),
 	}
@@ -535,14 +536,14 @@ func (*ViewChange) MirReflect() mirreflect.Type {
 
 type PSetEntry struct {
 	Sn     types.SeqNr
-	View   types.PBFTViewNr
+	View   types1.ViewNr
 	Digest []uint8
 }
 
 func PSetEntryFromPb(pb *pbftpb.PSetEntry) *PSetEntry {
 	return &PSetEntry{
 		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types.PBFTViewNr)(pb.View),
+		View:   (types1.ViewNr)(pb.View),
 		Digest: pb.Digest,
 	}
 }
@@ -561,14 +562,14 @@ func (*PSetEntry) MirReflect() mirreflect.Type {
 
 type QSetEntry struct {
 	Sn     types.SeqNr
-	View   types.PBFTViewNr
+	View   types1.ViewNr
 	Digest []uint8
 }
 
 func QSetEntryFromPb(pb *pbftpb.QSetEntry) *QSetEntry {
 	return &QSetEntry{
 		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types.PBFTViewNr)(pb.View),
+		View:   (types1.ViewNr)(pb.View),
 		Digest: pb.Digest,
 	}
 }
@@ -683,13 +684,13 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type VCSNTimeout struct {
-	View         types.PBFTViewNr
+	View         types1.ViewNr
 	NumCommitted uint64
 }
 
 func VCSNTimeoutFromPb(pb *pbftpb.VCSNTimeout) *VCSNTimeout {
 	return &VCSNTimeout{
-		View:         (types.PBFTViewNr)(pb.View),
+		View:         (types1.ViewNr)(pb.View),
 		NumCommitted: pb.NumCommitted,
 	}
 }

@@ -19,6 +19,8 @@ import (
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types13 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
+	types15 "github.com/filecoin-project/mir/pkg/timer/types"
+	types16 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -564,7 +566,7 @@ func (*TimerEvent) MirReflect() mirreflect.Type {
 
 type TimerDelay struct {
 	EventsToDelay []*Event
-	Delay         types.TimeDuration
+	Delay         types15.Duration
 }
 
 func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
@@ -572,7 +574,7 @@ func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 		EventsToDelay: types14.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay: (types.TimeDuration)(pb.Delay),
+		Delay: (types15.Duration)(pb.Delay),
 	}
 }
 
@@ -591,8 +593,8 @@ func (*TimerDelay) MirReflect() mirreflect.Type {
 
 type TimerRepeat struct {
 	EventsToRepeat []*Event
-	Delay          types.TimeDuration
-	RetentionIndex types.RetentionIndex
+	Delay          types15.Duration
+	RetentionIndex types16.RetentionIndex
 }
 
 func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
@@ -600,8 +602,8 @@ func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 		EventsToRepeat: types14.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay:          (types.TimeDuration)(pb.Delay),
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		Delay:          (types15.Duration)(pb.Delay),
+		RetentionIndex: (types16.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -620,12 +622,12 @@ func (*TimerRepeat) MirReflect() mirreflect.Type {
 }
 
 type TimerGarbageCollect struct {
-	RetentionIndex types.RetentionIndex
+	RetentionIndex types16.RetentionIndex
 }
 
 func TimerGarbageCollectFromPb(pb *eventpb.TimerGarbageCollect) *TimerGarbageCollect {
 	return &TimerGarbageCollect{
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types16.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 

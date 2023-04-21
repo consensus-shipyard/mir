@@ -15,6 +15,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	tp "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/testlogger"
@@ -108,7 +109,7 @@ func TestFactoryModule(t *testing.T) {
 				evOut, err := echoFactory.ApplyEvents(events.ListOf(factorypbevents.NewModule(
 					echoFactoryID,
 					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
-					tp.RetentionIndex(i),
+					tt.RetentionIndex(i),
 					EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
 				).Pb()))
 				assert.NoError(t, err)

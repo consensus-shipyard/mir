@@ -62,7 +62,7 @@ message PushCheckpoint {
 message SBDeliver {
   option (mir.event) = true;
 
-  uint64 sn          = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64 sn          = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   bytes  data        = 2;
   bool   aborted     = 3;
   string leader      = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
@@ -72,14 +72,14 @@ message SBDeliver {
 message DeliverCert {
   option (mir.event) = true;
 
-  uint64              sn   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.SeqNr"];
+  uint64              sn   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   availabilitypb.Cert cert = 2;
 }
 
 message NewConfig {
   option (mir.event) = true;
 
-  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.EpochNr"];
+  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
   commonpb.Membership membership = 2;
 }
 

@@ -3,6 +3,7 @@ package trantor
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -19,7 +20,7 @@ type AppLogic interface {
 	// Note that, due to pipelining, the membership NewEpoch returns is not necessarily used immediately
 	// in the epoch that is just starting.
 	// It might define the membership of a future epoch.
-	NewEpoch(nr t.EpochNr) (map[t.NodeID]t.NodeAddress, error)
+	NewEpoch(nr tt.EpochNr) (map[t.NodeID]t.NodeAddress, error)
 
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)

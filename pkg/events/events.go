@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -77,8 +78,8 @@ func Init(destModule t.ModuleID) *eventpb.Event {
 
 // EpochConfig represents the configuration of the system during one epoch
 func EpochConfig(
-	epochNr t.EpochNr,
-	firstSn t.SeqNr,
+	epochNr tt.EpochNr,
+	firstSn tt.SeqNr,
 	length int,
 	memberships []map[t.NodeID]t.NodeAddress,
 ) *commonpb.EpochConfig {

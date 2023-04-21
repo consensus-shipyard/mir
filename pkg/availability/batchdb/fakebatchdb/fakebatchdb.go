@@ -1,12 +1,14 @@
 package fakebatchdb
 
 import (
+	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/modules"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -25,12 +27,12 @@ func DefaultModuleConfig() *ModuleConfig {
 type txIDString string
 
 type moduleState struct {
-	BatchStore       map[t.BatchIDString]batchInfo
+	BatchStore       map[msctypes.BatchIDString]batchInfo
 	TransactionStore map[txIDString]*requestpbtypes.Request
 }
 
 type batchInfo struct {
-	txIDs    []t.TxID
+	txIDs    []tt.TxID
 	metadata []byte
 }
 
@@ -40,13 +42,13 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{
-		BatchStore:       make(map[t.BatchIDString]batchInfo),
+		BatchStore:       make(map[msctypes.BatchIDString]batchInfo),
 		TransactionStore: make(map[txIDString]*requestpbtypes.Request),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbpbdsl.UponStoreBatch(m, func(batchID t.BatchID, txIDs []t.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
-		state.BatchStore[t.BatchIDString(batchID)] = batchInfo{
+	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+		state.BatchStore[msctypes.BatchIDString(batchID)] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,
 		}
@@ -60,12 +62,12 @@ func NewModule(mc *ModuleConfig) modules.Module {
 	})
 
 	// On LookupBatch request, just check the local map.
-	batchdbpbdsl.UponLookupBatch(m, func(batchID t.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
+	batchdbpbdsl.UponLookupBatch(m, func(batchID msctypes.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
 		if emptybatchid.IsEmptyBatchID(batchID) {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, origin)
 		}
 
-		info, found := state.BatchStore[t.BatchIDString(batchID)]
+		info, found := state.BatchStore[msctypes.BatchIDString(batchID)]
 		if !found {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, origin)
 			return nil

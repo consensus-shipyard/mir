@@ -1,7 +1,9 @@
 package orderers
 
 import (
+	"github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -22,10 +24,10 @@ type Segment struct {
 	// A non-nil value will be proposed (by this node) for that sequence number whenever possible.
 	// Currently, such a "free" proposal is a new availability certificate in view 0,
 	// and a special empty one in other views.
-	Proposals map[t.SeqNr][]byte
+	Proposals map[tt.SeqNr][]byte
 }
 
-func NewSegment(leader t.NodeID, membership map[t.NodeID]t.NodeAddress, proposals map[t.SeqNr][]byte) *Segment {
+func NewSegment(leader t.NodeID, membership map[t.NodeID]t.NodeAddress, proposals map[tt.SeqNr][]byte) *Segment {
 	return &Segment{
 		Leader:     leader,
 		Membership: membership,
@@ -39,8 +41,8 @@ func SegmentFromPb(seg *ordererpb.PBFTSegment) *Segment {
 		Membership: t.Membership(seg.Membership),
 		Proposals: maputil.Transform(
 			seg.Proposals,
-			func(key uint64, val []byte) (t.SeqNr, []byte) {
-				return t.SeqNr(key), val
+			func(key uint64, val []byte) (tt.SeqNr, []byte) {
+				return tt.SeqNr(key), val
 			},
 		),
 	}
@@ -52,7 +54,7 @@ func (seg *Segment) Pb() *ordererpb.PBFTSegment {
 		Membership: t.MembershipPb(seg.Membership),
 		Proposals: maputil.Transform(
 			seg.Proposals,
-			func(key t.SeqNr, val []byte) (uint64, []byte) {
+			func(key tt.SeqNr, val []byte) (uint64, []byte) {
 				return key.Pb(), val
 			},
 		),
@@ -67,7 +69,7 @@ func (seg *Segment) NodeIDs() []t.NodeID {
 	return maputil.GetSortedKeys(seg.Membership)
 }
 
-func (seg *Segment) PrimaryNode(view t.PBFTViewNr) t.NodeID {
+func (seg *Segment) PrimaryNode(view types.ViewNr) t.NodeID {
 	return seg.NodeIDs()[(seg.LeaderIndex()+int(view))%len(seg.NodeIDs())]
 }
 
@@ -80,6 +82,6 @@ func (seg *Segment) LeaderIndex() int {
 	panic("invalid segment: leader not in membership")
 }
 
-func (seg *Segment) SeqNrs() []t.SeqNr {
+func (seg *Segment) SeqNrs() []tt.SeqNr {
 	return maputil.GetSortedKeys(seg.Proposals)
 }

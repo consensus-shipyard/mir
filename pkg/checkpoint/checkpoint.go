@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
-	"github.com/filecoin-project/mir/pkg/serializing"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -73,8 +73,8 @@ func (sc *StableCheckpoint) AttachCert(cert *Certificate) *StableCheckpoint {
 // SeqNr returns the sequence number of the stable checkpoint.
 // It is defined as the number of sequence numbers comprised in the checkpoint, or, in other words,
 // the first (i.e., lowest) sequence number not included in the checkpoint.
-func (sc *StableCheckpoint) SeqNr() t.SeqNr {
-	return t.SeqNr(sc.Sn)
+func (sc *StableCheckpoint) SeqNr() tt.SeqNr {
+	return tt.SeqNr(sc.Sn)
 }
 
 // Memberships returns the memberships configured for the epoch of this checkpoint
@@ -95,8 +95,8 @@ func (sc *StableCheckpoint) PreviousMembership() map[t.NodeID]t.NodeAddress {
 
 // Epoch returns the epoch associated with this checkpoint.
 // It is the epoch **started** by this checkpoint, **not** the last one included in it.
-func (sc *StableCheckpoint) Epoch() t.EpochNr {
-	return t.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
+func (sc *StableCheckpoint) Epoch() tt.EpochNr {
+	return tt.EpochNr(sc.Snapshot.EpochData.EpochConfig.EpochNr)
 }
 
 // StateSnapshot returns the serialized application state and system configuration associated with this checkpoint.
@@ -146,9 +146,9 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	}
 
 	// Check whether all signatures are valid.
-	snapshotData := serializing.SnapshotForHash(sc.StateSnapshot())
+	snapshotData := serializeSnapshotForHash(sc.StateSnapshot())
 	snapshotHash := hash(snapshotData.Data, h)
-	signedData := serializing.CheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
+	signedData := serializeCheckpointForSig(sc.Epoch(), sc.SeqNr(), snapshotHash)
 	for nodeID, sig := range sc.Cert {
 		// For each signature in the certificate...
 

@@ -16,12 +16,12 @@ SPDX-License-Identifier: Apache-2.0
 package orderers
 
 import (
+	"github.com/filecoin-project/mir/pkg/orderers/types"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // ============================================================
@@ -34,7 +34,7 @@ func PbftProposeTimeout(numProposals uint64) *ordererpb.Event {
 	}}}
 }
 
-func PbftViewChangeSNTimeout(view t.PBFTViewNr, numCommitted int) *ordererpb.Event {
+func PbftViewChangeSNTimeout(view types.ViewNr, numCommitted int) *ordererpb.Event {
 	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
 		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: &pbftpb.VCSNTimeout{
 			View:         view.Pb(),
@@ -43,7 +43,7 @@ func PbftViewChangeSNTimeout(view t.PBFTViewNr, numCommitted int) *ordererpb.Eve
 	}}
 }
 
-func PbftViewChangeSegmentTimeout(view t.PBFTViewNr) *ordererpb.Event {
+func PbftViewChangeSegmentTimeout(view types.ViewNr) *ordererpb.Event {
 	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
 		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: view.Pb()}},
 	}}
@@ -79,7 +79,7 @@ func viewChangeSigVerOrigin(viewChange *pbftpb.SignedViewChange) *ordererpb.SigV
 	}}
 }
 
-func emptyPreprepareHashOrigin(view t.PBFTViewNr) *ordererpb.HashOrigin {
+func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin {
 	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_EmptyPreprepares{EmptyPreprepares: view.Pb()}},
 	}}

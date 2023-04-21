@@ -4,6 +4,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -20,13 +21,13 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponNewModule(m dsl.Module, handler func(moduleId types2.ModuleID, retentionIndex types2.RetentionIndex, params *types.GeneratorParams) error) {
+func UponNewModule(m dsl.Module, handler func(moduleId types2.ModuleID, retentionIndex types3.RetentionIndex, params *types.GeneratorParams) error) {
 	UponEvent[*types.Event_NewModule](m, func(ev *types.NewModule) error {
 		return handler(ev.ModuleId, ev.RetentionIndex, ev.Params)
 	})
 }
 
-func UponGarbageCollect(m dsl.Module, handler func(retentionIndex types2.RetentionIndex) error) {
+func UponGarbageCollect(m dsl.Module, handler func(retentionIndex types3.RetentionIndex) error) {
 	UponEvent[*types.Event_GarbageCollect](m, func(ev *types.GarbageCollect) error {
 		return handler(ev.RetentionIndex)
 	})

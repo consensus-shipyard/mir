@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -45,7 +46,7 @@ func Factory(
 				p := params.Type.(*factorypb.GeneratorParams_PbftModule).PbftModule
 				availabilityID := t.ModuleID(p.AvailabilityId)
 				submc.Ava = availabilityID
-				epoch := t.EpochNr(p.Epoch)
+				epoch := tt.EpochNr(p.Epoch)
 				segment := SegmentFromPb(p.Segment)
 
 				// Create new configuration for this particular orderer instance.

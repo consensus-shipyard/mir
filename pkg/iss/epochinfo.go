@@ -3,6 +3,7 @@ package iss
 import (
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -10,10 +11,10 @@ import (
 type epochInfo struct {
 
 	// Epoch number.
-	nr t.EpochNr
+	nr tt.EpochNr
 
 	// First sequence number belonging to this epoch.
-	firstSN t.SeqNr
+	firstSN tt.SeqNr
 
 	// This epoch's membership.
 	Membership map[t.NodeID]t.NodeAddress
@@ -26,8 +27,8 @@ type epochInfo struct {
 }
 
 func newEpochInfo(
-	nr t.EpochNr,
-	firstSN t.SeqNr,
+	nr tt.EpochNr,
+	firstSN tt.SeqNr,
 	membership map[t.NodeID]t.NodeAddress,
 	leaderPolicy lsp.LeaderSelectionPolicy,
 ) epochInfo {
@@ -41,11 +42,11 @@ func newEpochInfo(
 	return ei
 }
 
-func (e *epochInfo) Nr() t.EpochNr {
+func (e *epochInfo) Nr() tt.EpochNr {
 	return e.nr
 }
 
-func (e *epochInfo) FirstSN() t.SeqNr {
+func (e *epochInfo) FirstSN() tt.SeqNr {
 	return e.firstSN
 }
 

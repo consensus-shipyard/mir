@@ -38,7 +38,8 @@ import (
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	"github.com/filecoin-project/mir/pkg/systems/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -262,14 +263,14 @@ func run() error {
 	fmt.Println("Type in your messages and press 'Enter' to send.")
 
 	// Read chat message from stdin.
-	nextReqNo := t.ReqNo(0)
+	nextReqNo := tt.ReqNo(0)
 	for scanner.Scan() {
 
 		// Submit the chat message as request payload to the mempool module.
 		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
 			"mempool",
 			[]*requestpbtypes.Request{{
-				ClientId: t.ClientID(args.OwnID),
+				ClientId: tt.ClientID(args.OwnID),
 				ReqNo:    nextReqNo,
 				Type:     0,
 				Data:     scanner.Bytes(),

@@ -4,7 +4,8 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -114,20 +115,20 @@ func (*EpochConfig) MirReflect() mirreflect.Type {
 }
 
 type Membership struct {
-	Membership map[types.NodeID]string
+	Membership map[types2.NodeID]string
 }
 
 func MembershipFromPb(pb *commonpb.Membership) *Membership {
 	return &Membership{
-		Membership: types1.ConvertMap(pb.Membership, func(k string, v string) (types.NodeID, string) {
-			return (types.NodeID)(k), v
+		Membership: types1.ConvertMap(pb.Membership, func(k string, v string) (types2.NodeID, string) {
+			return (types2.NodeID)(k), v
 		}),
 	}
 }
 
 func (m *Membership) Pb() *commonpb.Membership {
 	return &commonpb.Membership{
-		Membership: types1.ConvertMap(m.Membership, func(k types.NodeID, v string) (string, string) {
+		Membership: types1.ConvertMap(m.Membership, func(k types2.NodeID, v string) (string, string) {
 			return (string)(k), v
 		}),
 	}

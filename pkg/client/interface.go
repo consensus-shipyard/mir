@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // The Client represents an SMR client that produces new transactions (using NewTX)
@@ -26,7 +26,7 @@ type Client interface {
 
 	// Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
 	// The effect of this call need not be written to persistent storage until Sync is called.
-	Done(txNo t.ReqNo) error
+	Done(txNo tt.ReqNo) error
 
 	// Pending returns all transactions previously returned by NewTX that have not been marked as done.
 	Pending() ([]*requestpb.Request, error)

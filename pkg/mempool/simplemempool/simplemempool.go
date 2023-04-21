@@ -2,11 +2,11 @@ package simplemempool
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/computeids"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/formbatchesext"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/formbatchesint"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/lookuptxs"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/computeids"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/formbatchesext"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/formbatchesint"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/lookuptxs"
 	"github.com/filecoin-project/mir/pkg/modules"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 )

@@ -7,6 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
+	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -35,7 +36,7 @@ func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.Pa
 					t.Membership(p.Membership),
 					p.EpochConfig,
 					p.LeaderPolicyData,
-					t.TimeDuration(time.Duration(p.ResendPeriod)),
+					types.Duration(time.Duration(p.ResendPeriod)),
 					logging.Decorate(logger, "", "chkpSN", p.EpochConfig.FirstSn, "chkpEpoch", p.EpochConfig.EpochNr),
 				)
 

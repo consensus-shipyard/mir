@@ -4,6 +4,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -186,12 +187,12 @@ func (*RestoreState) MirReflect() mirreflect.Type {
 }
 
 type NewEpoch struct {
-	EpochNr types.EpochNr
+	EpochNr types2.EpochNr
 }
 
 func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
 	return &NewEpoch{
-		EpochNr: (types.EpochNr)(pb.EpochNr),
+		EpochNr: (types2.EpochNr)(pb.EpochNr),
 	}
 }
 

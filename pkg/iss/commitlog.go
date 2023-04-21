@@ -1,13 +1,16 @@
 package iss
 
-import t "github.com/filecoin-project/mir/pkg/types"
+import (
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	t "github.com/filecoin-project/mir/pkg/types"
+)
 
 // The CommitLogEntry type represents an entry of the commit log, the final output of the ordering process.
 // Whenever an orderer delivers an availability certificate (or a special abort value),
 // it is inserted to the commit log in form of a commitLogEntry.
 type CommitLogEntry struct {
 	// Sequence number at which this entry has been ordered.
-	Sn t.SeqNr
+	Sn tt.SeqNr
 
 	// The delivered availability certificate data.
 	// TODO: Replace by actual certificate when deterministic serialization of certificates is implemented.

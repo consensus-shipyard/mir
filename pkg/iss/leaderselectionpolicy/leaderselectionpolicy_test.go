@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -81,7 +82,7 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 			"node2": {},
 			"node3": {},
 		},
-		Suspected: map[types.NodeID]types.EpochNr{
+		Suspected: map[types.NodeID]tt.EpochNr{
 			"node1": 1,
 			"node2": 2,
 		},
@@ -89,7 +90,7 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 	}
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := types.Uint64FromBytes(bytes[0:8])
+	policyType := serializing.Uint64FromBytes(bytes[0:8])
 	assert.Equal(t, uint64(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
@@ -129,12 +130,12 @@ func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
 			"node2": {},
 			"node3": {},
 		},
-		Suspected:  map[types.NodeID]types.EpochNr{},
+		Suspected:  map[types.NodeID]tt.EpochNr{},
 		MinLeaders: 2,
 	}
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := types.Uint64FromBytes(bytes[0:8])
+	policyType := serializing.Uint64FromBytes(bytes[0:8])
 	assert.Equal(t, uint64(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)

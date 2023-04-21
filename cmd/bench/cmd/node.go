@@ -28,7 +28,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
-	"github.com/filecoin-project/mir/pkg/systems/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )

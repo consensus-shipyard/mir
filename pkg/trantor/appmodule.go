@@ -14,6 +14,7 @@ import (
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -124,7 +125,7 @@ func (m *AppModule) applyAppRestoreState(restoreState *apppb.RestoreState) (*eve
 // It informs the application logic of the new epoch and returns an event (to the protocol module)
 // containing the configuration for the new epoch.
 func (m *AppModule) applyNewEpoch(newEpoch *apppb.NewEpoch) (*events.EventList, error) {
-	membership, err := m.appLogic.NewEpoch(t.EpochNr(newEpoch.EpochNr))
+	membership, err := m.appLogic.NewEpoch(tt.EpochNr(newEpoch.EpochNr))
 	if err != nil {
 		return nil, fmt.Errorf("error handling NewEpoch event: %w", err)
 	}
@@ -132,7 +133,7 @@ func (m *AppModule) applyNewEpoch(newEpoch *apppb.NewEpoch) (*events.EventList, 
 	// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 	return events.ListOf(isspbevents.NewConfig(
 		m.protocolModule,
-		t.EpochNr(newEpoch.EpochNr),
+		tt.EpochNr(newEpoch.EpochNr),
 		commonpbtypes.MembershipFromPb(t.MembershipPb(membership))).Pb(),
 	), nil
 }

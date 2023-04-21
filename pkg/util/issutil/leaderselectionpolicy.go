@@ -13,6 +13,8 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
+	"github.com/filecoin-project/mir/pkg/serializing"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -46,7 +48,7 @@ type LeaderSelectionPolicy interface {
 	Leaders() []t.NodeID
 
 	// Suspect updates the state of the policy object by announcing it that node `node` has been suspected in epoch `e`.
-	Suspect(e t.EpochNr, node t.NodeID)
+	Suspect(e tt.EpochNr, node t.NodeID)
 
 	// Reconfigure returns a new LeaderSelectionPolicy based on the state of the current one,
 	// but using a new configuration.
@@ -59,7 +61,7 @@ type LeaderSelectionPolicy interface {
 }
 
 func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
-	leaderPolicyType := t.Uint64FromBytes(bytes[0:8])
+	leaderPolicyType := serializing.Uint64FromBytes(bytes[0:8])
 
 	switch LeaderPolicyType(leaderPolicyType) {
 	case Simple:
@@ -92,7 +94,7 @@ func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
 }
 
 // Suspect does nothing for the SimpleLeaderPolicy.
-func (simple *SimpleLeaderPolicy) Suspect(_ t.EpochNr, _ t.NodeID) {
+func (simple *SimpleLeaderPolicy) Suspect(_ tt.EpochNr, _ t.NodeID) {
 	// Do nothing.
 }
 
@@ -108,7 +110,7 @@ func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Simple))
+	out := serializing.Uint64ToBytes(uint64(Simple))
 	out = append(out, ser...)
 	return out, nil
 }
@@ -121,7 +123,7 @@ func SimpleLeaderPolicyFromBytes(data []byte) (*SimpleLeaderPolicy, error) {
 
 type BlacklistLeaderPolicy struct {
 	Membership map[t.NodeID]struct{}
-	Suspected  map[t.NodeID]t.EpochNr
+	Suspected  map[t.NodeID]tt.EpochNr
 	MinLeaders int
 }
 
@@ -132,7 +134,7 @@ func NewBlackListLeaderPolicy(members []t.NodeID, MinLeaders int) *BlacklistLead
 	}
 	return &BlacklistLeaderPolicy{
 		membership,
-		make(map[t.NodeID]t.EpochNr, len(members)),
+		make(map[t.NodeID]tt.EpochNr, len(members)),
 		MinLeaders,
 	}
 }
@@ -178,7 +180,7 @@ func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
 // if this one is more recent than the one it already has
-func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (l *BlacklistLeaderPolicy) Suspect(e tt.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
 		//TODO error but cannot be passed through
 		return
@@ -192,7 +194,7 @@ func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 // Reconfigure informs the leader selection policy about a change in the membership.
 func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
 	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
-	suspected := make(map[t.NodeID]t.EpochNr, len(nodeIDs))
+	suspected := make(map[t.NodeID]tt.EpochNr, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		if sus, ok := l.Membership[nodeID]; ok {
 			membership[nodeID] = sus // keep former suspect as suspected
@@ -218,7 +220,7 @@ func (l *BlacklistLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := t.Uint64ToBytes(uint64(Blacklist))
+	out := serializing.Uint64ToBytes(uint64(Blacklist))
 	out = append(out, ser...)
 	return out, nil
 }

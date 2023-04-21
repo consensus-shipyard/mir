@@ -12,6 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/factorypb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -33,8 +34,8 @@ type FactoryModule struct {
 	generator ModuleGenerator
 
 	submodules      map[t.ModuleID]modules.PassiveModule
-	moduleRetention map[t.RetentionIndex][]t.ModuleID
-	retIdx          t.RetentionIndex
+	moduleRetention map[tt.RetentionIndex][]t.ModuleID
+	retIdx          tt.RetentionIndex
 	messageBuffer   *messagebuffer.MessageBuffer // TODO: Split by NodeID (using NewBuffers). Future configurations...?
 
 	logger logging.Logger
@@ -56,7 +57,7 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		generator: params.Generator,
 
 		submodules:      make(map[t.ModuleID]modules.PassiveModule),
-		moduleRetention: make(map[t.RetentionIndex][]t.ModuleID),
+		moduleRetention: make(map[tt.RetentionIndex][]t.ModuleID),
 		retIdx:          0,
 		messageBuffer:   messagebuffer.New(zeroID, params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ")),
 
@@ -99,7 +100,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypb.NewModule) (*events
 
 	// Convenience variables
 	id := t.ModuleID(newModule.ModuleId)
-	retIdx := t.RetentionIndex(newModule.RetentionIndex)
+	retIdx := tt.RetentionIndex(newModule.RetentionIndex)
 
 	// The new module's ID must have the factory's ID as a prefix.
 	if id.Top() != fm.ownID {
@@ -153,7 +154,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypb.NewModule) (*events
 
 func (fm *FactoryModule) applyGarbageCollect(gc *factorypb.GarbageCollect) (*events.EventList, error) {
 	// While the new retention index is larger than the current one
-	for t.RetentionIndex(gc.RetentionIndex) > fm.retIdx {
+	for tt.RetentionIndex(gc.RetentionIndex) > fm.retIdx {
 
 		// Delete all modules associated with the current retention index.
 		for _, mID := range fm.moduleRetention[fm.retIdx] {
