@@ -25,7 +25,7 @@ func FuzzSnapshotForHash(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, n int, e uint64, k, v string, data []byte) {
 		n = n % 5000
-		membership := commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)}
+		membership := commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 		for i := 0; i < n; i++ {
 			id := types.NodeID(fmt.Sprintf("%s/%s", k, strconv.Itoa(i)))
@@ -41,9 +41,11 @@ func FuzzSnapshotForHash(f *testing.F) {
 		cfg := commonpbtypes.EpochConfig{EpochNr: tt.EpochNr(e), Memberships: []*commonpbtypes.Membership{&membership}}
 		clProgress := commonpbtypes.ClientProgress{Progress: map[tt.ClientID]*commonpbtypes.DeliveredReqs{}} // TODO: add actual values
 		state := commonpbtypes.StateSnapshot{AppData: data, EpochData: &commonpbtypes.EpochData{
-			EpochConfig:        &cfg,
-			ClientProgress:     &clProgress,
-			PreviousMembership: &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)},
+			EpochConfig:    &cfg,
+			ClientProgress: &clProgress,
+			PreviousMembership: &commonpbtypes.Membership{ // nolint:govet
+				make(map[types.NodeID]*commonpbtypes.NodeIdentity),
+			},
 		}}
 		serializeSnapshotForHash(&state)
 	})

@@ -142,11 +142,17 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 }
 
 func (ft *FakeTransport) Membership() *commonpbtypes.Membership {
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range ft.Buffers {
-		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{nID, libp2p.NewDummyHostAddr(0, 0).String(), nil, 0}
+		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+			nID,
+			libp2p.NewDummyHostAddr(0,
+				0).String(),
+			nil,
+			0,
+		}
 	}
 
 	return membership

@@ -3,7 +3,6 @@ package trantor
 import (
 	"crypto"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
@@ -18,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 

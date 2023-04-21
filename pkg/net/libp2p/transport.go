@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
@@ -95,7 +95,7 @@ func (tr *Transport) Stop() {
 	tr.host.RemoveStreamHandler(tr.params.ProtocolID)
 	close(tr.stop)
 	// Passing an empty membership means that no connections will be kept.
-	tr.CloseOldConnections(&commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{}})
+	tr.CloseOldConnections(&commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{}}) // nolint:govet
 	// TODO: Force the termination of incoming connections too and wait here until that happens.
 }
 

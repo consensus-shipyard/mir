@@ -3,14 +3,14 @@ package checkpoint
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/fxamacker/cbor/v2"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -155,7 +155,7 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 		}
 
 		// Check if the signature is valid.
-		if err := v.Verify(signedData.Data, sig, t.NodeID(nodeID)); err != nil {
+		if err := v.Verify(signedData.Data, sig, nodeID); err != nil {
 			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
 		}
 	}

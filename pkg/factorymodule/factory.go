@@ -3,7 +3,6 @@ package factorymodule
 import (
 	"fmt"
 
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -11,6 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"

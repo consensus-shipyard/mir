@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir"
@@ -14,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 )
@@ -73,7 +73,7 @@ func run() error {
 	}
 
 	// Construct membership, remembering own address.
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 	var ownAddr t.NodeAddress
 	for i := range nodeIDs {
 		id := t.NewNodeIDFromInt(i)

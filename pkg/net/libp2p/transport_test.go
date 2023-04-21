@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/require"
@@ -18,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
@@ -42,9 +42,11 @@ func newMockLibp2pCommunication(
 	logger logging.Logger,
 ) *mockLibp2pCommunication {
 	lt := &mockLibp2pCommunication{
-		t:          t,
-		params:     params,
-		membership: &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, len(nodeIDs))},
+		t:      t,
+		params: params,
+		membership: &commonpbtypes.Membership{ // nolint:govet
+			make(map[types.NodeID]*commonpbtypes.NodeIdentity, len(nodeIDs)),
+		},
 		hosts:      make(map[types.NodeID]host.Host),
 		transports: make(map[types.NodeID]*Transport),
 		logger:     logger,
@@ -53,7 +55,7 @@ func newMockLibp2pCommunication(
 	for i, id := range nodeIDs {
 		hostAddr := libp2putil.NewFreeHostAddr()
 		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
-		lt.membership.Nodes[id] = &commonpbtypes.NodeIdentity{
+		lt.membership.Nodes[id] = &commonpbtypes.NodeIdentity{ // nolint:govet
 			id,
 			libp2putil.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
@@ -135,7 +137,7 @@ func (m *mockLibp2pCommunication) StartAllTransports() {
 }
 
 func (m *mockLibp2pCommunication) MembershipOf(ids ...types.NodeID) *commonpbtypes.Membership {
-	membership := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)}
+	membership := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 	for _, id := range ids {
 		identity, ok := m.membership.Nodes[id]
 		if !ok {
@@ -862,9 +864,9 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	addrB := types.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
 	b := NewTransport(DefaultParams(), nodeB, hostB, logger)
 
-	membershipA := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)}
-	membershipA.Nodes[nodeA] = &commonpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 0}
-	membershipA.Nodes[nodeB] = &commonpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 0}
+	membershipA := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)} // nolint:govet
+	membershipA.Nodes[nodeA] = &commonpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 0}           // nolint:govet
+	membershipA.Nodes[nodeB] = &commonpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 0}           // nolint:govet
 
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
@@ -872,7 +874,7 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	m := &mockLibp2pCommunication{
 		t:          t,
 		params:     DefaultParams(),
-		membership: &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)},
+		membership: &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)}, // nolint:govet
 		hosts:      make(map[types.NodeID]host.Host),
 		transports: make(map[types.NodeID]*Transport),
 		logger:     logger,

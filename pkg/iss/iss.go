@@ -657,7 +657,7 @@ func (iss *ISS) initOrderers() {
 
 // hasEpochCheckpoint returns true if the current epoch's checkpoint protocol has already produced a stable checkpoint.
 func (iss *ISS) hasEpochCheckpoint() bool {
-	return tt.SeqNr(iss.lastStableCheckpoint.Sn) == iss.epoch.FirstSN()
+	return iss.lastStableCheckpoint.Sn == iss.epoch.FirstSN()
 }
 
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed,
@@ -775,7 +775,12 @@ func (iss *ISS) advanceEpoch() error {
 			oldMembership,
 			checkpoint.DefaultResendPeriod,
 			leaderPolicyData,
-			&commonpbtypes.EpochConfig{iss.epoch.Nr(), iss.epoch.FirstSN(), uint64(iss.epoch.Len()), iss.memberships},
+			&commonpbtypes.EpochConfig{ // nolint:govet
+				iss.epoch.Nr(),
+				iss.epoch.FirstSN(),
+				uint64(iss.epoch.Len()),
+				iss.memberships,
+			},
 		),
 	)
 

@@ -3,12 +3,12 @@ package deploytest
 import (
 	"fmt"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -30,13 +30,13 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpc
 	}
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 	for i, id := range nodeIDs {
 		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", BaseListenPort+i))
 		if err != nil {
 			panic(err)
 		}
-		membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, maddr.String(), nil, 0}
+		membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, maddr.String(), nil, 0} // nolint:govet
 	}
 
 	return &LocalGrpcTransport{membership, logger}

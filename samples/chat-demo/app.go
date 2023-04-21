@@ -19,11 +19,11 @@ import (
 	"os"
 	"strings"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/membership"
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -118,8 +118,8 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 		if err != nil {
 			fmt.Printf("Adding node failed. Invalid address: %v\n", err)
 		}
-		tmpMembership, err := membership.DummyMultiAddrs(&commonpbtypes.Membership{
-			map[t.NodeID]*commonpbtypes.NodeIdentity{nodeID: {nodeID, netAddr.String(), nil, 0}},
+		tmpMembership, err := membership.DummyMultiAddrs(&commonpbtypes.Membership{ // nolint:govet
+			map[t.NodeID]*commonpbtypes.NodeIdentity{nodeID: {nodeID, netAddr.String(), nil, 0}}, // nolint:govet
 		})
 		if err != nil {
 			fmt.Printf("Adding node failed. Could not construct dummy multiaddress: %v\n", err)
@@ -131,7 +131,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 		if _, ok := chat.newMembership.Nodes[nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
 		} else {
-			chat.newMembership.Nodes[nodeID] = &commonpbtypes.NodeIdentity{nodeID, nodeAddr, nil, 0}
+			chat.newMembership.Nodes[nodeID] = &commonpbtypes.NodeIdentity{nodeID, nodeAddr, nil, 0} // nolint:govet
 		}
 	case "remove-node":
 		// Parse out the node ID and remove it from the next membership.
@@ -150,7 +150,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 // NewEpoch callback is invoked by the SMR system when it transitions to a new epoch.
 // The membership returned from NewEpoch will eventually be used by the system.
 func (chat *ChatApp) NewEpoch(_ tt.EpochNr) (*commonpbtypes.Membership, error) {
-	return &commonpbtypes.Membership{maputil.Copy(chat.newMembership.Nodes)}, nil
+	return &commonpbtypes.Membership{maputil.Copy(chat.newMembership.Nodes)}, nil // nolint:govet
 }
 
 // Snapshot produces a StateSnapshotResponse event containing the current snapshot of the chat app state.

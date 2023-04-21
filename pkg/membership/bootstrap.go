@@ -7,14 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-
+	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
@@ -39,7 +38,7 @@ func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
 func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
 	// TODO: Make this function parse the standard JSON membership format.
 
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
+	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
@@ -55,7 +54,7 @@ func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
 				return nil, err
 			}
 
-			membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, addr.String(), nil, 0}
+			membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, addr.String(), nil, 0} // nolint:govet
 		}
 	}
 
@@ -87,7 +86,7 @@ func GetIDs(membership *commonpbtypes.Membership) []t.NodeID {
 // DummyMultiAddrs augments a membership by deterministically generated host keys based on node IDs.
 // The node IDs must be convertable to numbers, otherwise DummyMultiAddrs returns an error.
 func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Membership, error) {
-	membershipOut := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}
+	membershipOut := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
 
 	for nodeID, identity := range membershipIn.Nodes {
 		numericID, err := strconv.Atoi(string(nodeID))
@@ -100,7 +99,7 @@ func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Mem
 			return nil, err
 		}
 
-		membershipOut.Nodes[nodeID] = &commonpbtypes.NodeIdentity{
+		membershipOut.Nodes[nodeID] = &commonpbtypes.NodeIdentity{ // nolint:govet
 			identity.Id,
 			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
 			nil,
