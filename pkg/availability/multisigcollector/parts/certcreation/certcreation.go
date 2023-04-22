@@ -42,8 +42,8 @@ type RequestState struct {
 
 type Certificate struct {
 	BatchID     msctypes.BatchID
-	sigs        map[t.NodeID][]byte
-	receivedSig map[t.NodeID]bool
+	Sigs        map[t.NodeID][]byte
+	ReceivedSig map[t.NodeID]bool
 }
 
 // IncludeCreatingCertificates registers event handlers for processing availabilitypb.RequestCert events.
@@ -71,8 +71,8 @@ func IncludeCreatingCertificates(
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.Certificates[reqID] = &Certificate{
-			receivedSig: make(map[t.NodeID]bool),
-			sigs:        make(map[t.NodeID][]byte),
+			ReceivedSig: make(map[t.NodeID]bool),
+			Sigs:        make(map[t.NodeID][]byte),
 		}
 		mempooldsl.RequestBatch(m, mc.Mempool, &requestBatchFromMempoolContext{reqID})
 		return nil
@@ -134,8 +134,8 @@ func IncludeCreatingCertificates(
 			return nil
 		}
 
-		if !certificate.receivedSig[from] {
-			certificate.receivedSig[from] = true
+		if !certificate.ReceivedSig[from] {
+			certificate.ReceivedSig[from] = true
 			sigData := common.SigData(params.InstanceUID, certificate.BatchID)
 			cryptopbdsl.VerifySig(m, mc.Crypto, sigData, signature, from, &verifySigContext{reqID, signature})
 		}
@@ -154,9 +154,9 @@ func IncludeCreatingCertificates(
 			return nil
 		}
 
-		certificate.sigs[nodeID] = context.signature
+		certificate.Sigs[nodeID] = context.signature
 
-		newDue := len(certificate.sigs) >= params.F+1 // keep this here...
+		newDue := len(certificate.Sigs) >= params.F+1 // keep this here...
 
 		if len(state.RequestStates) > 0 {
 			sendIfReady(m, &state, params, false) // ... because this call changes the state
@@ -218,7 +218,7 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 	certFinished := make([]*Certificate, 0)
 	certsToDelete := make(map[RequestID]struct{}, 0)
 	for reqID, cert := range state.Certificates {
-		if len(cert.sigs) >= params.F+1 { // prepare certificates that are ready
+		if len(cert.Sigs) >= params.F+1 { // prepare certificates that are ready
 			certFinished = append(certFinished, cert)
 			certsToDelete[reqID] = struct{}{}
 		}
@@ -234,7 +234,7 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		// prepare finished certs for proposal
 		proposedCerts := make([]*mscpbtypes.Cert, 0, len(certFinished))
 		for _, c := range certFinished { // at least one
-			certNodes, certSigs := maputil.GetKeysAndValues(c.sigs)
+			certNodes, certSigs := maputil.GetKeysAndValues(c.Sigs)
 			cert := mscCert(c.BatchID, certNodes, certSigs)
 			proposedCerts = append(proposedCerts, cert)
 		}
