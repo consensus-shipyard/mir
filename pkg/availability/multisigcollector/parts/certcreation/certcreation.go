@@ -84,7 +84,7 @@ func IncludeCreatingCertificates(
 			ReqOrigin: origin,
 		})
 
-		sendIfReady(m, &state, params)
+		respondIfReady(m, &state, params)
 		if len(state.Certificates) == 0 {
 			apbdsl.ComputeCert(m, mc.Self)
 		}
@@ -96,7 +96,7 @@ func IncludeCreatingCertificates(
 		if len(txs) == 0 {
 			// If the batch is empty, immediately stop it and respond to all pending requests with an empty certificate.
 			delete(state.Certificates, context.reqID)
-			sendEmptyCert(m, &state)
+			respond(m, &state, []*mscpbtypes.Cert{})
 			// Note that a creation of another certificate is NOT started here.
 			// It will only be triggered by another certificate request (UponRequestCert).
 			// This creates a slight inconvenience that, if there is an empty batch no certificates will be pre-computed
@@ -159,7 +159,7 @@ func IncludeCreatingCertificates(
 		newDue := len(certificate.Sigs) >= params.F+1 // keep this here...
 
 		if len(state.RequestStates) > 0 {
-			sendIfReady(m, &state, params) // ... because this call changes the state
+			respondIfReady(m, &state, params) // ... because this call changes the state
 		}
 
 		if newDue && len(state.Certificates) < params.Limit {
@@ -213,48 +213,33 @@ func IncludeCreatingCertificates(
 	})
 }
 
-func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams) {
-	certFinished := make([]*Certificate, 0)
-	certsToDelete := make(map[RequestID]struct{}, 0)
-	for reqID, cert := range state.Certificates {
-		if len(cert.Sigs) >= params.F+1 { // prepare certificates that are ready
-			certFinished = append(certFinished, cert)
-			certsToDelete[reqID] = struct{}{}
-		}
+func respondIfReady(m dsl.Module, state *State, params *common.ModuleParams) {
+
+	// Select certificates with enough signatures.
+	finishedCerts := maputil.RemoveAll(state.Certificates, func(_ RequestID, cert *Certificate) bool {
+		return len(cert.Sigs) >= params.F+1
+	})
+
+	// Return immediately if there are no finished certificates.
+	if len(finishedCerts) == 0 {
+		return
 	}
 
-	if len(certFinished) > 0 { // if any certificate is ready
-		maputil.FindAndDeleteAll(state.Certificates,
-			func(key RequestID, _ *Certificate) bool {
-				_, ok := certsToDelete[key]
-				return ok
-			}) // prevent duplicates
-
-		// prepare finished certs for proposal
-		proposedCerts := make([]*mscpbtypes.Cert, 0, len(certFinished))
-		for _, c := range certFinished { // at least one
-			certNodes, certSigs := maputil.GetKeysAndValues(c.Sigs)
-			cert := mscCert(c.BatchID, certNodes, certSigs)
-			proposedCerts = append(proposedCerts, cert)
-		}
-		proposal := avCert(proposedCerts)
-
-		//return the certificates that are ready to all pending requests
-		for _, requestState := range state.RequestStates {
-			requestingModule := requestState.ReqOrigin.Module
-			apbdsl.NewCert(m, requestingModule, proposal, requestState.ReqOrigin)
-			state.RemainingSeqNr--
-		}
-		// Dispose of the state associated with handled requests.
-		state.RequestStates = make([]*RequestState, 0)
-
-	}
+	// Convert certificates to the right format for including in a response and send a response to all pending requests.
+	responseCerts := sliceutil.Transform(
+		maputil.GetValues(finishedCerts),
+		func(_ int, cert *Certificate) *mscpbtypes.Cert {
+			certNodes, certSigs := maputil.GetKeysAndValues(cert.Sigs)
+			return mscCert(cert.BatchID, certNodes, certSigs)
+		},
+	)
+	respond(m, state, responseCerts)
 }
 
-func sendEmptyCert(m dsl.Module, state *State) {
-	emptyCert := avCert([]*mscpbtypes.Cert{})
+func respond(m dsl.Module, state *State, certs []*mscpbtypes.Cert) {
+	// Respond to each pending request
 	for _, requestState := range state.RequestStates {
-		apbdsl.NewCert(m, requestState.ReqOrigin.Module, emptyCert, requestState.ReqOrigin)
+		apbdsl.NewCert(m, requestState.ReqOrigin.Module, avCert(certs), requestState.ReqOrigin)
 		state.RemainingSeqNr--
 	}
 	// Dispose of the state associated with handled requests.
