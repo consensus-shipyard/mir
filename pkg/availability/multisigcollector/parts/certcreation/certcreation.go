@@ -2,7 +2,6 @@ package certcreation
 
 import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -85,7 +84,7 @@ func IncludeCreatingCertificates(
 			ReqOrigin: origin,
 		})
 
-		sendIfReady(m, &state, params, false)
+		sendIfReady(m, &state, params)
 		if len(state.Certificates) == 0 {
 			apbdsl.ComputeCert(m, mc.Self)
 		}
@@ -95,17 +94,18 @@ func IncludeCreatingCertificates(
 	// When the mempool provides a batch, compute its ID.
 	mempooldsl.UponNewBatch(m, func(txIDs []tt.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
+			// If the batch is empty, immediately stop it and respond to all pending requests with an empty certificate.
 			delete(state.Certificates, context.reqID)
-			if len(state.RequestStates) > 0 { // do not do work for the empty batch if there is not even a request to answer
-				sendIfReady(m, &state, params, true)
-				if len(state.Certificates) == 0 {
-					apbdsl.ComputeCert(m, mc.Self)
-				}
-			}
-			return nil
+			sendEmptyCert(m, &state)
+			// Note that a creation of another certificate is NOT started here.
+			// It will only be triggered by another certificate request (UponRequestCert).
+			// This creates a slight inconvenience that, if there is an empty batch no certificates will be pre-computed
+			// for the next request, and the next request will have to wait until the availability protocol finishes.
+			// TODO: A remedy would be to start a timer here, that would trigger a delayed ComputeCert event
+			//   (it's a one-liner here, but the corresponding delay parameter needs to be introduced in the params).
+		} else {
+			mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})
 		}
-		// TODO: add persistent storage for crash-recovery.
-		mempooldsl.RequestBatchID(m, mc.Mempool, txIDs, &requestIDOfOwnBatchContext{context.reqID, txs})
 		return nil
 	})
 
@@ -159,8 +159,7 @@ func IncludeCreatingCertificates(
 		newDue := len(certificate.Sigs) >= params.F+1 // keep this here...
 
 		if len(state.RequestStates) > 0 {
-			sendIfReady(m, &state, params, false) // ... because this call changes the state
-			// do not send empty certificate because nonempty being computed
+			sendIfReady(m, &state, params) // ... because this call changes the state
 		}
 
 		if newDue && len(state.Certificates) < params.Limit {
@@ -214,7 +213,7 @@ func IncludeCreatingCertificates(
 	})
 }
 
-func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEmptyIfNoneReady bool) {
+func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams) {
 	certFinished := make([]*Certificate, 0)
 	certsToDelete := make(map[RequestID]struct{}, 0)
 	for reqID, cert := range state.Certificates {
@@ -249,16 +248,17 @@ func sendIfReady(m dsl.Module, state *State, params *common.ModuleParams, sendEm
 		// Dispose of the state associated with handled requests.
 		state.RequestStates = make([]*RequestState, 0)
 
-	} else if sendEmptyIfNoneReady { // if none are ready and sendEmptyIfNoneReady is true, send empty cert
-		emptyProposal := avCert([]*mscpbtypes.Cert{emptycert.EmptyCert()})
-		for _, requestState := range state.RequestStates {
-			requestingModule := requestState.ReqOrigin.Module
-			apbdsl.NewCert(m, requestingModule, emptyProposal, requestState.ReqOrigin)
-			state.RemainingSeqNr--
-		}
-		// Dispose of the state associated with handled requests.
-		state.RequestStates = make([]*RequestState, 0)
 	}
+}
+
+func sendEmptyCert(m dsl.Module, state *State) {
+	emptyCert := avCert([]*mscpbtypes.Cert{})
+	for _, requestState := range state.RequestStates {
+		apbdsl.NewCert(m, requestState.ReqOrigin.Module, emptyCert, requestState.ReqOrigin)
+		state.RemainingSeqNr--
+	}
+	// Dispose of the state associated with handled requests.
+	state.RequestStates = make([]*RequestState, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
