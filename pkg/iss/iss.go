@@ -231,12 +231,12 @@ func New(
 			return iss.deliverCommonCheckpoint(data)
 		}
 
-		// If decided empty certificate, deliver already
-		if len(data) == 0 {
+		// If the agreement on this sequence number has been aborted, deliver no certificate.
+		if aborted {
 			return iss.deliverCert(sn, data, aborted, leader)
 		}
 
-		// verify the certificate before deciding it
+		// Verify the certificate before delivering it.
 		return iss.verifyCert(sn, data, aborted, leader)
 	})
 
@@ -687,27 +687,25 @@ func (iss *ISS) processCommitted() error {
 	// deliver the corresponding certificate and advance to the next sequence number.
 	for iss.commitLog[iss.nextDeliveredSN] != nil {
 
-		certData := iss.commitLog[iss.nextDeliveredSN].CertData
+		// Convenience variables.
+		logEntry := iss.commitLog[iss.nextDeliveredSN]
+		certData := logEntry.CertData
 
-		var cert availabilitypb.Cert
-		if len(certData) > 0 {
-			if err := proto.Unmarshal(certData, &cert); err != nil {
+		var cert *apbtypes.Cert
+		if logEntry.Aborted {
+			iss.LeaderPolicy.Suspect(iss.epoch.Nr(), logEntry.Suspect)
+			cert = &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{}}}
+			// TODO: Using a dummy MSC cert here. A nil value would be more natural, as this data is not to be used,
+			//  but currently nil values are not supported in generated types. Use nil when nil support is implemented.
+		} else {
+			var certPb availabilitypb.Cert
+			if err := proto.Unmarshal(certData, &certPb); err != nil {
 				return fmt.Errorf("cannot unmarshal availability certificate: %w", err)
 			}
+			cert = apbtypes.CertFromPb(&certPb)
 		}
 
-		if iss.commitLog[iss.nextDeliveredSN].Aborted {
-			iss.LeaderPolicy.Suspect(iss.epoch.Nr(), iss.commitLog[iss.nextDeliveredSN].Suspect)
-		}
-
-		// Create a new DeliverCert event.
-		var _cert *apbtypes.Cert
-		if cert.Type == nil {
-			_cert = &apbtypes.Cert{Type: &apbtypes.Cert_Mscs{Mscs: &mscpbtypes.Certs{}}}
-		} else {
-			_cert = apbtypes.CertFromPb(&cert)
-		}
-		isspbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, _cert)
+		isspbdsl.DeliverCert(iss.m, iss.moduleConfig.App, iss.nextDeliveredSN, cert, logEntry.Aborted)
 		iss.logger.Log(logging.LevelDebug, "Delivering entry.", "sn", iss.nextDeliveredSN)
 
 		// Remove just delivered certificate from the temporary
