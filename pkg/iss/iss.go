@@ -226,7 +226,7 @@ func New(
 	// It invokes the appropriate handler depending on whether this data is
 	// an availability certificate (or the special abort value) or a common checkpoint.
 	isspbdsl.UponSBDeliver(iss.m, func(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
-		// If checkpoint ordering instance, deliver without verification
+		// If this is a delivery of an agreed-upon stable checkpoint, deliver without verification.
 		if instanceId.Sub().Sub() == "chkp" {
 			return iss.deliverCommonCheckpoint(data)
 		}
@@ -798,13 +798,11 @@ func (iss *ISS) advanceEpoch() error {
 func (iss *ISS) verifyCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID) error {
 	cert := &availabilitypb.Cert{}
 
-	if err := proto.Unmarshal(data, cert); err != nil { // wrong certificate,
+	// If decided data is not a valid certificate, consider the proposer faulty and deliver an empty certificate.
+	if err := proto.Unmarshal(data, cert); err != nil {
 		iss.logger.Log(logging.LevelWarn, "failed to unmarshal cert", "err", err)
-		// suspect leader
-		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), leader)
-		// decide empty certificate
-		data = []byte{}
-		return iss.deliverCert(sn, data, aborted, leader)
+		iss.LeaderPolicy.Suspect(iss.epoch.Nr(), leader)   // suspect leader
+		return iss.deliverCert(sn, []byte{}, true, leader) // deliver empty certificate
 	}
 
 	apbdsl.VerifyCert(iss.m, iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
