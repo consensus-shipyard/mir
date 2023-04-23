@@ -128,7 +128,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.
 	})
 
 	// upon exists m != ⊥ such that #({p ∈ Π | echos[p] = m}) > (N+f)/2 and sentfinal = FALSE do
-	dsl.UponCondition(m, func() error {
+	dsl.UponStateUpdates(m, func() error {
 		if len(state.echoSigs) > (params.GetN()+params.GetF())/2 && !state.sentFinal {
 			state.sentFinal = true
 			certSigners, certSignatures := maputil.GetKeysAndValues(state.echoSigs)
