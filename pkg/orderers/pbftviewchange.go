@@ -39,7 +39,7 @@ func copyPreprepareToNewView(preprepare *pbftpbtypes.Preprepare, view types2.Vie
 // ============================================================
 
 // applyViewChangeSNTimeout applies the view change SN timeout event
-// triggered some time after a certificate is committed.
+// triggered some time after a value is committed.
 // If nothing has been committed since, triggers a view change.
 func (orderer *Orderer) applyViewChangeSNTimeout(timeoutEvent *pbftpb.VCSNTimeout) *events.EventList {
 
@@ -506,7 +506,7 @@ func (orderer *Orderer) latestPendingVCState() (*pbftViewChangeState, types2.Vie
 // ============================================================
 
 // viewChangePSet represents the P set of a PBFT view change message.
-// For each sequence number, it holds the digest of the last prepared certificate,
+// For each sequence number, it holds the digest of the last prepared value,
 // along with the view in which it was prepared.
 type viewChangePSet map[tt.SeqNr]*pbftpbtypes.PSetEntry
 
@@ -551,7 +551,7 @@ func reconstructPSet(entries []*pbftpbtypes.PSetEntry) (viewChangePSet, error) {
 
 // The Q set of a PBFT view change message.
 // For each sequence number, it holds the digests (encoded as string map keys)
-// of all certificates preprepared for that sequence number,
+// of all values preprepared for that sequence number,
 // along with the latest view in which each of them was preprepared.
 type viewChangeQSet map[tt.SeqNr]map[string]types2.ViewNr
 
@@ -669,7 +669,7 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 				// Get the pbftSlot of sn in view (convenience variable)
 				slot := slots[sn]
 
-				// If a certificate was prepared for sn in view, add the corresponding entry to the PSet.
+				// If a value was prepared for sn in view, add the corresponding entry to the PSet.
 				// If there was an entry corresponding to an older view, it will be overwritten.
 				if slot.Prepared {
 					pSet[sn] = &pbftpbtypes.PSetEntry{
@@ -679,8 +679,8 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 					}
 				}
 
-				// If a certificate was preprepared for sn in view, add the corresponding entry to the QSet.
-				// If the same certificate has been preprepared in an older view, its entry will be overwritten.
+				// If a value was preprepared for sn in view, add the corresponding entry to the QSet.
+				// If the same value has been preprepared in an older view, its entry will be overwritten.
 				if slot.Preprepared {
 					qSet[sn][string(slot.Digest)] = view
 				}
