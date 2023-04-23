@@ -17,6 +17,7 @@ type dslModuleImpl struct {
 	moduleID                 t.ModuleID
 	defaultEventHandler      func(ev *eventpb.Event) error
 	eventHandlers            map[reflect.Type][]func(ev *eventpb.Event) error
+	stateUpdateHandlers      []func() error
 	stateUpdateBatchHandlers []func() error
 	outputEvents             *events.EventList
 	// contextStore is used to store and recover context on asynchronous operations such as signature verification.
@@ -98,14 +99,24 @@ func UponOtherEvent(m Module, handler func(ev *eventpb.Event) error) {
 	m.DslHandle().impl.defaultEventHandler = handler
 }
 
-// UponStateUpdates registers a special type of handler that is invoked each time after processing a batch of events.
+// UponStateUpdate registers a special type of handler that is invoked after the processing of every event.
 // The handler is intended to represent a conditional action: it is supposed to check some predicate on the state
 // and perform actions if the predicate is satisfied. This is, however, not enforced in any way, and the handler can
-// contain arbitrary code. Use with care.
+// contain arbitrary code. Use with care, especially if the execution overhead of the handler is not negligible.
+// Execution of these handlers might easily have a severe impact on performance.
+func UponStateUpdate(m Module, handler func() error) {
+	impl := m.DslHandle().impl
+	impl.stateUpdateHandlers = append(impl.stateUpdateHandlers, handler)
+}
+
+// UponStateUpdates registers a special type of handler that is invoked each time after processing a batch of events.
+// It is a less resource-intensive alternative to UponStateUpdate that is useful if intermediate states of the module
+// are not relevant (as not all intermediate states of the module are observed by handlers
+// registered using UponStateUpdates).
 //
 // ATTENTION: The handler always called after applying a *batch of* events, not after individual event application.
 // This can lead to unintuitive behavior. For example, a counter module maintaining an internal counter variable
-// that is incremented on every event could register a state update handler for counter == 10.
+// that is incremented on every event could register a state update handler checking for counter == 10.
 // Due to (unpredictable) event application batching, the counter can go from 0 to 20
 // without having triggered the condition handler, if events 10 and 11 are applied in the same batch.
 func UponStateUpdates(m Module, handler func() error) {
@@ -179,6 +190,14 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 		// Execute all handlers registered for the event type.
 		for _, h := range handlers {
 			err := h(ev)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Execute state update handlers.
+		for _, h := range m.stateUpdateHandlers {
+			err := h()
 			if err != nil {
 				return nil, err
 			}

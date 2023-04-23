@@ -114,6 +114,9 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
+	// TODO: Write tests for UponStateUpdate and especially
+	//   for the different behavior of UponStateUpdate and UponstateUpdates.
+
 	return m
 }
 
