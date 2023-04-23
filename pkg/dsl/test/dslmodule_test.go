@@ -76,7 +76,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	dsl.UponCondition(m, func() error {
+	dsl.UponStateUpdates(m, func() error {
 		if len(testingStrings) >= 3 {
 			dsl.EmitEvent(m, &eventpb.Event{
 				DestModule: "reports",
@@ -94,7 +94,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	dsl.UponCondition(m, func() error {
+	dsl.UponStateUpdates(m, func() error {
 		for uintsSum >= lastReportedUint+100 {
 			lastReportedUint += 100
 			dsl.EmitEvent(m, &eventpb.Event{
@@ -107,12 +107,15 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		return nil
 	})
 
-	dsl.UponCondition(m, func() error {
+	dsl.UponStateUpdates(m, func() error {
 		if uintsSum > 1000 {
 			return errors.New("too much")
 		}
 		return nil
 	})
+
+	// TODO: Write tests for UponStateUpdate and especially
+	//   for the different behavior of UponStateUpdate and UponstateUpdates.
 
 	return m
 }
