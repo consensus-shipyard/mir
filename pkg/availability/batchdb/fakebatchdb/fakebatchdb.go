@@ -3,7 +3,6 @@ package fakebatchdb
 import (
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	"github.com/filecoin-project/mir/pkg/modules"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
@@ -63,9 +62,6 @@ func NewModule(mc *ModuleConfig) modules.Module {
 
 	// On LookupBatch request, just check the local map.
 	batchdbpbdsl.UponLookupBatch(m, func(batchID msctypes.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
-		if emptybatchid.IsEmptyBatchID(batchID) {
-			batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, []*requestpbtypes.Request{}, origin)
-		}
 
 		info, found := state.BatchStore[msctypes.BatchIDString(batchID)]
 		if !found {
