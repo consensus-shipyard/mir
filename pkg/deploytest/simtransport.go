@@ -110,7 +110,8 @@ func (m *simTransportModule) Connect(_ *commonpbtypes.Membership) {
 }
 
 // WaitFor returns immediately, since the simulated transport does not need to wait for anything.
-func (m *simTransportModule) WaitFor(_ int) {
+func (m *simTransportModule) WaitFor(_ int) error {
+	return nil
 }
 
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
