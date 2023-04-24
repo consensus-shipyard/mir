@@ -24,7 +24,7 @@ message Event {
 message SnapshotRequest {
   option (mir.event) = true;
 
-  string reply_to = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];;
+  string reply_to = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
 }
 
 message Snapshot {
@@ -44,5 +44,3 @@ message NewEpoch {
 
   uint64 epoch_nr = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
 }
-
-

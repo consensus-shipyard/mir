@@ -1,10 +1,12 @@
 package mempoolpbdsl
 
 import (
+	types4 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,11 +23,11 @@ func RequestBatch[C any](m dsl.Module, destModule types.ModuleID, context *C) {
 	dsl.EmitMirEvent(m, events.RequestBatch(destModule, origin))
 }
 
-func NewBatch(m dsl.Module, destModule types.ModuleID, txIds [][]uint8, txs []*types2.Request, origin *types1.RequestBatchOrigin) {
+func NewBatch(m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, txs []*types3.Request, origin *types1.RequestBatchOrigin) {
 	dsl.EmitMirEvent(m, events.NewBatch(destModule, txIds, txs, origin))
 }
 
-func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, txIds [][]uint8, context *C) {
+func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.RequestTransactionsOrigin{
@@ -36,11 +38,11 @@ func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, txIds [
 	dsl.EmitMirEvent(m, events.RequestTransactions(destModule, txIds, origin))
 }
 
-func TransactionsResponse(m dsl.Module, destModule types.ModuleID, present []bool, txs []*types2.Request, origin *types1.RequestTransactionsOrigin) {
+func TransactionsResponse(m dsl.Module, destModule types.ModuleID, present []bool, txs []*types3.Request, origin *types1.RequestTransactionsOrigin) {
 	dsl.EmitMirEvent(m, events.TransactionsResponse(destModule, present, txs, origin))
 }
 
-func RequestTransactionIDs[C any](m dsl.Module, destModule types.ModuleID, txs []*types2.Request, context *C) {
+func RequestTransactionIDs[C any](m dsl.Module, destModule types.ModuleID, txs []*types3.Request, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.RequestTransactionIDsOrigin{
@@ -51,11 +53,11 @@ func RequestTransactionIDs[C any](m dsl.Module, destModule types.ModuleID, txs [
 	dsl.EmitMirEvent(m, events.RequestTransactionIDs(destModule, txs, origin))
 }
 
-func TransactionIDsResponse(m dsl.Module, destModule types.ModuleID, txIds [][]uint8, origin *types1.RequestTransactionIDsOrigin) {
+func TransactionIDsResponse(m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, origin *types1.RequestTransactionIDsOrigin) {
 	dsl.EmitMirEvent(m, events.TransactionIDsResponse(destModule, txIds, origin))
 }
 
-func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds [][]uint8, context *C) {
+func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.RequestBatchIDOrigin{
@@ -66,10 +68,10 @@ func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds [][]ui
 	dsl.EmitMirEvent(m, events.RequestBatchID(destModule, txIds, origin))
 }
 
-func BatchIDResponse(m dsl.Module, destModule types.ModuleID, batchId []uint8, origin *types1.RequestBatchIDOrigin) {
+func BatchIDResponse(m dsl.Module, destModule types.ModuleID, batchId types4.BatchID, origin *types1.RequestBatchIDOrigin) {
 	dsl.EmitMirEvent(m, events.BatchIDResponse(destModule, batchId, origin))
 }
 
-func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types2.Request) {
+func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types3.Request) {
 	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }

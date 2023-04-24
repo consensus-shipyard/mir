@@ -3,12 +3,14 @@ package mempoolpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types6 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -274,14 +276,16 @@ func (*RequestBatch) MirReflect() mirreflect.Type {
 }
 
 type NewBatch struct {
-	TxIds  [][]uint8
+	TxIds  []types2.TxID
 	Txs    []*types.Request
 	Origin *RequestBatchOrigin
 }
 
 func NewBatchFromPb(pb *mempoolpb.NewBatch) *NewBatch {
 	return &NewBatch{
-		TxIds: pb.TxIds,
+		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
+			return (types2.TxID)(t)
+		}),
 		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
 			return types.RequestFromPb(t)
 		}),
@@ -291,7 +295,9 @@ func NewBatchFromPb(pb *mempoolpb.NewBatch) *NewBatch {
 
 func (m *NewBatch) Pb() *mempoolpb.NewBatch {
 	return &mempoolpb.NewBatch{
-		TxIds: m.TxIds,
+		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+			return ([]uint8)(t)
+		}),
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
 			return (t).Pb()
 		}),
@@ -304,20 +310,24 @@ func (*NewBatch) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactions struct {
-	TxIds  [][]uint8
+	TxIds  []types2.TxID
 	Origin *RequestTransactionsOrigin
 }
 
 func RequestTransactionsFromPb(pb *mempoolpb.RequestTransactions) *RequestTransactions {
 	return &RequestTransactions{
-		TxIds:  pb.TxIds,
+		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
+			return (types2.TxID)(t)
+		}),
 		Origin: RequestTransactionsOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *RequestTransactions) Pb() *mempoolpb.RequestTransactions {
 	return &mempoolpb.RequestTransactions{
-		TxIds:  m.TxIds,
+		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+			return ([]uint8)(t)
+		}),
 		Origin: (m.Origin).Pb(),
 	}
 }
@@ -384,20 +394,24 @@ func (*RequestTransactionIDs) MirReflect() mirreflect.Type {
 }
 
 type TransactionIDsResponse struct {
-	TxIds  [][]uint8
+	TxIds  []types2.TxID
 	Origin *RequestTransactionIDsOrigin
 }
 
 func TransactionIDsResponseFromPb(pb *mempoolpb.TransactionIDsResponse) *TransactionIDsResponse {
 	return &TransactionIDsResponse{
-		TxIds:  pb.TxIds,
+		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
+			return (types2.TxID)(t)
+		}),
 		Origin: RequestTransactionIDsOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *TransactionIDsResponse) Pb() *mempoolpb.TransactionIDsResponse {
 	return &mempoolpb.TransactionIDsResponse{
-		TxIds:  m.TxIds,
+		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+			return ([]uint8)(t)
+		}),
 		Origin: (m.Origin).Pb(),
 	}
 }
@@ -407,20 +421,24 @@ func (*TransactionIDsResponse) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchID struct {
-	TxIds  [][]uint8
+	TxIds  []types2.TxID
 	Origin *RequestBatchIDOrigin
 }
 
 func RequestBatchIDFromPb(pb *mempoolpb.RequestBatchID) *RequestBatchID {
 	return &RequestBatchID{
-		TxIds:  pb.TxIds,
+		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
+			return (types2.TxID)(t)
+		}),
 		Origin: RequestBatchIDOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *RequestBatchID) Pb() *mempoolpb.RequestBatchID {
 	return &mempoolpb.RequestBatchID{
-		TxIds:  m.TxIds,
+		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+			return ([]uint8)(t)
+		}),
 		Origin: (m.Origin).Pb(),
 	}
 }
@@ -430,20 +448,20 @@ func (*RequestBatchID) MirReflect() mirreflect.Type {
 }
 
 type BatchIDResponse struct {
-	BatchId []uint8
+	BatchId types3.BatchID
 	Origin  *RequestBatchIDOrigin
 }
 
 func BatchIDResponseFromPb(pb *mempoolpb.BatchIDResponse) *BatchIDResponse {
 	return &BatchIDResponse{
-		BatchId: pb.BatchId,
+		BatchId: (types3.BatchID)(pb.BatchId),
 		Origin:  RequestBatchIDOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *BatchIDResponse) Pb() *mempoolpb.BatchIDResponse {
 	return &mempoolpb.BatchIDResponse{
-		BatchId: m.BatchId,
+		BatchId: ([]uint8)(m.BatchId),
 		Origin:  (m.Origin).Pb(),
 	}
 }
@@ -453,7 +471,7 @@ func (*BatchIDResponse) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchOrigin struct {
-	Module types2.ModuleID
+	Module types4.ModuleID
 	Type   RequestBatchOrigin_Type
 }
 
@@ -471,20 +489,20 @@ type RequestBatchOrigin_TypeWrapper[T any] interface {
 func RequestBatchOrigin_TypeFromPb(pb mempoolpb.RequestBatchOrigin_Type) RequestBatchOrigin_Type {
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestBatchOrigin_ContextStore:
-		return &RequestBatchOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestBatchOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *mempoolpb.RequestBatchOrigin_Dsl:
-		return &RequestBatchOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestBatchOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestBatchOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types5.Origin
 }
 
 func (*RequestBatchOrigin_ContextStore) isRequestBatchOrigin_Type() {}
 
-func (w *RequestBatchOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestBatchOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -497,12 +515,12 @@ func (*RequestBatchOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types6.Origin
 }
 
 func (*RequestBatchOrigin_Dsl) isRequestBatchOrigin_Type() {}
 
-func (w *RequestBatchOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestBatchOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -516,7 +534,7 @@ func (*RequestBatchOrigin_Dsl) MirReflect() mirreflect.Type {
 
 func RequestBatchOriginFromPb(pb *mempoolpb.RequestBatchOrigin) *RequestBatchOrigin {
 	return &RequestBatchOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestBatchOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -533,7 +551,7 @@ func (*RequestBatchOrigin) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionsOrigin struct {
-	Module types2.ModuleID
+	Module types4.ModuleID
 	Type   RequestTransactionsOrigin_Type
 }
 
@@ -551,20 +569,20 @@ type RequestTransactionsOrigin_TypeWrapper[T any] interface {
 func RequestTransactionsOrigin_TypeFromPb(pb mempoolpb.RequestTransactionsOrigin_Type) RequestTransactionsOrigin_Type {
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestTransactionsOrigin_ContextStore:
-		return &RequestTransactionsOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestTransactionsOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *mempoolpb.RequestTransactionsOrigin_Dsl:
-		return &RequestTransactionsOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestTransactionsOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestTransactionsOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types5.Origin
 }
 
 func (*RequestTransactionsOrigin_ContextStore) isRequestTransactionsOrigin_Type() {}
 
-func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -577,12 +595,12 @@ func (*RequestTransactionsOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionsOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types6.Origin
 }
 
 func (*RequestTransactionsOrigin_Dsl) isRequestTransactionsOrigin_Type() {}
 
-func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -596,7 +614,7 @@ func (*RequestTransactionsOrigin_Dsl) MirReflect() mirreflect.Type {
 
 func RequestTransactionsOriginFromPb(pb *mempoolpb.RequestTransactionsOrigin) *RequestTransactionsOrigin {
 	return &RequestTransactionsOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestTransactionsOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -613,7 +631,7 @@ func (*RequestTransactionsOrigin) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionIDsOrigin struct {
-	Module types2.ModuleID
+	Module types4.ModuleID
 	Type   RequestTransactionIDsOrigin_Type
 }
 
@@ -631,20 +649,20 @@ type RequestTransactionIDsOrigin_TypeWrapper[T any] interface {
 func RequestTransactionIDsOrigin_TypeFromPb(pb mempoolpb.RequestTransactionIDsOrigin_Type) RequestTransactionIDsOrigin_Type {
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestTransactionIDsOrigin_ContextStore:
-		return &RequestTransactionIDsOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestTransactionIDsOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *mempoolpb.RequestTransactionIDsOrigin_Dsl:
-		return &RequestTransactionIDsOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestTransactionIDsOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestTransactionIDsOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types5.Origin
 }
 
 func (*RequestTransactionIDsOrigin_ContextStore) isRequestTransactionIDsOrigin_Type() {}
 
-func (w *RequestTransactionIDsOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestTransactionIDsOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -657,12 +675,12 @@ func (*RequestTransactionIDsOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionIDsOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types6.Origin
 }
 
 func (*RequestTransactionIDsOrigin_Dsl) isRequestTransactionIDsOrigin_Type() {}
 
-func (w *RequestTransactionIDsOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestTransactionIDsOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -676,7 +694,7 @@ func (*RequestTransactionIDsOrigin_Dsl) MirReflect() mirreflect.Type {
 
 func RequestTransactionIDsOriginFromPb(pb *mempoolpb.RequestTransactionIDsOrigin) *RequestTransactionIDsOrigin {
 	return &RequestTransactionIDsOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestTransactionIDsOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -693,7 +711,7 @@ func (*RequestTransactionIDsOrigin) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchIDOrigin struct {
-	Module types2.ModuleID
+	Module types4.ModuleID
 	Type   RequestBatchIDOrigin_Type
 }
 
@@ -711,20 +729,20 @@ type RequestBatchIDOrigin_TypeWrapper[T any] interface {
 func RequestBatchIDOrigin_TypeFromPb(pb mempoolpb.RequestBatchIDOrigin_Type) RequestBatchIDOrigin_Type {
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestBatchIDOrigin_ContextStore:
-		return &RequestBatchIDOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestBatchIDOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *mempoolpb.RequestBatchIDOrigin_Dsl:
-		return &RequestBatchIDOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestBatchIDOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestBatchIDOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types5.Origin
 }
 
 func (*RequestBatchIDOrigin_ContextStore) isRequestBatchIDOrigin_Type() {}
 
-func (w *RequestBatchIDOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestBatchIDOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -737,12 +755,12 @@ func (*RequestBatchIDOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchIDOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types6.Origin
 }
 
 func (*RequestBatchIDOrigin_Dsl) isRequestBatchIDOrigin_Type() {}
 
-func (w *RequestBatchIDOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestBatchIDOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -756,7 +774,7 @@ func (*RequestBatchIDOrigin_Dsl) MirReflect() mirreflect.Type {
 
 func RequestBatchIDOriginFromPb(pb *mempoolpb.RequestBatchIDOrigin) *RequestBatchIDOrigin {
 	return &RequestBatchIDOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestBatchIDOrigin_TypeFromPb(pb.Type),
 	}
 }
