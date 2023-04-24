@@ -161,7 +161,7 @@ func (tr *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return conn.Send(msg)
 }
 
-func (tr *Transport) WaitFor(n int) {
+func (tr *Transport) WaitFor(n int) error {
 
 	tr.connectionsLock.RLock()
 
@@ -194,13 +194,15 @@ func (tr *Transport) WaitFor(n int) {
 		select {
 		case err := <-counterChan:
 			if err != nil {
-				return // TODO: Return an error here (adaptation of the Transport interface needed)
+				return err
 			}
 			numConnected++
 		case <-tr.stop:
-			return // TODO: Return the error here too.
+			return fmt.Errorf("transport stopped while waiting for connections")
 		}
 	}
+
+	return nil
 }
 
 func (tr *Transport) CloseOldConnections(newMembership *commonpbtypes.Membership) {

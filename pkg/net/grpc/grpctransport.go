@@ -394,7 +394,8 @@ func (gt *Transport) Connect(membership *commonpbtypes.Membership) {
 	wg.Wait()
 }
 
-func (gt *Transport) WaitFor(_ int) {
+func (gt *Transport) WaitFor(_ int) error {
+	return nil
 	// TODO: We return immediately here, as the Connect() function already waits for all connections to be established.
 	//       This is not right and should be done as in the libp2p transport.
 }

@@ -24,9 +24,9 @@ type Transport interface {
 	Connect(nodes *commonpbtypes.Membership)
 
 	// WaitFor waits until at least n connections (including the potentially virtual connection to self)
-	// have been established and returns.
-	// TODO: Redefine this method to also return when the Transport stops. Add an error return value to indicate this.
-	WaitFor(n int)
+	// have been established and returns nil.
+	// If the networking module is stopped while WaitFor is invoked, WaitFor returns a non-nil error.
+	WaitFor(n int) error
 
 	// CloseOldConnections closes connections to the nodes that don't needed.
 	CloseOldConnections(newNodes *commonpbtypes.Membership)
