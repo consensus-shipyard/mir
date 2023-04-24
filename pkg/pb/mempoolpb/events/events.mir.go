@@ -1,9 +1,11 @@
 package mempoolpbevents
 
 import (
+	types5 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -22,7 +24,7 @@ func RequestBatch(destModule types.ModuleID, origin *types1.RequestBatchOrigin) 
 	}
 }
 
-func NewBatch(destModule types.ModuleID, txIds [][]uint8, txs []*types3.Request, origin *types1.RequestBatchOrigin) *types2.Event {
+func NewBatch(destModule types.ModuleID, txIds []types3.TxID, txs []*types4.Request, origin *types1.RequestBatchOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -39,7 +41,7 @@ func NewBatch(destModule types.ModuleID, txIds [][]uint8, txs []*types3.Request,
 	}
 }
 
-func RequestTransactions(destModule types.ModuleID, txIds [][]uint8, origin *types1.RequestTransactionsOrigin) *types2.Event {
+func RequestTransactions(destModule types.ModuleID, txIds []types3.TxID, origin *types1.RequestTransactionsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -55,7 +57,7 @@ func RequestTransactions(destModule types.ModuleID, txIds [][]uint8, origin *typ
 	}
 }
 
-func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*types3.Request, origin *types1.RequestTransactionsOrigin) *types2.Event {
+func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*types4.Request, origin *types1.RequestTransactionsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -72,7 +74,7 @@ func TransactionsResponse(destModule types.ModuleID, present []bool, txs []*type
 	}
 }
 
-func RequestTransactionIDs(destModule types.ModuleID, txs []*types3.Request, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
+func RequestTransactionIDs(destModule types.ModuleID, txs []*types4.Request, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -88,7 +90,7 @@ func RequestTransactionIDs(destModule types.ModuleID, txs []*types3.Request, ori
 	}
 }
 
-func TransactionIDsResponse(destModule types.ModuleID, txIds [][]uint8, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
+func TransactionIDsResponse(destModule types.ModuleID, txIds []types3.TxID, origin *types1.RequestTransactionIDsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -104,7 +106,7 @@ func TransactionIDsResponse(destModule types.ModuleID, txIds [][]uint8, origin *
 	}
 }
 
-func RequestBatchID(destModule types.ModuleID, txIds [][]uint8, origin *types1.RequestBatchIDOrigin) *types2.Event {
+func RequestBatchID(destModule types.ModuleID, txIds []types3.TxID, origin *types1.RequestBatchIDOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -120,7 +122,7 @@ func RequestBatchID(destModule types.ModuleID, txIds [][]uint8, origin *types1.R
 	}
 }
 
-func BatchIDResponse(destModule types.ModuleID, batchId []uint8, origin *types1.RequestBatchIDOrigin) *types2.Event {
+func BatchIDResponse(destModule types.ModuleID, batchId types5.BatchID, origin *types1.RequestBatchIDOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
@@ -136,7 +138,7 @@ func BatchIDResponse(destModule types.ModuleID, batchId []uint8, origin *types1.
 	}
 }
 
-func NewRequests(destModule types.ModuleID, requests []*types3.Request) *types2.Event {
+func NewRequests(destModule types.ModuleID, requests []*types4.Request) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{

@@ -254,8 +254,8 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 	}
 
 	// Check if the field is repeated.
-	if goType.Kind() == reflect.Slice {
-		underlying, err := p.getFieldType(goType.Elem(), protoField, ps)
+	if protoField.IsList() && ps != listEl {
+		underlying, err := p.getFieldType(goType.Elem(), protoField, listEl)
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +271,7 @@ func (p *Parser) getFieldType(goType reflect.Type, protoField protoreflect.Field
 		return Error{}, nil
 	}
 
-	if ps != defaultParserState {
+	if ps != defaultParserState && ps != listEl {
 		if mirTypeOption != "" {
 			return nil, fmt.Errorf("mir.type option cannot be used on maps")
 		}
@@ -310,4 +310,5 @@ const (
 	defaultParserState = iota
 	mapKey
 	mapValue
+	listEl
 )

@@ -31,7 +31,7 @@ message Event {
 message LookupBatch {
   option (mir.event) = true;
 
-  bytes             batch_id = 1;
+  bytes             batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   LookupBatchOrigin origin   = 2 [(mir.origin_request) = true];
 }
 
@@ -48,8 +48,8 @@ message LookupBatchResponse {
 message StoreBatch {
   option (mir.event) = true;
 
-  bytes                      batch_id = 1;
-  repeated bytes             tx_ids   = 2;
+  bytes                      batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
+  repeated bytes             tx_ids   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxID"];
   repeated requestpb.Request txs      = 3;
   bytes                      metadata = 4; // not used at the moment
   StoreBatchOrigin           origin   = 5 [(mir.origin_request) = true];
@@ -84,7 +84,7 @@ message StoreBatchOrigin {
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof Type {
     option (mir.event_type) = true;
-    
+
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
   }

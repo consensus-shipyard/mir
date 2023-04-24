@@ -32,6 +32,8 @@ linters-settings:
 
 run:
   timeout: 5m
+  skip-dirs:
+    - pkg/pb # Skip generated files
 
 issues:
   exclude-rules:
