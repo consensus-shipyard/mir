@@ -259,21 +259,24 @@ func (*SBDeliver) MirReflect() mirreflect.Type {
 }
 
 type DeliverCert struct {
-	Sn   types3.SeqNr
-	Cert *types5.Cert
+	Sn    types3.SeqNr
+	Cert  *types5.Cert
+	Empty bool
 }
 
 func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
 	return &DeliverCert{
-		Sn:   (types3.SeqNr)(pb.Sn),
-		Cert: types5.CertFromPb(pb.Cert),
+		Sn:    (types3.SeqNr)(pb.Sn),
+		Cert:  types5.CertFromPb(pb.Cert),
+		Empty: pb.Empty,
 	}
 }
 
 func (m *DeliverCert) Pb() *isspb.DeliverCert {
 	return &isspb.DeliverCert{
-		Sn:   (uint64)(m.Sn),
-		Cert: (m.Cert).Pb(),
+		Sn:    (uint64)(m.Sn),
+		Cert:  (m.Cert).Pb(),
+		Empty: m.Empty,
 	}
 }
 

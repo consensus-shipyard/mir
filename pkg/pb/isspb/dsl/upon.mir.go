@@ -35,9 +35,9 @@ func UponSBDeliver(m dsl.Module, handler func(sn types2.SeqNr, data []uint8, abo
 	})
 }
 
-func UponDeliverCert(m dsl.Module, handler func(sn types2.SeqNr, cert *types4.Cert) error) {
+func UponDeliverCert(m dsl.Module, handler func(sn types2.SeqNr, cert *types4.Cert, empty bool) error) {
 	UponEvent[*types.Event_DeliverCert](m, func(ev *types.DeliverCert) error {
-		return handler(ev.Sn, ev.Cert)
+		return handler(ev.Sn, ev.Cert, ev.Empty)
 	})
 }
 

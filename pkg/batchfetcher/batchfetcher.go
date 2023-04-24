@@ -87,7 +87,7 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	isspbdsl.UponDeliverCert(m, func(sn tt.SeqNr, cert *apbtypes.Cert) error {
+	isspbdsl.UponDeliverCert(m, func(sn tt.SeqNr, cert *apbtypes.Cert, empty bool) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.
@@ -110,8 +110,7 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 		}
 		output.Enqueue(&item)
 
-		//TODO cleanup check for empty certificates and make consistent across modules
-		if cert.Type == nil {
+		if empty {
 			// Skip fetching transactions for padding certificates.
 			// Directly deliver an empty batch instead.
 			item.event = bfeventstypes.NewOrderedBatch(mc.Destination, []*requestpbtypes.Request{}).Pb()
