@@ -1,6 +1,8 @@
 package orderers
 
 import (
+	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/orderers/types"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
@@ -13,12 +15,20 @@ import (
 // It is used to parametrize an orderer (i.e. the SB instance).
 type Segment ordererpbtypes.PBFTSegment
 
-func NewSegment(leader t.NodeID, membership *commonpbtypes.Membership, proposals map[tt.SeqNr][]byte) *Segment {
+func NewSegment(
+	leader t.NodeID,
+	membership *commonpbtypes.Membership,
+	proposals map[tt.SeqNr][]byte,
+) (*Segment, error) {
+	if _, ok := membership.Nodes[leader]; !ok {
+		return nil, fmt.Errorf("leader (%v) not in membership (%v)", leader, maputil.GetKeys(membership.Nodes))
+	}
+
 	return (*Segment)(&ordererpbtypes.PBFTSegment{
 		Leader:     leader,
 		Membership: membership,
 		Proposals:  proposals,
-	})
+	}), nil
 }
 
 func (seg *Segment) PbType() *ordererpbtypes.PBFTSegment {
@@ -43,6 +53,7 @@ func (seg *Segment) LeaderIndex() int {
 			return i
 		}
 	}
+	// Not returning an error here, since if we reach this line, there is an error in this very file.
 	panic("invalid segment: leader not in membership")
 }
 

@@ -19,21 +19,21 @@ type LocalTransportLayer interface {
 
 // NewLocalTransportLayer creates an instance of LocalTransportLayer suitable for tests.
 // transportType is one of: "sim", "fake", "grpc", or "libp2p".
-func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDs []t.NodeID, logger logging.Logger) LocalTransportLayer {
+func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDs []t.NodeID, logger logging.Logger) (LocalTransportLayer, error) {
 	switch transportType {
 	case "sim":
 		messageDelayFn := func(from, to t.NodeID) time.Duration {
 			// TODO: Make min and max message delay configurable
 			return testsim.RandDuration(sim.Rand, 0, 10*time.Millisecond)
 		}
-		return NewSimTransport(sim, nodeIDs, messageDelayFn)
+		return NewSimTransport(sim, nodeIDs, messageDelayFn), nil
 	case "fake":
-		return NewFakeTransport(nodeIDs)
+		return NewFakeTransport(nodeIDs), nil
 	case "grpc":
 		return NewLocalGrpcTransport(nodeIDs, logger)
 	case "libp2p":
-		return NewLocalLibp2pTransport(nodeIDs, logger)
+		return NewLocalLibp2pTransport(nodeIDs, logger), nil
 	default:
-		panic(fmt.Sprintf("unexpected transport type: %v", transportType))
+		return nil, fmt.Errorf("unexpected transport type: %v", transportType)
 	}
 }

@@ -111,7 +111,10 @@ func runNode() error {
 	// Initialize the libp2p transport subsystem.
 	transport := libp2p2.NewTransport(smrParams.Net, ownID, h, logger)
 
-	localCrypto := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
+	localCrypto, err := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger).Crypto(ownID)
+	if err != nil {
+		return fmt.Errorf("could not create a local crypto system: %w", err)
+	}
 	genesisCheckpoint, err := trantor.GenesisCheckpoint([]byte{}, smrParams)
 	if err != nil {
 		return fmt.Errorf("could not create genesis checkpoint: %w", err)
@@ -120,7 +123,7 @@ func runNode() error {
 		ownID,
 		transport,
 		genesisCheckpoint,
-		localCrypto.Crypto(ownID),
+		localCrypto,
 		&App{Logger: logger, Membership: initialMembership},
 		smrParams,
 		logger,

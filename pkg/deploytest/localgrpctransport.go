@@ -24,7 +24,7 @@ type LocalGrpcTransport struct {
 	logger logging.Logger
 }
 
-func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpcTransport {
+func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) (*LocalGrpcTransport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -34,12 +34,12 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalGrpc
 	for i, id := range nodeIDs {
 		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", BaseListenPort+i))
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("error creating local multiaddress: %w", err)
 		}
 		membership.Nodes[id] = &commonpbtypes.NodeIdentity{id, maddr.String(), nil, 0} // nolint:govet
 	}
 
-	return &LocalGrpcTransport{membership, logger}
+	return &LocalGrpcTransport{membership, logger}, nil
 }
 
 func (t *LocalGrpcTransport) Link(sourceID t.NodeID) (net.Transport, error) {

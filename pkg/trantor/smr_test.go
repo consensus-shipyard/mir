@@ -351,7 +351,10 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		}
 		simulation = deploytest.NewSimulation(r, nodeIDs, eventDelayFn)
 	}
-	transportLayer := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
+	transportLayer, err := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
+	if err != nil {
+		return nil, fmt.Errorf("error creating local transport system: %w", err)
+	}
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
 
 	nodeModules := make(map[t.NodeID]modules.Modules)
@@ -384,11 +387,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error initializing Mir state snapshot: %w", err)
 		}
 
+		localCrypto, err := cryptoSystem.Crypto(nodeID)
+		if err != nil {
+			return nil, fmt.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
+		}
+
 		system, err := New(
 			nodeID,
 			transport,
 			checkpoint.Genesis(stateSnapshotpb),
-			cryptoSystem.Crypto(nodeID),
+			localCrypto,
 			AppLogicFromStatic(fakeApp, transportLayer.Membership()),
 			Params{
 				Mempool: &simplemempool.ModuleParams{
