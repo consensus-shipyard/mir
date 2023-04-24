@@ -217,9 +217,7 @@ func New(
 		)
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
-		iss.startEpoch(iss.lastStableCheckpoint.Epoch())
-
-		return nil
+		return iss.startEpoch(iss.lastStableCheckpoint.Epoch())
 	})
 
 	// Upon SBDeliver event, process the event of an SB instance delivering data.
@@ -348,13 +346,18 @@ func New(
 			return fmt.Errorf("failed serializing stable checkpoint: %w", err)
 		}
 
+		seg, err := orderers.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
+		if err != nil {
+			return fmt.Errorf("error creating new segment: %w", err)
+		}
+
 		// Instantiate a new PBFT orderer.
 		factorypbdsl.NewModule(iss.m,
 			iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
 			tt.RetentionIndex(epoch),
 			orderers.InstanceParams(
-				orderers.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData}),
+				seg,
 				"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
 				epoch,
 				orderers.CheckpointValidityChecker,
@@ -494,7 +497,9 @@ func New(
 		// Start executing the current epoch (the one the checkpoint corresponds to).
 		// This must happen after the state is restored,
 		// so the application has the correct state for returning the next configuration.
-		iss.startEpoch(chkp.Epoch())
+		if err := iss.startEpoch(chkp.Epoch()); err != nil {
+			return fmt.Errorf("error starting epoch %v: %w", chkp.Epoch(), err)
+		}
 
 		// Deliver the checkpoint to the application in the proper epoch.
 		// Technically, this could be made redundant, since it is the same checkpoint the application is restoring from.
@@ -580,7 +585,7 @@ func InitialStateSnapshot(
 // startEpoch emits the events necessary for a new epoch to start operating.
 // This includes informing the application about the new epoch and initializing all the necessary external modules
 // such as availability and orderers.
-func (iss *ISS) startEpoch(epochNr tt.EpochNr) {
+func (iss *ISS) startEpoch(epochNr tt.EpochNr) error {
 
 	// Initialize the internal data structures for the new epoch.
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, iss.memberships[0], iss.LeaderPolicy)
@@ -599,7 +604,7 @@ func (iss *ISS) startEpoch(epochNr tt.EpochNr) {
 	iss.initAvailability()
 
 	// Initialize the orderer modules for the current epoch.
-	iss.initOrderers()
+	return iss.initOrderers()
 }
 
 // initAvailability emits an event for the availability module to create a new submodule
@@ -627,7 +632,7 @@ func (iss *ISS) initAvailability() {
 }
 
 // initOrderers sends the SBInit event to all orderers in the current epoch.
-func (iss *ISS) initOrderers() {
+func (iss *ISS) initOrderers() error {
 
 	leaders := iss.epoch.leaderPolicy.Leaders()
 	for i, leader := range leaders {
@@ -635,7 +640,10 @@ func (iss *ISS) initOrderers() {
 		// Create segment.
 		// The sequence proposals are all set to nil, so that the orderer proposes new availability certificates.
 		proposals := freeProposals(iss.nextDeliveredSN+tt.SeqNr(i), tt.SeqNr(len(leaders)), iss.Params.SegmentLength)
-		seg := orderers.NewSegment(leader, iss.epoch.Membership, proposals)
+		seg, err := orderers.NewSegment(leader, iss.epoch.Membership, proposals)
+		if err != nil {
+			return fmt.Errorf("error creating new segment: %w", err)
+		}
 		iss.newEpochSN += tt.SeqNr(seg.Len())
 
 		// Instantiate a new PBFT orderer.
@@ -653,6 +661,8 @@ func (iss *ISS) initOrderers() {
 		iss.epoch.Segments = append(iss.epoch.Segments, seg)
 
 	}
+
+	return nil
 }
 
 // hasEpochCheckpoint returns true if the current epoch's checkpoint protocol has already produced a stable checkpoint.
@@ -755,7 +765,9 @@ func (iss *ISS) advanceEpoch() error {
 	// must already be in the new epoch when processing the state snapshot request
 	// emitted by the checkpoint sub-protocol
 	// (startEpoch emits an event for the application making it transition to the new epoch).
-	iss.startEpoch(newEpochNr)
+	if err := iss.startEpoch(newEpochNr); err != nil {
+		return fmt.Errorf("error starting epoch %v: %w", newEpochNr, err)
+	}
 
 	// Create a new checkpoint tracker to start the checkpointing protocol.
 	// This must happen after initialization of the new epoch,

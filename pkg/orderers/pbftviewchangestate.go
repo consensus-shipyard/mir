@@ -1,6 +1,8 @@
 package orderers
 
 import (
+	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -127,7 +129,7 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepares(view types.ViewNr, propo
 	return dataToHash
 }
 
-func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) {
+func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) error {
 	// Index of the next digest to assign.
 	i := 0
 
@@ -144,8 +146,10 @@ func (vcState *pbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) 
 
 	// Sanity check (all digests must have been used)
 	if i != len(digests) {
-		panic("more digests than empty preprepares")
+		return fmt.Errorf("more digests than empty preprepares")
 	}
+
+	return nil
 }
 
 func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view types.ViewNr) {
