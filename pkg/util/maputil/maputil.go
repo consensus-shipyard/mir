@@ -16,6 +16,15 @@ func GetKeys[K comparable, V any](m map[K]V) []K {
 	return keys
 }
 
+// GetValues returns a slice containing all values of map m in arbitrary order.
+func GetValues[K comparable, V any](m map[K]V) []V {
+	vals := make([]V, 0, len(m))
+	for _, v := range m {
+		vals = append(vals, v)
+	}
+	return vals
+}
+
 func GetSortedKeys[K constraints.Ordered, V any](m map[K]V) []K {
 	keys := GetKeys(m)
 	sort.Slice(keys, func(i, j int) bool {
@@ -109,10 +118,13 @@ func FromSlices[K comparable, V any](keys []K, vals []V) map[K]V {
 	return m
 }
 
-func FindAndDeleteAll[K comparable, V any](m map[K]V, f func(key K, value V) bool) {
+func RemoveAll[K comparable, V any](m map[K]V, f func(key K, value V) bool) map[K]V {
+	removed := make(map[K]V)
 	for k, v := range m {
 		if f(k, v) {
+			removed[k] = v
 			delete(m, k)
 		}
 	}
+	return removed
 }

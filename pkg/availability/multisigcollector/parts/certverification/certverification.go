@@ -9,8 +9,6 @@ import (
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
-
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 
@@ -56,29 +54,25 @@ func IncludeVerificationOfCertificates(
 			return nil
 		}
 
+		// An empty certificate (i.e., one certifying the availability of no transactions) is always valid.
+		if len(mscCerts) == 0 {
+			apbdsl.CertVerified(m, origin.Module, true, "", origin)
+			return nil
+		}
+
 		state.RequestState[reqID] = &RequestState{
 			certVerifiedValid: make(map[msctypes.BatchIDString]bool),
 		}
 
-		allEmpty := true
 		for _, mscCert := range mscCerts {
-			if !emptycert.IsEmpty(mscCert) {
-				allEmpty = false
-				state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(mscCert.BatchId)] = false
-				sigMsg := common.SigData(params.InstanceUID, mscCert.BatchId)
-				cryptopbdsl.VerifySigs(m, mc.Crypto,
-					/*data*/ sliceutil.Repeat(sigMsg, len(mscCert.Signers)),
-					/*signatures*/ mscCert.Signatures,
-					/*nodeIDs*/ mscCert.Signers,
-					/*context*/ &verifySigsInCertContext{origin, reqID, mscCert},
-				)
-			}
-		}
-
-		if allEmpty {
-			// all certs are empty cert, verify immediately
-			apbdsl.CertVerified(m, origin.Module, true, "", origin)
-			delete(state.RequestState, reqID)
+			state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(mscCert.BatchId)] = false
+			sigData := common.SigData(params.InstanceUID, mscCert.BatchId)
+			cryptopbdsl.VerifySigs(m, mc.Crypto,
+				/*data*/ sliceutil.Repeat(sigData, len(mscCert.Signers)),
+				/*signatures*/ mscCert.Signatures,
+				/*nodeIDs*/ mscCert.Signers,
+				/*context*/ &verifySigsInCertContext{origin, reqID, mscCert},
+			)
 		}
 
 		return nil
@@ -136,9 +130,6 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 	for _, mscCert := range mscCerts {
 
-		if emptycert.IsEmpty(mscCert) {
-			continue
-		}
 		// Check that the certificate contains a sufficient number of signatures.
 		if len(mscCert.Signers) < params.F+1 {
 			return nil, fmt.Errorf("insuficient number of signatures: %d, need %d", len(mscCert.Signers), params.F+1)

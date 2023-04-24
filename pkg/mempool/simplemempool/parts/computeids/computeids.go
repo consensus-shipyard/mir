@@ -5,7 +5,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/emptybatchid"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
@@ -42,14 +41,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
-		data := make([][]byte, len(txIDs))
-		copy(data, txIDs)
-
-		if len(txIDs) == 0 {
-			mppbdsl.BatchIDResponse(m, origin.Module, emptybatchid.EmptyBatchID(), origin)
-		}
-
-		hasherpbdsl.RequestOne(m, mc.Hasher, &commonpbtypes.HashData{Data: data}, &computeHashForBatchIDContext{origin})
+		hasherpbdsl.RequestOne(m, mc.Hasher, &commonpbtypes.HashData{Data: txIDs}, &computeHashForBatchIDContext{origin})
 		return nil
 	})
 
