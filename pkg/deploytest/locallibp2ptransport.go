@@ -50,7 +50,7 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 
 func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	if _, ok := t.hosts[sourceID]; !ok {
-		panic(fmt.Errorf("unexpected node id: %v", sourceID))
+		return nil, fmt.Errorf("unexpected node id: %v", sourceID)
 	}
 
 	return libp2p.NewTransport(

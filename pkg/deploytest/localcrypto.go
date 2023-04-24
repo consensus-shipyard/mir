@@ -1,8 +1,6 @@
 package deploytest
 
 import (
-	"fmt"
-
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -10,8 +8,8 @@ import (
 )
 
 type LocalCryptoSystem interface {
-	Crypto(id t.NodeID) mirCrypto.Crypto
-	Module(id t.NodeID) modules.Module
+	Crypto(id t.NodeID) (mirCrypto.Crypto, error)
+	Module(id t.NodeID) (modules.Module, error)
 }
 
 type localPseudoCryptoSystem struct {
@@ -24,14 +22,14 @@ func NewLocalCryptoSystem(_ string, nodeIDs []t.NodeID, _ logging.Logger) LocalC
 	return &localPseudoCryptoSystem{nodeIDs}
 }
 
-func (cs *localPseudoCryptoSystem) Crypto(id t.NodeID) mirCrypto.Crypto {
-	cryptoImpl, err := mirCrypto.InsecureCryptoForTestingOnly(cs.nodeIDs, id, mirCrypto.DefaultPseudoSeed)
-	if err != nil {
-		panic(fmt.Sprintf("error creating crypto module: %v", err))
-	}
-	return cryptoImpl
+func (cs *localPseudoCryptoSystem) Crypto(id t.NodeID) (mirCrypto.Crypto, error) {
+	return mirCrypto.InsecureCryptoForTestingOnly(cs.nodeIDs, id, mirCrypto.DefaultPseudoSeed)
 }
 
-func (cs *localPseudoCryptoSystem) Module(id t.NodeID) modules.Module {
-	return mirCrypto.New(cs.Crypto(id))
+func (cs *localPseudoCryptoSystem) Module(id t.NodeID) (modules.Module, error) {
+	c, err := cs.Crypto(id)
+	if err != nil {
+		return nil, err
+	}
+	return mirCrypto.New(c), nil
 }
