@@ -10,8 +10,6 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/emptycert"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
@@ -55,6 +53,19 @@ func IncludeBatchReconstruction(
 		//TODO this switch might be removable with some refactoring
 		// NOTE: it is assumed that cert is valid.
 
+		mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
+		if !ok {
+			return fmt.Errorf("unexpected certificate type")
+		}
+		certs := mscCertsWrapper.Mscs.Certs
+
+		// An empty certificate (i.e., one certifying the availability of no transactions)
+		// corresponds to an empty list of transactions. Respond immediately.
+		if len(certs) == 0 {
+			apbdsl.ProvideTransactions(m, origin.Module, []*requestpbtypes.Request{}, origin)
+			return nil
+		}
+
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.RequestState[reqID] = &RequestState{
@@ -63,31 +74,11 @@ func IncludeBatchReconstruction(
 			ReqOrigin:     origin,
 		}
 
-		mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
-		if !ok {
-			return fmt.Errorf("unexpected certificate type")
-		}
-		certs := mscCertsWrapper.Mscs
-
-		nonEmptyCerts := make([]*mscpbtypes.Cert, 0)
-		for _, c := range certs.Certs {
-			if !emptycert.IsEmpty(c) {
-				nonEmptyCerts = append(nonEmptyCerts, c) // do not add to requests
-			}
-		}
-
-		if len(nonEmptyCerts) > 0 {
-			for _, c := range nonEmptyCerts {
-				batchIDString := msctypes.BatchIDString(c.BatchId)
-				state.RequestState[reqID].NonEmptyCerts = append(state.RequestState[reqID].NonEmptyCerts, batchIDString) // save the order in which the batches were decided
-				state.RequestState[reqID].Txs[batchIDString] = nil
-				batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
-
-			}
-		} else {
-			// give empty batch and delete request
-			apbdsl.ProvideTransactions(m, origin.Module, []*requestpbtypes.Request{}, origin)
-			delete(state.RequestState, reqID)
+		for _, c := range certs {
+			batchIDString := msctypes.BatchIDString(c.BatchId)
+			state.RequestState[reqID].NonEmptyCerts = append(state.RequestState[reqID].NonEmptyCerts, batchIDString) // save the order in which the batches were decided
+			state.RequestState[reqID].Txs[batchIDString] = nil
+			batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
 		}
 
 		return nil
