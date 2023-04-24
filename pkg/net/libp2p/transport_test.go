@@ -732,12 +732,13 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 	t.Log(">>> connecting nodes")
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
-	a.WaitFor(2)
+	err := a.WaitFor(2)
+	require.NoError(t, err)
 	m.testEventuallyConnected(nodeA, nodeB)
 
 	t.Log(">>> sending messages")
 	nodeBEventsChan := b.EventsOut()
-	err := a.Send(nodeB, testMsg.Pb())
+	err = a.Send(nodeB, testMsg.Pb())
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -809,10 +810,11 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 	m.testEventuallyConnected(nodeA, nodeB)
-	a.WaitFor(2)
+	err := a.WaitFor(2)
+	require.NoError(t, err)
 
 	t.Log(">>> send a message")
-	err := a.Send(nodeB, testMsg.Pb())
+	err = a.Send(nodeB, testMsg.Pb())
 	require.NoError(t, err)
 
 	nodeBEventsChan := b.incomingMessages
