@@ -25,7 +25,9 @@ type pbftViewChangeState struct {
 	// At initialization, an explicit nil entry is created for each sequence number of the segment.
 	// Based on received ViewChange messages, each value will eventually be set to
 	// - either a non-zero-length byte slice representing a digest to be re-proposed
-	// - or a zero-length byte slice marking it safe to re-propose a special "null" certificate.
+	// - or a zero-length byte slice marking it safe to re-propose a special fresh value
+	// (in the current implementation, the fresh value is a pre-configured proposal
+	// or, if none has been specified, an empty byte slice).
 	reproposals map[tt.SeqNr][]byte
 
 	// Preprepare messages to be reproposed in the new view.

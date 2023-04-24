@@ -40,9 +40,9 @@ type requestState struct {
 }
 
 type certificate struct {
-	batchID      msctypes.BatchID
-	sigs         map[t.NodeID][]byte
-	RreceivedSig map[t.NodeID]bool
+	batchID     msctypes.BatchID
+	sigs        map[t.NodeID][]byte
+	receivedSig map[t.NodeID]bool
 }
 
 // IncludeCreatingCertificates registers event handlers for processing availabilitypb.RequestCert events.
@@ -70,8 +70,8 @@ func IncludeCreatingCertificates(
 		reqID := state.nextReqID
 		state.nextReqID++
 		state.certificates[reqID] = &certificate{
-			RreceivedSig: make(map[t.NodeID]bool),
-			sigs:         make(map[t.NodeID][]byte),
+			receivedSig: make(map[t.NodeID]bool),
+			sigs:        make(map[t.NodeID][]byte),
 		}
 		mempooldsl.RequestBatch(m, mc.Mempool, &requestBatchFromMempoolContext{reqID})
 		return nil
@@ -134,8 +134,8 @@ func IncludeCreatingCertificates(
 			return nil
 		}
 
-		if !cert.RreceivedSig[from] {
-			cert.RreceivedSig[from] = true
+		if !cert.receivedSig[from] {
+			cert.receivedSig[from] = true
 			sigData := common.SigData(params.InstanceUID, cert.batchID)
 			cryptopbdsl.VerifySig(m, mc.Crypto, sigData, signature, from, &verifySigContext{reqID, signature})
 		}

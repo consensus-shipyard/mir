@@ -72,8 +72,9 @@ message SBDeliver {
 message DeliverCert {
   option (mir.event) = true;
 
-  uint64              sn   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
-  availabilitypb.Cert cert = 2;
+  uint64              sn    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
+  availabilitypb.Cert cert  = 2;
+  bool                empty = 3;
 }
 
 message NewConfig {
