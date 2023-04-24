@@ -40,8 +40,8 @@ type requestState struct {
 }
 
 type certificate struct {
-	batchID      msctypes.BatchID
-	sigs         map[t.NodeID][]byte
+	batchID     msctypes.BatchID
+	sigs        map[t.NodeID][]byte
 	receivedSig map[t.NodeID]bool
 }
 
@@ -71,7 +71,7 @@ func IncludeCreatingCertificates(
 		state.nextReqID++
 		state.certificates[reqID] = &certificate{
 			receivedSig: make(map[t.NodeID]bool),
-			sigs:         make(map[t.NodeID][]byte),
+			sigs:        make(map[t.NodeID][]byte),
 		}
 		mempooldsl.RequestBatch(m, mc.Mempool, &requestBatchFromMempoolContext{reqID})
 		return nil
@@ -154,9 +154,9 @@ func IncludeCreatingCertificates(
 			return nil
 		}
 
-		cert.Sigs[nodeID] = context.signature
+		cert.sigs[nodeID] = context.signature
 
-		newDue := len(cert.Sigs) >= params.F+1 // keep this here...
+		newDue := len(cert.sigs) >= params.F+1 // keep this here...
 
 		if len(state.requestStates) > 0 {
 			respondIfReady(m, &state, params) // ... because this call changes the state
