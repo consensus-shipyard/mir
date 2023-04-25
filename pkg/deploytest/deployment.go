@@ -32,7 +32,7 @@ const (
 	// A node with numeric ID id will listen on port (BaseListenPort + id)
 	BaseListenPort = 10000
 
-	// RequestListenPort is the port number on which nodes' RequestReceivers listen for incoming requests.
+	// RequestListenPort is the port number on which nodes' Transactionreceivers listen for incoming requests.
 	RequestListenPort = 20000
 )
 
@@ -217,7 +217,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 		go func(c *dummyclient.DummyClient) {
 			defer clientWg.Done()
 
-			c.Connect(ctx2, d.localRequestReceiverAddrs())
+			c.Connect(ctx2, d.localTransactionreceiverAddrs())
 			submitDummyRequests(ctx2, c, d.TestConfig.NumNetRequests)
 			c.Disconnect()
 		}(client)
@@ -255,11 +255,11 @@ func (d *Deployment) EventLogFiles() map[t.NodeID]string {
 	return logFiles
 }
 
-// localRequestReceiverAddrs computes network addresses and ports for the RequestReceivers at all replicas and returns
+// localTransactionreceiverAddrs computes network addresses and ports for the Transactionreceivers at all replicas and returns
 // an address map.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // Each test replica is on the local machine - 127.0.0.1
-func (d *Deployment) localRequestReceiverAddrs() map[t.NodeID]string {
+func (d *Deployment) localTransactionreceiverAddrs() map[t.NodeID]string {
 
 	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for i, tr := range d.TestReplicas {

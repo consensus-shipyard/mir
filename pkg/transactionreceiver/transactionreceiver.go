@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package requestreceiver
+package transactionreceiver
 
 import (
 	"fmt"
@@ -24,13 +24,13 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-type RequestReceiver struct {
-	UnimplementedRequestReceiverServer
+type TransactionReceiver struct {
+	UnimplementedTransactionReceiverServer
 
-	// The Node to which to submit the received requests.
+	// The Node to which to submit the received transactions.
 	node *mir.Node
 
-	// The ID of the module to which to submit the received requests.
+	// The ID of the module to which to submit the received transactions.
 	moduleID t.ModuleID
 
 	// The gRPC server used by this networking module.
@@ -43,21 +43,21 @@ type RequestReceiver struct {
 	// Error returned from the grpcServer.Serve() call (see Start() method).
 	grpcServerError error
 
-	// Logger use for all logging events of this RequestReceiver
+	// Logger use for all logging events of this TransactionReceiver
 	logger logging.Logger
 }
 
-// NewRequestReceiver returns a new initialized request receiver.
-// The returned RequestReceiver is not yet running (able to receive requests).
+// NewTransactionReceiver returns a new initialized transaction receiver.
+// The returned TransactionReceiver is not yet running (able to receive transactions).
 // This needs to be done explicitly by calling the Start() method.
-// For the requests to be processed by passed Node, the Node must also be running.
-func NewRequestReceiver(node *mir.Node, moduleID t.ModuleID, logger logging.Logger) *RequestReceiver {
+// For the transactions to be processed by passed Node, the Node must also be running.
+func NewTransactionReceiver(node *mir.Node, moduleID t.ModuleID, logger logging.Logger) *TransactionReceiver {
 	// If no logger was given, only write errors to the console.
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 
-	return &RequestReceiver{
+	return &TransactionReceiver{
 		node:     node,
 		moduleID: moduleID,
 		logger:   logger,
@@ -66,10 +66,10 @@ func NewRequestReceiver(node *mir.Node, moduleID t.ModuleID, logger logging.Logg
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
 // It receives messages from the gRPC client running on the Mir client
-// and submits them to the Node associated with this RequestReceiver.
+// and submits them to the Node associated with this TransactionReceiver.
 // This function is called by the gRPC system on every new connection
 // from a Mir client's gRPC client.
-func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
+func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) error {
 
 	// Print address of incoming connection.
 	p, ok := peer.FromContext(srv.Context())
@@ -83,26 +83,26 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 	var err error
 	var req *trantorpb.Transaction
 
-	// For each received request
+	// For each received transaction
 	for req, err = srv.Recv(); err == nil; req, err = srv.Recv() {
 
-		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.TxNo)
+		rr.logger.Log(logging.LevelInfo, "Received transaction", "clId", req.ClientId, "reqNo", req.TxNo)
 
-		// Submit the request to the Node.
+		// Submit the transaction to the Node.
 		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewRequests(
 			rr.moduleID,
 			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(req)},
 		).Pb())); srErr != nil {
 
-			// If submitting fails, stop receiving further request (and close connection).
-			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%v-%d): %v. Closing connection.",
+			// If submitting fails, stop receiving further transaction (and close connection).
+			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit transaction (%v-%d): %v. Closing connection.",
 				req.ClientId, req.TxNo, srErr))
 			break
 		}
 	}
 
 	// If the connection was terminated by the gRPC client, print the reason.
-	// (This line could also be reached by breaking out of the above loop on request submission error.)
+	// (This line could also be reached by breaking out of the above loop on transaction submission error.)
 	if err != nil {
 		rr.logger.Log(logging.LevelWarn, fmt.Sprintf("Connection terminated: %s (%v)", p.Addr.String(), err))
 	}
@@ -111,16 +111,16 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 	return srv.SendAndClose(&ByeBye{})
 }
 
-// Start starts the RequestReceiver by initializing and starting the internal gRPC server,
+// Start starts the TransactionReceiver by initializing and starting the internal gRPC server,
 // listening on the passed port.
 // Before ths method is called, no client connections are accepted.
-func (rr *RequestReceiver) Start(port int) error {
+func (rr *TransactionReceiver) Start(port int) error {
 
-	rr.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for request connections on port %d", port))
+	rr.logger.Log(logging.LevelInfo, fmt.Sprintf("Listening for transaction connections on port %d", port))
 
-	// Create a gRPC server and assign it the logic of this RequestReceiver.
+	// Create a gRPC server and assign it the logic of this TransactionReceiver.
 	rr.grpcServer = grpc.NewServer()
-	RegisterRequestReceiverServer(rr.grpcServer, rr)
+	RegisterTransactionReceiverServer(rr.grpcServer, rr)
 
 	// Start listening on the network
 	conn, err := net.Listen("tcp", ":"+strconv.Itoa(port))
@@ -143,19 +143,19 @@ func (rr *RequestReceiver) Start(port int) error {
 // Stop stops the own gRPC server (preventing further incoming connections).
 // After Stop() returns, the error returned by the gRPC server's Serve() call
 // can be obtained through the ServerError() method.
-func (rr *RequestReceiver) Stop() {
+func (rr *TransactionReceiver) Stop() {
 
-	rr.logger.Log(logging.LevelDebug, "Stopping request receiver.")
+	rr.logger.Log(logging.LevelDebug, "Stopping transaction receiver.")
 
 	// Stop own gRPC server and wait for its exit status to be recorded.
 	rr.grpcServer.Stop()
 	rr.grpcServerWg.Wait()
 
-	rr.logger.Log(logging.LevelDebug, "Request receiver stopped.")
+	rr.logger.Log(logging.LevelDebug, "Transaction receiver stopped.")
 }
 
 // ServerError returns the error returned by the gRPC server's Serve() call.
-// ServerError() must not be called before the RequestReceiver is stopped and its Stop() method has returned.
-func (rr *RequestReceiver) ServerError() error {
+// ServerError() must not be called before the TransactionReceiver is stopped and its Stop() method has returned.
+func (rr *TransactionReceiver) ServerError() error {
 	return rr.grpcServerError
 }

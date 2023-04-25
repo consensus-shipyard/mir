@@ -15,8 +15,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -95,15 +95,15 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		return fmt.Errorf("error creating Mir node: %w", err)
 	}
 
-	// Create a RequestReceiver for request coming over the network.
-	requestReceiver := requestreceiver.NewRequestReceiver(node, tr.FakeRequestsDestModule, logging.Decorate(tr.Config.Logger, "ReqRec: "))
+	// Create a Transactionreceiver for request coming over the network.
+	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeRequestsDestModule, logging.Decorate(tr.Config.Logger, "ReqRec: "))
 
 	// TODO: do not assume that node IDs are integers.
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
 		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
 	}
-	err = requestReceiver.Start(RequestListenPort + p)
+	err = txreceiver.Start(RequestListenPort + p)
 	if err != nil {
 		return fmt.Errorf("error starting request receiver: %w", err)
 	}
@@ -138,8 +138,8 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
 
 	// Stop the request receiver.
-	requestReceiver.Stop()
-	if err := requestReceiver.ServerError(); err != nil {
+	txreceiver.Stop()
+	if err := txreceiver.ServerError(); err != nil {
 		return fmt.Errorf("request receiver returned server error: %w", err)
 	}
 

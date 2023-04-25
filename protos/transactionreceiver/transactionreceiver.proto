@@ -6,13 +6,13 @@ SPDX-License-Identifier: Apache-2.0
 
 syntax = "proto3";
 
-package requestreceiver;
+package receiver;
 
 import "trantorpb/trantorpb.proto";
 
-option go_package = "github.com/filecoin-project/mir/pkg/requestreceiver";
+option go_package = "github.com/filecoin-project/mir/pkg/transactionreceiver";
 
-service RequestReceiver {
+service TransactionReceiver {
   rpc Listen(stream trantorpb.Transaction) returns(ByeBye);
 }
 

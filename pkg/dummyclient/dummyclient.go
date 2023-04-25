@@ -17,7 +17,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -34,7 +34,7 @@ type DummyClient struct {
 	hasher    crypto.Hash
 	nextReqNo tt.ReqNo
 	conns     map[t.NodeID]*grpc.ClientConn
-	clients   map[t.NodeID]requestreceiver.RequestReceiver_ListenClient
+	clients   map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient
 	logger    logging.Logger
 }
 
@@ -53,14 +53,14 @@ func NewDummyClient(
 		ownID:     clientID,
 		hasher:    hasher,
 		nextReqNo: 0,
-		clients:   make(map[t.NodeID]requestreceiver.RequestReceiver_ListenClient),
+		clients:   make(map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient),
 		conns:     make(map[t.NodeID]*grpc.ClientConn),
 		logger:    l,
 	}
 }
 
 // Connect establishes (in parallel) network connections to all nodes in the system.
-// The nodes' RequestReceivers must be running.
+// The nodes' Transactionreceivers must be running.
 // Only after Connect() returns, sending requests through this DummyClient is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
 func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]string) {
@@ -162,7 +162,7 @@ func (dc *DummyClient) Disconnect() {
 }
 
 // Establishes a connection to a single node at address addrString.
-func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (*grpc.ClientConn, requestreceiver.RequestReceiver_ListenClient, error) {
+func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (*grpc.ClientConn, transactionreceiver.TransactionReceiver_ListenClient, error) {
 
 	dc.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", addrString))
 
@@ -180,7 +180,7 @@ func (dc *DummyClient) connectToNode(ctx context.Context, addrString string) (*g
 	}
 
 	// Register client stub.
-	client := requestreceiver.NewRequestReceiverClient(conn)
+	client := transactionreceiver.NewTransactionReceiverClient(conn)
 
 	// Remotely invoke the Listen function on the other node's gRPC server.
 	// As this is "stream of requests"-type RPC, it returns a message sink.

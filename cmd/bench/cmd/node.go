@@ -27,7 +27,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -167,7 +167,7 @@ func runNode() error {
 		return fmt.Errorf("could not create node: %w", err)
 	}
 
-	reqReceiver := requestreceiver.NewRequestReceiver(node, "mempool", logger)
+	reqReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
 	if err := reqReceiver.Start(ReqReceiverBasePort + ownNumericID); err != nil {
 		return fmt.Errorf("could not start request receiver: %w", err)
 	}
