@@ -12,7 +12,7 @@ import (
 
 // Module-specific dsl functions for processing events.
 
-func UponClientProgress(m dsl.Module, handler func(progress map[types.ClientID]*types1.DeliveredReqs) error) {
+func UponClientProgress(m dsl.Module, handler func(progress map[types.ClientID]*types1.DeliveredTXs) error) {
 	dsl1.UponEvent[*types2.Event_ClientProgress](m, func(ev *types1.ClientProgress) error {
 		return handler(ev.Progress)
 	})

@@ -25,7 +25,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
 		txMsgs := make([]*hasherpbtypes.HashData, len(txs))
 		for i, tx := range txs {
-			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeRequestForHash(tx.Pb())}
+			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeTXForHash(tx.Pb())}
 		}
 
 		hasherpbdsl.Request(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
@@ -63,14 +63,14 @@ type computeHashForBatchIDContext struct {
 
 // Auxiliary functions
 
-func serializeRequestForHash(req *trantorpb.Transaction) [][]byte {
+func serializeTXForHash(tx *trantorpb.Transaction) [][]byte {
 	// Encode integer fields.
-	clientIDBuf := []byte(req.ClientId)
+	clientIDBuf := []byte(tx.ClientId)
 	reqNoBuf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(reqNoBuf, req.TxNo)
+	binary.LittleEndian.PutUint64(reqNoBuf, tx.TxNo)
 
 	// Note that the signature is *not* part of the hashed data.
 
 	// Return serialized integers along with the request data itself.
-	return [][]byte{clientIDBuf, reqNoBuf, req.Data}
+	return [][]byte{clientIDBuf, reqNoBuf, tx.Data}
 }

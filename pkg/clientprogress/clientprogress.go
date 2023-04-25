@@ -8,20 +8,20 @@ import (
 
 // ClientProgress tracks watermarks for all the clients.
 type ClientProgress struct {
-	ClientTrackers map[tt.ClientID]*DeliveredReqs
+	ClientTrackers map[tt.ClientID]*DeliveredTXs
 	logger         logging.Logger
 }
 
 func NewClientProgress(logger logging.Logger) *ClientProgress {
 	return &ClientProgress{
-		ClientTrackers: make(map[tt.ClientID]*DeliveredReqs),
+		ClientTrackers: make(map[tt.ClientID]*DeliveredTXs),
 		logger:         logger,
 	}
 }
 
 func (cp *ClientProgress) Add(clID tt.ClientID, reqNo tt.ReqNo) bool {
 	if _, ok := cp.ClientTrackers[clID]; !ok {
-		cp.ClientTrackers[clID] = EmptyDeliveredReqs(logging.Decorate(cp.logger, "", "clID", clID))
+		cp.ClientTrackers[clID] = EmptyDeliveredTXs(logging.Decorate(cp.logger, "", "clID", clID))
 	}
 	return cp.ClientTrackers[clID].Add(reqNo)
 }
@@ -35,7 +35,7 @@ func (cp *ClientProgress) GarbageCollect() map[tt.ClientID]tt.ReqNo {
 }
 
 func (cp *ClientProgress) Pb() *trantorpb.ClientProgress {
-	pb := make(map[string]*trantorpb.DeliveredReqs)
+	pb := make(map[string]*trantorpb.DeliveredTXs)
 	for clientID, clientTracker := range cp.ClientTrackers {
 		pb[clientID.Pb()] = clientTracker.Pb()
 	}
@@ -43,10 +43,10 @@ func (cp *ClientProgress) Pb() *trantorpb.ClientProgress {
 }
 
 func (cp *ClientProgress) LoadPb(pb *trantorpb.ClientProgress) {
-	cp.ClientTrackers = make(map[tt.ClientID]*DeliveredReqs)
-	for clientID, deliveredReqs := range pb.Progress {
-		cp.ClientTrackers[tt.ClientID(clientID)] = DeliveredReqsFromPb(
-			deliveredReqs,
+	cp.ClientTrackers = make(map[tt.ClientID]*DeliveredTXs)
+	for clientID, deliveredTXs := range pb.Progress {
+		cp.ClientTrackers[tt.ClientID(clientID)] = DeliveredTXsFromPb(
+			deliveredTXs,
 			logging.Decorate(cp.logger, "", "clID", clientID),
 		)
 	}

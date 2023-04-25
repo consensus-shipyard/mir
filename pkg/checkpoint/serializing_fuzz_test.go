@@ -39,7 +39,7 @@ func FuzzSnapshotForHash(f *testing.F) {
 		}
 
 		cfg := trantorpbtypes.EpochConfig{EpochNr: tt.EpochNr(e), Memberships: []*trantorpbtypes.Membership{&membership}}
-		clProgress := trantorpbtypes.ClientProgress{Progress: map[tt.ClientID]*trantorpbtypes.DeliveredReqs{}} // TODO: add actual values
+		clProgress := trantorpbtypes.ClientProgress{Progress: map[tt.ClientID]*trantorpbtypes.DeliveredTXs{}} // TODO: add actual values
 		state := trantorpbtypes.StateSnapshot{AppData: data, EpochData: &trantorpbtypes.EpochData{
 			EpochConfig:    &cfg,
 			ClientProgress: &clProgress,

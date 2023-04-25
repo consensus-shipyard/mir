@@ -54,20 +54,6 @@ type ModuleParams struct {
 	// Must not be negative.
 	MaxProposeDelay time.Duration
 
-	// Total number of buckets used by ISS.
-	// In each epoch, these buckets are re-distributed evenly among the orderers.
-	// Must be greater than 0.
-	// TODO: Remove this parameter.
-	NumBuckets int
-
-	// Number of logical time ticks to wait until demanding retransmission of missing requests.
-	// If a node receives a proposal containing requests that are not in the node's buckets,
-	// it cannot accept the proposal.
-	// In such a case, the node will wait for RequestNAckTimeout ticks
-	// before trying to fetch those requests from other nodes.
-	// Must be positive.
-	RequestNAckTimeout int
-
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
 	// On reception of a message that the node is not yet ready to process
@@ -139,16 +125,6 @@ func CheckParams(c *ModuleParams) error {
 		return fmt.Errorf("negative MaxProposeDelay: %v", c.MaxProposeDelay)
 	}
 
-	// There must be at least one bucket.
-	if c.NumBuckets <= 0 {
-		return fmt.Errorf("non-positive number of buckets: %d", c.NumBuckets)
-	}
-
-	// RequestNackTimeout must be positive.
-	if c.RequestNAckTimeout <= 0 {
-		return fmt.Errorf("non-positive RequestNAckTimeout: %d", c.RequestNAckTimeout)
-	}
-
 	// MsgBufCapacity must not be negative.
 	if c.MsgBufCapacity < 0 {
 		return fmt.Errorf("negative MsgBufCapacity: %d", c.MsgBufCapacity)
@@ -175,8 +151,6 @@ func DefaultParams(initialMembership *trantorpbtypes.Membership) *ModuleParams {
 		InitialMembership:     initialMembership,
 		ConfigOffset:          2,
 		SegmentLength:         4,
-		NumBuckets:            len(initialMembership.Nodes),
-		RequestNAckTimeout:    16,
 		MsgBufCapacity:        32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:        1,
 		LeaderSelectionPolicy: lsp.Simple,

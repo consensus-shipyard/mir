@@ -16,7 +16,7 @@ type ModuleConfig struct {
 type ModuleParams struct {
 	MaxTransactionsInBatch int
 
-	// If this parameter is not nil, the mempool will not receive transactions directly (through NewRequests) events.
+	// If this parameter is not nil, the mempool will not receive transactions directly (through NewTransactions) events.
 	// On reception of such an event, it will report an error (making the system crash).
 	// Instead, TxFetcher will be called to pull transactions from an external source
 	// when they are needed to form a batch (upon the RequestBatch event).

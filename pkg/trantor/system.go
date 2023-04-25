@@ -151,7 +151,7 @@ func New(
 	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
 	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))
 
-	// Use a simple mempool for incoming requests.
+	// Use a simple mempool for incoming transactions.
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{
 			Self:   "mempool",

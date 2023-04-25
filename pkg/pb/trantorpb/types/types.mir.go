@@ -177,20 +177,20 @@ func (*NodeIdentity) MirReflect() mirreflect.Type {
 }
 
 type ClientProgress struct {
-	Progress map[types.ClientID]*DeliveredReqs
+	Progress map[types.ClientID]*DeliveredTXs
 }
 
 func ClientProgressFromPb(pb *trantorpb.ClientProgress) *ClientProgress {
 	return &ClientProgress{
-		Progress: types1.ConvertMap(pb.Progress, func(k string, v *trantorpb.DeliveredReqs) (types.ClientID, *DeliveredReqs) {
-			return (types.ClientID)(k), DeliveredReqsFromPb(v)
+		Progress: types1.ConvertMap(pb.Progress, func(k string, v *trantorpb.DeliveredTXs) (types.ClientID, *DeliveredTXs) {
+			return (types.ClientID)(k), DeliveredTXsFromPb(v)
 		}),
 	}
 }
 
 func (m *ClientProgress) Pb() *trantorpb.ClientProgress {
 	return &trantorpb.ClientProgress{
-		Progress: types1.ConvertMap(m.Progress, func(k types.ClientID, v *DeliveredReqs) (string, *trantorpb.DeliveredReqs) {
+		Progress: types1.ConvertMap(m.Progress, func(k types.ClientID, v *DeliveredTXs) (string, *trantorpb.DeliveredTXs) {
 			return (string)(k), (v).Pb()
 		}),
 	}
@@ -200,25 +200,25 @@ func (*ClientProgress) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*trantorpb.ClientProgress]()}
 }
 
-type DeliveredReqs struct {
+type DeliveredTXs struct {
 	LowWm     uint64
 	Delivered []uint64
 }
 
-func DeliveredReqsFromPb(pb *trantorpb.DeliveredReqs) *DeliveredReqs {
-	return &DeliveredReqs{
+func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs) *DeliveredTXs {
+	return &DeliveredTXs{
 		LowWm:     pb.LowWm,
 		Delivered: pb.Delivered,
 	}
 }
 
-func (m *DeliveredReqs) Pb() *trantorpb.DeliveredReqs {
-	return &trantorpb.DeliveredReqs{
+func (m *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
+	return &trantorpb.DeliveredTXs{
 		LowWm:     m.LowWm,
 		Delivered: m.Delivered,
 	}
 }
 
-func (*DeliveredReqs) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*trantorpb.DeliveredReqs]()}
+func (*DeliveredTXs) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*trantorpb.DeliveredTXs]()}
 }

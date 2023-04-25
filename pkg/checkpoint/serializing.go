@@ -87,12 +87,12 @@ func serializeClientProgressForHash(clientProgress *trantorpbtypes.ClientProgres
 	var data [][]byte
 	maputil.IterateSorted(
 		clientProgress.Progress,
-		func(clientID tt.ClientID, deliveredReqs *trantorpbtypes.DeliveredReqs) (cont bool) {
+		func(clientID tt.ClientID, deliveredTXs *trantorpbtypes.DeliveredTXs) (cont bool) {
 			// Append client ID and low watermark.
-			data = append(data, []byte(clientID.Pb()), serializing.Uint64ToBytes(deliveredReqs.LowWm))
+			data = append(data, []byte(clientID.Pb()), serializing.Uint64ToBytes(deliveredTXs.LowWm))
 
-			// Append all request numbers delivered after the watermark.
-			for _, reqNo := range deliveredReqs.Delivered {
+			// Append all transaction numbers delivered after the watermark.
+			for _, reqNo := range deliveredTXs.Delivered {
 				data = append(data, serializing.Uint64ToBytes(reqNo))
 			}
 			return true

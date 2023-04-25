@@ -9,7 +9,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func ClientProgress(destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredReqs) *types3.Event {
+func ClientProgress(destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredTXs) *types3.Event {
 	return &types3.Event{
 		DestModule: destModule,
 		Type: &types3.Event_BatchFetcher{

@@ -9,7 +9,7 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
-// IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
+// IncludeBatchCreation registers event handlers for processing NewTransactions and RequestBatch events.
 func IncludeBatchCreation(
 	m dsl.Module,
 	mc *common.ModuleConfig,

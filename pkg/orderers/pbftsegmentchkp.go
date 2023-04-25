@@ -54,8 +54,8 @@ type pbftSegmentChkp struct {
 	// DoneNodes will contain IDs of nodes from which matching Done messages were received.
 	doneNodes []t.NodeID
 
-	// This flag is set once the retransmission of missing committed requests is requested.
-	// It serves preventing redundant retransmission requests when more than a quorum of Done messages are received.
+	// This flag is set once the retransmission of missing committed entries is requested.
+	// It serves preventing redundant retransmission entries when more than a quorum of Done messages are received.
 	catchingUp bool
 }
 
@@ -239,8 +239,8 @@ func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[tt.SeqNr][
 	return catchUpRequests
 }
 
-// applyMsgCatchUpRequest applies a request for retransmitting a missing committed certificate.
-// It looks up the requested certificate (more precisely, the corresponding Preprepare message)
+// applyMsgCatchUpRequest applies a request for retransmitting a missing committed entry.
+// It looks up the requested entry (more precisely, the corresponding Preprepare message)
 // by its sequence number and digest and sends it to the originator of the request inside a CatchUpResponse message.
 // If no matching Preprepare is found, does nothing.
 func (orderer *Orderer) applyMsgCatchUpRequest(
