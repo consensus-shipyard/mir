@@ -89,7 +89,7 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 		rr.logger.Log(logging.LevelInfo, "Received transaction", "clId", req.ClientId, "reqNo", req.TxNo)
 
 		// Submit the transaction to the Node.
-		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewRequests(
+		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewTransactions(
 			rr.moduleID,
 			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(req)},
 		).Pb())); srErr != nil {

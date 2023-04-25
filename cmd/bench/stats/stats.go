@@ -15,11 +15,11 @@ import (
 )
 
 type Stats struct {
-	lock                sync.RWMutex
-	reqTimestamps       map[reqKey]time.Time
-	avgLatency          float64
-	timestampedRequests int
-	deliveredRequests   int
+	lock                    sync.RWMutex
+	reqTimestamps           map[reqKey]time.Time
+	avgLatency              float64
+	timestampedTransactions int
+	deliveredTransactions   int
 }
 
 type reqKey struct {
@@ -42,15 +42,15 @@ func (s *Stats) NewRequest(req *trantorpb.Transaction) {
 
 func (s *Stats) Delivered(req *trantorpb.Transaction) {
 	s.lock.Lock()
-	s.deliveredRequests++
+	s.deliveredTransactions++
 	k := reqKey{req.ClientId, req.TxNo}
 	if t, ok := s.reqTimestamps[k]; ok {
 		delete(s.reqTimestamps, k)
-		s.timestampedRequests++
+		s.timestampedTransactions++
 		d := time.Since(t)
 
 		// $CA_{n+1} = CA_n + {x_{n+1} - CA_n \over n + 1}$
-		s.avgLatency += (float64(d) - s.avgLatency) / float64(s.timestampedRequests)
+		s.avgLatency += (float64(d) - s.avgLatency) / float64(s.timestampedTransactions)
 	}
 	s.lock.Unlock()
 }
@@ -62,18 +62,18 @@ func (s *Stats) AvgLatency() time.Duration {
 	return time.Duration(s.avgLatency)
 }
 
-func (s *Stats) DeliveredRequests() int {
+func (s *Stats) DeliveredTransactions() int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	return s.deliveredRequests
+	return s.deliveredTransactions
 }
 
 func (s *Stats) Reset() {
 	s.lock.Lock()
 	s.avgLatency = 0
-	s.timestampedRequests = 0
-	s.deliveredRequests = 0
+	s.timestampedTransactions = 0
+	s.deliveredTransactions = 0
 	s.lock.Unlock()
 }
 
@@ -90,9 +90,9 @@ func (s *Stats) WriteCSVRecord(w *csv.Writer, d time.Duration) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	tps := float64(s.deliveredRequests) / (float64(d) / float64(time.Second))
+	tps := float64(s.deliveredTransactions) / (float64(d) / float64(time.Second))
 	record := []string{
-		strconv.Itoa(s.deliveredRequests),
+		strconv.Itoa(s.deliveredTransactions),
 		strconv.Itoa(int(tps)),
 		fmt.Sprintf("%.2f", time.Duration(s.avgLatency).Seconds()),
 	}

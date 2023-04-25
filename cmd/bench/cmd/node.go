@@ -140,7 +140,7 @@ func runNode() error {
 			switch e := e.Type.(type) {
 			case *eventpb.Event_Mempool:
 				switch e.Mempool.Type.(type) {
-				case *mempoolpb.Event_NewRequests:
+				case *mempoolpb.Event_NewTransactions:
 					return true
 				}
 			case *eventpb.Event_BatchFetcher:

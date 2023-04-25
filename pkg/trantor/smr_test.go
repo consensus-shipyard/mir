@@ -297,7 +297,7 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	// Check if all requests were delivered.
 	for _, replica := range deployment.TestReplicas {
 		app := deployment.TestConfig.FakeApps[replica.ID]
-		assert.Equal(tb, conf.NumNetRequests+conf.NumFakeRequests, int(app.RequestsProcessed))
+		assert.Equal(tb, conf.NumNetRequests+conf.NumFakeRequests, int(app.TransactionsProcessed))
 	}
 
 	// If the test failed, keep the generated data.
@@ -416,19 +416,19 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	}
 
 	deployConf := &deploytest.TestConfig{
-		Info:                   conf.Info,
-		Simulation:             simulation,
-		TransportLayer:         transportLayer,
-		NodeIDs:                nodeIDs,
-		Membership:             transportLayer.Membership(),
-		NodeModules:            nodeModules,
-		NumClients:             conf.NumClients,
-		NumFakeRequests:        conf.NumFakeRequests,
-		NumNetRequests:         conf.NumNetRequests,
-		FakeRequestsDestModule: t.ModuleID("mempool"),
-		Directory:              conf.Directory,
-		Logger:                 logger,
-		FakeApps:               fakeApps,
+		Info:             conf.Info,
+		Simulation:       simulation,
+		TransportLayer:   transportLayer,
+		NodeIDs:          nodeIDs,
+		Membership:       transportLayer.Membership(),
+		NodeModules:      nodeModules,
+		NumClients:       conf.NumClients,
+		NumFakeTXs:       conf.NumFakeRequests,
+		NumNetTXs:        conf.NumNetRequests,
+		FakeTXDestModule: t.ModuleID("mempool"),
+		Directory:        conf.Directory,
+		Logger:           logger,
+		FakeApps:         fakeApps,
 	}
 
 	return deploytest.NewDeployment(deployConf)

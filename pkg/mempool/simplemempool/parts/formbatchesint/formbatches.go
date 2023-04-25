@@ -26,7 +26,7 @@ func IncludeBatchCreation(
 		NewTxIDs: nil,
 	}
 
-	mpdsl.UponNewRequests(m, func(txs []*trantorpbtypes.Transaction) error {
+	mpdsl.UponNewTransactions(m, func(txs []*trantorpbtypes.Transaction) error {
 		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
 		return nil
 	})

@@ -41,8 +41,8 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 		switch e := evt.Type.(type) {
 		case *eventpb.Event_Mempool:
 			switch e := e.Mempool.Type.(type) {
-			case *mempoolpb.Event_NewRequests:
-				for _, req := range e.NewRequests.Requests {
+			case *mempoolpb.Event_NewTransactions:
+				for _, req := range e.NewTransactions.Transactions {
 					i.Stats.NewRequest(req)
 				}
 			}

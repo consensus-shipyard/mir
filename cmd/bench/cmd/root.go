@@ -19,7 +19,7 @@ var (
 		Use:   "bench",
 		Short: "Mir benchmarking tool",
 		Long: "Mir benchmarking tool can run a Mir nodes, measuring latency and" +
-			"throughput. The tool can also generate and submit requests to the Mir" +
+			"throughput. The tool can also generate and submit transactions to the Mir" +
 			"cluster at a specified rate.",
 	}
 )

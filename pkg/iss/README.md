@@ -4,7 +4,7 @@ ISS is the first modular algorithm to make leader-driven total order broadcast s
 [published in March 2022](https://dl.acm.org/doi/abs/10.1145/3492321.3519579).
 At its interface, ISS is a classic
 [state machine replication (SMR)](https://en.wikipedia.org/wiki/State_machine_replication) system
-that establishes a total order of client requests with typical liveness and safety properties,
+that establishes a total order of client transactions with typical liveness and safety properties,
 applicable to any replicated service, such as resilient databases or a blockchain ordering layer.
 It is a further development and a successor of the [Mir-BFT protocol](https://arxiv.org/abs/1906.05552)
 (not to be confused with the Mir library used to implement ISS,
@@ -16,7 +16,7 @@ which operate concurrently and (almost) independently.
 We abstract away the logic of the used consensus protocol and only define an interface -
 that we call "Sequenced Broadcast" (SB) - that such a consensus protocol must use to interact with ISS.
 
-ISS maintains a *contiguous log* of (batches of) client requests at each node.
+ISS maintains a *contiguous log* of (batches of) client transactions at each node.
 Each position in the log corresponds to a unique *sequence number*
 and ISS agrees on the assignment of a unique request batch to each sequence number.
 Our goal is to introduce as much parallelism as possible in assigning batches to sequence numbers
@@ -28,9 +28,9 @@ that has its own leader and executes concurrently with other instances.
 
 To prevent the leaders of two different segments from concurrently proposing the same request,
 and thus wasting resources, while also preventing malicious leaders from censoring
-(i.e., not proposing) certain requests,
+(i.e., not proposing) certain transactions,
 we adopt and generalize the partitioning of the request space introduced by Mir-BFT.
-At any point in time, ISS assigns a different subset of client requests (that we call a _bucket_) to each segment.
+At any point in time, ISS assigns a different subset of client transactions (that we call a _bucket_) to each segment.
 ISS periodically changes this assignment,
 such that each request is guaranteed to eventually be assigned to a segment with a correct leader.
 

@@ -27,7 +27,7 @@ const (
 	maxMessageSize = 1073741824
 )
 
-// TODO: Update the comments around crypto, hasher, and request signing.
+// TODO: Update the comments around crypto, hasher, and transaction signing.
 
 type DummyClient struct {
 	ownID     tt.ClientID
@@ -61,7 +61,7 @@ func NewDummyClient(
 
 // Connect establishes (in parallel) network connections to all nodes in the system.
 // The nodes' Transactionreceivers must be running.
-// Only after Connect() returns, sending requests through this DummyClient is possible.
+// Only after Connect() returns, sending transactions through this DummyClient is possible.
 // TODO: Deal with errors, e.g. when the connection times out (make sure the RPC call in connectToNode() has a timeout).
 func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]string) {
 	// Initialize wait group used by the connecting goroutines
@@ -99,14 +99,14 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 	wg.Wait()
 }
 
-// SubmitRequest submits a request by sending it to all nodes (as configured when creating the DummyClient).
-// It automatically appends meta-info like client ID and request number.
-// SubmitRequest must not be called concurrently.
-// If an error occurs, SubmitRequest returns immediately,
-// even if sending of the request was not attempted for all nodes.
-func (dc *DummyClient) SubmitRequest(data []byte) error {
+// SubmitTransaction submits a transaction by sending it to all nodes (as configured when creating the DummyClient).
+// It automatically appends meta-info like client ID and transaction number.
+// SubmitTransaction must not be called concurrently.
+// If an error occurs, SubmitTransaction returns immediately,
+// even if sending of the transaction was not attempted for all nodes.
+func (dc *DummyClient) SubmitTransaction(data []byte) error {
 
-	// Create new request message.
+	// Create new transaction.
 	reqMsg := &trantorpbtypes.Transaction{
 		ClientId: dc.ownID,
 		TxNo:     dc.nextReqNo,
@@ -116,14 +116,14 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 	dc.nextReqNo++
 
 	// Declare variables keeping track of failed send attempts.
-	sendFailures := make([]t.NodeID, 0) // List of nodes to which sending the request failed.
+	sendFailures := make([]t.NodeID, 0) // List of nodes to which sending the transaction failed.
 	var firstSndErr error               // The error produced by the first sending failure.
 
-	// Send the request to all nodes.
+	// Send the transaction to all nodes.
 	for nID, client := range dc.clients {
 		if err := client.Send(reqMsg.Pb()); err != nil {
 
-			// If sending the request to a node fails, record that node's ID.
+			// If sending the transaction to a node fails, record that node's ID.
 			sendFailures = append(sendFailures, nID)
 
 			// If this is the first failure, save it for later reporting.
@@ -133,9 +133,9 @@ func (dc *DummyClient) SubmitRequest(data []byte) error {
 		}
 	}
 
-	// Return an error summarizing the failed send attempts or nil if the request was successfully sent to all nodes.
+	// Return an error summarizing the failed send attempts or nil if the transaction was successfully sent to all nodes.
 	if firstSndErr != nil {
-		return fmt.Errorf("failed sending request to nodes: %v first error: %w", sendFailures, firstSndErr)
+		return fmt.Errorf("failed sending transaction to nodes: %v first error: %w", sendFailures, firstSndErr)
 	}
 
 	return nil

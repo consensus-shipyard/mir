@@ -32,7 +32,7 @@ var (
 
 	clientCmd = &cobra.Command{
 		Use:   "client",
-		Short: "Generate and submit requests to a Mir cluster",
+		Short: "Generate and submit transactions to a Mir cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runClient()
 		},
@@ -42,8 +42,8 @@ var (
 func init() {
 	rootCmd.AddCommand(clientCmd)
 	clientCmd.Flags().IntVarP(&reqSize, "reqSize", "s", 256, "size of each request in bytes")
-	clientCmd.Flags().Float64VarP(&rate, "rate", "r", 1000, "average number of requests per second")
-	clientCmd.Flags().IntVarP(&burst, "burst", "b", 1, "maximum number of requests in a burst")
+	clientCmd.Flags().Float64VarP(&rate, "rate", "r", 1000, "average number of transactions per second")
+	clientCmd.Flags().IntVarP(&burst, "burst", "b", 1, "maximum number of transactions in a burst")
 	clientCmd.Flags().DurationVarP(&duration, "duration", "T", 10*time.Second, "benchmarking duration")
 }
 
@@ -65,8 +65,8 @@ func runClient() error {
 	}
 
 	// Generate addresses and ports for client request receivers.
-	// Each node uses different ports for receiving protocol messages and requests.
-	// These addresses will be used by the client code to know where to send its requests.
+	// Each node uses different ports for receiving protocol messages and transactions.
+	// These addresses will be used by the client code to know where to send its transactions.
 	reqReceiverAddrs := make(map[t.NodeID]string)
 	for nodeID, nodeIP := range addresses {
 		numericID, err := strconv.Atoi(string(nodeID))
@@ -107,7 +107,7 @@ func runClient() error {
 		}
 		rand.Read(reqBytes) //nolint:gosec
 		logger.Log(logging.LevelDebug, fmt.Sprintf("Submitting request #%d", i))
-		if err := client.SubmitRequest(reqBytes); err != nil {
+		if err := client.SubmitTransaction(reqBytes); err != nil {
 			return err
 		}
 	}

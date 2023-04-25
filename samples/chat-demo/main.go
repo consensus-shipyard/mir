@@ -254,7 +254,7 @@ func run() error {
 	}()
 
 	// ================================================================================
-	// Read chat messages from stdin and submit them as requests.
+	// Read chat messages from stdin and submit them as transactions.
 	// ================================================================================
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -267,7 +267,7 @@ func run() error {
 	for scanner.Scan() {
 
 		// Submit the chat message as request payload to the mempool module.
-		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
+		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewTransactions(
 			"mempool",
 			[]*trantorpbtypes.Transaction{{
 				ClientId: tt.ClientID(args.OwnID),

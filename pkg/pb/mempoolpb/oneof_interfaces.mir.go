@@ -44,8 +44,8 @@ func (w *Event_BatchIdResponse) Unwrap() *BatchIDResponse {
 	return w.BatchIdResponse
 }
 
-func (w *Event_NewRequests) Unwrap() *NewRequests {
-	return w.NewRequests
+func (w *Event_NewTransactions) Unwrap() *NewTransactions {
+	return w.NewTransactions
 }
 
 type RequestBatchOrigin_Type = isRequestBatchOrigin_Type

@@ -138,14 +138,14 @@ func BatchIDResponse(destModule types.ModuleID, batchId types5.BatchID, origin *
 	}
 }
 
-func NewRequests(destModule types.ModuleID, requests []*types4.Transaction) *types2.Event {
+func NewTransactions(destModule types.ModuleID, transactions []*types4.Transaction) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
 			Mempool: &types1.Event{
-				Type: &types1.Event_NewRequests{
-					NewRequests: &types1.NewRequests{
-						Requests: requests,
+				Type: &types1.Event_NewTransactions{
+					NewTransactions: &types1.NewTransactions{
+						Transactions: transactions,
 					},
 				},
 			},
