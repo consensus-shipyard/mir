@@ -1,6 +1,6 @@
 package batchfetcherpb
 
-import commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
+import trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 
 type Event_Type = isEvent_Type
 
@@ -13,6 +13,6 @@ func (w *Event_NewOrderedBatch) Unwrap() *NewOrderedBatch {
 	return w.NewOrderedBatch
 }
 
-func (w *Event_ClientProgress) Unwrap() *commonpb.ClientProgress {
+func (w *Event_ClientProgress) Unwrap() *trantorpb.ClientProgress {
 	return w.ClientProgress
 }

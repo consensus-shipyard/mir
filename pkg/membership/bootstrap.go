@@ -10,13 +10,13 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
-func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
+func FromFileName(fileName string) (*trantorpbtypes.Membership, error) {
 
 	// Open file.
 	f, err := os.Open(fileName)
@@ -38,7 +38,7 @@ func FromFileName(fileName string) (*commonpbtypes.Membership, error) {
 // FromFile reads a membership for a file. It expects a text file containing valid JSON with the following format.
 // (The strange field names are a result of trying to be compatible with the format used by Lotus/Eudico.)
 // TODO: Use a better format for the membership, maybe even if it's incompatible with Eudico.
-func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
+func FromFile(f *os.File) (*trantorpbtypes.Membership, error) {
 	// Sample input:
 	// {
 	//     "configuration_number": 0,
@@ -83,9 +83,9 @@ func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
 	}
 
 	// Construct membership from dedoced data.
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 	for _, identity := range data.Identities {
-		membership.Nodes[t.NodeID(identity.ID)] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		membership.Nodes[t.NodeID(identity.ID)] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			t.NodeID(identity.ID),
 			identity.Addr,
 			nil,
@@ -96,7 +96,7 @@ func FromFile(f *os.File) (*commonpbtypes.Membership, error) {
 	return membership, nil
 }
 
-func GetIPs(membership *commonpbtypes.Membership) (map[t.NodeID]string, error) {
+func GetIPs(membership *trantorpbtypes.Membership) (map[t.NodeID]string, error) {
 	ips := make(map[t.NodeID]string)
 	for nodeID, identity := range membership.Nodes {
 
@@ -114,14 +114,14 @@ func GetIPs(membership *commonpbtypes.Membership) (map[t.NodeID]string, error) {
 	return ips, nil
 }
 
-func GetIDs(membership *commonpbtypes.Membership) []t.NodeID {
+func GetIDs(membership *trantorpbtypes.Membership) []t.NodeID {
 	return maputil.GetSortedKeys(membership.Nodes)
 }
 
 // DummyMultiAddrs augments a membership by deterministically generated host keys based on node IDs.
 // The node IDs must be convertable to numbers, otherwise DummyMultiAddrs returns an error.
-func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Membership, error) {
-	membershipOut := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+func DummyMultiAddrs(membershipIn *trantorpbtypes.Membership) (*trantorpbtypes.Membership, error) {
+	membershipOut := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	for nodeID, identity := range membershipIn.Nodes {
 		numericID, err := strconv.Atoi(string(nodeID))
@@ -134,7 +134,7 @@ func DummyMultiAddrs(membershipIn *commonpbtypes.Membership) (*commonpbtypes.Mem
 			return nil, err
 		}
 
-		membershipOut.Nodes[nodeID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		membershipOut.Nodes[nodeID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			identity.Id,
 			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
 			nil,

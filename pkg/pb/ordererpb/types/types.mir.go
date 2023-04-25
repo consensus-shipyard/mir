@@ -3,9 +3,9 @@ package ordererpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types4 "github.com/filecoin-project/mir/codegen/model/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"

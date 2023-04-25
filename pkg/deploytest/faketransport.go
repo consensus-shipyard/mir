@@ -17,12 +17,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -141,12 +141,12 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 	}, nil
 }
 
-func (ft *FakeTransport) Membership() *commonpbtypes.Membership {
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+func (ft *FakeTransport) Membership() *trantorpbtypes.Membership {
+	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range ft.Buffers {
-		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			nID,
 			libp2p.NewDummyHostAddr(0,
 				0).String(),
@@ -160,7 +160,7 @@ func (ft *FakeTransport) Membership() *commonpbtypes.Membership {
 
 func (ft *FakeTransport) Close() {}
 
-func (fl *FakeLink) CloseOldConnections(_ *commonpbtypes.Membership) {}
+func (fl *FakeLink) CloseOldConnections(_ *trantorpbtypes.Membership) {}
 
 func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
 	return ft.NodeSinks[dest]
@@ -170,7 +170,7 @@ func (fl *FakeLink) Start() error {
 	return nil
 }
 
-func (fl *FakeLink) Connect(_ *commonpbtypes.Membership) {
+func (fl *FakeLink) Connect(_ *trantorpbtypes.Membership) {
 	sourceBuffers := fl.FakeTransport.Buffers[fl.Source]
 
 	fl.wg.Add(len(sourceBuffers))

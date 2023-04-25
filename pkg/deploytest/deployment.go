@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/modules"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	"github.com/filecoin-project/mir"
@@ -48,7 +48,7 @@ type TestConfig struct {
 	NodeIDs []t.NodeID
 
 	// List of nodes.
-	Membership *commonpbtypes.Membership
+	Membership *trantorpbtypes.Membership
 
 	// The modules that will be run by each replica.
 	NodeModules map[t.NodeID]modules.Modules

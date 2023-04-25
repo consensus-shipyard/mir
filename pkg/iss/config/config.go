@@ -11,7 +11,7 @@ import (
 	"time"
 
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -21,7 +21,7 @@ type ModuleParams struct {
 
 	// The identities of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
-	InitialMembership *commonpbtypes.Membership
+	InitialMembership *trantorpbtypes.Membership
 
 	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
@@ -167,7 +167,7 @@ func CheckParams(c *ModuleParams) error {
 // DefaultParams is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultParams can serve as a starting point.
-func DefaultParams(initialMembership *commonpbtypes.Membership) *ModuleParams {
+func DefaultParams(initialMembership *trantorpbtypes.Membership) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.

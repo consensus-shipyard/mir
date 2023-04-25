@@ -4,7 +4,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types3 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/timer/types"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"

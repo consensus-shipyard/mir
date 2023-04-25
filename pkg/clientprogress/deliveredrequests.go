@@ -2,7 +2,7 @@ package clientprogress
 
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -30,7 +30,7 @@ func EmptyDeliveredReqs(logger logging.Logger) *DeliveredReqs {
 	}
 }
 
-func DeliveredReqsFromPb(pb *commonpb.DeliveredReqs, logger logging.Logger) *DeliveredReqs {
+func DeliveredReqsFromPb(pb *trantorpb.DeliveredReqs, logger logging.Logger) *DeliveredReqs {
 	dr := EmptyDeliveredReqs(logger)
 	dr.lowWM = tt.ReqNo(pb.LowWm)
 	for _, reqNo := range pb.Delivered {
@@ -69,13 +69,13 @@ func (dr *DeliveredReqs) GarbageCollect() tt.ReqNo {
 	return dr.lowWM
 }
 
-func (dr *DeliveredReqs) Pb() *commonpb.DeliveredReqs {
+func (dr *DeliveredReqs) Pb() *trantorpb.DeliveredReqs {
 	delivered := make([]uint64, len(dr.delivered))
 	for i, reqNo := range maputil.GetSortedKeys(dr.delivered) {
 		delivered[i] = reqNo.Pb()
 	}
 
-	return &commonpb.DeliveredReqs{
+	return &trantorpb.DeliveredReqs{
 		LowWm:     dr.lowWM.Pb(),
 		Delivered: delivered,
 	}

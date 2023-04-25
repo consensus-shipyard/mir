@@ -2,7 +2,7 @@ package clientprogress
 
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -34,15 +34,15 @@ func (cp *ClientProgress) GarbageCollect() map[tt.ClientID]tt.ReqNo {
 	return lowWMs
 }
 
-func (cp *ClientProgress) Pb() *commonpb.ClientProgress {
-	pb := make(map[string]*commonpb.DeliveredReqs)
+func (cp *ClientProgress) Pb() *trantorpb.ClientProgress {
+	pb := make(map[string]*trantorpb.DeliveredReqs)
 	for clientID, clientTracker := range cp.ClientTrackers {
 		pb[clientID.Pb()] = clientTracker.Pb()
 	}
-	return &commonpb.ClientProgress{Progress: pb}
+	return &trantorpb.ClientProgress{Progress: pb}
 }
 
-func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
+func (cp *ClientProgress) LoadPb(pb *trantorpb.ClientProgress) {
 	cp.ClientTrackers = make(map[tt.ClientID]*DeliveredReqs)
 	for clientID, deliveredReqs := range pb.Progress {
 		cp.ClientTrackers[tt.ClientID(clientID)] = DeliveredReqsFromPb(
@@ -52,7 +52,7 @@ func (cp *ClientProgress) LoadPb(pb *commonpb.ClientProgress) {
 	}
 }
 
-func FromPb(pb *commonpb.ClientProgress, logger logging.Logger) *ClientProgress {
+func FromPb(pb *trantorpb.ClientProgress, logger logging.Logger) *ClientProgress {
 	cp := NewClientProgress(logger)
 	cp.LoadPb(pb)
 	return cp

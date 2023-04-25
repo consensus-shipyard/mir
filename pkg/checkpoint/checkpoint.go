@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -79,7 +79,7 @@ func (sc *StableCheckpoint) SeqNr() tt.SeqNr {
 
 // Memberships returns the memberships configured for the epoch of this checkpoint
 // and potentially several subsequent ones.
-func (sc *StableCheckpoint) Memberships() []*commonpbtypes.Membership {
+func (sc *StableCheckpoint) Memberships() []*trantorpbtypes.Membership {
 	return sc.Snapshot.EpochData.EpochConfig.Memberships
 }
 
@@ -89,7 +89,7 @@ func (sc *StableCheckpoint) Memberships() []*commonpbtypes.Membership {
 // Note that this membership is contained in the checkpoint itself and thus can be forged.
 // Using PreviousMembership as an argument to VerifyCert without independently checking its validity is not secure
 // (in this sense, the checkpoint certificate is self-signed).
-func (sc *StableCheckpoint) PreviousMembership() *commonpbtypes.Membership {
+func (sc *StableCheckpoint) PreviousMembership() *trantorpbtypes.Membership {
 	return sc.Snapshot.EpochData.PreviousMembership
 }
 
@@ -100,7 +100,7 @@ func (sc *StableCheckpoint) Epoch() tt.EpochNr {
 }
 
 // StateSnapshot returns the serialized application state and system configuration associated with this checkpoint.
-func (sc *StableCheckpoint) StateSnapshot() *commonpbtypes.StateSnapshot {
+func (sc *StableCheckpoint) StateSnapshot() *trantorpbtypes.StateSnapshot {
 	return sc.Snapshot
 }
 
@@ -130,7 +130,7 @@ func (sc *StableCheckpoint) Certificate() Certificate {
 // For simplicity, we require all nodes that signed the certificate to be contained in the provided membership,
 // as well as all signatures to be valid.
 // Moreover, the number of nodes that signed the certificate must be greater than one third of the membership size.
-func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership *commonpbtypes.Membership) error {
+func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership *trantorpbtypes.Membership) error {
 
 	// Check if there is enough signatures.
 	n := len(membership.Nodes)
@@ -165,7 +165,7 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 // Genesis returns a stable checkpoint that serves as the starting checkpoint of the first epoch (epoch 0).
 // Its certificate is empty and is always considered valid,
 // as there is no previous epoch's membership to verify it against.
-func Genesis(initialStateSnapshot *commonpbtypes.StateSnapshot) *StableCheckpoint {
+func Genesis(initialStateSnapshot *trantorpbtypes.StateSnapshot) *StableCheckpoint {
 	return &StableCheckpoint{
 		Sn:       0,
 		Snapshot: initialStateSnapshot,

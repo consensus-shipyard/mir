@@ -3,9 +3,9 @@ package checkpoint
 import (
 	"encoding/binary"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -22,21 +22,21 @@ func serializeCheckpointForSig(epoch tt.EpochNr, seqNr tt.SeqNr, snapshotHash []
 	return &cryptopbtypes.SignedData{Data: [][]byte{epochBytes, snBytes, snapshotHash}}
 }
 
-func serializeSnapshotForHash(snapshot *commonpbtypes.StateSnapshot) *hasherpbtypes.HashData {
+func serializeSnapshotForHash(snapshot *trantorpbtypes.StateSnapshot) *hasherpbtypes.HashData {
 	return &hasherpbtypes.HashData{Data: append(serializeEpochDataForHash(snapshot.EpochData), snapshot.AppData)}
 }
 
-func serializeEpochDataForHash(epochData *commonpbtypes.EpochData) [][]byte {
+func serializeEpochDataForHash(epochData *trantorpbtypes.EpochData) [][]byte {
 	data := append(serializeEpochConfigForHash(epochData.EpochConfig), epochData.LeaderPolicy)
 	data = append(data, serializeClientProgressForHash(epochData.ClientProgress)...)
 	if len(epochData.PreviousMembership.Nodes) != 0 {
 		// In the initial checkpoint the PreviousMembership is an empty map.
-		data = append(data, serializeMembershipsForHash([]*commonpbtypes.Membership{epochData.PreviousMembership})...)
+		data = append(data, serializeMembershipsForHash([]*trantorpbtypes.Membership{epochData.PreviousMembership})...)
 	}
 	return data
 }
 
-func serializeEpochConfigForHash(epochConfig *commonpbtypes.EpochConfig) [][]byte {
+func serializeEpochConfigForHash(epochConfig *trantorpbtypes.EpochConfig) [][]byte {
 
 	// Add simple values.
 	data := [][]byte{
@@ -51,13 +51,13 @@ func serializeEpochConfigForHash(epochConfig *commonpbtypes.EpochConfig) [][]byt
 	return data
 }
 
-func serializeMembershipsForHash(memberships []*commonpbtypes.Membership) [][]byte {
+func serializeMembershipsForHash(memberships []*trantorpbtypes.Membership) [][]byte {
 	var data [][]byte
 
 	// Each string representing an ID and an address is explicitly terminated with a zero byte.
 	// This ensures that the last byte of an ID and the first byte of an address are not interchangeable.
 	for _, membership := range memberships {
-		maputil.IterateSorted(membership.Nodes, func(id t.NodeID, identity *commonpbtypes.NodeIdentity) bool {
+		maputil.IterateSorted(membership.Nodes, func(id t.NodeID, identity *trantorpbtypes.NodeIdentity) bool {
 			data = append(data, id.Bytes(), []byte{0})
 			data = append(data, serializeNodeIdentityForHash(identity)...)
 			return true
@@ -67,7 +67,7 @@ func serializeMembershipsForHash(memberships []*commonpbtypes.Membership) [][]by
 	return data
 }
 
-func serializeNodeIdentityForHash(identity *commonpbtypes.NodeIdentity) [][]byte {
+func serializeNodeIdentityForHash(identity *trantorpbtypes.NodeIdentity) [][]byte {
 
 	// TODO: Using {0} as a field separator is technically not right,
 	//   since one field ending with 0 still yields the same byte string as another field beginning with 0.
@@ -83,11 +83,11 @@ func serializeNodeIdentityForHash(identity *commonpbtypes.NodeIdentity) [][]byte
 	}
 }
 
-func serializeClientProgressForHash(clientProgress *commonpbtypes.ClientProgress) [][]byte {
+func serializeClientProgressForHash(clientProgress *trantorpbtypes.ClientProgress) [][]byte {
 	var data [][]byte
 	maputil.IterateSorted(
 		clientProgress.Progress,
-		func(clientID tt.ClientID, deliveredReqs *commonpbtypes.DeliveredReqs) (cont bool) {
+		func(clientID tt.ClientID, deliveredReqs *trantorpbtypes.DeliveredReqs) (cont bool) {
 			// Append client ID and low watermark.
 			data = append(data, []byte(clientID.Pb()), serializing.Uint64ToBytes(deliveredReqs.LowWm))
 

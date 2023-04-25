@@ -13,9 +13,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -42,7 +42,7 @@ type TestReplica struct {
 	NodeIDs []t.NodeID
 
 	// List of replicas.
-	Membership *commonpbtypes.Membership
+	Membership *trantorpbtypes.Membership
 
 	// Node's representation within the simulation runtime
 	Sim *SimNode

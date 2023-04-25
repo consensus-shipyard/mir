@@ -29,11 +29,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	hasherevt "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -71,7 +71,7 @@ type Protocol struct {
 	membership []t.NodeID
 
 	// State snapshot associated with this checkpoint.
-	stateSnapshot *commonpbtypes.StateSnapshot
+	stateSnapshot *trantorpbtypes.StateSnapshot
 
 	// Hash of the state snapshot data associated with this checkpoint.
 	stateSnapshotHash []byte
@@ -98,8 +98,8 @@ type Protocol struct {
 func NewProtocol(
 	moduleConfig *ModuleConfig,
 	ownID t.NodeID,
-	membership *commonpbtypes.Membership,
-	epochConfig *commonpbtypes.EpochConfig,
+	membership *trantorpbtypes.Membership,
+	epochConfig *trantorpbtypes.EpochConfig,
 	leaderPolicyData []byte,
 	resendPeriod types.Duration,
 	logger logging.Logger,
@@ -116,9 +116,9 @@ func NewProtocol(
 		confirmations:   make(map[t.NodeID]struct{}),
 		pendingMessages: make(map[t.NodeID]*checkpointpb.Checkpoint),
 		membership:      maputil.GetSortedKeys(membership.Nodes),
-		stateSnapshot: &commonpbtypes.StateSnapshot{
+		stateSnapshot: &trantorpbtypes.StateSnapshot{
 			AppData: nil,
-			EpochData: &commonpbtypes.EpochData{
+			EpochData: &trantorpbtypes.EpochData{
 				EpochConfig:        epochConfig,
 				ClientProgress:     nil, // This will be filled by a separate event.
 				LeaderPolicy:       leaderPolicyData,
@@ -210,7 +210,7 @@ func (p *Protocol) applyAppSnapshot(appSnapshot *apppb.Snapshot) (*events.EventL
 	return events.EmptyList(), nil
 }
 
-func (p *Protocol) applyClientProgress(clientProgress *commonpbtypes.ClientProgress) (*events.EventList, error) {
+func (p *Protocol) applyClientProgress(clientProgress *trantorpbtypes.ClientProgress) (*events.EventList, error) {
 
 	// Save the received client progress if there is none yet.
 	if p.stateSnapshot.EpochData.ClientProgress == nil {

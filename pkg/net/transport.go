@@ -2,8 +2,8 @@ package net
 
 import (
 	"github.com/filecoin-project/mir/pkg/modules"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,7 +21,7 @@ type Transport interface {
 
 	// Connect initiates the establishing of network connections to the provided nodes.
 	// When Connect returns, the connections might not yet have been established though (see WaitFor).
-	Connect(nodes *commonpbtypes.Membership)
+	Connect(nodes *trantorpbtypes.Membership)
 
 	// WaitFor waits until at least n connections (including the potentially virtual connection to self)
 	// have been established and returns nil.
@@ -29,5 +29,5 @@ type Transport interface {
 	WaitFor(n int) error
 
 	// CloseOldConnections closes connections to the nodes that don't needed.
-	CloseOldConnections(newNodes *commonpbtypes.Membership)
+	CloseOldConnections(newNodes *trantorpbtypes.Membership)
 }

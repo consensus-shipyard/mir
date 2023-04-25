@@ -1,13 +1,10 @@
 syntax = "proto3";
 
-package commonpb;
+package trantorpb;
 
-option go_package = "github.com/filecoin-project/mir/pkg/pb/commonpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/trantorpb";
 
 import "mir/codegen_extensions.proto";
-
-// TODO: This is an ugly ugly package that was created ad-hoc to avoid circular references.
-//   Clean it ups and use a more meaningful package structure that does not need a "common" package.
 
 // ================================================================================
 // State snapshot

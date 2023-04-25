@@ -23,9 +23,9 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -36,9 +36,9 @@ import (
 func debug(args *arguments) error {
 
 	// TODO: Empty addresses might not work here, as they will probably produce wrong snapshots.
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 	for _, nID := range args.membership {
-		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{
+		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{
 			Id:     nID,
 			Addr:   libp2p.NewDummyHostAddr(0, 0).String(),
 			Key:    nil,
@@ -148,7 +148,7 @@ func debug(args *arguments) error {
 }
 
 // debuggerNode creates a new Mir node instance to be used for debugging.
-func debuggerNode(id t.NodeID, membership *commonpbtypes.Membership) (*mir.Node, error) {
+func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node, error) {
 
 	// Logger used by the node.
 	logger := logging.ConsoleDebugLogger
@@ -184,7 +184,7 @@ func debuggerNode(id t.NodeID, membership *commonpbtypes.Membership) (*mir.Node,
 		"app": trantor.NewAppModule(
 			trantor.AppLogicFromStatic(
 				deploytest.NewFakeApp(),
-				&commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)}, // nolint:govet
+				&trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)}, // nolint:govet
 			),
 			nullTransport,
 			"iss",

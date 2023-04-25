@@ -4,9 +4,9 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 

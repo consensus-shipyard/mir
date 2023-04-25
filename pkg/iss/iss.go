@@ -35,7 +35,6 @@ import (
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
@@ -43,6 +42,7 @@ import (
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -87,13 +87,13 @@ type ISS struct {
 	// The memberships for the current epoch and the params.ConfigOffset following epochs
 	// (totalling params.ConfigOffset memberships).
 	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, 7 and 8.
-	memberships []*commonpbtypes.Membership
+	memberships []*trantorpbtypes.Membership
 
 	// The latest new membership obtained from the application.
 	// To be included as last of the list of membership in the next new configuration.
 	// The epoch number this membership corresponds to is the current epoch number + params.ConfigOffset.
 	// At epoch initialization, this is set to nil. We then set it to the next membership announced by the application.
-	nextNewMembership *commonpbtypes.Membership
+	nextNewMembership *trantorpbtypes.Membership
 
 	// The final log of committed availability certificates.
 	// For each sequence number, it holds the committed certificate (or the special abort value).
@@ -248,7 +248,7 @@ func New(
 		return iss.deliverCert(context.sn, context.data, context.aborted, context.leader)
 	})
 
-	isspbdsl.UponNewConfig(iss.m, func(epochNr tt.EpochNr, membership *commonpbtypes.Membership) error {
+	isspbdsl.UponNewConfig(iss.m, func(epochNr tt.EpochNr, membership *trantorpbtypes.Membership) error {
 		iss.logger.Log(logging.LevelDebug, "Received new configuration.",
 			"numNodes", len(membership.Nodes), "epochNr", epochNr, "currentEpoch", iss.epoch.Nr())
 
@@ -303,7 +303,7 @@ func New(
 
 	// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
 	// It serializes and submits the checkpoint for agreement.
-	chkppbdsl.UponStableCheckpoint(iss.m, func(sn tt.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+	chkppbdsl.UponStableCheckpoint(iss.m, func(sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
 		// Ignore old checkpoints.
 		if sn <= iss.lastPendingCheckpointSN {
 			iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
@@ -409,7 +409,7 @@ func New(
 		return nil
 	})
 
-	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn tt.SeqNr, snapshot *commonpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
 		_chkp := chkppbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
@@ -535,7 +535,7 @@ func New(
 func InitialStateSnapshot(
 	appState []byte,
 	params *issconfig.ModuleParams,
-) (*commonpbtypes.StateSnapshot, error) {
+) (*trantorpbtypes.StateSnapshot, error) {
 
 	// Create the first membership and all ConfigOffset following ones (by using the initial one).
 	memberships := sliceutil.Repeat(params.InitialMembership, params.ConfigOffset+1)
@@ -561,19 +561,19 @@ func InitialStateSnapshot(
 	}
 
 	firstEpochLength := uint64(params.SegmentLength * len(params.InitialMembership.Nodes))
-	return &commonpbtypes.StateSnapshot{
+	return &trantorpbtypes.StateSnapshot{
 		AppData: appState,
-		EpochData: &commonpbtypes.EpochData{
-			EpochConfig: &commonpbtypes.EpochConfig{
+		EpochData: &trantorpbtypes.EpochData{
+			EpochConfig: &trantorpbtypes.EpochConfig{
 				EpochNr:     0,
 				FirstSn:     0,
 				Length:      firstEpochLength,
 				Memberships: memberships,
 			},
-			ClientProgress: commonpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
+			ClientProgress: trantorpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
 			LeaderPolicy:   leaderPolicyData,
 			// TODO: Revisit this when nil values are properly supported in generated types.
-			PreviousMembership: &commonpbtypes.Membership{Nodes: make(map[t.NodeID]*commonpbtypes.NodeIdentity)},
+			PreviousMembership: &trantorpbtypes.Membership{Nodes: make(map[t.NodeID]*trantorpbtypes.NodeIdentity)},
 		},
 	}, nil
 }
@@ -785,7 +785,7 @@ func (iss *ISS) advanceEpoch() error {
 			oldMembership,
 			checkpoint.DefaultResendPeriod,
 			leaderPolicyData,
-			&commonpbtypes.EpochConfig{ // nolint:govet
+			&trantorpbtypes.EpochConfig{ // nolint:govet
 				iss.epoch.Nr(),
 				iss.epoch.FirstSN(),
 				uint64(iss.epoch.Len()),
