@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 )
 
 type Stats struct {
@@ -33,17 +33,17 @@ func NewStats() *Stats {
 	}
 }
 
-func (s *Stats) NewRequest(req *requestpb.Request) {
+func (s *Stats) NewRequest(req *trantorpb.Transaction) {
 	s.lock.Lock()
-	k := reqKey{req.ClientId, req.ReqNo}
+	k := reqKey{req.ClientId, req.TxNo}
 	s.reqTimestamps[k] = time.Now()
 	s.lock.Unlock()
 }
 
-func (s *Stats) Delivered(req *requestpb.Request) {
+func (s *Stats) Delivered(req *trantorpb.Transaction) {
 	s.lock.Lock()
 	s.deliveredRequests++
-	k := reqKey{req.ClientId, req.ReqNo}
+	k := reqKey{req.ClientId, req.TxNo}
 	if t, ok := s.reqTimestamps[k]; ok {
 		delete(s.reqTimestamps, k)
 		s.timestampedRequests++

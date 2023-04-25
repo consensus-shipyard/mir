@@ -19,8 +19,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -81,22 +81,22 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 
 	// Declare loop variables outside, since err is checked also after the loop finishes.
 	var err error
-	var req *requestpb.Request
+	var req *trantorpb.Transaction
 
 	// For each received request
 	for req, err = srv.Recv(); err == nil; req, err = srv.Recv() {
 
-		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.ReqNo)
+		rr.logger.Log(logging.LevelInfo, "Received request", "clId", req.ClientId, "reqNo", req.TxNo)
 
 		// Submit the request to the Node.
 		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewRequests(
 			rr.moduleID,
-			[]*requestpbtypes.Request{requestpbtypes.RequestFromPb(req)},
+			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(req)},
 		).Pb())); srErr != nil {
 
 			// If submitting fails, stop receiving further request (and close connection).
 			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit request (%v-%d): %v. Closing connection.",
-				req.ClientId, req.ReqNo, srErr))
+				req.ClientId, req.TxNo, srErr))
 			break
 		}
 	}

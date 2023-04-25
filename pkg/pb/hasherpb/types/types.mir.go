@@ -8,7 +8,7 @@ import (
 	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -247,7 +247,7 @@ func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
 	case *hasherpb.HashOrigin_ContextStore:
 		return &HashOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *hasherpb.HashOrigin_Request:
-		return &HashOrigin_Request{Request: types3.RequestFromPb(pb.Request)}
+		return &HashOrigin_Request{Request: types3.TransactionFromPb(pb.Request)}
 	case *hasherpb.HashOrigin_Dsl:
 		return &HashOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
 	case *hasherpb.HashOrigin_Checkpoint:
@@ -277,12 +277,12 @@ func (*HashOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Request struct {
-	Request *types3.Request
+	Request *types3.Transaction
 }
 
 func (*HashOrigin_Request) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Request) Unwrap() *types3.Request {
+func (w *HashOrigin_Request) Unwrap() *types3.Transaction {
 	return w.Request
 }
 

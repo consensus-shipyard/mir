@@ -8,12 +8,12 @@ syntax = "proto3";
 
 package requestreceiver;
 
-import "requestpb/requestpb.proto";
+import "trantorpb/trantorpb.proto";
 
 option go_package = "github.com/filecoin-project/mir/pkg/requestreceiver";
 
 service RequestReceiver {
-  rpc Listen(stream requestpb.Request) returns(ByeBye);
+  rpc Listen(stream trantorpb.Transaction) returns(ByeBye);
 }
 
 message ByeBye {

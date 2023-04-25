@@ -9,8 +9,8 @@ import (
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -22,7 +22,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	_ *common.ModuleParams,
 	_ *common.State,
 ) {
-	mppbdsl.UponRequestTransactionIDs(m, func(txs []*requestpbtypes.Request, origin *mppbtypes.RequestTransactionIDsOrigin) error {
+	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
 		txMsgs := make([]*hasherpbtypes.HashData, len(txs))
 		for i, tx := range txs {
 			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeRequestForHash(tx.Pb())}
@@ -63,11 +63,11 @@ type computeHashForBatchIDContext struct {
 
 // Auxiliary functions
 
-func serializeRequestForHash(req *requestpb.Request) [][]byte {
+func serializeRequestForHash(req *trantorpb.Transaction) [][]byte {
 	// Encode integer fields.
 	clientIDBuf := []byte(req.ClientId)
 	reqNoBuf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(reqNoBuf, req.ReqNo)
+	binary.LittleEndian.PutUint64(reqNoBuf, req.TxNo)
 
 	// Note that the signature is *not* part of the hashed data.
 

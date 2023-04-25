@@ -7,8 +7,8 @@ import (
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -306,14 +306,14 @@ func (*RequestTransactions) MirReflect() mirreflect.Type {
 }
 
 type ProvideTransactions struct {
-	Txs    []*types.Request
+	Txs    []*types.Transaction
 	Origin *RequestTransactionsOrigin
 }
 
 func ProvideTransactionsFromPb(pb *availabilitypb.ProvideTransactions) *ProvideTransactions {
 	return &ProvideTransactions{
-		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
-			return types.RequestFromPb(t)
+		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
+			return types.TransactionFromPb(t)
 		}),
 		Origin: RequestTransactionsOriginFromPb(pb.Origin),
 	}
@@ -321,7 +321,7 @@ func ProvideTransactionsFromPb(pb *availabilitypb.ProvideTransactions) *ProvideT
 
 func (m *ProvideTransactions) Pb() *availabilitypb.ProvideTransactions {
 	return &availabilitypb.ProvideTransactions{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
+		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 		Origin: (m.Origin).Pb(),

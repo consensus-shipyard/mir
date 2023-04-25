@@ -1,7 +1,7 @@
 package common
 
 import (
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -21,10 +21,10 @@ type ModuleParams struct {
 	// Instead, TxFetcher will be called to pull transactions from an external source
 	// when they are needed to form a batch (upon the RequestBatch event).
 	// Looking up transactions by ID will also always fail (return no transactions).
-	TxFetcher func() []*requestpbtypes.Request
+	TxFetcher func() []*trantorpbtypes.Transaction
 }
 
 // State represents the common state accessible to all parts of the module implementation.
 type State struct {
-	TxByID map[string]*requestpbtypes.Request
+	TxByID map[string]*trantorpbtypes.Transaction
 }

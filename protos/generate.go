@@ -18,9 +18,8 @@ package protos
 //go:generate -command protoc-events protoc --proto_path=. --go_out=../pkg/pb/ --go_opt=paths=source_relative --plugin=../codegen/protoc-plugin/protoc-gen-mir --mir_out=../pkg/pb --mir_opt=paths=source_relative
 
 // Generate the protoc-generated code for events and messages.
-//go:generate protoc-events trantorpb/trantorpb.proto
 //go:generate protoc-events messagepb/messagepb.proto
-//go:generate protoc-events requestpb/requestpb.proto
+//go:generate protoc-events trantorpb/trantorpb.proto
 //go:generate protoc-events eventpb/eventpb.proto
 //go:generate protoc-events hasherpb/hasherpb.proto
 //go:generate protoc-events recordingpb/recordingpb.proto
@@ -50,7 +49,6 @@ package protos
 // Generate the Mir-generated code for events and messages.
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/eventpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/messagepb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/dslpb"
@@ -61,7 +59,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/requestpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"

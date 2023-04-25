@@ -8,7 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/formbatchesint"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/parts/lookuptxs"
 	"github.com/filecoin-project/mir/pkg/modules"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -44,7 +44,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{
-		TxByID: make(map[string]*requestpbtypes.Request),
+		TxByID: make(map[string]*trantorpbtypes.Transaction),
 	}
 
 	computeids.IncludeComputationOfTransactionAndBatchIDs(m, mc, params, commonState)

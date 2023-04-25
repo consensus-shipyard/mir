@@ -5,7 +5,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -22,7 +22,7 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponRequestSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64) error) {
+func UponRequestSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Transaction, reqId uint64) error) {
 	UponMessageReceived[*types.Message_RequestSig](m, func(from types1.NodeID, msg *types.RequestSigMessage) error {
 		return handler(from, msg.Txs, msg.ReqId)
 	})
@@ -40,7 +40,7 @@ func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.Node
 	})
 }
 
-func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64, batchId []uint8) error) {
+func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Transaction, reqId uint64, batchId []uint8) error) {
 	UponMessageReceived[*types.Message_ProvideBatch](m, func(from types1.NodeID, msg *types.ProvideBatchMessage) error {
 		return handler(from, msg.Txs, msg.ReqId, msg.BatchId)
 	})

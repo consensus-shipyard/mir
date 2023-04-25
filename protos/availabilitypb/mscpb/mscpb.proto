@@ -4,7 +4,6 @@ package availabilitypb.mscpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb";
 
-import "requestpb/requestpb.proto";
 import "trantorpb/trantorpb.proto";
 
 import "net/codegen_extensions.proto";
@@ -31,7 +30,7 @@ message Message {
 message RequestSigMessage {
   option (net.message) = true;
 
-  repeated requestpb.Request txs    = 1;
+  repeated trantorpb.Transaction txs    = 1;
   uint64                     req_id = 2;
 }
 
@@ -52,7 +51,7 @@ message RequestBatchMessage {
 message ProvideBatchMessage {
   option (net.message) = true;
 
-  repeated requestpb.Request txs      = 1;
+  repeated trantorpb.Transaction txs      = 1;
   uint64                     req_id   = 2;
   bytes                      batch_id = 3;
 }

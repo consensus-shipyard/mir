@@ -23,7 +23,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/membership"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -63,7 +63,7 @@ func NewChatApp(initialMembership *trantorpbtypes.Membership, chkpDir string) *C
 // by appending the payload of each received transaction as a new chat message.
 // Each appended message is also printed to stdout.
 // Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
-func (chat *ChatApp) ApplyTXs(txs []*requestpb.Request) error {
+func (chat *ChatApp) ApplyTXs(txs []*trantorpb.Transaction) error {
 	// For each transaction in the batch
 	for _, req := range txs {
 

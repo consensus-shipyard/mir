@@ -4,7 +4,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -72,7 +72,7 @@ func UponRequestTransactions(m dsl.Module, handler func(cert *types.Cert, origin
 	})
 }
 
-func UponProvideTransactions[C any](m dsl.Module, handler func(txs []*types2.Request, context *C) error) {
+func UponProvideTransactions[C any](m dsl.Module, handler func(txs []*types2.Transaction, context *C) error) {
 	UponEvent[*types.Event_ProvideTransactions](m, func(ev *types.ProvideTransactions) error {
 		originWrapper, ok := ev.Origin.Type.(*types.RequestTransactionsOrigin_Dsl)
 		if !ok {

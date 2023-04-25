@@ -4,7 +4,7 @@ package requestreceiver
 
 import (
 	context "context"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -40,7 +40,7 @@ func (c *requestReceiverClient) Listen(ctx context.Context, opts ...grpc.CallOpt
 }
 
 type RequestReceiver_ListenClient interface {
-	Send(*requestpb.Request) error
+	Send(*trantorpb.Transaction) error
 	CloseAndRecv() (*ByeBye, error)
 	grpc.ClientStream
 }
@@ -49,7 +49,7 @@ type requestReceiverListenClient struct {
 	grpc.ClientStream
 }
 
-func (x *requestReceiverListenClient) Send(m *requestpb.Request) error {
+func (x *requestReceiverListenClient) Send(m *trantorpb.Transaction) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -98,7 +98,7 @@ func _RequestReceiver_Listen_Handler(srv interface{}, stream grpc.ServerStream) 
 
 type RequestReceiver_ListenServer interface {
 	SendAndClose(*ByeBye) error
-	Recv() (*requestpb.Request, error)
+	Recv() (*trantorpb.Transaction, error)
 	grpc.ServerStream
 }
 
@@ -110,8 +110,8 @@ func (x *requestReceiverListenServer) SendAndClose(m *ByeBye) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *requestReceiverListenServer) Recv() (*requestpb.Request, error) {
-	m := new(requestpb.Request)
+func (x *requestReceiverListenServer) Recv() (*trantorpb.Transaction, error) {
+	m := new(trantorpb.Transaction)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

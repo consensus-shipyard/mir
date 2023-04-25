@@ -37,7 +37,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -269,9 +269,9 @@ func run() error {
 		// Submit the chat message as request payload to the mempool module.
 		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
 			"mempool",
-			[]*requestpbtypes.Request{{
+			[]*trantorpbtypes.Transaction{{
 				ClientId: tt.ClientID(args.OwnID),
-				ReqNo:    nextReqNo,
+				TxNo:     nextReqNo,
 				Type:     0,
 				Data:     scanner.Bytes(),
 			}}).Pb()),

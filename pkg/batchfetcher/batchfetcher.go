@@ -12,13 +12,13 @@ import (
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 
@@ -57,13 +57,13 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 	// It is applied to each transaction batch immediately before delivering it to the application.
 	filterDuplicates := func(newOrderedBatch *batchfetcherpb.NewOrderedBatch) {
 
-		newTxs := make([]*requestpb.Request, 0, len(newOrderedBatch.Txs))
+		newTxs := make([]*trantorpb.Transaction, 0, len(newOrderedBatch.Txs))
 
 		for _, tx := range newOrderedBatch.Txs {
 
 			// Convenience variables
 			clID := tt.ClientID(tx.ClientId)
-			reqNo := tt.ReqNo(tx.ReqNo)
+			reqNo := tt.ReqNo(tx.TxNo)
 
 			// Only keep transaction if it has not yet been delivered.
 			if clientProgress.Add(clID, reqNo) {
@@ -113,7 +113,7 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 		if empty {
 			// Skip fetching transactions for padding certificates.
 			// Directly deliver an empty batch instead.
-			item.event = bfeventstypes.NewOrderedBatch(mc.Destination, []*requestpbtypes.Request{}).Pb()
+			item.event = bfeventstypes.NewOrderedBatch(mc.Destination, []*trantorpbtypes.Transaction{}).Pb()
 			output.Flush(m)
 		} else {
 			// If this is a proper certificate, request transactions from the availability layer.
@@ -182,7 +182,7 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 	// assigns the remaining transactions to the corresponding output item
 	// (the one created on reception of the corresponding availability certificate in DeliverCert)
 	// and flushes the output stream.
-	availabilitypbdsl.UponProvideTransactions(m, func(txs []*requestpbtypes.Request, context *txRequestContext) error {
+	availabilitypbdsl.UponProvideTransactions(m, func(txs []*trantorpbtypes.Transaction, context *txRequestContext) error {
 
 		// Note that not necessarily all transactions will be part of the final batch.
 		// When the event leaves the output buffer, duplicates will be filtered out.

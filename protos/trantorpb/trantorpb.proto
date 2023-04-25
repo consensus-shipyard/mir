@@ -7,6 +7,18 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/trantorpb";
 import "mir/codegen_extensions.proto";
 
 // ================================================================================
+// Transaction
+
+message Transaction {
+  option (mir.struct) = true;
+
+  string client_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.ClientID"];
+  uint64 tx_no     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.ReqNo"];
+  uint64 type      = 3; // TODO not being used at the moment? (only some boilerplate code in pkg/serializing)
+  bytes  data      = 4;
+}
+
+// ================================================================================
 // State snapshot
 
 message StateSnapshot {

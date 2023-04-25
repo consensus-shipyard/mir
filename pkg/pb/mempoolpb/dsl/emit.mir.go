@@ -5,7 +5,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -23,7 +23,7 @@ func RequestBatch[C any](m dsl.Module, destModule types.ModuleID, context *C) {
 	dsl.EmitMirEvent(m, events.RequestBatch(destModule, origin))
 }
 
-func NewBatch(m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, txs []*types3.Request, origin *types1.RequestBatchOrigin) {
+func NewBatch(m dsl.Module, destModule types.ModuleID, txIds []types2.TxID, txs []*types3.Transaction, origin *types1.RequestBatchOrigin) {
 	dsl.EmitMirEvent(m, events.NewBatch(destModule, txIds, txs, origin))
 }
 
@@ -38,11 +38,11 @@ func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, txIds [
 	dsl.EmitMirEvent(m, events.RequestTransactions(destModule, txIds, origin))
 }
 
-func TransactionsResponse(m dsl.Module, destModule types.ModuleID, present []bool, txs []*types3.Request, origin *types1.RequestTransactionsOrigin) {
+func TransactionsResponse(m dsl.Module, destModule types.ModuleID, present []bool, txs []*types3.Transaction, origin *types1.RequestTransactionsOrigin) {
 	dsl.EmitMirEvent(m, events.TransactionsResponse(destModule, present, txs, origin))
 }
 
-func RequestTransactionIDs[C any](m dsl.Module, destModule types.ModuleID, txs []*types3.Request, context *C) {
+func RequestTransactionIDs[C any](m dsl.Module, destModule types.ModuleID, txs []*types3.Transaction, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.RequestTransactionIDsOrigin{
@@ -72,6 +72,6 @@ func BatchIDResponse(m dsl.Module, destModule types.ModuleID, batchId types4.Bat
 	dsl.EmitMirEvent(m, events.BatchIDResponse(destModule, batchId, origin))
 }
 
-func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types3.Request) {
+func NewRequests(m dsl.Module, destModule types.ModuleID, requests []*types3.Transaction) {
 	dsl.EmitMirEvent(m, events.NewRequests(destModule, requests))
 }

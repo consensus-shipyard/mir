@@ -17,7 +17,7 @@ import (
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -92,7 +92,7 @@ func IncludeCreatingCertificates(
 	})
 
 	// When the mempool provides a batch, compute its ID.
-	mempooldsl.UponNewBatch(m, func(txIDs []tt.TxID, txs []*requestpbtypes.Request, context *requestBatchFromMempoolContext) error {
+	mempooldsl.UponNewBatch(m, func(txIDs []tt.TxID, txs []*trantorpbtypes.Transaction, context *requestBatchFromMempoolContext) error {
 		if len(txs) == 0 {
 			// If the batch is empty, immediately stop it and respond to all pending requests with an empty certificate.
 			delete(state.certificates, context.reqID)
@@ -174,7 +174,7 @@ func IncludeCreatingCertificates(
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// When receive a request for a signature, compute the ids of the received transactions.
-	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*requestpbtypes.Request, reqID requestID) error {
+	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*trantorpbtypes.Transaction, reqID requestID) error {
 		// check that sender is a member
 		if !sliceutil.Contains(params.AllNodes, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
@@ -279,19 +279,19 @@ type requestBatchFromMempoolContext struct {
 
 type requestIDOfOwnBatchContext struct {
 	reqID requestID
-	txs   []*requestpbtypes.Request
+	txs   []*trantorpbtypes.Transaction
 }
 
 type computeIDsOfReceivedTxsContext struct {
 	sourceID t.NodeID
-	txs      []*requestpbtypes.Request
+	txs      []*trantorpbtypes.Transaction
 	reqID    requestID
 }
 
 type computeIDOfReceivedBatchContext struct {
 	sourceID t.NodeID
 	txIDs    []tt.TxID
-	txs      []*requestpbtypes.Request
+	txs      []*trantorpbtypes.Transaction
 	reqID    requestID
 }
 

@@ -7,7 +7,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "availabilitypb/mscpb/mscpb.proto";
-import "requestpb/requestpb.proto";
+import "trantorpb/trantorpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -81,7 +81,7 @@ message RequestTransactions {
 message ProvideTransactions {
   option (mir.event) = true;
 
-  repeated requestpb.Request txs    = 1;
+  repeated trantorpb.Transaction txs    = 1;
   RequestTransactionsOrigin  origin = 2 [(mir.origin_response) = true];
 }
 

@@ -14,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	"github.com/filecoin-project/mir/pkg/testsim"
@@ -171,9 +170,9 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 			// Otherwise, submit next request.
 			eventList := events.ListOf(mempoolpbevents.NewRequests(
 				destModule,
-				[]*requestpbtypes.Request{{
+				[]*trantorpbtypes.Transaction{{
 					ClientId: tt.NewClientIDFromInt(0),
-					ReqNo:    tt.ReqNo(i),
+					TxNo:     tt.ReqNo(i),
 					Data:     []byte(fmt.Sprintf("Request %d", i)),
 				}},
 			).Pb())

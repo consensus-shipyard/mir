@@ -10,10 +10,9 @@ package isspb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/isspb";
 
-import "requestpb/requestpb.proto";
+import "trantorpb/trantorpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "availabilitypb/availabilitypb.proto";
-import "trantorpb/trantorpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
@@ -35,7 +34,7 @@ message ISSMessage {
 message RetransmitRequests {
   option (net.message) = true;
 
-  repeated requestpb.Request requests = 1;
+  repeated trantorpb.Transaction requests = 1;
 }
 
 // ============================================================

@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/requestreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -107,9 +107,9 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 func (dc *DummyClient) SubmitRequest(data []byte) error {
 
 	// Create new request message.
-	reqMsg := &requestpbtypes.Request{
+	reqMsg := &trantorpbtypes.Transaction{
 		ClientId: dc.ownID,
-		ReqNo:    dc.nextReqNo,
+		TxNo:     dc.nextReqNo,
 		Type:     0,
 		Data:     data,
 	}

@@ -198,7 +198,6 @@ The following order is important to avoid circular dependencies (the examples ar
     // Generate the protoc-generated code for events and messages.
     //go:generate protoc-events trantorpb/trantorpb.proto
     //go:generate protoc-events messagepb/messagepb.proto
-    //go:generate protoc-events requestpb/requestpb.proto
     //go:generate protoc-events eventpb/eventpb.proto
     //...
     ```

@@ -5,7 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -26,7 +26,7 @@ func IncludeBatchCreation(
 		NewTxIDs: nil,
 	}
 
-	mpdsl.UponNewRequests(m, func(txs []*requestpbtypes.Request) error {
+	mpdsl.UponNewRequests(m, func(txs []*trantorpbtypes.Transaction) error {
 		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{txs})
 		return nil
 	})
@@ -43,7 +43,7 @@ func IncludeBatchCreation(
 
 	mpdsl.UponRequestBatch(m, func(origin *mppbtypes.RequestBatchOrigin) error {
 		var txIDs []tt.TxID
-		var txs []*requestpbtypes.Request
+		var txs []*trantorpbtypes.Transaction
 		batchSize := 0
 
 		txCount := 0
@@ -76,5 +76,5 @@ func IncludeBatchCreation(
 // Context data structures
 
 type requestTxIDsContext struct {
-	txs []*requestpbtypes.Request
+	txs []*trantorpbtypes.Transaction
 }

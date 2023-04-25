@@ -3,11 +3,11 @@ package batchfetcherpbevents
 import (
 	types3 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewOrderedBatch(destModule types.ModuleID, txs []*types1.Request) *types2.Event {
+func NewOrderedBatch(destModule types.ModuleID, txs []*types1.Transaction) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_BatchFetcher{

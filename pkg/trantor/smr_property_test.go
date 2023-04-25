@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -172,12 +172,12 @@ func batchesEqual(i1 interface{}, i2 interface{}) error {
 	return nil
 }
 
-func txEqual(tx1 *requestpb.Request, tx2 *requestpb.Request) error {
+func txEqual(tx1 *trantorpb.Transaction, tx2 *trantorpb.Transaction) error {
 	if tx1.ClientId != tx2.ClientId {
 		return fmt.Errorf("client ID mismatch: %v and %v", tx1.ClientId, tx2.ClientId)
 	}
-	if tx1.ReqNo != tx2.ReqNo {
-		return fmt.Errorf("request number mismatch: %v and %v", tx1.ReqNo, tx2.ReqNo)
+	if tx1.TxNo != tx2.TxNo {
+		return fmt.Errorf("request number mismatch: %v and %v", tx1.TxNo, tx2.TxNo)
 	}
 	if tx1.Type != tx2.Type {
 		return fmt.Errorf("type mismatch: %v and %v", tx1.Type, tx2.Type)

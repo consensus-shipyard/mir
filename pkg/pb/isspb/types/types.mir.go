@@ -6,9 +6,8 @@ import (
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	types6 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -72,20 +71,20 @@ func (*ISSMessage) MirReflect() mirreflect.Type {
 }
 
 type RetransmitRequests struct {
-	Requests []*types1.Request
+	Requests []*types1.Transaction
 }
 
 func RetransmitRequestsFromPb(pb *isspb.RetransmitRequests) *RetransmitRequests {
 	return &RetransmitRequests{
-		Requests: types2.ConvertSlice(pb.Requests, func(t *requestpb.Request) *types1.Request {
-			return types1.RequestFromPb(t)
+		Requests: types2.ConvertSlice(pb.Requests, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 	}
 }
 
 func (m *RetransmitRequests) Pb() *isspb.RetransmitRequests {
 	return &isspb.RetransmitRequests{
-		Requests: types2.ConvertSlice(m.Requests, func(t *types1.Request) *requestpb.Request {
+		Requests: types2.ConvertSlice(m.Requests, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 	}
@@ -286,13 +285,13 @@ func (*DeliverCert) MirReflect() mirreflect.Type {
 
 type NewConfig struct {
 	EpochNr    types3.EpochNr
-	Membership *types6.Membership
+	Membership *types1.Membership
 }
 
 func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
 	return &NewConfig{
 		EpochNr:    (types3.EpochNr)(pb.EpochNr),
-		Membership: types6.MembershipFromPb(pb.Membership),
+		Membership: types1.MembershipFromPb(pb.Membership),
 	}
 }
 

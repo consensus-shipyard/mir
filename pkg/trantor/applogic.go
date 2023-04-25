@@ -2,7 +2,7 @@ package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -13,7 +13,7 @@ import (
 type AppLogic interface {
 
 	// ApplyTXs applies a batch of transactions to the state machine.
-	ApplyTXs(txs []*requestpb.Request) error
+	ApplyTXs(txs []*trantorpb.Transaction) error
 
 	// NewEpoch is called by the SMR system when a new epoch is started.
 	// It returns the membership of a new epoch.
@@ -40,7 +40,7 @@ type AppLogic interface {
 type StaticAppLogic interface {
 
 	// ApplyTXs applies a batch of transactions to the state machine.
-	ApplyTXs(txs []*requestpb.Request) error
+	ApplyTXs(txs []*trantorpb.Transaction) error
 
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)

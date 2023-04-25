@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -23,7 +23,7 @@ type FakeApp struct {
 	RequestsProcessed uint64
 }
 
-func (fa *FakeApp) ApplyTXs(txs []*requestpb.Request) error {
+func (fa *FakeApp) ApplyTXs(txs []*trantorpb.Transaction) error {
 	for _, req := range txs {
 		fa.RequestsProcessed++
 		fmt.Printf("Received request: %q. Processed requests: %d\n", string(req.Data), fa.RequestsProcessed)
