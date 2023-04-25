@@ -31,12 +31,6 @@ message ISSMessage {
   }
 }
 
-message RetransmitRequests {
-  option (net.message) = true;
-
-  repeated trantorpb.Transaction requests = 1;
-}
-
 // ============================================================
 // Events
 // ============================================================

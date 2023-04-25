@@ -2,14 +2,12 @@ package isspbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types2 "github.com/filecoin-project/mir/codegen/model/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
-	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types4 "github.com/filecoin-project/mir/pkg/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -68,30 +66,6 @@ func (m *ISSMessage) Pb() *isspb.ISSMessage {
 
 func (*ISSMessage) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.ISSMessage]()}
-}
-
-type RetransmitRequests struct {
-	Requests []*types1.Transaction
-}
-
-func RetransmitRequestsFromPb(pb *isspb.RetransmitRequests) *RetransmitRequests {
-	return &RetransmitRequests{
-		Requests: types2.ConvertSlice(pb.Requests, func(t *trantorpb.Transaction) *types1.Transaction {
-			return types1.TransactionFromPb(t)
-		}),
-	}
-}
-
-func (m *RetransmitRequests) Pb() *isspb.RetransmitRequests {
-	return &isspb.RetransmitRequests{
-		Requests: types2.ConvertSlice(m.Requests, func(t *types1.Transaction) *trantorpb.Transaction {
-			return (t).Pb()
-		}),
-	}
-}
-
-func (*RetransmitRequests) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*isspb.RetransmitRequests]()}
 }
 
 type Event struct {
@@ -226,20 +200,20 @@ func (*PushCheckpoint) MirReflect() mirreflect.Type {
 }
 
 type SBDeliver struct {
-	Sn         types3.SeqNr
+	Sn         types1.SeqNr
 	Data       []uint8
 	Aborted    bool
-	Leader     types4.NodeID
-	InstanceId types4.ModuleID
+	Leader     types2.NodeID
+	InstanceId types2.ModuleID
 }
 
 func SBDeliverFromPb(pb *isspb.SBDeliver) *SBDeliver {
 	return &SBDeliver{
-		Sn:         (types3.SeqNr)(pb.Sn),
+		Sn:         (types1.SeqNr)(pb.Sn),
 		Data:       pb.Data,
 		Aborted:    pb.Aborted,
-		Leader:     (types4.NodeID)(pb.Leader),
-		InstanceId: (types4.ModuleID)(pb.InstanceId),
+		Leader:     (types2.NodeID)(pb.Leader),
+		InstanceId: (types2.ModuleID)(pb.InstanceId),
 	}
 }
 
@@ -258,15 +232,15 @@ func (*SBDeliver) MirReflect() mirreflect.Type {
 }
 
 type DeliverCert struct {
-	Sn    types3.SeqNr
-	Cert  *types5.Cert
+	Sn    types1.SeqNr
+	Cert  *types3.Cert
 	Empty bool
 }
 
 func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
 	return &DeliverCert{
-		Sn:    (types3.SeqNr)(pb.Sn),
-		Cert:  types5.CertFromPb(pb.Cert),
+		Sn:    (types1.SeqNr)(pb.Sn),
+		Cert:  types3.CertFromPb(pb.Cert),
 		Empty: pb.Empty,
 	}
 }
@@ -284,14 +258,14 @@ func (*DeliverCert) MirReflect() mirreflect.Type {
 }
 
 type NewConfig struct {
-	EpochNr    types3.EpochNr
-	Membership *types1.Membership
+	EpochNr    types1.EpochNr
+	Membership *types4.Membership
 }
 
 func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
 	return &NewConfig{
-		EpochNr:    (types3.EpochNr)(pb.EpochNr),
-		Membership: types1.MembershipFromPb(pb.Membership),
+		EpochNr:    (types1.EpochNr)(pb.EpochNr),
+		Membership: types4.MembershipFromPb(pb.Membership),
 	}
 }
 

@@ -96,53 +96,6 @@ type ISSMessage_StableCheckpoint struct {
 
 func (*ISSMessage_StableCheckpoint) isISSMessage_Type() {}
 
-type RetransmitRequests struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Requests []*trantorpb.Transaction `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
-}
-
-func (x *RetransmitRequests) Reset() {
-	*x = RetransmitRequests{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *RetransmitRequests) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RetransmitRequests) ProtoMessage() {}
-
-func (x *RetransmitRequests) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RetransmitRequests.ProtoReflect.Descriptor instead.
-func (*RetransmitRequests) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *RetransmitRequests) GetRequests() []*trantorpb.Transaction {
-	if x != nil {
-		return x.Requests
-	}
-	return nil
-}
-
 type Event struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -159,7 +112,7 @@ type Event struct {
 func (x *Event) Reset() {
 	*x = Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[2]
+		mi := &file_isspb_isspb_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -172,7 +125,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[2]
+	mi := &file_isspb_isspb_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +138,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{2}
+	return file_isspb_isspb_proto_rawDescGZIP(), []int{1}
 }
 
 func (m *Event) GetType() isEvent_Type {
@@ -260,7 +213,7 @@ type PushCheckpoint struct {
 func (x *PushCheckpoint) Reset() {
 	*x = PushCheckpoint{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[3]
+		mi := &file_isspb_isspb_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -273,7 +226,7 @@ func (x *PushCheckpoint) String() string {
 func (*PushCheckpoint) ProtoMessage() {}
 
 func (x *PushCheckpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[3]
+	mi := &file_isspb_isspb_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -286,7 +239,7 @@ func (x *PushCheckpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushCheckpoint.ProtoReflect.Descriptor instead.
 func (*PushCheckpoint) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{3}
+	return file_isspb_isspb_proto_rawDescGZIP(), []int{2}
 }
 
 type SBDeliver struct {
@@ -304,7 +257,7 @@ type SBDeliver struct {
 func (x *SBDeliver) Reset() {
 	*x = SBDeliver{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[4]
+		mi := &file_isspb_isspb_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -317,7 +270,7 @@ func (x *SBDeliver) String() string {
 func (*SBDeliver) ProtoMessage() {}
 
 func (x *SBDeliver) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[4]
+	mi := &file_isspb_isspb_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +283,7 @@ func (x *SBDeliver) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SBDeliver.ProtoReflect.Descriptor instead.
 func (*SBDeliver) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{4}
+	return file_isspb_isspb_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SBDeliver) GetSn() uint64 {
@@ -381,7 +334,7 @@ type DeliverCert struct {
 func (x *DeliverCert) Reset() {
 	*x = DeliverCert{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[5]
+		mi := &file_isspb_isspb_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -394,7 +347,7 @@ func (x *DeliverCert) String() string {
 func (*DeliverCert) ProtoMessage() {}
 
 func (x *DeliverCert) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[5]
+	mi := &file_isspb_isspb_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -407,7 +360,7 @@ func (x *DeliverCert) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeliverCert.ProtoReflect.Descriptor instead.
 func (*DeliverCert) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{5}
+	return file_isspb_isspb_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeliverCert) GetSn() uint64 {
@@ -443,7 +396,7 @@ type NewConfig struct {
 func (x *NewConfig) Reset() {
 	*x = NewConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_isspb_isspb_proto_msgTypes[6]
+		mi := &file_isspb_isspb_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -456,7 +409,7 @@ func (x *NewConfig) String() string {
 func (*NewConfig) ProtoMessage() {}
 
 func (x *NewConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_isspb_isspb_proto_msgTypes[6]
+	mi := &file_isspb_isspb_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -469,7 +422,7 @@ func (x *NewConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NewConfig.ProtoReflect.Descriptor instead.
 func (*NewConfig) Descriptor() ([]byte, []int) {
-	return file_isspb_isspb_proto_rawDescGZIP(), []int{6}
+	return file_isspb_isspb_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *NewConfig) GetEpochNr() uint64 {
@@ -507,12 +460,7 @@ var file_isspb_isspb_proto_rawDesc = []byte{
 	0x53, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x70, 0x6f, 0x69, 0x6e, 0x74,
 	0x48, 0x00, 0x52, 0x10, 0x73, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x70,
 	0x6f, 0x69, 0x6e, 0x74, 0x3a, 0x04, 0xc8, 0xe4, 0x1d, 0x01, 0x42, 0x0c, 0x0a, 0x04, 0x74, 0x79,
-	0x70, 0x65, 0x12, 0x04, 0xc8, 0xe4, 0x1d, 0x01, 0x22, 0x4e, 0x0a, 0x12, 0x52, 0x65, 0x74, 0x72,
-	0x61, 0x6e, 0x73, 0x6d, 0x69, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x12, 0x32,
-	0x0a, 0x08, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
-	0x32, 0x16, 0x2e, 0x74, 0x72, 0x61, 0x6e, 0x74, 0x6f, 0x72, 0x70, 0x62, 0x2e, 0x54, 0x72, 0x61,
-	0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x08, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x73, 0x3a, 0x04, 0xd0, 0xe4, 0x1d, 0x01, 0x22, 0xfc, 0x01, 0x0a, 0x05, 0x45, 0x76, 0x65,
+	0x70, 0x65, 0x12, 0x04, 0xc8, 0xe4, 0x1d, 0x01, 0x22, 0xfc, 0x01, 0x0a, 0x05, 0x45, 0x76, 0x65,
 	0x6e, 0x74, 0x12, 0x40, 0x0a, 0x0f, 0x70, 0x75, 0x73, 0x68, 0x5f, 0x63, 0x68, 0x65, 0x63, 0x6b,
 	0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x69, 0x73,
 	0x73, 0x70, 0x62, 0x2e, 0x50, 0x75, 0x73, 0x68, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x70, 0x6f, 0x69,
@@ -588,34 +536,31 @@ func file_isspb_isspb_proto_rawDescGZIP() []byte {
 	return file_isspb_isspb_proto_rawDescData
 }
 
-var file_isspb_isspb_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_isspb_isspb_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_isspb_isspb_proto_goTypes = []interface{}{
 	(*ISSMessage)(nil),                    // 0: isspb.ISSMessage
-	(*RetransmitRequests)(nil),            // 1: isspb.RetransmitRequests
-	(*Event)(nil),                         // 2: isspb.Event
-	(*PushCheckpoint)(nil),                // 3: isspb.PushCheckpoint
-	(*SBDeliver)(nil),                     // 4: isspb.SBDeliver
-	(*DeliverCert)(nil),                   // 5: isspb.DeliverCert
-	(*NewConfig)(nil),                     // 6: isspb.NewConfig
-	(*checkpointpb.StableCheckpoint)(nil), // 7: checkpointpb.StableCheckpoint
-	(*trantorpb.Transaction)(nil),         // 8: trantorpb.Transaction
-	(*availabilitypb.Cert)(nil),           // 9: availabilitypb.Cert
-	(*trantorpb.Membership)(nil),          // 10: trantorpb.Membership
+	(*Event)(nil),                         // 1: isspb.Event
+	(*PushCheckpoint)(nil),                // 2: isspb.PushCheckpoint
+	(*SBDeliver)(nil),                     // 3: isspb.SBDeliver
+	(*DeliverCert)(nil),                   // 4: isspb.DeliverCert
+	(*NewConfig)(nil),                     // 5: isspb.NewConfig
+	(*checkpointpb.StableCheckpoint)(nil), // 6: checkpointpb.StableCheckpoint
+	(*availabilitypb.Cert)(nil),           // 7: availabilitypb.Cert
+	(*trantorpb.Membership)(nil),          // 8: trantorpb.Membership
 }
 var file_isspb_isspb_proto_depIdxs = []int32{
-	7,  // 0: isspb.ISSMessage.stable_checkpoint:type_name -> checkpointpb.StableCheckpoint
-	8,  // 1: isspb.RetransmitRequests.requests:type_name -> trantorpb.Transaction
-	3,  // 2: isspb.Event.push_checkpoint:type_name -> isspb.PushCheckpoint
-	4,  // 3: isspb.Event.sb_deliver:type_name -> isspb.SBDeliver
-	5,  // 4: isspb.Event.deliver_cert:type_name -> isspb.DeliverCert
-	6,  // 5: isspb.Event.new_config:type_name -> isspb.NewConfig
-	9,  // 6: isspb.DeliverCert.cert:type_name -> availabilitypb.Cert
-	10, // 7: isspb.NewConfig.membership:type_name -> trantorpb.Membership
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	6, // 0: isspb.ISSMessage.stable_checkpoint:type_name -> checkpointpb.StableCheckpoint
+	2, // 1: isspb.Event.push_checkpoint:type_name -> isspb.PushCheckpoint
+	3, // 2: isspb.Event.sb_deliver:type_name -> isspb.SBDeliver
+	4, // 3: isspb.Event.deliver_cert:type_name -> isspb.DeliverCert
+	5, // 4: isspb.Event.new_config:type_name -> isspb.NewConfig
+	7, // 5: isspb.DeliverCert.cert:type_name -> availabilitypb.Cert
+	8, // 6: isspb.NewConfig.membership:type_name -> trantorpb.Membership
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_isspb_isspb_proto_init() }
@@ -637,18 +582,6 @@ func file_isspb_isspb_proto_init() {
 			}
 		}
 		file_isspb_isspb_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RetransmitRequests); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_isspb_isspb_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Event); i {
 			case 0:
 				return &v.state
@@ -660,7 +593,7 @@ func file_isspb_isspb_proto_init() {
 				return nil
 			}
 		}
-		file_isspb_isspb_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_isspb_isspb_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PushCheckpoint); i {
 			case 0:
 				return &v.state
@@ -672,7 +605,7 @@ func file_isspb_isspb_proto_init() {
 				return nil
 			}
 		}
-		file_isspb_isspb_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_isspb_isspb_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SBDeliver); i {
 			case 0:
 				return &v.state
@@ -684,7 +617,7 @@ func file_isspb_isspb_proto_init() {
 				return nil
 			}
 		}
-		file_isspb_isspb_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_isspb_isspb_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeliverCert); i {
 			case 0:
 				return &v.state
@@ -696,7 +629,7 @@ func file_isspb_isspb_proto_init() {
 				return nil
 			}
 		}
-		file_isspb_isspb_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_isspb_isspb_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*NewConfig); i {
 			case 0:
 				return &v.state
@@ -712,7 +645,7 @@ func file_isspb_isspb_proto_init() {
 	file_isspb_isspb_proto_msgTypes[0].OneofWrappers = []interface{}{
 		(*ISSMessage_StableCheckpoint)(nil),
 	}
-	file_isspb_isspb_proto_msgTypes[2].OneofWrappers = []interface{}{
+	file_isspb_isspb_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*Event_PushCheckpoint)(nil),
 		(*Event_SbDeliver)(nil),
 		(*Event_DeliverCert)(nil),
@@ -724,7 +657,7 @@ func file_isspb_isspb_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_isspb_isspb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
