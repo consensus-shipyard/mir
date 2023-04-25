@@ -321,9 +321,6 @@ func (p *Protocol) applyMessage(msg *checkpointpb.Checkpoint, source t.NodeID) *
 		return eventsOut
 	}
 
-	// TODO: Only accept messages from nodes in membership.
-	//       This might be more tricky than it seems, especially when the membership is not yet initialized.
-
 	// Ignore duplicate messages.
 	if _, ok := p.signatures[source]; ok {
 		return eventsOut
