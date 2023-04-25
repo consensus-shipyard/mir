@@ -5,6 +5,7 @@ import (
 
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -21,8 +22,8 @@ func serializeCheckpointForSig(epoch tt.EpochNr, seqNr tt.SeqNr, snapshotHash []
 	return &cryptopbtypes.SignedData{Data: [][]byte{epochBytes, snBytes, snapshotHash}}
 }
 
-func serializeSnapshotForHash(snapshot *commonpbtypes.StateSnapshot) *commonpbtypes.HashData {
-	return &commonpbtypes.HashData{Data: append(serializeEpochDataForHash(snapshot.EpochData), snapshot.AppData)}
+func serializeSnapshotForHash(snapshot *commonpbtypes.StateSnapshot) *hasherpbtypes.HashData {
+	return &hasherpbtypes.HashData{Data: append(serializeEpochDataForHash(snapshot.EpochData), snapshot.AppData)}
 }
 
 func serializeEpochDataForHash(epochData *commonpbtypes.EpochData) [][]byte {

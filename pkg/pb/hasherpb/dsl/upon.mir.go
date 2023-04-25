@@ -2,7 +2,6 @@ package hasherpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 )
@@ -20,7 +19,7 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponRequest(m dsl.Module, handler func(data []*types2.HashData, origin *types.HashOrigin) error) {
+func UponRequest(m dsl.Module, handler func(data []*types.HashData, origin *types.HashOrigin) error) {
 	UponEvent[*types.Event_Request](m, func(ev *types.Request) error {
 		return handler(ev.Data, ev.Origin)
 	})
@@ -43,7 +42,7 @@ func UponResult[C any](m dsl.Module, handler func(digests [][]uint8, context *C)
 	})
 }
 
-func UponRequestOne(m dsl.Module, handler func(data *types2.HashData, origin *types.HashOrigin) error) {
+func UponRequestOne(m dsl.Module, handler func(data *types.HashData, origin *types.HashOrigin) error) {
 	UponEvent[*types.Event_RequestOne](m, func(ev *types.RequestOne) error {
 		return handler(ev.Data, ev.Origin)
 	})

@@ -5,8 +5,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
@@ -23,9 +23,9 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*requestpbtypes.Request, origin *mppbtypes.RequestTransactionIDsOrigin) error {
-		txMsgs := make([]*commonpbtypes.HashData, len(txs))
+		txMsgs := make([]*hasherpbtypes.HashData, len(txs))
 		for i, tx := range txs {
-			txMsgs[i] = &commonpbtypes.HashData{Data: serializeRequestForHash(tx.Pb())}
+			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeRequestForHash(tx.Pb())}
 		}
 
 		hasherpbdsl.Request(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
@@ -41,7 +41,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
-		hasherpbdsl.RequestOne(m, mc.Hasher, &commonpbtypes.HashData{Data: txIDs}, &computeHashForBatchIDContext{origin})
+		hasherpbdsl.RequestOne(m, mc.Hasher, &hasherpbtypes.HashData{Data: txIDs}, &computeHashForBatchIDContext{origin})
 		return nil
 	})
 

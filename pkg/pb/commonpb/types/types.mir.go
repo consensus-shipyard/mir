@@ -9,26 +9,6 @@ import (
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
-type HashData struct {
-	Data [][]uint8
-}
-
-func HashDataFromPb(pb *commonpb.HashData) *HashData {
-	return &HashData{
-		Data: pb.Data,
-	}
-}
-
-func (m *HashData) Pb() *commonpb.HashData {
-	return &commonpb.HashData{
-		Data: m.Data,
-	}
-}
-
-func (*HashData) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*commonpb.HashData]()}
-}
-
 type StateSnapshot struct {
 	AppData   []uint8
 	EpochData *EpochData

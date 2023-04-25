@@ -17,8 +17,8 @@ package orderers
 
 import (
 	"github.com/filecoin-project/mir/pkg/orderers/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -112,7 +112,7 @@ func catchUpResponseHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOri
 // Note that the view number is *not* serialized, as hashes must be consistent across views.
 // Even though the preprepare argument is a protocol buffer, this function is required to guarantee
 // that the serialization is deterministic, since the protobuf native serialization does not provide this guarantee.
-func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *commonpbtypes.HashData {
+func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpbtypes.HashData {
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)
@@ -123,7 +123,7 @@ func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *commonpb
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
 	// as the view change protocol might compare hashes of Preprepares across vies.
-	return &commonpbtypes.HashData{Data: [][]byte{preprepare.Sn.Bytes(), {aborted}, preprepare.Data}}
+	return &hasherpbtypes.HashData{Data: [][]byte{preprepare.Sn.Bytes(), {aborted}, preprepare.Data}}
 }
 
 func serializeViewChangeForSigning(vc *pbftpbtypes.ViewChange) *cryptopbtypes.SignedData {

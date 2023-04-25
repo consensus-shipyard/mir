@@ -6,10 +6,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -276,7 +276,7 @@ func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *pbftpbtypes.Preprepa
 
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
 		HashOrigin(orderer.moduleConfig.Self, catchUpResponseHashOrigin(preprepare.Pb())),
 	).Pb())
 }

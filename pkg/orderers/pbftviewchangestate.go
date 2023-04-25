@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/orderers/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
@@ -100,10 +100,10 @@ func (vcState *pbftViewChangeState) updateReproposals() {
 	}
 }
 
-func (vcState *pbftViewChangeState) SetEmptyPreprepares(view types.ViewNr, proposals map[tt.SeqNr][]byte) []*commonpbtypes.HashData {
+func (vcState *pbftViewChangeState) SetEmptyPreprepares(view types.ViewNr, proposals map[tt.SeqNr][]byte) []*hasherpbtypes.HashData {
 
 	// dataToHash will store the serialized form of newly created empty ("aborted") Preprepares.
-	dataToHash := make([]*commonpbtypes.HashData, 0, len(vcState.reproposals))
+	dataToHash := make([]*hasherpbtypes.HashData, 0, len(vcState.reproposals))
 
 	maputil.IterateSorted(vcState.reproposals, func(sn tt.SeqNr, digest []byte) (cont bool) {
 		if digest != nil && len(digest) == 0 {

@@ -15,6 +15,7 @@ import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
@@ -231,7 +232,7 @@ func (p *Protocol) processStateSnapshot() (*events.EventList, error) {
 	// Initiate computing the hash of the snapshot.
 	return events.ListOf(hasherevt.Request(
 		p.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializeSnapshotForHash(p.stateSnapshot)},
+		[]*hasherpbtypes.HashData{serializeSnapshotForHash(p.stateSnapshot)},
 		protobufs.HashOrigin(p.moduleConfig.Self),
 	).Pb()), nil
 }

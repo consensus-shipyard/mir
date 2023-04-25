@@ -3,13 +3,13 @@ package orderers
 import (
 	"fmt"
 
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	orderertypes "github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
@@ -216,7 +216,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 	// Request the computation of the hash of the Preprepare message.
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
 		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare.Pb())),
 	).Pb())
 }
