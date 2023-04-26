@@ -263,15 +263,15 @@ func run() error {
 	fmt.Println("Type in your messages and press 'Enter' to send.")
 
 	// Read chat message from stdin.
-	nextReqNo := tt.ReqNo(0)
+	nextTxNo := tt.TxNo(0)
 	for scanner.Scan() {
 
-		// Submit the chat message as request payload to the mempool module.
+		// Submit the chat message as transaction payload to the mempool module.
 		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewTransactions(
 			"mempool",
 			[]*trantorpbtypes.Transaction{{
 				ClientId: tt.ClientID(args.OwnID),
-				TxNo:     nextReqNo,
+				TxNo:     nextTxNo,
 				Type:     0,
 				Data:     scanner.Bytes(),
 			}}).Pb()),
@@ -281,7 +281,7 @@ func run() error {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			nextReqNo++
+			nextTxNo++
 		}
 
 	}

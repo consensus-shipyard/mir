@@ -11,7 +11,7 @@ import (
 
 type Transaction struct {
 	ClientId types.ClientID
-	TxNo     types.ReqNo
+	TxNo     types.TxNo
 	Type     uint64
 	Data     []uint8
 }
@@ -19,7 +19,7 @@ type Transaction struct {
 func TransactionFromPb(pb *trantorpb.Transaction) *Transaction {
 	return &Transaction{
 		ClientId: (types.ClientID)(pb.ClientId),
-		TxNo:     (types.ReqNo)(pb.TxNo),
+		TxNo:     (types.TxNo)(pb.TxNo),
 		Type:     pb.Type,
 		Data:     pb.Data,
 	}

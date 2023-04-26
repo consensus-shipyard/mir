@@ -81,22 +81,22 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 
 	// Declare loop variables outside, since err is checked also after the loop finishes.
 	var err error
-	var req *trantorpb.Transaction
+	var tx *trantorpb.Transaction
 
 	// For each received transaction
-	for req, err = srv.Recv(); err == nil; req, err = srv.Recv() {
+	for tx, err = srv.Recv(); err == nil; tx, err = srv.Recv() {
 
-		rr.logger.Log(logging.LevelInfo, "Received transaction", "clId", req.ClientId, "reqNo", req.TxNo)
+		rr.logger.Log(logging.LevelInfo, "Received transaction", "clId", tx.ClientId, "txNo", tx.TxNo)
 
 		// Submit the transaction to the Node.
 		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewTransactions(
 			rr.moduleID,
-			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(req)},
+			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(tx)},
 		).Pb())); srErr != nil {
 
 			// If submitting fails, stop receiving further transaction (and close connection).
 			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit transaction (%v-%d): %v. Closing connection.",
-				req.ClientId, req.TxNo, srErr))
+				tx.ClientId, tx.TxNo, srErr))
 			break
 		}
 	}

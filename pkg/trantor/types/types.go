@@ -61,16 +61,16 @@ func SeqNrSlicePb(sns []SeqNr) []uint64 {
 
 // ================================================================================
 
-// ReqNo represents a request number a client assigns to its requests.
-type ReqNo uint64
+// TxNo represents a request number a client assigns to its requests.
+type TxNo uint64
 
-// Pb converts a ReqNo to its underlying native type.
-func (rn ReqNo) Pb() uint64 {
+// Pb converts a TxNo to its underlying native type.
+func (rn TxNo) Pb() uint64 {
 	return uint64(rn)
 }
 
-// Bytes converts a ReqNo to a slice of bytes (useful for serialization).
-func (rn ReqNo) Bytes() []byte {
+// Bytes converts a TxNo to a slice of bytes (useful for serialization).
+func (rn TxNo) Bytes() []byte {
 	return serializing.Uint64ToBytes(uint64(rn))
 }
 

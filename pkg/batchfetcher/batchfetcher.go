@@ -63,10 +63,10 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 
 			// Convenience variables
 			clID := tt.ClientID(tx.ClientId)
-			reqNo := tt.ReqNo(tx.TxNo)
+			txNo := tt.TxNo(tx.TxNo)
 
 			// Only keep transaction if it has not yet been delivered.
-			if clientProgress.Add(clID, reqNo) {
+			if clientProgress.Add(clID, txNo) {
 				newTxs = append(newTxs, tx)
 			}
 		}

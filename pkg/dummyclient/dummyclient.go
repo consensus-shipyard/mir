@@ -30,12 +30,12 @@ const (
 // TODO: Update the comments around crypto, hasher, and transaction signing.
 
 type DummyClient struct {
-	ownID     tt.ClientID
-	hasher    crypto.Hash
-	nextReqNo tt.ReqNo
-	conns     map[t.NodeID]*grpc.ClientConn
-	clients   map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient
-	logger    logging.Logger
+	ownID    tt.ClientID
+	hasher   crypto.Hash
+	nextTxNo tt.TxNo
+	conns    map[t.NodeID]*grpc.ClientConn
+	clients  map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient
+	logger   logging.Logger
 }
 
 func NewDummyClient(
@@ -50,12 +50,12 @@ func NewDummyClient(
 	}
 
 	return &DummyClient{
-		ownID:     clientID,
-		hasher:    hasher,
-		nextReqNo: 0,
-		clients:   make(map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient),
-		conns:     make(map[t.NodeID]*grpc.ClientConn),
-		logger:    l,
+		ownID:    clientID,
+		hasher:   hasher,
+		nextTxNo: 0,
+		clients:  make(map[t.NodeID]transactionreceiver.TransactionReceiver_ListenClient),
+		conns:    make(map[t.NodeID]*grpc.ClientConn),
+		logger:   l,
 	}
 }
 
@@ -107,13 +107,13 @@ func (dc *DummyClient) Connect(ctx context.Context, membership map[t.NodeID]stri
 func (dc *DummyClient) SubmitTransaction(data []byte) error {
 
 	// Create new transaction.
-	reqMsg := &trantorpbtypes.Transaction{
+	tx := &trantorpbtypes.Transaction{
 		ClientId: dc.ownID,
-		TxNo:     dc.nextReqNo,
+		TxNo:     dc.nextTxNo,
 		Type:     0,
 		Data:     data,
 	}
-	dc.nextReqNo++
+	dc.nextTxNo++
 
 	// Declare variables keeping track of failed send attempts.
 	sendFailures := make([]t.NodeID, 0) // List of nodes to which sending the transaction failed.
@@ -121,7 +121,7 @@ func (dc *DummyClient) SubmitTransaction(data []byte) error {
 
 	// Send the transaction to all nodes.
 	for nID, client := range dc.clients {
-		if err := client.Send(reqMsg.Pb()); err != nil {
+		if err := client.Send(tx.Pb()); err != nil {
 
 			// If sending the transaction to a node fails, record that node's ID.
 			sendFailures = append(sendFailures, nID)

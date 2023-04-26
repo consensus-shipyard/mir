@@ -19,15 +19,15 @@ func NewClientProgress(logger logging.Logger) *ClientProgress {
 	}
 }
 
-func (cp *ClientProgress) Add(clID tt.ClientID, reqNo tt.ReqNo) bool {
+func (cp *ClientProgress) Add(clID tt.ClientID, txNo tt.TxNo) bool {
 	if _, ok := cp.ClientTrackers[clID]; !ok {
 		cp.ClientTrackers[clID] = EmptyDeliveredTXs(logging.Decorate(cp.logger, "", "clID", clID))
 	}
-	return cp.ClientTrackers[clID].Add(reqNo)
+	return cp.ClientTrackers[clID].Add(txNo)
 }
 
-func (cp *ClientProgress) GarbageCollect() map[tt.ClientID]tt.ReqNo {
-	lowWMs := make(map[tt.ClientID]tt.ReqNo)
+func (cp *ClientProgress) GarbageCollect() map[tt.ClientID]tt.TxNo {
+	lowWMs := make(map[tt.ClientID]tt.TxNo)
 	for clientID, cwmt := range cp.ClientTrackers {
 		lowWMs[clientID] = cwmt.GarbageCollect()
 	}

@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	ReqReceiverBasePort = 20000
+	TxReceiverBasePort = 20000
 )
 
 var (
@@ -167,11 +167,11 @@ func runNode() error {
 		return fmt.Errorf("could not create node: %w", err)
 	}
 
-	reqReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
-	if err := reqReceiver.Start(ReqReceiverBasePort + ownNumericID); err != nil {
-		return fmt.Errorf("could not start request receiver: %w", err)
+	txReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
+	if err := txReceiver.Start(TxReceiverBasePort + ownNumericID); err != nil {
+		return fmt.Errorf("could not start transaction receiver: %w", err)
 	}
-	defer reqReceiver.Stop()
+	defer txReceiver.Stop()
 
 	if err := benchApp.Start(); err != nil {
 		return fmt.Errorf("could not start bench app: %w", err)

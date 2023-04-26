@@ -65,13 +65,13 @@ func NewChatApp(initialMembership *trantorpbtypes.Membership, chkpDir string) *C
 // Special messages starting with `Config: ` are recognized, parsed, and treated accordingly.
 func (chat *ChatApp) ApplyTXs(txs []*trantorpb.Transaction) error {
 	// For each transaction in the batch
-	for _, req := range txs {
+	for _, tx := range txs {
 
 		// Convert transaction payload to chat message.
-		msgString := string(req.Data)
+		msgString := string(tx.Data)
 
 		// Print content of chat message.
-		chatMessage := fmt.Sprintf("Client %v: %s", req.ClientId, msgString)
+		chatMessage := fmt.Sprintf("Client %v: %s", tx.ClientId, msgString)
 
 		// Append the received chat message to the chat history.
 		chat.messages = append(chat.messages, chatMessage)

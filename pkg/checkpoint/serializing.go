@@ -92,8 +92,8 @@ func serializeClientProgressForHash(clientProgress *trantorpbtypes.ClientProgres
 			data = append(data, []byte(clientID.Pb()), serializing.Uint64ToBytes(deliveredTXs.LowWm))
 
 			// Append all transaction numbers delivered after the watermark.
-			for _, reqNo := range deliveredTXs.Delivered {
-				data = append(data, serializing.Uint64ToBytes(reqNo))
+			for _, txNo := range deliveredTXs.Delivered {
+				data = append(data, serializing.Uint64ToBytes(txNo))
 			}
 			return true
 		},

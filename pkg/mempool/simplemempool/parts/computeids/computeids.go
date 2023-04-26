@@ -1,8 +1,6 @@
 package computeids
 
 import (
-	"encoding/binary"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
@@ -11,6 +9,7 @@ import (
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -66,11 +65,7 @@ type computeHashForBatchIDContext struct {
 func serializeTXForHash(tx *trantorpb.Transaction) [][]byte {
 	// Encode integer fields.
 	clientIDBuf := []byte(tx.ClientId)
-	reqNoBuf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(reqNoBuf, tx.TxNo)
-
-	// Note that the signature is *not* part of the hashed data.
 
 	// Return serialized integers along with the request data itself.
-	return [][]byte{clientIDBuf, reqNoBuf, tx.Data}
+	return [][]byte{clientIDBuf, serializing.Uint64ToBytes(tx.TxNo), tx.Data}
 }

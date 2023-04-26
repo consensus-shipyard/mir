@@ -21,8 +21,8 @@ type App struct {
 }
 
 func (a *App) ApplyTXs(txs []*trantorpb.Transaction) error {
-	for _, req := range txs {
-		a.Log(logging.LevelDebug, fmt.Sprintf("Delivered request %v from client %v", req.TxNo, req.ClientId))
+	for _, tx := range txs {
+		a.Log(logging.LevelDebug, fmt.Sprintf("Delivered transaction %v from client %v", tx.TxNo, tx.ClientId))
 	}
 	return nil
 }

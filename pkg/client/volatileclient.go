@@ -10,8 +10,8 @@ import (
 // It is meant for testing purposes and for cases where the machine running it is assumed to never crash.
 type VolatileClient struct {
 	clientID  tt.ClientID
-	nextTxNo  tt.ReqNo
-	pendingTX map[tt.ReqNo]*trantorpb.Transaction
+	nextTxNo  tt.TxNo
+	pendingTX map[tt.TxNo]*trantorpb.Transaction
 }
 
 // NewVolatileClient returns a new instance of VolatileClient.
@@ -20,7 +20,7 @@ func NewVolatileClient(clientID tt.ClientID) *VolatileClient {
 	return &VolatileClient{
 		clientID:  clientID,
 		nextTxNo:  0,
-		pendingTX: make(map[tt.ReqNo]*trantorpb.Transaction),
+		pendingTX: make(map[tt.TxNo]*trantorpb.Transaction),
 	}
 }
 
@@ -42,7 +42,7 @@ func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*trantorpb.Transact
 }
 
 // Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
-func (vc *VolatileClient) Done(txNo tt.ReqNo) error {
+func (vc *VolatileClient) Done(txNo tt.TxNo) error {
 	delete(vc.pendingTX, txNo)
 	return nil
 }

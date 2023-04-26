@@ -26,7 +26,7 @@ type Client interface {
 
 	// Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
 	// The effect of this call need not be written to persistent storage until Sync is called.
-	Done(txNo tt.ReqNo) error
+	Done(txNo tt.TxNo) error
 
 	// Pending returns all transactions previously returned by NewTX that have not been marked as done.
 	Pending() ([]*trantorpb.Transaction, error)

@@ -16,36 +16,36 @@ import (
 
 type Stats struct {
 	lock                    sync.RWMutex
-	reqTimestamps           map[reqKey]time.Time
+	txTimestamps            map[txKey]time.Time
 	avgLatency              float64
 	timestampedTransactions int
 	deliveredTransactions   int
 }
 
-type reqKey struct {
+type txKey struct {
 	ClientID string
-	ReqNo    uint64
+	TxNo     uint64
 }
 
 func NewStats() *Stats {
 	return &Stats{
-		reqTimestamps: make(map[reqKey]time.Time),
+		txTimestamps: make(map[txKey]time.Time),
 	}
 }
 
-func (s *Stats) NewRequest(req *trantorpb.Transaction) {
+func (s *Stats) NewTX(tx *trantorpb.Transaction) {
 	s.lock.Lock()
-	k := reqKey{req.ClientId, req.TxNo}
-	s.reqTimestamps[k] = time.Now()
+	k := txKey{tx.ClientId, tx.TxNo}
+	s.txTimestamps[k] = time.Now()
 	s.lock.Unlock()
 }
 
-func (s *Stats) Delivered(req *trantorpb.Transaction) {
+func (s *Stats) Delivered(tx *trantorpb.Transaction) {
 	s.lock.Lock()
 	s.deliveredTransactions++
-	k := reqKey{req.ClientId, req.TxNo}
-	if t, ok := s.reqTimestamps[k]; ok {
-		delete(s.reqTimestamps, k)
+	k := txKey{tx.ClientId, tx.TxNo}
+	if t, ok := s.txTimestamps[k]; ok {
+		delete(s.txTimestamps, k)
 		s.timestampedTransactions++
 		d := time.Since(t)
 

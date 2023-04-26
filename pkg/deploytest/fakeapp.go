@@ -24,9 +24,9 @@ type FakeApp struct {
 }
 
 func (fa *FakeApp) ApplyTXs(txs []*trantorpb.Transaction) error {
-	for _, req := range txs {
+	for _, tx := range txs {
 		fa.TransactionsProcessed++
-		fmt.Printf("Received transaction: %q. Processed transactions: %d\n", string(req.Data), fa.TransactionsProcessed)
+		fmt.Printf("Received transaction: %q. Processed transactions: %d\n", string(tx.Data), fa.TransactionsProcessed)
 	}
 	return nil
 }

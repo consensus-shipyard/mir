@@ -129,8 +129,8 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 			break
 		}
 
-		request := &trantorpbtypes.Transaction{Data: []byte(text)}
-		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{request}).Pb())
+		tx := &trantorpbtypes.Transaction{Data: []byte(text)}
+		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}).Pb())
 	}
 
 	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{

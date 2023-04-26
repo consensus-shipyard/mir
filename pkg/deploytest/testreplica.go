@@ -96,7 +96,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	}
 
 	// Create a Transactionreceiver for transactions coming over the network.
-	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "ReqRec: "))
+	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "TxRec: "))
 
 	// TODO: do not assume that node IDs are integers.
 	p, err := strconv.Atoi(tr.ID.Pb())
@@ -172,7 +172,7 @@ func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Nod
 				destModule,
 				[]*trantorpbtypes.Transaction{{
 					ClientId: tt.NewClientIDFromInt(0),
-					TxNo:     tt.ReqNo(i),
+					TxNo:     tt.TxNo(i),
 					Data:     []byte(fmt.Sprintf("Transaction %d", i)),
 				}},
 			).Pb())
