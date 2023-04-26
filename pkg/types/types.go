@@ -77,6 +77,9 @@ func ErrorFromPb(ok bool, errStr string) error {
 	return errors.New(errStr)
 }
 
+//EmptyContext type is used by DSL Origin-Result style event handlers in order to signal that no context is needed to be shared
+type EmptyContext struct{}
+
 // ================================================================================
 // Auxiliary functions
 // ================================================================================
