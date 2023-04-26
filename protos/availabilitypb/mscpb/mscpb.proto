@@ -56,17 +56,6 @@ message ProvideBatchMessage {
   bytes                      batch_id = 3;
 }
 
-// TODO: implement pulling of missing txs.
-//message RequestMissingTxsMessage {
-//  uint64         req_id = 1;
-//  repeated bytes tx_ids = 2;
-//}
-//
-//message ProvideMissingTxsMessage {
-//  uint64         req_id = 1;
-//  repeated bytes txs    = 2;
-//}
-
 // ============================================================
 // Data structures
 // ============================================================
