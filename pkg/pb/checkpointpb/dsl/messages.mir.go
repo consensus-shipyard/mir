@@ -3,11 +3,11 @@ package checkpointpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	types3 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	dsl2 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
 	types5 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )

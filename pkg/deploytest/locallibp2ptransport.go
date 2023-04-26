@@ -8,7 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -16,7 +16,7 @@ import (
 type LocalLibp2pTransport struct {
 	// Complete static membership of the system.
 	// Maps the node ID of each node in the system to its libp2p address.
-	membership *commonpbtypes.Membership
+	membership *trantorpbtypes.Membership
 
 	// Maps node ids to their libp2p host.
 	hosts map[t.NodeID]host.Host
@@ -27,8 +27,8 @@ type LocalLibp2pTransport struct {
 
 func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLibp2pTransport {
 	lt := &LocalLibp2pTransport{
-		membership: &commonpbtypes.Membership{ // nolint:govet
-			make(map[t.NodeID]*commonpbtypes.NodeIdentity, len(nodeIDs)),
+		membership: &trantorpbtypes.Membership{ // nolint:govet
+			make(map[t.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDs)),
 		},
 		hosts:  make(map[t.NodeID]host.Host),
 		logger: logger,
@@ -37,7 +37,7 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 	for i, id := range nodeIDs {
 		hostAddr := libp2ptools.NewDummyHostAddr(i, BaseListenPort)
 		lt.hosts[id] = libp2ptools.NewDummyHost(i, hostAddr)
-		lt.membership.Nodes[id] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		lt.membership.Nodes[id] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			id,
 			libp2ptools.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
@@ -61,7 +61,7 @@ func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	), nil
 }
 
-func (t *LocalLibp2pTransport) Membership() *commonpbtypes.Membership {
+func (t *LocalLibp2pTransport) Membership() *trantorpbtypes.Membership {
 	return t.membership
 }
 

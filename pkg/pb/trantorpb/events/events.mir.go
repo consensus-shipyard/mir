@@ -1,15 +1,15 @@
-package commonpbevents
+package trantorpbevents
 
 import (
 	types4 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func ClientProgress(destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredReqs) *types3.Event {
+func ClientProgress(destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredTXs) *types3.Event {
 	return &types3.Event{
 		DestModule: destModule,
 		Type: &types3.Event_BatchFetcher{

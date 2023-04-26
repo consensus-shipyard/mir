@@ -7,8 +7,8 @@ import (
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	types5 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -156,15 +156,15 @@ func (*LookupBatch) MirReflect() mirreflect.Type {
 
 type LookupBatchResponse struct {
 	Found  bool
-	Txs    []*types1.Request
+	Txs    []*types1.Transaction
 	Origin *LookupBatchOrigin
 }
 
 func LookupBatchResponseFromPb(pb *batchdbpb.LookupBatchResponse) *LookupBatchResponse {
 	return &LookupBatchResponse{
 		Found: pb.Found,
-		Txs: types2.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types1.Request {
-			return types1.RequestFromPb(t)
+		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 		Origin: LookupBatchOriginFromPb(pb.Origin),
 	}
@@ -173,7 +173,7 @@ func LookupBatchResponseFromPb(pb *batchdbpb.LookupBatchResponse) *LookupBatchRe
 func (m *LookupBatchResponse) Pb() *batchdbpb.LookupBatchResponse {
 	return &batchdbpb.LookupBatchResponse{
 		Found: m.Found,
-		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Request) *requestpb.Request {
+		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 		Origin: (m.Origin).Pb(),
@@ -187,7 +187,7 @@ func (*LookupBatchResponse) MirReflect() mirreflect.Type {
 type StoreBatch struct {
 	BatchId  types.BatchID
 	TxIds    []types3.TxID
-	Txs      []*types1.Request
+	Txs      []*types1.Transaction
 	Metadata []uint8
 	Origin   *StoreBatchOrigin
 }
@@ -198,8 +198,8 @@ func StoreBatchFromPb(pb *batchdbpb.StoreBatch) *StoreBatch {
 		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types3.TxID {
 			return (types3.TxID)(t)
 		}),
-		Txs: types2.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types1.Request {
-			return types1.RequestFromPb(t)
+		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 		Metadata: pb.Metadata,
 		Origin:   StoreBatchOriginFromPb(pb.Origin),
@@ -212,7 +212,7 @@ func (m *StoreBatch) Pb() *batchdbpb.StoreBatch {
 		TxIds: types2.ConvertSlice(m.TxIds, func(t types3.TxID) []uint8 {
 			return ([]uint8)(t)
 		}),
-		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Request) *requestpb.Request {
+		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 		Metadata: m.Metadata,

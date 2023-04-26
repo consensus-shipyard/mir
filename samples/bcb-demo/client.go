@@ -13,7 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 )
@@ -73,7 +73,7 @@ func run() error {
 	}
 
 	// Construct membership, remembering own address.
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 	var ownAddr t.NodeAddress
 	for i := range nodeIDs {
 		id := t.NewNodeIDFromInt(i)
@@ -83,7 +83,7 @@ func run() error {
 			ownAddr = addr
 		}
 
-		membership.Nodes[id] = &commonpbtypes.NodeIdentity{
+		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{
 			Id:     id,
 			Addr:   addr.String(),
 			Key:    nil,

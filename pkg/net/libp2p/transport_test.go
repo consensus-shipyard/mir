@@ -17,11 +17,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/types"
 	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -29,7 +29,7 @@ import (
 type mockLibp2pCommunication struct {
 	t          *testing.T
 	params     Params
-	membership *commonpbtypes.Membership
+	membership *trantorpbtypes.Membership
 	hosts      map[types.NodeID]host.Host
 	logger     logging.Logger
 	transports map[types.NodeID]*Transport
@@ -44,8 +44,8 @@ func newMockLibp2pCommunication(
 	lt := &mockLibp2pCommunication{
 		t:      t,
 		params: params,
-		membership: &commonpbtypes.Membership{ // nolint:govet
-			make(map[types.NodeID]*commonpbtypes.NodeIdentity, len(nodeIDs)),
+		membership: &trantorpbtypes.Membership{ // nolint:govet
+			make(map[types.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDs)),
 		},
 		hosts:      make(map[types.NodeID]host.Host),
 		transports: make(map[types.NodeID]*Transport),
@@ -55,7 +55,7 @@ func newMockLibp2pCommunication(
 	for i, id := range nodeIDs {
 		hostAddr := libp2putil.NewFreeHostAddr()
 		lt.hosts[id] = libp2putil.NewDummyHost(i, hostAddr)
-		lt.membership.Nodes[id] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		lt.membership.Nodes[id] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			id,
 			libp2putil.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
@@ -86,7 +86,7 @@ func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
 	require.NoError(m.t, err)
 }
 
-func (m *mockLibp2pCommunication) Membership() *commonpbtypes.Membership {
+func (m *mockLibp2pCommunication) Membership() *trantorpbtypes.Membership {
 	return m.membership
 }
 
@@ -136,8 +136,8 @@ func (m *mockLibp2pCommunication) StartAllTransports() {
 	}
 }
 
-func (m *mockLibp2pCommunication) MembershipOf(ids ...types.NodeID) *commonpbtypes.Membership {
-	membership := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+func (m *mockLibp2pCommunication) MembershipOf(ids ...types.NodeID) *trantorpbtypes.Membership {
+	membership := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 	for _, id := range ids {
 		identity, ok := m.membership.Nodes[id]
 		if !ok {
@@ -866,9 +866,9 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	addrB := types.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
 	b := NewTransport(DefaultParams(), nodeB, hostB, logger)
 
-	membershipA := &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)} // nolint:govet
-	membershipA.Nodes[nodeA] = &commonpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 0}           // nolint:govet
-	membershipA.Nodes[nodeB] = &commonpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 0}           // nolint:govet
+	membershipA := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)} // nolint:govet
+	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 0}            // nolint:govet
+	membershipA.Nodes[nodeB] = &trantorpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 0}            // nolint:govet
 
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
@@ -876,7 +876,7 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	m := &mockLibp2pCommunication{
 		t:          t,
 		params:     DefaultParams(),
-		membership: &commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity, 2)}, // nolint:govet
+		membership: &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)}, // nolint:govet
 		hosts:      make(map[types.NodeID]host.Host),
 		transports: make(map[types.NodeID]*Transport),
 		logger:     logger,

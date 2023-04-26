@@ -54,8 +54,8 @@ type TestConfig struct {
 	NumReplicas         int
 	NumClients          int
 	Transport           string
-	NumFakeRequests     int
-	NumNetRequests      int
+	NumFakeTXs          int
+	NumNetTXs           int
 	Duration            time.Duration
 	Directory           string
 	SlowProposeReplicas map[int]bool
@@ -80,47 +80,47 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		2: {"Submit 10 fake requests with 1 node",
+		2: {"Submit 10 fake transactions with 1 node",
 			&TestConfig{
-				NumReplicas:     1,
-				Transport:       "fake",
-				NumFakeRequests: 10,
-				Directory:       "mirbft-deployment-test",
-				Duration:        4 * time.Second,
+				NumReplicas: 1,
+				Transport:   "fake",
+				NumFakeTXs:  10,
+				Directory:   "mirbft-deployment-test",
+				Duration:    4 * time.Second,
 			}},
-		3: {"Submit 100 fake requests with 4 nodes, one of them slow",
+		3: {"Submit 100 fake transactions with 4 nodes, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,
 				Transport:           "fake",
-				NumFakeRequests:     100,
+				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		4: {"Submit 10 fake requests with 4 nodes and libp2p networking",
+		4: {"Submit 10 fake transactions with 4 nodes and libp2p networking",
 			&TestConfig{
-				NumReplicas:     4,
-				NumClients:      1,
-				Transport:       "libp2p",
-				NumFakeRequests: 10,
-				Duration:        10 * time.Second,
+				NumReplicas: 4,
+				NumClients:  1,
+				Transport:   "libp2p",
+				NumFakeTXs:  10,
+				Duration:    10 * time.Second,
 			}},
-		5: {"Submit 10 requests with 1 node and libp2p networking",
+		5: {"Submit 10 transactions with 1 node and libp2p networking",
 			&TestConfig{
-				NumReplicas:    1,
-				NumClients:     1,
-				Transport:      "libp2p",
-				NumNetRequests: 10,
-				Duration:       10 * time.Second,
+				NumReplicas: 1,
+				NumClients:  1,
+				Transport:   "libp2p",
+				NumNetTXs:   10,
+				Duration:    10 * time.Second,
 			}},
-		6: {"Submit 10 requests with 4 nodes and libp2p networking",
+		6: {"Submit 10 transactions with 4 nodes and libp2p networking",
 			&TestConfig{
-				Info:           "libp2p 10 requests and 4 nodes",
-				NumReplicas:    4,
-				NumClients:     1,
-				Transport:      "libp2p",
-				NumNetRequests: 10,
-				Duration:       15 * time.Second,
+				Info:        "libp2p 10 transactions and 4 nodes",
+				NumReplicas: 4,
+				NumClients:  1,
+				Transport:   "libp2p",
+				NumNetTXs:   10,
+				Duration:    15 * time.Second,
 			}},
 		7: {"Do nothing with 1 node in simulation",
 			&TestConfig{
@@ -136,37 +136,37 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		9: {"Submit 10 fake requests with 1 node in simulation",
+		9: {"Submit 10 fake transactions with 1 node in simulation",
 			&TestConfig{
-				NumReplicas:     1,
-				Transport:       "sim",
-				NumFakeRequests: 10,
-				Directory:       "mirbft-deployment-test",
-				Duration:        4 * time.Second,
+				NumReplicas: 1,
+				Transport:   "sim",
+				NumFakeTXs:  10,
+				Directory:   "mirbft-deployment-test",
+				Duration:    4 * time.Second,
 			}},
-		10: {"Submit 10 fake requests with 1 node in simulation, loading WAL",
+		10: {"Submit 10 fake transactions with 1 node in simulation, loading WAL",
 			&TestConfig{
-				NumReplicas:     1,
-				NumClients:      1,
-				Transport:       "sim",
-				NumFakeRequests: 10,
-				Directory:       "mirbft-deployment-test",
-				Duration:        4 * time.Second,
+				NumReplicas: 1,
+				NumClients:  1,
+				Transport:   "sim",
+				NumFakeTXs:  10,
+				Directory:   "mirbft-deployment-test",
+				Duration:    4 * time.Second,
 			}},
-		11: {"Submit 100 fake requests with 1 node in simulation",
+		11: {"Submit 100 fake transactions with 1 node in simulation",
 			&TestConfig{
-				NumReplicas:     1,
-				NumClients:      0,
-				Transport:       "sim",
-				NumFakeRequests: 100,
-				Duration:        20 * time.Second,
+				NumReplicas: 1,
+				NumClients:  0,
+				Transport:   "sim",
+				NumFakeTXs:  100,
+				Duration:    20 * time.Second,
 			}},
-		12: {"Submit 100 fake requests with 4 nodes in simulation, one of them slow",
+		12: {"Submit 100 fake transactions with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NumReplicas:         4,
 				NumClients:          0,
 				Transport:           "sim",
-				NumFakeRequests:     100,
+				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
@@ -292,12 +292,12 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	}
 
 	// Check event logs
-	require.NoError(tb, checkEventTraces(deployment.EventLogFiles(), conf.NumNetRequests+conf.NumFakeRequests))
+	require.NoError(tb, checkEventTraces(deployment.EventLogFiles(), conf.NumNetTXs+conf.NumFakeTXs))
 
-	// Check if all requests were delivered.
+	// Check if all transactions were delivered.
 	for _, replica := range deployment.TestReplicas {
 		app := deployment.TestConfig.FakeApps[replica.ID]
-		assert.Equal(tb, conf.NumNetRequests+conf.NumFakeRequests, int(app.RequestsProcessed))
+		assert.Equal(tb, conf.NumNetTXs+conf.NumFakeTXs, int(app.TransactionsProcessed))
 	}
 
 	// If the test failed, keep the generated data.
@@ -416,19 +416,19 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	}
 
 	deployConf := &deploytest.TestConfig{
-		Info:                   conf.Info,
-		Simulation:             simulation,
-		TransportLayer:         transportLayer,
-		NodeIDs:                nodeIDs,
-		Membership:             transportLayer.Membership(),
-		NodeModules:            nodeModules,
-		NumClients:             conf.NumClients,
-		NumFakeRequests:        conf.NumFakeRequests,
-		NumNetRequests:         conf.NumNetRequests,
-		FakeRequestsDestModule: t.ModuleID("mempool"),
-		Directory:              conf.Directory,
-		Logger:                 logger,
-		FakeApps:               fakeApps,
+		Info:             conf.Info,
+		Simulation:       simulation,
+		TransportLayer:   transportLayer,
+		NodeIDs:          nodeIDs,
+		Membership:       transportLayer.Membership(),
+		NodeModules:      nodeModules,
+		NumClients:       conf.NumClients,
+		NumFakeTXs:       conf.NumFakeTXs,
+		NumNetTXs:        conf.NumNetTXs,
+		FakeTXDestModule: t.ModuleID("mempool"),
+		Directory:        conf.Directory,
+		Logger:           logger,
+		FakeApps:         fakeApps,
 	}
 
 	return deploytest.NewDeployment(deployConf)

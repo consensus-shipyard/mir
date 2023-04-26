@@ -3,7 +3,7 @@ package availabilitypbevents
 import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -87,7 +87,7 @@ func RequestTransactions(destModule types.ModuleID, cert *types1.Cert, origin *t
 	}
 }
 
-func ProvideTransactions(destModule types.ModuleID, txs []*types3.Request, origin *types1.RequestTransactionsOrigin) *types2.Event {
+func ProvideTransactions(destModule types.ModuleID, txs []*types3.Transaction, origin *types1.RequestTransactionsOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Availability{

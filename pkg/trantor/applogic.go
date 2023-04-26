@@ -2,8 +2,8 @@ package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -13,14 +13,14 @@ import (
 type AppLogic interface {
 
 	// ApplyTXs applies a batch of transactions to the state machine.
-	ApplyTXs(txs []*requestpb.Request) error
+	ApplyTXs(txs []*trantorpb.Transaction) error
 
 	// NewEpoch is called by the SMR system when a new epoch is started.
 	// It returns the membership of a new epoch.
 	// Note that, due to pipelining, the membership NewEpoch returns is not necessarily used immediately
 	// in the epoch that is just starting.
 	// It might define the membership of a future epoch.
-	NewEpoch(nr tt.EpochNr) (*commonpbtypes.Membership, error)
+	NewEpoch(nr tt.EpochNr) (*trantorpbtypes.Membership, error)
 
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)
@@ -40,7 +40,7 @@ type AppLogic interface {
 type StaticAppLogic interface {
 
 	// ApplyTXs applies a batch of transactions to the state machine.
-	ApplyTXs(txs []*requestpb.Request) error
+	ApplyTXs(txs []*trantorpb.Transaction) error
 
 	// Snapshot returns a snapshot of the application state.
 	Snapshot() ([]byte, error)
@@ -57,7 +57,7 @@ type StaticAppLogic interface {
 
 // AppLogicFromStatic augments the static application logic with a default implementation of the reconfiguration logic
 // that simply always uses the same membership.
-func AppLogicFromStatic(staticAppLogic StaticAppLogic, membership *commonpbtypes.Membership) AppLogic {
+func AppLogicFromStatic(staticAppLogic StaticAppLogic, membership *trantorpbtypes.Membership) AppLogic {
 	return &reconfigurableAppLogic{
 		staticAppLogic: staticAppLogic,
 		membership:     membership,

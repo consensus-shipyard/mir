@@ -1,4 +1,4 @@
-package commonpbdsl
+package trantorpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
@@ -6,13 +6,13 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	dsl2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // Module-specific dsl functions for processing events.
 
-func UponClientProgress(m dsl.Module, handler func(progress map[types.ClientID]*types1.DeliveredReqs) error) {
+func UponClientProgress(m dsl.Module, handler func(progress map[types.ClientID]*types1.DeliveredTXs) error) {
 	dsl1.UponEvent[*types2.Event_ClientProgress](m, func(ev *types1.ClientProgress) error {
 		return handler(ev.Progress)
 	})

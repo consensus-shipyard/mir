@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/orderers/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -17,7 +17,7 @@ type Segment ordererpbtypes.PBFTSegment
 
 func NewSegment(
 	leader t.NodeID,
-	membership *commonpbtypes.Membership,
+	membership *trantorpbtypes.Membership,
 	proposals map[tt.SeqNr][]byte,
 ) (*Segment, error) {
 	if _, ok := membership.Nodes[leader]; !ok {

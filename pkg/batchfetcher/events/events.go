@@ -2,8 +2,8 @@ package events
 
 import (
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -20,6 +20,6 @@ func Event(dest t.ModuleID, ev *bfpb.Event) *eventpb.Event {
 	}
 }
 
-func ClientProgress(dest t.ModuleID, progress *commonpb.ClientProgress) *eventpb.Event {
+func ClientProgress(dest t.ModuleID, progress *trantorpb.ClientProgress) *eventpb.Event {
 	return Event(dest, &bfpb.Event{Type: &bfpb.Event_ClientProgress{ClientProgress: progress}})
 }

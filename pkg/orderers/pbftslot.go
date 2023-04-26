@@ -40,9 +40,9 @@ type pbftSlot struct {
 	// The digest of the proposed (preprepared) certificate
 	Digest []byte
 
-	// Flags denoting whether a certificate has been, respectively, preprepared, prepared, and committed in this slot
+	// Flags denoting whether a certificate has been, respectively, preprepared, prepared, and committed in this slot.
 	// Note that Preprepared == true is not equivalent to Preprepare != nil, since the Preprepare message is stored
-	// before the node preprepares the proposal (it first has to verify that all requests are available
+	// before the node preprepares the proposal (it first has to hash the contents of the message
 	// and only then can preprepare the proposal and send the Prepare messages).
 	Preprepared bool
 	Prepared    bool

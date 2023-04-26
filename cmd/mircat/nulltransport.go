@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -31,12 +31,12 @@ func (n *NullTransport) Send(_ t.NodeID, _ *messagepb.Message) error {
 	return nil
 }
 
-func (n *NullTransport) Connect(_ *commonpbtypes.Membership) {
+func (n *NullTransport) Connect(_ *trantorpbtypes.Membership) {
 }
 
 func (n *NullTransport) WaitFor(_ int) error {
 	return nil
 }
 
-func (n *NullTransport) CloseOldConnections(_ *commonpbtypes.Membership) {
+func (n *NullTransport) CloseOldConnections(_ *trantorpbtypes.Membership) {
 }

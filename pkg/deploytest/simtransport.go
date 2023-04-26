@@ -12,12 +12,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -49,12 +49,12 @@ func (st *SimTransport) Link(source t.NodeID) (net.Transport, error) {
 	return st.nodes[source], nil
 }
 
-func (st *SimTransport) Membership() *commonpbtypes.Membership {
-	membership := &commonpbtypes.Membership{make(map[t.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+func (st *SimTransport) Membership() *trantorpbtypes.Membership {
+	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range st.nodes {
-		membership.Nodes[nID] = &commonpbtypes.NodeIdentity{ // nolint:govet
+		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			nID,
 			libp2p.NewDummyHostAddr(0, 0).String(),
 			nil,
@@ -102,10 +102,10 @@ func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return nil
 }
 
-func (m *simTransportModule) CloseOldConnections(_ *commonpbtypes.Membership) {
+func (m *simTransportModule) CloseOldConnections(_ *trantorpbtypes.Membership) {
 }
 
-func (m *simTransportModule) Connect(_ *commonpbtypes.Membership) {
+func (m *simTransportModule) Connect(_ *trantorpbtypes.Membership) {
 	go m.handleOutChan(m.SimTransport.Simulation.Spawn())
 }
 

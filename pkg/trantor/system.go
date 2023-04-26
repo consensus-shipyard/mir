@@ -17,7 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/orderers"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -34,7 +34,7 @@ type System struct {
 
 	// initialMemberships is a slice of initial memberships of the system specified at creation of the system.
 	// They correspond to the starting epoch of the system and configOffset subsequent epochs.
-	initialMemberships []*commonpbtypes.Membership
+	initialMemberships []*trantorpbtypes.Membership
 }
 
 // Modules returns the Mir modules that make up the system.
@@ -151,7 +151,7 @@ func New(
 	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
 	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))
 
-	// Use a simple mempool for incoming requests.
+	// Use a simple mempool for incoming transactions.
 	mempool := simplemempool.NewModule(
 		&simplemempool.ModuleConfig{
 			Self:   "mempool",

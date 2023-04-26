@@ -11,7 +11,7 @@ import (
 	"time"
 
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -21,7 +21,7 @@ type ModuleParams struct {
 
 	// The identities of all nodes that execute the protocol in the first epoch.
 	// Must not be empty.
-	InitialMembership *commonpbtypes.Membership
+	InitialMembership *trantorpbtypes.Membership
 
 	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
@@ -53,20 +53,6 @@ type ModuleParams struct {
 	// the orderer proposes a new availability certificate.
 	// Must not be negative.
 	MaxProposeDelay time.Duration
-
-	// Total number of buckets used by ISS.
-	// In each epoch, these buckets are re-distributed evenly among the orderers.
-	// Must be greater than 0.
-	// TODO: Remove this parameter.
-	NumBuckets int
-
-	// Number of logical time ticks to wait until demanding retransmission of missing requests.
-	// If a node receives a proposal containing requests that are not in the node's buckets,
-	// it cannot accept the proposal.
-	// In such a case, the node will wait for RequestNAckTimeout ticks
-	// before trying to fetch those requests from other nodes.
-	// Must be positive.
-	RequestNAckTimeout int
 
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
@@ -139,16 +125,6 @@ func CheckParams(c *ModuleParams) error {
 		return fmt.Errorf("negative MaxProposeDelay: %v", c.MaxProposeDelay)
 	}
 
-	// There must be at least one bucket.
-	if c.NumBuckets <= 0 {
-		return fmt.Errorf("non-positive number of buckets: %d", c.NumBuckets)
-	}
-
-	// RequestNackTimeout must be positive.
-	if c.RequestNAckTimeout <= 0 {
-		return fmt.Errorf("non-positive RequestNAckTimeout: %d", c.RequestNAckTimeout)
-	}
-
 	// MsgBufCapacity must not be negative.
 	if c.MsgBufCapacity < 0 {
 		return fmt.Errorf("negative MsgBufCapacity: %d", c.MsgBufCapacity)
@@ -167,7 +143,7 @@ func CheckParams(c *ModuleParams) error {
 // DefaultParams is intended for use during testing and hello-world examples.
 // A proper deployment is expected to craft a custom configuration,
 // for which DefaultParams can serve as a starting point.
-func DefaultParams(initialMembership *commonpbtypes.Membership) *ModuleParams {
+func DefaultParams(initialMembership *trantorpbtypes.Membership) *ModuleParams {
 
 	// Define auxiliary variables for segment length and maximal propose delay.
 	// PBFT view change timeouts can then be computed relative to those.
@@ -175,8 +151,6 @@ func DefaultParams(initialMembership *commonpbtypes.Membership) *ModuleParams {
 		InitialMembership:     initialMembership,
 		ConfigOffset:          2,
 		SegmentLength:         4,
-		NumBuckets:            len(initialMembership.Nodes),
-		RequestNAckTimeout:    16,
 		MsgBufCapacity:        32 * 1024 * 1024, // 32 MiB
 		RetainedEpochs:        1,
 		LeaderSelectionPolicy: lsp.Simple,

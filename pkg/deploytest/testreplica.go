@@ -13,11 +13,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -42,7 +41,7 @@ type TestReplica struct {
 	NodeIDs []t.NodeID
 
 	// List of replicas.
-	Membership *commonpbtypes.Membership
+	Membership *trantorpbtypes.Membership
 
 	// Node's representation within the simulation runtime
 	Sim *SimNode
@@ -50,11 +49,11 @@ type TestReplica struct {
 	// Node's process within the simulation runtime
 	Proc *testsim.Process
 
-	// Number of simulated requests inserted in the test replica by a hypothetical client.
-	NumFakeRequests int
+	// Number of simulated transactions inserted in the test replica by a hypothetical client.
+	NumFakeTXs int
 
-	// ID of the module to which fake requests should be sent.
-	FakeRequestsDestModule t.ModuleID
+	// ID of the module to which fake transactions should be sent.
+	FakeTXDestModule t.ModuleID
 }
 
 // EventLogFile returns the name of the file where the replica's event log is stored.
@@ -96,30 +95,30 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		return fmt.Errorf("error creating Mir node: %w", err)
 	}
 
-	// Create a RequestReceiver for request coming over the network.
-	requestReceiver := requestreceiver.NewRequestReceiver(node, tr.FakeRequestsDestModule, logging.Decorate(tr.Config.Logger, "ReqRec: "))
+	// Create a Transactionreceiver for transactions coming over the network.
+	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "TxRec: "))
 
 	// TODO: do not assume that node IDs are integers.
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
 		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
 	}
-	err = requestReceiver.Start(RequestListenPort + p)
+	err = txreceiver.Start(TXListenPort + p)
 	if err != nil {
-		return fmt.Errorf("error starting request receiver: %w", err)
+		return fmt.Errorf("error starting transaction receiver: %w", err)
 	}
 
-	// Initialize WaitGroup for the replica's request submission thread.
+	// Initialize WaitGroup for the replica's transaction submission thread.
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	// Start thread submitting requests from a (single) hypothetical client.
-	// The client submits a predefined number of requests and then stops.
+	// Start thread submitting transactions from a (single) hypothetical client.
+	// The client submits a predefined number of transactions and then stops.
 	go func() {
 		if tr.Proc != nil {
 			tr.Sim.Start(tr.Proc)
 		}
-		tr.submitFakeRequests(ctx, node, tr.FakeRequestsDestModule, &wg)
+		tr.submitFakeTransactions(ctx, node, tr.FakeTXDestModule, &wg)
 	}()
 
 	// TODO: avoid hacky special cases like this.
@@ -138,23 +137,23 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	exitErr := node.Run(ctx)
 	tr.Config.Logger.Log(logging.LevelDebug, "Node run returned!")
 
-	// Stop the request receiver.
-	requestReceiver.Stop()
-	if err := requestReceiver.ServerError(); err != nil {
-		return fmt.Errorf("request receiver returned server error: %w", err)
+	// Stop the transaction receiver.
+	txreceiver.Stop()
+	if err := txreceiver.ServerError(); err != nil {
+		return fmt.Errorf("transaction receiver returned server error: %w", err)
 	}
 
-	// Wait for the local request submission thread.
+	// Wait for the local transaction submission thread.
 	wg.Wait()
-	tr.Config.Logger.Log(logging.LevelInfo, "Fake request submission done.")
+	tr.Config.Logger.Log(logging.LevelInfo, "Fake transaction submission done.")
 
 	return exitErr
 }
 
-// Submits n fake requests to node.
+// Submits n fake transactions to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, destModule t.ModuleID, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Node, destModule t.ModuleID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if tr.Proc != nil {
@@ -162,19 +161,19 @@ func (tr *TestReplica) submitFakeRequests(ctx context.Context, node *mir.Node, d
 	}
 
 	// The ID of the fake client is always 0.
-	for i := 0; i < tr.NumFakeRequests; i++ {
+	for i := 0; i < tr.NumFakeTXs; i++ {
 		select {
 		case <-ctx.Done():
 			// Stop submitting if shutting down.
 			break
 		default:
-			// Otherwise, submit next request.
-			eventList := events.ListOf(mempoolpbevents.NewRequests(
+			// Otherwise, submit next transaction.
+			eventList := events.ListOf(mempoolpbevents.NewTransactions(
 				destModule,
-				[]*requestpbtypes.Request{{
+				[]*trantorpbtypes.Transaction{{
 					ClientId: tt.NewClientIDFromInt(0),
-					ReqNo:    tt.ReqNo(i),
-					Data:     []byte(fmt.Sprintf("Request %d", i)),
+					TxNo:     tt.TxNo(i),
+					Data:     []byte(fmt.Sprintf("Transaction %d", i)),
 				}},
 			).Pb())
 

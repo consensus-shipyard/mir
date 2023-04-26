@@ -6,7 +6,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	batchdbpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -27,7 +27,7 @@ type txIDString string
 
 type moduleState struct {
 	BatchStore       map[msctypes.BatchIDString]batchInfo
-	TransactionStore map[txIDString]*requestpbtypes.Request
+	TransactionStore map[txIDString]*trantorpbtypes.Transaction
 }
 
 type batchInfo struct {
@@ -42,11 +42,11 @@ func NewModule(mc *ModuleConfig) modules.Module {
 
 	state := moduleState{
 		BatchStore:       make(map[msctypes.BatchIDString]batchInfo),
-		TransactionStore: make(map[txIDString]*requestpbtypes.Request),
+		TransactionStore: make(map[txIDString]*trantorpbtypes.Transaction),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*requestpbtypes.Request, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*trantorpbtypes.Transaction, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
 		state.BatchStore[msctypes.BatchIDString(batchID)] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,
@@ -69,7 +69,7 @@ func NewModule(mc *ModuleConfig) modules.Module {
 			return nil
 		}
 
-		txs := make([]*requestpbtypes.Request, len(info.txIDs))
+		txs := make([]*trantorpbtypes.Transaction, len(info.txIDs))
 		for i, txID := range info.txIDs {
 			txs[i] = state.TransactionStore[txIDString(txID)]
 		}

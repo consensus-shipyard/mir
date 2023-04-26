@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -47,7 +47,7 @@ func eventTrace(eventLogFile string) (events []*eventpb.Event, retErr error) {
 	return trace, nil
 }
 
-func checkEventTraces(eventLogFiles map[t.NodeID]string, requestsSubmitted int) error {
+func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted int) error {
 	// Create Observables for event traces, one per node.
 	// The event traces are restricted (filtered) to include only those events
 	// that deliver transaction batches to the application.
@@ -118,7 +118,7 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, requestsSubmitted int) 
 		}
 	}
 
-	// Check if each node delivered as many requests as were submitted.
+	// Check if each node delivered as many transactions as were submitted.
 	for _, db := range deliveredBatches {
 		cnt, err := db.Map(func(_ context.Context, b interface{}) (interface{}, error) {
 			return int64(len(b.(*batchfetcherpb.NewOrderedBatch).Txs)), nil
@@ -129,9 +129,9 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, requestsSubmitted int) 
 		if cnt.Error() {
 			return fmt.Errorf("could not read number of delivered batches: %w", cnt.E)
 		}
-		if cnt.V.(int64) != int64(requestsSubmitted) {
+		if cnt.V.(int64) != int64(transactionsSubmitted) {
 			return fmt.Errorf("different number of submitted and delivered transactions: %v and %v",
-				int64(requestsSubmitted), cnt.V)
+				int64(transactionsSubmitted), cnt.V)
 		}
 	}
 
@@ -172,12 +172,12 @@ func batchesEqual(i1 interface{}, i2 interface{}) error {
 	return nil
 }
 
-func txEqual(tx1 *requestpb.Request, tx2 *requestpb.Request) error {
+func txEqual(tx1 *trantorpb.Transaction, tx2 *trantorpb.Transaction) error {
 	if tx1.ClientId != tx2.ClientId {
 		return fmt.Errorf("client ID mismatch: %v and %v", tx1.ClientId, tx2.ClientId)
 	}
-	if tx1.ReqNo != tx2.ReqNo {
-		return fmt.Errorf("request number mismatch: %v and %v", tx1.ReqNo, tx2.ReqNo)
+	if tx1.TxNo != tx2.TxNo {
+		return fmt.Errorf("transaction number mismatch: %v and %v", tx1.TxNo, tx2.TxNo)
 	}
 	if tx1.Type != tx2.Type {
 		return fmt.Errorf("type mismatch: %v and %v", tx1.Type, tx2.Type)

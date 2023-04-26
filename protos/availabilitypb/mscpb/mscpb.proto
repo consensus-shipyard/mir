@@ -4,8 +4,7 @@ package availabilitypb.mscpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb";
 
-import "requestpb/requestpb.proto";
-import "commonpb/commonpb.proto";
+import "trantorpb/trantorpb.proto";
 
 import "net/codegen_extensions.proto";
 import "mir/codegen_extensions.proto";
@@ -31,7 +30,7 @@ message Message {
 message RequestSigMessage {
   option (net.message) = true;
 
-  repeated requestpb.Request txs    = 1;
+  repeated trantorpb.Transaction txs    = 1;
   uint64                     req_id = 2;
 }
 
@@ -52,21 +51,10 @@ message RequestBatchMessage {
 message ProvideBatchMessage {
   option (net.message) = true;
 
-  repeated requestpb.Request txs      = 1;
+  repeated trantorpb.Transaction txs      = 1;
   uint64                     req_id   = 2;
   bytes                      batch_id = 3;
 }
-
-// TODO: implement pulling of missing txs.
-//message RequestMissingTxsMessage {
-//  uint64         req_id = 1;
-//  repeated bytes tx_ids = 2;
-//}
-//
-//message ProvideMissingTxsMessage {
-//  uint64         req_id = 1;
-//  repeated bytes txs    = 2;
-//}
 
 // ============================================================
 // Data structures
@@ -94,7 +82,7 @@ message Certs {
 message InstanceParams {
   option (mir.struct) = true;
 
-  commonpb.Membership membership   = 1;
+  trantorpb.Membership membership   = 1;
   uint64              limit        = 2;
   uint64              max_requests = 3;
 }

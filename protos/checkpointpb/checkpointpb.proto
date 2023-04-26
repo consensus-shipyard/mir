@@ -4,7 +4,7 @@ package checkpointpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb";
 
-import "commonpb/commonpb.proto";
+import "trantorpb/trantorpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
@@ -42,7 +42,7 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    commonpb.EpochConfig epoch_config      = 1;
+    trantorpb.EpochConfig epoch_config      = 1;
     StableCheckpoint     stable_checkpoint = 2;
     EpochProgress        epoch_progress    = 3;
   }
@@ -53,7 +53,7 @@ message StableCheckpoint {
   option (net.message) = true;
 
   uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
-  commonpb.StateSnapshot snapshot = 2;
+  trantorpb.StateSnapshot snapshot = 2;
   map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
@@ -79,8 +79,8 @@ message SigVerOrigin {
 message InstanceParams {
   option (mir.struct) = true;
 
-  commonpb.Membership  membership         = 1;
+  trantorpb.Membership  membership         = 1;
   uint64               resend_period      = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/timer/types.Duration"];
   bytes                leader_policy_data = 3;
-  commonpb.EpochConfig epoch_config       = 4;
+  trantorpb.EpochConfig epoch_config       = 4;
 }

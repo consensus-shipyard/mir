@@ -2,16 +2,14 @@ package hasherpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
-	types6 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
-	types "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types "github.com/filecoin-project/mir/codegen/model/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
-	types4 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -133,14 +131,14 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type Request struct {
-	Data   []*types.HashData
+	Data   []*HashData
 	Origin *HashOrigin
 }
 
 func RequestFromPb(pb *hasherpb.Request) *Request {
 	return &Request{
-		Data: types1.ConvertSlice(pb.Data, func(t *commonpb.HashData) *types.HashData {
-			return types.HashDataFromPb(t)
+		Data: types.ConvertSlice(pb.Data, func(t *hasherpb.HashData) *HashData {
+			return HashDataFromPb(t)
 		}),
 		Origin: HashOriginFromPb(pb.Origin),
 	}
@@ -148,7 +146,7 @@ func RequestFromPb(pb *hasherpb.Request) *Request {
 
 func (m *Request) Pb() *hasherpb.Request {
 	return &hasherpb.Request{
-		Data: types1.ConvertSlice(m.Data, func(t *types.HashData) *commonpb.HashData {
+		Data: types.ConvertSlice(m.Data, func(t *HashData) *hasherpb.HashData {
 			return (t).Pb()
 		}),
 		Origin: (m.Origin).Pb(),
@@ -183,13 +181,13 @@ func (*Result) MirReflect() mirreflect.Type {
 }
 
 type RequestOne struct {
-	Data   *types.HashData
+	Data   *HashData
 	Origin *HashOrigin
 }
 
 func RequestOneFromPb(pb *hasherpb.RequestOne) *RequestOne {
 	return &RequestOne{
-		Data:   types.HashDataFromPb(pb.Data),
+		Data:   HashDataFromPb(pb.Data),
 		Origin: HashOriginFromPb(pb.Origin),
 	}
 }
@@ -229,7 +227,7 @@ func (*ResultOne) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin struct {
-	Module types2.ModuleID
+	Module types1.ModuleID
 	Type   HashOrigin_Type
 }
 
@@ -247,13 +245,13 @@ type HashOrigin_TypeWrapper[T any] interface {
 func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
 	switch pb := pb.(type) {
 	case *hasherpb.HashOrigin_ContextStore:
-		return &HashOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &HashOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *hasherpb.HashOrigin_Request:
-		return &HashOrigin_Request{Request: types4.RequestFromPb(pb.Request)}
+		return &HashOrigin_Request{Request: types3.TransactionFromPb(pb.Request)}
 	case *hasherpb.HashOrigin_Dsl:
-		return &HashOrigin_Dsl{Dsl: types5.OriginFromPb(pb.Dsl)}
+		return &HashOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
 	case *hasherpb.HashOrigin_Checkpoint:
-		return &HashOrigin_Checkpoint{Checkpoint: types6.HashOriginFromPb(pb.Checkpoint)}
+		return &HashOrigin_Checkpoint{Checkpoint: types5.HashOriginFromPb(pb.Checkpoint)}
 	case *hasherpb.HashOrigin_Sb:
 		return &HashOrigin_Sb{Sb: pb.Sb}
 	}
@@ -261,12 +259,12 @@ func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
 }
 
 type HashOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types2.Origin
 }
 
 func (*HashOrigin_ContextStore) isHashOrigin_Type() {}
 
-func (w *HashOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *HashOrigin_ContextStore) Unwrap() *types2.Origin {
 	return w.ContextStore
 }
 
@@ -279,12 +277,12 @@ func (*HashOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Request struct {
-	Request *types4.Request
+	Request *types3.Transaction
 }
 
 func (*HashOrigin_Request) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Request) Unwrap() *types4.Request {
+func (w *HashOrigin_Request) Unwrap() *types3.Transaction {
 	return w.Request
 }
 
@@ -297,12 +295,12 @@ func (*HashOrigin_Request) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Dsl struct {
-	Dsl *types5.Origin
+	Dsl *types4.Origin
 }
 
 func (*HashOrigin_Dsl) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Dsl) Unwrap() *types5.Origin {
+func (w *HashOrigin_Dsl) Unwrap() *types4.Origin {
 	return w.Dsl
 }
 
@@ -315,12 +313,12 @@ func (*HashOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Checkpoint struct {
-	Checkpoint *types6.HashOrigin
+	Checkpoint *types5.HashOrigin
 }
 
 func (*HashOrigin_Checkpoint) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Checkpoint) Unwrap() *types6.HashOrigin {
+func (w *HashOrigin_Checkpoint) Unwrap() *types5.HashOrigin {
 	return w.Checkpoint
 }
 
@@ -352,7 +350,7 @@ func (*HashOrigin_Sb) MirReflect() mirreflect.Type {
 
 func HashOriginFromPb(pb *hasherpb.HashOrigin) *HashOrigin {
 	return &HashOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (types1.ModuleID)(pb.Module),
 		Type:   HashOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -366,4 +364,24 @@ func (m *HashOrigin) Pb() *hasherpb.HashOrigin {
 
 func (*HashOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*hasherpb.HashOrigin]()}
+}
+
+type HashData struct {
+	Data [][]uint8
+}
+
+func HashDataFromPb(pb *hasherpb.HashData) *HashData {
+	return &HashData{
+		Data: pb.Data,
+	}
+}
+
+func (m *HashData) Pb() *hasherpb.HashData {
+	return &hasherpb.HashData{
+		Data: m.Data,
+	}
+}
+
+func (*HashData) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*hasherpb.HashData]()}
 }

@@ -5,15 +5,15 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
-// IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
+// IncludeBatchCreation registers event handlers for processing NewTransactions and RequestBatch events.
 func IncludeBatchCreation(
 	m dsl.Module,
 	mc *common.ModuleConfig,
-	fetchTransactions func() []*requestpbtypes.Request,
+	fetchTransactions func() []*trantorpbtypes.Transaction,
 ) {
 
 	mpdsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
@@ -34,6 +34,6 @@ func IncludeBatchCreation(
 // Context data structures
 
 type requestTxIDsContext struct {
-	txs    []*requestpbtypes.Request
+	txs    []*trantorpbtypes.Transaction
 	origin *mppbtypes.RequestBatchOrigin
 }

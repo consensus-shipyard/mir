@@ -9,25 +9,25 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 type App struct {
 	logging.Logger
 
-	Membership *commonpbtypes.Membership
+	Membership *trantorpbtypes.Membership
 }
 
-func (a *App) ApplyTXs(txs []*requestpb.Request) error {
-	for _, req := range txs {
-		a.Log(logging.LevelDebug, fmt.Sprintf("Delivered request %v from client %v", req.ReqNo, req.ClientId))
+func (a *App) ApplyTXs(txs []*trantorpb.Transaction) error {
+	for _, tx := range txs {
+		a.Log(logging.LevelDebug, fmt.Sprintf("Delivered transaction %v from client %v", tx.TxNo, tx.ClientId))
 	}
 	return nil
 }
 
-func (a *App) NewEpoch(_ tt.EpochNr) (*commonpbtypes.Membership, error) {
+func (a *App) NewEpoch(_ tt.EpochNr) (*trantorpbtypes.Membership, error) {
 	return a.Membership, nil
 }
 

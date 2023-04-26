@@ -37,7 +37,7 @@ and inspected or replayed in debug mode using the [mircat](/cmd/mircat/) utility
 ### Follow-up events
 
 In certain cases, it is necessary that certain events are processed only after other events have been processed.
-For example, before sending a protocol message and delivering a request batch to the application,
+For example, before sending a protocol message and delivering a transaction batch to the application,
 the protocol state might need to be persisted in a write-ahead log (WAL)
 to prevent unwanted behavior in case of a crash and recovery.
 In such a case, the protocol module creates three event: one for persisting the protocol state

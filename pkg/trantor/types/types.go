@@ -39,38 +39,18 @@ func (sn SeqNr) Bytes() []byte {
 	return serializing.Uint64ToBytes(uint64(sn))
 }
 
-// SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
-// to a slice of abstractly typed sequence numbers.
-func SeqNrSlice(sns []uint64) []SeqNr {
-	seqNrs := make([]SeqNr, len(sns))
-	for i, nid := range sns {
-		seqNrs[i] = SeqNr(nid)
-	}
-	return seqNrs
-}
-
-// SeqNrSlicePb converts a slice of SeqNrs to a slice of the native type underlying SeqNr.
-// This is required for serialization using Protocol Buffers.
-func SeqNrSlicePb(sns []SeqNr) []uint64 {
-	pbSlice := make([]uint64, len(sns))
-	for i, sn := range sns {
-		pbSlice[i] = sn.Pb()
-	}
-	return pbSlice
-}
-
 // ================================================================================
 
-// ReqNo represents a request number a client assigns to its requests.
-type ReqNo uint64
+// TxNo represents a request number a client assigns to its requests.
+type TxNo uint64
 
-// Pb converts a ReqNo to its underlying native type.
-func (rn ReqNo) Pb() uint64 {
+// Pb converts a TxNo to its underlying native type.
+func (rn TxNo) Pb() uint64 {
 	return uint64(rn)
 }
 
-// Bytes converts a ReqNo to a slice of bytes (useful for serialization).
-func (rn ReqNo) Bytes() []byte {
+// Bytes converts a TxNo to a slice of bytes (useful for serialization).
+func (rn TxNo) Bytes() []byte {
 	return serializing.Uint64ToBytes(uint64(rn))
 }
 
@@ -111,21 +91,5 @@ func (e EpochNr) Bytes() []byte {
 
 // TxID is a unique identifier of a transaction.
 type TxID = []byte
-
-// TxIDSlice converts a slice of TxIDs represented directly as their underlying native type
-// to a slice of abstractly typed transaction IDs.
-func TxIDSlice(ids [][]byte) []TxID {
-	txIDs := make([]TxID, len(ids))
-	copy(txIDs, ids)
-	return txIDs
-}
-
-// TxIDSlicePb converts a slice of TxIDs to a slice of the native type underlying TxID.
-// This is required for serialization using Protocol Buffers.
-func TxIDSlicePb(ids []TxID) [][]byte {
-	pbSlice := make([][]byte, len(ids))
-	copy(pbSlice, ids)
-	return pbSlice
-}
 
 // ================================================================================

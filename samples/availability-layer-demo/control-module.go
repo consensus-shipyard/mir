@@ -10,7 +10,7 @@ import (
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 
 	"google.golang.org/protobuf/proto"
 
@@ -129,8 +129,8 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 			break
 		}
 
-		request := &requestpbtypes.Request{Data: []byte(text)}
-		m.eventsOut <- events.ListOf(mempoolpbevents.NewRequests("mempool", []*requestpbtypes.Request{request}).Pb())
+		tx := &trantorpbtypes.Transaction{Data: []byte(text)}
+		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}).Pb())
 	}
 
 	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{

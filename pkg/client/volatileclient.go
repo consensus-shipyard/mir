@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/requestpb"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -10,8 +10,8 @@ import (
 // It is meant for testing purposes and for cases where the machine running it is assumed to never crash.
 type VolatileClient struct {
 	clientID  tt.ClientID
-	nextTxNo  tt.ReqNo
-	pendingTX map[tt.ReqNo]*requestpb.Request
+	nextTxNo  tt.TxNo
+	pendingTX map[tt.TxNo]*trantorpb.Transaction
 }
 
 // NewVolatileClient returns a new instance of VolatileClient.
@@ -20,7 +20,7 @@ func NewVolatileClient(clientID tt.ClientID) *VolatileClient {
 	return &VolatileClient{
 		clientID:  clientID,
 		nextTxNo:  0,
-		pendingTX: make(map[tt.ReqNo]*requestpb.Request),
+		pendingTX: make(map[tt.TxNo]*trantorpb.Transaction),
 	}
 }
 
@@ -29,10 +29,10 @@ func NewVolatileClient(clientID tt.ClientID) *VolatileClient {
 // corresponding to the number of transactions previously created by this client.
 // Until Done is called with the returned transaction's number,
 // the transaction will be pending, i.e., among the transactions returned by Pending.
-func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*requestpb.Request, error) {
-	tx := &requestpb.Request{
+func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*trantorpb.Transaction, error) {
+	tx := &trantorpb.Transaction{
 		ClientId: vc.clientID.Pb(),
-		ReqNo:    vc.nextTxNo.Pb(),
+		TxNo:     vc.nextTxNo.Pb(),
 		Type:     txType,
 		Data:     data,
 	}
@@ -42,13 +42,13 @@ func (vc *VolatileClient) NewTX(txType uint64, data []byte) (*requestpb.Request,
 }
 
 // Done marks a transaction as done. It will no longer be among the transactions returned by Pending.
-func (vc *VolatileClient) Done(txNo tt.ReqNo) error {
+func (vc *VolatileClient) Done(txNo tt.TxNo) error {
 	delete(vc.pendingTX, txNo)
 	return nil
 }
 
 // Pending returns all transactions previously returned by NewTX that have not been marked as done.
-func (vc *VolatileClient) Pending() ([]*requestpb.Request, error) {
+func (vc *VolatileClient) Pending() ([]*trantorpb.Transaction, error) {
 	return maputil.GetValuesOf(vc.pendingTX, maputil.GetSortedKeys(vc.pendingTX)), nil
 }
 

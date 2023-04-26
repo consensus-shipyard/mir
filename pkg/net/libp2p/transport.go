@@ -13,12 +13,12 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -95,11 +95,11 @@ func (tr *Transport) Stop() {
 	tr.host.RemoveStreamHandler(tr.params.ProtocolID)
 	close(tr.stop)
 	// Passing an empty membership means that no connections will be kept.
-	tr.CloseOldConnections(&commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{}}) // nolint:govet
+	tr.CloseOldConnections(&trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{}}) // nolint:govet
 	// TODO: Force the termination of incoming connections too and wait here until that happens.
 }
 
-func (tr *Transport) Connect(membership *commonpbtypes.Membership) {
+func (tr *Transport) Connect(membership *trantorpbtypes.Membership) {
 	tr.connectionsLock.Lock()
 	defer tr.connectionsLock.Unlock()
 
@@ -205,7 +205,7 @@ func (tr *Transport) WaitFor(n int) error {
 	return nil
 }
 
-func (tr *Transport) CloseOldConnections(newMembership *commonpbtypes.Membership) {
+func (tr *Transport) CloseOldConnections(newMembership *trantorpbtypes.Membership) {
 
 	// Select connections to nodes that are NOT part of the new membership.
 	// We first select the connections (while holding a lock) and only then close them (after releasing the lock),

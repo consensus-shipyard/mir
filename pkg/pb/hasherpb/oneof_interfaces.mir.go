@@ -5,7 +5,7 @@ import (
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 )
 
 type Event_Type = isEvent_Type
@@ -42,7 +42,7 @@ func (w *HashOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 	return w.ContextStore
 }
 
-func (w *HashOrigin_Request) Unwrap() *requestpb.Request {
+func (w *HashOrigin_Request) Unwrap() *trantorpb.Transaction {
 	return w.Request
 }
 

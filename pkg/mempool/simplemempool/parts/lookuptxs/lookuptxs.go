@@ -5,7 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // IncludeTransactionLookupByID registers event handlers for processing RequestTransactions events.
@@ -17,7 +17,7 @@ func IncludeTransactionLookupByID(
 ) {
 	mpdsl.UponRequestTransactions(m, func(txIDs [][]uint8, origin *mppb.RequestTransactionsOrigin) error {
 		present := make([]bool, len(txIDs))
-		txs := make([]*requestpbtypes.Request, len(txIDs))
+		txs := make([]*trantorpbtypes.Transaction, len(txIDs))
 		for i, txID := range txIDs {
 			txs[i], present[i] = commonState.TxByID[string(txID)]
 		}

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 )
@@ -25,12 +25,12 @@ func FuzzSnapshotForHash(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, n int, e uint64, k, v string, data []byte) {
 		n = n % 5000
-		membership := commonpbtypes.Membership{make(map[types.NodeID]*commonpbtypes.NodeIdentity)} // nolint:govet
+		membership := trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 		for i := 0; i < n; i++ {
 			id := types.NodeID(fmt.Sprintf("%s/%s", k, strconv.Itoa(i)))
 			addr := fmt.Sprintf("%s%s", v, strconv.Itoa(i))
-			membership.Nodes[id] = &commonpbtypes.NodeIdentity{
+			membership.Nodes[id] = &trantorpbtypes.NodeIdentity{
 				Id:     id,
 				Addr:   addr,
 				Key:    nil,
@@ -38,13 +38,13 @@ func FuzzSnapshotForHash(f *testing.F) {
 			}
 		}
 
-		cfg := commonpbtypes.EpochConfig{EpochNr: tt.EpochNr(e), Memberships: []*commonpbtypes.Membership{&membership}}
-		clProgress := commonpbtypes.ClientProgress{Progress: map[tt.ClientID]*commonpbtypes.DeliveredReqs{}} // TODO: add actual values
-		state := commonpbtypes.StateSnapshot{AppData: data, EpochData: &commonpbtypes.EpochData{
+		cfg := trantorpbtypes.EpochConfig{EpochNr: tt.EpochNr(e), Memberships: []*trantorpbtypes.Membership{&membership}}
+		clProgress := trantorpbtypes.ClientProgress{Progress: map[tt.ClientID]*trantorpbtypes.DeliveredTXs{}} // TODO: add actual values
+		state := trantorpbtypes.StateSnapshot{AppData: data, EpochData: &trantorpbtypes.EpochData{
 			EpochConfig:    &cfg,
 			ClientProgress: &clProgress,
-			PreviousMembership: &commonpbtypes.Membership{ // nolint:govet
-				make(map[types.NodeID]*commonpbtypes.NodeIdentity),
+			PreviousMembership: &trantorpbtypes.Membership{ // nolint:govet
+				make(map[types.NodeID]*trantorpbtypes.NodeIdentity),
 			},
 		}}
 		serializeSnapshotForHash(&state)

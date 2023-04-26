@@ -4,9 +4,8 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
-	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	types "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -129,14 +128,14 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type RequestSigMessage struct {
-	Txs   []*types.Request
+	Txs   []*types.Transaction
 	ReqId uint64
 }
 
 func RequestSigMessageFromPb(pb *mscpb.RequestSigMessage) *RequestSigMessage {
 	return &RequestSigMessage{
-		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
-			return types.RequestFromPb(t)
+		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
+			return types.TransactionFromPb(t)
 		}),
 		ReqId: pb.ReqId,
 	}
@@ -144,7 +143,7 @@ func RequestSigMessageFromPb(pb *mscpb.RequestSigMessage) *RequestSigMessage {
 
 func (m *RequestSigMessage) Pb() *mscpb.RequestSigMessage {
 	return &mscpb.RequestSigMessage{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
+		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 		ReqId: m.ReqId,
@@ -202,15 +201,15 @@ func (*RequestBatchMessage) MirReflect() mirreflect.Type {
 }
 
 type ProvideBatchMessage struct {
-	Txs     []*types.Request
+	Txs     []*types.Transaction
 	ReqId   uint64
 	BatchId []uint8
 }
 
 func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessage {
 	return &ProvideBatchMessage{
-		Txs: types1.ConvertSlice(pb.Txs, func(t *requestpb.Request) *types.Request {
-			return types.RequestFromPb(t)
+		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
+			return types.TransactionFromPb(t)
 		}),
 		ReqId:   pb.ReqId,
 		BatchId: pb.BatchId,
@@ -219,7 +218,7 @@ func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessa
 
 func (m *ProvideBatchMessage) Pb() *mscpb.ProvideBatchMessage {
 	return &mscpb.ProvideBatchMessage{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Request) *requestpb.Request {
+		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		}),
 		ReqId:   m.ReqId,
@@ -286,14 +285,14 @@ func (*Certs) MirReflect() mirreflect.Type {
 }
 
 type InstanceParams struct {
-	Membership  *types3.Membership
+	Membership  *types.Membership
 	Limit       uint64
 	MaxRequests uint64
 }
 
 func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 	return &InstanceParams{
-		Membership:  types3.MembershipFromPb(pb.Membership),
+		Membership:  types.MembershipFromPb(pb.Membership),
 		Limit:       pb.Limit,
 		MaxRequests: pb.MaxRequests,
 	}

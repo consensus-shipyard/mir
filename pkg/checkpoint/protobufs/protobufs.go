@@ -3,11 +3,11 @@ package protobufs
 import (
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -58,10 +58,10 @@ func SigVerOrigin(module t.ModuleID) *cryptopbtypes.SigVerOrigin {
 }
 
 func InstanceParams(
-	membership *commonpbtypes.Membership,
+	membership *trantorpbtypes.Membership,
 	resendPeriod timertypes.Duration,
 	leaderPolicyData []byte,
-	epochConfig *commonpbtypes.EpochConfig,
+	epochConfig *trantorpbtypes.EpochConfig,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_Checkpoint{Checkpoint: &checkpointpbtypes.InstanceParams{
 		Membership:       membership,

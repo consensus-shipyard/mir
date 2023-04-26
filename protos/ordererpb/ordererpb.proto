@@ -4,7 +4,7 @@ package ordererpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb";
 
-import "commonpb/commonpb.proto";
+import "trantorpb/trantorpb.proto";
 import "pbftpb/pbftpb.proto";
 
 import "mir/codegen_extensions.proto";
@@ -57,7 +57,7 @@ message PBFTSegment {
   string leader = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 
   // All nodes executing the orderer implementation.
-  commonpb.Membership membership = 2;
+  trantorpb.Membership membership = 2;
 
   // Sequence numbers for which the orderer is responsible, along with corresponding (optional) pre-defined proposals.
   // The keys of this map are the actual "segment" of the commit log.

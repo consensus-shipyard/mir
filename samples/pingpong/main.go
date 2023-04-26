@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -18,7 +18,7 @@ import (
 func main() {
 	fmt.Println("Starting ping-pong.")
 
-	membership := &commonpbtypes.Membership{map[t.NodeID]*commonpbtypes.NodeIdentity{ // nolint:govet
+	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
 		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, 0}, // nolint:govet
 		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, 0}, // nolint:govet
 	}}

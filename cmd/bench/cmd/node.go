@@ -27,14 +27,14 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
-	"github.com/filecoin-project/mir/pkg/requestreceiver"
+	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
-	ReqReceiverBasePort = 20000
+	TxReceiverBasePort = 20000
 )
 
 var (
@@ -140,7 +140,7 @@ func runNode() error {
 			switch e := e.Type.(type) {
 			case *eventpb.Event_Mempool:
 				switch e.Mempool.Type.(type) {
-				case *mempoolpb.Event_NewRequests:
+				case *mempoolpb.Event_NewTransactions:
 					return true
 				}
 			case *eventpb.Event_BatchFetcher:
@@ -167,11 +167,11 @@ func runNode() error {
 		return fmt.Errorf("could not create node: %w", err)
 	}
 
-	reqReceiver := requestreceiver.NewRequestReceiver(node, "mempool", logger)
-	if err := reqReceiver.Start(ReqReceiverBasePort + ownNumericID); err != nil {
-		return fmt.Errorf("could not start request receiver: %w", err)
+	txReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
+	if err := txReceiver.Start(TxReceiverBasePort + ownNumericID); err != nil {
+		return fmt.Errorf("could not start transaction receiver: %w", err)
 	}
-	defer reqReceiver.Stop()
+	defer txReceiver.Stop()
 
 	if err := benchApp.Start(); err != nil {
 		return fmt.Errorf("could not start bench app: %w", err)

@@ -3,7 +3,7 @@ package checkpointpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/checkpointpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )

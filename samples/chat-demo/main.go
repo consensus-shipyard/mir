@@ -37,7 +37,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	requestpbtypes "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -254,7 +254,7 @@ func run() error {
 	}()
 
 	// ================================================================================
-	// Read chat messages from stdin and submit them as requests.
+	// Read chat messages from stdin and submit them as transactions.
 	// ================================================================================
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -263,15 +263,15 @@ func run() error {
 	fmt.Println("Type in your messages and press 'Enter' to send.")
 
 	// Read chat message from stdin.
-	nextReqNo := tt.ReqNo(0)
+	nextTxNo := tt.TxNo(0)
 	for scanner.Scan() {
 
-		// Submit the chat message as request payload to the mempool module.
-		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewRequests(
+		// Submit the chat message as transaction payload to the mempool module.
+		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewTransactions(
 			"mempool",
-			[]*requestpbtypes.Request{{
+			[]*trantorpbtypes.Transaction{{
 				ClientId: tt.ClientID(args.OwnID),
-				ReqNo:    nextReqNo,
+				TxNo:     nextTxNo,
 				Type:     0,
 				Data:     scanner.Bytes(),
 			}}).Pb()),
@@ -281,7 +281,7 @@ func run() error {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			nextReqNo++
+			nextTxNo++
 		}
 
 	}

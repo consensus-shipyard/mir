@@ -7,7 +7,7 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/mempoolpb";
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
 import "mir/codegen_extensions.proto";
-import "requestpb/requestpb.proto";
+import "trantorpb/trantorpb.proto";
 
 // ============================================================
 // Events
@@ -27,14 +27,14 @@ message Event {
     TransactionIDsResponse transaction_ids_response = 6;
     RequestBatchID         request_batch_id         = 7;
     BatchIDResponse        batch_id_response        = 8;
-    NewRequests            new_requests             = 9;
+    NewTransactions        new_transactions         = 9;
   }
 }
 
-message NewRequests {
+message NewTransactions {
   option (mir.event) = true;
 
-  repeated requestpb.Request requests = 1;
+  repeated trantorpb.Transaction transactions = 1;
 }
 
 // RequestBatch is used by the availability layer to request a new batch of transactions from the mempool.
@@ -49,7 +49,7 @@ message NewBatch {
   option (mir.event) = true;
 
   repeated bytes             tx_ids = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxID"];
-  repeated requestpb.Request txs    = 2;
+  repeated trantorpb.Transaction txs    = 2;
   RequestBatchOrigin         origin = 3 [(mir.origin_response) = true];
 }
 
@@ -67,7 +67,7 @@ message TransactionsResponse {
   option (mir.event) = true;
 
   repeated bool              present = 1;
-  repeated requestpb.Request txs     = 2;
+  repeated trantorpb.Transaction txs     = 2;
   RequestTransactionsOrigin  origin  = 3 [(mir.origin_response) = true];
 }
 
@@ -76,7 +76,7 @@ message TransactionsResponse {
 message RequestTransactionIDs {
   option (mir.event) = true;
 
-  repeated requestpb.Request  txs    = 1;
+  repeated trantorpb.Transaction  txs    = 1;
   RequestTransactionIDsOrigin origin = 2 [(mir.origin_request) = true];
 }
 

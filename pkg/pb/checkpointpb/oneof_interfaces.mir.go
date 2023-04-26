@@ -1,6 +1,6 @@
 package checkpointpb
 
-import commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
+import trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 
 type Message_Type = isMessage_Type
 
@@ -20,7 +20,7 @@ type Event_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Event_EpochConfig) Unwrap() *commonpb.EpochConfig {
+func (w *Event_EpochConfig) Unwrap() *trantorpb.EpochConfig {
 	return w.EpochConfig
 }
 

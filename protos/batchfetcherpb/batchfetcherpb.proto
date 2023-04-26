@@ -4,8 +4,7 @@ package batchfetcherpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb";
 
-import "requestpb/requestpb.proto";
-import "commonpb/commonpb.proto";
+import "trantorpb/trantorpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -16,12 +15,12 @@ message Event {
     option (mir.event_type) = true;
 
     NewOrderedBatch         new_ordered_batch = 1;
-    commonpb.ClientProgress client_progress   = 2;
+    trantorpb.ClientProgress client_progress   = 2;
   }
 }
 
 message NewOrderedBatch {
   option (mir.event) = true;
 
-  repeated requestpb.Request txs = 1;
+  repeated trantorpb.Transaction txs = 1;
 }

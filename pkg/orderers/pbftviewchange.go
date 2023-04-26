@@ -7,12 +7,12 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
@@ -286,7 +286,7 @@ func (orderer *Orderer) applyMsgMissingPreprepare(preprepare *pbftpbtypes.Prepre
 	// Request a hash of the received preprepare message.
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
 		HashOrigin(orderer.moduleConfig.Self, missingPreprepareHashOrigin(preprepare.Pb())),
 	).Pb())
 }
@@ -396,7 +396,7 @@ func (orderer *Orderer) applyMsgNewView(newView *pbftpbtypes.NewView, from t.Nod
 
 func (orderer *Orderer) applyVerifiedNewView(newView *pbftpb.NewView) *events.EventList {
 	// Serialize obtained Preprepare messages for hashing.
-	dataToHash := make([]*commonpbtypes.HashData, len(newView.Preprepares))
+	dataToHash := make([]*hasherpbtypes.HashData, len(newView.Preprepares))
 	for i, preprepare := range newView.Preprepares { // Preprepares in a NewView message are sorted by sequence number.
 		dataToHash[i] = serializePreprepareForHashing(pbftpbtypes.PreprepareFromPb(preprepare))
 	}

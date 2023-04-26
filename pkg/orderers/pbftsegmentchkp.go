@@ -6,10 +6,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -54,8 +54,8 @@ type pbftSegmentChkp struct {
 	// DoneNodes will contain IDs of nodes from which matching Done messages were received.
 	doneNodes []t.NodeID
 
-	// This flag is set once the retransmission of missing committed requests is requested.
-	// It serves preventing redundant retransmission requests when more than a quorum of Done messages are received.
+	// This flag is set once the retransmission of missing committed entries is requested.
+	// It serves preventing redundant retransmission entries when more than a quorum of Done messages are received.
 	catchingUp bool
 }
 
@@ -239,8 +239,8 @@ func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[tt.SeqNr][
 	return catchUpRequests
 }
 
-// applyMsgCatchUpRequest applies a request for retransmitting a missing committed certificate.
-// It looks up the requested certificate (more precisely, the corresponding Preprepare message)
+// applyMsgCatchUpRequest applies a request for retransmitting a missing committed entry.
+// It looks up the requested entry (more precisely, the corresponding Preprepare message)
 // by its sequence number and digest and sends it to the originator of the request inside a CatchUpResponse message.
 // If no matching Preprepare is found, does nothing.
 func (orderer *Orderer) applyMsgCatchUpRequest(
@@ -276,7 +276,7 @@ func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *pbftpbtypes.Preprepa
 
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
 		HashOrigin(orderer.moduleConfig.Self, catchUpResponseHashOrigin(preprepare.Pb())),
 	).Pb())
 }

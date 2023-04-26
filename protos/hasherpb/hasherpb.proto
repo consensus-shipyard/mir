@@ -4,9 +4,8 @@ package hasherpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/hasherpb";
 
-import "commonpb/commonpb.proto";
 import "contextstorepb/contextstorepb.proto";
-import "requestpb/requestpb.proto";
+import "trantorpb/trantorpb.proto";
 import "dslpb/dslpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
@@ -29,8 +28,8 @@ message Event {
 message Request {
   option (mir.event) = true;
 
-  repeated commonpb.HashData data   = 1;
-  HashOrigin                 origin = 2 [(mir.origin_request) = true];
+  repeated HashData data   = 1;
+  HashOrigin        origin = 2 [(mir.origin_request) = true];
 }
 
 message Result {
@@ -43,8 +42,8 @@ message Result {
 message RequestOne {
   option (mir.event) = true;
 
-  commonpb.HashData data   = 1;
-  HashOrigin        origin = 2 [(mir.origin_request) = true];
+  HashData   data   = 1;
+  HashOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 message ResultOne {
@@ -60,9 +59,16 @@ message HashOrigin {
   string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
   oneof type {
     contextstorepb.Origin           context_store = 2;
-    requestpb.Request               request       = 3;
+    trantorpb.Transaction               request       = 3;
     dslpb.Origin                    dsl           = 4;
     checkpointpb.HashOrigin         checkpoint    = 5;
     ordererpb.HashOrigin            sb            = 6;
   }
 }
+
+message HashData {
+  option (mir.struct) = true;
+
+  repeated bytes data = 1;
+}
+

@@ -9,10 +9,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	orderertypes "github.com/filecoin-project/mir/pkg/orderers/types"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
+	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -47,7 +47,7 @@ type pbftProposalState struct {
 	// in which the PBFT protocol was when the certificate was requested.
 	// When the certificate is ready, the protocol needs to check whether it is still in the same view
 	// as when the certificate was requested.
-	// If the view advanced in the meantime, the proposal must be aborted and the contained requests resurrected
+	// If the view advanced in the meantime, the proposal must be aborted and the contained transactions resurrected
 	// (i.e., put back in their respective ISS bucket queues).
 	// If certRequested is false, certRequestedView must not be used.
 	certRequestedView orderertypes.ViewNr
@@ -130,7 +130,7 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 		eventsOut.PushBackList(l)
 	} else { // nolint:staticcheck,revive
 		// If the PBFT view advanced since the certificate was requested,
-		// do not propose the certificate and resurrect the requests it contains.
+		// do not propose the certificate and resurrect the transactions it contains.
 		// eventsOut.PushBack(orderer.eventService.SBEvent(SBResurrectBatchEvent(batch.Batch)))
 		// TODO: Implement resurrection!
 	}
@@ -171,8 +171,7 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 }
 
 // applyMsgPreprepare applies a received preprepare message.
-// It performs the necessary checks and, if successful,
-// requests a confirmation from ISS that all contained requests have been received and authenticated.
+// It performs the necessary checks and, if successful, submits it for hashing.
 func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, from t.NodeID) *events.EventList {
 
 	// Convenience variable
@@ -194,7 +193,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 
 	// Check that this is the first Preprepare message received.
 	// Note that checking the orderer.Preprepared flag instead would be incorrect,
-	// as that flag is only set upon receiving the RequestsReady OrdererEvent.
+	// as that flag is only set after computing the Preprepare message's digest.
 	if slot.Preprepare != nil {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Preprepare message. Already preprepared or prepreparing.",
 			"sn", sn, "from", from)
@@ -216,7 +215,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 	// Request the computation of the hash of the Preprepare message.
 	return events.ListOf(hasherpbevents.Request(
 		orderer.moduleConfig.Hasher,
-		[]*commonpbtypes.HashData{serializePreprepareForHashing(preprepare)},
+		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
 		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare.Pb())),
 	).Pb())
 }

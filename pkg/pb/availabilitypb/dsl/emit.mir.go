@@ -4,7 +4,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -51,7 +51,7 @@ func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, cert *t
 	dsl.EmitMirEvent(m, events.RequestTransactions(destModule, cert, origin))
 }
 
-func ProvideTransactions(m dsl.Module, destModule types.ModuleID, txs []*types2.Request, origin *types1.RequestTransactionsOrigin) {
+func ProvideTransactions(m dsl.Module, destModule types.ModuleID, txs []*types2.Transaction, origin *types1.RequestTransactionsOrigin) {
 	dsl.EmitMirEvent(m, events.ProvideTransactions(destModule, txs, origin))
 }
 

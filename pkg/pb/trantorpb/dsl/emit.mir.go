@@ -1,16 +1,16 @@
-package commonpbdsl
+package trantorpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	events "github.com/filecoin-project/mir/pkg/pb/commonpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
+	events "github.com/filecoin-project/mir/pkg/pb/trantorpb/events"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredReqs) {
+func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredTXs) {
 	dsl.EmitMirEvent(m, events.ClientProgress(destModule, progress))
 }
 
