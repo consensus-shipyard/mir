@@ -2,6 +2,7 @@ package trantor
 
 import (
 	"crypto"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 
 	"github.com/pkg/errors"

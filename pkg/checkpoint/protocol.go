@@ -179,7 +179,10 @@ func NewModule(
 
 		// Apply pending Checkpoint messages
 		for s, msg := range params.PendingMessages {
-			applyCheckpointReceived(s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature)
+			if err := applyCheckpointReceived(s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
+				params.Log(logging.LevelWarn, "Error applying pending Checkpoint message", "error", err, "msg", msg)
+			}
+
 		}
 		params.PendingMessages = nil
 
@@ -189,7 +192,7 @@ func NewModule(
 	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errors []error, allOk bool, _ *t.EmptyContext) error {
 
 		// A checkpoint only has one signature and thus each slice of the result only contains one element.
-		sourceNode := t.NodeID(nodeIds[0])
+		sourceNode := nodeIds[0]
 		err := errors[0]
 
 		if !allOk {
