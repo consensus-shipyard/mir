@@ -2,6 +2,7 @@ package trantor
 
 import (
 	"crypto"
+	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 
 	"github.com/pkg/errors"
 
@@ -146,7 +147,7 @@ func New(
 	}
 
 	// Factory module with instances of the checkpointing protocol.
-	checkpointing := checkpoint.Factory(checkpoint.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
+	checkpointing := checkpoint.Factory(common.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
 
 	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
 	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))

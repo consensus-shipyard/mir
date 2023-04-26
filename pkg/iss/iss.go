@@ -18,7 +18,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -34,6 +33,7 @@ import (
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -781,17 +781,21 @@ func (iss *ISS) advanceEpoch() error {
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
 		tt.RetentionIndex(newEpochNr),
-		chkpprotos.InstanceParams(
-			oldMembership,
-			checkpoint.DefaultResendPeriod,
-			leaderPolicyData,
-			&trantorpbtypes.EpochConfig{ // nolint:govet
-				iss.epoch.Nr(),
-				iss.epoch.FirstSN(),
-				uint64(iss.epoch.Len()),
-				iss.memberships,
+		&factorypbtypes.GeneratorParams{
+			Type: &factorypbtypes.GeneratorParams_Checkpoint{
+				Checkpoint: &checkpointpbtypes.InstanceParams{
+					Membership:       oldMembership,
+					ResendPeriod:     checkpoint.DefaultResendPeriod,
+					LeaderPolicyData: leaderPolicyData,
+					EpochConfig: &trantorpbtypes.EpochConfig{ // nolint:govet
+						iss.epoch.Nr(),
+						iss.epoch.FirstSN(),
+						uint64(iss.epoch.Len()),
+						iss.memberships,
+					},
+				},
 			},
-		),
+		},
 	)
 
 	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.

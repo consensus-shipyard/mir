@@ -1,6 +1,7 @@
 package checkpoint
 
 import (
+	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -8,7 +9,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
+func Factory(mc *common.ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -27,7 +28,7 @@ func Factory(mc *ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.Pa
 				// Get the instance parameters
 				p := params.Type.(*factorypbtypes.GeneratorParams_Checkpoint).Checkpoint
 
-				protocol := NewProtocol(
+				protocol := NewModule(
 					&submc,
 					ownID,
 					p.Membership,
