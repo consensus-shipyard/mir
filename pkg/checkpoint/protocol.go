@@ -267,7 +267,7 @@ func applyCheckpointReceived(m dsl.Module,
 	cryptopbdsl.VerifySig(m,
 		moduleConfig.Crypto,
 		sigData,
-		state.Signatures[from],
+		signature,
 		from,
 		&verificationContext{signature: signature},
 	)
