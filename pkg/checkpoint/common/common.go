@@ -48,7 +48,7 @@ type ModuleParams struct {
 	Signatures map[t.NodeID][]byte
 
 	// Set of nodes from which a valid Checkpoint messages has been received.
-	Confirmations map[t.NodeID]struct{}
+	SigReceived map[t.NodeID]struct{}
 
 	// Set of Checkpoint messages that were received ahead of time.
 	PendingMessages map[t.NodeID]*checkpointpbtypes.Checkpoint
@@ -68,5 +68,5 @@ func (p *ModuleParams) SnapshotReady() bool {
 }
 
 func (p *ModuleParams) Stable() bool {
-	return p.SnapshotReady() && len(p.Confirmations) >= config.StrongQuorum(len(p.Membership))
+	return p.SnapshotReady() && len(p.Signatures) >= config.StrongQuorum(len(p.Membership))
 }

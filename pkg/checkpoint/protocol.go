@@ -51,7 +51,7 @@ func NewModule(
 		ResendPeriod:    resendPeriod,
 		Announced:       false,
 		Signatures:      make(map[t.NodeID][]byte),
-		Confirmations:   make(map[t.NodeID]struct{}),
+		SigReceived:     make(map[t.NodeID]struct{}),
 		PendingMessages: make(map[t.NodeID]*checkpointpbtypes.Checkpoint),
 		Membership:      maputil.GetSortedKeys(membership.Nodes),
 		StateSnapshot: &trantorpbtypes.StateSnapshot{
@@ -99,7 +99,7 @@ func NewModule(
 
 		// Save received own checkpoint signature
 		params.Signatures[params.OwnID] = sig
-		params.Confirmations[params.OwnID] = struct{}{}
+		params.SigReceived[params.OwnID] = struct{}{}
 
 		// In case the node's own signature is enough to reach quorum, announce the stable checkpoint.
 		// This can happen in a small system where no failures are tolerated.
@@ -126,6 +126,7 @@ func NewModule(
 		for s, msg := range params.PendingMessages {
 			if err := applyCheckpointReceived(m, params, s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
 				params.Log(logging.LevelWarn, "Error applying pending Checkpoint message", "error", err, "msg", msg)
+				return err
 			}
 
 		}
@@ -134,15 +135,14 @@ func NewModule(
 		return nil
 	})
 
-	cryptopbdsl.UponSigVerified(m, func(nodeId t.NodeID, err error, _ *t.EmptyContext) error {
+	cryptopbdsl.UponSigVerified(m, func(nodeId t.NodeID, err error, c *verificationContext) error {
 		if err != nil {
 			params.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", nodeId, "error", err)
-			params.Signatures[nodeId] = nil
 			return nil
 		}
 
 		// Note the reception of a valid Checkpoint message from node `source`.
-		params.Confirmations[nodeId] = struct{}{}
+		params.Signatures[nodeId] = c.signature
 
 		// If, after having applied this message, the checkpoint became stable, produce the necessary events.
 		if params.Stable() {
@@ -192,8 +192,8 @@ func announceStable(m dsl.Module, p *common.ModuleParams) {
 
 	// Assemble a multisig certificate from the received signatures.
 	cert := make(map[t.NodeID][]byte)
-	for node := range p.Confirmations {
-		cert[node] = p.Signatures[node]
+	for node, sig := range p.Signatures {
+		cert[node] = sig
 	}
 
 	// Announce the stable checkpoint to the ordering protocol.
@@ -240,10 +240,10 @@ func applyCheckpointReceived(m dsl.Module,
 	}
 
 	// Ignore duplicate messages.
-	if _, ok := p.Signatures[from]; ok {
+	if _, ok := p.SigReceived[from]; ok {
 		return nil
 	}
-	p.Signatures[from] = signature
+	p.SigReceived[from] = struct{}{}
 
 	// Verify signature of the sender.
 	sigData := serializeCheckpointForSig(p.Epoch, p.SeqNr, p.StateSnapshotHash)
@@ -252,8 +252,12 @@ func applyCheckpointReceived(m dsl.Module,
 		sigData,
 		p.Signatures[from],
 		from,
-		&t.EmptyContext{},
+		&verificationContext{signature: signature},
 	)
 
 	return nil
+}
+
+type verificationContext struct {
+	signature []uint8
 }
