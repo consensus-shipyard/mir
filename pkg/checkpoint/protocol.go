@@ -4,8 +4,9 @@ package checkpoint
 
 import (
 	"bytes"
-	"github.com/filecoin-project/mir/pkg/iss/config"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/iss/config"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
