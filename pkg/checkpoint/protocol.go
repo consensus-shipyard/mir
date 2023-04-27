@@ -27,7 +27,6 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 const (
@@ -226,7 +225,7 @@ func applyCheckpointReceived(m dsl.Module,
 	logger logging.Logger) error {
 
 	// check if from is part of the membership
-	if !sliceutil.Contains(maputil.GetKeys(p.Membership.Nodes), from) {
+	if _, ok := p.Membership.Nodes[from]; !ok {
 		logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 		return nil
 	}
