@@ -29,11 +29,11 @@ func Factory(mc *common.ModuleConfig, ownID t.NodeID, logger logging.Logger) mod
 				p := params.Type.(*factorypbtypes.GeneratorParams_Checkpoint).Checkpoint
 
 				chkpParams := &common.ModuleParams{
-					ownID,
-					p.Membership,
-					p.EpochConfig,
-					p.LeaderPolicyData,
-					p.ResendPeriod,
+					OwnID:            ownID,
+					Membership:       p.Membership,
+					EpochConfig:      p.EpochConfig,
+					LeaderPolicyData: p.LeaderPolicyData,
+					ResendPeriod:     p.ResendPeriod,
 				}
 
 				protocol := NewModule(
