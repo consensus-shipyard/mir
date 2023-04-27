@@ -4,6 +4,7 @@ package checkpoint
 
 import (
 	"bytes"
+	"github.com/filecoin-project/mir/pkg/iss/config"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint/common"
@@ -32,6 +33,28 @@ const (
 	DefaultResendPeriod = types.Duration(time.Second)
 )
 
+type State struct {
+	// State snapshot associated with this checkpoint.
+	StateSnapshot *trantorpbtypes.StateSnapshot
+
+	// Hash of the state snapshot data associated with this checkpoint.
+	StateSnapshotHash []byte
+
+	// Set of (potentially invalid) nodes' Signatures.
+	Signatures map[t.NodeID][]byte
+
+	// Set of nodes from which a valid Checkpoint messages has been received.
+	SigReceived map[t.NodeID]struct{}
+
+	// Set of Checkpoint messages that were received ahead of time.
+	PendingMessages map[t.NodeID]*checkpointpbtypes.Checkpoint
+
+	// Flag ensuring that the stable checkpoint is only Announced once.
+	// Set to true when announcing a stable checkpoint for the first time.
+	// When true, stable checkpoints are not Announced anymore.
+	Announced bool
+}
+
 // NewModule allocates and returns a new instance of the ModuleParams associated with sequence number sn.
 func NewModule(
 	moduleConfig *common.ModuleConfig,
@@ -43,17 +66,15 @@ func NewModule(
 	logger logging.Logger,
 ) modules.PassiveModule {
 	params := &common.ModuleParams{
-		Logger:          logger,
-		ModuleConfig:    moduleConfig,
-		OwnID:           ownID,
-		SeqNr:           epochConfig.FirstSn,
-		Epoch:           epochConfig.EpochNr,
-		ResendPeriod:    resendPeriod,
-		Announced:       false,
-		Signatures:      make(map[t.NodeID][]byte),
-		SigReceived:     make(map[t.NodeID]struct{}),
-		PendingMessages: make(map[t.NodeID]*checkpointpbtypes.Checkpoint),
-		Membership:      maputil.GetSortedKeys(membership.Nodes),
+		Logger:       logger,
+		OwnID:        ownID,
+		SeqNr:        epochConfig.FirstSn,
+		Epoch:        epochConfig.EpochNr,
+		ResendPeriod: resendPeriod,
+		Membership:   maputil.GetSortedKeys(membership.Nodes),
+	}
+
+	state := &State{
 		StateSnapshot: &trantorpbtypes.StateSnapshot{
 			AppData: nil,
 			EpochData: &trantorpbtypes.EpochData{
@@ -63,6 +84,10 @@ func NewModule(
 				PreviousMembership: membership,
 			},
 		},
+		Announced:       false,
+		Signatures:      make(map[t.NodeID][]byte),
+		SigReceived:     make(map[t.NodeID]struct{}),
+		PendingMessages: make(map[t.NodeID]*checkpointpbtypes.Checkpoint),
 	}
 
 	m := dsl.NewModule(moduleConfig.Self)
@@ -74,63 +99,63 @@ func NewModule(
 		}
 
 		// Save the received app snapshot if there is none yet.
-		if params.StateSnapshot.AppData == nil {
-			params.StateSnapshot.AppData = appData
-			if params.SnapshotReady() {
-				processStateSnapshot(m, params)
+		if state.StateSnapshot.AppData == nil {
+			state.StateSnapshot.AppData = appData
+			if state.SnapshotReady() {
+				processStateSnapshot(m, state, moduleConfig)
 			}
 		}
 		return nil
 	})
 
-	hasherpbdsl.UponResultOne(m, func(digest []uint8, _ *t.EmptyContext) error {
+	hasherpbdsl.UponResultOne(m, func(digest []uint8, _ *common.EmptyContext) error {
 		// Save the received snapshot hash
-		params.StateSnapshotHash = digest
+		state.StateSnapshotHash = digest
 
 		// Request signature
-		sigData := serializeCheckpointForSig(params.Epoch, params.SeqNr, params.StateSnapshotHash)
+		sigData := serializeCheckpointForSig(params.Epoch, params.SeqNr, state.StateSnapshotHash)
 
-		cryptopbdsl.SignRequest(m, params.ModuleConfig.Crypto, sigData, &t.EmptyContext{})
+		cryptopbdsl.SignRequest(m, moduleConfig.Crypto, sigData, &common.EmptyContext{})
 
 		return nil
 	})
 
-	cryptopbdsl.UponSignResult(m, func(sig []uint8, _ *t.EmptyContext) error {
+	cryptopbdsl.UponSignResult(m, func(sig []uint8, _ *common.EmptyContext) error {
 
 		// Save received own checkpoint signature
-		params.Signatures[params.OwnID] = sig
-		params.SigReceived[params.OwnID] = struct{}{}
+		state.Signatures[params.OwnID] = sig
+		state.SigReceived[params.OwnID] = struct{}{}
 
 		// In case the node's own signature is enough to reach quorum, announce the stable checkpoint.
 		// This can happen in a small system where no failures are tolerated.
-		if params.Stable() {
-			announceStable(m, params)
+		if state.Stable(params) {
+			announceStable(m, params, state, moduleConfig)
 		}
 
 		// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
-		chkpMessage := checkpointpbmsgs.Checkpoint(params.ModuleConfig.Self, params.Epoch, params.SeqNr, params.StateSnapshotHash, sig)
+		chkpMessage := checkpointpbmsgs.Checkpoint(moduleConfig.Self, params.Epoch, params.SeqNr, state.StateSnapshotHash, sig)
 		eventpbdsl.TimerRepeat(m,
 			"timer",
-			[]*eventpbtypes.Event{transportpbevents.SendMessage(params.ModuleConfig.Net, chkpMessage, params.Membership)},
+			[]*eventpbtypes.Event{transportpbevents.SendMessage(moduleConfig.Net, chkpMessage, params.Membership)},
 			params.ResendPeriod,
 			tt.RetentionIndex(params.Epoch),
 		)
 
 		params.Log(logging.LevelDebug, "Sending checkpoint message",
 			"epoch", params.Epoch,
-			"dataLen", len(params.StateSnapshot.AppData),
-			"memberships", len(params.StateSnapshot.EpochData.EpochConfig.Memberships),
+			"dataLen", len(state.StateSnapshot.AppData),
+			"memberships", len(state.StateSnapshot.EpochData.EpochConfig.Memberships),
 		)
 
 		// Apply pending Checkpoint messages
-		for s, msg := range params.PendingMessages {
-			if err := applyCheckpointReceived(m, params, s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
+		for s, msg := range state.PendingMessages {
+			if err := applyCheckpointReceived(m, params, state, moduleConfig, s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
 				params.Log(logging.LevelWarn, "Error applying pending Checkpoint message", "error", err, "msg", msg)
 				return err
 			}
 
 		}
-		params.PendingMessages = nil
+		state.PendingMessages = nil
 
 		return nil
 	})
@@ -142,11 +167,11 @@ func NewModule(
 		}
 
 		// Note the reception of a valid Checkpoint message from node `source`.
-		params.Signatures[nodeId] = c.signature
+		state.Signatures[nodeId] = c.signature
 
 		// If, after having applied this message, the checkpoint became stable, produce the necessary events.
-		if params.Stable() {
-			announceStable(m, params)
+		if state.Stable(params) {
+			announceStable(m, params, state, moduleConfig)
 		}
 
 		return nil
@@ -154,54 +179,56 @@ func NewModule(
 
 	trantorpbdsl.UponClientProgress(m, func(progress map[tt.ClientID]*trantorpbtypes.DeliveredTXs) error {
 		// Save the received client progress if there is none yet.
-		if params.StateSnapshot.EpochData.ClientProgress == nil {
-			params.StateSnapshot.EpochData.ClientProgress = &trantorpbtypes.ClientProgress{
+		if state.StateSnapshot.EpochData.ClientProgress == nil {
+			state.StateSnapshot.EpochData.ClientProgress = &trantorpbtypes.ClientProgress{
 				Progress: progress,
 			}
-			if params.SnapshotReady() {
-				processStateSnapshot(m, params)
+			if state.SnapshotReady() {
+				processStateSnapshot(m, state, moduleConfig)
 			}
 		}
 		return nil
 	})
 
 	checkpointpbdsl.UponCheckpointReceived(m, func(from t.NodeID, epoch tt.EpochNr, sn tt.SeqNr, snapshotHash []uint8, signature []uint8) error {
-		return applyCheckpointReceived(m, params, from, epoch, sn, snapshotHash, signature)
+		return applyCheckpointReceived(m, params, state, moduleConfig, from, epoch, sn, snapshotHash, signature)
 	})
 
 	return m
 }
 
-func processStateSnapshot(m dsl.Module, p *common.ModuleParams) {
+func processStateSnapshot(m dsl.Module, state *State, mc *common.ModuleConfig) {
 
 	// Initiate computing the hash of the snapshot.
 	hasherpbdsl.RequestOne(m,
-		p.ModuleConfig.Hasher,
-		serializeSnapshotForHash(p.StateSnapshot),
-		&t.EmptyContext{},
+		mc.Hasher,
+		serializeSnapshotForHash(state.StateSnapshot),
+		&common.EmptyContext{},
 	)
 }
 
-func announceStable(m dsl.Module, p *common.ModuleParams) {
+func announceStable(m dsl.Module, p *common.ModuleParams, state *State, mc *common.ModuleConfig) {
 
 	// Only announce the stable checkpoint once.
-	if p.Announced {
+	if state.Announced {
 		return
 	}
-	p.Announced = true
+	state.Announced = true
 
 	// Assemble a multisig certificate from the received signatures.
 	cert := make(map[t.NodeID][]byte)
-	for node, sig := range p.Signatures {
+	for node, sig := range state.Signatures {
 		cert[node] = sig
 	}
 
 	// Announce the stable checkpoint to the ordering protocol.
-	checkpointpbdsl.StableCheckpoint(m, p.ModuleConfig.Ord, p.SeqNr, p.StateSnapshot, cert)
+	checkpointpbdsl.StableCheckpoint(m, mc.Ord, p.SeqNr, state.StateSnapshot, cert)
 }
 
 func applyCheckpointReceived(m dsl.Module,
 	p *common.ModuleParams,
+	state *State,
+	moduleConfig *common.ModuleConfig,
 	from t.NodeID,
 	epoch tt.EpochNr,
 	sn tt.SeqNr,
@@ -216,46 +243,55 @@ func applyCheckpointReceived(m dsl.Module,
 	// Notify the protocol about the progress of the from node.
 	// If no progress is made for a configured number of epochs,
 	// the node is considered to be a straggler and is sent a stable checkpoint to catch uparams.
-	checkpointpbdsl.EpochProgress(m, p.ModuleConfig.Ord, from, epoch)
+	checkpointpbdsl.EpochProgress(m, moduleConfig.Ord, from, epoch)
 
 	// If checkpoint is already stable, ignore message.
-	if p.Stable() {
+	if state.Stable(p) {
 		return nil
 	}
 
 	// Check snapshot hash
-	if p.StateSnapshotHash == nil {
+	if state.StateSnapshotHash == nil {
 		// The message is received too early, put it aside
-		p.PendingMessages[from] = &checkpointpbtypes.Checkpoint{
+		state.PendingMessages[from] = &checkpointpbtypes.Checkpoint{
 			Epoch:        epoch,
 			Sn:           sn,
 			SnapshotHash: snapshotHash,
 			Signature:    signature,
 		}
 		return nil
-	} else if !bytes.Equal(p.StateSnapshotHash, snapshotHash) {
+	} else if !bytes.Equal(state.StateSnapshotHash, snapshotHash) {
 		// Snapshot hash mismatch
 		p.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "from", from)
 		return nil
 	}
 
 	// Ignore duplicate messages.
-	if _, ok := p.SigReceived[from]; ok {
+	if _, ok := state.SigReceived[from]; ok {
 		return nil
 	}
-	p.SigReceived[from] = struct{}{}
+	state.SigReceived[from] = struct{}{}
 
 	// Verify signature of the sender.
-	sigData := serializeCheckpointForSig(p.Epoch, p.SeqNr, p.StateSnapshotHash)
+	sigData := serializeCheckpointForSig(p.Epoch, p.SeqNr, state.StateSnapshotHash)
 	cryptopbdsl.VerifySig(m,
-		p.ModuleConfig.Crypto,
+		moduleConfig.Crypto,
 		sigData,
-		p.Signatures[from],
+		state.Signatures[from],
 		from,
 		&verificationContext{signature: signature},
 	)
 
 	return nil
+}
+
+func (state *State) SnapshotReady() bool {
+	return state.StateSnapshot.AppData != nil &&
+		state.StateSnapshot.EpochData.ClientProgress != nil
+}
+
+func (state *State) Stable(p *common.ModuleParams) bool {
+	return state.SnapshotReady() && len(state.Signatures) >= config.StrongQuorum(len(p.Membership))
 }
 
 type verificationContext struct {
