@@ -97,59 +97,6 @@ func NewModule(
 		return nil
 	})
 
-	applyCheckpointReceived := func(from t.NodeID,
-		epoch tt.EpochNr, sn tt.SeqNr, snapshotHash []uint8, signature []uint8) error {
-
-		// check if from is part of the membership
-		if !sliceutil.Contains(params.Membership, from) {
-			params.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
-			return nil
-		}
-		// Notify the protocol about the progress of the from node.
-		// If no progress is made for a configured number of epochs,
-		// the node is considered to be a straggler and is sent a stable checkpoint to catch uparams.
-		checkpointpbdsl.EpochProgress(m, params.ModuleConfig.Ord, from, epoch)
-
-		// If checkpoint is already stable, ignore message.
-		if params.Stable() {
-			return nil
-		}
-
-		// Check snapshot hash
-		if params.StateSnapshotHash == nil {
-			// The message is received too early, put it aside
-			params.PendingMessages[from] = (&checkpointpbtypes.Checkpoint{
-				Epoch:        epoch,
-				Sn:           sn,
-				SnapshotHash: snapshotHash,
-				Signature:    signature,
-			})
-			return nil
-		} else if !bytes.Equal(params.StateSnapshotHash, snapshotHash) {
-			// Snapshot hash mismatch
-			params.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "from", from)
-			return nil
-		}
-
-		// Ignore duplicate messages.
-		if _, ok := params.Signatures[from]; ok {
-			return nil
-		}
-		params.Signatures[from] = signature
-
-		// Verify signature of the sender.
-		sigData := serializeCheckpointForSig(params.Epoch, params.SeqNr, params.StateSnapshotHash)
-		cryptopbdsl.VerifySigs(m,
-			params.ModuleConfig.Crypto,
-			[]*cryptopbtypes.SignedData{sigData},
-			[][]byte{params.Signatures[from]},
-			[]t.NodeID{from},
-			&t.EmptyContext{},
-		)
-
-		return nil
-	}
-
 	cryptopbdsl.UponSignResult(m, func(sig []uint8, _ *t.EmptyContext) error {
 
 		// Save received own checkpoint signature
@@ -179,7 +126,7 @@ func NewModule(
 
 		// Apply pending Checkpoint messages
 		for s, msg := range params.PendingMessages {
-			if err := applyCheckpointReceived(s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
+			if err := applyCheckpointReceived(m, params, s, msg.Epoch, msg.Sn, msg.SnapshotHash, msg.Signature); err != nil {
 				params.Log(logging.LevelWarn, "Error applying pending Checkpoint message", "error", err, "msg", msg)
 			}
 
@@ -225,7 +172,9 @@ func NewModule(
 		return nil
 	})
 
-	checkpointpbdsl.UponCheckpointReceived(m, applyCheckpointReceived)
+	checkpointpbdsl.UponCheckpointReceived(m, func(from t.NodeID, epoch tt.EpochNr, sn tt.SeqNr, snapshotHash []uint8, signature []uint8) error {
+		return applyCheckpointReceived(m, params, from, epoch, sn, snapshotHash, signature)
+	})
 
 	return m
 }
@@ -256,4 +205,62 @@ func announceStable(m dsl.Module, p *common.ModuleParams) {
 
 	// Announce the stable checkpoint to the ordering protocol.
 	checkpointpbdsl.StableCheckpoint(m, p.ModuleConfig.Ord, p.SeqNr, p.StateSnapshot, cert)
+}
+
+func applyCheckpointReceived(m dsl.Module,
+	p *common.ModuleParams,
+	from t.NodeID,
+	epoch tt.EpochNr,
+	sn tt.SeqNr,
+	snapshotHash []uint8,
+	signature []uint8) error {
+
+	// check if from is part of the membership
+	if !sliceutil.Contains(p.Membership, from) {
+		p.Logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
+		return nil
+	}
+	// Notify the protocol about the progress of the from node.
+	// If no progress is made for a configured number of epochs,
+	// the node is considered to be a straggler and is sent a stable checkpoint to catch uparams.
+	checkpointpbdsl.EpochProgress(m, p.ModuleConfig.Ord, from, epoch)
+
+	// If checkpoint is already stable, ignore message.
+	if p.Stable() {
+		return nil
+	}
+
+	// Check snapshot hash
+	if p.StateSnapshotHash == nil {
+		// The message is received too early, put it aside
+		p.PendingMessages[from] = (&checkpointpbtypes.Checkpoint{
+			Epoch:        epoch,
+			Sn:           sn,
+			SnapshotHash: snapshotHash,
+			Signature:    signature,
+		})
+		return nil
+	} else if !bytes.Equal(p.StateSnapshotHash, snapshotHash) {
+		// Snapshot hash mismatch
+		p.Log(logging.LevelWarn, "Ignoring Checkpoint message. Mismatching state snapshot hash.", "from", from)
+		return nil
+	}
+
+	// Ignore duplicate messages.
+	if _, ok := p.Signatures[from]; ok {
+		return nil
+	}
+	p.Signatures[from] = signature
+
+	// Verify signature of the sender.
+	sigData := serializeCheckpointForSig(p.Epoch, p.SeqNr, p.StateSnapshotHash)
+	cryptopbdsl.VerifySigs(m,
+		p.ModuleConfig.Crypto,
+		[]*cryptopbtypes.SignedData{sigData},
+		[][]byte{p.Signatures[from]},
+		[]t.NodeID{from},
+		&t.EmptyContext{},
+	)
+
+	return nil
 }
