@@ -28,13 +28,17 @@ func Factory(mc *common.ModuleConfig, ownID t.NodeID, logger logging.Logger) mod
 				// Get the instance parameters
 				p := params.Type.(*factorypbtypes.GeneratorParams_Checkpoint).Checkpoint
 
-				protocol := NewModule(
-					&submc,
+				chkpParams := &common.ModuleParams{
 					ownID,
 					p.Membership,
 					p.EpochConfig,
 					p.LeaderPolicyData,
 					p.ResendPeriod,
+				}
+
+				protocol := NewModule(
+					&submc,
+					chkpParams,
 					logging.Decorate(logger, "", "chkpSN", p.EpochConfig.FirstSn, "chkpEpoch", p.EpochConfig.EpochNr),
 				)
 
