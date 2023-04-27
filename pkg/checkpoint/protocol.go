@@ -18,7 +18,6 @@ import (
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
-	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbdsl "github.com/filecoin-project/mir/pkg/pb/trantorpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
@@ -84,9 +83,9 @@ func NewModule(
 		return nil
 	})
 
-	hasherpbdsl.UponResult(m, func(digests [][]uint8, _ *t.EmptyContext) error {
+	hasherpbdsl.UponResultOne(m, func(digest []uint8, _ *t.EmptyContext) error {
 		// Save the received snapshot hash
-		params.StateSnapshotHash = digests[0]
+		params.StateSnapshotHash = digest
 
 		// Request signature
 		sigData := serializeCheckpointForSig(params.Epoch, params.SeqNr, params.StateSnapshotHash)
@@ -176,9 +175,9 @@ func NewModule(
 func processStateSnapshot(m dsl.Module, p *common.ModuleParams) {
 
 	// Initiate computing the hash of the snapshot.
-	hasherpbdsl.Request(m,
+	hasherpbdsl.RequestOne(m,
 		p.ModuleConfig.Hasher,
-		[]*hasherpbtypes.HashData{serializeSnapshotForHash(p.StateSnapshot)},
+		serializeSnapshotForHash(p.StateSnapshot),
 		&t.EmptyContext{},
 	)
 }
@@ -227,12 +226,12 @@ func applyCheckpointReceived(m dsl.Module,
 	// Check snapshot hash
 	if p.StateSnapshotHash == nil {
 		// The message is received too early, put it aside
-		p.PendingMessages[from] = (&checkpointpbtypes.Checkpoint{
+		p.PendingMessages[from] = &checkpointpbtypes.Checkpoint{
 			Epoch:        epoch,
 			Sn:           sn,
 			SnapshotHash: snapshotHash,
 			Signature:    signature,
-		})
+		}
 		return nil
 	} else if !bytes.Equal(p.StateSnapshotHash, snapshotHash) {
 		// Snapshot hash mismatch
