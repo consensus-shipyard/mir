@@ -15,7 +15,6 @@ import (
 	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
-	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
@@ -136,20 +135,15 @@ func NewModule(
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errors []error, allOk bool, _ *t.EmptyContext) error {
-
-		// A checkpoint only has one signature and thus each slice of the result only contains one element.
-		sourceNode := nodeIds[0]
-		err := errors[0]
-
-		if !allOk {
-			params.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", sourceNode, "error", err)
-			params.Signatures[sourceNode] = nil
+	cryptopbdsl.UponSigVerified(m, func(nodeId t.NodeID, err error, _ *t.EmptyContext) error {
+		if err != nil {
+			params.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", nodeId, "error", err)
+			params.Signatures[nodeId] = nil
 			return nil
 		}
 
 		// Note the reception of a valid Checkpoint message from node `source`.
-		params.Confirmations[sourceNode] = struct{}{}
+		params.Confirmations[nodeId] = struct{}{}
 
 		// If, after having applied this message, the checkpoint became stable, produce the necessary events.
 		if params.Stable() {
@@ -254,11 +248,11 @@ func applyCheckpointReceived(m dsl.Module,
 
 	// Verify signature of the sender.
 	sigData := serializeCheckpointForSig(p.Epoch, p.SeqNr, p.StateSnapshotHash)
-	cryptopbdsl.VerifySigs(m,
+	cryptopbdsl.VerifySig(m,
 		p.ModuleConfig.Crypto,
-		[]*cryptopbtypes.SignedData{sigData},
-		[][]byte{p.Signatures[from]},
-		[]t.NodeID{from},
+		sigData,
+		p.Signatures[from],
+		from,
 		&t.EmptyContext{},
 	)
 
