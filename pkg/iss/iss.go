@@ -18,7 +18,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	chkpprotos "github.com/filecoin-project/mir/pkg/checkpoint/protobufs"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -34,7 +33,7 @@ import (
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
-	chkppbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
@@ -213,7 +212,7 @@ func New(
 		apppbdsl.RestoreState(
 			iss.m,
 			iss.moduleConfig.App,
-			chkppbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()),
+			checkpointpbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()),
 		)
 
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
@@ -336,7 +335,7 @@ func New(
 		leader := maputil.GetSortedKeys(membership.Nodes)[int(epoch)%len(membership.Nodes)]
 
 		// Serialize checkpoint, so it can be proposed as a value.
-		stableCheckpoint := chkppbtypes.StableCheckpoint{
+		stableCheckpoint := checkpointpbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
 			Cert:     cert,
@@ -410,7 +409,7 @@ func New(
 	})
 
 	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
-		_chkp := chkppbtypes.StableCheckpoint{
+		_chkp := checkpointpbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
 			Cert:     cert,
@@ -492,7 +491,7 @@ func New(
 		// Create an event to request the application module for
 		// restoring its state from the snapshot received in the new
 		// stable checkpoint message.
-		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, chkppbtypes.StableCheckpointFromPb(chkp.Pb()))
+		apppbdsl.RestoreState(iss.m, iss.moduleConfig.App, checkpointpbtypes.StableCheckpointFromPb(chkp.Pb()))
 
 		// Start executing the current epoch (the one the checkpoint corresponds to).
 		// This must happen after the state is restored,
@@ -781,17 +780,21 @@ func (iss *ISS) advanceEpoch() error {
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
 		tt.RetentionIndex(newEpochNr),
-		chkpprotos.InstanceParams(
-			oldMembership,
-			checkpoint.DefaultResendPeriod,
-			leaderPolicyData,
-			&trantorpbtypes.EpochConfig{ // nolint:govet
-				iss.epoch.Nr(),
-				iss.epoch.FirstSN(),
-				uint64(iss.epoch.Len()),
-				iss.memberships,
+		&factorypbtypes.GeneratorParams{
+			Type: &factorypbtypes.GeneratorParams_Checkpoint{
+				Checkpoint: &checkpointpbtypes.InstanceParams{
+					Membership:       oldMembership,
+					ResendPeriod:     checkpoint.DefaultResendPeriod,
+					LeaderPolicyData: leaderPolicyData,
+					EpochConfig: &trantorpbtypes.EpochConfig{ // nolint:govet
+						iss.epoch.Nr(),
+						iss.epoch.FirstSN(),
+						uint64(iss.epoch.Len()),
+						iss.memberships,
+					},
+				},
 			},
-		),
+		},
 	)
 
 	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.
