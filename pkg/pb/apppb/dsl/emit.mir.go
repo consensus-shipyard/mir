@@ -22,6 +22,6 @@ func RestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types1.St
 	dsl.EmitMirEvent(m, events.RestoreState(destModule, checkpoint))
 }
 
-func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types2.EpochNr) {
-	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr))
+func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types2.EpochNr, protocolModule types.ModuleID) {
+	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr, protocolModule))
 }
