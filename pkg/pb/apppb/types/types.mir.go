@@ -187,18 +187,21 @@ func (*RestoreState) MirReflect() mirreflect.Type {
 }
 
 type NewEpoch struct {
-	EpochNr types2.EpochNr
+	EpochNr     types2.EpochNr
+	EpochModule types.ModuleID
 }
 
 func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
 	return &NewEpoch{
-		EpochNr: (types2.EpochNr)(pb.EpochNr),
+		EpochNr:     (types2.EpochNr)(pb.EpochNr),
+		EpochModule: (types.ModuleID)(pb.EpochModule),
 	}
 }
 
 func (m *NewEpoch) Pb() *apppb.NewEpoch {
 	return &apppb.NewEpoch{
-		EpochNr: (uint64)(m.EpochNr),
+		EpochNr:     (uint64)(m.EpochNr),
+		EpochModule: (string)(m.EpochModule),
 	}
 }
 

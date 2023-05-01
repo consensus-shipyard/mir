@@ -76,10 +76,10 @@ func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogr
 	}
 
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
-	apppbdsl.UponNewEpoch(m, func(newEpochNr tt.EpochNr) error {
+	apppbdsl.UponNewEpoch(m, func(newEpochNr tt.EpochNr, protocolModule t.ModuleID) error {
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
-			event: apppbevents.NewEpoch(mc.Destination, epochNr).Pb(),
+			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
 		})
 		output.Flush(m)
 		return nil

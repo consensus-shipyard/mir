@@ -7,6 +7,12 @@
 package hasherpb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	commonpb "github.com/filecoin-project/mir/pkg/pb/commonpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
@@ -14,10 +20,6 @@ import (
 	_ "github.com/filecoin-project/mir/pkg/pb/mir"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	requestpb "github.com/filecoin-project/mir/pkg/pb/requestpb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

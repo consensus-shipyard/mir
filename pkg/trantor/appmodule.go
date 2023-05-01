@@ -2,6 +2,7 @@ package trantor
 
 import (
 	"fmt"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	checkpointpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	commonpbtypes "github.com/filecoin-project/mir/pkg/pb/commonpb/types"
@@ -28,20 +29,14 @@ type AppModule struct {
 	// transport is the network transport.
 	// It is required to keep a reference to it in order to connect to new members when a new epoch starts.
 	transport net.Transport
-
-	// protocolModule is the ID of the protocol module.
-	// It is required to send events (new configurations) to the protocol module.
-	// TODO: Remove this. Instead, save the origin module ID in the NewEpoch event and use that.
-	protocolModule t.ModuleID
 }
 
 // NewAppModule creates a new AppModule.
 func NewAppModule(appLogic AppLogic, transport net.Transport, protocolModule t.ModuleID) modules.PassiveModule {
 
 	appModule := &AppModule{
-		appLogic:       appLogic,
-		transport:      transport,
-		protocolModule: protocolModule,
+		appLogic:  appLogic,
+		transport: transport,
 	}
 
 	m := dsl.NewModule("appModule")
@@ -85,14 +80,14 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, protocolModule t.M
 
 	// UponNewEpoch inform the application logic of the new epoch and emit an event (to the protocol module)
 	// containing the configuration for the new epoch.
-	apppbdsl.UponNewEpoch(m, func(epochNr types.EpochNr) error {
+	apppbdsl.UponNewEpoch(m, func(epochNr types.EpochNr, protocolModule t.ModuleID) error {
 		membership, err := appModule.appLogic.NewEpoch(epochNr)
 		if err != nil {
 			return fmt.Errorf("error handling NewEpoch event: %w", err)
 		}
 		appModule.transport.Connect(membership)
 		// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
-		isspbdsl.NewConfig(m, appModule.protocolModule, epochNr, membership)
+		isspbdsl.NewConfig(m, protocolModule, epochNr, membership)
 		return nil
 	})
 
