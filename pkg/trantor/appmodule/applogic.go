@@ -1,4 +1,4 @@
-package trantor
+package appmodule
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"

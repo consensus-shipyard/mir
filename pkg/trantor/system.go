@@ -3,6 +3,8 @@ package trantor
 import (
 	"crypto"
 
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 
 	"github.com/pkg/errors"
@@ -12,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
-	"github.com/filecoin-project/mir/pkg/eventmangler"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
@@ -51,28 +52,6 @@ func (sys *System) Modules() modules.Modules {
 func (sys *System) WithModule(moduleID t.ModuleID, module modules.Module) *System {
 	sys.modules[moduleID] = module
 	return sys
-}
-
-// PerturbMessages configures the SMR system to randomly drop and delay some of the messages sent over the network.
-// Useful for debugging and stress-testing.
-// The params argument defines parameters of the perturbation, such as how many messages should be dropped
-// and how the remaining messages should be delayed.
-func (sys *System) PerturbMessages(params *eventmangler.ModuleParams) error {
-
-	// Create event mangler perturbing (dropping and delaying) events.
-	messageMangler, err := eventmangler.NewModule(
-		&eventmangler.ModuleConfig{Self: "net", Dest: "truenet", Timer: "timer"},
-		params,
-	)
-	if err != nil {
-		return err
-	}
-
-	// Intercept all events (in this case SendMessage events) directed to the "net" module by the mangler
-	// And change the actual transport module ID to "truenet", where the mangler forwards the surviving messages.
-	sys.modules[iss.DefaultModuleConfig().Net] = messageMangler
-	sys.modules["truenet"] = sys.transport
-	return nil
 }
 
 // Start starts the operation of the modules of the SMR system.
@@ -118,7 +97,7 @@ func New(
 	// the user is expected to implement the AppLogic interface directly.
 	// For a static application, the user can implement the StaticAppLogic interface instead and transform it into to AppLogic
 	// using AppLogicFromStatic.
-	app AppLogic,
+	app appmodule.AppLogic,
 
 	// Parameters of the SMR system, like batch size or batch timeout.
 	params Params,
@@ -201,7 +180,7 @@ func New(
 		issModuleConfig.Ordering:     ordering,
 		"batchdb":                    batchdb,
 		"mempool":                    mempool,
-		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
+		"app":                        appmodule.NewAppModule(app, transport, issModuleConfig.Self),
 		"hasher":                     mircrypto.NewHasher(hashImpl),
 		"crypto":                     mircrypto.New(cryptoImpl),
 		"null":                       modules.NullPassive{},

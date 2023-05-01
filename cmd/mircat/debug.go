@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -26,7 +28,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -181,8 +182,8 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
 		"net":    nullTransport,
 		"crypto": mirCrypto.New(cryptoImpl),
-		"app": trantor.NewAppModule(
-			trantor.AppLogicFromStatic(
+		"app": appmodule.NewAppModule(
+			appmodule.AppLogicFromStatic(
 				deploytest.NewFakeApp(),
 				&trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)}, // nolint:govet
 			),
