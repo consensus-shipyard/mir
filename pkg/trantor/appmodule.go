@@ -31,7 +31,7 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule.
-func NewAppModule(appLogic AppLogic, transport net.Transport, protocolModule t.ModuleID) modules.PassiveModule {
+func NewAppModule(appLogic AppLogic, transport net.Transport, _ t.ModuleID) modules.PassiveModule {
 
 	appModule := &AppModule{
 		appLogic:  appLogic,
@@ -43,17 +43,12 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, protocolModule t.M
 	// UponNewOrderedBatch sequentially apply a batch of ordered transactions to the application logic
 	// and returns an empty event list.
 	bfpbdsl.UponNewOrderedBatch(m, func(txs []*trantorpbtypes.Transaction) error {
-
-		if err := appModule.appLogic.ApplyTXs(
+		return appModule.appLogic.ApplyTXs(
 			sliceutil.Transform(
 				txs,
 				func(i int, tx *trantorpbtypes.Transaction) *trantorpb.Transaction {
 					return tx.Pb()
-				})); err != nil {
-			return err
-		}
-
-		return nil
+				}))
 	})
 
 	// UponSnapshotRequest return an event that contains the snapshot back to the originator of the request.
