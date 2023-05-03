@@ -2,7 +2,6 @@ package appmodule
 
 import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -16,7 +15,7 @@ type reconfigurableAppLogic struct {
 }
 
 // ApplyTXs only delegates to the static app logic.
-func (ra *reconfigurableAppLogic) ApplyTXs(txs []*trantorpb.Transaction) error {
+func (ra *reconfigurableAppLogic) ApplyTXs(txs []*trantorpbtypes.Transaction) error {
 	return ra.staticAppLogic.ApplyTXs(txs)
 }
 

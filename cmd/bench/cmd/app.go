@@ -9,7 +9,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -20,7 +19,7 @@ type App struct {
 	Membership *trantorpbtypes.Membership
 }
 
-func (a *App) ApplyTXs(txs []*trantorpb.Transaction) error {
+func (a *App) ApplyTXs(txs []*trantorpbtypes.Transaction) error {
 	for _, tx := range txs {
 		a.Log(logging.LevelDebug, fmt.Sprintf("Delivered transaction %v from client %v", tx.TxNo, tx.ClientId))
 	}

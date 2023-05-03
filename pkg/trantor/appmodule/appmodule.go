@@ -3,20 +3,17 @@ package appmodule
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/dsl"
-	checkpointpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
-	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
 	bfpbdsl "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/dsl"
+	checkpointpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -31,24 +28,19 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule.
-func NewAppModule(appLogic AppLogic, transport net.Transport, _ t.ModuleID) modules.PassiveModule {
+func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleID) modules.PassiveModule {
 
 	appModule := &AppModule{
 		appLogic:  appLogic,
 		transport: transport,
 	}
 
-	m := dsl.NewModule("appModule")
+	m := dsl.NewModule(moduleID)
 
 	// UponNewOrderedBatch sequentially apply a batch of ordered transactions to the application logic
 	// and returns an empty event list.
 	bfpbdsl.UponNewOrderedBatch(m, func(txs []*trantorpbtypes.Transaction) error {
-		return appModule.appLogic.ApplyTXs(
-			sliceutil.Transform(
-				txs,
-				func(i int, tx *trantorpbtypes.Transaction) *trantorpb.Transaction {
-					return tx.Pb()
-				}))
+		return appModule.appLogic.ApplyTXs(txs)
 	})
 
 	// UponSnapshotRequest return an event that contains the snapshot back to the originator of the request.
@@ -62,7 +54,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, _ t.ModuleID) modu
 		return nil
 	})
 
-	// UponRestoreState restore the application state from a snapshot.
+	// UponRestoreState restores the application state from a snapshot.
 	// The snapshot contains both the application state and the configuration corresponding to that version of the state.
 	// Emit no event
 	apppbdsl.UponRestoreState(m, func(chkp *checkpointpbtypes.StableCheckpoint) error {

@@ -9,8 +9,9 @@ package deploytest
 import (
 	"fmt"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -23,7 +24,7 @@ type FakeApp struct {
 	TransactionsProcessed uint64
 }
 
-func (fa *FakeApp) ApplyTXs(txs []*trantorpb.Transaction) error {
+func (fa *FakeApp) ApplyTXs(txs []*trantorpbtypes.Transaction) error {
 	for _, tx := range txs {
 		fa.TransactionsProcessed++
 		fmt.Printf("Received transaction: %q. Processed transactions: %d\n", string(tx.Data), fa.TransactionsProcessed)
