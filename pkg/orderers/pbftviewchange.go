@@ -22,7 +22,6 @@ import (
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -116,7 +115,7 @@ func (orderer *Orderer) startViewChange(m dsl.Module) error {
 
 // applyViewChangeSignResult processes a newly generated signature of a ViewChange message.
 // It creates a SignedViewChange message and sends it to the new leader (PBFT primary)
-func (orderer *Orderer) applyViewChangeSignResult(m dsl.Module, signature []byte, viewChange *pbftpbtypes.ViewChange) *events.EventList {
+func (orderer *Orderer) applyViewChangeSignResult(m dsl.Module, signature []byte, viewChange *pbftpbtypes.ViewChange) {
 
 	// Compute the primary of this view (using round-robin on the membership)
 	primary := orderer.segment.PrimaryNode(viewChange.View)
@@ -134,7 +133,6 @@ func (orderer *Orderer) applyViewChangeSignResult(m dsl.Module, signature []byte
 		tt.RetentionIndex(orderer.config.epochNr),
 	)
 
-	return nil
 }
 
 // applyMsgSignedViewChange applies a signed view change message.

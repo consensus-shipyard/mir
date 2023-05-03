@@ -161,6 +161,7 @@ func NewOrdererModule(
 		return orderer.applyCertReady(m, cert)
 	})
 
+	//TODO think of a better way to deal with multiple contexts here
 	hasherpbdsl.UponResult(m, func(digests [][]byte, context *ordererpb.HashOrigin_Pbft) error {
 		switch o := context.Pbft.Type.(type) {
 		case *pbftpb.HashOrigin_Preprepare:
@@ -358,6 +359,7 @@ func (orderer *Orderer) applyNodeSigsVerified(m dsl.Module, nodeIds []t.NodeID, 
 	}
 
 	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
+	//TODO think of a better way to deal with multiple contexts here
 	switch origin := sigverType.Pbft.Type.(type) {
 	case *pbftpb.SigVerOrigin_SignedViewChange:
 		orderer.applyVerifiedViewChange(m, origin.SignedViewChange, nodeIds[0])

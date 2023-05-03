@@ -6,7 +6,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/orderers/types"
@@ -175,9 +174,7 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view type
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message
 // and will be succeeded by another primary after another view change.
-func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, moduleConfig *ModuleConfig) *events.EventList {
-
-	eventsOut := events.EmptyList()
+func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, moduleConfig *ModuleConfig) {
 	for sn, digest := range vcState.reproposals {
 		if len(digest) > 0 && vcState.preprepares[sn] == nil {
 			transportpbdsl.SendMessage(
@@ -188,7 +185,6 @@ func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, modul
 			) // TODO be smarter about this eventually, not asking everyone at once.
 		}
 	}
-	return eventsOut
 }
 
 func (vcState *pbftViewChangeState) HasAllPreprepares() bool {
