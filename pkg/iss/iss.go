@@ -597,7 +597,7 @@ func (iss *ISS) startEpoch(epochNr tt.EpochNr) error {
 	)
 
 	// Signal the new epoch to the application.
-	apppbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr())
+	apppbdsl.NewEpoch(iss.m, iss.moduleConfig.App, iss.epoch.Nr(), iss.moduleConfig.Self)
 
 	// Initialize the new availability module.
 	iss.initAvailability()

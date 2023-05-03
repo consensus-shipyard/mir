@@ -40,8 +40,8 @@ func UponRestoreState(m dsl.Module, handler func(checkpoint *types3.StableCheckp
 	})
 }
 
-func UponNewEpoch(m dsl.Module, handler func(epochNr types4.EpochNr) error) {
+func UponNewEpoch(m dsl.Module, handler func(epochNr types4.EpochNr, protocolModule types2.ModuleID) error) {
 	UponEvent[*types.Event_NewEpoch](m, func(ev *types.NewEpoch) error {
-		return handler(ev.EpochNr)
+		return handler(ev.EpochNr, ev.ProtocolModule)
 	})
 }

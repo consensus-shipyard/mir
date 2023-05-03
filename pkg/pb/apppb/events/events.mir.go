@@ -53,14 +53,15 @@ func RestoreState(destModule types.ModuleID, checkpoint *types3.StableCheckpoint
 	}
 }
 
-func NewEpoch(destModule types.ModuleID, epochNr types4.EpochNr) *types1.Event {
+func NewEpoch(destModule types.ModuleID, epochNr types4.EpochNr, protocolModule types.ModuleID) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_App{
 			App: &types2.Event{
 				Type: &types2.Event_NewEpoch{
 					NewEpoch: &types2.NewEpoch{
-						EpochNr: epochNr,
+						EpochNr:        epochNr,
+						ProtocolModule: protocolModule,
 					},
 				},
 			},

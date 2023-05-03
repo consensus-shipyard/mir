@@ -1,4 +1,4 @@
-package trantor
+package testing
 
 import (
 	"context"
@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
@@ -392,13 +395,13 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, fmt.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
 		}
 
-		system, err := New(
+		system, err := trantor.New(
 			nodeID,
 			transport,
 			checkpoint.Genesis(stateSnapshotpb),
 			localCrypto,
-			AppLogicFromStatic(fakeApp, transportLayer.Membership()),
-			Params{
+			appmodule.AppLogicFromStatic(fakeApp, transportLayer.Membership()),
+			trantor.Params{
 				Mempool: &simplemempool.ModuleParams{
 					MaxTransactionsInBatch: 10,
 				},

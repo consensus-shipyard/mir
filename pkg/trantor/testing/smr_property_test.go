@@ -1,4 +1,4 @@
-package trantor
+package testing
 
 import (
 	"bytes"
