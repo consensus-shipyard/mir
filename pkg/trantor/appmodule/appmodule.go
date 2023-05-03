@@ -72,7 +72,6 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 			return fmt.Errorf("error handling NewEpoch event: %w", err)
 		}
 		appModule.transport.Connect(membership)
-		// TODO: Save the origin module ID in the event and use it here, instead of saving the m.protocolModule.
 		isspbdsl.NewConfig(m, protocolModule, epochNr, membership)
 		return nil
 	})
