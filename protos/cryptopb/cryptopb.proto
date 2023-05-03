@@ -39,7 +39,6 @@ message SignRequest {
 
 message SignResult {
   option (mir.event) = true;
-
   bytes signature = 1;
   SignOrigin origin = 2 [(mir.origin_response) = true];
 }

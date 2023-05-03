@@ -3,6 +3,9 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -10,7 +13,6 @@ import (
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -173,16 +175,17 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view type
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message
 // and will be succeeded by another primary after another view change.
-func (vcState *pbftViewChangeState) askForMissingPreprepares(moduleConfig *ModuleConfig) *events.EventList {
+func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, moduleConfig *ModuleConfig) *events.EventList {
 
 	eventsOut := events.EmptyList()
 	for sn, digest := range vcState.reproposals {
 		if len(digest) > 0 && vcState.preprepares[sn] == nil {
-			eventsOut.PushBack(transportpbevents.SendMessage(
+			transportpbdsl.SendMessage(
+				m,
 				moduleConfig.Net,
 				pbftpbmsgs.PreprepareRequest(moduleConfig.Self, digest, sn),
 				vcState.prepreparedIDs[sn],
-			).Pb()) // TODO be smarter about this eventually, not asking everyone at once.
+			) // TODO be smarter about this eventually, not asking everyone at once.
 		}
 	}
 	return eventsOut

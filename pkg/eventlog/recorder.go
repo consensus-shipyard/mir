@@ -202,6 +202,7 @@ func (i *Recorder) run() (exitErr error) {
 		i.exitErrMutex.Unlock()
 		close(i.exitC)
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt)
+		i.logger.Log(logging.LevelInfo, "Events written at", "path", i.path)
 	}()
 
 	writeInFiles := func(record EventRecord) error {

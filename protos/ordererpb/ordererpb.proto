@@ -11,7 +11,9 @@ import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
 
 message Event {
+  option (mir.event_class) = true;
   oneof type {
+    option (mir.event_type) = true;
     pbftpb.Event pbft = 1;
   }
 }
@@ -35,7 +37,9 @@ message HashOrigin {
 }
 
 message SignOrigin {
-  uint64 epoch    = 1;
+  option (mir.struct) = true;
+
+  uint64 epoch    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
   uint64 instance = 2;
   oneof type {
     pbftpb.SignOrigin pbft = 3;
