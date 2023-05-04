@@ -159,7 +159,7 @@ func NewOrdererModule(
 		// Ignore events with invalid signatures.
 		if error != nil {
 			orderer.logger.Log(logging.LevelWarn,
-				"Ignoring invalid signature, ignoring event (with all signatures).",
+				"Ignoring invalid signature, ignoring event.",
 				"from", nodeID,
 				"error", error,
 			)
