@@ -25,19 +25,6 @@ import (
 )
 
 // ============================================================
-// Events
-// ============================================================
-
-func PbftViewChangeSNTimeout(view types.ViewNr, numCommitted int) *ordererpb.Event {
-	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
-		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: &pbftpb.ViewChangeSNTimeout{
-			View:         view.Pb(),
-			NumCommitted: uint64(numCommitted),
-		}}},
-	}}
-}
-
-// ============================================================
 // Hashing and signing origins
 // ============================================================
 
@@ -59,9 +46,9 @@ func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin_Pbft {
 	}
 }
 
-func newViewSigVerOrigin(newView *pbftpb.NewView) *ordererpb.SigVerOrigin_Pbft {
-	return &ordererpb.SigVerOrigin_Pbft{
-		Pbft: &pbftpb.SigVerOrigin{Type: &pbftpb.SigVerOrigin_NewView{NewView: newView}},
+func newViewHashOrigin(newView *pbftpb.NewView) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
+		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_NewView{NewView: newView}},
 	}
 }
 
