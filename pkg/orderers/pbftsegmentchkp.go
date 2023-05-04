@@ -3,14 +3,17 @@ package orderers
 import (
 	"bytes"
 
-	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/dsl"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
@@ -37,7 +40,7 @@ type pbftSegmentChkp struct {
 	// Saves all the Done messages received from other nodes.
 	// They contain the hashes of all Preprepare messages, as committed by the respective nodes.
 	// (A node sends a Done message when it commits everything in the segment.)
-	doneMessages map[t.NodeID]*pbftpbtypes.Done
+	doneReceived map[t.NodeID]struct{}
 
 	// For each received Done message, stores the IDs of nodes that sent it.
 	doneMsgIndex map[string][]t.NodeID
@@ -62,7 +65,7 @@ type pbftSegmentChkp struct {
 // newPbftSegmentChkp returns a pointer to a new instance of pbftSegmentChkp
 func newPbftSegmentChkp() *pbftSegmentChkp {
 	return &pbftSegmentChkp{
-		doneMessages: make(map[t.NodeID]*pbftpbtypes.Done),
+		doneReceived: make(map[t.NodeID]struct{}),
 		doneMsgIndex: make(map[string][]t.NodeID),
 	}
 }
@@ -110,16 +113,16 @@ func (chkp *pbftSegmentChkp) Stable(numNodes int) bool {
 // NodeDone registers a Done message received from a node.
 // Once NodeDone has been called with matching Done messages for a quorum of nodes,
 // the instance-level checkpoint will become stable.
-func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *pbftpbtypes.Done, segment *Segment) {
+func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneDigests [][]byte, segment *Segment) {
 
 	// Ignore duplicate Done messages.
-	if _, ok := chkp.doneMessages[nodeID]; ok {
+	if _, ok := chkp.doneReceived[nodeID]; ok {
 		return
 	}
 
 	// Store Done message
-	chkp.doneMessages[nodeID] = doneMsg
-	strKey := aggregateToString(doneMsg.Digests)
+	chkp.doneReceived[nodeID] = struct{}{}
+	strKey := aggregateToString(doneDigests)
 	chkp.doneMsgIndex[strKey] = append(chkp.doneMsgIndex[strKey], nodeID)
 
 	// If a quorum of nodes has sent a Done message
@@ -133,7 +136,7 @@ func (chkp *pbftSegmentChkp) NodeDone(nodeID t.NodeID, doneMsg *pbftpbtypes.Done
 		if chkp.digests == nil {
 			chkp.digests = make(map[tt.SeqNr][]byte, segment.Len())
 			for i, sn := range segment.SeqNrs() {
-				chkp.digests[sn] = doneMsg.Digests[i]
+				chkp.digests[sn] = doneDigests[i]
 			}
 		}
 	}
@@ -153,7 +156,7 @@ func aggregateToString(digests [][]byte) string {
 
 // sendDoneMessages sends a Done message to all other nodes as part of the instance-level checkpoint subprotocol.
 // This method is called when all slots have been committed.
-func (orderer *Orderer) sendDoneMessages() *events.EventList {
+func (orderer *Orderer) sendDoneMessages(m dsl.Module) {
 
 	orderer.logger.Log(logging.LevelInfo, "Done with segment.")
 
@@ -165,7 +168,8 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 	})
 
 	// Periodically send a Done message with the digests to all other nodes.
-	return events.ListOf(eventpbevents.TimerRepeat(
+	eventpbdsl.TimerRepeat(
+		m,
 		orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{transportpbevents.SendMessage(
 			orderer.moduleConfig.Net,
@@ -174,22 +178,22 @@ func (orderer *Orderer) sendDoneMessages() *events.EventList {
 		)},
 		types.Duration(orderer.config.DoneResendPeriod),
 		tt.RetentionIndex(orderer.config.epochNr),
-	).Pb())
+	)
 }
 
 // applyMsgDone applies a received Done message.
 // Once enough Done messages have been applied, makes the protocol
 // - stop participating in view changes and
 // - set up a timer for fetching missing certificates.
-func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgDone(m dsl.Module, doneDigests [][]byte, from t.NodeID) {
 
 	// Register Done message.
-	orderer.segmentCheckpoint.NodeDone(from, doneMsg, orderer.segment)
+	orderer.segmentCheckpoint.NodeDone(from, doneDigests, orderer.segment)
 
 	// If more Done messages still need to be received or retransmission has already been requested, do nothing.
 	doneNodes := orderer.segmentCheckpoint.DoneNodes()
 	if doneNodes == nil || orderer.segmentCheckpoint.catchingUp {
-		return events.EmptyList()
+		return
 	}
 
 	// If this was the last Done message required for a quorum,
@@ -200,7 +204,8 @@ func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *
 	// We also set the catchingUp flag to prevent this code from executing more than once per PBFT instance.
 	orderer.segmentCheckpoint.catchingUp = true
 
-	return events.ListOf(eventpbevents.TimerDelay(
+	eventpbdsl.TimerDelay(
+		m,
 		orderer.moduleConfig.Timer,
 		[]*eventpbtypes.Event{eventpbevents.TimerRepeat(
 			orderer.moduleConfig.Timer,
@@ -208,7 +213,7 @@ func (orderer *Orderer) applyMsgDone(doneMsg *pbftpbtypes.Done, from t.NodeID) *
 			types.Duration(orderer.config.CatchUpDelay),
 			tt.RetentionIndex(orderer.config.epochNr))},
 		types.Duration(orderer.config.CatchUpDelay),
-	).Pb())
+	)
 
 	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,
 	//       resulting in a huge waste of resources. Be smarter about it by, for example, only asking a few nodes first.
@@ -244,72 +249,73 @@ func (orderer *Orderer) catchUpRequests(nodes []t.NodeID, digests map[tt.SeqNr][
 // by its sequence number and digest and sends it to the originator of the request inside a CatchUpResponse message.
 // If no matching Preprepare is found, does nothing.
 func (orderer *Orderer) applyMsgCatchUpRequest(
-	catchUpReq *pbftpbtypes.CatchUpRequest,
+	m dsl.Module,
+	digest []byte,
+	sn tt.SeqNr,
 	from t.NodeID,
-) *events.EventList {
-	if preprepare := orderer.lookUpPreprepare(catchUpReq.Sn, catchUpReq.Digest); preprepare != nil {
+) {
+	if preprepare := orderer.lookUpPreprepare(sn, digest); preprepare != nil {
 
 		// If the requested Preprepare message is available, send it to the originator of the request.
 		// No need for periodic re-transmission. The requester will re-transmit the request if needed.
-		return events.ListOf(transportpbevents.SendMessage(
+		transportpbdsl.SendMessage(
+			m,
 			orderer.moduleConfig.Net,
 			pbftpbmsgs.CatchUpResponse(orderer.moduleConfig.Self, preprepare),
-			[]t.NodeID{from}).Pb(),
-		)
+			[]t.NodeID{from})
+
 	}
 
 	// If the requested Preprepare message is not available, ignore the request.
-	return events.EmptyList()
 }
 
 // applyMsgCatchUpResponse applies a retransmitted missing committed certificate.
 // It only requests hashing of the response,
 // the actual handling of it being performed only when the hash result is available.
-func (orderer *Orderer) applyMsgCatchUpResponse(preprepare *pbftpbtypes.Preprepare, _ t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgCatchUpResponse(m dsl.Module, preprepare *pbftpbtypes.Preprepare, _ t.NodeID) {
 
 	// Ignore preprepare if received in the meantime.
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
 	// However, it might prevent some unnecessary hash computation if performed here as well.
 	if orderer.slots[orderer.view][preprepare.Sn].Committed {
-		return events.EmptyList()
+		return
 	}
 
-	return events.ListOf(hasherpbevents.Request(
+	hasherpbdsl.Request(
+		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self, catchUpResponseHashOrigin(preprepare.Pb())),
-	).Pb())
+		catchUpResponseHashOrigin(preprepare.Pb()),
+	)
 }
 
 // applyCatchUpResponseHashResult processes a missing committed certificate when its hash becomes available.
 // It is the final step of catching up with an instance-level checkpoint.
 func (orderer *Orderer) applyCatchUpResponseHashResult(
+	m dsl.Module,
 	digest []byte,
 	preprepare *pbftpbtypes.Preprepare,
-) *events.EventList {
-
-	eventsOut := events.EmptyList()
-
+) {
 	// Convenience variables
 	sn := preprepare.Sn
 	slot := orderer.slots[orderer.view][sn]
 
 	// Ignore preprepare if slot is already committed.
 	if orderer.slots[orderer.view][preprepare.Sn].Committed {
-		return events.EmptyList()
+		return
 	}
 
 	// Check whether the received certificate was actually requested (a faulty node might have sent it on its own).
 	digests := orderer.segmentCheckpoint.Digests()
 	if digests == nil {
 		orderer.logger.Log(logging.LevelWarn, "Ignoring unsolicited CatchUpResponse.", "sn", sn)
-		return events.EmptyList()
+		return
 	}
 
 	// Check whether the digest of the received message matches the requested one.
 	if !bytes.Equal(digests[sn], digest) {
 		orderer.logger.Log(logging.LevelWarn, "Ignoring CatchUpResponse with invalid digest.", "sn", sn)
-		return events.EmptyList()
+		return
 	}
 
 	orderer.logger.Log(logging.LevelDebug, "Catching up with segment-level checkpoint.", "sn", sn)
@@ -323,18 +329,17 @@ func (orderer *Orderer) applyCatchUpResponseHashResult(
 	// This is required for liveness, see comments for pbftSegmentChkp.
 	if orderer.allCommitted() {
 		orderer.segmentCheckpoint.SetDone()
-		eventsOut.PushBackList(orderer.sendDoneMessages())
+		orderer.sendDoneMessages(m)
 	}
 
 	// Deliver certificate.
-	eventsOut.PushBack(isspbevents.SBDeliver(
+	isspbdsl.SBDeliver(
+		m,
 		orderer.moduleConfig.Ord,
 		sn,
 		slot.Preprepare.Data,
 		slot.Preprepare.Aborted,
 		orderer.segment.Leader,
 		orderer.moduleConfig.Self,
-	).Pb())
-
-	return eventsOut
+	)
 }

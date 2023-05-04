@@ -604,27 +604,27 @@ type Event_TypeWrapper[T any] interface {
 func Event_TypeFromPb(pb pbftpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *pbftpb.Event_ProposeTimeout:
-		return &Event_ProposeTimeout{ProposeTimeout: pb.ProposeTimeout}
+		return &Event_ProposeTimeout{ProposeTimeout: ProposeTimeoutFromPb(pb.ProposeTimeout)}
 	case *pbftpb.Event_ViewChangeSnTimeout:
-		return &Event_ViewChangeSnTimeout{ViewChangeSnTimeout: VCSNTimeoutFromPb(pb.ViewChangeSnTimeout)}
+		return &Event_ViewChangeSnTimeout{ViewChangeSnTimeout: ViewChangeSNTimeoutFromPb(pb.ViewChangeSnTimeout)}
 	case *pbftpb.Event_ViewChangeSegTimeout:
-		return &Event_ViewChangeSegTimeout{ViewChangeSegTimeout: pb.ViewChangeSegTimeout}
+		return &Event_ViewChangeSegTimeout{ViewChangeSegTimeout: ViewChangeSegTimeoutFromPb(pb.ViewChangeSegTimeout)}
 	}
 	return nil
 }
 
 type Event_ProposeTimeout struct {
-	ProposeTimeout uint64
+	ProposeTimeout *ProposeTimeout
 }
 
 func (*Event_ProposeTimeout) isEvent_Type() {}
 
-func (w *Event_ProposeTimeout) Unwrap() uint64 {
+func (w *Event_ProposeTimeout) Unwrap() *ProposeTimeout {
 	return w.ProposeTimeout
 }
 
 func (w *Event_ProposeTimeout) Pb() pbftpb.Event_Type {
-	return &pbftpb.Event_ProposeTimeout{ProposeTimeout: w.ProposeTimeout}
+	return &pbftpb.Event_ProposeTimeout{ProposeTimeout: (w.ProposeTimeout).Pb()}
 }
 
 func (*Event_ProposeTimeout) MirReflect() mirreflect.Type {
@@ -632,12 +632,12 @@ func (*Event_ProposeTimeout) MirReflect() mirreflect.Type {
 }
 
 type Event_ViewChangeSnTimeout struct {
-	ViewChangeSnTimeout *VCSNTimeout
+	ViewChangeSnTimeout *ViewChangeSNTimeout
 }
 
 func (*Event_ViewChangeSnTimeout) isEvent_Type() {}
 
-func (w *Event_ViewChangeSnTimeout) Unwrap() *VCSNTimeout {
+func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 	return w.ViewChangeSnTimeout
 }
 
@@ -650,17 +650,17 @@ func (*Event_ViewChangeSnTimeout) MirReflect() mirreflect.Type {
 }
 
 type Event_ViewChangeSegTimeout struct {
-	ViewChangeSegTimeout uint64
+	ViewChangeSegTimeout *ViewChangeSegTimeout
 }
 
 func (*Event_ViewChangeSegTimeout) isEvent_Type() {}
 
-func (w *Event_ViewChangeSegTimeout) Unwrap() uint64 {
+func (w *Event_ViewChangeSegTimeout) Unwrap() *ViewChangeSegTimeout {
 	return w.ViewChangeSegTimeout
 }
 
 func (w *Event_ViewChangeSegTimeout) Pb() pbftpb.Event_Type {
-	return &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: w.ViewChangeSegTimeout}
+	return &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: (w.ViewChangeSegTimeout).Pb()}
 }
 
 func (*Event_ViewChangeSegTimeout) MirReflect() mirreflect.Type {
@@ -683,27 +683,67 @@ func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.Event]()}
 }
 
-type VCSNTimeout struct {
+type ProposeTimeout struct {
+	ProposeTimeout uint64
+}
+
+func ProposeTimeoutFromPb(pb *pbftpb.ProposeTimeout) *ProposeTimeout {
+	return &ProposeTimeout{
+		ProposeTimeout: pb.ProposeTimeout,
+	}
+}
+
+func (m *ProposeTimeout) Pb() *pbftpb.ProposeTimeout {
+	return &pbftpb.ProposeTimeout{
+		ProposeTimeout: m.ProposeTimeout,
+	}
+}
+
+func (*ProposeTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.ProposeTimeout]()}
+}
+
+type ViewChangeSNTimeout struct {
 	View         types1.ViewNr
 	NumCommitted uint64
 }
 
-func VCSNTimeoutFromPb(pb *pbftpb.VCSNTimeout) *VCSNTimeout {
-	return &VCSNTimeout{
+func ViewChangeSNTimeoutFromPb(pb *pbftpb.ViewChangeSNTimeout) *ViewChangeSNTimeout {
+	return &ViewChangeSNTimeout{
 		View:         (types1.ViewNr)(pb.View),
 		NumCommitted: pb.NumCommitted,
 	}
 }
 
-func (m *VCSNTimeout) Pb() *pbftpb.VCSNTimeout {
-	return &pbftpb.VCSNTimeout{
+func (m *ViewChangeSNTimeout) Pb() *pbftpb.ViewChangeSNTimeout {
+	return &pbftpb.ViewChangeSNTimeout{
 		View:         (uint64)(m.View),
 		NumCommitted: m.NumCommitted,
 	}
 }
 
-func (*VCSNTimeout) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.VCSNTimeout]()}
+func (*ViewChangeSNTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.ViewChangeSNTimeout]()}
+}
+
+type ViewChangeSegTimeout struct {
+	ViewChangeSegTimeout uint64
+}
+
+func ViewChangeSegTimeoutFromPb(pb *pbftpb.ViewChangeSegTimeout) *ViewChangeSegTimeout {
+	return &ViewChangeSegTimeout{
+		ViewChangeSegTimeout: pb.ViewChangeSegTimeout,
+	}
+}
+
+func (m *ViewChangeSegTimeout) Pb() *pbftpb.ViewChangeSegTimeout {
+	return &pbftpb.ViewChangeSegTimeout{
+		ViewChangeSegTimeout: m.ViewChangeSegTimeout,
+	}
+}
+
+func (*ViewChangeSegTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.ViewChangeSegTimeout]()}
 }
 
 type HashOrigin struct {

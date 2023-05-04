@@ -54,15 +54,15 @@ type Event_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Event_ProposeTimeout) Unwrap() uint64 {
+func (w *Event_ProposeTimeout) Unwrap() *ProposeTimeout {
 	return w.ProposeTimeout
 }
 
-func (w *Event_ViewChangeSnTimeout) Unwrap() *VCSNTimeout {
+func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 	return w.ViewChangeSnTimeout
 }
 
-func (w *Event_ViewChangeSegTimeout) Unwrap() uint64 {
+func (w *Event_ViewChangeSegTimeout) Unwrap() *ViewChangeSegTimeout {
 	return w.ViewChangeSegTimeout
 }
 

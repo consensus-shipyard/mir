@@ -3,20 +3,23 @@ package orderers
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/dsl"
+	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
+	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	orderertypes "github.com/filecoin-project/mir/pkg/orderers/types"
-	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -63,7 +66,7 @@ type pbftProposalState struct {
 
 // applyProposeTimeout applies the event of the proposal timeout firing.
 // It updates the proposal state accordingly and triggers a new proposal if possible.
-func (orderer *Orderer) applyProposeTimeout(numProposals int) (*events.EventList, error) {
+func (orderer *Orderer) applyProposeTimeout(m dsl.Module, numProposals int) error {
 
 	// If we are still waiting for this timeout
 	if numProposals > orderer.proposal.proposalTimeout {
@@ -77,20 +80,20 @@ func (orderer *Orderer) applyProposeTimeout(numProposals int) (*events.EventList
 			// If a proposal already has been set as a parameter of the segment, propose it directly.
 			sn := orderer.segment.SeqNrs()[orderer.proposal.proposalsMade]
 			if proposal := orderer.segment.Proposals[sn]; proposal != nil {
-				return orderer.propose(proposal)
+				return orderer.propose(m, proposal)
 			}
 
 			// Otherwise, obtain a fresh availability certificate first.
-			return orderer.requestNewCert(), nil
+			orderer.requestNewCert(m)
 		}
 	}
 
-	return events.EmptyList(), nil
+	return nil
 }
 
 // requestNewCert asks (by means of a CertRequest event) the availability module to provide a new availability certificate.
 // When the certificate is ready, it must be passed to the Orderer using the CertReady event.
-func (orderer *Orderer) requestNewCert() *events.EventList {
+func (orderer *Orderer) requestNewCert(m dsl.Module) {
 
 	// Set a flag indicating that a certificate has been requested,
 	// so that no new certificates will be requested before the reception of this one.
@@ -103,13 +106,12 @@ func (orderer *Orderer) requestNewCert() *events.EventList {
 
 	// Emit the CertRequest event.
 	// Operation continues on reception of the CertReady event.
-	return orderer.requestCertOrigin()
+	apbdsl.RequestCert(m, orderer.moduleConfig.Ava, &struct{}{})
 }
 
 // applyCertReady processes a new availability certificate ready to be proposed.
 // This event is triggered by availability module in response to the CertRequest event produced by this Orderer.
-func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.EventList, error) {
-	eventsOut := events.EmptyList()
+func (orderer *Orderer) applyCertReady(m dsl.Module, cert *availabilitypbtypes.Cert) error {
 
 	// Clear flag that was set in requestNewCert(), so that new certificates can be requested if necessary.
 	orderer.proposal.certRequested = false
@@ -118,16 +120,15 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 		// If the protocol is still in the same PBFT view as when the certificate was requested,
 		// propose the received certificate.
 
-		certBytes, err := proto.Marshal(cert)
+		certBytes, err := proto.Marshal(cert.Pb())
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling certificate: %w", err)
+			return fmt.Errorf("error marshalling certificate: %w", err)
 		}
 
-		l, err := orderer.propose(certBytes)
+		err = orderer.propose(m, certBytes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to propose: %w", err)
+			return fmt.Errorf("failed to propose: %w", err)
 		}
-		eventsOut.PushBackList(l)
 	} else { // nolint:staticcheck,revive
 		// If the PBFT view advanced since the certificate was requested,
 		// do not propose the certificate and resurrect the transactions it contains.
@@ -135,13 +136,13 @@ func (orderer *Orderer) applyCertReady(cert *availabilitypb.Cert) (*events.Event
 		// TODO: Implement resurrection!
 	}
 
-	return eventsOut, nil
+	return nil
 }
 
 // propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT Orderer allows sending a new proposal
 // and does not perform any checks in this regard.
-func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
+func (orderer *Orderer) propose(m dsl.Module, data []byte) error {
 
 	// Update proposal counter.
 	sn := orderer.segment.SeqNrs()[orderer.proposal.proposalsMade]
@@ -154,25 +155,28 @@ func (orderer *Orderer) propose(data []byte) (*events.EventList, error) {
 	// Send a Preprepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	msgSendEvent := transportpbevents.SendMessage(orderer.moduleConfig.Net,
+	transportpbdsl.SendMessage(m,
+		orderer.moduleConfig.Net,
 		pbftpbmsgs.Preprepare(orderer.moduleConfig.Self, sn, orderer.view, data, false),
 		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
-	ordererEvent := eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
-		PbftProposeTimeout(uint64(orderer.proposal.proposalsMade+1))))
+	timeoutEvent := pbftpbevents.ProposeTimeout(
+		orderer.moduleConfig.Self,
+		uint64(orderer.proposal.proposalsMade+1))
 
-	timerEvent := eventpbevents.TimerDelay(orderer.moduleConfig.Timer,
-		[]*eventpbtypes.Event{ordererEvent},
+	eventpbdsl.TimerDelay(m,
+		orderer.moduleConfig.Timer,
+		[]*eventpbtypes.Event{timeoutEvent},
 		types.Duration(orderer.config.MaxProposeDelay),
-	).Pb()
+	)
 
-	return events.ListOf(msgSendEvent.Pb(), timerEvent), nil
+	return nil
 }
 
 // applyMsgPreprepare applies a received preprepare message.
 // It performs the necessary checks and, if successful, submits it for hashing.
-func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPreprepare(m dsl.Module, preprepare *pbftpbtypes.Preprepare, from t.NodeID) {
 
 	// Convenience variable
 	sn := preprepare.Sn
@@ -181,14 +185,14 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 	slot := orderer.preprocessMessage(sn, preprepare.View, preprepare.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return events.EmptyList()
+		return
 	}
 
 	// Check whether valid data has been proposed.
 	if err := orderer.externalValidator.Check(preprepare.Data); err != nil {
 		orderer.logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
 			"sn", sn, "from", from, "err", err)
-		return events.EmptyList()
+		return
 	}
 
 	// Check that this is the first Preprepare message received.
@@ -197,7 +201,7 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 	if slot.Preprepare != nil {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Preprepare message. Already preprepared or prepreparing.",
 			"sn", sn, "from", from)
-		return events.EmptyList()
+		return
 	}
 
 	// Check whether the sender is the legitimate leader of the segment in the current view.
@@ -207,28 +211,27 @@ func (orderer *Orderer) applyMsgPreprepare(preprepare *pbftpbtypes.Preprepare, f
 			"expectedLeader", primary,
 			"sender", from,
 		)
-		return events.EmptyList()
+		return
 	}
 
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.
-	return events.ListOf(hasherpbevents.Request(
+	hasherpbdsl.Request(
+		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		HashOrigin(orderer.moduleConfig.Self, preprepareHashOrigin(preprepare.Pb())),
-	).Pb())
+		preprepareHashOrigin(preprepare.Pb()),
+	)
 }
 
-func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbftpb.Preprepare) *events.EventList {
-	eventsOut := events.EmptyList()
-
+func (orderer *Orderer) applyPreprepareHashResult(m dsl.Module, digest []byte, preprepare *pbftpb.Preprepare) {
 	// Convenience variable.
 	sn := tt.SeqNr(preprepare.Sn)
 
 	// Stop processing the Preprepare if view advanced in the meantime.
 	if orderertypes.ViewNr(preprepare.View) < orderer.view {
-		return events.EmptyList()
+		return
 	}
 
 	// Save the digest of the Preprepare message and mark the slot as preprepared.
@@ -237,33 +240,22 @@ func (orderer *Orderer) applyPreprepareHashResult(digest []byte, preprepare *pbf
 	slot.Preprepared = true
 
 	// Send a Prepare message.
-	eventsOut.PushBackList(orderer.sendPrepare(sn, orderer.view, digest))
-
+	transportpbdsl.SendMessage(
+		m,
+		orderer.moduleConfig.Net,
+		pbftpbmsgs.Prepare(orderer.moduleConfig.Self, sn, orderer.view, digest),
+		orderer.segment.NodeIDs(),
+	)
 	// Advance the state of the pbftSlot even more if necessary
 	// (potentially sending a Commit message or even delivering).
 	// This is required for the case when the Preprepare message arrives late.
-	eventsOut.PushBackList(slot.advanceState(orderer, sn))
-
-	return eventsOut
-}
-
-// sendPrepare creates an event for sending a Prepare message.
-func (orderer *Orderer) sendPrepare(sn tt.SeqNr, view orderertypes.ViewNr, digest []byte) *events.EventList {
-
-	// Return a list with a single element - the send event containing a PBFT prepare message.
-	// No need for periodic re-transmission.
-	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	return events.ListOf(transportpbevents.SendMessage(
-		orderer.moduleConfig.Net,
-		pbftpbmsgs.Prepare(orderer.moduleConfig.Self, sn, view, digest),
-		orderer.segment.NodeIDs(),
-	).Pb())
+	slot.advanceState(m, orderer, sn)
 }
 
 // applyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func (orderer *Orderer) applyMsgPrepare(prepare *pbftpbtypes.Prepare, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgPrepare(m dsl.Module, prepare *pbftpbtypes.Prepare, from t.NodeID) {
 
 	// Convenience variable
 	sn := prepare.Sn
@@ -272,39 +264,26 @@ func (orderer *Orderer) applyMsgPrepare(prepare *pbftpbtypes.Prepare, from t.Nod
 	slot := orderer.preprocessMessage(sn, prepare.View, prepare.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return events.EmptyList()
+		return
 	}
 
 	// Check if a Prepare message has already been received from this node in the current view.
-	if _, ok := slot.Prepares[from]; ok {
+	if _, ok := slot.PrepareDigests[from]; ok {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Prepare message. Already received in this view.",
 			"sn", sn, "from", from, "view", orderer.view)
-		return events.EmptyList()
+		return
 	}
 
 	// Save the received Prepare message and advance the slot state
 	// (potentially sending a Commit message or even delivering).
-	slot.Prepares[from] = prepare
-	return slot.advanceState(orderer, sn)
-}
-
-// sendCommit creates an event for sending a Commit message.
-func (orderer *Orderer) sendCommit(sn tt.SeqNr, view orderertypes.ViewNr, digest []byte) *events.EventList {
-
-	// Emit a send event with a PBFT Commit message.
-	// No need for periodic re-transmission.
-	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
-	return events.ListOf(transportpbevents.SendMessage(
-		orderer.moduleConfig.Net,
-		pbftpbmsgs.Commit(orderer.moduleConfig.Self, sn, view, digest),
-		orderer.segment.NodeIDs()).Pb(),
-	)
+	slot.PrepareDigests[from] = prepare.Digest
+	slot.advanceState(m, orderer, sn)
 }
 
 // applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func (orderer *Orderer) applyMsgCommit(commit *pbftpbtypes.Commit, from t.NodeID) *events.EventList {
+func (orderer *Orderer) applyMsgCommit(m dsl.Module, commit *pbftpbtypes.Commit, from t.NodeID) {
 
 	// Convenience variable
 	sn := commit.Sn
@@ -313,20 +292,20 @@ func (orderer *Orderer) applyMsgCommit(commit *pbftpbtypes.Commit, from t.NodeID
 	slot := orderer.preprocessMessage(sn, commit.View, commit.Pb(), from)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return events.EmptyList()
+		return
 	}
 
 	// Check if a Commit message has already been received from this node in the current view.
-	if _, ok := slot.Commits[from]; ok {
+	if _, ok := slot.CommitDigests[from]; ok {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Commit message. Already received in this view.",
 			"sn", sn, "from", from, "view", orderer.view)
-		return events.EmptyList()
+		return
 	}
 
 	// Save the received Commit message and advance the slot state
 	// (potentially delivering the corresponding certificate and its successors).
-	slot.Commits[from] = commit
-	return slot.advanceState(orderer, sn)
+	slot.CommitDigests[from] = commit.Digest
+	slot.advanceState(m, orderer, sn)
 }
 
 // preprocessMessage performs basic checks on a PBFT protocol message based the associated view and sequence number.

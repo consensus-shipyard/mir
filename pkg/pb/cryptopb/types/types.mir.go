@@ -8,6 +8,7 @@ import (
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+	types5 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -369,7 +370,7 @@ func SignOrigin_TypeFromPb(pb cryptopb.SignOrigin_Type) SignOrigin_Type {
 	case *cryptopb.SignOrigin_Checkpoint:
 		return &SignOrigin_Checkpoint{Checkpoint: types4.SignOriginFromPb(pb.Checkpoint)}
 	case *cryptopb.SignOrigin_Sb:
-		return &SignOrigin_Sb{Sb: pb.Sb}
+		return &SignOrigin_Sb{Sb: types5.SignOriginFromPb(pb.Sb)}
 	}
 	return nil
 }
@@ -429,17 +430,17 @@ func (*SignOrigin_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin_Sb struct {
-	Sb *ordererpb.SignOrigin
+	Sb *types5.SignOrigin
 }
 
 func (*SignOrigin_Sb) isSignOrigin_Type() {}
 
-func (w *SignOrigin_Sb) Unwrap() *ordererpb.SignOrigin {
+func (w *SignOrigin_Sb) Unwrap() *types5.SignOrigin {
 	return w.Sb
 }
 
 func (w *SignOrigin_Sb) Pb() cryptopb.SignOrigin_Type {
-	return &cryptopb.SignOrigin_Sb{Sb: w.Sb}
+	return &cryptopb.SignOrigin_Sb{Sb: (w.Sb).Pb()}
 }
 
 func (*SignOrigin_Sb) MirReflect() mirreflect.Type {

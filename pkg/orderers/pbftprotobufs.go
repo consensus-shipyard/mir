@@ -25,82 +25,37 @@ import (
 )
 
 // ============================================================
-// Events
-// ============================================================
-
-func PbftProposeTimeout(numProposals uint64) *ordererpb.Event {
-	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{Pbft: &pbftpb.Event{
-		Type: &pbftpb.Event_ProposeTimeout{ProposeTimeout: numProposals},
-	}}}
-}
-
-func PbftViewChangeSNTimeout(view types.ViewNr, numCommitted int) *ordererpb.Event {
-	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
-		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: &pbftpb.VCSNTimeout{
-			View:         view.Pb(),
-			NumCommitted: uint64(numCommitted),
-		}}},
-	}}
-}
-
-func PbftViewChangeSegmentTimeout(view types.ViewNr) *ordererpb.Event {
-	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
-		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: view.Pb()}},
-	}}
-}
-
-// ============================================================
 // Hashing and signing origins
 // ============================================================
 
-func preprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin {
-	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
+func preprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_Preprepare{Preprepare: preprepare}},
-	}}
+	}
 }
 
-func missingPreprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin {
-	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
+func missingPreprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_MissingPreprepare{MissingPreprepare: preprepare}},
-	}}
+	}
 }
 
-func viewChangeSignOrigin(viewChange *pbftpb.ViewChange) *ordererpb.SignOrigin {
-	return &ordererpb.SignOrigin{Type: &ordererpb.SignOrigin_Pbft{
-		Pbft: &pbftpb.SignOrigin{Type: &pbftpb.SignOrigin_ViewChange{
-			ViewChange: viewChange,
-		}},
-	}}
-}
-
-func viewChangeSigVerOrigin(viewChange *pbftpb.SignedViewChange) *ordererpb.SigVerOrigin {
-	return &ordererpb.SigVerOrigin{Type: &ordererpb.SigVerOrigin_Pbft{
-		Pbft: &pbftpb.SigVerOrigin{Type: &pbftpb.SigVerOrigin_SignedViewChange{SignedViewChange: viewChange}},
-	}}
-}
-
-func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin {
-	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
+func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_EmptyPreprepares{EmptyPreprepares: view.Pb()}},
-	}}
+	}
 }
 
-func newViewSigVerOrigin(newView *pbftpb.NewView) *ordererpb.SigVerOrigin {
-	return &ordererpb.SigVerOrigin{Type: &ordererpb.SigVerOrigin_Pbft{
-		Pbft: &pbftpb.SigVerOrigin{Type: &pbftpb.SigVerOrigin_NewView{NewView: newView}},
-	}}
-}
-
-func newViewHashOrigin(newView *pbftpb.NewView) *ordererpb.HashOrigin {
-	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
+func newViewHashOrigin(newView *pbftpb.NewView) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_NewView{NewView: newView}},
-	}}
+	}
 }
 
-func catchUpResponseHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin {
-	return &ordererpb.HashOrigin{Type: &ordererpb.HashOrigin_Pbft{
+func catchUpResponseHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
+	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_CatchUpResponse{CatchUpResponse: preprepare}},
-	}}
+	}
 }
 
 // ============================================================
