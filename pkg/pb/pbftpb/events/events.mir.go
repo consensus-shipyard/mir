@@ -27,7 +27,7 @@ func ProposeTimeout(destModule types.ModuleID, proposeTimeout uint64) *types1.Ev
 	}
 }
 
-func VCSNTimeout(destModule types.ModuleID, view types4.ViewNr, numCommitted uint64) *types1.Event {
+func ViewChangeSNTimeout(destModule types.ModuleID, view types4.ViewNr, numCommitted uint64) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Orderer{
@@ -35,7 +35,7 @@ func VCSNTimeout(destModule types.ModuleID, view types4.ViewNr, numCommitted uin
 				Type: &types2.Event_Pbft{
 					Pbft: &types3.Event{
 						Type: &types3.Event_ViewChangeSnTimeout{
-							ViewChangeSnTimeout: &types3.VCSNTimeout{
+							ViewChangeSnTimeout: &types3.ViewChangeSNTimeout{
 								View:         view,
 								NumCommitted: numCommitted,
 							},

@@ -606,7 +606,7 @@ func Event_TypeFromPb(pb pbftpb.Event_Type) Event_Type {
 	case *pbftpb.Event_ProposeTimeout:
 		return &Event_ProposeTimeout{ProposeTimeout: ProposeTimeoutFromPb(pb.ProposeTimeout)}
 	case *pbftpb.Event_ViewChangeSnTimeout:
-		return &Event_ViewChangeSnTimeout{ViewChangeSnTimeout: VCSNTimeoutFromPb(pb.ViewChangeSnTimeout)}
+		return &Event_ViewChangeSnTimeout{ViewChangeSnTimeout: ViewChangeSNTimeoutFromPb(pb.ViewChangeSnTimeout)}
 	case *pbftpb.Event_ViewChangeSegTimeout:
 		return &Event_ViewChangeSegTimeout{ViewChangeSegTimeout: ViewChangeSegTimeoutFromPb(pb.ViewChangeSegTimeout)}
 	}
@@ -632,12 +632,12 @@ func (*Event_ProposeTimeout) MirReflect() mirreflect.Type {
 }
 
 type Event_ViewChangeSnTimeout struct {
-	ViewChangeSnTimeout *VCSNTimeout
+	ViewChangeSnTimeout *ViewChangeSNTimeout
 }
 
 func (*Event_ViewChangeSnTimeout) isEvent_Type() {}
 
-func (w *Event_ViewChangeSnTimeout) Unwrap() *VCSNTimeout {
+func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 	return w.ViewChangeSnTimeout
 }
 
@@ -703,27 +703,27 @@ func (*ProposeTimeout) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.ProposeTimeout]()}
 }
 
-type VCSNTimeout struct {
+type ViewChangeSNTimeout struct {
 	View         types1.ViewNr
 	NumCommitted uint64
 }
 
-func VCSNTimeoutFromPb(pb *pbftpb.VCSNTimeout) *VCSNTimeout {
-	return &VCSNTimeout{
+func ViewChangeSNTimeoutFromPb(pb *pbftpb.ViewChangeSNTimeout) *ViewChangeSNTimeout {
+	return &ViewChangeSNTimeout{
 		View:         (types1.ViewNr)(pb.View),
 		NumCommitted: pb.NumCommitted,
 	}
 }
 
-func (m *VCSNTimeout) Pb() *pbftpb.VCSNTimeout {
-	return &pbftpb.VCSNTimeout{
+func (m *ViewChangeSNTimeout) Pb() *pbftpb.ViewChangeSNTimeout {
+	return &pbftpb.ViewChangeSNTimeout{
 		View:         (uint64)(m.View),
 		NumCommitted: m.NumCommitted,
 	}
 }
 
-func (*VCSNTimeout) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.VCSNTimeout]()}
+func (*ViewChangeSNTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pbftpb.ViewChangeSNTimeout]()}
 }
 
 type ViewChangeSegTimeout struct {

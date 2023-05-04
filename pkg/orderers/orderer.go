@@ -9,12 +9,15 @@ package orderers
 import (
 	"fmt"
 
+	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
-	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
@@ -73,7 +76,7 @@ type Orderer struct {
 
 	// For each view, slots contains one pbftSlot per sequence number this Orderer is responsible for.
 	// Each slot tracks the state of the agreement protocol for one sequence number.
-	slots map[types2.ViewNr]map[tt.SeqNr]*pbftSlot
+	slots map[ot.ViewNr]map[tt.SeqNr]*pbftSlot
 
 	// Tracks the state of the segment-local checkpoint.
 	segmentCheckpoint *pbftSegmentChkp
@@ -82,7 +85,7 @@ type Orderer struct {
 	logger logging.Logger
 
 	// PBFT view
-	view types2.ViewNr
+	view ot.ViewNr
 
 	// Flag indicating whether this node is currently performing a view change.
 	// It is set on sending the ViewChange message and cleared on accepting a new view.
@@ -91,7 +94,7 @@ type Orderer struct {
 	// For each view transition, stores the state of the corresponding PBFT view change sub-protocol.
 	// The map itself is allocated on creation of the pbftInstance, but the entries are initialized lazily,
 	// only when needed (when the node initiates a view change).
-	viewChangeStates map[types2.ViewNr]*pbftViewChangeState
+	viewChangeStates map[ot.ViewNr]*pbftViewChangeState
 
 	// Contains the application-specific code for validating incoming proposals.
 	externalValidator ValidityChecker
@@ -102,12 +105,11 @@ type Orderer struct {
 //   - moduleConfig
 //   - ownID: The ID of this node.
 //   - segment: The segment governing this SB instance,
-//     specifying the leader, the set of sequence numbers, the buckets, etc.
+//     specifying the leader, the set of sequence numbers, etc.
 //   - config: PBFT-specific configuration parameters.
-//   - eventService: OrdererEvent creator object enabling the Orderer to produce events.
-//     All events this Orderer creates will be created using the methods of the eventService.
-//     since the implementation of the Orderer does not know its own identity at the level of ISS.
+//   - externalValidator: Contains the application-specific code for validating incoming proposals.
 //   - logger: Logger for outputting debugging messages.
+
 func NewOrdererModule(
 	moduleConfig *ModuleConfig,
 	ownID t.NodeID,
@@ -123,7 +125,7 @@ func NewOrdererModule(
 		moduleConfig:      moduleConfig,
 		config:            config,
 		externalValidator: externalValidator,
-		slots:             make(map[types2.ViewNr]map[tt.SeqNr]*pbftSlot),
+		slots:             make(map[ot.ViewNr]map[tt.SeqNr]*pbftSlot),
 		segmentCheckpoint: newPbftSegmentChkp(),
 		proposal: pbftProposalState{
 			proposalsMade:     0,
@@ -140,7 +142,7 @@ func NewOrdererModule(
 		logger:           logger,
 		view:             0,
 		inViewChange:     false,
-		viewChangeStates: make(map[types2.ViewNr]*pbftViewChangeState),
+		viewChangeStates: make(map[ot.ViewNr]*pbftViewChangeState),
 	}
 	m := dsl.NewModule(moduleConfig.Self)
 
@@ -153,8 +155,50 @@ func NewOrdererModule(
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errors []error, allOk bool, sigverType *ordererpb.SigVerOrigin_Pbft) error {
-		return orderer.applyNodeSigsVerified(m, nodeIds, errors, allOk, sigverType)
+	cryptopbdsl.UponSigVerified(m, func(nodeID t.NodeID, error error, context *pbftpbtypes.SignedViewChange) error {
+		// Ignore events with invalid signatures.
+		if error != nil {
+			orderer.logger.Log(logging.LevelWarn,
+				"Ignoring invalid signature, ignoring event (with all signatures).",
+				"from", nodeID,
+				"error", error,
+			)
+			return nil
+		}
+		// Verify all signers are part of the membership
+		if !sliceutil.Contains(orderer.config.Membership, nodeID) {
+			orderer.logger.Log(logging.LevelWarn,
+				"Ignoring SigVerified message as it contains signatures from non members, ignoring event (with all signatures).",
+				"from", nodeID,
+			)
+			return nil
+		}
+
+		orderer.applyVerifiedViewChange(m, context, nodeID)
+		return nil
+	})
+
+	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errors []error, allOk bool, context *pbftpbtypes.NewView) error {
+		// Ignore events with invalid signatures.
+		if !allOk {
+			orderer.logger.Log(logging.LevelWarn,
+				"Ignoring invalid signature, ignoring event (with all signatures).",
+				"from", nodeIds,
+				"errors", errors,
+			)
+			return nil
+		}
+
+		// Verify all signers are part of the membership
+		if !sliceutil.ContainsAll(orderer.config.Membership, nodeIds) {
+			orderer.logger.Log(logging.LevelWarn,
+				"Ignoring SigsVerified message as it contains signatures from non members, ignoring event (with all signatures).",
+				"from", nodeIds,
+			)
+			return nil
+		}
+		orderer.applyVerifiedNewView(m, context)
+		return nil
 	})
 
 	availabilitypbdsl.UponNewCert(m, func(cert *availabilitypbtypes.Cert, _ *struct{}) error {
@@ -167,7 +211,7 @@ func NewOrdererModule(
 		case *pbftpb.HashOrigin_Preprepare:
 			orderer.applyPreprepareHashResult(m, digests[0], o.Preprepare)
 		case *pbftpb.HashOrigin_EmptyPreprepares:
-			return orderer.applyEmptyPreprepareHashResult(m, digests, types2.ViewNr(o.EmptyPreprepares))
+			return orderer.applyEmptyPreprepareHashResult(m, digests, ot.ViewNr(o.EmptyPreprepares))
 		case *pbftpb.HashOrigin_MissingPreprepare:
 			orderer.applyMissingPreprepareHashResult(
 				m,
@@ -192,15 +236,15 @@ func NewOrdererModule(
 		return orderer.applyProposeTimeout(m, int(proposeTimeout))
 	})
 
-	pbftpbdsl.UponVCSNTimeout(m, func(view types2.ViewNr, numCommitted uint64) error {
+	pbftpbdsl.UponViewChangeSNTimeout(m, func(view ot.ViewNr, numCommitted uint64) error {
 		return orderer.applyViewChangeSNTimeout(m, view, numCommitted)
 	})
 
 	pbftpbdsl.UponViewChangeSegTimeout(m, func(viewChangeSegTimeout uint64) error {
-		return orderer.applyViewChangeSegmentTimeout(m, types2.ViewNr(viewChangeSegTimeout))
+		return orderer.applyViewChangeSegmentTimeout(m, ot.ViewNr(viewChangeSegTimeout))
 	})
 
-	pbftpbdsl.UponPreprepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view types2.ViewNr, data []byte, aborted bool) error {
+	pbftpbdsl.UponPreprepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, data []byte, aborted bool) error {
 		if !sliceutil.Contains(orderer.config.Membership, from) {
 			orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -215,7 +259,7 @@ func NewOrdererModule(
 		return nil
 	})
 
-	pbftpbdsl.UponPrepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view types2.ViewNr, digest []byte) error {
+	pbftpbdsl.UponPrepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte) error {
 		if !sliceutil.Contains(orderer.config.Membership, from) {
 			orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -229,7 +273,7 @@ func NewOrdererModule(
 		return nil
 	})
 
-	pbftpbdsl.UponCommitReceived(m, func(from t.NodeID, sn tt.SeqNr, view types2.ViewNr, digest []byte) error {
+	pbftpbdsl.UponCommitReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte) error {
 		if !sliceutil.Contains(orderer.config.Membership, from) {
 			orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -275,7 +319,15 @@ func NewOrdererModule(
 		return nil
 	})
 
-	pbftpbdsl.UponNewViewReceived(m, func(from t.NodeID, view types2.ViewNr, viewChangeSenders []string, signedViewChanges []*pbftpbtypes.SignedViewChange, preprepareSeqNrs []tt.SeqNr, preprepares []*pbftpbtypes.Preprepare) error {
+	pbftpbdsl.UponNewViewReceived(m, func(
+		from t.NodeID,
+		view ot.ViewNr,
+		viewChangeSenders []string,
+		signedViewChanges []*pbftpbtypes.SignedViewChange,
+		preprepareSeqNrs []tt.SeqNr,
+		preprepares []*pbftpbtypes.Preprepare,
+	) error {
+
 		if !sliceutil.Contains(orderer.config.Membership, from) {
 			orderer.logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -337,41 +389,6 @@ func newOrdererConfig(issParams *issconfig.ModuleParams, membership []t.NodeID, 
 	}
 }
 
-func (orderer *Orderer) applyNodeSigsVerified(m dsl.Module, nodeIds []t.NodeID, errors []error, allOk bool, sigverType *ordererpb.SigVerOrigin_Pbft) error {
-
-	// Ignore events with invalid signatures.
-	if !allOk {
-		orderer.logger.Log(logging.LevelWarn,
-			"Ignoring invalid signature, ignoring event (with all signatures).",
-			"from", nodeIds,
-			"errors", errors,
-		)
-		return nil
-	}
-
-	// Verify all signers are part of the membership
-	if !sliceutil.ContainsAll(orderer.config.Membership, nodeIds) {
-		orderer.logger.Log(logging.LevelWarn,
-			"Ignoring message as it contains signatures from non members, ignoring event (with all signatures).",
-			"from", nodeIds,
-		)
-		return nil
-	}
-
-	// Depending on the origin of the sign result, continue processing where the signature verification was needed.
-	//TODO think of a better way to deal with multiple contexts here
-	switch origin := sigverType.Pbft.Type.(type) {
-	case *pbftpb.SigVerOrigin_SignedViewChange:
-		orderer.applyVerifiedViewChange(m, origin.SignedViewChange, nodeIds[0])
-	case *pbftpb.SigVerOrigin_NewView:
-		orderer.applyVerifiedNewView(m, origin.NewView)
-	default:
-		return fmt.Errorf("unknown PBFT signature verification origin type: %T", origin)
-	}
-
-	return nil
-}
-
 // Segment returns the segment associated with this Orderer.
 func (orderer *Orderer) Segment() *Segment {
 	return orderer.segment
@@ -431,7 +448,7 @@ func (orderer *Orderer) applyInit(m dsl.Module) error {
 }
 
 // numCommitted returns the number of slots that are already committed in the given view.
-func (orderer *Orderer) numCommitted(view types2.ViewNr) int {
+func (orderer *Orderer) numCommitted(view ot.ViewNr) int {
 	numCommitted := 0
 	for _, slot := range orderer.slots[view] {
 		if slot.Committed {
@@ -447,7 +464,7 @@ func (orderer *Orderer) allCommitted() bool {
 	return orderer.numCommitted(orderer.view) == len(orderer.slots[orderer.view])
 }
 
-func (orderer *Orderer) initView(m dsl.Module, view types2.ViewNr) error {
+func (orderer *Orderer) initView(m dsl.Module, view ot.ViewNr) error {
 	// Sanity check
 	if view < orderer.view {
 		return fmt.Errorf("starting a view (%d) older than the current one (%d)", view, orderer.view)
@@ -480,8 +497,10 @@ func (orderer *Orderer) initView(m dsl.Module, view types2.ViewNr) error {
 	eventpbdsl.TimerDelay(
 		m,
 		orderer.moduleConfig.Timer,
-		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(orderer.moduleConfig.Self,
-			PbftViewChangeSNTimeout(view, orderer.numCommitted(view))))},
+		[]*eventpbtypes.Event{pbftpbevents.ViewChangeSNTimeout(
+			orderer.moduleConfig.Self,
+			view,
+			uint64(orderer.numCommitted(view)))},
 		computeTimeout(types.Duration(orderer.config.ViewChangeSNTimeout), view),
 	)
 	eventpbdsl.TimerDelay(
@@ -530,7 +549,7 @@ func (orderer *Orderer) lookUpPreprepare(sn tt.SeqNr, digest []byte) *pbftpbtype
 
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
-func computeTimeout(timeout types.Duration, view types2.ViewNr) types.Duration {
+func computeTimeout(timeout types.Duration, view ot.ViewNr) types.Duration {
 	timeout *= 1 << view
 	return timeout
 }
@@ -555,5 +574,18 @@ func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
 	return others
 }
 
-// The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
-func (orderer *Orderer) ImplementsModule() {}
+func InstanceParams(
+	segment *Segment,
+	availabilityID t.ModuleID,
+	epoch tt.EpochNr,
+	validityCheckerType ValidityCheckerType,
+) *factorypbtypes.GeneratorParams {
+	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
+		PbftModule: &ordererpbtypes.PBFTModule{
+			Segment:         segment.PbType(),
+			AvailabilityId:  availabilityID.Pb(),
+			Epoch:           epoch.Pb(),
+			ValidityChecker: uint64(validityCheckerType),
+		},
+	}}
+}

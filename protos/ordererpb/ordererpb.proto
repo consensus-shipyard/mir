@@ -12,8 +12,10 @@ import "net/codegen_extensions.proto";
 
 message Event {
   option (mir.event_class) = true;
+
   oneof type {
     option (mir.event_type) = true;
+
     pbftpb.Event pbft = 1;
   }
 }

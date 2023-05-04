@@ -161,13 +161,13 @@ func (orderer *Orderer) propose(m dsl.Module, data []byte) error {
 		orderer.segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
-	ordererEvent := pbftpbevents.ProposeTimeout(
+	timeoutEvent := pbftpbevents.ProposeTimeout(
 		orderer.moduleConfig.Self,
 		uint64(orderer.proposal.proposalsMade+1))
 
 	eventpbdsl.TimerDelay(m,
 		orderer.moduleConfig.Timer,
-		[]*eventpbtypes.Event{ordererEvent},
+		[]*eventpbtypes.Event{timeoutEvent},
 		types.Duration(orderer.config.MaxProposeDelay),
 	)
 
@@ -268,7 +268,7 @@ func (orderer *Orderer) applyMsgPrepare(m dsl.Module, prepare *pbftpbtypes.Prepa
 	}
 
 	// Check if a Prepare message has already been received from this node in the current view.
-	if _, ok := slot.PreparesDigest[from]; ok {
+	if _, ok := slot.PrepareDigests[from]; ok {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Prepare message. Already received in this view.",
 			"sn", sn, "from", from, "view", orderer.view)
 		return
@@ -276,7 +276,7 @@ func (orderer *Orderer) applyMsgPrepare(m dsl.Module, prepare *pbftpbtypes.Prepa
 
 	// Save the received Prepare message and advance the slot state
 	// (potentially sending a Commit message or even delivering).
-	slot.PreparesDigest[from] = prepare.Digest
+	slot.PrepareDigests[from] = prepare.Digest
 	slot.advanceState(m, orderer, sn)
 }
 
@@ -296,7 +296,7 @@ func (orderer *Orderer) applyMsgCommit(m dsl.Module, commit *pbftpbtypes.Commit,
 	}
 
 	// Check if a Commit message has already been received from this node in the current view.
-	if _, ok := slot.CommitsDigest[from]; ok {
+	if _, ok := slot.CommitDigests[from]; ok {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring Commit message. Already received in this view.",
 			"sn", sn, "from", from, "view", orderer.view)
 		return
@@ -304,7 +304,7 @@ func (orderer *Orderer) applyMsgCommit(m dsl.Module, commit *pbftpbtypes.Commit,
 
 	// Save the received Commit message and advance the slot state
 	// (potentially delivering the corresponding certificate and its successors).
-	slot.CommitsDigest[from] = commit.Digest
+	slot.CommitDigests[from] = commit.Digest
 	slot.advanceState(m, orderer, sn)
 }
 

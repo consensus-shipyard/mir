@@ -27,8 +27,8 @@ func UponProposeTimeout(m dsl.Module, handler func(proposeTimeout uint64) error)
 	})
 }
 
-func UponVCSNTimeout(m dsl.Module, handler func(view types2.ViewNr, numCommitted uint64) error) {
-	UponEvent[*types.Event_ViewChangeSnTimeout](m, func(ev *types.VCSNTimeout) error {
+func UponViewChangeSNTimeout(m dsl.Module, handler func(view types2.ViewNr, numCommitted uint64) error) {
+	UponEvent[*types.Event_ViewChangeSnTimeout](m, func(ev *types.ViewChangeSNTimeout) error {
 		return handler(ev.View, ev.NumCommitted)
 	})
 }

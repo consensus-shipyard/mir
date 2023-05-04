@@ -3,9 +3,11 @@ package orderers
 import (
 	"bytes"
 
+	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/iss/config"
-	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
@@ -26,18 +28,18 @@ type pbftSlot struct {
 
 	// Prepare messages received.
 	// A nil entry signifies that an invalid message has been discarded.
-	PreparesDigest map[t.NodeID][]byte
+	PrepareDigests map[t.NodeID][]byte
 
 	// Valid prepare messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidPreparesDigest [][]byte
+	ValidPrepareDigests [][]byte
 
 	// Commit messages received.
-	CommitsDigest map[t.NodeID][]byte
+	CommitDigests map[t.NodeID][]byte
 
 	// Valid commit messages received.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidCommitsDigest [][]byte
+	ValidCommitDigests [][]byte
 
 	// The digest of the proposed (preprepared) certificate
 	Digest []byte
@@ -59,10 +61,10 @@ type pbftSlot struct {
 func newPbftSlot(numNodes int) *pbftSlot {
 	return &pbftSlot{
 		Preprepare:          nil,
-		PreparesDigest:      make(map[t.NodeID][]byte),
-		ValidPreparesDigest: make([][]byte, 0),
-		CommitsDigest:       make(map[t.NodeID][]byte),
-		ValidCommitsDigest:  make([][]byte, 0),
+		PrepareDigests:      make(map[t.NodeID][]byte),
+		ValidPrepareDigests: make([][]byte, 0),
+		CommitDigests:       make(map[t.NodeID][]byte),
+		ValidCommitDigests:  make([][]byte, 0),
 		Digest:              nil,
 		Preprepared:         false,
 		Prepared:            false,
@@ -74,7 +76,7 @@ func newPbftSlot(numNodes int) *pbftSlot {
 // populateFromPrevious carries over state from a pbftSlot used in the previous view to this pbftSlot,
 // based on the state of the previous slot.
 // This is used during view change, when the protocol initializes a new PBFT view.
-func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view types2.ViewNr) {
+func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view ot.ViewNr) {
 
 	// If the slot has already committed a certificate, just copy over the result.
 	if prevSlot.Committed {
@@ -116,10 +118,10 @@ func (slot *pbftSlot) advanceState(m dsl.Module, pbft *Orderer, sn tt.SeqNr) {
 			eventpbdsl.TimerDelay(
 				m,
 				pbft.moduleConfig.Timer,
-				[]*eventpbtypes.Event{eventpbtypes.EventFromPb(OrdererEvent(pbft.moduleConfig.Self,
-					PbftViewChangeSNTimeout(
-						pbft.view,
-						pbft.numCommitted(pbft.view))))},
+				[]*eventpbtypes.Event{pbftpbevents.ViewChangeSNTimeout(
+					pbft.moduleConfig.Self,
+					pbft.view,
+					uint64(pbft.numCommitted(pbft.view)))},
 				types.Duration(pbft.config.ViewChangeSNTimeout))
 		}
 
@@ -155,29 +157,29 @@ func (slot *pbftSlot) checkPrepared() bool {
 
 	// Check if enough unique Prepare messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.PreparesDigest) < config.StrongQuorum(slot.numNodes) {
+	if len(slot.PrepareDigests) < config.StrongQuorum(slot.numNodes) {
 		return false
 	}
 
 	// Check newly received Prepare messages for validity (whether they contain the hash of the Preprepare message).
 	// TODO: Do we need to iterate in a deterministic order here?
-	for from, digest := range slot.PreparesDigest {
+	for from, digest := range slot.PrepareDigests {
 
 		// Only check each Prepare message once.
-		// When checked, the entry in slot.PreparesDigest is set to nil (but not deleted!)
+		// When checked, the entry in slot.PrepareDigests is set to nil (but not deleted!)
 		// to prevent another Prepare message to be considered again.
 		if digest != nil {
-			slot.PreparesDigest[from] = nil
+			slot.PrepareDigests[from] = nil
 
 			// If the digest in the Prepare message matches that of the Preprepare, add the message to the valid ones.
 			if bytes.Equal(digest, slot.Digest) {
-				slot.ValidPreparesDigest = append(slot.ValidPreparesDigest, digest)
+				slot.ValidPrepareDigests = append(slot.ValidPrepareDigests, digest)
 			}
 		}
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidPreparesDigest) >= config.StrongQuorum(slot.numNodes)
+	return len(slot.ValidPrepareDigests) >= config.StrongQuorum(slot.numNodes)
 }
 
 // checkCommitted evaluates whether the pbftSlot fulfills the conditions to be committed.
@@ -191,29 +193,29 @@ func (slot *pbftSlot) checkCommitted() bool {
 
 	// Check if enough unique Commit messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.CommitsDigest) < config.StrongQuorum(slot.numNodes) {
+	if len(slot.CommitDigests) < config.StrongQuorum(slot.numNodes) {
 		return false
 	}
 
 	// Check newly received Commit messages for validity (whether they contain the hash of the Preprepare message).
 	// TODO: Do we need to iterate in a deterministic order here?
-	for from, digest := range slot.CommitsDigest {
+	for from, digest := range slot.CommitDigests {
 
 		// Only check each Commit message once.
-		// When checked, the entry in slot.CommitsDigest is set to nil (but not deleted!)
+		// When checked, the entry in slot.CommitDigests is set to nil (but not deleted!)
 		// to prevent another Commit message to be considered again.
 		if digest != nil {
-			slot.CommitsDigest[from] = nil
+			slot.CommitDigests[from] = nil
 
 			// If the digest in the Commit message matches that of the Preprepare, add the message to the valid ones.
 			if bytes.Equal(digest, slot.Digest) {
-				slot.ValidCommitsDigest = append(slot.ValidCommitsDigest, digest)
+				slot.ValidCommitDigests = append(slot.ValidCommitDigests, digest)
 			}
 		}
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidCommitsDigest) >= config.StrongQuorum(slot.numNodes)
+	return len(slot.ValidCommitDigests) >= config.StrongQuorum(slot.numNodes)
 }
 
 func (slot *pbftSlot) getPreprepare(digest []byte) *pbftpbtypes.Preprepare {

@@ -58,7 +58,7 @@ func (w *Event_ProposeTimeout) Unwrap() *ProposeTimeout {
 	return w.ProposeTimeout
 }
 
-func (w *Event_ViewChangeSnTimeout) Unwrap() *VCSNTimeout {
+func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 	return w.ViewChangeSnTimeout
 }
 

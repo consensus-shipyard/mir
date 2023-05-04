@@ -12,7 +12,7 @@ import (
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
-	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
@@ -23,7 +23,6 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -32,7 +31,7 @@ import (
 // except for the view number being set to view.
 // The Preprepare message produced by this function has the same digest as the original preprepare,
 // since the view number is not used for hash computation.
-func copyPreprepareToNewView(preprepare *pbftpbtypes.Preprepare, view types2.ViewNr) *pbftpbtypes.Preprepare {
+func copyPreprepareToNewView(preprepare *pbftpbtypes.Preprepare, view ot.ViewNr) *pbftpbtypes.Preprepare {
 	return &pbftpbtypes.Preprepare{preprepare.Sn, view, preprepare.Data, preprepare.Aborted} // nolint:govet
 }
 
@@ -43,7 +42,7 @@ func copyPreprepareToNewView(preprepare *pbftpbtypes.Preprepare, view types2.Vie
 // applyViewChangeSNTimeout applies the view change SN timeout event
 // triggered some time after a value is committed.
 // If nothing has been committed since, triggers a view change.
-func (orderer *Orderer) applyViewChangeSNTimeout(m dsl.Module, view types2.ViewNr, numCommitted uint64) error {
+func (orderer *Orderer) applyViewChangeSNTimeout(m dsl.Module, view ot.ViewNr, numCommitted uint64) error {
 
 	// If the view is still the same as when the timer was set up,
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
@@ -64,7 +63,7 @@ func (orderer *Orderer) applyViewChangeSNTimeout(m dsl.Module, view types2.ViewN
 // applyViewChangeSegmentTimeout applies the view change segment timeout event
 // triggered some time after a segment is initialized.
 // If not all slots have been committed, and the view has not advanced, triggers a view change.
-func (orderer *Orderer) applyViewChangeSegmentTimeout(m dsl.Module, view types2.ViewNr) error {
+func (orderer *Orderer) applyViewChangeSegmentTimeout(m dsl.Module, view ot.ViewNr) error {
 
 	// TODO: All slots being committed is not sufficient to stop view changes.
 	//       An instance-local stable checkpoint must be created as well.
@@ -140,46 +139,45 @@ func (orderer *Orderer) applyViewChangeSignResult(m dsl.Module, signature []byte
 func (orderer *Orderer) applyMsgSignedViewChange(m dsl.Module, svc *pbftpbtypes.SignedViewChange, from t.NodeID) {
 	// TODO Update to use VerifySig and not VerifySigs (and corresponding Upon closure)
 	viewChange := svc.ViewChange
-	cryptopbdsl.VerifySigs(
+	cryptopbdsl.VerifySig(
 		m,
 		orderer.moduleConfig.Crypto,
-		[]*cryptopbtypes.SignedData{serializeViewChangeForSigning(viewChange)},
-		[][]byte{svc.Signature},
-		[]t.NodeID{from},
-		viewChangeSigVerOrigin(svc.Pb()),
+		serializeViewChangeForSigning(viewChange),
+		svc.Signature,
+		from,
+		svc,
 	)
 }
 
-func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpb.SignedViewChange, from t.NodeID) {
+func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpbtypes.SignedViewChange, from t.NodeID) {
 	orderer.logger.Log(logging.LevelDebug, "Received ViewChange.", "sender", from)
 
 	// Convenience variables.
 	vc := svc.ViewChange
-	vcView := types2.ViewNr(vc.View)
 
 	// Ignore message if it is from an old view.
-	if vcView < orderer.view {
+	if vc.View < orderer.view {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring ViewChange from old view.",
 			"sender", from,
-			"vcView", vcView,
+			"vcView", vc.View,
 			"localView", orderer.view,
 		)
 		return
 	}
 
 	// Discard ViewChange message if this node is not the primary for the referenced view
-	primary := orderer.segment.PrimaryNode(vcView)
+	primary := orderer.segment.PrimaryNode(vc.View)
 	if orderer.ownID != primary {
 		orderer.logger.Log(logging.LevelDebug, "Ignoring ViewChange. Not the primary of view",
 			"sender", from,
-			"vcView", vcView,
+			"vcView", vc.View,
 			"primary", primary,
 		)
 		return
 	}
 
 	// Look up the state associated with the view change sub-protocol.
-	state := orderer.getViewChangeState(vcView)
+	state := orderer.getViewChangeState(vc.View)
 
 	// If enough ViewChange messages had been received already, ignore the message just received.
 	if state.EnoughViewChanges() {
@@ -188,7 +186,7 @@ func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpb.Signed
 	}
 
 	// Update the view change state by the received ViewChange message.
-	state.AddSignedViewChange(pbftpbtypes.SignedViewChangeFromPb(svc), from)
+	state.AddSignedViewChange(svc, from)
 
 	orderer.logger.Log(logging.LevelDebug, "Added ViewChange.", "numViewChanges", len(state.signedViewChanges))
 
@@ -197,13 +195,13 @@ func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpb.Signed
 		orderer.logger.Log(logging.LevelDebug, "Received enough ViewChanges.")
 
 		// Fill in empty Preprepare messages for all sequence numbers where nothing was prepared in the old view.
-		emptyPreprepareData := state.SetEmptyPreprepares(vcView, orderer.segment.Proposals)
+		emptyPreprepareData := state.SetEmptyPreprepares(vc.View, orderer.segment.Proposals)
 
 		// Request hashing of the new Preprepare messages
 		hasherpbdsl.Request(m,
 			orderer.moduleConfig.Hasher,
 			emptyPreprepareData,
-			emptyPreprepareHashOrigin(vcView))
+			emptyPreprepareHashOrigin(vc.View))
 	}
 
 	// TODO: Consider checking whether a quorum of valid view change messages has been almost received
@@ -214,7 +212,7 @@ func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpb.Signed
 func (orderer *Orderer) applyEmptyPreprepareHashResult(
 	m dsl.Module,
 	digests [][]byte,
-	view types2.ViewNr,
+	view ot.ViewNr,
 ) error {
 
 	// Ignore hash result if the view has advanced in the meantime.
@@ -326,7 +324,7 @@ func (orderer *Orderer) applyMissingPreprepareHashResult(
 	}
 }
 
-func (orderer *Orderer) sendNewView(m dsl.Module, view types2.ViewNr, vcState *pbftViewChangeState) {
+func (orderer *Orderer) sendNewView(m dsl.Module, view ot.ViewNr, vcState *pbftViewChangeState) {
 
 	orderer.logger.Log(logging.LevelDebug, "Sending NewView.")
 
@@ -391,16 +389,16 @@ func (orderer *Orderer) applyMsgNewView(m dsl.Module, newView *pbftpbtypes.NewVi
 		viewChangeData,
 		signatures,
 		t.NodeIDSlice(newView.ViewChangeSenders),
-		newViewSigVerOrigin(newView.Pb()),
+		newView,
 	)
 
 }
 
-func (orderer *Orderer) applyVerifiedNewView(m dsl.Module, newView *pbftpb.NewView) {
+func (orderer *Orderer) applyVerifiedNewView(m dsl.Module, newView *pbftpbtypes.NewView) {
 	// Serialize obtained Preprepare messages for hashing.
 	dataToHash := make([]*hasherpbtypes.HashData, len(newView.Preprepares))
 	for i, preprepare := range newView.Preprepares { // Preprepares in a NewView message are sorted by sequence number.
-		dataToHash[i] = serializePreprepareForHashing(pbftpbtypes.PreprepareFromPb(preprepare))
+		dataToHash[i] = serializePreprepareForHashing(preprepare)
 	}
 
 	// Request hashes of the Preprepare messages.
@@ -408,7 +406,7 @@ func (orderer *Orderer) applyVerifiedNewView(m dsl.Module, newView *pbftpb.NewVi
 		m,
 		orderer.moduleConfig.Hasher,
 		dataToHash,
-		newViewHashOrigin(newView),
+		newViewHashOrigin(newView.Pb()),
 	)
 }
 
@@ -478,7 +476,7 @@ func (orderer *Orderer) applyNewViewHashResult(m dsl.Module, digests [][]byte, n
 // Auxiliary functions
 // ============================================================
 
-func validFreshPreprepare(preprepare *pbftpbtypes.Preprepare, view types2.ViewNr, sn tt.SeqNr) bool {
+func validFreshPreprepare(preprepare *pbftpbtypes.Preprepare, view ot.ViewNr, sn tt.SeqNr) bool {
 	return preprepare.Aborted &&
 		preprepare.Sn == sn &&
 		preprepare.View == view
@@ -486,7 +484,7 @@ func validFreshPreprepare(preprepare *pbftpbtypes.Preprepare, view types2.ViewNr
 
 // viewChangeState returns the state of the view change sub-protocol associated with the given view,
 // allocating the associated data structures as needed.
-func (orderer *Orderer) getViewChangeState(view types2.ViewNr) *pbftViewChangeState {
+func (orderer *Orderer) getViewChangeState(view ot.ViewNr) *pbftViewChangeState {
 
 	if vcs, ok := orderer.viewChangeStates[view]; ok {
 		// If a view change state is already present, return it.
@@ -502,11 +500,11 @@ func (orderer *Orderer) getViewChangeState(view types2.ViewNr) *pbftViewChangeSt
 // Returns the view change state with the highest view number that received enough view change messages
 // (along with the view number itself).
 // If there is no view change state with enough ViewChange messages received, returns nil.
-func (orderer *Orderer) latestPendingVCState() (*pbftViewChangeState, types2.ViewNr) {
+func (orderer *Orderer) latestPendingVCState() (*pbftViewChangeState, ot.ViewNr) {
 
 	// View change state with the highest view that received enough ViewChange messages and its view number.
 	var state *pbftViewChangeState
-	var view types2.ViewNr
+	var view ot.ViewNr
 
 	// Find and return the view change state with the highest view number that received enough ViewChange messages.
 	for v, s := range orderer.viewChangeStates {
@@ -569,7 +567,7 @@ func reconstructPSet(entries []*pbftpbtypes.PSetEntry) (viewChangePSet, error) {
 // For each sequence number, it holds the digests (encoded as string map keys)
 // of all values preprepared for that sequence number,
 // along with the latest view in which each of them was preprepared.
-type viewChangeQSet map[tt.SeqNr]map[string]types2.ViewNr
+type viewChangeQSet map[tt.SeqNr]map[string]ot.ViewNr
 
 // PbType returns a protobuf tye representation (not a raw protobuf, but the generated type) of a viewChangeQSet,
 // where all entries, represented as (sn, view, digest) tuples, are stored in a simple list.
@@ -605,11 +603,11 @@ func reconstructQSet(entries []*pbftpbtypes.QSetEntry) (viewChangeQSet, error) {
 	qSet := make(viewChangeQSet)
 	for _, entry := range entries {
 
-		var snEntry map[string]types2.ViewNr
+		var snEntry map[string]ot.ViewNr
 		if sne, ok := qSet[entry.Sn]; ok {
 			snEntry = sne
 		} else {
-			snEntry = make(map[string]types2.ViewNr)
+			snEntry = make(map[string]ot.ViewNr)
 			qSet[entry.Sn] = snEntry
 		}
 
@@ -666,7 +664,7 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 	pSet = make(map[tt.SeqNr]*pbftpbtypes.PSetEntry)
 
 	// Initialize the QSet.
-	qSet = make(map[tt.SeqNr]map[string]types2.ViewNr)
+	qSet = make(map[tt.SeqNr]map[string]ot.ViewNr)
 
 	// For each sequence number, compute the PSet and the QSet.
 	for _, sn := range orderer.segment.SeqNrs() {
@@ -674,11 +672,11 @@ func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet)
 		// Initialize QSet.
 		// (No need to initialize the PSet, as, unlike the PSet,
 		// the QSet may hold multiple values for the same sequence number.)
-		qSet[sn] = make(map[string]types2.ViewNr)
+		qSet[sn] = make(map[string]ot.ViewNr)
 
 		// Traverse all previous views.
 		// The direction of iteration is important, so the values from newer views can overwrite values from older ones.
-		for view := types2.ViewNr(0); view < orderer.view; view++ {
+		for view := ot.ViewNr(0); view < orderer.view; view++ {
 			// Skip views that the node did not even enter
 			if slots, ok := orderer.slots[view]; ok {
 
@@ -741,7 +739,7 @@ func noPrepareConflictsA1(
 	pSets map[t.NodeID]viewChangePSet,
 	sn tt.SeqNr,
 	digest []byte,
-	view types2.ViewNr,
+	view ot.ViewNr,
 	numNodes int,
 ) bool {
 	numNonConflicting := 0
@@ -764,7 +762,7 @@ func enoughPrepreparesA2(
 	qSets map[t.NodeID]viewChangeQSet,
 	sn tt.SeqNr,
 	digest []byte,
-	view types2.ViewNr,
+	view ot.ViewNr,
 	numNodes int,
 ) (bool, []t.NodeID) {
 

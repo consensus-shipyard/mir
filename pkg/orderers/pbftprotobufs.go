@@ -30,7 +30,7 @@ import (
 
 func PbftViewChangeSNTimeout(view types.ViewNr, numCommitted int) *ordererpb.Event {
 	return &ordererpb.Event{Type: &ordererpb.Event_Pbft{
-		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: &pbftpb.VCSNTimeout{
+		Pbft: &pbftpb.Event{Type: &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: &pbftpb.ViewChangeSNTimeout{
 			View:         view.Pb(),
 			NumCommitted: uint64(numCommitted),
 		}}},

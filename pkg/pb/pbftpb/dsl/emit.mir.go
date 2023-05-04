@@ -13,8 +13,8 @@ func ProposeTimeout(m dsl.Module, destModule types.ModuleID, proposeTimeout uint
 	dsl.EmitMirEvent(m, events.ProposeTimeout(destModule, proposeTimeout))
 }
 
-func VCSNTimeout(m dsl.Module, destModule types.ModuleID, view types1.ViewNr, numCommitted uint64) {
-	dsl.EmitMirEvent(m, events.VCSNTimeout(destModule, view, numCommitted))
+func ViewChangeSNTimeout(m dsl.Module, destModule types.ModuleID, view types1.ViewNr, numCommitted uint64) {
+	dsl.EmitMirEvent(m, events.ViewChangeSNTimeout(destModule, view, numCommitted))
 }
 
 func ViewChangeSegTimeout(m dsl.Module, destModule types.ModuleID, viewChangeSegTimeout uint64) {
