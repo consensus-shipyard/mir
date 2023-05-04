@@ -53,12 +53,6 @@ func missingPreprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashO
 	}
 }
 
-func viewChangeSigVerOrigin(viewChange *pbftpb.SignedViewChange) *ordererpb.SigVerOrigin_Pbft {
-	return &ordererpb.SigVerOrigin_Pbft{
-		Pbft: &pbftpb.SigVerOrigin{Type: &pbftpb.SigVerOrigin_SignedViewChange{SignedViewChange: viewChange}},
-	}
-}
-
 func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin_Pbft {
 	return &ordererpb.HashOrigin_Pbft{
 		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_EmptyPreprepares{EmptyPreprepares: view.Pb()}},
@@ -68,12 +62,6 @@ func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin_Pbft {
 func newViewSigVerOrigin(newView *pbftpb.NewView) *ordererpb.SigVerOrigin_Pbft {
 	return &ordererpb.SigVerOrigin_Pbft{
 		Pbft: &pbftpb.SigVerOrigin{Type: &pbftpb.SigVerOrigin_NewView{NewView: newView}},
-	}
-}
-
-func newViewHashOrigin(newView *pbftpb.NewView) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_NewView{NewView: newView}},
 	}
 }
 
