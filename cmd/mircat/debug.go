@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/filecoin-project/mir/pkg/timer"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -179,7 +180,7 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 	nullTransport := &NullTransport{}
 
 	// Instantiate and return a minimal Mir Node.
-	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
+	nodeModules := map[t.ModuleID]modules.Module{
 		"net":    nullTransport,
 		"crypto": mirCrypto.New(cryptoImpl),
 		"app": appmodule.NewAppModule(
@@ -190,13 +191,14 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 			nullTransport,
 			"iss",
 		),
-		"iss": protocol,
-	}, iss.DefaultModuleConfig())
+		"iss":   protocol,
+		"timer": timer.New(),
+	}
 	if err != nil {
 		panic(fmt.Errorf("error initializing the Mir modules: %w", err))
 	}
 
-	node, err := mir.NewNode(id, mir.DefaultNodeConfig().WithLogger(logger), modulesWithDefaults, nil)
+	node, err := mir.NewNode(id, mir.DefaultNodeConfig().WithLogger(logger), nodeModules, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate mir node: %w", err)
 	}
