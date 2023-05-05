@@ -3,7 +3,6 @@ package cryptopbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
@@ -365,8 +364,6 @@ func SignOrigin_TypeFromPb(pb cryptopb.SignOrigin_Type) SignOrigin_Type {
 		return &SignOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *cryptopb.SignOrigin_Dsl:
 		return &SignOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
-	case *cryptopb.SignOrigin_Checkpoint:
-		return &SignOrigin_Checkpoint{Checkpoint: types4.SignOriginFromPb(pb.Checkpoint)}
 	}
 	return nil
 }
@@ -405,24 +402,6 @@ func (w *SignOrigin_Dsl) Pb() cryptopb.SignOrigin_Type {
 
 func (*SignOrigin_Dsl) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SignOrigin_Dsl]()}
-}
-
-type SignOrigin_Checkpoint struct {
-	Checkpoint *types4.SignOrigin
-}
-
-func (*SignOrigin_Checkpoint) isSignOrigin_Type() {}
-
-func (w *SignOrigin_Checkpoint) Unwrap() *types4.SignOrigin {
-	return w.Checkpoint
-}
-
-func (w *SignOrigin_Checkpoint) Pb() cryptopb.SignOrigin_Type {
-	return &cryptopb.SignOrigin_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
-}
-
-func (*SignOrigin_Checkpoint) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SignOrigin_Checkpoint]()}
 }
 
 func SignOriginFromPb(pb *cryptopb.SignOrigin) *SignOrigin {
@@ -465,8 +444,6 @@ func SigVerOrigin_TypeFromPb(pb cryptopb.SigVerOrigin_Type) SigVerOrigin_Type {
 		return &SigVerOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *cryptopb.SigVerOrigin_Dsl:
 		return &SigVerOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
-	case *cryptopb.SigVerOrigin_Checkpoint:
-		return &SigVerOrigin_Checkpoint{Checkpoint: types4.SigVerOriginFromPb(pb.Checkpoint)}
 	}
 	return nil
 }
@@ -505,24 +482,6 @@ func (w *SigVerOrigin_Dsl) Pb() cryptopb.SigVerOrigin_Type {
 
 func (*SigVerOrigin_Dsl) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SigVerOrigin_Dsl]()}
-}
-
-type SigVerOrigin_Checkpoint struct {
-	Checkpoint *types4.SigVerOrigin
-}
-
-func (*SigVerOrigin_Checkpoint) isSigVerOrigin_Type() {}
-
-func (w *SigVerOrigin_Checkpoint) Unwrap() *types4.SigVerOrigin {
-	return w.Checkpoint
-}
-
-func (w *SigVerOrigin_Checkpoint) Pb() cryptopb.SigVerOrigin_Type {
-	return &cryptopb.SigVerOrigin_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
-}
-
-func (*SigVerOrigin_Checkpoint) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*cryptopb.SigVerOrigin_Checkpoint]()}
 }
 
 func SigVerOriginFromPb(pb *cryptopb.SigVerOrigin) *SigVerOrigin {

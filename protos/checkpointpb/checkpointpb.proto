@@ -64,18 +64,6 @@ message EpochProgress {
   uint64 epoch   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
 }
 
-message HashOrigin {
-  option (mir.struct) = true;
-}
-
-message SignOrigin {
-  option (mir.struct) = true;
-}
-
-message SigVerOrigin {
-  option (mir.struct) = true;
-}
-
 message InstanceParams {
   option (mir.struct) = true;
 

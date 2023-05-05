@@ -16,8 +16,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 func (*HashOrigin) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*HashOrigin_ContextStore)(nil)),
-		reflect.TypeOf((*HashOrigin_Request)(nil)),
 		reflect.TypeOf((*HashOrigin_Dsl)(nil)),
-		reflect.TypeOf((*HashOrigin_Checkpoint)(nil)),
 	}
 }

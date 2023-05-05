@@ -1,7 +1,6 @@
 package cryptopb
 
 import (
-	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
 )
@@ -52,10 +51,6 @@ func (w *SignOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
 }
 
-func (w *SignOrigin_Checkpoint) Unwrap() *checkpointpb.SignOrigin {
-	return w.Checkpoint
-}
-
 type SigVerOrigin_Type = isSigVerOrigin_Type
 
 type SigVerOrigin_TypeWrapper[T any] interface {
@@ -69,8 +64,4 @@ func (w *SigVerOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 
 func (w *SigVerOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
-}
-
-func (w *SigVerOrigin_Checkpoint) Unwrap() *checkpointpb.SigVerOrigin {
-	return w.Checkpoint
 }

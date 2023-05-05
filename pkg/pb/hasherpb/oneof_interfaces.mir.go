@@ -1,10 +1,8 @@
 package hasherpb
 
 import (
-	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	contextstorepb "github.com/filecoin-project/mir/pkg/pb/contextstorepb"
 	dslpb "github.com/filecoin-project/mir/pkg/pb/dslpb"
-	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 )
 
 type Event_Type = isEvent_Type
@@ -41,14 +39,6 @@ func (w *HashOrigin_ContextStore) Unwrap() *contextstorepb.Origin {
 	return w.ContextStore
 }
 
-func (w *HashOrigin_Request) Unwrap() *trantorpb.Transaction {
-	return w.Request
-}
-
 func (w *HashOrigin_Dsl) Unwrap() *dslpb.Origin {
 	return w.Dsl
-}
-
-func (w *HashOrigin_Checkpoint) Unwrap() *checkpointpb.HashOrigin {
-	return w.Checkpoint
 }
