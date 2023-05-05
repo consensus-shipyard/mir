@@ -18,11 +18,12 @@ func (uid InstanceUID) Bytes() []byte {
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
 type ModuleConfig struct {
-	Self    t.ModuleID // id of this module
-	Mempool t.ModuleID
+	Self t.ModuleID // id of this module
+
 	BatchDB t.ModuleID
-	Net     t.ModuleID
 	Crypto  t.ModuleID
+	Mempool t.ModuleID
+	Net     t.ModuleID
 }
 
 // ModuleParams sets the values for the parameters of an instance of the protocol.

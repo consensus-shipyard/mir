@@ -22,11 +22,12 @@ type ModuleConfig = common.ModuleConfig
 // DefaultModuleConfig returns a valid module config with default names for all modules.
 func DefaultModuleConfig() *ModuleConfig {
 	return &ModuleConfig{
-		Self:    "availability",
-		Mempool: "mempool",
+		Self: "availability",
+
 		BatchDB: "batchdb",
-		Net:     "net",
 		Crypto:  "crypto",
+		Mempool: "mempool",
+		Net:     "net",
 	}
 }
 

@@ -90,7 +90,7 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 				return nil, fmt.Errorf("unsupported factory event subtype: %T", e)
 			}
 		default:
-			return nil, fmt.Errorf("unsupported event type for factory module: %T", e)
+			return nil, fmt.Errorf("unsupported event type for factory module: %T, %v", e, e)
 		}
 	}
 	return fm.forwardEvent(event)
