@@ -17,7 +17,6 @@ import (
 	orderertypes "github.com/filecoin-project/mir/pkg/orderers/types"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
@@ -221,16 +220,16 @@ func (orderer *Orderer) applyMsgPreprepare(m dsl.Module, preprepare *pbftpbtypes
 		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		preprepareHashOrigin(preprepare.Pb()),
+		preprepare,
 	)
 }
 
-func (orderer *Orderer) applyPreprepareHashResult(m dsl.Module, digest []byte, preprepare *pbftpb.Preprepare) {
+func (orderer *Orderer) applyPreprepareHashResult(m dsl.Module, digest []byte, preprepare *pbftpbtypes.Preprepare) {
 	// Convenience variable.
-	sn := tt.SeqNr(preprepare.Sn)
+	sn := preprepare.Sn
 
 	// Stop processing the Preprepare if view advanced in the meantime.
-	if orderertypes.ViewNr(preprepare.View) < orderer.view {
+	if preprepare.View < orderer.view {
 		return
 	}
 
