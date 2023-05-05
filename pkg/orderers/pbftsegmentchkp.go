@@ -286,7 +286,7 @@ func (orderer *Orderer) applyMsgCatchUpResponse(m dsl.Module, preprepare *pbftpb
 		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		&CatchUpResponse{preprepare},
+		&pbftpbtypes.CatchUpResponse{Resp: preprepare},
 	)
 }
 
