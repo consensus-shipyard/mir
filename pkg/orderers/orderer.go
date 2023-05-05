@@ -212,7 +212,7 @@ func NewOrdererModule(
 		return orderer.applyEmptyPreprepareHashResult(m, digests, *context)
 	})
 
-	hasherpbdsl.UponResult(m, func(digests [][]byte, context *MissingPreprepares) error {
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.MissingPreprepare) error {
 		orderer.applyMissingPreprepareHashResult(
 			m,
 			digests[0],
@@ -225,11 +225,11 @@ func NewOrdererModule(
 		return orderer.applyNewViewHashResult(m, digests, context)
 	})
 
-	hasherpbdsl.UponResult(m, func(digests [][]byte, context *CatchUpResponse) error {
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.CatchUpResponse) error {
 		orderer.applyCatchUpResponseHashResult(
 			m,
 			digests[0],
-			context.Preprepare,
+			context.Resp,
 		)
 		return nil
 	})
@@ -590,12 +590,4 @@ func InstanceParams(
 			ValidityChecker: uint64(validityCheckerType),
 		},
 	}}
-}
-
-type MissingPreprepares struct {
-	*pbftpbtypes.Preprepare
-}
-
-type CatchUpResponse struct {
-	*pbftpbtypes.Preprepare
 }
