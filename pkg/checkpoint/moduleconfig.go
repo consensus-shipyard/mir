@@ -1,4 +1,4 @@
-package common
+package checkpoint
 
 import t "github.com/filecoin-project/mir/pkg/types"
 

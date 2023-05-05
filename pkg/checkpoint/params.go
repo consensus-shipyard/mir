@@ -1,4 +1,4 @@
-package common
+package checkpoint
 
 import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
