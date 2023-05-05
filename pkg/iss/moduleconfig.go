@@ -14,16 +14,3 @@ type ModuleConfig struct {
 	Ordering     t.ModuleID
 	Timer        t.ModuleID
 }
-
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self: "iss",
-
-		App:          "batchfetcher",
-		Availability: "availability",
-		Checkpoint:   "checkpointing",
-		Net:          "net",
-		Ordering:     "ordering",
-		Timer:        "timer",
-	}
-}

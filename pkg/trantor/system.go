@@ -123,7 +123,7 @@ func New(
 	}
 	issProtocol, err := iss.New(
 		ownID,
-		&issModuleConfig,
+		issModuleConfig,
 		params.Iss,
 		startingCheckpoint,
 		hashImpl,
@@ -145,7 +145,7 @@ func New(
 		Ord:    moduleConfig.ISS,
 	}
 	trantorModules[moduleConfig.Checkpointing] = checkpoint.Factory(
-		&chkpModuleConfig,
+		chkpModuleConfig,
 		ownID,
 		logging.Decorate(logger, "CHKP: "),
 	)
@@ -162,7 +162,7 @@ func New(
 		Timer:  moduleConfig.Timer,
 	}
 	trantorModules[moduleConfig.Ordering] = orderers.Factory(
-		&orderingModuleConfig,
+		orderingModuleConfig,
 		params.Iss,
 		ownID,
 		hashImpl,
@@ -176,7 +176,7 @@ func New(
 		Hasher: moduleConfig.Hasher,
 	}
 	trantorModules[moduleConfig.Mempool] = simplemempool.NewModule(
-		&mempoolModuleConfig,
+		mempoolModuleConfig,
 		params.Mempool,
 	)
 
@@ -184,7 +184,7 @@ func New(
 	batchDbModuleConfig := fakebatchdb.ModuleConfig{
 		Self: moduleConfig.BatchDB,
 	}
-	trantorModules[moduleConfig.BatchDB] = fakebatchdb.NewModule(&batchDbModuleConfig)
+	trantorModules[moduleConfig.BatchDB] = fakebatchdb.NewModule(batchDbModuleConfig)
 
 	// Instantiate the availability component.
 	availModuleConfig := multisigcollector.ModuleConfig{
@@ -194,7 +194,7 @@ func New(
 		Net:     moduleConfig.Net,
 		Crypto:  moduleConfig.Crypto,
 	}
-	trantorModules[moduleConfig.Availability] = multisigcollector.NewReconfigurableModule(&availModuleConfig, logger)
+	trantorModules[moduleConfig.Availability] = multisigcollector.NewReconfigurableModule(availModuleConfig, logger)
 
 	// Instantiate the batch fetcher module that transforms availability certificates ordered by ISS
 	// into batches of transactions that can be applied to the replicated application.
@@ -206,7 +206,7 @@ func New(
 		Destination:  moduleConfig.App,
 	}
 	trantorModules[moduleConfig.BatchFetcher] = batchfetcher.NewModule(
-		&bfModuleConfig,
+		bfModuleConfig,
 		startingCheckpoint.Epoch(),
 		startingCheckpoint.ClientProgress(logger),
 		logger,

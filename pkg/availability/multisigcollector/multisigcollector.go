@@ -19,18 +19,6 @@ import (
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
 type ModuleConfig = common.ModuleConfig
 
-// DefaultModuleConfig returns a valid module config with default names for all modules.
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self: "availability",
-
-		BatchDB: "batchdb",
-		Crypto:  "crypto",
-		Mempool: "mempool",
-		Net:     "net",
-	}
-}
-
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams = common.ModuleParams
@@ -40,7 +28,7 @@ type ModuleParams = common.ModuleParams
 // Whenever an availability certificate is requested, it pulls a batch from the mempool module,
 // sends it to all replicas and collects params.F+1 signatures confirming that
 // other nodes have persistently stored the batch.
-func NewModule(mc *ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
+func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
 	if len(params.AllNodes) < 2*params.F+1 {
 		return nil, fmt.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
 	}
@@ -53,7 +41,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, logger logging.Logger) (m
 	return m, nil
 }
 
-func NewReconfigurableModule(mc *ModuleConfig, logger logging.Logger) modules.PassiveModule {
+func NewReconfigurableModule(mc ModuleConfig, logger logging.Logger) modules.PassiveModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -71,12 +59,12 @@ func NewReconfigurableModule(mc *ModuleConfig, logger logging.Logger) modules.Pa
 				mscNodeIDs := maputil.GetSortedKeys(mscParams.Membership.Nodes)
 
 				// Create a copy of basic module config with an adapted ID for the submodule.
-				submc := *mc
+				submc := mc
 				submc.Self = mscID
 
 				// Create a new instance of the multisig collector.
 				multisigCollector, err := NewModule(
-					&submc,
+					submc,
 					&ModuleParams{
 						// TODO: Use InstanceUIDs properly.
 						//       (E.g., concatenate this with the instantiating protocol's InstanceUID when introduced.)

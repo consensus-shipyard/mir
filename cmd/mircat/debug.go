@@ -166,7 +166,15 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 	}
 	protocol, err := iss.New(
 		id,
-		iss.DefaultModuleConfig(),
+		iss.ModuleConfig{
+			Self:         "iss",
+			App:          "batchfetcher",
+			Availability: "availability",
+			Checkpoint:   "checkpointing",
+			Net:          "net",
+			Ordering:     "ordering",
+			Timer:        "timer",
+		},
 		issConfig,
 		checkpoint.Genesis(stateSnapshotpb),
 		crypto.SHA256,

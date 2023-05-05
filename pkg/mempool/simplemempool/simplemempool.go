@@ -18,14 +18,6 @@ type ModuleConfig = common.ModuleConfig
 // All replicas are expected to use identical module parameters.
 type ModuleParams = common.ModuleParams
 
-// DefaultModuleConfig returns a valid module config with default names for all modules.
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self:   "availability",
-		Hasher: "hasher",
-	}
-}
-
 func DefaultModuleParams() *ModuleParams {
 	return &ModuleParams{
 		MaxTransactionsInBatch: 10,
@@ -40,7 +32,7 @@ func DefaultModuleParams() *ModuleParams {
 // previous batch request as possible with respect to params.MaxTransactionsInBatch.
 //
 // This implementation uses the hash function provided by the mc.Hasher module to compute transaction IDs and batch IDs.
-func NewModule(mc *ModuleConfig, params *ModuleParams) modules.Module {
+func NewModule(mc ModuleConfig, params *ModuleParams) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{

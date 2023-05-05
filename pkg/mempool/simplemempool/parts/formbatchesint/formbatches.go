@@ -17,7 +17,7 @@ type State struct {
 // IncludeBatchCreation registers event handlers for processing NewRequests and RequestBatch events.
 func IncludeBatchCreation(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	params *common.ModuleParams,
 	commonState *common.State,
 ) {

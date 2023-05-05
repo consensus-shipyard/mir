@@ -48,7 +48,7 @@ type certificate struct {
 // IncludeCreatingCertificates registers event handlers for processing availabilitypb.RequestCert events.
 func IncludeCreatingCertificates(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	params *common.ModuleParams,
 	logger logging.Logger,
 ) {

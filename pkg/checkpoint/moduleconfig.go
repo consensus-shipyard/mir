@@ -11,15 +11,3 @@ type ModuleConfig struct {
 	Net    t.ModuleID
 	Ord    t.ModuleID
 }
-
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self: "checkpoint",
-
-		App:    "app",
-		Hasher: "hasher",
-		Crypto: "crypto",
-		Net:    "net",
-		Ord:    "iss",
-	}
-}

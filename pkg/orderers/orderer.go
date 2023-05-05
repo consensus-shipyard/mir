@@ -59,7 +59,7 @@ type Orderer struct {
 	config *PBFTConfig
 
 	// IDs of modules the checkpoint tracker interacts with.
-	moduleConfig *ModuleConfig
+	moduleConfig ModuleConfig
 
 	// The segment governing this SB instance, specifying the leader, the set of sequence numbers, the buckets, etc.
 	segment *Segment
@@ -111,7 +111,7 @@ type Orderer struct {
 //   - logger: Logger for outputting debugging messages.
 
 func NewOrdererModule(
-	moduleConfig *ModuleConfig,
+	moduleConfig ModuleConfig,
 	ownID t.NodeID,
 	segment *Segment,
 	config *PBFTConfig,

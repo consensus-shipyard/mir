@@ -20,7 +20,7 @@ const (
 )
 
 func Factory(
-	mc *ModuleConfig,
+	mc ModuleConfig,
 	issParams *issconfig.ModuleParams,
 	ownID t.NodeID,
 	hashImpl crypto.HashImpl,
@@ -39,7 +39,7 @@ func Factory(
 			func(submoduleID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Crate a copy of basic module config with an adapted ID for the submodule.
-				submc := *mc
+				submc := mc
 				submc.Self = submoduleID
 
 				// Load parameters from received protobuf
@@ -68,7 +68,7 @@ func Factory(
 
 				// Instantiate new protocol instance.
 				protocol := NewOrdererModule(
-					&submc,
+					submc,
 					ownID,
 					segment,
 					ordererConfig,

@@ -13,17 +13,3 @@ type ModuleConfig struct {
 	Ord    t.ModuleID
 	Timer  t.ModuleID
 }
-
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self: "ordering",
-
-		App: "batchfetcher",
-		// Ava not initialized by default. Must be set at module instantiation.
-		Crypto: "crypto",
-		Hasher: "hasher",
-		Net:    "net",
-		Ord:    "iss",
-		Timer:  "timer",
-	}
-}

@@ -11,7 +11,7 @@ import (
 // IncludeTransactionLookupByID registers event handlers for processing RequestTransactions events.
 func IncludeTransactionLookupByID(
 	m dsl.Module,
-	_ *common.ModuleConfig,
+	_ common.ModuleConfig,
 	_ *common.ModuleParams,
 	commonState *common.State,
 ) {

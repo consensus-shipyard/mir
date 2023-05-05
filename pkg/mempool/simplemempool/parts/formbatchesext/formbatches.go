@@ -12,7 +12,7 @@ import (
 // IncludeBatchCreation registers event handlers for processing NewTransactions and RequestBatch events.
 func IncludeBatchCreation(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	fetchTransactions func() []*trantorpbtypes.Transaction,
 ) {
 

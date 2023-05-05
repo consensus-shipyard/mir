@@ -174,7 +174,7 @@ func (vcState *pbftViewChangeState) SetLocalPreprepares(pbft *Orderer, view type
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message
 // and will be succeeded by another primary after another view change.
-func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, moduleConfig *ModuleConfig) {
+func (vcState *pbftViewChangeState) askForMissingPreprepares(m dsl.Module, moduleConfig ModuleConfig) {
 	for sn, digest := range vcState.reproposals {
 		if len(digest) > 0 && vcState.preprepares[sn] == nil {
 			transportpbdsl.SendMessage(

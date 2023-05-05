@@ -39,7 +39,7 @@ type RequestState struct {
 // IncludeBatchReconstruction registers event handlers for processing availabilitypb.RequestTransactions events.
 func IncludeBatchReconstruction(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	params *common.ModuleParams,
 	logger logging.Logger,
 ) {

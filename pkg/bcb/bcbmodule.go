@@ -23,16 +23,6 @@ type ModuleConfig struct {
 	Crypto   t.ModuleID
 }
 
-// DefaultModuleConfig returns a valid module config with default names for all modules.
-func DefaultModuleConfig(consumer t.ModuleID) *ModuleConfig {
-	return &ModuleConfig{
-		Self:     "bcb",
-		Consumer: consumer,
-		Net:      "net",
-		Crypto:   "crypto",
-	}
-}
-
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
@@ -67,7 +57,7 @@ type bcbModuleState struct {
 // secure distributed programming". It serves as a motivating example for the DSL module interface.
 // The pseudocode can also be found in https://dcl.epfl.ch/site/_media/education/sdc_byzconsensus.pdf (Algorithm 4
 // (Echo broadcast [Rei94]))
-func NewModule(mc *ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.PassiveModule {
+func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.PassiveModule {
 	m := dsl.NewModule(mc.Self)
 
 	state := bcbModuleState{

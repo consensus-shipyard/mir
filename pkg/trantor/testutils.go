@@ -13,7 +13,7 @@ func PerturbMessages(params *eventmangler.ModuleParams, moduleID types.ModuleID,
 
 	// Create event mangler perturbing (dropping and delaying) events.
 	messageMangler, err := eventmangler.NewModule(
-		&eventmangler.ModuleConfig{Self: moduleID, Dest: "truenet", Timer: "timer"},
+		eventmangler.ModuleConfig{Self: moduleID, Dest: "truenet", Timer: "timer"},
 		params,
 	)
 	if err != nil {

@@ -16,13 +16,6 @@ type ModuleConfig struct {
 	Self t.ModuleID // id of this module
 }
 
-// DefaultModuleConfig returns a valid module config with default names for all modules.
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{
-		Self: "batchdb",
-	}
-}
-
 type txIDString string
 
 type moduleState struct {
@@ -37,7 +30,7 @@ type batchInfo struct {
 
 // NewModule returns a new module for a fake batch database.
 // It stores all the data in memory in plain go maps.
-func NewModule(mc *ModuleConfig) modules.Module {
+func NewModule(mc ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{

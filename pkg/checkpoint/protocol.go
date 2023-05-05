@@ -56,7 +56,7 @@ type State struct {
 
 // NewModule allocates and returns a new instance of the ModuleParams associated with sequence number sn.
 func NewModule(
-	moduleConfig *ModuleConfig,
+	moduleConfig ModuleConfig,
 	params *ModuleParams,
 	logger logging.Logger) modules.PassiveModule {
 
@@ -184,7 +184,7 @@ func NewModule(
 	return m
 }
 
-func processStateSnapshot(m dsl.Module, state *State, mc *ModuleConfig) {
+func processStateSnapshot(m dsl.Module, state *State, mc ModuleConfig) {
 
 	// Initiate computing the hash of the snapshot.
 	hasherpbdsl.RequestOne(m,
@@ -194,7 +194,7 @@ func processStateSnapshot(m dsl.Module, state *State, mc *ModuleConfig) {
 	)
 }
 
-func announceStable(m dsl.Module, p *ModuleParams, state *State, mc *ModuleConfig) {
+func announceStable(m dsl.Module, p *ModuleParams, state *State, mc ModuleConfig) {
 
 	// Only announce the stable checkpoint once.
 	if state.Announced {
@@ -215,7 +215,7 @@ func announceStable(m dsl.Module, p *ModuleParams, state *State, mc *ModuleConfi
 func applyCheckpointReceived(m dsl.Module,
 	p *ModuleParams,
 	state *State,
-	moduleConfig *ModuleConfig,
+	moduleConfig ModuleConfig,
 	from t.NodeID,
 	epoch tt.EpochNr,
 	sn tt.SeqNr,
