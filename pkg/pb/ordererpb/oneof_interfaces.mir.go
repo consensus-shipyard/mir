@@ -23,14 +23,3 @@ type Message_TypeWrapper[T any] interface {
 func (w *Message_Pbft) Unwrap() *pbftpb.Message {
 	return w.Pbft
 }
-
-type SignOrigin_Type = isSignOrigin_Type
-
-type SignOrigin_TypeWrapper[T any] interface {
-	SignOrigin_Type
-	Unwrap() *T
-}
-
-func (w *SignOrigin_Pbft) Unwrap() *pbftpb.SignOrigin {
-	return w.Pbft
-}

@@ -26,13 +26,3 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_ViewChangeSegTimeout)(nil)),
 	}
 }
-
-func (*HashOrigin) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*HashOrigin_Preprepare)(nil)),
-		reflect.TypeOf((*HashOrigin_MissingPreprepare)(nil)),
-		reflect.TypeOf((*HashOrigin_NewView)(nil)),
-		reflect.TypeOf((*HashOrigin_EmptyPreprepares)(nil)),
-		reflect.TypeOf((*HashOrigin_CatchUpResponse)(nil)),
-	}
-}

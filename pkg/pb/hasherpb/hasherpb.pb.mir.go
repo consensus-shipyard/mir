@@ -19,6 +19,5 @@ func (*HashOrigin) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*HashOrigin_Request)(nil)),
 		reflect.TypeOf((*HashOrigin_Dsl)(nil)),
 		reflect.TypeOf((*HashOrigin_Checkpoint)(nil)),
-		reflect.TypeOf((*HashOrigin_Sb)(nil)),
 	}
 }

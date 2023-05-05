@@ -7,7 +7,6 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
-	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -252,8 +251,6 @@ func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
 		return &HashOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
 	case *hasherpb.HashOrigin_Checkpoint:
 		return &HashOrigin_Checkpoint{Checkpoint: types5.HashOriginFromPb(pb.Checkpoint)}
-	case *hasherpb.HashOrigin_Sb:
-		return &HashOrigin_Sb{Sb: pb.Sb}
 	}
 	return nil
 }
@@ -328,24 +325,6 @@ func (w *HashOrigin_Checkpoint) Pb() hasherpb.HashOrigin_Type {
 
 func (*HashOrigin_Checkpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*hasherpb.HashOrigin_Checkpoint]()}
-}
-
-type HashOrigin_Sb struct {
-	Sb *ordererpb.HashOrigin
-}
-
-func (*HashOrigin_Sb) isHashOrigin_Type() {}
-
-func (w *HashOrigin_Sb) Unwrap() *ordererpb.HashOrigin {
-	return w.Sb
-}
-
-func (w *HashOrigin_Sb) Pb() hasherpb.HashOrigin_Type {
-	return &hasherpb.HashOrigin_Sb{Sb: w.Sb}
-}
-
-func (*HashOrigin_Sb) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*hasherpb.HashOrigin_Sb]()}
 }
 
 func HashOriginFromPb(pb *hasherpb.HashOrigin) *HashOrigin {

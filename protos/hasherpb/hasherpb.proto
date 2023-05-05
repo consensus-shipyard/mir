@@ -8,7 +8,6 @@ import "contextstorepb/contextstorepb.proto";
 import "trantorpb/trantorpb.proto";
 import "dslpb/dslpb.proto";
 import "checkpointpb/checkpointpb.proto";
-import "ordererpb/ordererpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -62,7 +61,6 @@ message HashOrigin {
     trantorpb.Transaction               request       = 3;
     dslpb.Origin                    dsl           = 4;
     checkpointpb.HashOrigin         checkpoint    = 5;
-    ordererpb.HashOrigin            sb            = 6;
   }
 }
 
