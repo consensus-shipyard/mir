@@ -287,7 +287,7 @@ func (orderer *Orderer) applyMsgMissingPreprepare(m dsl.Module, preprepare *pbft
 		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		&pbftpbtypes.MissingPreprepare{Preprepare: preprepare},
+		&MissingPreprepares{preprepare},
 	)
 }
 
