@@ -3,22 +3,22 @@ package trantor
 import (
 	"crypto"
 
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
+	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/timer"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"github.com/pkg/errors"
 
-	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/orderers"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -111,19 +111,31 @@ func New(
 	moduleConfig := DefaultModuleConfig()
 	trantorModules := make(map[t.ModuleID]modules.Module)
 
-	// Instantiate the ISS ordering protocol.
-	issModuleConfig := iss.ModuleConfig{
-		Self:         moduleConfig.ISS,
-		App:          moduleConfig.BatchFetcher,
-		Availability: moduleConfig.Availability,
-		Checkpoint:   moduleConfig.Checkpointing,
-		Net:          moduleConfig.Net,
-		Ordering:     moduleConfig.Ordering,
-		Timer:        moduleConfig.Timer,
-	}
+	// The mempool stores the incoming transactions waiting to be proposed.
+	// The simple mempool implementation stores all those transactions in memory.
+	trantorModules[moduleConfig.Mempool] = simplemempool.NewModule(
+		moduleConfig.ConfigureSimpleMempool(),
+		params.Mempool,
+	)
+
+	// The availability component takes transactions from the mempool and disseminates them (including their payload)
+	// to other nodes to guarantee their retrievability.
+	// It produces availability certificates for batches of transactions.
+	// The multisig collector's certificates consist of signatures of a quorum of the nodes.
+	trantorModules[moduleConfig.Availability] = multisigcollector.NewReconfigurableModule(
+		moduleConfig.ConfigureMultisigCollector(),
+		logging.Decorate(logger, "AVA: "),
+	)
+
+	// The batch DB persistently stores the transactions this nodes is involved in making available.
+	// We currently use a fake, volatile database, that only stores batches in memory and does not persist them to disk.
+	trantorModules[moduleConfig.BatchDB] = fakebatchdb.NewModule(moduleConfig.ConfigureFakeBatchDB())
+
+	// The ISS protocol orders availability certificates produced by the availability component
+	// and outputs them in the same order on all nodes.
 	issProtocol, err := iss.New(
 		ownID,
-		issModuleConfig,
+		moduleConfig.ConfigureISS(),
 		params.Iss,
 		startingCheckpoint,
 		hashImpl,
@@ -135,34 +147,11 @@ func New(
 	}
 	trantorModules[moduleConfig.ISS] = issProtocol
 
-	// Factory module with instances of the checkpointing protocol.
-	chkpModuleConfig := checkpoint.ModuleConfig{
-		Self:   moduleConfig.Checkpointing,
-		App:    moduleConfig.BatchFetcher,
-		Crypto: moduleConfig.Crypto,
-		Hasher: moduleConfig.Hasher,
-		Net:    moduleConfig.Net,
-		Ord:    moduleConfig.ISS,
-	}
-	trantorModules[moduleConfig.Checkpointing] = checkpoint.Factory(
-		chkpModuleConfig,
-		ownID,
-		logging.Decorate(logger, "CHKP: "),
-	)
-
-	// Ordering module, dynamically creating instances of the PBFT protocol as segments are created by ISS.
-	orderingModuleConfig := orderers.ModuleConfig{
-		Self:   moduleConfig.Ordering,
-		App:    moduleConfig.BatchFetcher,
-		Ava:    "", // Ava not initialized yet. It will be set at sub-module instantiation within the factory.
-		Crypto: moduleConfig.Crypto,
-		Hasher: moduleConfig.Hasher,
-		Net:    moduleConfig.Net,
-		Ord:    moduleConfig.ISS,
-		Timer:  moduleConfig.Timer,
-	}
+	// The ordering module, dynamically creating instances of the PBFT protocol as segments are created by ISS.
+	// Each segment is ordered by a separate instance of the ordering protocol.
+	// The results are then multiplexed by ISS to a single totally ordered log.
 	trantorModules[moduleConfig.Ordering] = orderers.Factory(
-		orderingModuleConfig,
+		moduleConfig.ConfigureOrdering(),
 		params.Iss,
 		ownID,
 		hashImpl,
@@ -170,50 +159,32 @@ func New(
 		logging.Decorate(logger, "PBFT: "),
 	)
 
-	// Use a simple mempool for incoming transactions.
-	mempoolModuleConfig := simplemempool.ModuleConfig{
-		Self:   moduleConfig.Mempool,
-		Hasher: moduleConfig.Hasher,
-	}
-	trantorModules[moduleConfig.Mempool] = simplemempool.NewModule(
-		mempoolModuleConfig,
-		params.Mempool,
+	// The checkpoint protocol periodically (at the beginning of each epoch) creates a checkpoint of the system state.
+	// It is created as a factory, since each checkpoint uses its own instance of the checkpointing protocol.
+	trantorModules[moduleConfig.Checkpointing] = checkpoint.Factory(
+		moduleConfig.ConfigureCheckpointing(),
+		ownID,
+		logging.Decorate(logger, "CHKP: "),
 	)
 
-	// Use fake batch database that only stores batches in memory and does not persist them to disk.
-	batchDbModuleConfig := fakebatchdb.ModuleConfig{
-		Self: moduleConfig.BatchDB,
-	}
-	trantorModules[moduleConfig.BatchDB] = fakebatchdb.NewModule(batchDbModuleConfig)
-
-	// Instantiate the availability component.
-	availModuleConfig := multisigcollector.ModuleConfig{
-		Self:    moduleConfig.Availability,
-		Mempool: moduleConfig.Mempool,
-		BatchDB: moduleConfig.BatchDB,
-		Net:     moduleConfig.Net,
-		Crypto:  moduleConfig.Crypto,
-	}
-	trantorModules[moduleConfig.Availability] = multisigcollector.NewReconfigurableModule(availModuleConfig, logger)
-
-	// Instantiate the batch fetcher module that transforms availability certificates ordered by ISS
+	// The batch fetcher module transforms availability certificates ordered by ISS
 	// into batches of transactions that can be applied to the replicated application.
 	// It acts as a proxy between the application module and the rest of the system.
-	bfModuleConfig := batchfetcher.ModuleConfig{
-		Self:         moduleConfig.BatchFetcher,
-		Availability: moduleConfig.Availability,
-		Checkpoint:   moduleConfig.Checkpointing,
-		Destination:  moduleConfig.App,
-	}
 	trantorModules[moduleConfig.BatchFetcher] = batchfetcher.NewModule(
-		bfModuleConfig,
+		moduleConfig.ConfigureBatchFetcher(),
 		startingCheckpoint.Epoch(),
 		startingCheckpoint.ClientProgress(logger),
 		logger,
 	)
 
+	// The application module is provided by the user and implements the replicated state machine
+	// that consumes the totally ordered transactions.
+	trantorModules[moduleConfig.App] = appmodule.NewAppModule(app, transport, moduleConfig.App)
+
+	// The transport module is responsible for sending and receiving messages over the network.
 	trantorModules[moduleConfig.Net] = transport
-	trantorModules[moduleConfig.App] = appmodule.NewAppModule(app, transport, issModuleConfig.Self)
+
+	// Utility modules.
 	trantorModules[moduleConfig.Hasher] = mircrypto.NewHasher(hashImpl)
 	trantorModules[moduleConfig.Crypto] = mircrypto.New(cryptoImpl)
 	trantorModules[moduleConfig.Timer] = timer.New()
