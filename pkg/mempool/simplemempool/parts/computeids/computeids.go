@@ -17,7 +17,7 @@ import (
 // RequestBatchID events.
 func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	_ *common.ModuleParams,
 	_ *common.State,
 ) {

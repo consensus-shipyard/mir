@@ -33,7 +33,7 @@ type RequestState struct {
 // IncludeVerificationOfCertificates registers event handlers for processing availabilitypb.VerifyCert events.
 func IncludeVerificationOfCertificates(
 	m dsl.Module,
-	mc *common.ModuleConfig,
+	mc common.ModuleConfig,
 	params *common.ModuleParams,
 ) {
 	state := State{

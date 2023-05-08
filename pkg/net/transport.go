@@ -17,6 +17,7 @@ type Transport interface {
 	Stop()
 
 	// Send sends msg to the node with ID dest.
+	// TODO: Remove this method from the interface definition. Sending is invoked by event processing, not externally.
 	Send(dest t.NodeID, msg *messagepb.Message) error
 
 	// Connect initiates the establishing of network connections to the provided nodes.

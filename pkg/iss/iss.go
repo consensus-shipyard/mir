@@ -58,7 +58,7 @@ type ISS struct {
 	ownID t.NodeID
 
 	// IDs of modules ISS interacts with.
-	moduleConfig *ModuleConfig
+	moduleConfig ModuleConfig
 
 	// The ISS configuration parameters (e.g. Segment length, proposal frequency etc...)
 	// passed to New() when creating an ISS protocol instance.
@@ -138,7 +138,7 @@ func New(
 	ownID t.NodeID,
 
 	// IDs of the modules ISS interacts with.
-	moduleConfig *ModuleConfig,
+	moduleConfig ModuleConfig,
 
 	// ISS protocol-specific configuration (e.g. segment length, proposal frequency etc...).
 	// See the documentation of the issutil.ModuleParams type for details.

@@ -8,7 +8,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 
-	"github.com/filecoin-project/mir/pkg/checkpoint/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -57,8 +56,8 @@ type State struct {
 
 // NewModule allocates and returns a new instance of the ModuleParams associated with sequence number sn.
 func NewModule(
-	moduleConfig *common.ModuleConfig,
-	params *common.ModuleParams,
+	moduleConfig ModuleConfig,
+	params *ModuleParams,
 	logger logging.Logger) modules.PassiveModule {
 
 	state := &State{
@@ -185,7 +184,7 @@ func NewModule(
 	return m
 }
 
-func processStateSnapshot(m dsl.Module, state *State, mc *common.ModuleConfig) {
+func processStateSnapshot(m dsl.Module, state *State, mc ModuleConfig) {
 
 	// Initiate computing the hash of the snapshot.
 	hasherpbdsl.RequestOne(m,
@@ -195,7 +194,7 @@ func processStateSnapshot(m dsl.Module, state *State, mc *common.ModuleConfig) {
 	)
 }
 
-func announceStable(m dsl.Module, p *common.ModuleParams, state *State, mc *common.ModuleConfig) {
+func announceStable(m dsl.Module, p *ModuleParams, state *State, mc ModuleConfig) {
 
 	// Only announce the stable checkpoint once.
 	if state.Announced {
@@ -214,9 +213,9 @@ func announceStable(m dsl.Module, p *common.ModuleParams, state *State, mc *comm
 }
 
 func applyCheckpointReceived(m dsl.Module,
-	p *common.ModuleParams,
+	p *ModuleParams,
 	state *State,
-	moduleConfig *common.ModuleConfig,
+	moduleConfig ModuleConfig,
 	from t.NodeID,
 	epoch tt.EpochNr,
 	sn tt.SeqNr,
@@ -279,7 +278,7 @@ func (state *State) SnapshotReady() bool {
 		state.StateSnapshot.EpochData.ClientProgress != nil
 }
 
-func (state *State) Stable(p *common.ModuleParams) bool {
+func (state *State) Stable(p *ModuleParams) bool {
 	return state.SnapshotReady() && len(state.Signatures) >= config.StrongQuorum(len(p.Membership.Nodes))
 }
 

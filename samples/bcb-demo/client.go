@@ -101,7 +101,7 @@ func run() error {
 	transportModule.Connect(membership)
 
 	bcbModule := bcb.NewModule(
-		&bcb.ModuleConfig{
+		bcb.ModuleConfig{
 			Self:     "bcb",
 			Consumer: "control",
 			Net:      "net",

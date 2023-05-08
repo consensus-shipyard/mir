@@ -44,7 +44,7 @@ import (
 // and provides it to the checkpoint module when relaying a state snapshot request to the application.
 // Analogously, when relaying a RestoreState event, it restores its state (including the delivered transactions)
 // using the relayed information.
-func NewModule(mc *ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogress.ClientProgress, logger logging.Logger) modules.Module {
+func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogress.ClientProgress, logger logging.Logger) modules.Module {
 	m := dsl.NewModule(mc.Self)
 	// Queue of output events. It is required for buffering events being relayed
 	// in case a DeliverCert event received earlier has not yet been transformed to a ProvideTransactions event.
