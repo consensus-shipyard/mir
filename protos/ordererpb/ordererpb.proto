@@ -30,32 +30,6 @@ message Message {
   }
 }
 
-// TODO: Get rid of the `Origin` types when DSL is used for this module.
-
-message HashOrigin {
-  oneof type {
-    pbftpb.HashOrigin pbft = 3;
-  }
-}
-
-message SignOrigin {
-  option (mir.struct) = true;
-
-  uint64 epoch    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
-  uint64 instance = 2;
-  oneof type {
-    pbftpb.SignOrigin pbft = 3;
-  }
-}
-
-message SigVerOrigin {
-  uint64 epoch    = 1;
-  uint64 instance = 2;
-  oneof type {
-    pbftpb.SigVerOrigin pbft = 3;
-  }
-}
-
 message PBFTSegment {
   option (mir.struct) = true;
 

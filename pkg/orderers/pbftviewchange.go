@@ -201,7 +201,7 @@ func (orderer *Orderer) applyVerifiedViewChange(m dsl.Module, svc *pbftpbtypes.S
 		hasherpbdsl.Request(m,
 			orderer.moduleConfig.Hasher,
 			emptyPreprepareData,
-			emptyPreprepareHashOrigin(vc.View))
+			&vc.View)
 	}
 
 	// TODO: Consider checking whether a quorum of valid view change messages has been almost received
@@ -287,7 +287,7 @@ func (orderer *Orderer) applyMsgMissingPreprepare(m dsl.Module, preprepare *pbft
 		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		missingPreprepareHashOrigin(preprepare.Pb()),
+		&pbftpbtypes.MissingPreprepare{Preprepare: preprepare},
 	)
 }
 
@@ -406,7 +406,7 @@ func (orderer *Orderer) applyVerifiedNewView(m dsl.Module, newView *pbftpbtypes.
 		m,
 		orderer.moduleConfig.Hasher,
 		dataToHash,
-		newViewHashOrigin(newView.Pb()),
+		newView,
 	)
 }
 

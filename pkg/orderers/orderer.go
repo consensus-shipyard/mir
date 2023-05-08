@@ -24,8 +24,6 @@ import (
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
-	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
 	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -205,30 +203,34 @@ func NewOrdererModule(
 		return orderer.applyCertReady(m, cert)
 	})
 
-	//TODO think of a better way to deal with multiple contexts here
-	hasherpbdsl.UponResult(m, func(digests [][]byte, context *ordererpb.HashOrigin_Pbft) error {
-		switch o := context.Pbft.Type.(type) {
-		case *pbftpb.HashOrigin_Preprepare:
-			orderer.applyPreprepareHashResult(m, digests[0], o.Preprepare)
-		case *pbftpb.HashOrigin_EmptyPreprepares:
-			return orderer.applyEmptyPreprepareHashResult(m, digests, ot.ViewNr(o.EmptyPreprepares))
-		case *pbftpb.HashOrigin_MissingPreprepare:
-			orderer.applyMissingPreprepareHashResult(
-				m,
-				digests[0],
-				pbftpbtypes.PreprepareFromPb(o.MissingPreprepare),
-			)
-		case *pbftpb.HashOrigin_NewView:
-			return orderer.applyNewViewHashResult(m, digests, pbftpbtypes.NewViewFromPb(o.NewView))
-		case *pbftpb.HashOrigin_CatchUpResponse:
-			orderer.applyCatchUpResponseHashResult(
-				m,
-				digests[0],
-				pbftpbtypes.PreprepareFromPb(o.CatchUpResponse),
-			)
-		default:
-			return fmt.Errorf("unknown hash origin type: %T", o)
-		}
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.Preprepare) error {
+		orderer.applyPreprepareHashResult(m, digests[0], context)
+		return nil
+	})
+
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *ot.ViewNr) error {
+		return orderer.applyEmptyPreprepareHashResult(m, digests, *context)
+	})
+
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.MissingPreprepare) error {
+		orderer.applyMissingPreprepareHashResult(
+			m,
+			digests[0],
+			context.Preprepare,
+		)
+		return nil
+	})
+
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.NewView) error {
+		return orderer.applyNewViewHashResult(m, digests, context)
+	})
+
+	hasherpbdsl.UponResult(m, func(digests [][]byte, context *pbftpbtypes.CatchUpResponse) error {
+		orderer.applyCatchUpResponseHashResult(
+			m,
+			digests[0],
+			context.Resp,
+		)
 		return nil
 	})
 

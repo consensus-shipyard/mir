@@ -3,6 +3,8 @@ package orderers
 import (
 	"bytes"
 
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
@@ -15,7 +17,6 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -285,7 +286,7 @@ func (orderer *Orderer) applyMsgCatchUpResponse(m dsl.Module, preprepare *pbftpb
 		m,
 		orderer.moduleConfig.Hasher,
 		[]*hasherpbtypes.HashData{serializePreprepareForHashing(preprepare)},
-		catchUpResponseHashOrigin(preprepare.Pb()),
+		&pbftpbtypes.CatchUpResponse{Resp: preprepare},
 	)
 }
 

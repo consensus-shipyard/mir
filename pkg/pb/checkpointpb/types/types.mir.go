@@ -247,48 +247,6 @@ func (*EpochProgress) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.EpochProgress]()}
 }
 
-type HashOrigin struct{}
-
-func HashOriginFromPb(pb *checkpointpb.HashOrigin) *HashOrigin {
-	return &HashOrigin{}
-}
-
-func (m *HashOrigin) Pb() *checkpointpb.HashOrigin {
-	return &checkpointpb.HashOrigin{}
-}
-
-func (*HashOrigin) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.HashOrigin]()}
-}
-
-type SignOrigin struct{}
-
-func SignOriginFromPb(pb *checkpointpb.SignOrigin) *SignOrigin {
-	return &SignOrigin{}
-}
-
-func (m *SignOrigin) Pb() *checkpointpb.SignOrigin {
-	return &checkpointpb.SignOrigin{}
-}
-
-func (*SignOrigin) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.SignOrigin]()}
-}
-
-type SigVerOrigin struct{}
-
-func SigVerOriginFromPb(pb *checkpointpb.SigVerOrigin) *SigVerOrigin {
-	return &SigVerOrigin{}
-}
-
-func (m *SigVerOrigin) Pb() *checkpointpb.SigVerOrigin {
-	return &checkpointpb.SigVerOrigin{}
-}
-
-func (*SigVerOrigin) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*checkpointpb.SigVerOrigin]()}
-}
-
 type InstanceParams struct {
 	Membership       *types1.Membership
 	ResendPeriod     types4.Duration

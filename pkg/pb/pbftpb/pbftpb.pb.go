@@ -1233,274 +1233,6 @@ func (x *ViewChangeSegTimeout) GetViewChangeSegTimeout() uint64 {
 	return 0
 }
 
-type HashOrigin struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Type:
-	//	*HashOrigin_Preprepare
-	//	*HashOrigin_MissingPreprepare
-	//	*HashOrigin_NewView
-	//	*HashOrigin_EmptyPreprepares
-	//	*HashOrigin_CatchUpResponse
-	Type isHashOrigin_Type `protobuf_oneof:"type"`
-}
-
-func (x *HashOrigin) Reset() {
-	*x = HashOrigin{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pbftpb_pbftpb_proto_msgTypes[18]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *HashOrigin) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HashOrigin) ProtoMessage() {}
-
-func (x *HashOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_pbftpb_pbftpb_proto_msgTypes[18]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HashOrigin.ProtoReflect.Descriptor instead.
-func (*HashOrigin) Descriptor() ([]byte, []int) {
-	return file_pbftpb_pbftpb_proto_rawDescGZIP(), []int{18}
-}
-
-func (m *HashOrigin) GetType() isHashOrigin_Type {
-	if m != nil {
-		return m.Type
-	}
-	return nil
-}
-
-func (x *HashOrigin) GetPreprepare() *Preprepare {
-	if x, ok := x.GetType().(*HashOrigin_Preprepare); ok {
-		return x.Preprepare
-	}
-	return nil
-}
-
-func (x *HashOrigin) GetMissingPreprepare() *Preprepare {
-	if x, ok := x.GetType().(*HashOrigin_MissingPreprepare); ok {
-		return x.MissingPreprepare
-	}
-	return nil
-}
-
-func (x *HashOrigin) GetNewView() *NewView {
-	if x, ok := x.GetType().(*HashOrigin_NewView); ok {
-		return x.NewView
-	}
-	return nil
-}
-
-func (x *HashOrigin) GetEmptyPreprepares() uint64 {
-	if x, ok := x.GetType().(*HashOrigin_EmptyPreprepares); ok {
-		return x.EmptyPreprepares
-	}
-	return 0
-}
-
-func (x *HashOrigin) GetCatchUpResponse() *Preprepare {
-	if x, ok := x.GetType().(*HashOrigin_CatchUpResponse); ok {
-		return x.CatchUpResponse
-	}
-	return nil
-}
-
-type isHashOrigin_Type interface {
-	isHashOrigin_Type()
-}
-
-type HashOrigin_Preprepare struct {
-	Preprepare *Preprepare `protobuf:"bytes,1,opt,name=preprepare,proto3,oneof"`
-}
-
-type HashOrigin_MissingPreprepare struct {
-	MissingPreprepare *Preprepare `protobuf:"bytes,2,opt,name=missing_preprepare,json=missingPreprepare,proto3,oneof"`
-}
-
-type HashOrigin_NewView struct {
-	NewView *NewView `protobuf:"bytes,3,opt,name=new_view,json=newView,proto3,oneof"`
-}
-
-type HashOrigin_EmptyPreprepares struct {
-	EmptyPreprepares uint64 `protobuf:"varint,4,opt,name=empty_preprepares,json=emptyPreprepares,proto3,oneof"`
-}
-
-type HashOrigin_CatchUpResponse struct {
-	CatchUpResponse *Preprepare `protobuf:"bytes,5,opt,name=catch_up_response,json=catchUpResponse,proto3,oneof"`
-}
-
-func (*HashOrigin_Preprepare) isHashOrigin_Type() {}
-
-func (*HashOrigin_MissingPreprepare) isHashOrigin_Type() {}
-
-func (*HashOrigin_NewView) isHashOrigin_Type() {}
-
-func (*HashOrigin_EmptyPreprepares) isHashOrigin_Type() {}
-
-func (*HashOrigin_CatchUpResponse) isHashOrigin_Type() {}
-
-type SignOrigin struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Type:
-	//	*SignOrigin_ViewChange
-	Type isSignOrigin_Type `protobuf_oneof:"type"`
-}
-
-func (x *SignOrigin) Reset() {
-	*x = SignOrigin{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pbftpb_pbftpb_proto_msgTypes[19]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SignOrigin) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SignOrigin) ProtoMessage() {}
-
-func (x *SignOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_pbftpb_pbftpb_proto_msgTypes[19]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SignOrigin.ProtoReflect.Descriptor instead.
-func (*SignOrigin) Descriptor() ([]byte, []int) {
-	return file_pbftpb_pbftpb_proto_rawDescGZIP(), []int{19}
-}
-
-func (m *SignOrigin) GetType() isSignOrigin_Type {
-	if m != nil {
-		return m.Type
-	}
-	return nil
-}
-
-func (x *SignOrigin) GetViewChange() *ViewChange {
-	if x, ok := x.GetType().(*SignOrigin_ViewChange); ok {
-		return x.ViewChange
-	}
-	return nil
-}
-
-type isSignOrigin_Type interface {
-	isSignOrigin_Type()
-}
-
-type SignOrigin_ViewChange struct {
-	ViewChange *ViewChange `protobuf:"bytes,1,opt,name=view_change,json=viewChange,proto3,oneof"`
-}
-
-func (*SignOrigin_ViewChange) isSignOrigin_Type() {}
-
-type SigVerOrigin struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Type:
-	//	*SigVerOrigin_SignedViewChange
-	//	*SigVerOrigin_NewView
-	Type isSigVerOrigin_Type `protobuf_oneof:"type"`
-}
-
-func (x *SigVerOrigin) Reset() {
-	*x = SigVerOrigin{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_pbftpb_pbftpb_proto_msgTypes[20]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *SigVerOrigin) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SigVerOrigin) ProtoMessage() {}
-
-func (x *SigVerOrigin) ProtoReflect() protoreflect.Message {
-	mi := &file_pbftpb_pbftpb_proto_msgTypes[20]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SigVerOrigin.ProtoReflect.Descriptor instead.
-func (*SigVerOrigin) Descriptor() ([]byte, []int) {
-	return file_pbftpb_pbftpb_proto_rawDescGZIP(), []int{20}
-}
-
-func (m *SigVerOrigin) GetType() isSigVerOrigin_Type {
-	if m != nil {
-		return m.Type
-	}
-	return nil
-}
-
-func (x *SigVerOrigin) GetSignedViewChange() *SignedViewChange {
-	if x, ok := x.GetType().(*SigVerOrigin_SignedViewChange); ok {
-		return x.SignedViewChange
-	}
-	return nil
-}
-
-func (x *SigVerOrigin) GetNewView() *NewView {
-	if x, ok := x.GetType().(*SigVerOrigin_NewView); ok {
-		return x.NewView
-	}
-	return nil
-}
-
-type isSigVerOrigin_Type interface {
-	isSigVerOrigin_Type()
-}
-
-type SigVerOrigin_SignedViewChange struct {
-	SignedViewChange *SignedViewChange `protobuf:"bytes,1,opt,name=signed_view_change,json=signedViewChange,proto3,oneof"`
-}
-
-type SigVerOrigin_NewView struct {
-	NewView *NewView `protobuf:"bytes,2,opt,name=new_view,json=newView,proto3,oneof"`
-}
-
-func (*SigVerOrigin_SignedViewChange) isSigVerOrigin_Type() {}
-
-func (*SigVerOrigin_NewView) isSigVerOrigin_Type() {}
-
 var File_pbftpb_pbftpb_proto protoreflect.FileDescriptor
 
 var file_pbftpb_pbftpb_proto_rawDesc = []byte{
@@ -1718,43 +1450,10 @@ var file_pbftpb_pbftpb_proto_rawDesc = []byte{
 	0x68, 0x61, 0x6e, 0x67, 0x65, 0x53, 0x65, 0x67, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x18,
 	0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x14, 0x56, 0x69, 0x65, 0x77, 0x43, 0x68, 0x61, 0x6e, 0x67,
 	0x65, 0x53, 0x65, 0x67, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x3a, 0x04, 0x98, 0xa6, 0x1d,
-	0x01, 0x22, 0xb4, 0x02, 0x0a, 0x0a, 0x48, 0x61, 0x73, 0x68, 0x4f, 0x72, 0x69, 0x67, 0x69, 0x6e,
-	0x12, 0x34, 0x0a, 0x0a, 0x70, 0x72, 0x65, 0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x50, 0x72,
-	0x65, 0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x48, 0x00, 0x52, 0x0a, 0x70, 0x72, 0x65, 0x70,
-	0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x12, 0x43, 0x0a, 0x12, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6e,
-	0x67, 0x5f, 0x70, 0x72, 0x65, 0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x50, 0x72, 0x65, 0x70,
-	0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x48, 0x00, 0x52, 0x11, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6e,
-	0x67, 0x50, 0x72, 0x65, 0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x12, 0x2c, 0x0a, 0x08, 0x6e,
-	0x65, 0x77, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e,
-	0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x4e, 0x65, 0x77, 0x56, 0x69, 0x65, 0x77, 0x48, 0x00,
-	0x52, 0x07, 0x6e, 0x65, 0x77, 0x56, 0x69, 0x65, 0x77, 0x12, 0x2d, 0x0a, 0x11, 0x65, 0x6d, 0x70,
-	0x74, 0x79, 0x5f, 0x70, 0x72, 0x65, 0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x73, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x04, 0x48, 0x00, 0x52, 0x10, 0x65, 0x6d, 0x70, 0x74, 0x79, 0x50, 0x72, 0x65,
-	0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x73, 0x12, 0x40, 0x0a, 0x11, 0x63, 0x61, 0x74, 0x63,
-	0x68, 0x5f, 0x75, 0x70, 0x5f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x18, 0x05, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x50, 0x72, 0x65,
-	0x70, 0x72, 0x65, 0x70, 0x61, 0x72, 0x65, 0x48, 0x00, 0x52, 0x0f, 0x63, 0x61, 0x74, 0x63, 0x68,
-	0x55, 0x70, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x3a, 0x04, 0x80, 0xa6, 0x1d, 0x01,
-	0x42, 0x06, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x4b, 0x0a, 0x0a, 0x53, 0x69, 0x67, 0x6e,
-	0x4f, 0x72, 0x69, 0x67, 0x69, 0x6e, 0x12, 0x35, 0x0a, 0x0b, 0x76, 0x69, 0x65, 0x77, 0x5f, 0x63,
-	0x68, 0x61, 0x6e, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x70, 0x62,
-	0x66, 0x74, 0x70, 0x62, 0x2e, 0x56, 0x69, 0x65, 0x77, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x48,
-	0x00, 0x52, 0x0a, 0x76, 0x69, 0x65, 0x77, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x42, 0x06, 0x0a,
-	0x04, 0x74, 0x79, 0x70, 0x65, 0x22, 0x8e, 0x01, 0x0a, 0x0c, 0x53, 0x69, 0x67, 0x56, 0x65, 0x72,
-	0x4f, 0x72, 0x69, 0x67, 0x69, 0x6e, 0x12, 0x48, 0x0a, 0x12, 0x73, 0x69, 0x67, 0x6e, 0x65, 0x64,
-	0x5f, 0x76, 0x69, 0x65, 0x77, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x18, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x53, 0x69, 0x67, 0x6e,
-	0x65, 0x64, 0x56, 0x69, 0x65, 0x77, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x48, 0x00, 0x52, 0x10,
-	0x73, 0x69, 0x67, 0x6e, 0x65, 0x64, 0x56, 0x69, 0x65, 0x77, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
-	0x12, 0x2c, 0x0a, 0x08, 0x6e, 0x65, 0x77, 0x5f, 0x76, 0x69, 0x65, 0x77, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x2e, 0x4e, 0x65, 0x77, 0x56,
-	0x69, 0x65, 0x77, 0x48, 0x00, 0x52, 0x07, 0x6e, 0x65, 0x77, 0x56, 0x69, 0x65, 0x77, 0x42, 0x06,
-	0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x42, 0x2f, 0x5a, 0x2d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
-	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f, 0x69, 0x6e, 0x2d, 0x70, 0x72,
-	0x6f, 0x6a, 0x65, 0x63, 0x74, 0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x62,
-	0x2f, 0x70, 0x62, 0x66, 0x74, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x01, 0x42, 0x2f, 0x5a, 0x2d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
+	0x66, 0x69, 0x6c, 0x65, 0x63, 0x6f, 0x69, 0x6e, 0x2d, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74,
+	0x2f, 0x6d, 0x69, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x62, 0x2f, 0x70, 0x62, 0x66, 0x74,
+	0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1769,7 +1468,7 @@ func file_pbftpb_pbftpb_proto_rawDescGZIP() []byte {
 	return file_pbftpb_pbftpb_proto_rawDescData
 }
 
-var file_pbftpb_pbftpb_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_pbftpb_pbftpb_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_pbftpb_pbftpb_proto_goTypes = []interface{}{
 	(*Message)(nil),              // 0: pbftpb.Message
 	(*Preprepare)(nil),           // 1: pbftpb.Preprepare
@@ -1789,9 +1488,6 @@ var file_pbftpb_pbftpb_proto_goTypes = []interface{}{
 	(*ProposeTimeout)(nil),       // 15: pbftpb.ProposeTimeout
 	(*ViewChangeSNTimeout)(nil),  // 16: pbftpb.ViewChangeSNTimeout
 	(*ViewChangeSegTimeout)(nil), // 17: pbftpb.ViewChangeSegTimeout
-	(*HashOrigin)(nil),           // 18: pbftpb.HashOrigin
-	(*SignOrigin)(nil),           // 19: pbftpb.SignOrigin
-	(*SigVerOrigin)(nil),         // 20: pbftpb.SigVerOrigin
 }
 var file_pbftpb_pbftpb_proto_depIdxs = []int32{
 	1,  // 0: pbftpb.Message.preprepare:type_name -> pbftpb.Preprepare
@@ -1814,18 +1510,11 @@ var file_pbftpb_pbftpb_proto_depIdxs = []int32{
 	15, // 17: pbftpb.Event.propose_timeout:type_name -> pbftpb.ProposeTimeout
 	16, // 18: pbftpb.Event.view_change_sn_timeout:type_name -> pbftpb.ViewChangeSNTimeout
 	17, // 19: pbftpb.Event.view_change_seg_timeout:type_name -> pbftpb.ViewChangeSegTimeout
-	1,  // 20: pbftpb.HashOrigin.preprepare:type_name -> pbftpb.Preprepare
-	1,  // 21: pbftpb.HashOrigin.missing_preprepare:type_name -> pbftpb.Preprepare
-	10, // 22: pbftpb.HashOrigin.new_view:type_name -> pbftpb.NewView
-	1,  // 23: pbftpb.HashOrigin.catch_up_response:type_name -> pbftpb.Preprepare
-	11, // 24: pbftpb.SignOrigin.view_change:type_name -> pbftpb.ViewChange
-	7,  // 25: pbftpb.SigVerOrigin.signed_view_change:type_name -> pbftpb.SignedViewChange
-	10, // 26: pbftpb.SigVerOrigin.new_view:type_name -> pbftpb.NewView
-	27, // [27:27] is the sub-list for method output_type
-	27, // [27:27] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_pbftpb_pbftpb_proto_init() }
@@ -2050,42 +1739,6 @@ func file_pbftpb_pbftpb_proto_init() {
 				return nil
 			}
 		}
-		file_pbftpb_pbftpb_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*HashOrigin); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pbftpb_pbftpb_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SignOrigin); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_pbftpb_pbftpb_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SigVerOrigin); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
 	}
 	file_pbftpb_pbftpb_proto_msgTypes[0].OneofWrappers = []interface{}{
 		(*Message_Preprepare)(nil),
@@ -2104,27 +1757,13 @@ func file_pbftpb_pbftpb_proto_init() {
 		(*Event_ViewChangeSnTimeout)(nil),
 		(*Event_ViewChangeSegTimeout)(nil),
 	}
-	file_pbftpb_pbftpb_proto_msgTypes[18].OneofWrappers = []interface{}{
-		(*HashOrigin_Preprepare)(nil),
-		(*HashOrigin_MissingPreprepare)(nil),
-		(*HashOrigin_NewView)(nil),
-		(*HashOrigin_EmptyPreprepares)(nil),
-		(*HashOrigin_CatchUpResponse)(nil),
-	}
-	file_pbftpb_pbftpb_proto_msgTypes[19].OneofWrappers = []interface{}{
-		(*SignOrigin_ViewChange)(nil),
-	}
-	file_pbftpb_pbftpb_proto_msgTypes[20].OneofWrappers = []interface{}{
-		(*SigVerOrigin_SignedViewChange)(nil),
-		(*SigVerOrigin_NewView)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pbftpb_pbftpb_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

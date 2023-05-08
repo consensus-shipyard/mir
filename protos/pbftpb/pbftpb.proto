@@ -175,31 +175,3 @@ message ViewChangeSegTimeout {
   option (mir.event) = true;
   uint64 ViewChangeSegTimeout = 1;
 }
-
-// TODO: Get rid of the `Origin` types when new DSL is used for this module.
-
-message HashOrigin {
-  option (mir.struct) = true;
-
-  oneof type {
-    Preprepare preprepare         = 1;
-    Preprepare missing_preprepare = 2;
-    NewView    new_view           = 3;
-    uint64     empty_preprepares  = 4;
-    Preprepare catch_up_response  = 5;
-  }
-}
-
-message SignOrigin {
-  oneof type {
-    ViewChange view_change = 1;
-  }
-}
-
-message SigVerOrigin {
-  oneof type {
-    SignedViewChange signed_view_change = 1;
-    NewView          new_view           = 2;
-  }
-}
-

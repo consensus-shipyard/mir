@@ -65,30 +65,3 @@ func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 func (w *Event_ViewChangeSegTimeout) Unwrap() *ViewChangeSegTimeout {
 	return w.ViewChangeSegTimeout
 }
-
-type HashOrigin_Type = isHashOrigin_Type
-
-type HashOrigin_TypeWrapper[T any] interface {
-	HashOrigin_Type
-	Unwrap() *T
-}
-
-func (w *HashOrigin_Preprepare) Unwrap() *Preprepare {
-	return w.Preprepare
-}
-
-func (w *HashOrigin_MissingPreprepare) Unwrap() *Preprepare {
-	return w.MissingPreprepare
-}
-
-func (w *HashOrigin_NewView) Unwrap() *NewView {
-	return w.NewView
-}
-
-func (w *HashOrigin_EmptyPreprepares) Unwrap() uint64 {
-	return w.EmptyPreprepares
-}
-
-func (w *HashOrigin_CatchUpResponse) Unwrap() *Preprepare {
-	return w.CatchUpResponse
-}
