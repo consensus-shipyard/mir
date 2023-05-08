@@ -3,60 +3,17 @@ Copyright IBM Corp. All Rights Reserved.
 
 SPDX-License-Identifier: Apache-2.0
 */
-
-// This file provides constructors for protobuf messages (also used to represent events) used by the ISS PBFT Orderer.
-// The primary purpose is convenience and improved readability of the PBFT code,
-// As creating protobuf objects is rather verbose in Go.
-// Moreover, in case the definitions of some protocol buffers change,
-// this file should be the only one that will potentially need to change.
-
 // TODO: Write documentation comments for the functions in this file.
 //       Part of the text can probably be copy-pasted from the documentation of the functions handling those events.
 
 package orderers
 
 import (
-	"github.com/filecoin-project/mir/pkg/orderers/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 )
-
-// ============================================================
-// Hashing and signing origins
-// ============================================================
-
-func preprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_Preprepare{Preprepare: preprepare}},
-	}
-}
-
-func missingPreprepareHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_MissingPreprepare{MissingPreprepare: preprepare}},
-	}
-}
-
-func emptyPreprepareHashOrigin(view types.ViewNr) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_EmptyPreprepares{EmptyPreprepares: view.Pb()}},
-	}
-}
-
-func newViewHashOrigin(newView *pbftpb.NewView) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_NewView{NewView: newView}},
-	}
-}
-
-func catchUpResponseHashOrigin(preprepare *pbftpb.Preprepare) *ordererpb.HashOrigin_Pbft {
-	return &ordererpb.HashOrigin_Pbft{
-		Pbft: &pbftpb.HashOrigin{Type: &pbftpb.HashOrigin_CatchUpResponse{CatchUpResponse: preprepare}},
-	}
-}
 
 // ============================================================
 // Serialization

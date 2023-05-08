@@ -15,9 +15,3 @@ func (*Message) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Message_Pbft)(nil)),
 	}
 }
-
-func (*SignOrigin) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*SignOrigin_Pbft)(nil)),
-	}
-}

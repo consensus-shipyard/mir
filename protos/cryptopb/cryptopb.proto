@@ -6,8 +6,6 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/cryptopb";
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";
-import "checkpointpb/checkpointpb.proto";
-import "ordererpb/ordererpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -90,8 +88,6 @@ message SignOrigin {
   oneof type {
     contextstorepb.Origin   context_store = 2;
     dslpb.Origin            dsl           = 4;
-    checkpointpb.SignOrigin checkpoint    = 5;
-    ordererpb.SignOrigin    sb            = 6;
   }
 }
 
@@ -102,8 +98,6 @@ message SigVerOrigin {
   oneof type {
     contextstorepb.Origin     context_store = 2;
     dslpb.Origin              dsl           = 4;
-    checkpointpb.SigVerOrigin checkpoint    = 5;
-    ordererpb.SigVerOrigin    sb            = 6;
   }
 }
 

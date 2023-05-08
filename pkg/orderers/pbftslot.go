@@ -3,6 +3,8 @@ package orderers
 import (
 	"bytes"
 
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+
 	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -12,7 +14,6 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
