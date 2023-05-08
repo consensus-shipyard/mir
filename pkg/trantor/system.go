@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/timer"
+
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"github.com/pkg/errors"
@@ -147,6 +148,7 @@ func New(
 	}
 	trantorModules[moduleConfig.ISS] = issProtocol
 
+	//<<<<<<< HEAD
 	// The ordering module, dynamically creating instances of the PBFT protocol as segments are created by ISS.
 	// Each segment is ordered by a separate instance of the ordering protocol.
 	// The results are then multiplexed by ISS to a single totally ordered log.

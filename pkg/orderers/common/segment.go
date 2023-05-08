@@ -1,4 +1,4 @@
-package orderers
+package common
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ func NewSegment(
 	proposals map[tt.SeqNr][]byte,
 ) (*Segment, error) {
 	if _, ok := membership.Nodes[leader]; !ok {
-		return nil, fmt.Errorf("leader (%v) not in membership (%v)", leader, maputil.GetKeys(membership.Nodes))
+		return nil, fmt.Errorf("leader (%v) not in Membership (%v)", leader, maputil.GetKeys(membership.Nodes))
 	}
 
 	return (*Segment)(&ordererpbtypes.PBFTSegment{
@@ -54,7 +54,7 @@ func (seg *Segment) LeaderIndex() int {
 		}
 	}
 	// Not returning an error here, since if we reach this line, there is an error in this very file.
-	panic("invalid segment: leader not in membership")
+	panic("invalid segment: leader not in Membership")
 }
 
 func (seg *Segment) SeqNrs() []tt.SeqNr {

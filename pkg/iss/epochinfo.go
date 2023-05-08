@@ -2,7 +2,7 @@ package iss
 
 import (
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	"github.com/filecoin-project/mir/pkg/orderers"
+	"github.com/filecoin-project/mir/pkg/orderers/common"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -20,7 +20,7 @@ type epochInfo struct {
 	Membership *trantorpbtypes.Membership
 
 	// Orderers' segments associated with the epoch.
-	Segments []*orderers.Segment
+	Segments []*common.Segment
 
 	// Leader selection policy.
 	leaderPolicy lsp.LeaderSelectionPolicy

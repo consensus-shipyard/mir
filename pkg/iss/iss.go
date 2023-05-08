@@ -17,6 +17,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/orderers/common"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
@@ -345,7 +347,7 @@ func New(
 			return fmt.Errorf("failed serializing stable checkpoint: %w", err)
 		}
 
-		seg, err := orderers.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
+		seg, err := common.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
 		if err != nil {
 			return fmt.Errorf("error creating new segment: %w", err)
 		}
@@ -639,7 +641,7 @@ func (iss *ISS) initOrderers() error {
 		// Create segment.
 		// The sequence proposals are all set to nil, so that the orderer proposes new availability certificates.
 		proposals := freeProposals(iss.nextDeliveredSN+tt.SeqNr(i), tt.SeqNr(len(leaders)), iss.Params.SegmentLength)
-		seg, err := orderers.NewSegment(leader, iss.epoch.Membership, proposals)
+		seg, err := common.NewSegment(leader, iss.epoch.Membership, proposals)
 		if err != nil {
 			return fmt.Errorf("error creating new segment: %w", err)
 		}

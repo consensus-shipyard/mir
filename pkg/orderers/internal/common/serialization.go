@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 // TODO: Write documentation comments for the functions in this file.
 //       Part of the text can probably be copy-pasted from the documentation of the functions handling those events.
 
-package orderers
+package common
 
 import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
@@ -19,12 +19,12 @@ import (
 // Serialization
 // ============================================================
 
-// serializePreprepareForHashing returns a slice of byte slices representing the contents of a Preprepare message
+// SerializePreprepareForHashing returns a slice of byte slices representing the contents of a Preprepare message
 // that can be passed to the Hasher module.
 // Note that the view number is *not* serialized, as hashes must be consistent across views.
 // Even though the preprepare argument is a protocol buffer, this function is required to guarantee
 // that the serialization is deterministic, since the protobuf native serialization does not provide this guarantee.
-func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpbtypes.HashData {
+func SerializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpbtypes.HashData {
 
 	// Encode boolean Aborted field as one byte.
 	aborted := byte(0)
@@ -38,7 +38,7 @@ func serializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpb
 	return &hasherpbtypes.HashData{Data: [][]byte{preprepare.Sn.Bytes(), {aborted}, preprepare.Data}}
 }
 
-func serializeViewChangeForSigning(vc *pbftpbtypes.ViewChange) *cryptopbtypes.SignedData {
+func SerializeViewChangeForSigning(vc *pbftpbtypes.ViewChange) *cryptopbtypes.SignedData {
 	_ = &pbftpb.ViewChange{
 		View: 0,
 		PSet: nil,

@@ -1,28 +1,18 @@
-package orderers
+package common
 
 import (
 	"bytes"
 
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 
-	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
-
-	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
-	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-	"github.com/filecoin-project/mir/pkg/timer/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// pbftSlot tracks the state of the agreement protocol for one sequence number,
+// PbftSlot tracks the state of the agreement protocol for one sequence number,
 // such as messages received, progress of the reliable broadcast, etc.
-type pbftSlot struct {
+type PbftSlot struct {
 
 	// The received preprepare message.
 	Preprepare *pbftpbtypes.Preprepare
@@ -57,10 +47,10 @@ type pbftSlot struct {
 	numNodes int
 }
 
-// newPbftSlot allocates a new pbftSlot object and returns it, initializing all its fields.
+// NewPbftSlot allocates a new PbftSlot object and returns it, initializing all its fields.
 // The f parameter designates the number of tolerated failures of the PBFT instance this slot belongs to.
-func newPbftSlot(numNodes int) *pbftSlot {
-	return &pbftSlot{
+func NewPbftSlot(numNodes int) *PbftSlot {
+	return &PbftSlot{
 		Preprepare:          nil,
 		PrepareDigests:      make(map[t.NodeID][]byte),
 		ValidPrepareDigests: make([][]byte, 0),
@@ -74,82 +64,24 @@ func newPbftSlot(numNodes int) *pbftSlot {
 	}
 }
 
-// populateFromPrevious carries over state from a pbftSlot used in the previous view to this pbftSlot,
+// PopulateFromPrevious carries over state from a PbftSlot used in the previous view to this PbftSlot,
 // based on the state of the previous slot.
 // This is used during view change, when the protocol initializes a new PBFT view.
-func (slot *pbftSlot) populateFromPrevious(prevSlot *pbftSlot, view ot.ViewNr) {
+func (slot *PbftSlot) PopulateFromPrevious(prevSlot *PbftSlot, view ot.ViewNr) {
 
 	// If the slot has already committed a certificate, just copy over the result.
 	if prevSlot.Committed {
 		slot.Committed = true
 		slot.Digest = prevSlot.Digest
-		slot.Preprepare = copyPreprepareToNewView(prevSlot.Preprepare, view)
+		preprepareCopy := *prevSlot.Preprepare
+		preprepareCopy.View = view
+		slot.Preprepare = &preprepareCopy
 	}
 }
 
-// advanceSlotState checks whether the state of the pbftSlot can be advanced.
-// If it can, advanceSlotState updates the state of the pbftSlot and returns a list of Events that result from it.
-// Requires the PBFT instance as an argument to use it to generate the proper events.
-func (slot *pbftSlot) advanceState(m dsl.Module, pbft *Orderer, sn tt.SeqNr) {
-	// If the slot just became prepared, send the Commit message.
-	if !slot.Prepared && slot.checkPrepared() {
-		slot.Prepared = true
-
-		transportpbdsl.SendMessage(
-			m,
-			pbft.moduleConfig.Net,
-			pbftpbmsgs.Commit(pbft.moduleConfig.Self, sn, pbft.view, slot.Digest),
-			pbft.segment.NodeIDs())
-	}
-
-	// If the slot just became committed, reset SN timeout and deliver the certificate.
-	if !slot.Committed && slot.checkCommitted() {
-
-		// Mark slot as committed.
-		slot.Committed = true
-
-		// Set a new SN timeout (unless the segment is finished with a stable checkpoint).
-		// Note that we set a new SN timeout even if everything has already been committed.
-		// In such a case, we expect a quorum of other nodes to also commit everything and send a Done message
-		// before the timeout fires.
-		// The timeout event contains the current view and the number of committed slots.
-		// It will be ignored if any of those values change by the time the timer fires
-		// or if a quorum of nodes confirms having committed all certificates.
-		if !pbft.segmentCheckpoint.Stable(len(pbft.segment.Membership.Nodes)) {
-			eventpbdsl.TimerDelay(
-				m,
-				pbft.moduleConfig.Timer,
-				[]*eventpbtypes.Event{pbftpbevents.ViewChangeSNTimeout(
-					pbft.moduleConfig.Self,
-					pbft.view,
-					uint64(pbft.numCommitted(pbft.view)))},
-				types.Duration(pbft.config.ViewChangeSNTimeout))
-		}
-
-		// If all certificates have been committed (i.e. this is the last certificate to commit),
-		// send a Done message to all other nodes.
-		// This is required for liveness, see comments for pbftSegmentChkp.
-		if pbft.allCommitted() {
-			pbft.segmentCheckpoint.SetDone()
-			pbft.sendDoneMessages(m)
-		}
-
-		// Deliver availability certificate (will be verified by ISS)
-		isspbdsl.SBDeliver(
-			m,
-			pbft.moduleConfig.Ord,
-			sn,
-			slot.Preprepare.Data,
-			slot.Preprepare.Aborted,
-			pbft.segment.Leader,
-			pbft.moduleConfig.Self,
-		)
-	}
-}
-
-// checkPrepared evaluates whether the pbftSlot fulfills the conditions to be prepared.
+// CheckPrepared evaluates whether the PbftSlot fulfills the conditions to be prepared.
 // The slot can be prepared when it has been preprepared and when enough valid Prepare messages have been received.
-func (slot *pbftSlot) checkPrepared() bool {
+func (slot *PbftSlot) CheckPrepared() bool {
 
 	// The slot must be preprepared first.
 	if !slot.Preprepared {
@@ -183,9 +115,9 @@ func (slot *pbftSlot) checkPrepared() bool {
 	return len(slot.ValidPrepareDigests) >= config.StrongQuorum(slot.numNodes)
 }
 
-// checkCommitted evaluates whether the pbftSlot fulfills the conditions to be committed.
+// CheckCommitted evaluates whether the PbftSlot fulfills the conditions to be committed.
 // The slot can be committed when it has been prepared and when enough valid Commit messages have been received.
-func (slot *pbftSlot) checkCommitted() bool {
+func (slot *PbftSlot) CheckCommitted() bool {
 
 	// The slot must be prepared first.
 	if !slot.Prepared {
@@ -219,7 +151,7 @@ func (slot *pbftSlot) checkCommitted() bool {
 	return len(slot.ValidCommitDigests) >= config.StrongQuorum(slot.numNodes)
 }
 
-func (slot *pbftSlot) getPreprepare(digest []byte) *pbftpbtypes.Preprepare {
+func (slot *PbftSlot) GetPreprepare(digest []byte) *pbftpbtypes.Preprepare {
 	if slot.Preprepared && bytes.Equal(digest, slot.Digest) {
 		return slot.Preprepare
 	}
@@ -228,7 +160,7 @@ func (slot *pbftSlot) getPreprepare(digest []byte) *pbftpbtypes.Preprepare {
 }
 
 // Note: The Preprepare's view must match the view this slot is assigned to!
-func (slot *pbftSlot) catchUp(preprepare *pbftpbtypes.Preprepare, digest []byte) {
+func (slot *PbftSlot) CatchUp(preprepare *pbftpbtypes.Preprepare, digest []byte) {
 	slot.Preprepare = preprepare
 	slot.Digest = digest
 	slot.Preprepared = true

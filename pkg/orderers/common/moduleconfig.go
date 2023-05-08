@@ -1,4 +1,4 @@
-package orderers
+package common
 
 import t "github.com/filecoin-project/mir/pkg/types"
 
