@@ -33,14 +33,6 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// ============================================================
-// Data structures and functions
-// ============================================================
-
-// ============================================================
-// OrdererEvent handling
-// ============================================================
-
 func IncludeGoodCase(
 	m dsl.Module,
 	state *common.State,
