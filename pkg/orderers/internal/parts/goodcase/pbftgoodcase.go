@@ -168,7 +168,14 @@ func IncludeGoodCase(
 
 // applyProposeTimeout applies the event of the proposal timeout firing.
 // It updates the proposal state accordingly and triggers a new proposal if possible.
-func applyProposeTimeout(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, numProposals int, logger logging.Logger) error {
+func applyProposeTimeout(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	numProposals int,
+	logger logging.Logger,
+) error {
 
 	// If we are still waiting for this timeout
 	if numProposals > state.Proposal.ProposalTimeout {
@@ -214,15 +221,21 @@ func requestNewCert(m dsl.Module, state *common.State, moduleConfig common2.Modu
 // propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT State allows sending a new proposal
 // and does not perform any checks in this regard.
-func propose(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, data []byte, logger logging.Logger) error {
+func propose(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	data []byte,
+	logger logging.Logger,
+) error {
 
 	// Update proposal counter.
 	sn := state.Segment.SeqNrs()[state.Proposal.ProposalsMade]
 	state.Proposal.ProposalsMade++
 
 	// Log debug message.
-	logger.Log(logging.LevelDebug, "Proposing.",
-		"sn", sn)
+	logger.Log(logging.LevelDebug, "Proposing.", "sn", sn)
 
 	// Send a Preprepare message.
 	// No need for periodic re-transmission.
@@ -248,7 +261,15 @@ func propose(m dsl.Module, state *common.State, params *common.ModuleParams, mod
 
 // ApplyMsgPreprepare applies a received preprepare message.
 // It performs the necessary checks and, if successful, submits it for hashing.
-func ApplyMsgPreprepare(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, preprepare *pbftpbtypes.Preprepare, from t.NodeID, logger logging.Logger) {
+func ApplyMsgPreprepare(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	preprepare *pbftpbtypes.Preprepare,
+	from t.NodeID,
+	logger logging.Logger,
+) {
 
 	// Convenience variable
 	sn := preprepare.Sn
@@ -300,7 +321,15 @@ func ApplyMsgPreprepare(m dsl.Module, state *common.State, params *common.Module
 // applyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func applyMsgPrepare(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, prepare *pbftpbtypes.Prepare, from t.NodeID, logger logging.Logger) {
+func applyMsgPrepare(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	prepare *pbftpbtypes.Prepare,
+	from t.NodeID,
+	logger logging.Logger,
+) {
 
 	// Convenience variable
 	sn := prepare.Sn
@@ -328,7 +357,15 @@ func applyMsgPrepare(m dsl.Module, state *common.State, params *common.ModulePar
 // applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func applyMsgCommit(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, commit *pbftpbtypes.Commit, from t.NodeID, logger logging.Logger) {
+func applyMsgCommit(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	commit *pbftpbtypes.Commit,
+	from t.NodeID,
+	logger logging.Logger,
+) {
 
 	// Convenience variable
 	sn := commit.Sn
@@ -358,7 +395,14 @@ func applyMsgCommit(m dsl.Module, state *common.State, params *common.ModulePara
 // If the message is from a future view, preprocessMessage will try to buffer it for later processing and returns nil.
 // If the message can be processed, preprocessMessage returns the pbftSlot tracking the corresponding state.
 // The slot returned by preprocessMessage always belongs to the current view.
-func preprocessMessage(state *common.State, sn tt.SeqNr, view ot.ViewNr, msg proto.Message, from t.NodeID, logger logging.Logger) *common.PbftSlot {
+func preprocessMessage(
+	state *common.State,
+	sn tt.SeqNr,
+	view ot.ViewNr,
+	msg proto.Message,
+	from t.NodeID,
+	logger logging.Logger,
+) *common.PbftSlot {
 
 	if view < state.View {
 		// Ignore messages from old views.
@@ -414,7 +458,15 @@ func canPropose(state *common.State, params *common.ModuleParams) bool {
 // advanceSlotState checks whether the state of the PbftSlot can be advanced.
 // If it can, advanceSlotState updates the state of the PbftSlot and returns a list of Events that result from it.
 // Requires the PBFT instance as an argument to use it to generate the proper events.
-func advanceSlotState(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, slot *common.PbftSlot, sn tt.SeqNr, logger logging.Logger) {
+func advanceSlotState(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	slot *common.PbftSlot,
+	sn tt.SeqNr,
+	logger logging.Logger,
+) {
 	// If the slot just became prepared, send the Commit message.
 	if !slot.Prepared && slot.CheckPrepared() {
 		slot.Prepared = true

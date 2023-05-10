@@ -285,7 +285,7 @@ func IncludeViewChange(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
-		applyMsgMissingPreprepare(m, state, moduleConfig, preprepare, from)
+		applyMsgMissingPreprepare(m, state, moduleConfig, preprepare)
 		return nil
 	})
 
@@ -317,7 +317,15 @@ func IncludeViewChange(
 // applyViewChangeSNTimeout applies the view change SN timeout event
 // triggered some time after a value is committed.
 // If nothing has been committed since, triggers a view change.
-func applyViewChangeSNTimeout(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, view ot.ViewNr, numCommitted uint64, logger logging.Logger) error {
+func applyViewChangeSNTimeout(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	view ot.ViewNr,
+	numCommitted uint64,
+	logger logging.Logger,
+) error {
 
 	// If the view is still the same as when the timer was set up,
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
@@ -338,7 +346,14 @@ func applyViewChangeSNTimeout(m dsl.Module, state *common.State, params *common.
 // applyViewChangeSegmentTimeout applies the view change segment timeout event
 // triggered some time after a segment is initialized.
 // If not all slots have been committed, and the view has not advanced, triggers a view change.
-func applyViewChangeSegmentTimeout(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, view ot.ViewNr, logger logging.Logger) error {
+func applyViewChangeSegmentTimeout(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	view ot.ViewNr,
+	logger logging.Logger,
+) error {
 
 	// TODO: All slots being committed is not sufficient to stop view changes.
 	//       An instance-local stable checkpoint must be created as well.
@@ -357,7 +372,13 @@ func applyViewChangeSegmentTimeout(m dsl.Module, state *common.State, params *co
 // startViewChange initiates the view change subprotocol.
 // It is triggered on expiry of the SN timeout or the segment timeout.
 // It constructs the PBFT view change message and creates an event requesting signing it.
-func startViewChange(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, logger logging.Logger) error {
+func startViewChange(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	logger logging.Logger,
+) error {
 
 	// Enter the view change state and initialize a new view
 	state.InViewChange = true
@@ -390,7 +411,6 @@ func startViewChange(m dsl.Module, state *common.State, params *common.ModulePar
 // applyMsgSignedViewChange applies a signed view change message.
 // The only thing it does is request verification of the signature.
 func applyMsgSignedViewChange(m dsl.Module, moduleConfig common2.ModuleConfig, svc *pbftpbtypes.SignedViewChange, from t.NodeID) {
-	// TODO Update to use VerifySig and not VerifySigs (and corresponding Upon closure)
 	viewChange := svc.ViewChange
 	cryptopbdsl.VerifySig(
 		m,
@@ -402,7 +422,15 @@ func applyMsgSignedViewChange(m dsl.Module, moduleConfig common2.ModuleConfig, s
 	)
 }
 
-func applyVerifiedViewChange(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, svc *pbftpbtypes.SignedViewChange, from t.NodeID, logger logging.Logger) {
+func applyVerifiedViewChange(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	svc *pbftpbtypes.SignedViewChange,
+	from t.NodeID,
+	logger logging.Logger,
+) {
 	logger.Log(logging.LevelDebug, "Received ViewChange.", "sender", from)
 
 	// Convenience variables.
@@ -487,7 +515,12 @@ func applyMsgPreprepareRequest(
 	// If the requested Preprepare message is not available, ignore the request.
 }
 
-func applyMsgMissingPreprepare(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig, preprepare *pbftpbtypes.Preprepare, _ t.NodeID) {
+func applyMsgMissingPreprepare(
+	m dsl.Module,
+	state *common.State,
+	moduleConfig common2.ModuleConfig,
+	preprepare *pbftpbtypes.Preprepare,
+) {
 
 	// Ignore preprepare if received in the meantime or if view has already advanced.
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
@@ -506,7 +539,14 @@ func applyMsgMissingPreprepare(m dsl.Module, state *common.State, moduleConfig c
 	)
 }
 
-func sendNewView(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig, view ot.ViewNr, vcState *common.PbftViewChangeState, logger logging.Logger) {
+func sendNewView(
+	m dsl.Module,
+	state *common.State,
+	moduleConfig common2.ModuleConfig,
+	view ot.ViewNr,
+	vcState *common.PbftViewChangeState,
+	logger logging.Logger,
+) {
 
 	logger.Log(logging.LevelDebug, "Sending NewView.")
 
@@ -549,7 +589,13 @@ func sendNewView(m dsl.Module, state *common.State, moduleConfig common2.ModuleC
 	)
 }
 
-func applyMsgNewView(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig, newView *pbftpbtypes.NewView, from t.NodeID) {
+func applyMsgNewView(
+	m dsl.Module,
+	state *common.State,
+	moduleConfig common2.ModuleConfig,
+	newView *pbftpbtypes.NewView,
+	from t.NodeID,
+) {
 
 	// Ignore message if the sender is not the primary of the view.
 	if from != state.Segment.PrimaryNode(newView.View) {

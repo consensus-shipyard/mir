@@ -110,7 +110,14 @@ func (state *State) NumCommitted(view ot.ViewNr) int {
 	return numCommitted
 }
 
-func (state *State) InitView(m dsl.Module, params *ModuleParams, moduleConfig common.ModuleConfig, view ot.ViewNr, logger logging.Logger) error {
+func (state *State) InitView(
+	m dsl.Module,
+	params *ModuleParams,
+	moduleConfig common.ModuleConfig,
+	view ot.ViewNr,
+	logger logging.Logger,
+) error {
+
 	// Sanity check
 	if view < state.View {
 		return fmt.Errorf("starting a view (%d) older than the current one (%d)", view, state.View)

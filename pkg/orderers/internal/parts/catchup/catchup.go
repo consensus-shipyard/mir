@@ -123,7 +123,12 @@ func IncludeSegmentCheckpoint(
 // Once enough Done messages have been applied, makes the protocol
 // - stop participating in view changes and
 // - set up a timer for fetching missing certificates.
-func applyMsgDone(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, doneDigests [][]byte, from t.NodeID) {
+func applyMsgDone(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	doneDigests [][]byte, from t.NodeID) {
 
 	// Register Done message.
 	state.SegmentCheckpoint.NodeDone(from, doneDigests, state.Segment)
@@ -160,7 +165,12 @@ func applyMsgDone(m dsl.Module, state *common.State, params *common.ModuleParams
 // catchUpRequests assembles and returns a list of Events
 // representing requests for retransmission of committed certificates.
 // The list contains one request for each slot of the segment that has not yet been committed.
-func catchUpRequests(state *common.State, moduleConfig common2.ModuleConfig, nodes []t.NodeID, digests map[tt.SeqNr][]byte) []*eventpbtypes.Event {
+func catchUpRequests(
+	state *common.State,
+	moduleConfig common2.ModuleConfig,
+	nodes []t.NodeID,
+	digests map[tt.SeqNr][]byte,
+) []*eventpbtypes.Event {
 
 	catchUpRequests := make([]*eventpbtypes.Event, 0)
 
@@ -212,7 +222,13 @@ func applyMsgCatchUpRequest(
 // applyMsgCatchUpResponse applies a retransmitted missing committed certificate.
 // It only requests hashing of the response,
 // the actual handling of it being performed only when the hash result is available.
-func applyMsgCatchUpResponse(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig, preprepare *pbftpbtypes.Preprepare, _ t.NodeID) {
+func applyMsgCatchUpResponse(
+	m dsl.Module,
+	state *common.State,
+	moduleConfig common2.ModuleConfig,
+	preprepare *pbftpbtypes.Preprepare,
+	_ t.NodeID,
+) {
 
 	// Ignore preprepare if received in the meantime.
 	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
@@ -231,7 +247,13 @@ func applyMsgCatchUpResponse(m dsl.Module, state *common.State, moduleConfig com
 
 // SendDoneMessages sends a Done message to all other nodes as part of the instance-level checkpoint subprotocol.
 // This method is called when all slots have been committed.
-func SendDoneMessages(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, logger logging.Logger) {
+func SendDoneMessages(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	logger logging.Logger,
+) {
 
 	logger.Log(logging.LevelInfo, "Done with segment.")
 
