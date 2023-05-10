@@ -34,7 +34,7 @@ import (
 // OrdererEvent handling
 // ============================================================
 
-func IncludeViewChange(
+func IncludeViewChange( //nolint:gocognit
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
