@@ -154,7 +154,7 @@ func IncludeViewChange(
 
 		// If some Preprepares for re-proposing are still missing, fetch them from other nodes.
 		logger.Log(logging.LevelDebug, "Some Preprepares missing. Asking for retransmission.")
-		AskForMissingPreprepares(m, moduleConfig, vcstate)
+		askForMissingPreprepares(m, moduleConfig, vcstate)
 		return nil
 	})
 
@@ -672,7 +672,7 @@ func getPSetQSet(state *common.State) (pSet common.ViewChangePSet, qSet common.V
 	return pSet, qSet
 }
 
-// AskForMissingPreprepares requests the Preprepare messages that are part of a new view.
+// askForMissingPreprepares requests the Preprepare messages that are part of a new view.
 // The new primary might have received a prepare certificate from other nodes in the ViewChange messages they sent
 // and thus the new primary has to re-propose the corresponding availability certificate
 // by including the corresponding Preprepare message in the NewView message.
@@ -681,7 +681,7 @@ func getPSetQSet(state *common.State) (pSet common.ViewChangePSet, qSet common.V
 // Note that the requests for missing Preprepare messages need not necessarily be periodically re-transmitted.
 // If they are dropped, the new primary will simply never send a NewView message
 // and will be succeeded by another primary after another view change.
-func AskForMissingPreprepares(m dsl.Module, moduleConfig common2.ModuleConfig, vcState *common.PbftViewChangeState) {
+func askForMissingPreprepares(m dsl.Module, moduleConfig common2.ModuleConfig, vcState *common.PbftViewChangeState) {
 	for sn, digest := range vcState.Reproposals {
 		if len(digest) > 0 && vcState.Preprepares[sn] == nil {
 			transportpbdsl.SendMessage(

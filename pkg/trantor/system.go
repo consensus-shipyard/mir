@@ -148,7 +148,6 @@ func New(
 	}
 	trantorModules[moduleConfig.ISS] = issProtocol
 
-	//<<<<<<< HEAD
 	// The ordering module, dynamically creating instances of the PBFT protocol as segments are created by ISS.
 	// Each segment is ordered by a separate instance of the ordering protocol.
 	// The results are then multiplexed by ISS to a single totally ordered log.

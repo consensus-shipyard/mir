@@ -85,7 +85,7 @@ func IncludeGoodCase(
 				return fmt.Errorf("error marshalling certificate: %w", err)
 			}
 
-			err = Propose(m, state, params, moduleConfig, certBytes, logger)
+			err = propose(m, state, params, moduleConfig, certBytes, logger)
 			if err != nil {
 				return fmt.Errorf("failed to propose: %w", err)
 			}
@@ -190,11 +190,11 @@ func applyProposeTimeout(m dsl.Module, state *common.State, params *common.Modul
 			// If a proposal already has been set as a parameter of the segment, propose it directly.
 			sn := state.Segment.SeqNrs()[state.Proposal.ProposalsMade]
 			if proposal := state.Segment.Proposals[sn]; proposal != nil {
-				return Propose(m, state, params, moduleConfig, proposal, logger)
+				return propose(m, state, params, moduleConfig, proposal, logger)
 			}
 
 			// Otherwise, obtain a fresh availability certificate first.
-			RequestNewCert(m, state, moduleConfig)
+			requestNewCert(m, state, moduleConfig)
 		}
 	}
 
@@ -203,7 +203,7 @@ func applyProposeTimeout(m dsl.Module, state *common.State, params *common.Modul
 
 // requestNewCert asks (by means of a CertRequest event) the availability module to provide a new availability certificate.
 // When the certificate is ready, it must be passed to the State using the CertReady event.
-func RequestNewCert(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig) {
+func requestNewCert(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig) {
 
 	// Set a flag indicating that a certificate has been requested,
 	// so that no new certificates will be requested before the reception of this one.
@@ -222,7 +222,7 @@ func RequestNewCert(m dsl.Module, state *common.State, moduleConfig common2.Modu
 // propose proposes a new availability certificate by sending a Preprepare message.
 // propose assumes that the state of the PBFT State allows sending a new proposal
 // and does not perform any checks in this regard.
-func Propose(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, data []byte, logger logging.Logger) error {
+func propose(m dsl.Module, state *common.State, params *common.ModuleParams, moduleConfig common2.ModuleConfig, data []byte, logger logging.Logger) error {
 
 	// Update proposal counter.
 	sn := state.Segment.SeqNrs()[state.Proposal.ProposalsMade]

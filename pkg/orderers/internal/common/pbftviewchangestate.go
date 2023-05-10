@@ -88,7 +88,7 @@ func (vcState *PbftViewChangeState) AddSignedViewChange(svc *pbftpbtypes.SignedV
 
 // TODO: Make sure this procedure is fully deterministic (map iterations etc...)
 func (vcState *PbftViewChangeState) updateReproposals(logger logging.Logger) {
-	pSets, qSets := ReconstructPSetQSet(vcState.SignedViewChanges, logger)
+	pSets, qSets := reconstructPSetQSet(vcState.SignedViewChanges, logger)
 
 	for sn, r := range vcState.Reproposals {
 		if r == nil {
@@ -285,7 +285,7 @@ func reconstructQSet(entries []*pbftpbtypes.QSetEntry) (ViewChangeQSet, error) {
 
 }
 
-func ReconstructPSetQSet(
+func reconstructPSetQSet(
 	signedViewChanges map[t.NodeID]*pbftpbtypes.SignedViewChange,
 	logger logging.Logger,
 ) (map[t.NodeID]ViewChangePSet, map[t.NodeID]ViewChangeQSet) {
