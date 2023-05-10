@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
-	"github.com/filecoin-project/mir/pkg/orderers"
+	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -67,8 +67,8 @@ func (mc ModuleConfig) ConfigureCheckpointing() checkpoint.ModuleConfig {
 	}
 }
 
-func (mc ModuleConfig) ConfigureOrdering() orderers.ModuleConfig {
-	return orderers.ModuleConfig{
+func (mc ModuleConfig) ConfigureOrdering() ordererscommon.ModuleConfig {
+	return ordererscommon.ModuleConfig{
 		Self:   mc.Ordering,
 		App:    mc.BatchFetcher,
 		Ava:    "", // Ava not initialized yet. It will be set at sub-module instantiation within the factory.

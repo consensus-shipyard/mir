@@ -7,6 +7,8 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
+	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -20,7 +22,7 @@ const (
 )
 
 func Factory(
-	mc ModuleConfig,
+	mc common2.ModuleConfig,
 	issParams *issconfig.ModuleParams,
 	ownID t.NodeID,
 	hashImpl crypto.HashImpl,
@@ -47,18 +49,18 @@ func Factory(
 				availabilityID := t.ModuleID(p.AvailabilityId)
 				submc.Ava = availabilityID
 				epoch := tt.EpochNr(p.Epoch)
-				segment := (*Segment)(p.Segment)
+				segment := (*common2.Segment)(p.Segment)
 
 				// Create new configuration for this particular orderer instance.
 				ordererConfig := newOrdererConfig(issParams, segment.NodeIDs(), epoch)
 
 				// Select validity checker
-				var validityChecker ValidityChecker
+				var validityChecker common.ValidityChecker
 				switch ValidityCheckerType(p.ValidityChecker) {
 				case PermissiveValidityChecker:
-					validityChecker = newPermissiveValidityChecker()
+					validityChecker = common.NewPermissiveValidityChecker()
 				case CheckpointValidityChecker:
-					validityChecker = newCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership)
+					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership)
 
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.

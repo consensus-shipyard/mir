@@ -1,4 +1,4 @@
-package orderers
+package common
 
 import (
 	"time"
@@ -53,5 +53,5 @@ type PBFTConfig struct {
 	ViewChangeResendPeriod time.Duration
 
 	// The current epoch number
-	epochNr tt.EpochNr
+	EpochNr tt.EpochNr
 }

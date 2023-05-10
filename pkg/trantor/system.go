@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/orderers"
 	"github.com/filecoin-project/mir/pkg/timer"
+
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"github.com/pkg/errors"
