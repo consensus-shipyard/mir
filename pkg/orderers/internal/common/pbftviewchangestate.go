@@ -37,7 +37,7 @@ type PbftViewChangeState struct {
 	// Based on received ViewChange messages, each value will eventually be set to
 	// a new Preprepare message to be re-proposed (with a correctly set view number).
 	// This also holds for sequence numbers for which nothing was prepared in the previous view,
-	// in which case the value is set to a Preprepare with an empty certificate and the "aborted" flag set.
+	// in which case the value is set to a fresh Preprepare (as configured) and the "aborted" flag set.
 	Preprepares map[tt.SeqNr]*pbftpbtypes.Preprepare
 
 	PrepreparedIDs map[tt.SeqNr][]t.NodeID
