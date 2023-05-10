@@ -17,8 +17,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/types"
 )
 
-// State represents a PBFT State.
-// It implements the sbInstance (instance of Sequenced broadcast) interface and thus can be used as an State for ISS.
 type ModuleParams struct {
 	// The ID of this node.
 	OwnID types.NodeID
@@ -30,9 +28,11 @@ type ModuleParams struct {
 	ExternalValidator ValidityChecker
 }
 
+// State represents a PBFT State.
+// It implements the sbInstance (instance of Sequenced broadcast) interface and thus can be used as an State for ISS.
 type State struct {
 
-	// The segment governing this SB instance, specifying the leader, the set of sequence numbers, the buckets, etc.
+	// The segment governing this SB instance, specifying the leader, the set of sequence numbers, etc.
 	Segment *common.Segment
 
 	// Buffers representing a backlog of messages destined to future views.
@@ -65,7 +65,7 @@ type State struct {
 	ViewChangeStates map[ot.ViewNr]*PbftViewChangeState
 }
 
-// pbftProposalState tracks the state of the pbftInstance related to proposing certificates.
+// PbftProposalState tracks the state of the pbftInstance related to proposing certificates.
 // The proposal state is only used if this node is the leader of this instance of PBFT.
 type PbftProposalState struct {
 
@@ -82,13 +82,12 @@ type PbftProposalState struct {
 	// it requests a new certificate from the enclosing ISS implementation.
 	CertRequested bool
 
-	// If certRequested is true, certRequestedView indicates the PBFT view
+	// If CertRequested is true, CertRequestedView indicates the PBFT view
 	// in which the PBFT protocol was when the certificate was requested.
 	// When the certificate is ready, the protocol needs to check whether it is still in the same view
 	// as when the certificate was requested.
 	// If the view advanced in the meantime, the proposal must be aborted and the contained transactions resurrected
-	// (i.e., put back in their respective ISS bucket queues).
-	// If certRequested is false, certRequestedView must not be used.
+	// If CertRequested is false, CertRequestedView must not be used.
 	CertRequestedView ot.ViewNr
 
 	// the number of proposals for which the timeout has passed.
