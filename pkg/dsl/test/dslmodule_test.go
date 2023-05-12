@@ -13,12 +13,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/mathutil"
@@ -168,7 +168,7 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 		"test unknown event type": {
 			eventsIn: events.ListOf(transportpbevents.SendMessage(
 				mc.Self,
-				checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}), // Just a random message, could be anything.
+				&messagepbtypes.Message{},
 				[]types.NodeID{}).Pb(),
 			),
 			eventsOut: events.EmptyList(),
