@@ -30,6 +30,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb mempoolpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mempoolpb.Event_RequestBatch:
 		return &Event_RequestBatch{RequestBatch: RequestBatchFromPb(pb.RequestBatch)}
@@ -64,6 +67,9 @@ func (w *Event_RequestBatch) Unwrap() *RequestBatch {
 }
 
 func (w *Event_RequestBatch) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_RequestBatch{RequestBatch: (w.RequestBatch).Pb()}
 }
 
@@ -82,6 +88,9 @@ func (w *Event_NewBatch) Unwrap() *NewBatch {
 }
 
 func (w *Event_NewBatch) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_NewBatch{NewBatch: (w.NewBatch).Pb()}
 }
 
@@ -100,6 +109,9 @@ func (w *Event_RequestTransactions) Unwrap() *RequestTransactions {
 }
 
 func (w *Event_RequestTransactions) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_RequestTransactions{RequestTransactions: (w.RequestTransactions).Pb()}
 }
 
@@ -118,6 +130,9 @@ func (w *Event_TransactionsResponse) Unwrap() *TransactionsResponse {
 }
 
 func (w *Event_TransactionsResponse) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_TransactionsResponse{TransactionsResponse: (w.TransactionsResponse).Pb()}
 }
 
@@ -136,6 +151,9 @@ func (w *Event_RequestTransactionIds) Unwrap() *RequestTransactionIDs {
 }
 
 func (w *Event_RequestTransactionIds) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_RequestTransactionIds{RequestTransactionIds: (w.RequestTransactionIds).Pb()}
 }
 
@@ -154,6 +172,9 @@ func (w *Event_TransactionIdsResponse) Unwrap() *TransactionIDsResponse {
 }
 
 func (w *Event_TransactionIdsResponse) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_TransactionIdsResponse{TransactionIdsResponse: (w.TransactionIdsResponse).Pb()}
 }
 
@@ -172,6 +193,9 @@ func (w *Event_RequestBatchId) Unwrap() *RequestBatchID {
 }
 
 func (w *Event_RequestBatchId) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_RequestBatchId{RequestBatchId: (w.RequestBatchId).Pb()}
 }
 
@@ -190,6 +214,9 @@ func (w *Event_BatchIdResponse) Unwrap() *BatchIDResponse {
 }
 
 func (w *Event_BatchIdResponse) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_BatchIdResponse{BatchIdResponse: (w.BatchIdResponse).Pb()}
 }
 
@@ -208,6 +235,9 @@ func (w *Event_NewTransactions) Unwrap() *NewTransactions {
 }
 
 func (w *Event_NewTransactions) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.Event_NewTransactions{NewTransactions: (w.NewTransactions).Pb()}
 }
 
@@ -216,12 +246,18 @@ func (*Event_NewTransactions) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *mempoolpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *mempoolpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -236,6 +272,9 @@ type NewTransactions struct {
 }
 
 func NewTransactionsFromPb(pb *mempoolpb.NewTransactions) *NewTransactions {
+	if pb == nil {
+		return nil
+	}
 	return &NewTransactions{
 		Transactions: types1.ConvertSlice(pb.Transactions, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -244,6 +283,9 @@ func NewTransactionsFromPb(pb *mempoolpb.NewTransactions) *NewTransactions {
 }
 
 func (m *NewTransactions) Pb() *mempoolpb.NewTransactions {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.NewTransactions{
 		Transactions: types1.ConvertSlice(m.Transactions, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
@@ -260,12 +302,18 @@ type RequestBatch struct {
 }
 
 func RequestBatchFromPb(pb *mempoolpb.RequestBatch) *RequestBatch {
+	if pb == nil {
+		return nil
+	}
 	return &RequestBatch{
 		Origin: RequestBatchOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *RequestBatch) Pb() *mempoolpb.RequestBatch {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatch{
 		Origin: (m.Origin).Pb(),
 	}
@@ -282,6 +330,9 @@ type NewBatch struct {
 }
 
 func NewBatchFromPb(pb *mempoolpb.NewBatch) *NewBatch {
+	if pb == nil {
+		return nil
+	}
 	return &NewBatch{
 		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
 			return (types2.TxID)(t)
@@ -294,6 +345,9 @@ func NewBatchFromPb(pb *mempoolpb.NewBatch) *NewBatch {
 }
 
 func (m *NewBatch) Pb() *mempoolpb.NewBatch {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.NewBatch{
 		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
@@ -315,6 +369,9 @@ type RequestTransactions struct {
 }
 
 func RequestTransactionsFromPb(pb *mempoolpb.RequestTransactions) *RequestTransactions {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactions{
 		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
 			return (types2.TxID)(t)
@@ -324,6 +381,9 @@ func RequestTransactionsFromPb(pb *mempoolpb.RequestTransactions) *RequestTransa
 }
 
 func (m *RequestTransactions) Pb() *mempoolpb.RequestTransactions {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactions{
 		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
@@ -343,6 +403,9 @@ type TransactionsResponse struct {
 }
 
 func TransactionsResponseFromPb(pb *mempoolpb.TransactionsResponse) *TransactionsResponse {
+	if pb == nil {
+		return nil
+	}
 	return &TransactionsResponse{
 		Present: pb.Present,
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
@@ -353,6 +416,9 @@ func TransactionsResponseFromPb(pb *mempoolpb.TransactionsResponse) *Transaction
 }
 
 func (m *TransactionsResponse) Pb() *mempoolpb.TransactionsResponse {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.TransactionsResponse{
 		Present: m.Present,
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
@@ -372,6 +438,9 @@ type RequestTransactionIDs struct {
 }
 
 func RequestTransactionIDsFromPb(pb *mempoolpb.RequestTransactionIDs) *RequestTransactionIDs {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactionIDs{
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -381,6 +450,9 @@ func RequestTransactionIDsFromPb(pb *mempoolpb.RequestTransactionIDs) *RequestTr
 }
 
 func (m *RequestTransactionIDs) Pb() *mempoolpb.RequestTransactionIDs {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionIDs{
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
@@ -399,6 +471,9 @@ type TransactionIDsResponse struct {
 }
 
 func TransactionIDsResponseFromPb(pb *mempoolpb.TransactionIDsResponse) *TransactionIDsResponse {
+	if pb == nil {
+		return nil
+	}
 	return &TransactionIDsResponse{
 		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
 			return (types2.TxID)(t)
@@ -408,6 +483,9 @@ func TransactionIDsResponseFromPb(pb *mempoolpb.TransactionIDsResponse) *Transac
 }
 
 func (m *TransactionIDsResponse) Pb() *mempoolpb.TransactionIDsResponse {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.TransactionIDsResponse{
 		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
@@ -426,6 +504,9 @@ type RequestBatchID struct {
 }
 
 func RequestBatchIDFromPb(pb *mempoolpb.RequestBatchID) *RequestBatchID {
+	if pb == nil {
+		return nil
+	}
 	return &RequestBatchID{
 		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
 			return (types2.TxID)(t)
@@ -435,6 +516,9 @@ func RequestBatchIDFromPb(pb *mempoolpb.RequestBatchID) *RequestBatchID {
 }
 
 func (m *RequestBatchID) Pb() *mempoolpb.RequestBatchID {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchID{
 		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
@@ -453,6 +537,9 @@ type BatchIDResponse struct {
 }
 
 func BatchIDResponseFromPb(pb *mempoolpb.BatchIDResponse) *BatchIDResponse {
+	if pb == nil {
+		return nil
+	}
 	return &BatchIDResponse{
 		BatchId: (types3.BatchID)(pb.BatchId),
 		Origin:  RequestBatchIDOriginFromPb(pb.Origin),
@@ -460,6 +547,9 @@ func BatchIDResponseFromPb(pb *mempoolpb.BatchIDResponse) *BatchIDResponse {
 }
 
 func (m *BatchIDResponse) Pb() *mempoolpb.BatchIDResponse {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.BatchIDResponse{
 		BatchId: ([]uint8)(m.BatchId),
 		Origin:  (m.Origin).Pb(),
@@ -487,6 +577,9 @@ type RequestBatchOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestBatchOrigin_TypeFromPb(pb mempoolpb.RequestBatchOrigin_Type) RequestBatchOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestBatchOrigin_ContextStore:
 		return &RequestBatchOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
@@ -507,6 +600,9 @@ func (w *RequestBatchOrigin_ContextStore) Unwrap() *types5.Origin {
 }
 
 func (w *RequestBatchOrigin_ContextStore) Pb() mempoolpb.RequestBatchOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -525,6 +621,9 @@ func (w *RequestBatchOrigin_Dsl) Unwrap() *types6.Origin {
 }
 
 func (w *RequestBatchOrigin_Dsl) Pb() mempoolpb.RequestBatchOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -533,6 +632,9 @@ func (*RequestBatchOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestBatchOriginFromPb(pb *mempoolpb.RequestBatchOrigin) *RequestBatchOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestBatchOrigin{
 		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestBatchOrigin_TypeFromPb(pb.Type),
@@ -540,6 +642,9 @@ func RequestBatchOriginFromPb(pb *mempoolpb.RequestBatchOrigin) *RequestBatchOri
 }
 
 func (m *RequestBatchOrigin) Pb() *mempoolpb.RequestBatchOrigin {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -567,6 +672,9 @@ type RequestTransactionsOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestTransactionsOrigin_TypeFromPb(pb mempoolpb.RequestTransactionsOrigin_Type) RequestTransactionsOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestTransactionsOrigin_ContextStore:
 		return &RequestTransactionsOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
@@ -587,6 +695,9 @@ func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types5.Origin {
 }
 
 func (w *RequestTransactionsOrigin_ContextStore) Pb() mempoolpb.RequestTransactionsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -605,6 +716,9 @@ func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types6.Origin {
 }
 
 func (w *RequestTransactionsOrigin_Dsl) Pb() mempoolpb.RequestTransactionsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -613,6 +727,9 @@ func (*RequestTransactionsOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestTransactionsOriginFromPb(pb *mempoolpb.RequestTransactionsOrigin) *RequestTransactionsOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactionsOrigin{
 		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestTransactionsOrigin_TypeFromPb(pb.Type),
@@ -620,6 +737,9 @@ func RequestTransactionsOriginFromPb(pb *mempoolpb.RequestTransactionsOrigin) *R
 }
 
 func (m *RequestTransactionsOrigin) Pb() *mempoolpb.RequestTransactionsOrigin {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionsOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -647,6 +767,9 @@ type RequestTransactionIDsOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestTransactionIDsOrigin_TypeFromPb(pb mempoolpb.RequestTransactionIDsOrigin_Type) RequestTransactionIDsOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestTransactionIDsOrigin_ContextStore:
 		return &RequestTransactionIDsOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
@@ -667,6 +790,9 @@ func (w *RequestTransactionIDsOrigin_ContextStore) Unwrap() *types5.Origin {
 }
 
 func (w *RequestTransactionIDsOrigin_ContextStore) Pb() mempoolpb.RequestTransactionIDsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionIDsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -685,6 +811,9 @@ func (w *RequestTransactionIDsOrigin_Dsl) Unwrap() *types6.Origin {
 }
 
 func (w *RequestTransactionIDsOrigin_Dsl) Pb() mempoolpb.RequestTransactionIDsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionIDsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -693,6 +822,9 @@ func (*RequestTransactionIDsOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestTransactionIDsOriginFromPb(pb *mempoolpb.RequestTransactionIDsOrigin) *RequestTransactionIDsOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactionIDsOrigin{
 		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestTransactionIDsOrigin_TypeFromPb(pb.Type),
@@ -700,6 +832,9 @@ func RequestTransactionIDsOriginFromPb(pb *mempoolpb.RequestTransactionIDsOrigin
 }
 
 func (m *RequestTransactionIDsOrigin) Pb() *mempoolpb.RequestTransactionIDsOrigin {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestTransactionIDsOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -727,6 +862,9 @@ type RequestBatchIDOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestBatchIDOrigin_TypeFromPb(pb mempoolpb.RequestBatchIDOrigin_Type) RequestBatchIDOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mempoolpb.RequestBatchIDOrigin_ContextStore:
 		return &RequestBatchIDOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
@@ -747,6 +885,9 @@ func (w *RequestBatchIDOrigin_ContextStore) Unwrap() *types5.Origin {
 }
 
 func (w *RequestBatchIDOrigin_ContextStore) Pb() mempoolpb.RequestBatchIDOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchIDOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -765,6 +906,9 @@ func (w *RequestBatchIDOrigin_Dsl) Unwrap() *types6.Origin {
 }
 
 func (w *RequestBatchIDOrigin_Dsl) Pb() mempoolpb.RequestBatchIDOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchIDOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -773,6 +917,9 @@ func (*RequestBatchIDOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestBatchIDOriginFromPb(pb *mempoolpb.RequestBatchIDOrigin) *RequestBatchIDOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestBatchIDOrigin{
 		Module: (types4.ModuleID)(pb.Module),
 		Type:   RequestBatchIDOrigin_TypeFromPb(pb.Type),
@@ -780,6 +927,9 @@ func RequestBatchIDOriginFromPb(pb *mempoolpb.RequestBatchIDOrigin) *RequestBatc
 }
 
 func (m *RequestBatchIDOrigin) Pb() *mempoolpb.RequestBatchIDOrigin {
+	if m == nil {
+		return nil
+	}
 	return &mempoolpb.RequestBatchIDOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),

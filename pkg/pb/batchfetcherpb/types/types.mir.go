@@ -25,6 +25,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb batchfetcherpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *batchfetcherpb.Event_NewOrderedBatch:
 		return &Event_NewOrderedBatch{NewOrderedBatch: NewOrderedBatchFromPb(pb.NewOrderedBatch)}
@@ -45,6 +48,9 @@ func (w *Event_NewOrderedBatch) Unwrap() *NewOrderedBatch {
 }
 
 func (w *Event_NewOrderedBatch) Pb() batchfetcherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &batchfetcherpb.Event_NewOrderedBatch{NewOrderedBatch: (w.NewOrderedBatch).Pb()}
 }
 
@@ -63,6 +69,9 @@ func (w *Event_ClientProgress) Unwrap() *types.ClientProgress {
 }
 
 func (w *Event_ClientProgress) Pb() batchfetcherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &batchfetcherpb.Event_ClientProgress{ClientProgress: (w.ClientProgress).Pb()}
 }
 
@@ -71,12 +80,18 @@ func (*Event_ClientProgress) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *batchfetcherpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *batchfetcherpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &batchfetcherpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -91,6 +106,9 @@ type NewOrderedBatch struct {
 }
 
 func NewOrderedBatchFromPb(pb *batchfetcherpb.NewOrderedBatch) *NewOrderedBatch {
+	if pb == nil {
+		return nil
+	}
 	return &NewOrderedBatch{
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -99,6 +117,9 @@ func NewOrderedBatchFromPb(pb *batchfetcherpb.NewOrderedBatch) *NewOrderedBatch 
 }
 
 func (m *NewOrderedBatch) Pb() *batchfetcherpb.NewOrderedBatch {
+	if m == nil {
+		return nil
+	}
 	return &batchfetcherpb.NewOrderedBatch{
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()

@@ -54,6 +54,9 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 
 			// Generate the FromPb function.
 			g.Func().Id(oneof.MirInterfaceName()+"FromPb").Params(jen.Id("pb").Add(oneof.PbType())).Add(oneof.MirType()).Block(
+				jen.If(jen.Id("pb").Op("==").Nil()).Block(
+					jen.Return(jen.Nil()),
+				),
 				jen.Switch(jen.Id("pb").Op(":=").Id("pb").Dot("(type)")).BlockFunc(func(group *jen.Group) {
 					for _, opt := range oneof.Options {
 						group.Case(opt.PbWrapperType()).Block(
@@ -81,6 +84,9 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 
 				// Generate the Pb method.
 				g.Func().Params(jen.Id("w").Add(opt.MirWrapperType())).Id("Pb").Params().Add(oneof.PbType()).Block(
+					jen.If(jen.Id("w").Op("==").Nil()).Block(
+						jen.Return(jen.Nil()),
+					),
 					jen.Return(jen.Add(opt.NewPbWrapperType()).Values(
 						jen.Id(opt.Field.Name).Op(":").Add(opt.Field.Type.ToPb(jen.Id("w").Dot(opt.Field.Name))),
 					)),
@@ -98,7 +104,10 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 
 	// Generate [Name]FromPb function.
 	// NB: it would be nicer to generate .ToMir() methods for pb types, but this would cause a cyclic dependency.
-	g.Func().Id(msg.Name() + "FromPb").Params(jen.Id("pb").Add(msg.PbType())).Add(msg.MirType()).Block(
+	g.Func().Id(msg.Name()+"FromPb").Params(jen.Id("pb").Add(msg.PbType())).Add(msg.MirType()).Block(
+		jen.If(jen.Id("pb").Op("==").Nil()).Block(
+			jen.Return(jen.Nil()),
+		),
 		jen.Return().Add(msg.NewMirType()).ValuesFunc(func(group *jen.Group) {
 			for _, field := range fields {
 				group.Line().Id(field.Name).Op(":").Add(field.Type.ToMir(jen.Id("pb").Dot(field.Name)))
@@ -109,6 +118,9 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 
 	// Generate the Pb method.
 	g.Func().Params(jen.Id("m").Add(msg.MirType())).Id("Pb").Params().Add(msg.PbType()).Block(
+		jen.If(jen.Id("m").Op("==").Nil()).Block(
+			jen.Return(jen.Nil()),
+		),
 		jen.Return().Add(msg.NewPbType()).ValuesFunc(func(group *jen.Group) {
 			for _, field := range fields {
 				group.Line().Id(field.Name).Op(":").Add(field.Type.ToPb(jen.Id("m").Dot(field.Name)))

@@ -26,6 +26,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb hasherpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *hasherpb.Event_Request:
 		return &Event_Request{Request: RequestFromPb(pb.Request)}
@@ -50,6 +53,9 @@ func (w *Event_Request) Unwrap() *Request {
 }
 
 func (w *Event_Request) Pb() hasherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.Event_Request{Request: (w.Request).Pb()}
 }
 
@@ -68,6 +74,9 @@ func (w *Event_Result) Unwrap() *Result {
 }
 
 func (w *Event_Result) Pb() hasherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.Event_Result{Result: (w.Result).Pb()}
 }
 
@@ -86,6 +95,9 @@ func (w *Event_RequestOne) Unwrap() *RequestOne {
 }
 
 func (w *Event_RequestOne) Pb() hasherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.Event_RequestOne{RequestOne: (w.RequestOne).Pb()}
 }
 
@@ -104,6 +116,9 @@ func (w *Event_ResultOne) Unwrap() *ResultOne {
 }
 
 func (w *Event_ResultOne) Pb() hasherpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.Event_ResultOne{ResultOne: (w.ResultOne).Pb()}
 }
 
@@ -112,12 +127,18 @@ func (*Event_ResultOne) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *hasherpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *hasherpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -133,6 +154,9 @@ type Request struct {
 }
 
 func RequestFromPb(pb *hasherpb.Request) *Request {
+	if pb == nil {
+		return nil
+	}
 	return &Request{
 		Data: types.ConvertSlice(pb.Data, func(t *hasherpb.HashData) *HashData {
 			return HashDataFromPb(t)
@@ -142,6 +166,9 @@ func RequestFromPb(pb *hasherpb.Request) *Request {
 }
 
 func (m *Request) Pb() *hasherpb.Request {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.Request{
 		Data: types.ConvertSlice(m.Data, func(t *HashData) *hasherpb.HashData {
 			return (t).Pb()
@@ -160,6 +187,9 @@ type Result struct {
 }
 
 func ResultFromPb(pb *hasherpb.Result) *Result {
+	if pb == nil {
+		return nil
+	}
 	return &Result{
 		Digests: pb.Digests,
 		Origin:  HashOriginFromPb(pb.Origin),
@@ -167,6 +197,9 @@ func ResultFromPb(pb *hasherpb.Result) *Result {
 }
 
 func (m *Result) Pb() *hasherpb.Result {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.Result{
 		Digests: m.Digests,
 		Origin:  (m.Origin).Pb(),
@@ -183,6 +216,9 @@ type RequestOne struct {
 }
 
 func RequestOneFromPb(pb *hasherpb.RequestOne) *RequestOne {
+	if pb == nil {
+		return nil
+	}
 	return &RequestOne{
 		Data:   HashDataFromPb(pb.Data),
 		Origin: HashOriginFromPb(pb.Origin),
@@ -190,6 +226,9 @@ func RequestOneFromPb(pb *hasherpb.RequestOne) *RequestOne {
 }
 
 func (m *RequestOne) Pb() *hasherpb.RequestOne {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.RequestOne{
 		Data:   (m.Data).Pb(),
 		Origin: (m.Origin).Pb(),
@@ -206,6 +245,9 @@ type ResultOne struct {
 }
 
 func ResultOneFromPb(pb *hasherpb.ResultOne) *ResultOne {
+	if pb == nil {
+		return nil
+	}
 	return &ResultOne{
 		Digest: pb.Digest,
 		Origin: HashOriginFromPb(pb.Origin),
@@ -213,6 +255,9 @@ func ResultOneFromPb(pb *hasherpb.ResultOne) *ResultOne {
 }
 
 func (m *ResultOne) Pb() *hasherpb.ResultOne {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.ResultOne{
 		Digest: m.Digest,
 		Origin: (m.Origin).Pb(),
@@ -240,6 +285,9 @@ type HashOrigin_TypeWrapper[T any] interface {
 }
 
 func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *hasherpb.HashOrigin_ContextStore:
 		return &HashOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
@@ -260,6 +308,9 @@ func (w *HashOrigin_ContextStore) Unwrap() *types2.Origin {
 }
 
 func (w *HashOrigin_ContextStore) Pb() hasherpb.HashOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.HashOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -278,6 +329,9 @@ func (w *HashOrigin_Dsl) Unwrap() *types3.Origin {
 }
 
 func (w *HashOrigin_Dsl) Pb() hasherpb.HashOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &hasherpb.HashOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -286,6 +340,9 @@ func (*HashOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func HashOriginFromPb(pb *hasherpb.HashOrigin) *HashOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &HashOrigin{
 		Module: (types1.ModuleID)(pb.Module),
 		Type:   HashOrigin_TypeFromPb(pb.Type),
@@ -293,6 +350,9 @@ func HashOriginFromPb(pb *hasherpb.HashOrigin) *HashOrigin {
 }
 
 func (m *HashOrigin) Pb() *hasherpb.HashOrigin {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.HashOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -308,12 +368,18 @@ type HashData struct {
 }
 
 func HashDataFromPb(pb *hasherpb.HashData) *HashData {
+	if pb == nil {
+		return nil
+	}
 	return &HashData{
 		Data: pb.Data,
 	}
 }
 
 func (m *HashData) Pb() *hasherpb.HashData {
+	if m == nil {
+		return nil
+	}
 	return &hasherpb.HashData{
 		Data: m.Data,
 	}

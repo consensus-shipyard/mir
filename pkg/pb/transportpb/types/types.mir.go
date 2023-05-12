@@ -25,6 +25,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb transportpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *transportpb.Event_SendMessage:
 		return &Event_SendMessage{SendMessage: SendMessageFromPb(pb.SendMessage)}
@@ -45,6 +48,9 @@ func (w *Event_SendMessage) Unwrap() *SendMessage {
 }
 
 func (w *Event_SendMessage) Pb() transportpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &transportpb.Event_SendMessage{SendMessage: (w.SendMessage).Pb()}
 }
 
@@ -63,6 +69,9 @@ func (w *Event_MessageReceived) Unwrap() *MessageReceived {
 }
 
 func (w *Event_MessageReceived) Pb() transportpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &transportpb.Event_MessageReceived{MessageReceived: (w.MessageReceived).Pb()}
 }
 
@@ -71,12 +80,18 @@ func (*Event_MessageReceived) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *transportpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *transportpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &transportpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -92,6 +107,9 @@ type SendMessage struct {
 }
 
 func SendMessageFromPb(pb *transportpb.SendMessage) *SendMessage {
+	if pb == nil {
+		return nil
+	}
 	return &SendMessage{
 		Msg: types.MessageFromPb(pb.Msg),
 		Destinations: types2.ConvertSlice(pb.Destinations, func(t string) types1.NodeID {
@@ -101,6 +119,9 @@ func SendMessageFromPb(pb *transportpb.SendMessage) *SendMessage {
 }
 
 func (m *SendMessage) Pb() *transportpb.SendMessage {
+	if m == nil {
+		return nil
+	}
 	return &transportpb.SendMessage{
 		Msg: (m.Msg).Pb(),
 		Destinations: types2.ConvertSlice(m.Destinations, func(t types1.NodeID) string {
@@ -119,6 +140,9 @@ type MessageReceived struct {
 }
 
 func MessageReceivedFromPb(pb *transportpb.MessageReceived) *MessageReceived {
+	if pb == nil {
+		return nil
+	}
 	return &MessageReceived{
 		From: (types1.NodeID)(pb.From),
 		Msg:  types.MessageFromPb(pb.Msg),
@@ -126,6 +150,9 @@ func MessageReceivedFromPb(pb *transportpb.MessageReceived) *MessageReceived {
 }
 
 func (m *MessageReceived) Pb() *transportpb.MessageReceived {
+	if m == nil {
+		return nil
+	}
 	return &transportpb.MessageReceived{
 		From: (string)(m.From),
 		Msg:  (m.Msg).Pb(),

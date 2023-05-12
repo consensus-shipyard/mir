@@ -27,6 +27,9 @@ type ISSMessage_TypeWrapper[T any] interface {
 }
 
 func ISSMessage_TypeFromPb(pb isspb.ISSMessage_Type) ISSMessage_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *isspb.ISSMessage_StableCheckpoint:
 		return &ISSMessage_StableCheckpoint{StableCheckpoint: types.StableCheckpointFromPb(pb.StableCheckpoint)}
@@ -45,6 +48,9 @@ func (w *ISSMessage_StableCheckpoint) Unwrap() *types.StableCheckpoint {
 }
 
 func (w *ISSMessage_StableCheckpoint) Pb() isspb.ISSMessage_Type {
+	if w == nil {
+		return nil
+	}
 	return &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: (w.StableCheckpoint).Pb()}
 }
 
@@ -53,12 +59,18 @@ func (*ISSMessage_StableCheckpoint) MirReflect() mirreflect.Type {
 }
 
 func ISSMessageFromPb(pb *isspb.ISSMessage) *ISSMessage {
+	if pb == nil {
+		return nil
+	}
 	return &ISSMessage{
 		Type: ISSMessage_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *ISSMessage) Pb() *isspb.ISSMessage {
+	if m == nil {
+		return nil
+	}
 	return &isspb.ISSMessage{
 		Type: (m.Type).Pb(),
 	}
@@ -84,6 +96,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb isspb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *isspb.Event_PushCheckpoint:
 		return &Event_PushCheckpoint{PushCheckpoint: PushCheckpointFromPb(pb.PushCheckpoint)}
@@ -108,6 +123,9 @@ func (w *Event_PushCheckpoint) Unwrap() *PushCheckpoint {
 }
 
 func (w *Event_PushCheckpoint) Pb() isspb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &isspb.Event_PushCheckpoint{PushCheckpoint: (w.PushCheckpoint).Pb()}
 }
 
@@ -126,6 +144,9 @@ func (w *Event_SbDeliver) Unwrap() *SBDeliver {
 }
 
 func (w *Event_SbDeliver) Pb() isspb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &isspb.Event_SbDeliver{SbDeliver: (w.SbDeliver).Pb()}
 }
 
@@ -144,6 +165,9 @@ func (w *Event_DeliverCert) Unwrap() *DeliverCert {
 }
 
 func (w *Event_DeliverCert) Pb() isspb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &isspb.Event_DeliverCert{DeliverCert: (w.DeliverCert).Pb()}
 }
 
@@ -162,6 +186,9 @@ func (w *Event_NewConfig) Unwrap() *NewConfig {
 }
 
 func (w *Event_NewConfig) Pb() isspb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &isspb.Event_NewConfig{NewConfig: (w.NewConfig).Pb()}
 }
 
@@ -170,12 +197,18 @@ func (*Event_NewConfig) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *isspb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *isspb.Event {
+	if m == nil {
+		return nil
+	}
 	return &isspb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -188,10 +221,16 @@ func (*Event) MirReflect() mirreflect.Type {
 type PushCheckpoint struct{}
 
 func PushCheckpointFromPb(pb *isspb.PushCheckpoint) *PushCheckpoint {
+	if pb == nil {
+		return nil
+	}
 	return &PushCheckpoint{}
 }
 
 func (m *PushCheckpoint) Pb() *isspb.PushCheckpoint {
+	if m == nil {
+		return nil
+	}
 	return &isspb.PushCheckpoint{}
 }
 
@@ -208,6 +247,9 @@ type SBDeliver struct {
 }
 
 func SBDeliverFromPb(pb *isspb.SBDeliver) *SBDeliver {
+	if pb == nil {
+		return nil
+	}
 	return &SBDeliver{
 		Sn:         (types1.SeqNr)(pb.Sn),
 		Data:       pb.Data,
@@ -218,6 +260,9 @@ func SBDeliverFromPb(pb *isspb.SBDeliver) *SBDeliver {
 }
 
 func (m *SBDeliver) Pb() *isspb.SBDeliver {
+	if m == nil {
+		return nil
+	}
 	return &isspb.SBDeliver{
 		Sn:         (uint64)(m.Sn),
 		Data:       m.Data,
@@ -238,6 +283,9 @@ type DeliverCert struct {
 }
 
 func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
+	if pb == nil {
+		return nil
+	}
 	return &DeliverCert{
 		Sn:    (types1.SeqNr)(pb.Sn),
 		Cert:  types3.CertFromPb(pb.Cert),
@@ -246,6 +294,9 @@ func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
 }
 
 func (m *DeliverCert) Pb() *isspb.DeliverCert {
+	if m == nil {
+		return nil
+	}
 	return &isspb.DeliverCert{
 		Sn:    (uint64)(m.Sn),
 		Cert:  (m.Cert).Pb(),
@@ -263,6 +314,9 @@ type NewConfig struct {
 }
 
 func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
+	if pb == nil {
+		return nil
+	}
 	return &NewConfig{
 		EpochNr:    (types1.EpochNr)(pb.EpochNr),
 		Membership: types4.MembershipFromPb(pb.Membership),
@@ -270,6 +324,9 @@ func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
 }
 
 func (m *NewConfig) Pb() *isspb.NewConfig {
+	if m == nil {
+		return nil
+	}
 	return &isspb.NewConfig{
 		EpochNr:    (uint64)(m.EpochNr),
 		Membership: (m.Membership).Pb(),

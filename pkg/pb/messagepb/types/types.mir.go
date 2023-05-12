@@ -30,6 +30,9 @@ type Message_TypeWrapper[T any] interface {
 }
 
 func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *messagepb.Message_Iss:
 		return &Message_Iss{Iss: types1.ISSMessageFromPb(pb.Iss)}
@@ -58,6 +61,9 @@ func (w *Message_Iss) Unwrap() *types1.ISSMessage {
 }
 
 func (w *Message_Iss) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_Iss{Iss: (w.Iss).Pb()}
 }
 
@@ -76,6 +82,9 @@ func (w *Message_Bcb) Unwrap() *types2.Message {
 }
 
 func (w *Message_Bcb) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_Bcb{Bcb: (w.Bcb).Pb()}
 }
 
@@ -94,6 +103,9 @@ func (w *Message_MultisigCollector) Unwrap() *types3.Message {
 }
 
 func (w *Message_MultisigCollector) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_MultisigCollector{MultisigCollector: (w.MultisigCollector).Pb()}
 }
 
@@ -112,6 +124,9 @@ func (w *Message_Pingpong) Unwrap() *pingpongpb.Message {
 }
 
 func (w *Message_Pingpong) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_Pingpong{Pingpong: w.Pingpong}
 }
 
@@ -130,6 +145,9 @@ func (w *Message_Checkpoint) Unwrap() *types4.Message {
 }
 
 func (w *Message_Checkpoint) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
@@ -148,6 +166,9 @@ func (w *Message_Orderer) Unwrap() *types5.Message {
 }
 
 func (w *Message_Orderer) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &messagepb.Message_Orderer{Orderer: (w.Orderer).Pb()}
 }
 
@@ -156,6 +177,9 @@ func (*Message_Orderer) MirReflect() mirreflect.Type {
 }
 
 func MessageFromPb(pb *messagepb.Message) *Message {
+	if pb == nil {
+		return nil
+	}
 	return &Message{
 		DestModule: (types.ModuleID)(pb.DestModule),
 		Type:       Message_TypeFromPb(pb.Type),
@@ -163,6 +187,9 @@ func MessageFromPb(pb *messagepb.Message) *Message {
 }
 
 func (m *Message) Pb() *messagepb.Message {
+	if m == nil {
+		return nil
+	}
 	return &messagepb.Message{
 		DestModule: (string)(m.DestModule),
 		Type:       (m.Type).Pb(),

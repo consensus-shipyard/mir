@@ -11,12 +11,18 @@ type Origin struct {
 }
 
 func OriginFromPb(pb *dslpb.Origin) *Origin {
+	if pb == nil {
+		return nil
+	}
 	return &Origin{
 		ContextID: pb.ContextID,
 	}
 }
 
 func (m *Origin) Pb() *dslpb.Origin {
+	if m == nil {
+		return nil
+	}
 	return &dslpb.Origin{
 		ContextID: m.ContextID,
 	}
