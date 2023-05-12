@@ -209,13 +209,13 @@ func saveAndFinish(m dsl.Module, reqID msctypes.RequestID, txs []*trantorpbtypes
 	allFound := true
 	allTxs := make([]*trantorpbtypes.Transaction, 0)
 
-	for _, batchID := range state.RequestState[reqID].NonEmptyCerts {
-		txs := state.RequestState[reqID].Txs[batchID] // preserve order in which they were decided by the orderer
-		if txs == nil {
+	for _, bID := range state.RequestState[reqID].NonEmptyCerts {
+		txsSorted := state.RequestState[reqID].Txs[bID] // preserve order in which they were decided by the orderer
+		if txsSorted == nil {
 			allFound = false
 			break
 		}
-		allTxs = append(allTxs, txs...)
+		allTxs = append(allTxs, txsSorted...)
 	}
 
 	if allFound {
