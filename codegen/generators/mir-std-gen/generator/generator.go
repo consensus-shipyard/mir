@@ -28,10 +28,5 @@ func (CombinedGenerator) Run(structTypes []reflect.Type) error {
 		return err
 	}
 
-	err = dslgenerator.DslGenerator{}.Run(structTypes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return dslgenerator.DslGenerator{}.Run(structTypes)
 }
