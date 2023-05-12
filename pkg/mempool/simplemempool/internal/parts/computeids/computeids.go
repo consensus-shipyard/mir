@@ -33,22 +33,31 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	hasherpbdsl.UponResult(m, func(hashes [][]uint8, context *computeHashForTransactionIDsContext) error {
-		txIDs := make([]tt.TxID, len(hashes))
-		copy(txIDs, sliceutil.Transform(hashes, func(i int, hash []uint8) tt.TxID {
-			return tt.TxID(hash)
-		}))
-
-		mppbdsl.TransactionIDsResponse(m, context.origin.Module, txIDs, context.origin)
+		mppbdsl.TransactionIDsResponse(
+			m,
+			context.origin.Module,
+			sliceutil.Transform(hashes, func(i int, hash []uint8) tt.TxID {
+				return tt.TxID(hash)
+			}),
+			context.origin,
+		)
 		return nil
 	})
 
 	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
-		hasherpbdsl.RequestOne(m, mc.Hasher, &hasherpbtypes.HashData{Data: txIDs}, &computeHashForBatchIDContext{origin})
+		hasherpbdsl.RequestOne(
+			m,
+			mc.Hasher,
+			&hasherpbtypes.HashData{Data: sliceutil.Transform(txIDs, func(i int, txId tt.TxID) []byte {
+				return []byte(txId)
+			})},
+			&computeHashForBatchIDContext{origin},
+		)
 		return nil
 	})
 
 	hasherpbdsl.UponResultOne(m, func(hash []byte, context *computeHashForBatchIDContext) error {
-		mppbdsl.BatchIDResponse(m, context.origin.Module, hash, context.origin)
+		mppbdsl.BatchIDResponse(m, context.origin.Module, tt.TxID(hash), context.origin)
 		return nil
 	})
 }

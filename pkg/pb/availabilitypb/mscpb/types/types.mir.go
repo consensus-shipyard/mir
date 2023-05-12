@@ -3,10 +3,11 @@ package mscpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -211,7 +212,7 @@ func (*SigMessage) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchMessage struct {
-	BatchId []uint8
+	BatchId types2.BatchID
 	ReqId   uint64
 }
 
@@ -220,7 +221,7 @@ func RequestBatchMessageFromPb(pb *mscpb.RequestBatchMessage) *RequestBatchMessa
 		return nil
 	}
 	return &RequestBatchMessage{
-		BatchId: pb.BatchId,
+		BatchId: (types2.BatchID)(pb.BatchId),
 		ReqId:   pb.ReqId,
 	}
 }
@@ -230,7 +231,7 @@ func (m *RequestBatchMessage) Pb() *mscpb.RequestBatchMessage {
 		return nil
 	}
 	return &mscpb.RequestBatchMessage{
-		BatchId: m.BatchId,
+		BatchId: ([]uint8)(m.BatchId),
 		ReqId:   m.ReqId,
 	}
 }
@@ -242,7 +243,7 @@ func (*RequestBatchMessage) MirReflect() mirreflect.Type {
 type ProvideBatchMessage struct {
 	Txs     []*types.Transaction
 	ReqId   uint64
-	BatchId []uint8
+	BatchId types2.BatchID
 }
 
 func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessage {
@@ -254,7 +255,7 @@ func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessa
 			return types.TransactionFromPb(t)
 		}),
 		ReqId:   pb.ReqId,
-		BatchId: pb.BatchId,
+		BatchId: (types2.BatchID)(pb.BatchId),
 	}
 }
 
@@ -267,7 +268,7 @@ func (m *ProvideBatchMessage) Pb() *mscpb.ProvideBatchMessage {
 			return (t).Pb()
 		}),
 		ReqId:   m.ReqId,
-		BatchId: m.BatchId,
+		BatchId: ([]uint8)(m.BatchId),
 	}
 }
 
@@ -276,8 +277,8 @@ func (*ProvideBatchMessage) MirReflect() mirreflect.Type {
 }
 
 type Cert struct {
-	BatchId    []uint8
-	Signers    []types2.NodeID
+	BatchId    types2.BatchID
+	Signers    []types3.NodeID
 	Signatures [][]uint8
 }
 
@@ -286,9 +287,9 @@ func CertFromPb(pb *mscpb.Cert) *Cert {
 		return nil
 	}
 	return &Cert{
-		BatchId: pb.BatchId,
-		Signers: types1.ConvertSlice(pb.Signers, func(t string) types2.NodeID {
-			return (types2.NodeID)(t)
+		BatchId: (types2.BatchID)(pb.BatchId),
+		Signers: types1.ConvertSlice(pb.Signers, func(t string) types3.NodeID {
+			return (types3.NodeID)(t)
 		}),
 		Signatures: pb.Signatures,
 	}
@@ -299,8 +300,8 @@ func (m *Cert) Pb() *mscpb.Cert {
 		return nil
 	}
 	return &mscpb.Cert{
-		BatchId: m.BatchId,
-		Signers: types1.ConvertSlice(m.Signers, func(t types2.NodeID) string {
+		BatchId: ([]uint8)(m.BatchId),
+		Signers: types1.ConvertSlice(m.Signers, func(t types3.NodeID) string {
 			return (string)(t)
 		}),
 		Signatures: m.Signatures,

@@ -4,6 +4,4 @@ package types
 type RequestID = uint64
 
 // BatchID is a unique identifier of a batch.
-type BatchID = []byte
-
-type BatchIDString string
+type BatchID = string

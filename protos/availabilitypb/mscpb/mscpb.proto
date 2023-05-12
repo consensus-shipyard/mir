@@ -44,7 +44,7 @@ message SigMessage {
 message RequestBatchMessage {
   option (net.message) = true;
 
-  bytes  batch_id = 1;
+  bytes  batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   uint64 req_id   = 2;
 }
 
@@ -53,7 +53,7 @@ message ProvideBatchMessage {
 
   repeated trantorpb.Transaction txs      = 1;
   uint64                     req_id   = 2;
-  bytes                      batch_id = 3;
+  bytes                      batch_id = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];;
 }
 
 // ============================================================
@@ -63,7 +63,7 @@ message ProvideBatchMessage {
 message Cert {
   option (mir.struct) = true;
 
-  bytes           batch_id   = 1;
+  bytes           batch_id   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   // TODO: can be encoded as n bits
   repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes  signatures = 3;

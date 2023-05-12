@@ -1,6 +1,7 @@
 package mscpbmsgs
 
 import (
+	types4 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
@@ -39,7 +40,7 @@ func SigMessage(destModule types.ModuleID, signature []uint8, reqId uint64) *typ
 	}
 }
 
-func RequestBatchMessage(destModule types.ModuleID, batchId []uint8, reqId uint64) *types2.Message {
+func RequestBatchMessage(destModule types.ModuleID, batchId types4.BatchID, reqId uint64) *types2.Message {
 	return &types2.Message{
 		DestModule: destModule,
 		Type: &types2.Message_MultisigCollector{
@@ -55,7 +56,7 @@ func RequestBatchMessage(destModule types.ModuleID, batchId []uint8, reqId uint6
 	}
 }
 
-func ProvideBatchMessage(destModule types.ModuleID, txs []*types1.Transaction, reqId uint64, batchId []uint8) *types2.Message {
+func ProvideBatchMessage(destModule types.ModuleID, txs []*types1.Transaction, reqId uint64, batchId types4.BatchID) *types2.Message {
 	return &types2.Message{
 		DestModule: destModule,
 		Type: &types2.Message_MultisigCollector{

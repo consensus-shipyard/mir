@@ -31,8 +31,8 @@ type State struct {
 // RequestState represents the state related to a request on the source node of the request.
 // The node disposes of this state as soon as the request is completed.
 type RequestState struct {
-	NonEmptyCerts []msctypes.BatchIDString
-	Txs           map[msctypes.BatchIDString][]*trantorpbtypes.Transaction
+	NonEmptyCerts []msctypes.BatchID
+	Txs           map[msctypes.BatchID][]*trantorpbtypes.Transaction
 	ReqOrigin     *apbtypes.RequestTransactionsOrigin
 }
 
@@ -69,13 +69,13 @@ func IncludeBatchReconstruction(
 		reqID := state.NextReqID
 		state.NextReqID++
 		state.RequestState[reqID] = &RequestState{
-			NonEmptyCerts: make([]msctypes.BatchIDString, 0),
-			Txs:           make(map[msctypes.BatchIDString][]*trantorpbtypes.Transaction),
+			NonEmptyCerts: make([]msctypes.BatchID, 0),
+			Txs:           make(map[msctypes.BatchID][]*trantorpbtypes.Transaction),
 			ReqOrigin:     origin,
 		}
 
 		for _, c := range certs {
-			batchIDString := msctypes.BatchIDString(c.BatchId)
+			batchIDString := c.BatchId
 			state.RequestState[reqID].NonEmptyCerts = append(state.RequestState[reqID].NonEmptyCerts, batchIDString) // save the order in which the batches were decided
 			state.RequestState[reqID].Txs[batchIDString] = nil
 			batchdbpbdsl.LookupBatch(m, mc.BatchDB, c.BatchId, &lookupBatchLocallyContext{c, origin, reqID})
@@ -158,7 +158,7 @@ func IncludeBatchReconstruction(
 			return nil
 		}
 
-		if string(batchID) != string(context.batchID) {
+		if batchID != context.batchID {
 			// The received batch is not valid, keep waiting for a valid response.
 			return nil
 		}
@@ -206,7 +206,7 @@ type storeBatchContext struct{}
 
 // saveAndFinish saves the received txs and if all requested batches have been received, it completes the request. Returns a bool indicating if the request has been completed.
 func saveAndFinish(m dsl.Module, reqID msctypes.RequestID, txs []*trantorpbtypes.Transaction, batchID msctypes.BatchID, origin *apbtypes.RequestTransactionsOrigin, state *State) bool {
-	state.RequestState[reqID].Txs[msctypes.BatchIDString(batchID)] = txs
+	state.RequestState[reqID].Txs[batchID] = txs
 	allFound := true
 	allTxs := make([]*trantorpbtypes.Transaction, 0)
 
