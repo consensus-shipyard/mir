@@ -27,6 +27,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb ordererpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *ordererpb.Event_Pbft:
 		return &Event_Pbft{Pbft: types.EventFromPb(pb.Pbft)}
@@ -45,6 +48,9 @@ func (w *Event_Pbft) Unwrap() *types.Event {
 }
 
 func (w *Event_Pbft) Pb() ordererpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &ordererpb.Event_Pbft{Pbft: (w.Pbft).Pb()}
 }
 
@@ -53,12 +59,18 @@ func (*Event_Pbft) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *ordererpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *ordererpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &ordererpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -84,6 +96,9 @@ type Message_TypeWrapper[T any] interface {
 }
 
 func Message_TypeFromPb(pb ordererpb.Message_Type) Message_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *ordererpb.Message_Pbft:
 		return &Message_Pbft{Pbft: types.MessageFromPb(pb.Pbft)}
@@ -102,6 +117,9 @@ func (w *Message_Pbft) Unwrap() *types.Message {
 }
 
 func (w *Message_Pbft) Pb() ordererpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &ordererpb.Message_Pbft{Pbft: (w.Pbft).Pb()}
 }
 
@@ -110,12 +128,18 @@ func (*Message_Pbft) MirReflect() mirreflect.Type {
 }
 
 func MessageFromPb(pb *ordererpb.Message) *Message {
+	if pb == nil {
+		return nil
+	}
 	return &Message{
 		Type: Message_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Message) Pb() *ordererpb.Message {
+	if m == nil {
+		return nil
+	}
 	return &ordererpb.Message{
 		Type: (m.Type).Pb(),
 	}
@@ -132,6 +156,9 @@ type PBFTSegment struct {
 }
 
 func PBFTSegmentFromPb(pb *ordererpb.PBFTSegment) *PBFTSegment {
+	if pb == nil {
+		return nil
+	}
 	return &PBFTSegment{
 		Leader:     (types1.NodeID)(pb.Leader),
 		Membership: types2.MembershipFromPb(pb.Membership),
@@ -142,6 +169,9 @@ func PBFTSegmentFromPb(pb *ordererpb.PBFTSegment) *PBFTSegment {
 }
 
 func (m *PBFTSegment) Pb() *ordererpb.PBFTSegment {
+	if m == nil {
+		return nil
+	}
 	return &ordererpb.PBFTSegment{
 		Leader:     (string)(m.Leader),
 		Membership: (m.Membership).Pb(),
@@ -163,6 +193,9 @@ type PBFTModule struct {
 }
 
 func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
+	if pb == nil {
+		return nil
+	}
 	return &PBFTModule{
 		Segment:         PBFTSegmentFromPb(pb.Segment),
 		AvailabilityId:  pb.AvailabilityId,
@@ -172,6 +205,9 @@ func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
 }
 
 func (m *PBFTModule) Pb() *ordererpb.PBFTModule {
+	if m == nil {
+		return nil
+	}
 	return &ordererpb.PBFTModule{
 		Segment:         (m.Segment).Pb(),
 		AvailabilityId:  m.AvailabilityId,

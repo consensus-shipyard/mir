@@ -27,6 +27,9 @@ type Message_TypeWrapper[T any] interface {
 }
 
 func Message_TypeFromPb(pb checkpointpb.Message_Type) Message_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *checkpointpb.Message_Checkpoint:
 		return &Message_Checkpoint{Checkpoint: CheckpointFromPb(pb.Checkpoint)}
@@ -45,6 +48,9 @@ func (w *Message_Checkpoint) Unwrap() *Checkpoint {
 }
 
 func (w *Message_Checkpoint) Pb() checkpointpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &checkpointpb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
@@ -53,12 +59,18 @@ func (*Message_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 func MessageFromPb(pb *checkpointpb.Message) *Message {
+	if pb == nil {
+		return nil
+	}
 	return &Message{
 		Type: Message_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Message) Pb() *checkpointpb.Message {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.Message{
 		Type: (m.Type).Pb(),
 	}
@@ -76,6 +88,9 @@ type Checkpoint struct {
 }
 
 func CheckpointFromPb(pb *checkpointpb.Checkpoint) *Checkpoint {
+	if pb == nil {
+		return nil
+	}
 	return &Checkpoint{
 		Epoch:        (types.EpochNr)(pb.Epoch),
 		Sn:           (types.SeqNr)(pb.Sn),
@@ -85,6 +100,9 @@ func CheckpointFromPb(pb *checkpointpb.Checkpoint) *Checkpoint {
 }
 
 func (m *Checkpoint) Pb() *checkpointpb.Checkpoint {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.Checkpoint{
 		Epoch:        (uint64)(m.Epoch),
 		Sn:           (uint64)(m.Sn),
@@ -113,6 +131,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb checkpointpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *checkpointpb.Event_EpochConfig:
 		return &Event_EpochConfig{EpochConfig: types1.EpochConfigFromPb(pb.EpochConfig)}
@@ -135,6 +156,9 @@ func (w *Event_EpochConfig) Unwrap() *types1.EpochConfig {
 }
 
 func (w *Event_EpochConfig) Pb() checkpointpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &checkpointpb.Event_EpochConfig{EpochConfig: (w.EpochConfig).Pb()}
 }
 
@@ -153,6 +177,9 @@ func (w *Event_StableCheckpoint) Unwrap() *StableCheckpoint {
 }
 
 func (w *Event_StableCheckpoint) Pb() checkpointpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &checkpointpb.Event_StableCheckpoint{StableCheckpoint: (w.StableCheckpoint).Pb()}
 }
 
@@ -171,6 +198,9 @@ func (w *Event_EpochProgress) Unwrap() *EpochProgress {
 }
 
 func (w *Event_EpochProgress) Pb() checkpointpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &checkpointpb.Event_EpochProgress{EpochProgress: (w.EpochProgress).Pb()}
 }
 
@@ -179,12 +209,18 @@ func (*Event_EpochProgress) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *checkpointpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *checkpointpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -201,6 +237,9 @@ type StableCheckpoint struct {
 }
 
 func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint {
+	if pb == nil {
+		return nil
+	}
 	return &StableCheckpoint{
 		Sn:       (types.SeqNr)(pb.Sn),
 		Snapshot: types1.StateSnapshotFromPb(pb.Snapshot),
@@ -211,6 +250,9 @@ func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint
 }
 
 func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.StableCheckpoint{
 		Sn:       (uint64)(m.Sn),
 		Snapshot: (m.Snapshot).Pb(),
@@ -230,6 +272,9 @@ type EpochProgress struct {
 }
 
 func EpochProgressFromPb(pb *checkpointpb.EpochProgress) *EpochProgress {
+	if pb == nil {
+		return nil
+	}
 	return &EpochProgress{
 		NodeId: (types2.NodeID)(pb.NodeId),
 		Epoch:  (types.EpochNr)(pb.Epoch),
@@ -237,6 +282,9 @@ func EpochProgressFromPb(pb *checkpointpb.EpochProgress) *EpochProgress {
 }
 
 func (m *EpochProgress) Pb() *checkpointpb.EpochProgress {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.EpochProgress{
 		NodeId: (string)(m.NodeId),
 		Epoch:  (uint64)(m.Epoch),
@@ -255,6 +303,9 @@ type InstanceParams struct {
 }
 
 func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
+	if pb == nil {
+		return nil
+	}
 	return &InstanceParams{
 		Membership:       types1.MembershipFromPb(pb.Membership),
 		ResendPeriod:     (types4.Duration)(pb.ResendPeriod),
@@ -264,6 +315,9 @@ func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
 }
 
 func (m *InstanceParams) Pb() *checkpointpb.InstanceParams {
+	if m == nil {
+		return nil
+	}
 	return &checkpointpb.InstanceParams{
 		Membership:       (m.Membership).Pb(),
 		ResendPeriod:     (uint64)(m.ResendPeriod),

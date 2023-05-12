@@ -26,6 +26,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb cryptopb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *cryptopb.Event_SignRequest:
 		return &Event_SignRequest{SignRequest: SignRequestFromPb(pb.SignRequest)}
@@ -54,6 +57,9 @@ func (w *Event_SignRequest) Unwrap() *SignRequest {
 }
 
 func (w *Event_SignRequest) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_SignRequest{SignRequest: (w.SignRequest).Pb()}
 }
 
@@ -72,6 +78,9 @@ func (w *Event_SignResult) Unwrap() *SignResult {
 }
 
 func (w *Event_SignResult) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_SignResult{SignResult: (w.SignResult).Pb()}
 }
 
@@ -90,6 +99,9 @@ func (w *Event_VerifySig) Unwrap() *VerifySig {
 }
 
 func (w *Event_VerifySig) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_VerifySig{VerifySig: (w.VerifySig).Pb()}
 }
 
@@ -108,6 +120,9 @@ func (w *Event_SigVerified) Unwrap() *SigVerified {
 }
 
 func (w *Event_SigVerified) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_SigVerified{SigVerified: (w.SigVerified).Pb()}
 }
 
@@ -126,6 +141,9 @@ func (w *Event_VerifySigs) Unwrap() *VerifySigs {
 }
 
 func (w *Event_VerifySigs) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_VerifySigs{VerifySigs: (w.VerifySigs).Pb()}
 }
 
@@ -144,6 +162,9 @@ func (w *Event_SigsVerified) Unwrap() *SigsVerified {
 }
 
 func (w *Event_SigsVerified) Pb() cryptopb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.Event_SigsVerified{SigsVerified: (w.SigsVerified).Pb()}
 }
 
@@ -152,12 +173,18 @@ func (*Event_SigsVerified) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *cryptopb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *cryptopb.Event {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -173,6 +200,9 @@ type SignRequest struct {
 }
 
 func SignRequestFromPb(pb *cryptopb.SignRequest) *SignRequest {
+	if pb == nil {
+		return nil
+	}
 	return &SignRequest{
 		Data:   SignedDataFromPb(pb.Data),
 		Origin: SignOriginFromPb(pb.Origin),
@@ -180,6 +210,9 @@ func SignRequestFromPb(pb *cryptopb.SignRequest) *SignRequest {
 }
 
 func (m *SignRequest) Pb() *cryptopb.SignRequest {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SignRequest{
 		Data:   (m.Data).Pb(),
 		Origin: (m.Origin).Pb(),
@@ -196,6 +229,9 @@ type SignResult struct {
 }
 
 func SignResultFromPb(pb *cryptopb.SignResult) *SignResult {
+	if pb == nil {
+		return nil
+	}
 	return &SignResult{
 		Signature: pb.Signature,
 		Origin:    SignOriginFromPb(pb.Origin),
@@ -203,6 +239,9 @@ func SignResultFromPb(pb *cryptopb.SignResult) *SignResult {
 }
 
 func (m *SignResult) Pb() *cryptopb.SignResult {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SignResult{
 		Signature: m.Signature,
 		Origin:    (m.Origin).Pb(),
@@ -221,6 +260,9 @@ type VerifySig struct {
 }
 
 func VerifySigFromPb(pb *cryptopb.VerifySig) *VerifySig {
+	if pb == nil {
+		return nil
+	}
 	return &VerifySig{
 		Data:      SignedDataFromPb(pb.Data),
 		Signature: pb.Signature,
@@ -230,6 +272,9 @@ func VerifySigFromPb(pb *cryptopb.VerifySig) *VerifySig {
 }
 
 func (m *VerifySig) Pb() *cryptopb.VerifySig {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.VerifySig{
 		Data:      (m.Data).Pb(),
 		Signature: m.Signature,
@@ -249,6 +294,9 @@ type SigVerified struct {
 }
 
 func SigVerifiedFromPb(pb *cryptopb.SigVerified) *SigVerified {
+	if pb == nil {
+		return nil
+	}
 	return &SigVerified{
 		Origin: SigVerOriginFromPb(pb.Origin),
 		NodeId: (types.NodeID)(pb.NodeId),
@@ -257,6 +305,9 @@ func SigVerifiedFromPb(pb *cryptopb.SigVerified) *SigVerified {
 }
 
 func (m *SigVerified) Pb() *cryptopb.SigVerified {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SigVerified{
 		Origin: (m.Origin).Pb(),
 		NodeId: (string)(m.NodeId),
@@ -276,6 +327,9 @@ type VerifySigs struct {
 }
 
 func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
+	if pb == nil {
+		return nil
+	}
 	return &VerifySigs{
 		Data: types1.ConvertSlice(pb.Data, func(t *cryptopb.SignedData) *SignedData {
 			return SignedDataFromPb(t)
@@ -289,6 +343,9 @@ func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
 }
 
 func (m *VerifySigs) Pb() *cryptopb.VerifySigs {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.VerifySigs{
 		Data: types1.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
 			return (t).Pb()
@@ -313,6 +370,9 @@ type SigsVerified struct {
 }
 
 func SigsVerifiedFromPb(pb *cryptopb.SigsVerified) *SigsVerified {
+	if pb == nil {
+		return nil
+	}
 	return &SigsVerified{
 		Origin: SigVerOriginFromPb(pb.Origin),
 		NodeIds: types1.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
@@ -326,6 +386,9 @@ func SigsVerifiedFromPb(pb *cryptopb.SigsVerified) *SigsVerified {
 }
 
 func (m *SigsVerified) Pb() *cryptopb.SigsVerified {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SigsVerified{
 		Origin: (m.Origin).Pb(),
 		NodeIds: types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
@@ -359,6 +422,9 @@ type SignOrigin_TypeWrapper[T any] interface {
 }
 
 func SignOrigin_TypeFromPb(pb cryptopb.SignOrigin_Type) SignOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *cryptopb.SignOrigin_ContextStore:
 		return &SignOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
@@ -379,6 +445,9 @@ func (w *SignOrigin_ContextStore) Unwrap() *types2.Origin {
 }
 
 func (w *SignOrigin_ContextStore) Pb() cryptopb.SignOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.SignOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -397,6 +466,9 @@ func (w *SignOrigin_Dsl) Unwrap() *types3.Origin {
 }
 
 func (w *SignOrigin_Dsl) Pb() cryptopb.SignOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.SignOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -405,6 +477,9 @@ func (*SignOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func SignOriginFromPb(pb *cryptopb.SignOrigin) *SignOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &SignOrigin{
 		Module: (types.ModuleID)(pb.Module),
 		Type:   SignOrigin_TypeFromPb(pb.Type),
@@ -412,6 +487,9 @@ func SignOriginFromPb(pb *cryptopb.SignOrigin) *SignOrigin {
 }
 
 func (m *SignOrigin) Pb() *cryptopb.SignOrigin {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SignOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -439,6 +517,9 @@ type SigVerOrigin_TypeWrapper[T any] interface {
 }
 
 func SigVerOrigin_TypeFromPb(pb cryptopb.SigVerOrigin_Type) SigVerOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *cryptopb.SigVerOrigin_ContextStore:
 		return &SigVerOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
@@ -459,6 +540,9 @@ func (w *SigVerOrigin_ContextStore) Unwrap() *types2.Origin {
 }
 
 func (w *SigVerOrigin_ContextStore) Pb() cryptopb.SigVerOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.SigVerOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -477,6 +561,9 @@ func (w *SigVerOrigin_Dsl) Unwrap() *types3.Origin {
 }
 
 func (w *SigVerOrigin_Dsl) Pb() cryptopb.SigVerOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &cryptopb.SigVerOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -485,6 +572,9 @@ func (*SigVerOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func SigVerOriginFromPb(pb *cryptopb.SigVerOrigin) *SigVerOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &SigVerOrigin{
 		Module: (types.ModuleID)(pb.Module),
 		Type:   SigVerOrigin_TypeFromPb(pb.Type),
@@ -492,6 +582,9 @@ func SigVerOriginFromPb(pb *cryptopb.SigVerOrigin) *SigVerOrigin {
 }
 
 func (m *SigVerOrigin) Pb() *cryptopb.SigVerOrigin {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SigVerOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -507,12 +600,18 @@ type SignedData struct {
 }
 
 func SignedDataFromPb(pb *cryptopb.SignedData) *SignedData {
+	if pb == nil {
+		return nil
+	}
 	return &SignedData{
 		Data: pb.Data,
 	}
 }
 
 func (m *SignedData) Pb() *cryptopb.SignedData {
+	if m == nil {
+		return nil
+	}
 	return &cryptopb.SignedData{
 		Data: m.Data,
 	}

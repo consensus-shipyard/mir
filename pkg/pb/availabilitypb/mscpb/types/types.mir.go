@@ -26,6 +26,9 @@ type Message_TypeWrapper[T any] interface {
 }
 
 func Message_TypeFromPb(pb mscpb.Message_Type) Message_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *mscpb.Message_RequestSig:
 		return &Message_RequestSig{RequestSig: RequestSigMessageFromPb(pb.RequestSig)}
@@ -50,6 +53,9 @@ func (w *Message_RequestSig) Unwrap() *RequestSigMessage {
 }
 
 func (w *Message_RequestSig) Pb() mscpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &mscpb.Message_RequestSig{RequestSig: (w.RequestSig).Pb()}
 }
 
@@ -68,6 +74,9 @@ func (w *Message_Sig) Unwrap() *SigMessage {
 }
 
 func (w *Message_Sig) Pb() mscpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &mscpb.Message_Sig{Sig: (w.Sig).Pb()}
 }
 
@@ -86,6 +95,9 @@ func (w *Message_RequestBatch) Unwrap() *RequestBatchMessage {
 }
 
 func (w *Message_RequestBatch) Pb() mscpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &mscpb.Message_RequestBatch{RequestBatch: (w.RequestBatch).Pb()}
 }
 
@@ -104,6 +116,9 @@ func (w *Message_ProvideBatch) Unwrap() *ProvideBatchMessage {
 }
 
 func (w *Message_ProvideBatch) Pb() mscpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &mscpb.Message_ProvideBatch{ProvideBatch: (w.ProvideBatch).Pb()}
 }
 
@@ -112,12 +127,18 @@ func (*Message_ProvideBatch) MirReflect() mirreflect.Type {
 }
 
 func MessageFromPb(pb *mscpb.Message) *Message {
+	if pb == nil {
+		return nil
+	}
 	return &Message{
 		Type: Message_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Message) Pb() *mscpb.Message {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.Message{
 		Type: (m.Type).Pb(),
 	}
@@ -133,6 +154,9 @@ type RequestSigMessage struct {
 }
 
 func RequestSigMessageFromPb(pb *mscpb.RequestSigMessage) *RequestSigMessage {
+	if pb == nil {
+		return nil
+	}
 	return &RequestSigMessage{
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -142,6 +166,9 @@ func RequestSigMessageFromPb(pb *mscpb.RequestSigMessage) *RequestSigMessage {
 }
 
 func (m *RequestSigMessage) Pb() *mscpb.RequestSigMessage {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.RequestSigMessage{
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
@@ -160,6 +187,9 @@ type SigMessage struct {
 }
 
 func SigMessageFromPb(pb *mscpb.SigMessage) *SigMessage {
+	if pb == nil {
+		return nil
+	}
 	return &SigMessage{
 		Signature: pb.Signature,
 		ReqId:     pb.ReqId,
@@ -167,6 +197,9 @@ func SigMessageFromPb(pb *mscpb.SigMessage) *SigMessage {
 }
 
 func (m *SigMessage) Pb() *mscpb.SigMessage {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.SigMessage{
 		Signature: m.Signature,
 		ReqId:     m.ReqId,
@@ -183,6 +216,9 @@ type RequestBatchMessage struct {
 }
 
 func RequestBatchMessageFromPb(pb *mscpb.RequestBatchMessage) *RequestBatchMessage {
+	if pb == nil {
+		return nil
+	}
 	return &RequestBatchMessage{
 		BatchId: pb.BatchId,
 		ReqId:   pb.ReqId,
@@ -190,6 +226,9 @@ func RequestBatchMessageFromPb(pb *mscpb.RequestBatchMessage) *RequestBatchMessa
 }
 
 func (m *RequestBatchMessage) Pb() *mscpb.RequestBatchMessage {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.RequestBatchMessage{
 		BatchId: m.BatchId,
 		ReqId:   m.ReqId,
@@ -207,6 +246,9 @@ type ProvideBatchMessage struct {
 }
 
 func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessage {
+	if pb == nil {
+		return nil
+	}
 	return &ProvideBatchMessage{
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -217,6 +259,9 @@ func ProvideBatchMessageFromPb(pb *mscpb.ProvideBatchMessage) *ProvideBatchMessa
 }
 
 func (m *ProvideBatchMessage) Pb() *mscpb.ProvideBatchMessage {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.ProvideBatchMessage{
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
@@ -237,6 +282,9 @@ type Cert struct {
 }
 
 func CertFromPb(pb *mscpb.Cert) *Cert {
+	if pb == nil {
+		return nil
+	}
 	return &Cert{
 		BatchId: pb.BatchId,
 		Signers: types1.ConvertSlice(pb.Signers, func(t string) types2.NodeID {
@@ -247,6 +295,9 @@ func CertFromPb(pb *mscpb.Cert) *Cert {
 }
 
 func (m *Cert) Pb() *mscpb.Cert {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.Cert{
 		BatchId: m.BatchId,
 		Signers: types1.ConvertSlice(m.Signers, func(t types2.NodeID) string {
@@ -265,6 +316,9 @@ type Certs struct {
 }
 
 func CertsFromPb(pb *mscpb.Certs) *Certs {
+	if pb == nil {
+		return nil
+	}
 	return &Certs{
 		Certs: types1.ConvertSlice(pb.Certs, func(t *mscpb.Cert) *Cert {
 			return CertFromPb(t)
@@ -273,6 +327,9 @@ func CertsFromPb(pb *mscpb.Certs) *Certs {
 }
 
 func (m *Certs) Pb() *mscpb.Certs {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.Certs{
 		Certs: types1.ConvertSlice(m.Certs, func(t *Cert) *mscpb.Cert {
 			return (t).Pb()
@@ -291,6 +348,9 @@ type InstanceParams struct {
 }
 
 func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
+	if pb == nil {
+		return nil
+	}
 	return &InstanceParams{
 		Membership:  types.MembershipFromPb(pb.Membership),
 		Limit:       pb.Limit,
@@ -299,6 +359,9 @@ func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 }
 
 func (m *InstanceParams) Pb() *mscpb.InstanceParams {
+	if m == nil {
+		return nil
+	}
 	return &mscpb.InstanceParams{
 		Membership:  (m.Membership).Pb(),
 		Limit:       m.Limit,

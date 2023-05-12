@@ -24,6 +24,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb bcbpb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *bcbpb.Event_Request:
 		return &Event_Request{Request: BroadcastRequestFromPb(pb.Request)}
@@ -44,6 +47,9 @@ func (w *Event_Request) Unwrap() *BroadcastRequest {
 }
 
 func (w *Event_Request) Pb() bcbpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &bcbpb.Event_Request{Request: (w.Request).Pb()}
 }
 
@@ -62,6 +68,9 @@ func (w *Event_Deliver) Unwrap() *Deliver {
 }
 
 func (w *Event_Deliver) Pb() bcbpb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &bcbpb.Event_Deliver{Deliver: (w.Deliver).Pb()}
 }
 
@@ -70,12 +79,18 @@ func (*Event_Deliver) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *bcbpb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *bcbpb.Event {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -90,12 +105,18 @@ type BroadcastRequest struct {
 }
 
 func BroadcastRequestFromPb(pb *bcbpb.BroadcastRequest) *BroadcastRequest {
+	if pb == nil {
+		return nil
+	}
 	return &BroadcastRequest{
 		Data: pb.Data,
 	}
 }
 
 func (m *BroadcastRequest) Pb() *bcbpb.BroadcastRequest {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.BroadcastRequest{
 		Data: m.Data,
 	}
@@ -110,12 +131,18 @@ type Deliver struct {
 }
 
 func DeliverFromPb(pb *bcbpb.Deliver) *Deliver {
+	if pb == nil {
+		return nil
+	}
 	return &Deliver{
 		Data: pb.Data,
 	}
 }
 
 func (m *Deliver) Pb() *bcbpb.Deliver {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.Deliver{
 		Data: m.Data,
 	}
@@ -141,6 +168,9 @@ type Message_TypeWrapper[T any] interface {
 }
 
 func Message_TypeFromPb(pb bcbpb.Message_Type) Message_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *bcbpb.Message_StartMessage:
 		return &Message_StartMessage{StartMessage: StartMessageFromPb(pb.StartMessage)}
@@ -163,6 +193,9 @@ func (w *Message_StartMessage) Unwrap() *StartMessage {
 }
 
 func (w *Message_StartMessage) Pb() bcbpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &bcbpb.Message_StartMessage{StartMessage: (w.StartMessage).Pb()}
 }
 
@@ -181,6 +214,9 @@ func (w *Message_EchoMessage) Unwrap() *EchoMessage {
 }
 
 func (w *Message_EchoMessage) Pb() bcbpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &bcbpb.Message_EchoMessage{EchoMessage: (w.EchoMessage).Pb()}
 }
 
@@ -199,6 +235,9 @@ func (w *Message_FinalMessage) Unwrap() *FinalMessage {
 }
 
 func (w *Message_FinalMessage) Pb() bcbpb.Message_Type {
+	if w == nil {
+		return nil
+	}
 	return &bcbpb.Message_FinalMessage{FinalMessage: (w.FinalMessage).Pb()}
 }
 
@@ -207,12 +246,18 @@ func (*Message_FinalMessage) MirReflect() mirreflect.Type {
 }
 
 func MessageFromPb(pb *bcbpb.Message) *Message {
+	if pb == nil {
+		return nil
+	}
 	return &Message{
 		Type: Message_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Message) Pb() *bcbpb.Message {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.Message{
 		Type: (m.Type).Pb(),
 	}
@@ -227,12 +272,18 @@ type StartMessage struct {
 }
 
 func StartMessageFromPb(pb *bcbpb.StartMessage) *StartMessage {
+	if pb == nil {
+		return nil
+	}
 	return &StartMessage{
 		Data: pb.Data,
 	}
 }
 
 func (m *StartMessage) Pb() *bcbpb.StartMessage {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.StartMessage{
 		Data: m.Data,
 	}
@@ -247,12 +298,18 @@ type EchoMessage struct {
 }
 
 func EchoMessageFromPb(pb *bcbpb.EchoMessage) *EchoMessage {
+	if pb == nil {
+		return nil
+	}
 	return &EchoMessage{
 		Signature: pb.Signature,
 	}
 }
 
 func (m *EchoMessage) Pb() *bcbpb.EchoMessage {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.EchoMessage{
 		Signature: m.Signature,
 	}
@@ -269,6 +326,9 @@ type FinalMessage struct {
 }
 
 func FinalMessageFromPb(pb *bcbpb.FinalMessage) *FinalMessage {
+	if pb == nil {
+		return nil
+	}
 	return &FinalMessage{
 		Data: pb.Data,
 		Signers: types1.ConvertSlice(pb.Signers, func(t string) types.NodeID {
@@ -279,6 +339,9 @@ func FinalMessageFromPb(pb *bcbpb.FinalMessage) *FinalMessage {
 }
 
 func (m *FinalMessage) Pb() *bcbpb.FinalMessage {
+	if m == nil {
+		return nil
+	}
 	return &bcbpb.FinalMessage{
 		Data: m.Data,
 		Signers: types1.ConvertSlice(m.Signers, func(t types.NodeID) string {

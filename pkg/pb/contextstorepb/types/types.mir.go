@@ -11,12 +11,18 @@ type Origin struct {
 }
 
 func OriginFromPb(pb *contextstorepb.Origin) *Origin {
+	if pb == nil {
+		return nil
+	}
 	return &Origin{
 		ItemID: pb.ItemID,
 	}
 }
 
 func (m *Origin) Pb() *contextstorepb.Origin {
+	if m == nil {
+		return nil
+	}
 	return &contextstorepb.Origin{
 		ItemID: m.ItemID,
 	}

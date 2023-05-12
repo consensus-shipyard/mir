@@ -7,13 +7,6 @@
 package eventpb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	wrappers "github.com/golang/protobuf/ptypes/wrappers"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -30,6 +23,11 @@ import (
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	wrappers "github.com/golang/protobuf/ptypes/wrappers"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

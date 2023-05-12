@@ -27,6 +27,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb factorypb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *factorypb.Event_NewModule:
 		return &Event_NewModule{NewModule: NewModuleFromPb(pb.NewModule)}
@@ -47,6 +50,9 @@ func (w *Event_NewModule) Unwrap() *NewModule {
 }
 
 func (w *Event_NewModule) Pb() factorypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.Event_NewModule{NewModule: (w.NewModule).Pb()}
 }
 
@@ -65,6 +71,9 @@ func (w *Event_GarbageCollect) Unwrap() *GarbageCollect {
 }
 
 func (w *Event_GarbageCollect) Pb() factorypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.Event_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
 }
 
@@ -73,12 +82,18 @@ func (*Event_GarbageCollect) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *factorypb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *factorypb.Event {
+	if m == nil {
+		return nil
+	}
 	return &factorypb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -95,6 +110,9 @@ type NewModule struct {
 }
 
 func NewModuleFromPb(pb *factorypb.NewModule) *NewModule {
+	if pb == nil {
+		return nil
+	}
 	return &NewModule{
 		ModuleId:       (types.ModuleID)(pb.ModuleId),
 		RetentionIndex: (types1.RetentionIndex)(pb.RetentionIndex),
@@ -103,6 +121,9 @@ func NewModuleFromPb(pb *factorypb.NewModule) *NewModule {
 }
 
 func (m *NewModule) Pb() *factorypb.NewModule {
+	if m == nil {
+		return nil
+	}
 	return &factorypb.NewModule{
 		ModuleId:       (string)(m.ModuleId),
 		RetentionIndex: (uint64)(m.RetentionIndex),
@@ -119,12 +140,18 @@ type GarbageCollect struct {
 }
 
 func GarbageCollectFromPb(pb *factorypb.GarbageCollect) *GarbageCollect {
+	if pb == nil {
+		return nil
+	}
 	return &GarbageCollect{
 		RetentionIndex: (types1.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
 func (m *GarbageCollect) Pb() *factorypb.GarbageCollect {
+	if m == nil {
+		return nil
+	}
 	return &factorypb.GarbageCollect{
 		RetentionIndex: (uint64)(m.RetentionIndex),
 	}
@@ -150,6 +177,9 @@ type GeneratorParams_TypeWrapper[T any] interface {
 }
 
 func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorParams_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *factorypb.GeneratorParams_MultisigCollector:
 		return &GeneratorParams_MultisigCollector{MultisigCollector: types2.InstanceParamsFromPb(pb.MultisigCollector)}
@@ -174,6 +204,9 @@ func (w *GeneratorParams_MultisigCollector) Unwrap() *types2.InstanceParams {
 }
 
 func (w *GeneratorParams_MultisigCollector) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.GeneratorParams_MultisigCollector{MultisigCollector: (w.MultisigCollector).Pb()}
 }
 
@@ -192,6 +225,9 @@ func (w *GeneratorParams_Checkpoint) Unwrap() *types3.InstanceParams {
 }
 
 func (w *GeneratorParams_Checkpoint) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.GeneratorParams_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
@@ -210,6 +246,9 @@ func (w *GeneratorParams_EchoTestModule) Unwrap() *EchoModuleParams {
 }
 
 func (w *GeneratorParams_EchoTestModule) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.GeneratorParams_EchoTestModule{EchoTestModule: (w.EchoTestModule).Pb()}
 }
 
@@ -228,6 +267,9 @@ func (w *GeneratorParams_PbftModule) Unwrap() *types4.PBFTModule {
 }
 
 func (w *GeneratorParams_PbftModule) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
 	return &factorypb.GeneratorParams_PbftModule{PbftModule: (w.PbftModule).Pb()}
 }
 
@@ -236,12 +278,18 @@ func (*GeneratorParams_PbftModule) MirReflect() mirreflect.Type {
 }
 
 func GeneratorParamsFromPb(pb *factorypb.GeneratorParams) *GeneratorParams {
+	if pb == nil {
+		return nil
+	}
 	return &GeneratorParams{
 		Type: GeneratorParams_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *GeneratorParams) Pb() *factorypb.GeneratorParams {
+	if m == nil {
+		return nil
+	}
 	return &factorypb.GeneratorParams{
 		Type: (m.Type).Pb(),
 	}
@@ -256,12 +304,18 @@ type EchoModuleParams struct {
 }
 
 func EchoModuleParamsFromPb(pb *factorypb.EchoModuleParams) *EchoModuleParams {
+	if pb == nil {
+		return nil
+	}
 	return &EchoModuleParams{
 		Prefix: pb.Prefix,
 	}
 }
 
 func (m *EchoModuleParams) Pb() *factorypb.EchoModuleParams {
+	if m == nil {
+		return nil
+	}
 	return &factorypb.EchoModuleParams{
 		Prefix: m.Prefix,
 	}

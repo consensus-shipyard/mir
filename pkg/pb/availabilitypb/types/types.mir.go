@@ -29,6 +29,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb availabilitypb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *availabilitypb.Event_RequestCert:
 		return &Event_RequestCert{RequestCert: RequestCertFromPb(pb.RequestCert)}
@@ -59,6 +62,9 @@ func (w *Event_RequestCert) Unwrap() *RequestCert {
 }
 
 func (w *Event_RequestCert) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_RequestCert{RequestCert: (w.RequestCert).Pb()}
 }
 
@@ -77,6 +83,9 @@ func (w *Event_NewCert) Unwrap() *NewCert {
 }
 
 func (w *Event_NewCert) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_NewCert{NewCert: (w.NewCert).Pb()}
 }
 
@@ -95,6 +104,9 @@ func (w *Event_VerifyCert) Unwrap() *VerifyCert {
 }
 
 func (w *Event_VerifyCert) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_VerifyCert{VerifyCert: (w.VerifyCert).Pb()}
 }
 
@@ -113,6 +125,9 @@ func (w *Event_CertVerified) Unwrap() *CertVerified {
 }
 
 func (w *Event_CertVerified) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_CertVerified{CertVerified: (w.CertVerified).Pb()}
 }
 
@@ -131,6 +146,9 @@ func (w *Event_RequestTransactions) Unwrap() *RequestTransactions {
 }
 
 func (w *Event_RequestTransactions) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_RequestTransactions{RequestTransactions: (w.RequestTransactions).Pb()}
 }
 
@@ -149,6 +167,9 @@ func (w *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
 }
 
 func (w *Event_ProvideTransactions) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_ProvideTransactions{ProvideTransactions: (w.ProvideTransactions).Pb()}
 }
 
@@ -167,6 +188,9 @@ func (w *Event_ComputeCert) Unwrap() *ComputeCert {
 }
 
 func (w *Event_ComputeCert) Pb() availabilitypb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Event_ComputeCert{ComputeCert: (w.ComputeCert).Pb()}
 }
 
@@ -175,12 +199,18 @@ func (*Event_ComputeCert) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *availabilitypb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *availabilitypb.Event {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -195,12 +225,18 @@ type RequestCert struct {
 }
 
 func RequestCertFromPb(pb *availabilitypb.RequestCert) *RequestCert {
+	if pb == nil {
+		return nil
+	}
 	return &RequestCert{
 		Origin: RequestCertOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *RequestCert) Pb() *availabilitypb.RequestCert {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.RequestCert{
 		Origin: (m.Origin).Pb(),
 	}
@@ -216,6 +252,9 @@ type NewCert struct {
 }
 
 func NewCertFromPb(pb *availabilitypb.NewCert) *NewCert {
+	if pb == nil {
+		return nil
+	}
 	return &NewCert{
 		Cert:   CertFromPb(pb.Cert),
 		Origin: RequestCertOriginFromPb(pb.Origin),
@@ -223,6 +262,9 @@ func NewCertFromPb(pb *availabilitypb.NewCert) *NewCert {
 }
 
 func (m *NewCert) Pb() *availabilitypb.NewCert {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.NewCert{
 		Cert:   (m.Cert).Pb(),
 		Origin: (m.Origin).Pb(),
@@ -239,6 +281,9 @@ type VerifyCert struct {
 }
 
 func VerifyCertFromPb(pb *availabilitypb.VerifyCert) *VerifyCert {
+	if pb == nil {
+		return nil
+	}
 	return &VerifyCert{
 		Cert:   CertFromPb(pb.Cert),
 		Origin: VerifyCertOriginFromPb(pb.Origin),
@@ -246,6 +291,9 @@ func VerifyCertFromPb(pb *availabilitypb.VerifyCert) *VerifyCert {
 }
 
 func (m *VerifyCert) Pb() *availabilitypb.VerifyCert {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.VerifyCert{
 		Cert:   (m.Cert).Pb(),
 		Origin: (m.Origin).Pb(),
@@ -263,6 +311,9 @@ type CertVerified struct {
 }
 
 func CertVerifiedFromPb(pb *availabilitypb.CertVerified) *CertVerified {
+	if pb == nil {
+		return nil
+	}
 	return &CertVerified{
 		Valid:  pb.Valid,
 		Err:    pb.Err,
@@ -271,6 +322,9 @@ func CertVerifiedFromPb(pb *availabilitypb.CertVerified) *CertVerified {
 }
 
 func (m *CertVerified) Pb() *availabilitypb.CertVerified {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.CertVerified{
 		Valid:  m.Valid,
 		Err:    m.Err,
@@ -288,6 +342,9 @@ type RequestTransactions struct {
 }
 
 func RequestTransactionsFromPb(pb *availabilitypb.RequestTransactions) *RequestTransactions {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactions{
 		Cert:   CertFromPb(pb.Cert),
 		Origin: RequestTransactionsOriginFromPb(pb.Origin),
@@ -295,6 +352,9 @@ func RequestTransactionsFromPb(pb *availabilitypb.RequestTransactions) *RequestT
 }
 
 func (m *RequestTransactions) Pb() *availabilitypb.RequestTransactions {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.RequestTransactions{
 		Cert:   (m.Cert).Pb(),
 		Origin: (m.Origin).Pb(),
@@ -311,6 +371,9 @@ type ProvideTransactions struct {
 }
 
 func ProvideTransactionsFromPb(pb *availabilitypb.ProvideTransactions) *ProvideTransactions {
+	if pb == nil {
+		return nil
+	}
 	return &ProvideTransactions{
 		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
 			return types.TransactionFromPb(t)
@@ -320,6 +383,9 @@ func ProvideTransactionsFromPb(pb *availabilitypb.ProvideTransactions) *ProvideT
 }
 
 func (m *ProvideTransactions) Pb() *availabilitypb.ProvideTransactions {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.ProvideTransactions{
 		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
@@ -349,6 +415,9 @@ type RequestCertOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestCertOrigin_TypeFromPb(pb availabilitypb.RequestCertOrigin_Type) RequestCertOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *availabilitypb.RequestCertOrigin_ContextStore:
 		return &RequestCertOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
@@ -369,6 +438,9 @@ func (w *RequestCertOrigin_ContextStore) Unwrap() *types3.Origin {
 }
 
 func (w *RequestCertOrigin_ContextStore) Pb() availabilitypb.RequestCertOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -387,6 +459,9 @@ func (w *RequestCertOrigin_Dsl) Unwrap() *types4.Origin {
 }
 
 func (w *RequestCertOrigin_Dsl) Pb() availabilitypb.RequestCertOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.RequestCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -395,6 +470,9 @@ func (*RequestCertOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestCertOriginFromPb(pb *availabilitypb.RequestCertOrigin) *RequestCertOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestCertOrigin{
 		Module: (types2.ModuleID)(pb.Module),
 		Type:   RequestCertOrigin_TypeFromPb(pb.Type),
@@ -402,6 +480,9 @@ func RequestCertOriginFromPb(pb *availabilitypb.RequestCertOrigin) *RequestCertO
 }
 
 func (m *RequestCertOrigin) Pb() *availabilitypb.RequestCertOrigin {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.RequestCertOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -429,6 +510,9 @@ type RequestTransactionsOrigin_TypeWrapper[T any] interface {
 }
 
 func RequestTransactionsOrigin_TypeFromPb(pb availabilitypb.RequestTransactionsOrigin_Type) RequestTransactionsOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *availabilitypb.RequestTransactionsOrigin_ContextStore:
 		return &RequestTransactionsOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
@@ -449,6 +533,9 @@ func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types3.Origin {
 }
 
 func (w *RequestTransactionsOrigin_ContextStore) Pb() availabilitypb.RequestTransactionsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.RequestTransactionsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -467,6 +554,9 @@ func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types4.Origin {
 }
 
 func (w *RequestTransactionsOrigin_Dsl) Pb() availabilitypb.RequestTransactionsOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.RequestTransactionsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -475,6 +565,9 @@ func (*RequestTransactionsOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func RequestTransactionsOriginFromPb(pb *availabilitypb.RequestTransactionsOrigin) *RequestTransactionsOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &RequestTransactionsOrigin{
 		Module: (types2.ModuleID)(pb.Module),
 		Type:   RequestTransactionsOrigin_TypeFromPb(pb.Type),
@@ -482,6 +575,9 @@ func RequestTransactionsOriginFromPb(pb *availabilitypb.RequestTransactionsOrigi
 }
 
 func (m *RequestTransactionsOrigin) Pb() *availabilitypb.RequestTransactionsOrigin {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.RequestTransactionsOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -509,6 +605,9 @@ type VerifyCertOrigin_TypeWrapper[T any] interface {
 }
 
 func VerifyCertOrigin_TypeFromPb(pb availabilitypb.VerifyCertOrigin_Type) VerifyCertOrigin_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *availabilitypb.VerifyCertOrigin_ContextStore:
 		return &VerifyCertOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
@@ -529,6 +628,9 @@ func (w *VerifyCertOrigin_ContextStore) Unwrap() *types3.Origin {
 }
 
 func (w *VerifyCertOrigin_ContextStore) Pb() availabilitypb.VerifyCertOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.VerifyCertOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -547,6 +649,9 @@ func (w *VerifyCertOrigin_Dsl) Unwrap() *types4.Origin {
 }
 
 func (w *VerifyCertOrigin_Dsl) Pb() availabilitypb.VerifyCertOrigin_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.VerifyCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
 
@@ -555,6 +660,9 @@ func (*VerifyCertOrigin_Dsl) MirReflect() mirreflect.Type {
 }
 
 func VerifyCertOriginFromPb(pb *availabilitypb.VerifyCertOrigin) *VerifyCertOrigin {
+	if pb == nil {
+		return nil
+	}
 	return &VerifyCertOrigin{
 		Module: (types2.ModuleID)(pb.Module),
 		Type:   VerifyCertOrigin_TypeFromPb(pb.Type),
@@ -562,6 +670,9 @@ func VerifyCertOriginFromPb(pb *availabilitypb.VerifyCertOrigin) *VerifyCertOrig
 }
 
 func (m *VerifyCertOrigin) Pb() *availabilitypb.VerifyCertOrigin {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.VerifyCertOrigin{
 		Module: (string)(m.Module),
 		Type:   (m.Type).Pb(),
@@ -588,6 +699,9 @@ type Cert_TypeWrapper[T any] interface {
 }
 
 func Cert_TypeFromPb(pb availabilitypb.Cert_Type) Cert_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *availabilitypb.Cert_Mscs:
 		return &Cert_Mscs{Mscs: types5.CertsFromPb(pb.Mscs)}
@@ -606,6 +720,9 @@ func (w *Cert_Mscs) Unwrap() *types5.Certs {
 }
 
 func (w *Cert_Mscs) Pb() availabilitypb.Cert_Type {
+	if w == nil {
+		return nil
+	}
 	return &availabilitypb.Cert_Mscs{Mscs: (w.Mscs).Pb()}
 }
 
@@ -614,12 +731,18 @@ func (*Cert_Mscs) MirReflect() mirreflect.Type {
 }
 
 func CertFromPb(pb *availabilitypb.Cert) *Cert {
+	if pb == nil {
+		return nil
+	}
 	return &Cert{
 		Type: Cert_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Cert) Pb() *availabilitypb.Cert {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.Cert{
 		Type: (m.Type).Pb(),
 	}
@@ -632,10 +755,16 @@ func (*Cert) MirReflect() mirreflect.Type {
 type ComputeCert struct{}
 
 func ComputeCertFromPb(pb *availabilitypb.ComputeCert) *ComputeCert {
+	if pb == nil {
+		return nil
+	}
 	return &ComputeCert{}
 }
 
 func (m *ComputeCert) Pb() *availabilitypb.ComputeCert {
+	if m == nil {
+		return nil
+	}
 	return &availabilitypb.ComputeCert{}
 }
 

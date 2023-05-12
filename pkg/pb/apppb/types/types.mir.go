@@ -25,6 +25,9 @@ type Event_TypeWrapper[T any] interface {
 }
 
 func Event_TypeFromPb(pb apppb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
 	switch pb := pb.(type) {
 	case *apppb.Event_SnapshotRequest:
 		return &Event_SnapshotRequest{SnapshotRequest: SnapshotRequestFromPb(pb.SnapshotRequest)}
@@ -49,6 +52,9 @@ func (w *Event_SnapshotRequest) Unwrap() *SnapshotRequest {
 }
 
 func (w *Event_SnapshotRequest) Pb() apppb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &apppb.Event_SnapshotRequest{SnapshotRequest: (w.SnapshotRequest).Pb()}
 }
 
@@ -67,6 +73,9 @@ func (w *Event_Snapshot) Unwrap() *Snapshot {
 }
 
 func (w *Event_Snapshot) Pb() apppb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &apppb.Event_Snapshot{Snapshot: (w.Snapshot).Pb()}
 }
 
@@ -85,6 +94,9 @@ func (w *Event_RestoreState) Unwrap() *RestoreState {
 }
 
 func (w *Event_RestoreState) Pb() apppb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &apppb.Event_RestoreState{RestoreState: (w.RestoreState).Pb()}
 }
 
@@ -103,6 +115,9 @@ func (w *Event_NewEpoch) Unwrap() *NewEpoch {
 }
 
 func (w *Event_NewEpoch) Pb() apppb.Event_Type {
+	if w == nil {
+		return nil
+	}
 	return &apppb.Event_NewEpoch{NewEpoch: (w.NewEpoch).Pb()}
 }
 
@@ -111,12 +126,18 @@ func (*Event_NewEpoch) MirReflect() mirreflect.Type {
 }
 
 func EventFromPb(pb *apppb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
 	return &Event{
 		Type: Event_TypeFromPb(pb.Type),
 	}
 }
 
 func (m *Event) Pb() *apppb.Event {
+	if m == nil {
+		return nil
+	}
 	return &apppb.Event{
 		Type: (m.Type).Pb(),
 	}
@@ -131,12 +152,18 @@ type SnapshotRequest struct {
 }
 
 func SnapshotRequestFromPb(pb *apppb.SnapshotRequest) *SnapshotRequest {
+	if pb == nil {
+		return nil
+	}
 	return &SnapshotRequest{
 		ReplyTo: (types.ModuleID)(pb.ReplyTo),
 	}
 }
 
 func (m *SnapshotRequest) Pb() *apppb.SnapshotRequest {
+	if m == nil {
+		return nil
+	}
 	return &apppb.SnapshotRequest{
 		ReplyTo: (string)(m.ReplyTo),
 	}
@@ -151,12 +178,18 @@ type Snapshot struct {
 }
 
 func SnapshotFromPb(pb *apppb.Snapshot) *Snapshot {
+	if pb == nil {
+		return nil
+	}
 	return &Snapshot{
 		AppData: pb.AppData,
 	}
 }
 
 func (m *Snapshot) Pb() *apppb.Snapshot {
+	if m == nil {
+		return nil
+	}
 	return &apppb.Snapshot{
 		AppData: m.AppData,
 	}
@@ -171,12 +204,18 @@ type RestoreState struct {
 }
 
 func RestoreStateFromPb(pb *apppb.RestoreState) *RestoreState {
+	if pb == nil {
+		return nil
+	}
 	return &RestoreState{
 		Checkpoint: types1.StableCheckpointFromPb(pb.Checkpoint),
 	}
 }
 
 func (m *RestoreState) Pb() *apppb.RestoreState {
+	if m == nil {
+		return nil
+	}
 	return &apppb.RestoreState{
 		Checkpoint: (m.Checkpoint).Pb(),
 	}
@@ -192,6 +231,9 @@ type NewEpoch struct {
 }
 
 func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
+	if pb == nil {
+		return nil
+	}
 	return &NewEpoch{
 		EpochNr:        (types2.EpochNr)(pb.EpochNr),
 		ProtocolModule: (types.ModuleID)(pb.ProtocolModule),
@@ -199,6 +241,9 @@ func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
 }
 
 func (m *NewEpoch) Pb() *apppb.NewEpoch {
+	if m == nil {
+		return nil
+	}
 	return &apppb.NewEpoch{
 		EpochNr:        (uint64)(m.EpochNr),
 		ProtocolModule: (string)(m.ProtocolModule),
