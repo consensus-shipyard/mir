@@ -16,9 +16,9 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
@@ -405,7 +405,7 @@ func TestSendReceive(t *testing.T) {
 	nodeD := types.NodeID("d")
 	// nodeE := types.NodeID("e")
 
-	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+	testMsg := &messagepbtypes.Message{}
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
@@ -466,9 +466,8 @@ func TestSendReceive(t *testing.T) {
 }
 
 // TestSendReceive tests that even empty messages can be sent and received.
-// TODO: Enable this test ASAP (by removing the 'x'), when support for nil values in generated types is implemented.
 // Also remove the nolint:unused tag.
-func xTestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
+func TestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := types.NodeID("a")
@@ -602,7 +601,7 @@ func TestMessaging(t *testing.T) {
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 
-	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+	testMsg := &messagepbtypes.Message{}
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
 
@@ -716,7 +715,7 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 	nodeA := types.NodeID("a")
 	nodeB := types.NodeID("b")
 
-	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+	testMsg := &messagepbtypes.Message{}
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
@@ -798,7 +797,7 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
 
-	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+	testMsg := &messagepbtypes.Message{}
 
 	t.Log(">>> connecting nodes")
 
@@ -940,7 +939,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 	initialNodes := m.MembershipOf(nodes[:N]...)
 	allNodes := m.MembershipOf(nodes...)
 
-	testMsg := checkpointpbmsgs.Checkpoint("", 0, 0, []byte{}, []byte{}) // Just a random message, could be anything.
+	testMsg := &messagepbtypes.Message{}
 
 	t.Logf(">>> connecting nodes")
 	for i := 0; i < N; i++ {
