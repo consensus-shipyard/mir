@@ -11,6 +11,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // IncludeComputationOfTransactionAndBatchIDs registers event handler for processing RequestTransactionIDs and
@@ -33,7 +34,9 @@ func IncludeComputationOfTransactionAndBatchIDs(
 
 	hasherpbdsl.UponResult(m, func(hashes [][]uint8, context *computeHashForTransactionIDsContext) error {
 		txIDs := make([]tt.TxID, len(hashes))
-		copy(txIDs, hashes)
+		copy(txIDs, sliceutil.Transform(hashes, func(i int, hash []uint8) tt.TxID {
+			return tt.TxID(hash)
+		}))
 
 		mppbdsl.TransactionIDsResponse(m, context.origin.Module, txIDs, context.origin)
 		return nil

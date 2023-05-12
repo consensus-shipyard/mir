@@ -16,11 +16,9 @@ type ModuleConfig struct {
 	Self t.ModuleID // id of this module
 }
 
-type txIDString string
-
 type moduleState struct {
 	BatchStore       map[msctypes.BatchIDString]batchInfo
-	TransactionStore map[txIDString]*trantorpbtypes.Transaction
+	TransactionStore map[tt.TxID]*trantorpbtypes.Transaction
 }
 
 type batchInfo struct {
@@ -35,7 +33,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 	state := moduleState{
 		BatchStore:       make(map[msctypes.BatchIDString]batchInfo),
-		TransactionStore: make(map[txIDString]*trantorpbtypes.Transaction),
+		TransactionStore: make(map[tt.TxID]*trantorpbtypes.Transaction),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
@@ -46,7 +44,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 		}
 
 		for i, txID := range txIDs {
-			state.TransactionStore[txIDString(txID)] = txs[i]
+			state.TransactionStore[txID] = txs[i]
 		}
 
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
@@ -64,7 +62,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 		txs := make([]*trantorpbtypes.Transaction, len(info.txIDs))
 		for i, txID := range info.txIDs {
-			txs[i] = state.TransactionStore[txIDString(txID)]
+			txs[i] = state.TransactionStore[txID]
 		}
 
 		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, origin)
