@@ -4,33 +4,32 @@ import (
 	"bytes"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/goodcase"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
+	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-	"google.golang.org/protobuf/proto"
-
-	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-
-	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // ============================================================
