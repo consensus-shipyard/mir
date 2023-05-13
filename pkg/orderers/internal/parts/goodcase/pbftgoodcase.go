@@ -146,7 +146,7 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		applyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
+		ApplyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
 		return nil
 	})
 
@@ -160,7 +160,7 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		applyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
+		ApplyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
 		return nil
 	})
 
@@ -318,10 +318,10 @@ func ApplyMsgPreprepare(
 	)
 }
 
-// applyMsgPrepare applies a received prepare message.
+// ApplyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func applyMsgPrepare(
+func ApplyMsgPrepare(
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
@@ -354,10 +354,10 @@ func applyMsgPrepare(
 	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
 }
 
-// applyMsgCommit applies a received commit message.
+// ApplyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func applyMsgCommit(
+func ApplyMsgCommit(
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
