@@ -238,13 +238,17 @@ func IncludeViewChange( //nolint:gocognit
 		}
 
 		// If all the checks passed, (TODO: make sure all the checks of the NewView message have been performed!)
-		// enter the new view.
+		// enter the new view and clear the InViewChange flag, as we continue normal operation now.
+		//This call is necessary if this node was not among those initiating the view change
 		err := state.InitView(m, params, moduleConfig, context.View, logger)
 		if err != nil {
 			return err
 		}
+		state.InViewChange = false
 
-		// Apply all the Preprepares contained in the NewView
+		// Apply all the Preprepares contained in the NewView.
+		// This needs to be applied before processing the buffered messages,
+		// in case a malicious node has sent conflicting ones before.
 		primary := state.Segment.PrimaryNode(context.View)
 		for _, preprepare := range context.Preprepares {
 			goodcase.ApplyMsgPreprepare(m, state, params, moduleConfig, preprepare, primary, logger)

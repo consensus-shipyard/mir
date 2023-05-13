@@ -164,7 +164,6 @@ func (state *State) InitView(
 	)
 
 	state.View = view
-	state.InViewChange = false
 
 	return nil
 }
