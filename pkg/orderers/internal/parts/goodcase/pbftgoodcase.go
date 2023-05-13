@@ -6,6 +6,7 @@ import (
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
@@ -146,7 +147,7 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		ApplyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
+		applyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
 		return nil
 	})
 
@@ -160,7 +161,7 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		ApplyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
+		applyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
 		return nil
 	})
 
@@ -318,10 +319,10 @@ func ApplyMsgPreprepare(
 	)
 }
 
-// ApplyMsgPrepare applies a received prepare message.
+// applyMsgPrepare applies a received prepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
-func ApplyMsgPrepare(
+func applyMsgPrepare(
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
@@ -354,10 +355,10 @@ func ApplyMsgPrepare(
 	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
 }
 
-// ApplyMsgCommit applies a received commit message.
+// applyMsgCommit applies a received commit message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like delivering the corresponding certificate.
-func ApplyMsgCommit(
+func applyMsgCommit(
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
@@ -388,6 +389,25 @@ func ApplyMsgCommit(
 	// (potentially delivering the corresponding certificate and its successors).
 	slot.CommitDigests[from] = commit.Digest
 	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
+}
+
+func ApplyBufferedMsg(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	msgPb proto.Message,
+	from t.NodeID,
+	logger logging.Logger,
+) {
+	switch msg := msgPb.(type) {
+	case *pbftpb.Preprepare:
+		ApplyMsgPreprepare(m, state, params, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from, logger)
+	case *pbftpb.Prepare:
+		applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
+	case *pbftpb.Commit:
+		applyMsgCommit(m, state, params, moduleConfig, pbftpbtypes.CommitFromPb(msg), from, logger)
+	}
 }
 
 // preprocessMessage performs basic checks on a PBFT protocol message based the associated view and sequence number.
