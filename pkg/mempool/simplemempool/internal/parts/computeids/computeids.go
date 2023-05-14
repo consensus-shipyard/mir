@@ -48,7 +48,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 		hasherpbdsl.RequestOne(
 			m,
 			mc.Hasher,
-			&hasherpbtypes.HashData{Data: sliceutil.Transform(txIDs, func(i int, txId tt.TxID) []byte {
+			&hasherpbtypes.HashData{Data: sliceutil.Transform(txIDs, func(_ int, txId tt.TxID) []byte {
 				return []byte(txId)
 			})},
 			&computeHashForBatchIDContext{origin},
