@@ -36,7 +36,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 		mppbdsl.TransactionIDsResponse(
 			m,
 			context.origin.Module,
-			sliceutil.Transform(hashes, func(i int, hash []uint8) tt.TxID {
+			sliceutil.Transform(hashes, func(_ int, hash []uint8) tt.TxID {
 				return tt.TxID(hash)
 			}),
 			context.origin,
