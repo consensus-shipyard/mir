@@ -11,6 +11,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // IncludeComputationOfTransactionAndBatchIDs registers event handler for processing RequestTransactionIDs and
@@ -32,20 +33,31 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	})
 
 	hasherpbdsl.UponResult(m, func(hashes [][]uint8, context *computeHashForTransactionIDsContext) error {
-		txIDs := make([]tt.TxID, len(hashes))
-		copy(txIDs, hashes)
-
-		mppbdsl.TransactionIDsResponse(m, context.origin.Module, txIDs, context.origin)
+		mppbdsl.TransactionIDsResponse(
+			m,
+			context.origin.Module,
+			sliceutil.Transform(hashes, func(_ int, hash []uint8) tt.TxID {
+				return tt.TxID(hash)
+			}),
+			context.origin,
+		)
 		return nil
 	})
 
 	mppbdsl.UponRequestBatchID(m, func(txIDs []tt.TxID, origin *mppbtypes.RequestBatchIDOrigin) error {
-		hasherpbdsl.RequestOne(m, mc.Hasher, &hasherpbtypes.HashData{Data: txIDs}, &computeHashForBatchIDContext{origin})
+		hasherpbdsl.RequestOne(
+			m,
+			mc.Hasher,
+			&hasherpbtypes.HashData{Data: sliceutil.Transform(txIDs, func(_ int, txId tt.TxID) []byte {
+				return []byte(txId)
+			})},
+			&computeHashForBatchIDContext{origin},
+		)
 		return nil
 	})
 
 	hasherpbdsl.UponResultOne(m, func(hash []byte, context *computeHashForBatchIDContext) error {
-		mppbdsl.BatchIDResponse(m, context.origin.Module, hash, context.origin)
+		mppbdsl.BatchIDResponse(m, context.origin.Module, tt.TxID(hash), context.origin)
 		return nil
 	})
 }

@@ -252,7 +252,7 @@ func respond(m dsl.Module, state *certCreationState, certs []*mscpbtypes.Cert) {
 
 // mscCert returns a single multisig (sub)certificate produced by the multisig collector.
 // Multiple of these can be aggregated in one overarching certificate used by the availability layer.
-func mscCert(batchID []byte, signers []t.NodeID, signatures [][]byte) *mscpbtypes.Cert {
+func mscCert(batchID msctypes.BatchID, signers []t.NodeID, signatures [][]byte) *mscpbtypes.Cert {
 	return &mscpbtypes.Cert{
 		BatchId:    batchID,
 		Signers:    signers,

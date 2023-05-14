@@ -16,11 +16,9 @@ type ModuleConfig struct {
 	Self t.ModuleID // id of this module
 }
 
-type txIDString string
-
 type moduleState struct {
-	BatchStore       map[msctypes.BatchIDString]batchInfo
-	TransactionStore map[txIDString]*trantorpbtypes.Transaction
+	BatchStore       map[msctypes.BatchID]batchInfo
+	TransactionStore map[tt.TxID]*trantorpbtypes.Transaction
 }
 
 type batchInfo struct {
@@ -34,19 +32,19 @@ func NewModule(mc ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{
-		BatchStore:       make(map[msctypes.BatchIDString]batchInfo),
-		TransactionStore: make(map[txIDString]*trantorpbtypes.Transaction),
+		BatchStore:       make(map[msctypes.BatchID]batchInfo),
+		TransactionStore: make(map[tt.TxID]*trantorpbtypes.Transaction),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
 	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*trantorpbtypes.Transaction, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
-		state.BatchStore[msctypes.BatchIDString(batchID)] = batchInfo{
+		state.BatchStore[batchID] = batchInfo{
 			txIDs:    txIDs,
 			metadata: metadata,
 		}
 
 		for i, txID := range txIDs {
-			state.TransactionStore[txIDString(txID)] = txs[i]
+			state.TransactionStore[txID] = txs[i]
 		}
 
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
@@ -56,7 +54,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 	// On LookupBatch request, just check the local map.
 	batchdbpbdsl.UponLookupBatch(m, func(batchID msctypes.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
 
-		info, found := state.BatchStore[msctypes.BatchIDString(batchID)]
+		info, found := state.BatchStore[batchID]
 		if !found {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, origin)
 			return nil
@@ -64,7 +62,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 		txs := make([]*trantorpbtypes.Transaction, len(info.txIDs))
 		for i, txID := range info.txIDs {
-			txs[i] = state.TransactionStore[txIDString(txID)]
+			txs[i] = state.TransactionStore[txID]
 		}
 
 		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, origin)

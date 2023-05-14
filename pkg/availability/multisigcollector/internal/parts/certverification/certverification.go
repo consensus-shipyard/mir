@@ -27,7 +27,7 @@ type State struct {
 type RequestID = uint64
 
 type RequestState struct {
-	certVerifiedValid map[msctypes.BatchIDString]bool
+	certVerifiedValid map[msctypes.BatchID]bool
 }
 
 // IncludeVerificationOfCertificates registers event handlers for processing availabilitypb.VerifyCert events.
@@ -61,11 +61,11 @@ func IncludeVerificationOfCertificates(
 		}
 
 		state.RequestState[reqID] = &RequestState{
-			certVerifiedValid: make(map[msctypes.BatchIDString]bool),
+			certVerifiedValid: make(map[msctypes.BatchID]bool),
 		}
 
 		for _, mscCert := range mscCerts {
-			state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(mscCert.BatchId)] = false
+			state.RequestState[reqID].certVerifiedValid[mscCert.BatchId] = false
 			sigData := common.SigData(params.InstanceUID, mscCert.BatchId)
 			cryptopbdsl.VerifySigs(m, mc.Crypto,
 				/*data*/ sliceutil.Repeat(sigData, len(mscCert.Signers)),
@@ -86,7 +86,7 @@ func IncludeVerificationOfCertificates(
 			return nil
 		}
 
-		state.RequestState[reqID].certVerifiedValid[msctypes.BatchIDString(context.cert.BatchId)] = allOK
+		state.RequestState[reqID].certVerifiedValid[context.cert.BatchId] = allOK
 		var err error
 		if !allOK {
 			err = errors.New("some signatures are invalid")

@@ -90,6 +90,6 @@ func (e EpochNr) Bytes() []byte {
 // ================================================================================
 
 // TxID is a unique identifier of a transaction.
-type TxID = []byte
+type TxID = string
 
 // ================================================================================

@@ -1,6 +1,7 @@
 package mscpbdsl
 
 import (
+	types4 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
@@ -34,13 +35,13 @@ func UponSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, signa
 	})
 }
 
-func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, batchId []uint8, reqId uint64) error) {
+func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, batchId types4.BatchID, reqId uint64) error) {
 	UponMessageReceived[*types.Message_RequestBatch](m, func(from types1.NodeID, msg *types.RequestBatchMessage) error {
 		return handler(from, msg.BatchId, msg.ReqId)
 	})
 }
 
-func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Transaction, reqId uint64, batchId []uint8) error) {
+func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Transaction, reqId uint64, batchId types4.BatchID) error) {
 	UponMessageReceived[*types.Message_ProvideBatch](m, func(from types1.NodeID, msg *types.ProvideBatchMessage) error {
 		return handler(from, msg.Txs, msg.ReqId, msg.BatchId)
 	})
