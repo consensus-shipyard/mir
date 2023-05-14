@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -134,7 +133,7 @@ func writeGeneratorProgram(generatorPkgPath, generatorName, inputPkgPath string,
 // Run the program in the given directory.
 func runInDir(program []byte, dir string) error {
 	// Create a temporary folder for the generator program.
-	tmpDir, err := ioutil.TempDir(dir, "proto_converter_tmp_")
+	tmpDir, err := os.MkdirTemp(dir, "proto_converter_tmp_")
 	if err != nil {
 		return fmt.Errorf("error creating a temporary directory in %v: %w", dir, err)
 	}
@@ -155,7 +154,7 @@ func runInDir(program []byte, dir string) error {
 		progBinary += ".exe"
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(tmpDir, progSource), program, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, progSource), program, 0600); err != nil {
 		return err
 	}
 

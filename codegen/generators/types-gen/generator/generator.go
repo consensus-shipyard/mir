@@ -54,10 +54,5 @@ func (TypeGenerator) Run(pbGoStructTypes []reflect.Type) error {
 		return err
 	}
 
-	err = GenerateMirTypes(inputDir, inputPackagePath, msgs, parser)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return GenerateMirTypes(inputDir, inputPackagePath, msgs, parser)
 }
