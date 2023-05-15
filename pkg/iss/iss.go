@@ -169,10 +169,15 @@ func New(
 		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
 	}
 
-	// TODO: Make sure that startingChkp is consistent with params.
+	//TODO: Make sure that startingChkp is consistent with params.
 	leaderPolicy, err := lsp.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
+	}
+
+	err = startingChkp.VerifyStartingCheckpoint(params, leaderPolicy, hashImpl, chkpVerifier, logger)
+	if err != nil {
+		return nil, err
 	}
 
 	// Initialize a new ISS object.
@@ -668,7 +673,7 @@ func (iss *ISS) initOrderers() error {
 
 // hasEpochCheckpoint returns true if the current epoch's checkpoint protocol has already produced a stable checkpoint.
 func (iss *ISS) hasEpochCheckpoint() bool {
-	return iss.lastStableCheckpoint.Sn == iss.epoch.FirstSN()
+	return iss.lastStableCheckpoint.SeqNr() == iss.epoch.FirstSN()
 }
 
 // epochFinished returns true when all the sequence numbers of the current epochs have been committed,

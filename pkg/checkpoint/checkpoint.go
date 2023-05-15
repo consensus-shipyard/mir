@@ -2,6 +2,12 @@ package checkpoint
 
 import (
 	"fmt"
+	"reflect"
+
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	"github.com/fxamacker/cbor/v2"
 
@@ -157,6 +163,76 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 		// Check if the signature is valid.
 		if err := v.Verify(signedData.Data, sig, nodeID); err != nil {
 			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
+		}
+	}
+	return nil
+}
+
+// VerifyStartingCheckpoint makes the necessary checks to verify a starting checkpoint
+func (sc *StableCheckpoint) VerifyStartingCheckpoint(
+	params *issconfig.ModuleParams,
+	leaderPolicy lsp.LeaderSelectionPolicy,
+	hashImpl crypto.HashImpl,
+	chkpVerifier Verifier,
+	logger logging.Logger,
+) error {
+
+	// Only verify certificate if not the first epoch
+	if sc.Epoch() > 0 {
+		if err := sc.VerifyCert(hashImpl, chkpVerifier, sc.PreviousMembership()); err != nil {
+			logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not valid.",
+				"chkpEpoch", sc.Epoch(),
+			)
+			return fmt.Errorf("invalid starting checkpoint: %w", err)
+		}
+	} else if len(sc.PreviousMembership().Nodes) > 0 {
+		logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not empty for first epoch.")
+		return fmt.Errorf("invalid starting checkpoint: certificate not empty for first epoch")
+	}
+
+	//verify that sufficient memberships are provided by the checkpoint
+	if len(sc.Memberships()) != params.ConfigOffset+1 {
+		return fmt.Errorf("invalid starting checkpoint: number of memberships does not match params.ConfigOffset")
+	}
+
+	//verify that leaderPolicy is consistent with current membership
+	if !sliceutil.Equal(leaderPolicy.Leaders(), maputil.GetKeys(sc.Memberships()[0].Nodes)) {
+		return fmt.Errorf("invalid starting checkpoint: leader policy does not match first membership")
+	}
+
+	//verify that memberships are consistent with each other
+	if err := sc.verifyMembershipConsistency(logger); err != nil {
+		return fmt.Errorf("invalid starting checkpoint: %w", err)
+	}
+
+	return nil
+}
+
+// verifyMembershipConsistency verifies that if the same node appears then the same parameters are always used
+func (sc *StableCheckpoint) verifyMembershipConsistency(logger logging.Logger) error {
+	membershipConsistency := map[t.NodeID]*trantorpbtypes.NodeIdentity{}
+	for _, membership := range sc.Memberships() {
+		for nodeID, node := range membership.Nodes {
+			if _, ok := membershipConsistency[nodeID]; !ok {
+				membershipConsistency[nodeID] = node
+				// check that internal nodeID is consistent with key nodeID
+				if nodeID != node.Id {
+					logger.Log(logging.LevelWarn, "Inconsistent membership parameters for node",
+						"nodeID", nodeID,
+					)
+					return fmt.Errorf("inconsistent membership parameters: nodeID %v does not match internal nodeID %v", nodeID, node.Id)
+				}
+			} else {
+				// check that all parameters are consistent
+				if !reflect.DeepEqual(membershipConsistency[nodeID], node) {
+					logger.Log(logging.LevelWarn, "Inconsistent membership parameters for node",
+						"nodeID", nodeID,
+						"oldMembership", membershipConsistency[nodeID],
+						"newMembership", node,
+					)
+					return fmt.Errorf("inconsistent membership parameters for node %v", nodeID)
+				}
+			}
 		}
 	}
 	return nil

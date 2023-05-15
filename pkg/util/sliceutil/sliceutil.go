@@ -66,3 +66,16 @@ func Any[T any](ts []T) (T, bool) {
 
 	return ts[0], true
 }
+
+// Equal returns true if the two slices are equal.
+func Equal[T comparable](s1 []T, s2 []T) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i, v := range s1 {
+		if v != s2[i] {
+			return false
+		}
+	}
+	return true
+}
