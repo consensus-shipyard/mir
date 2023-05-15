@@ -1,13 +1,15 @@
 package generator
 
 import (
+	"reflect"
+
 	"github.com/dave/jennifer/jen"
+
 	"github.com/filecoin-project/mir/codegen"
 	"github.com/filecoin-project/mir/codegen/mirreflect"
 	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
-	"reflect"
 )
 
 var (
@@ -170,24 +172,13 @@ func GenerateMirTypes(inputDir, sourcePackagePath string, msgs []*types.Message,
 	return codegen.RenderJenFile(jenFile, types.OutputDir(inputDir), "types.mir.go")
 }
 
-//canBeNil returns true if the field can be nil.
-//at the moment, Maps and Slices cannot be nil by this check, as we use an internal conversion to our types.Slice and types.Map
-//the check for Maps and Slices is in their respective converSlice and convertMap functions
+// canBeNil returns true if the field can be nil.
+// at the moment, Maps and Slices cannot be nil by this check, as we use an internal conversion to our types.Slice and types.Map
+// the check for Maps and Slices is in their respective converSlice and convertMap functions
 func canBeNil(field *types.Field) bool {
 	switch reflect.TypeOf(field.Type).Kind() {
-	case reflect.Interface:
-		return true
-	case reflect.Ptr:
-		return true
-	case reflect.Map:
-		return true
-	case reflect.Slice:
-		return true
-	case reflect.Func:
-		return true
-	case reflect.UnsafePointer:
+	case reflect.Interface, reflect.Ptr, reflect.Map, reflect.Slice, reflect.Func, reflect.UnsafePointer:
 		return true
 	}
-
 	return false
 }
