@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
-	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
 	"github.com/fxamacker/cbor/v2"
+
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
@@ -171,7 +168,6 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 // VerifyStartingCheckpoint makes the necessary checks to verify a starting checkpoint
 func (sc *StableCheckpoint) VerifyStartingCheckpoint(
 	params *issconfig.ModuleParams,
-	leaderPolicy lsp.LeaderSelectionPolicy,
 	hashImpl crypto.HashImpl,
 	chkpVerifier Verifier,
 	logger logging.Logger,
@@ -193,11 +189,6 @@ func (sc *StableCheckpoint) VerifyStartingCheckpoint(
 	//verify that sufficient memberships are provided by the checkpoint
 	if len(sc.Memberships()) != params.ConfigOffset+1 {
 		return fmt.Errorf("invalid starting checkpoint: number of memberships does not match params.ConfigOffset")
-	}
-
-	//verify that leaderPolicy is consistent with current membership
-	if !sliceutil.Equal(leaderPolicy.Leaders(), maputil.GetKeys(sc.Memberships()[0].Nodes)) {
-		return fmt.Errorf("invalid starting checkpoint: leader policy does not match first membership")
 	}
 
 	//verify that memberships are consistent with each other

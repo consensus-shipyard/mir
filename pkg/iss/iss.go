@@ -175,7 +175,7 @@ func New(
 		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
 
-	err = startingChkp.VerifyStartingCheckpoint(params, leaderPolicy, hashImpl, chkpVerifier, logger)
+	err = startingChkp.VerifyStartingCheckpoint(params, hashImpl, chkpVerifier, logger)
 	if err != nil {
 		return nil, err
 	}
