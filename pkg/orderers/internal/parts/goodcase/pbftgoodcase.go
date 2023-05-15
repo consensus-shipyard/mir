@@ -6,6 +6,7 @@ import (
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
@@ -388,6 +389,25 @@ func applyMsgCommit(
 	// (potentially delivering the corresponding certificate and its successors).
 	slot.CommitDigests[from] = commit.Digest
 	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
+}
+
+func ApplyBufferedMsg(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	msgPb proto.Message,
+	from t.NodeID,
+	logger logging.Logger,
+) {
+	switch msg := msgPb.(type) {
+	case *pbftpb.Preprepare:
+		ApplyMsgPreprepare(m, state, params, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from, logger)
+	case *pbftpb.Prepare:
+		applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
+	case *pbftpb.Commit:
+		applyMsgCommit(m, state, params, moduleConfig, pbftpbtypes.CommitFromPb(msg), from, logger)
+	}
 }
 
 // preprocessMessage performs basic checks on a PBFT protocol message based the associated view and sequence number.

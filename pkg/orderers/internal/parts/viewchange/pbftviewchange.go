@@ -4,30 +4,32 @@ import (
 	"bytes"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/goodcase"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
+	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
-	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-
-	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // ============================================================
@@ -235,17 +237,40 @@ func IncludeViewChange( //nolint:gocognit
 		}
 
 		// If all the checks passed, (TODO: make sure all the checks of the NewView message have been performed!)
-		// enter the new view.
+		// enter the new view and clear the InViewChange flag, as we continue normal operation now.
+		//This call is necessary if this node was not among those initiating the view change
 		err := state.InitView(m, params, moduleConfig, context.View, logger)
 		if err != nil {
 			return err
 		}
+		state.InViewChange = false
 
-		// Apply all the Preprepares contained in the NewView
+		// Apply all the Preprepares contained in the NewView.
+		// This needs to be applied before processing the buffered messages,
+		// in case a malicious node has sent conflicting ones before.
 		primary := state.Segment.PrimaryNode(context.View)
 		for _, preprepare := range context.Preprepares {
 			goodcase.ApplyMsgPreprepare(m, state, params, moduleConfig, preprepare, primary, logger)
 		}
+
+		// Apply all messages buffered for this view.
+		for from, msgBuf := range state.MessageBuffers {
+			msgBuf.Iterate(func(source t.NodeID, msgPb proto.Message) messagebuffer.Applicable {
+				msgView, err := getMsgView(msgPb)
+				if err != nil {
+					return messagebuffer.Invalid
+				} else if msgView < state.View {
+					return messagebuffer.Past
+				} else if msgView == state.View {
+					return messagebuffer.Current
+				} else {
+					return messagebuffer.Future
+				}
+			}, func(source t.NodeID, msgPb proto.Message) {
+				goodcase.ApplyBufferedMsg(m, state, params, moduleConfig, msgPb, from, logger)
+			})
+		}
+
 		return nil
 	})
 
@@ -737,5 +762,18 @@ func askForMissingPreprepares(m dsl.Module, moduleConfig common2.ModuleConfig, v
 				vcState.PrepreparedIDs[sn],
 			) // TODO be smarter about this eventually, not asking everyone at once.
 		}
+	}
+}
+
+func getMsgView(msgPb proto.Message) (ot.ViewNr, error) {
+	switch msg := msgPb.(type) {
+	case *pbftpb.Preprepare:
+		return ot.ViewNr(msg.View), nil
+	case *pbftpb.Prepare:
+		return ot.ViewNr(msg.View), nil
+	case *pbftpb.Commit:
+		return ot.ViewNr(msg.View), nil
+	default:
+		return 0, fmt.Errorf("invalid PBFT message for view extraction: %T (%v)", msg, msg)
 	}
 }
