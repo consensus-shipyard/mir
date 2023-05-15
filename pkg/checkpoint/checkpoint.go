@@ -165,8 +165,8 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	return nil
 }
 
-// VerifyStartingCheckpoint makes the necessary checks to verify a starting checkpoint
-func (sc *StableCheckpoint) VerifyStartingCheckpoint(
+// Verify makes the necessary checks to verify a checkpoint
+func (sc *StableCheckpoint) Verify(
 	params *issconfig.ModuleParams,
 	hashImpl crypto.HashImpl,
 	chkpVerifier Verifier,
