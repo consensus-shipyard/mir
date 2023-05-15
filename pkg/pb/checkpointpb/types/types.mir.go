@@ -51,6 +51,9 @@ func (w *Message_Checkpoint) Pb() checkpointpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Checkpoint == nil {
+		return &checkpointpb.Message_Checkpoint{}
+	}
 	return &checkpointpb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
@@ -71,9 +74,14 @@ func (m *Message) Pb() *checkpointpb.Message {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.Message{
-		Type: (m.Type).Pb(),
+	pbMessage := &checkpointpb.Message{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {
@@ -103,12 +111,15 @@ func (m *Checkpoint) Pb() *checkpointpb.Checkpoint {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.Checkpoint{
-		Epoch:        (uint64)(m.Epoch),
-		Sn:           (uint64)(m.Sn),
-		SnapshotHash: m.SnapshotHash,
-		Signature:    m.Signature,
+	pbMessage := &checkpointpb.Checkpoint{}
+	{
+		pbMessage.Epoch = (uint64)(m.Epoch)
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.SnapshotHash = m.SnapshotHash
+		pbMessage.Signature = m.Signature
 	}
+
+	return pbMessage
 }
 
 func (*Checkpoint) MirReflect() mirreflect.Type {
@@ -159,6 +170,9 @@ func (w *Event_EpochConfig) Pb() checkpointpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.EpochConfig == nil {
+		return &checkpointpb.Event_EpochConfig{}
+	}
 	return &checkpointpb.Event_EpochConfig{EpochConfig: (w.EpochConfig).Pb()}
 }
 
@@ -179,6 +193,9 @@ func (w *Event_StableCheckpoint) Unwrap() *StableCheckpoint {
 func (w *Event_StableCheckpoint) Pb() checkpointpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.StableCheckpoint == nil {
+		return &checkpointpb.Event_StableCheckpoint{}
 	}
 	return &checkpointpb.Event_StableCheckpoint{StableCheckpoint: (w.StableCheckpoint).Pb()}
 }
@@ -201,6 +218,9 @@ func (w *Event_EpochProgress) Pb() checkpointpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.EpochProgress == nil {
+		return &checkpointpb.Event_EpochProgress{}
+	}
 	return &checkpointpb.Event_EpochProgress{EpochProgress: (w.EpochProgress).Pb()}
 }
 
@@ -221,9 +241,14 @@ func (m *Event) Pb() *checkpointpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &checkpointpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -253,13 +278,18 @@ func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.StableCheckpoint{
-		Sn:       (uint64)(m.Sn),
-		Snapshot: (m.Snapshot).Pb(),
-		Cert: types3.ConvertMap(m.Cert, func(k types2.NodeID, v []uint8) (string, []uint8) {
+	pbMessage := &checkpointpb.StableCheckpoint{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		if m.Snapshot != nil {
+			pbMessage.Snapshot = (m.Snapshot).Pb()
+		}
+		pbMessage.Cert = types3.ConvertMap(m.Cert, func(k types2.NodeID, v []uint8) (string, []uint8) {
 			return (string)(k), v
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*StableCheckpoint) MirReflect() mirreflect.Type {
@@ -285,10 +315,13 @@ func (m *EpochProgress) Pb() *checkpointpb.EpochProgress {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.EpochProgress{
-		NodeId: (string)(m.NodeId),
-		Epoch:  (uint64)(m.Epoch),
+	pbMessage := &checkpointpb.EpochProgress{}
+	{
+		pbMessage.NodeId = (string)(m.NodeId)
+		pbMessage.Epoch = (uint64)(m.Epoch)
 	}
+
+	return pbMessage
 }
 
 func (*EpochProgress) MirReflect() mirreflect.Type {
@@ -318,12 +351,19 @@ func (m *InstanceParams) Pb() *checkpointpb.InstanceParams {
 	if m == nil {
 		return nil
 	}
-	return &checkpointpb.InstanceParams{
-		Membership:       (m.Membership).Pb(),
-		ResendPeriod:     (uint64)(m.ResendPeriod),
-		LeaderPolicyData: m.LeaderPolicyData,
-		EpochConfig:      (m.EpochConfig).Pb(),
+	pbMessage := &checkpointpb.InstanceParams{}
+	{
+		if m.Membership != nil {
+			pbMessage.Membership = (m.Membership).Pb()
+		}
+		pbMessage.ResendPeriod = (uint64)(m.ResendPeriod)
+		pbMessage.LeaderPolicyData = m.LeaderPolicyData
+		if m.EpochConfig != nil {
+			pbMessage.EpochConfig = (m.EpochConfig).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*InstanceParams) MirReflect() mirreflect.Type {

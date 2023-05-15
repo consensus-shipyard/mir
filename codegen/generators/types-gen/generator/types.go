@@ -2,13 +2,12 @@ package generator
 
 import (
 	"github.com/dave/jennifer/jen"
-
 	"github.com/filecoin-project/mir/codegen"
 	"github.com/filecoin-project/mir/codegen/mirreflect"
 	"github.com/filecoin-project/mir/codegen/model/types"
-
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
+	"reflect"
 )
 
 var (
@@ -87,6 +86,9 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 					jen.If(jen.Id("w").Op("==").Nil()).Block(
 						jen.Return(jen.Nil()),
 					),
+					jen.If(jen.Id("w").Dot(opt.Field.Name).Op("==").Nil()).Block(
+						jen.Return(jen.Add(opt.NewPbWrapperType().Values(jen.Empty()))),
+					),
 					jen.Return(jen.Add(opt.NewPbWrapperType()).Values(
 						jen.Id(opt.Field.Name).Op(":").Add(opt.Field.Type.ToPb(jen.Id("w").Dot(opt.Field.Name))),
 					)),
@@ -121,12 +123,22 @@ func generateMirType(g *jen.File, msg *types.Message, parser *types.Parser) erro
 		jen.If(jen.Id("m").Op("==").Nil()).Block(
 			jen.Return(jen.Nil()),
 		),
-		jen.Return().Add(msg.NewPbType()).ValuesFunc(func(group *jen.Group) {
+		jen.Id("pbMessage").Op(":=").Add(msg.NewPbType()).Values(jen.Empty()),
+
+		// Iterate over struct fields and set values for non-nil fields.
+		jen.BlockFunc(func(g *jen.Group) {
 			for _, field := range fields {
-				group.Line().Id(field.Name).Op(":").Add(field.Type.ToPb(jen.Id("m").Dot(field.Name)))
+				if !canBeNil(field) {
+					g.Add(jen.Id("pbMessage").Dot(field.Name).Op("=").Add(field.Type.ToPb(jen.Id("m").Dot(field.Name))))
+				} else {
+					g.If(jen.Id("m").Dot(field.Name).Op("!=").Nil()).Block(
+						jen.Id("pbMessage").Dot(field.Name).Op("=").Add(field.Type.ToPb(jen.Id("m").Dot(field.Name))),
+					)
+				}
 			}
-			group.Line()
 		}),
+		jen.Empty(),
+		jen.Return(jen.Id("pbMessage")),
 	).Line()
 
 	// Generate the MirReflect method.
@@ -156,4 +168,26 @@ func GenerateMirTypes(inputDir, sourcePackagePath string, msgs []*types.Message,
 	}
 
 	return codegen.RenderJenFile(jenFile, types.OutputDir(inputDir), "types.mir.go")
+}
+
+//canBeNil returns true if the field can be nil.
+//at the moment, Maps and Slices cannot be nil by this check, as we use an internal conversion to our types.Slice and types.Map
+//the check for Maps and Slices is in their respective converSlice and convertMap functions
+func canBeNil(field *types.Field) bool {
+	switch reflect.TypeOf(field.Type).Kind() {
+	case reflect.Interface:
+		return true
+	case reflect.Ptr:
+		return true
+	case reflect.Map:
+		return true
+	case reflect.Slice:
+		return true
+	case reflect.Func:
+		return true
+	case reflect.UnsafePointer:
+		return true
+	}
+
+	return false
 }

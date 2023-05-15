@@ -67,6 +67,9 @@ func (w *Message_Preprepare) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Preprepare == nil {
+		return &pbftpb.Message_Preprepare{}
+	}
 	return &pbftpb.Message_Preprepare{Preprepare: (w.Preprepare).Pb()}
 }
 
@@ -87,6 +90,9 @@ func (w *Message_Prepare) Unwrap() *Prepare {
 func (w *Message_Prepare) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Prepare == nil {
+		return &pbftpb.Message_Prepare{}
 	}
 	return &pbftpb.Message_Prepare{Prepare: (w.Prepare).Pb()}
 }
@@ -109,6 +115,9 @@ func (w *Message_Commit) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Commit == nil {
+		return &pbftpb.Message_Commit{}
+	}
 	return &pbftpb.Message_Commit{Commit: (w.Commit).Pb()}
 }
 
@@ -129,6 +138,9 @@ func (w *Message_Done) Unwrap() *Done {
 func (w *Message_Done) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Done == nil {
+		return &pbftpb.Message_Done{}
 	}
 	return &pbftpb.Message_Done{Done: (w.Done).Pb()}
 }
@@ -151,6 +163,9 @@ func (w *Message_CatchUpRequest) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.CatchUpRequest == nil {
+		return &pbftpb.Message_CatchUpRequest{}
+	}
 	return &pbftpb.Message_CatchUpRequest{CatchUpRequest: (w.CatchUpRequest).Pb()}
 }
 
@@ -171,6 +186,9 @@ func (w *Message_CatchUpResponse) Unwrap() *CatchUpResponse {
 func (w *Message_CatchUpResponse) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.CatchUpResponse == nil {
+		return &pbftpb.Message_CatchUpResponse{}
 	}
 	return &pbftpb.Message_CatchUpResponse{CatchUpResponse: (w.CatchUpResponse).Pb()}
 }
@@ -193,6 +211,9 @@ func (w *Message_SignedViewChange) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SignedViewChange == nil {
+		return &pbftpb.Message_SignedViewChange{}
+	}
 	return &pbftpb.Message_SignedViewChange{SignedViewChange: (w.SignedViewChange).Pb()}
 }
 
@@ -213,6 +234,9 @@ func (w *Message_PreprepareRequest) Unwrap() *PreprepareRequest {
 func (w *Message_PreprepareRequest) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.PreprepareRequest == nil {
+		return &pbftpb.Message_PreprepareRequest{}
 	}
 	return &pbftpb.Message_PreprepareRequest{PreprepareRequest: (w.PreprepareRequest).Pb()}
 }
@@ -235,6 +259,9 @@ func (w *Message_MissingPreprepare) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.MissingPreprepare == nil {
+		return &pbftpb.Message_MissingPreprepare{}
+	}
 	return &pbftpb.Message_MissingPreprepare{MissingPreprepare: (w.MissingPreprepare).Pb()}
 }
 
@@ -256,6 +283,9 @@ func (w *Message_NewView) Pb() pbftpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewView == nil {
+		return &pbftpb.Message_NewView{}
+	}
 	return &pbftpb.Message_NewView{NewView: (w.NewView).Pb()}
 }
 
@@ -276,9 +306,14 @@ func (m *Message) Pb() *pbftpb.Message {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Message{
-		Type: (m.Type).Pb(),
+	pbMessage := &pbftpb.Message{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {
@@ -308,12 +343,15 @@ func (m *Preprepare) Pb() *pbftpb.Preprepare {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Preprepare{
-		Sn:      (uint64)(m.Sn),
-		View:    (uint64)(m.View),
-		Data:    m.Data,
-		Aborted: m.Aborted,
+	pbMessage := &pbftpb.Preprepare{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.Data = m.Data
+		pbMessage.Aborted = m.Aborted
 	}
+
+	return pbMessage
 }
 
 func (*Preprepare) MirReflect() mirreflect.Type {
@@ -341,11 +379,14 @@ func (m *Prepare) Pb() *pbftpb.Prepare {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Prepare{
-		Sn:     (uint64)(m.Sn),
-		View:   (uint64)(m.View),
-		Digest: m.Digest,
+	pbMessage := &pbftpb.Prepare{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.Digest = m.Digest
 	}
+
+	return pbMessage
 }
 
 func (*Prepare) MirReflect() mirreflect.Type {
@@ -373,11 +414,14 @@ func (m *Commit) Pb() *pbftpb.Commit {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Commit{
-		Sn:     (uint64)(m.Sn),
-		View:   (uint64)(m.View),
-		Digest: m.Digest,
+	pbMessage := &pbftpb.Commit{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.Digest = m.Digest
 	}
+
+	return pbMessage
 }
 
 func (*Commit) MirReflect() mirreflect.Type {
@@ -401,9 +445,12 @@ func (m *Done) Pb() *pbftpb.Done {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Done{
-		Digests: m.Digests,
+	pbMessage := &pbftpb.Done{}
+	{
+		pbMessage.Digests = m.Digests
 	}
+
+	return pbMessage
 }
 
 func (*Done) MirReflect() mirreflect.Type {
@@ -429,10 +476,13 @@ func (m *CatchUpRequest) Pb() *pbftpb.CatchUpRequest {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.CatchUpRequest{
-		Digest: m.Digest,
-		Sn:     (uint64)(m.Sn),
+	pbMessage := &pbftpb.CatchUpRequest{}
+	{
+		pbMessage.Digest = m.Digest
+		pbMessage.Sn = (uint64)(m.Sn)
 	}
+
+	return pbMessage
 }
 
 func (*CatchUpRequest) MirReflect() mirreflect.Type {
@@ -456,9 +506,14 @@ func (m *CatchUpResponse) Pb() *pbftpb.CatchUpResponse {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.CatchUpResponse{
-		Resp: (m.Resp).Pb(),
+	pbMessage := &pbftpb.CatchUpResponse{}
+	{
+		if m.Resp != nil {
+			pbMessage.Resp = (m.Resp).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*CatchUpResponse) MirReflect() mirreflect.Type {
@@ -484,10 +539,15 @@ func (m *SignedViewChange) Pb() *pbftpb.SignedViewChange {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.SignedViewChange{
-		ViewChange: (m.ViewChange).Pb(),
-		Signature:  m.Signature,
+	pbMessage := &pbftpb.SignedViewChange{}
+	{
+		if m.ViewChange != nil {
+			pbMessage.ViewChange = (m.ViewChange).Pb()
+		}
+		pbMessage.Signature = m.Signature
 	}
+
+	return pbMessage
 }
 
 func (*SignedViewChange) MirReflect() mirreflect.Type {
@@ -513,10 +573,13 @@ func (m *PreprepareRequest) Pb() *pbftpb.PreprepareRequest {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.PreprepareRequest{
-		Digest: m.Digest,
-		Sn:     (uint64)(m.Sn),
+	pbMessage := &pbftpb.PreprepareRequest{}
+	{
+		pbMessage.Digest = m.Digest
+		pbMessage.Sn = (uint64)(m.Sn)
 	}
+
+	return pbMessage
 }
 
 func (*PreprepareRequest) MirReflect() mirreflect.Type {
@@ -540,9 +603,14 @@ func (m *MissingPreprepare) Pb() *pbftpb.MissingPreprepare {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.MissingPreprepare{
-		Preprepare: (m.Preprepare).Pb(),
+	pbMessage := &pbftpb.MissingPreprepare{}
+	{
+		if m.Preprepare != nil {
+			pbMessage.Preprepare = (m.Preprepare).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*MissingPreprepare) MirReflect() mirreflect.Type {
@@ -580,19 +648,22 @@ func (m *NewView) Pb() *pbftpb.NewView {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.NewView{
-		View:              (uint64)(m.View),
-		ViewChangeSenders: m.ViewChangeSenders,
-		SignedViewChanges: types2.ConvertSlice(m.SignedViewChanges, func(t *SignedViewChange) *pbftpb.SignedViewChange {
+	pbMessage := &pbftpb.NewView{}
+	{
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.ViewChangeSenders = m.ViewChangeSenders
+		pbMessage.SignedViewChanges = types2.ConvertSlice(m.SignedViewChanges, func(t *SignedViewChange) *pbftpb.SignedViewChange {
 			return (t).Pb()
-		}),
-		PreprepareSeqNrs: types2.ConvertSlice(m.PreprepareSeqNrs, func(t types.SeqNr) uint64 {
+		})
+		pbMessage.PreprepareSeqNrs = types2.ConvertSlice(m.PreprepareSeqNrs, func(t types.SeqNr) uint64 {
 			return (uint64)(t)
-		}),
-		Preprepares: types2.ConvertSlice(m.Preprepares, func(t *Preprepare) *pbftpb.Preprepare {
+		})
+		pbMessage.Preprepares = types2.ConvertSlice(m.Preprepares, func(t *Preprepare) *pbftpb.Preprepare {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*NewView) MirReflect() mirreflect.Type {
@@ -624,15 +695,18 @@ func (m *ViewChange) Pb() *pbftpb.ViewChange {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.ViewChange{
-		View: (uint64)(m.View),
-		PSet: types2.ConvertSlice(m.PSet, func(t *PSetEntry) *pbftpb.PSetEntry {
+	pbMessage := &pbftpb.ViewChange{}
+	{
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.PSet = types2.ConvertSlice(m.PSet, func(t *PSetEntry) *pbftpb.PSetEntry {
 			return (t).Pb()
-		}),
-		QSet: types2.ConvertSlice(m.QSet, func(t *QSetEntry) *pbftpb.QSetEntry {
+		})
+		pbMessage.QSet = types2.ConvertSlice(m.QSet, func(t *QSetEntry) *pbftpb.QSetEntry {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*ViewChange) MirReflect() mirreflect.Type {
@@ -660,11 +734,14 @@ func (m *PSetEntry) Pb() *pbftpb.PSetEntry {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.PSetEntry{
-		Sn:     (uint64)(m.Sn),
-		View:   (uint64)(m.View),
-		Digest: m.Digest,
+	pbMessage := &pbftpb.PSetEntry{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.Digest = m.Digest
 	}
+
+	return pbMessage
 }
 
 func (*PSetEntry) MirReflect() mirreflect.Type {
@@ -692,11 +769,14 @@ func (m *QSetEntry) Pb() *pbftpb.QSetEntry {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.QSetEntry{
-		Sn:     (uint64)(m.Sn),
-		View:   (uint64)(m.View),
-		Digest: m.Digest,
+	pbMessage := &pbftpb.QSetEntry{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.Digest = m.Digest
 	}
+
+	return pbMessage
 }
 
 func (*QSetEntry) MirReflect() mirreflect.Type {
@@ -747,6 +827,9 @@ func (w *Event_ProposeTimeout) Pb() pbftpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ProposeTimeout == nil {
+		return &pbftpb.Event_ProposeTimeout{}
+	}
 	return &pbftpb.Event_ProposeTimeout{ProposeTimeout: (w.ProposeTimeout).Pb()}
 }
 
@@ -767,6 +850,9 @@ func (w *Event_ViewChangeSnTimeout) Unwrap() *ViewChangeSNTimeout {
 func (w *Event_ViewChangeSnTimeout) Pb() pbftpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.ViewChangeSnTimeout == nil {
+		return &pbftpb.Event_ViewChangeSnTimeout{}
 	}
 	return &pbftpb.Event_ViewChangeSnTimeout{ViewChangeSnTimeout: (w.ViewChangeSnTimeout).Pb()}
 }
@@ -789,6 +875,9 @@ func (w *Event_ViewChangeSegTimeout) Pb() pbftpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ViewChangeSegTimeout == nil {
+		return &pbftpb.Event_ViewChangeSegTimeout{}
+	}
 	return &pbftpb.Event_ViewChangeSegTimeout{ViewChangeSegTimeout: (w.ViewChangeSegTimeout).Pb()}
 }
 
@@ -809,9 +898,14 @@ func (m *Event) Pb() *pbftpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &pbftpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -835,9 +929,12 @@ func (m *ProposeTimeout) Pb() *pbftpb.ProposeTimeout {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.ProposeTimeout{
-		ProposeTimeout: m.ProposeTimeout,
+	pbMessage := &pbftpb.ProposeTimeout{}
+	{
+		pbMessage.ProposeTimeout = m.ProposeTimeout
 	}
+
+	return pbMessage
 }
 
 func (*ProposeTimeout) MirReflect() mirreflect.Type {
@@ -863,10 +960,13 @@ func (m *ViewChangeSNTimeout) Pb() *pbftpb.ViewChangeSNTimeout {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.ViewChangeSNTimeout{
-		View:         (uint64)(m.View),
-		NumCommitted: m.NumCommitted,
+	pbMessage := &pbftpb.ViewChangeSNTimeout{}
+	{
+		pbMessage.View = (uint64)(m.View)
+		pbMessage.NumCommitted = m.NumCommitted
 	}
+
+	return pbMessage
 }
 
 func (*ViewChangeSNTimeout) MirReflect() mirreflect.Type {
@@ -890,9 +990,12 @@ func (m *ViewChangeSegTimeout) Pb() *pbftpb.ViewChangeSegTimeout {
 	if m == nil {
 		return nil
 	}
-	return &pbftpb.ViewChangeSegTimeout{
-		ViewChangeSegTimeout: m.ViewChangeSegTimeout,
+	pbMessage := &pbftpb.ViewChangeSegTimeout{}
+	{
+		pbMessage.ViewChangeSegTimeout = m.ViewChangeSegTimeout
 	}
+
+	return pbMessage
 }
 
 func (*ViewChangeSegTimeout) MirReflect() mirreflect.Type {

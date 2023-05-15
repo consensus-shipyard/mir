@@ -23,9 +23,12 @@ func (m *Origin) Pb() *dslpb.Origin {
 	if m == nil {
 		return nil
 	}
-	return &dslpb.Origin{
-		ContextID: m.ContextID,
+	pbMessage := &dslpb.Origin{}
+	{
+		pbMessage.ContextID = m.ContextID
 	}
+
+	return pbMessage
 }
 
 func (*Origin) MirReflect() mirreflect.Type {

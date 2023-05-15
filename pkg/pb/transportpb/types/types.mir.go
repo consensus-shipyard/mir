@@ -51,6 +51,9 @@ func (w *Event_SendMessage) Pb() transportpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SendMessage == nil {
+		return &transportpb.Event_SendMessage{}
+	}
 	return &transportpb.Event_SendMessage{SendMessage: (w.SendMessage).Pb()}
 }
 
@@ -72,6 +75,9 @@ func (w *Event_MessageReceived) Pb() transportpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.MessageReceived == nil {
+		return &transportpb.Event_MessageReceived{}
+	}
 	return &transportpb.Event_MessageReceived{MessageReceived: (w.MessageReceived).Pb()}
 }
 
@@ -92,9 +98,14 @@ func (m *Event) Pb() *transportpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &transportpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &transportpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -122,12 +133,17 @@ func (m *SendMessage) Pb() *transportpb.SendMessage {
 	if m == nil {
 		return nil
 	}
-	return &transportpb.SendMessage{
-		Msg: (m.Msg).Pb(),
-		Destinations: types2.ConvertSlice(m.Destinations, func(t types1.NodeID) string {
+	pbMessage := &transportpb.SendMessage{}
+	{
+		if m.Msg != nil {
+			pbMessage.Msg = (m.Msg).Pb()
+		}
+		pbMessage.Destinations = types2.ConvertSlice(m.Destinations, func(t types1.NodeID) string {
 			return (string)(t)
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*SendMessage) MirReflect() mirreflect.Type {
@@ -153,10 +169,15 @@ func (m *MessageReceived) Pb() *transportpb.MessageReceived {
 	if m == nil {
 		return nil
 	}
-	return &transportpb.MessageReceived{
-		From: (string)(m.From),
-		Msg:  (m.Msg).Pb(),
+	pbMessage := &transportpb.MessageReceived{}
+	{
+		pbMessage.From = (string)(m.From)
+		if m.Msg != nil {
+			pbMessage.Msg = (m.Msg).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*MessageReceived) MirReflect() mirreflect.Type {

@@ -60,6 +60,9 @@ func (w *Event_SignRequest) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SignRequest == nil {
+		return &cryptopb.Event_SignRequest{}
+	}
 	return &cryptopb.Event_SignRequest{SignRequest: (w.SignRequest).Pb()}
 }
 
@@ -80,6 +83,9 @@ func (w *Event_SignResult) Unwrap() *SignResult {
 func (w *Event_SignResult) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.SignResult == nil {
+		return &cryptopb.Event_SignResult{}
 	}
 	return &cryptopb.Event_SignResult{SignResult: (w.SignResult).Pb()}
 }
@@ -102,6 +108,9 @@ func (w *Event_VerifySig) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.VerifySig == nil {
+		return &cryptopb.Event_VerifySig{}
+	}
 	return &cryptopb.Event_VerifySig{VerifySig: (w.VerifySig).Pb()}
 }
 
@@ -122,6 +131,9 @@ func (w *Event_SigVerified) Unwrap() *SigVerified {
 func (w *Event_SigVerified) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.SigVerified == nil {
+		return &cryptopb.Event_SigVerified{}
 	}
 	return &cryptopb.Event_SigVerified{SigVerified: (w.SigVerified).Pb()}
 }
@@ -144,6 +156,9 @@ func (w *Event_VerifySigs) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.VerifySigs == nil {
+		return &cryptopb.Event_VerifySigs{}
+	}
 	return &cryptopb.Event_VerifySigs{VerifySigs: (w.VerifySigs).Pb()}
 }
 
@@ -165,6 +180,9 @@ func (w *Event_SigsVerified) Pb() cryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SigsVerified == nil {
+		return &cryptopb.Event_SigsVerified{}
+	}
 	return &cryptopb.Event_SigsVerified{SigsVerified: (w.SigsVerified).Pb()}
 }
 
@@ -185,9 +203,14 @@ func (m *Event) Pb() *cryptopb.Event {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &cryptopb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -213,10 +236,17 @@ func (m *SignRequest) Pb() *cryptopb.SignRequest {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SignRequest{
-		Data:   (m.Data).Pb(),
-		Origin: (m.Origin).Pb(),
+	pbMessage := &cryptopb.SignRequest{}
+	{
+		if m.Data != nil {
+			pbMessage.Data = (m.Data).Pb()
+		}
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignRequest) MirReflect() mirreflect.Type {
@@ -242,10 +272,15 @@ func (m *SignResult) Pb() *cryptopb.SignResult {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SignResult{
-		Signature: m.Signature,
-		Origin:    (m.Origin).Pb(),
+	pbMessage := &cryptopb.SignResult{}
+	{
+		pbMessage.Signature = m.Signature
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignResult) MirReflect() mirreflect.Type {
@@ -275,12 +310,19 @@ func (m *VerifySig) Pb() *cryptopb.VerifySig {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.VerifySig{
-		Data:      (m.Data).Pb(),
-		Signature: m.Signature,
-		Origin:    (m.Origin).Pb(),
-		NodeId:    (string)(m.NodeId),
+	pbMessage := &cryptopb.VerifySig{}
+	{
+		if m.Data != nil {
+			pbMessage.Data = (m.Data).Pb()
+		}
+		pbMessage.Signature = m.Signature
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
+		pbMessage.NodeId = (string)(m.NodeId)
 	}
+
+	return pbMessage
 }
 
 func (*VerifySig) MirReflect() mirreflect.Type {
@@ -308,11 +350,16 @@ func (m *SigVerified) Pb() *cryptopb.SigVerified {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SigVerified{
-		Origin: (m.Origin).Pb(),
-		NodeId: (string)(m.NodeId),
-		Error:  types1.ErrorToString(m.Error),
+	pbMessage := &cryptopb.SigVerified{}
+	{
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
+		pbMessage.NodeId = (string)(m.NodeId)
+		pbMessage.Error = types1.ErrorToString(m.Error)
 	}
+
+	return pbMessage
 }
 
 func (*SigVerified) MirReflect() mirreflect.Type {
@@ -346,16 +393,21 @@ func (m *VerifySigs) Pb() *cryptopb.VerifySigs {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.VerifySigs{
-		Data: types1.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
+	pbMessage := &cryptopb.VerifySigs{}
+	{
+		pbMessage.Data = types1.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
 			return (t).Pb()
-		}),
-		Signatures: m.Signatures,
-		Origin:     (m.Origin).Pb(),
-		NodeIds: types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+		})
+		pbMessage.Signatures = m.Signatures
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
+		pbMessage.NodeIds = types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
 			return (string)(t)
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*VerifySigs) MirReflect() mirreflect.Type {
@@ -389,16 +441,21 @@ func (m *SigsVerified) Pb() *cryptopb.SigsVerified {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SigsVerified{
-		Origin: (m.Origin).Pb(),
-		NodeIds: types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+	pbMessage := &cryptopb.SigsVerified{}
+	{
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
+		pbMessage.NodeIds = types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
 			return (string)(t)
-		}),
-		Errors: types1.ConvertSlice(m.Errors, func(t error) string {
+		})
+		pbMessage.Errors = types1.ConvertSlice(m.Errors, func(t error) string {
 			return types1.ErrorToString(t)
-		}),
-		AllOk: m.AllOk,
+		})
+		pbMessage.AllOk = m.AllOk
 	}
+
+	return pbMessage
 }
 
 func (*SigsVerified) MirReflect() mirreflect.Type {
@@ -448,6 +505,9 @@ func (w *SignOrigin_ContextStore) Pb() cryptopb.SignOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &cryptopb.SignOrigin_ContextStore{}
+	}
 	return &cryptopb.SignOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -468,6 +528,9 @@ func (w *SignOrigin_Dsl) Unwrap() *types3.Origin {
 func (w *SignOrigin_Dsl) Pb() cryptopb.SignOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &cryptopb.SignOrigin_Dsl{}
 	}
 	return &cryptopb.SignOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -490,10 +553,15 @@ func (m *SignOrigin) Pb() *cryptopb.SignOrigin {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SignOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &cryptopb.SignOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignOrigin) MirReflect() mirreflect.Type {
@@ -543,6 +611,9 @@ func (w *SigVerOrigin_ContextStore) Pb() cryptopb.SigVerOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &cryptopb.SigVerOrigin_ContextStore{}
+	}
 	return &cryptopb.SigVerOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -563,6 +634,9 @@ func (w *SigVerOrigin_Dsl) Unwrap() *types3.Origin {
 func (w *SigVerOrigin_Dsl) Pb() cryptopb.SigVerOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &cryptopb.SigVerOrigin_Dsl{}
 	}
 	return &cryptopb.SigVerOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -585,10 +659,15 @@ func (m *SigVerOrigin) Pb() *cryptopb.SigVerOrigin {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SigVerOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &cryptopb.SigVerOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SigVerOrigin) MirReflect() mirreflect.Type {
@@ -612,9 +691,12 @@ func (m *SignedData) Pb() *cryptopb.SignedData {
 	if m == nil {
 		return nil
 	}
-	return &cryptopb.SignedData{
-		Data: m.Data,
+	pbMessage := &cryptopb.SignedData{}
+	{
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*SignedData) MirReflect() mirreflect.Type {

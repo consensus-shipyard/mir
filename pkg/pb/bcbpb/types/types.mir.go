@@ -50,6 +50,9 @@ func (w *Event_Request) Pb() bcbpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Request == nil {
+		return &bcbpb.Event_Request{}
+	}
 	return &bcbpb.Event_Request{Request: (w.Request).Pb()}
 }
 
@@ -71,6 +74,9 @@ func (w *Event_Deliver) Pb() bcbpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Deliver == nil {
+		return &bcbpb.Event_Deliver{}
+	}
 	return &bcbpb.Event_Deliver{Deliver: (w.Deliver).Pb()}
 }
 
@@ -91,9 +97,14 @@ func (m *Event) Pb() *bcbpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &bcbpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -117,9 +128,12 @@ func (m *BroadcastRequest) Pb() *bcbpb.BroadcastRequest {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.BroadcastRequest{
-		Data: m.Data,
+	pbMessage := &bcbpb.BroadcastRequest{}
+	{
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*BroadcastRequest) MirReflect() mirreflect.Type {
@@ -143,9 +157,12 @@ func (m *Deliver) Pb() *bcbpb.Deliver {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.Deliver{
-		Data: m.Data,
+	pbMessage := &bcbpb.Deliver{}
+	{
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*Deliver) MirReflect() mirreflect.Type {
@@ -196,6 +213,9 @@ func (w *Message_StartMessage) Pb() bcbpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.StartMessage == nil {
+		return &bcbpb.Message_StartMessage{}
+	}
 	return &bcbpb.Message_StartMessage{StartMessage: (w.StartMessage).Pb()}
 }
 
@@ -216,6 +236,9 @@ func (w *Message_EchoMessage) Unwrap() *EchoMessage {
 func (w *Message_EchoMessage) Pb() bcbpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.EchoMessage == nil {
+		return &bcbpb.Message_EchoMessage{}
 	}
 	return &bcbpb.Message_EchoMessage{EchoMessage: (w.EchoMessage).Pb()}
 }
@@ -238,6 +261,9 @@ func (w *Message_FinalMessage) Pb() bcbpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.FinalMessage == nil {
+		return &bcbpb.Message_FinalMessage{}
+	}
 	return &bcbpb.Message_FinalMessage{FinalMessage: (w.FinalMessage).Pb()}
 }
 
@@ -258,9 +284,14 @@ func (m *Message) Pb() *bcbpb.Message {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.Message{
-		Type: (m.Type).Pb(),
+	pbMessage := &bcbpb.Message{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {
@@ -284,9 +315,12 @@ func (m *StartMessage) Pb() *bcbpb.StartMessage {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.StartMessage{
-		Data: m.Data,
+	pbMessage := &bcbpb.StartMessage{}
+	{
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*StartMessage) MirReflect() mirreflect.Type {
@@ -310,9 +344,12 @@ func (m *EchoMessage) Pb() *bcbpb.EchoMessage {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.EchoMessage{
-		Signature: m.Signature,
+	pbMessage := &bcbpb.EchoMessage{}
+	{
+		pbMessage.Signature = m.Signature
 	}
+
+	return pbMessage
 }
 
 func (*EchoMessage) MirReflect() mirreflect.Type {
@@ -342,13 +379,16 @@ func (m *FinalMessage) Pb() *bcbpb.FinalMessage {
 	if m == nil {
 		return nil
 	}
-	return &bcbpb.FinalMessage{
-		Data: m.Data,
-		Signers: types1.ConvertSlice(m.Signers, func(t types.NodeID) string {
+	pbMessage := &bcbpb.FinalMessage{}
+	{
+		pbMessage.Data = m.Data
+		pbMessage.Signers = types1.ConvertSlice(m.Signers, func(t types.NodeID) string {
 			return (string)(t)
-		}),
-		Signatures: m.Signatures,
+		})
+		pbMessage.Signatures = m.Signatures
 	}
+
+	return pbMessage
 }
 
 func (*FinalMessage) MirReflect() mirreflect.Type {

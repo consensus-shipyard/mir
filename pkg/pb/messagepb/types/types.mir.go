@@ -64,6 +64,9 @@ func (w *Message_Iss) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Iss == nil {
+		return &messagepb.Message_Iss{}
+	}
 	return &messagepb.Message_Iss{Iss: (w.Iss).Pb()}
 }
 
@@ -84,6 +87,9 @@ func (w *Message_Bcb) Unwrap() *types2.Message {
 func (w *Message_Bcb) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Bcb == nil {
+		return &messagepb.Message_Bcb{}
 	}
 	return &messagepb.Message_Bcb{Bcb: (w.Bcb).Pb()}
 }
@@ -106,6 +112,9 @@ func (w *Message_MultisigCollector) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.MultisigCollector == nil {
+		return &messagepb.Message_MultisigCollector{}
+	}
 	return &messagepb.Message_MultisigCollector{MultisigCollector: (w.MultisigCollector).Pb()}
 }
 
@@ -126,6 +135,9 @@ func (w *Message_Pingpong) Unwrap() *pingpongpb.Message {
 func (w *Message_Pingpong) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Pingpong == nil {
+		return &messagepb.Message_Pingpong{}
 	}
 	return &messagepb.Message_Pingpong{Pingpong: w.Pingpong}
 }
@@ -148,6 +160,9 @@ func (w *Message_Checkpoint) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Checkpoint == nil {
+		return &messagepb.Message_Checkpoint{}
+	}
 	return &messagepb.Message_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
 
@@ -168,6 +183,9 @@ func (w *Message_Orderer) Unwrap() *types5.Message {
 func (w *Message_Orderer) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Orderer == nil {
+		return &messagepb.Message_Orderer{}
 	}
 	return &messagepb.Message_Orderer{Orderer: (w.Orderer).Pb()}
 }
@@ -190,10 +208,15 @@ func (m *Message) Pb() *messagepb.Message {
 	if m == nil {
 		return nil
 	}
-	return &messagepb.Message{
-		DestModule: (string)(m.DestModule),
-		Type:       (m.Type).Pb(),
+	pbMessage := &messagepb.Message{}
+	{
+		pbMessage.DestModule = (string)(m.DestModule)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {

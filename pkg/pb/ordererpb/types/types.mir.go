@@ -51,6 +51,9 @@ func (w *Event_Pbft) Pb() ordererpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Pbft == nil {
+		return &ordererpb.Event_Pbft{}
+	}
 	return &ordererpb.Event_Pbft{Pbft: (w.Pbft).Pb()}
 }
 
@@ -71,9 +74,14 @@ func (m *Event) Pb() *ordererpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &ordererpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &ordererpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -120,6 +128,9 @@ func (w *Message_Pbft) Pb() ordererpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Pbft == nil {
+		return &ordererpb.Message_Pbft{}
+	}
 	return &ordererpb.Message_Pbft{Pbft: (w.Pbft).Pb()}
 }
 
@@ -140,9 +151,14 @@ func (m *Message) Pb() *ordererpb.Message {
 	if m == nil {
 		return nil
 	}
-	return &ordererpb.Message{
-		Type: (m.Type).Pb(),
+	pbMessage := &ordererpb.Message{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {
@@ -172,13 +188,18 @@ func (m *PBFTSegment) Pb() *ordererpb.PBFTSegment {
 	if m == nil {
 		return nil
 	}
-	return &ordererpb.PBFTSegment{
-		Leader:     (string)(m.Leader),
-		Membership: (m.Membership).Pb(),
-		Proposals: types4.ConvertMap(m.Proposals, func(k types3.SeqNr, v []uint8) (uint64, []uint8) {
+	pbMessage := &ordererpb.PBFTSegment{}
+	{
+		pbMessage.Leader = (string)(m.Leader)
+		if m.Membership != nil {
+			pbMessage.Membership = (m.Membership).Pb()
+		}
+		pbMessage.Proposals = types4.ConvertMap(m.Proposals, func(k types3.SeqNr, v []uint8) (uint64, []uint8) {
 			return (uint64)(k), v
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*PBFTSegment) MirReflect() mirreflect.Type {
@@ -208,12 +229,17 @@ func (m *PBFTModule) Pb() *ordererpb.PBFTModule {
 	if m == nil {
 		return nil
 	}
-	return &ordererpb.PBFTModule{
-		Segment:         (m.Segment).Pb(),
-		AvailabilityId:  m.AvailabilityId,
-		Epoch:           m.Epoch,
-		ValidityChecker: m.ValidityChecker,
+	pbMessage := &ordererpb.PBFTModule{}
+	{
+		if m.Segment != nil {
+			pbMessage.Segment = (m.Segment).Pb()
+		}
+		pbMessage.AvailabilityId = m.AvailabilityId
+		pbMessage.Epoch = m.Epoch
+		pbMessage.ValidityChecker = m.ValidityChecker
 	}
+
+	return pbMessage
 }
 
 func (*PBFTModule) MirReflect() mirreflect.Type {

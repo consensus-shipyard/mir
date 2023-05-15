@@ -49,6 +49,10 @@ func (s Slice) ToPb(code jen.Code) *jen.Statement {
 
 // ConvertSlice is used by the generated code.
 func ConvertSlice[T, R any](ts []T, f func(t T) R) []R {
+	if ts == nil {
+		return nil
+	}
+
 	rs := make([]R, len(ts))
 	for i, t := range ts {
 		rs[i] = f(t)
