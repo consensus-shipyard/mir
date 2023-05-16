@@ -1,21 +1,38 @@
 package errstack
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
+	es "github.com/go-errors/errors"
 )
 
-// Println prints err to standard output.
-// If err represents a chain of errors, Println prints the first error in the chain that has a stack trace.
-func Println(err error) {
-	fmt.Println(err)
-	firstWithStack := FirstWithStack(err)
-	if hasStack(firstWithStack) {
-		var st stackTracer
-		errors.As(firstWithStack, &st)
-		fmt.Printf("First error with a stack trace:\n%v%+v\n", firstWithStack, st.StackTrace())
+// ToString returns a string representation of the error err.
+// If err represents a chain of errors,
+// ToString appends a representation of the first (deepest) error in the chain that has a stack trace, if any.
+// The chain of errors is formed by recursively calling Unwrap() on err.
+func ToString(err error) string {
+	var errWithStack *es.Error
+	if errors.As(FirstWithStack(err), &errWithStack) {
+		// If there is a stack trace attached to any of the error chain.
+
+		if errWithStack == err { //nolint:errorlint
+			// If the first error with a stack trace is the error itself, just print it, including the stack trace.
+			return errWithStack.ErrorStack()
+		}
+
+		// If the error itself does not have a stack trace attached, but another one in the chain does,
+		// first print the error itself and, in addition, print the first (deepest) error with a stack trace.
+		return fmt.Sprintf("%v\nFirst error with a stack trace:\n%s", err, errWithStack.ErrorStack())
 	}
+
+	// If there is no stack trace anywhere in the error chain, simply print the error.
+	return fmt.Sprintf("%v", err)
+}
+
+// Println is a convenience function (sugar) that prints the output of ToString(err) to standard output.
+func Println(err error) {
+	fmt.Println(ToString(err))
 }
 
 // FirstWithStack returns the first error in the chain of errors that has a stack trace associated with it.
@@ -45,10 +62,6 @@ func isWrapper(err error) bool {
 
 // hasStack returns true if err implements the StackTrace() method.
 func hasStack(err error) bool {
-	_, ok := err.(stackTracer) //nolint:errorlint
+	_, ok := err.(*es.Error) //nolint:errorlint
 	return ok
-}
-
-type stackTracer interface {
-	StackTrace() errors.StackTrace
 }
