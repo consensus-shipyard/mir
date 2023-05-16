@@ -28,6 +28,7 @@ func generateReflectMethodsToListOneofOptions(plugin *protogen.Plugin, file *pro
 			if g == nil {
 				filename := fmt.Sprintf("%s.pb.mir.go", file.GeneratedFilenamePrefix)
 				g = plugin.NewGeneratedFile(filename, file.GoImportPath)
+				g.P(codegen.WarningCodegen)
 				g.P("package ", file.GoPackageName)
 				g.P()
 			}
