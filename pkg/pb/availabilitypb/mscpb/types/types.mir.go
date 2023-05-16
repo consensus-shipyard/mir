@@ -57,6 +57,9 @@ func (w *Message_RequestSig) Pb() mscpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestSig == nil {
+		return &mscpb.Message_RequestSig{}
+	}
 	return &mscpb.Message_RequestSig{RequestSig: (w.RequestSig).Pb()}
 }
 
@@ -77,6 +80,9 @@ func (w *Message_Sig) Unwrap() *SigMessage {
 func (w *Message_Sig) Pb() mscpb.Message_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Sig == nil {
+		return &mscpb.Message_Sig{}
 	}
 	return &mscpb.Message_Sig{Sig: (w.Sig).Pb()}
 }
@@ -99,6 +105,9 @@ func (w *Message_RequestBatch) Pb() mscpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestBatch == nil {
+		return &mscpb.Message_RequestBatch{}
+	}
 	return &mscpb.Message_RequestBatch{RequestBatch: (w.RequestBatch).Pb()}
 }
 
@@ -120,6 +129,9 @@ func (w *Message_ProvideBatch) Pb() mscpb.Message_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ProvideBatch == nil {
+		return &mscpb.Message_ProvideBatch{}
+	}
 	return &mscpb.Message_ProvideBatch{ProvideBatch: (w.ProvideBatch).Pb()}
 }
 
@@ -140,9 +152,14 @@ func (m *Message) Pb() *mscpb.Message {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.Message{
-		Type: (m.Type).Pb(),
+	pbMessage := &mscpb.Message{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Message) MirReflect() mirreflect.Type {
@@ -170,12 +187,15 @@ func (m *RequestSigMessage) Pb() *mscpb.RequestSigMessage {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.RequestSigMessage{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &mscpb.RequestSigMessage{}
+	{
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		ReqId: m.ReqId,
+		})
+		pbMessage.ReqId = m.ReqId
 	}
+
+	return pbMessage
 }
 
 func (*RequestSigMessage) MirReflect() mirreflect.Type {
@@ -201,10 +221,13 @@ func (m *SigMessage) Pb() *mscpb.SigMessage {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.SigMessage{
-		Signature: m.Signature,
-		ReqId:     m.ReqId,
+	pbMessage := &mscpb.SigMessage{}
+	{
+		pbMessage.Signature = m.Signature
+		pbMessage.ReqId = m.ReqId
 	}
+
+	return pbMessage
 }
 
 func (*SigMessage) MirReflect() mirreflect.Type {
@@ -230,10 +253,13 @@ func (m *RequestBatchMessage) Pb() *mscpb.RequestBatchMessage {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.RequestBatchMessage{
-		BatchId: ([]uint8)(m.BatchId),
-		ReqId:   m.ReqId,
+	pbMessage := &mscpb.RequestBatchMessage{}
+	{
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
+		pbMessage.ReqId = m.ReqId
 	}
+
+	return pbMessage
 }
 
 func (*RequestBatchMessage) MirReflect() mirreflect.Type {
@@ -263,13 +289,16 @@ func (m *ProvideBatchMessage) Pb() *mscpb.ProvideBatchMessage {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.ProvideBatchMessage{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &mscpb.ProvideBatchMessage{}
+	{
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		ReqId:   m.ReqId,
-		BatchId: ([]uint8)(m.BatchId),
+		})
+		pbMessage.ReqId = m.ReqId
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
 	}
+
+	return pbMessage
 }
 
 func (*ProvideBatchMessage) MirReflect() mirreflect.Type {
@@ -299,13 +328,16 @@ func (m *Cert) Pb() *mscpb.Cert {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.Cert{
-		BatchId: ([]uint8)(m.BatchId),
-		Signers: types1.ConvertSlice(m.Signers, func(t types3.NodeID) string {
+	pbMessage := &mscpb.Cert{}
+	{
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
+		pbMessage.Signers = types1.ConvertSlice(m.Signers, func(t types3.NodeID) string {
 			return (string)(t)
-		}),
-		Signatures: m.Signatures,
+		})
+		pbMessage.Signatures = m.Signatures
 	}
+
+	return pbMessage
 }
 
 func (*Cert) MirReflect() mirreflect.Type {
@@ -331,11 +363,14 @@ func (m *Certs) Pb() *mscpb.Certs {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.Certs{
-		Certs: types1.ConvertSlice(m.Certs, func(t *Cert) *mscpb.Cert {
+	pbMessage := &mscpb.Certs{}
+	{
+		pbMessage.Certs = types1.ConvertSlice(m.Certs, func(t *Cert) *mscpb.Cert {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*Certs) MirReflect() mirreflect.Type {
@@ -363,11 +398,16 @@ func (m *InstanceParams) Pb() *mscpb.InstanceParams {
 	if m == nil {
 		return nil
 	}
-	return &mscpb.InstanceParams{
-		Membership:  (m.Membership).Pb(),
-		Limit:       m.Limit,
-		MaxRequests: m.MaxRequests,
+	pbMessage := &mscpb.InstanceParams{}
+	{
+		if m.Membership != nil {
+			pbMessage.Membership = (m.Membership).Pb()
+		}
+		pbMessage.Limit = m.Limit
+		pbMessage.MaxRequests = m.MaxRequests
 	}
+
+	return pbMessage
 }
 
 func (*InstanceParams) MirReflect() mirreflect.Type {

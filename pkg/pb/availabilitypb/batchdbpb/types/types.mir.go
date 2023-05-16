@@ -60,6 +60,9 @@ func (w *Event_Lookup) Pb() batchdbpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Lookup == nil {
+		return &batchdbpb.Event_Lookup{}
+	}
 	return &batchdbpb.Event_Lookup{Lookup: (w.Lookup).Pb()}
 }
 
@@ -80,6 +83,9 @@ func (w *Event_LookupResponse) Unwrap() *LookupBatchResponse {
 func (w *Event_LookupResponse) Pb() batchdbpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.LookupResponse == nil {
+		return &batchdbpb.Event_LookupResponse{}
 	}
 	return &batchdbpb.Event_LookupResponse{LookupResponse: (w.LookupResponse).Pb()}
 }
@@ -102,6 +108,9 @@ func (w *Event_Store) Pb() batchdbpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Store == nil {
+		return &batchdbpb.Event_Store{}
+	}
 	return &batchdbpb.Event_Store{Store: (w.Store).Pb()}
 }
 
@@ -123,6 +132,9 @@ func (w *Event_Stored) Pb() batchdbpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Stored == nil {
+		return &batchdbpb.Event_Stored{}
+	}
 	return &batchdbpb.Event_Stored{Stored: (w.Stored).Pb()}
 }
 
@@ -143,9 +155,14 @@ func (m *Event) Pb() *batchdbpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &batchdbpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -171,10 +188,15 @@ func (m *LookupBatch) Pb() *batchdbpb.LookupBatch {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.LookupBatch{
-		BatchId: ([]uint8)(m.BatchId),
-		Origin:  (m.Origin).Pb(),
+	pbMessage := &batchdbpb.LookupBatch{}
+	{
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*LookupBatch) MirReflect() mirreflect.Type {
@@ -204,13 +226,18 @@ func (m *LookupBatchResponse) Pb() *batchdbpb.LookupBatchResponse {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.LookupBatchResponse{
-		Found: m.Found,
-		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
+	pbMessage := &batchdbpb.LookupBatchResponse{}
+	{
+		pbMessage.Found = m.Found
+		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*LookupBatchResponse) MirReflect() mirreflect.Type {
@@ -246,17 +273,22 @@ func (m *StoreBatch) Pb() *batchdbpb.StoreBatch {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.StoreBatch{
-		BatchId: ([]uint8)(m.BatchId),
-		TxIds: types2.ConvertSlice(m.TxIds, func(t types3.TxID) []uint8 {
+	pbMessage := &batchdbpb.StoreBatch{}
+	{
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
+		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types3.TxID) []uint8 {
 			return ([]uint8)(t)
-		}),
-		Txs: types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
+		})
+		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Metadata: m.Metadata,
-		Origin:   (m.Origin).Pb(),
+		})
+		pbMessage.Metadata = m.Metadata
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*StoreBatch) MirReflect() mirreflect.Type {
@@ -280,9 +312,14 @@ func (m *BatchStored) Pb() *batchdbpb.BatchStored {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.BatchStored{
-		Origin: (m.Origin).Pb(),
+	pbMessage := &batchdbpb.BatchStored{}
+	{
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*BatchStored) MirReflect() mirreflect.Type {
@@ -332,6 +369,9 @@ func (w *LookupBatchOrigin_ContextStore) Pb() batchdbpb.LookupBatchOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &batchdbpb.LookupBatchOrigin_ContextStore{}
+	}
 	return &batchdbpb.LookupBatchOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -352,6 +392,9 @@ func (w *LookupBatchOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *LookupBatchOrigin_Dsl) Pb() batchdbpb.LookupBatchOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &batchdbpb.LookupBatchOrigin_Dsl{}
 	}
 	return &batchdbpb.LookupBatchOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -374,10 +417,15 @@ func (m *LookupBatchOrigin) Pb() *batchdbpb.LookupBatchOrigin {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.LookupBatchOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &batchdbpb.LookupBatchOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*LookupBatchOrigin) MirReflect() mirreflect.Type {
@@ -427,6 +475,9 @@ func (w *StoreBatchOrigin_ContextStore) Pb() batchdbpb.StoreBatchOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &batchdbpb.StoreBatchOrigin_ContextStore{}
+	}
 	return &batchdbpb.StoreBatchOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -447,6 +498,9 @@ func (w *StoreBatchOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *StoreBatchOrigin_Dsl) Pb() batchdbpb.StoreBatchOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &batchdbpb.StoreBatchOrigin_Dsl{}
 	}
 	return &batchdbpb.StoreBatchOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -469,10 +523,15 @@ func (m *StoreBatchOrigin) Pb() *batchdbpb.StoreBatchOrigin {
 	if m == nil {
 		return nil
 	}
-	return &batchdbpb.StoreBatchOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &batchdbpb.StoreBatchOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*StoreBatchOrigin) MirReflect() mirreflect.Type {

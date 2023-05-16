@@ -50,6 +50,11 @@ func (m Map) ToPb(code jen.Code) *jen.Statement {
 
 // ConvertMap is used by the generated code.
 func ConvertMap[K, Rk comparable, V, Rv any](tm map[K]V, f func(tk K, tv V) (Rk, Rv)) map[Rk]Rv {
+
+	if tm == nil {
+		return nil
+	}
+
 	rm := make(map[Rk]Rv)
 	for k, v := range tm {
 		_k, _v := f(k, v)

@@ -70,6 +70,9 @@ func (w *Event_RequestBatch) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestBatch == nil {
+		return &mempoolpb.Event_RequestBatch{}
+	}
 	return &mempoolpb.Event_RequestBatch{RequestBatch: (w.RequestBatch).Pb()}
 }
 
@@ -90,6 +93,9 @@ func (w *Event_NewBatch) Unwrap() *NewBatch {
 func (w *Event_NewBatch) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.NewBatch == nil {
+		return &mempoolpb.Event_NewBatch{}
 	}
 	return &mempoolpb.Event_NewBatch{NewBatch: (w.NewBatch).Pb()}
 }
@@ -112,6 +118,9 @@ func (w *Event_RequestTransactions) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestTransactions == nil {
+		return &mempoolpb.Event_RequestTransactions{}
+	}
 	return &mempoolpb.Event_RequestTransactions{RequestTransactions: (w.RequestTransactions).Pb()}
 }
 
@@ -132,6 +141,9 @@ func (w *Event_TransactionsResponse) Unwrap() *TransactionsResponse {
 func (w *Event_TransactionsResponse) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.TransactionsResponse == nil {
+		return &mempoolpb.Event_TransactionsResponse{}
 	}
 	return &mempoolpb.Event_TransactionsResponse{TransactionsResponse: (w.TransactionsResponse).Pb()}
 }
@@ -154,6 +166,9 @@ func (w *Event_RequestTransactionIds) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestTransactionIds == nil {
+		return &mempoolpb.Event_RequestTransactionIds{}
+	}
 	return &mempoolpb.Event_RequestTransactionIds{RequestTransactionIds: (w.RequestTransactionIds).Pb()}
 }
 
@@ -174,6 +189,9 @@ func (w *Event_TransactionIdsResponse) Unwrap() *TransactionIDsResponse {
 func (w *Event_TransactionIdsResponse) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.TransactionIdsResponse == nil {
+		return &mempoolpb.Event_TransactionIdsResponse{}
 	}
 	return &mempoolpb.Event_TransactionIdsResponse{TransactionIdsResponse: (w.TransactionIdsResponse).Pb()}
 }
@@ -196,6 +214,9 @@ func (w *Event_RequestBatchId) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestBatchId == nil {
+		return &mempoolpb.Event_RequestBatchId{}
+	}
 	return &mempoolpb.Event_RequestBatchId{RequestBatchId: (w.RequestBatchId).Pb()}
 }
 
@@ -216,6 +237,9 @@ func (w *Event_BatchIdResponse) Unwrap() *BatchIDResponse {
 func (w *Event_BatchIdResponse) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.BatchIdResponse == nil {
+		return &mempoolpb.Event_BatchIdResponse{}
 	}
 	return &mempoolpb.Event_BatchIdResponse{BatchIdResponse: (w.BatchIdResponse).Pb()}
 }
@@ -238,6 +262,9 @@ func (w *Event_NewTransactions) Pb() mempoolpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewTransactions == nil {
+		return &mempoolpb.Event_NewTransactions{}
+	}
 	return &mempoolpb.Event_NewTransactions{NewTransactions: (w.NewTransactions).Pb()}
 }
 
@@ -258,9 +285,14 @@ func (m *Event) Pb() *mempoolpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &mempoolpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -286,11 +318,14 @@ func (m *NewTransactions) Pb() *mempoolpb.NewTransactions {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.NewTransactions{
-		Transactions: types1.ConvertSlice(m.Transactions, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &mempoolpb.NewTransactions{}
+	{
+		pbMessage.Transactions = types1.ConvertSlice(m.Transactions, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*NewTransactions) MirReflect() mirreflect.Type {
@@ -314,9 +349,14 @@ func (m *RequestBatch) Pb() *mempoolpb.RequestBatch {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestBatch{
-		Origin: (m.Origin).Pb(),
+	pbMessage := &mempoolpb.RequestBatch{}
+	{
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestBatch) MirReflect() mirreflect.Type {
@@ -348,15 +388,20 @@ func (m *NewBatch) Pb() *mempoolpb.NewBatch {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.NewBatch{
-		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+	pbMessage := &mempoolpb.NewBatch{}
+	{
+		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
-		}),
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+		})
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*NewBatch) MirReflect() mirreflect.Type {
@@ -384,12 +429,17 @@ func (m *RequestTransactions) Pb() *mempoolpb.RequestTransactions {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestTransactions{
-		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+	pbMessage := &mempoolpb.RequestTransactions{}
+	{
+		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactions) MirReflect() mirreflect.Type {
@@ -419,13 +469,18 @@ func (m *TransactionsResponse) Pb() *mempoolpb.TransactionsResponse {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.TransactionsResponse{
-		Present: m.Present,
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &mempoolpb.TransactionsResponse{}
+	{
+		pbMessage.Present = m.Present
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*TransactionsResponse) MirReflect() mirreflect.Type {
@@ -453,12 +508,17 @@ func (m *RequestTransactionIDs) Pb() *mempoolpb.RequestTransactionIDs {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestTransactionIDs{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &mempoolpb.RequestTransactionIDs{}
+	{
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactionIDs) MirReflect() mirreflect.Type {
@@ -486,12 +546,17 @@ func (m *TransactionIDsResponse) Pb() *mempoolpb.TransactionIDsResponse {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.TransactionIDsResponse{
-		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+	pbMessage := &mempoolpb.TransactionIDsResponse{}
+	{
+		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*TransactionIDsResponse) MirReflect() mirreflect.Type {
@@ -519,12 +584,17 @@ func (m *RequestBatchID) Pb() *mempoolpb.RequestBatchID {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestBatchID{
-		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+	pbMessage := &mempoolpb.RequestBatchID{}
+	{
+		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
 			return ([]uint8)(t)
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestBatchID) MirReflect() mirreflect.Type {
@@ -550,10 +620,15 @@ func (m *BatchIDResponse) Pb() *mempoolpb.BatchIDResponse {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.BatchIDResponse{
-		BatchId: ([]uint8)(m.BatchId),
-		Origin:  (m.Origin).Pb(),
+	pbMessage := &mempoolpb.BatchIDResponse{}
+	{
+		pbMessage.BatchId = ([]uint8)(m.BatchId)
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*BatchIDResponse) MirReflect() mirreflect.Type {
@@ -603,6 +678,9 @@ func (w *RequestBatchOrigin_ContextStore) Pb() mempoolpb.RequestBatchOrigin_Type
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &mempoolpb.RequestBatchOrigin_ContextStore{}
+	}
 	return &mempoolpb.RequestBatchOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -623,6 +701,9 @@ func (w *RequestBatchOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *RequestBatchOrigin_Dsl) Pb() mempoolpb.RequestBatchOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &mempoolpb.RequestBatchOrigin_Dsl{}
 	}
 	return &mempoolpb.RequestBatchOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -645,10 +726,15 @@ func (m *RequestBatchOrigin) Pb() *mempoolpb.RequestBatchOrigin {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestBatchOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &mempoolpb.RequestBatchOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestBatchOrigin) MirReflect() mirreflect.Type {
@@ -698,6 +784,9 @@ func (w *RequestTransactionsOrigin_ContextStore) Pb() mempoolpb.RequestTransacti
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &mempoolpb.RequestTransactionsOrigin_ContextStore{}
+	}
 	return &mempoolpb.RequestTransactionsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -718,6 +807,9 @@ func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *RequestTransactionsOrigin_Dsl) Pb() mempoolpb.RequestTransactionsOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &mempoolpb.RequestTransactionsOrigin_Dsl{}
 	}
 	return &mempoolpb.RequestTransactionsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -740,10 +832,15 @@ func (m *RequestTransactionsOrigin) Pb() *mempoolpb.RequestTransactionsOrigin {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestTransactionsOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &mempoolpb.RequestTransactionsOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactionsOrigin) MirReflect() mirreflect.Type {
@@ -793,6 +890,9 @@ func (w *RequestTransactionIDsOrigin_ContextStore) Pb() mempoolpb.RequestTransac
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &mempoolpb.RequestTransactionIDsOrigin_ContextStore{}
+	}
 	return &mempoolpb.RequestTransactionIDsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -813,6 +913,9 @@ func (w *RequestTransactionIDsOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *RequestTransactionIDsOrigin_Dsl) Pb() mempoolpb.RequestTransactionIDsOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &mempoolpb.RequestTransactionIDsOrigin_Dsl{}
 	}
 	return &mempoolpb.RequestTransactionIDsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -835,10 +938,15 @@ func (m *RequestTransactionIDsOrigin) Pb() *mempoolpb.RequestTransactionIDsOrigi
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestTransactionIDsOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &mempoolpb.RequestTransactionIDsOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactionIDsOrigin) MirReflect() mirreflect.Type {
@@ -888,6 +996,9 @@ func (w *RequestBatchIDOrigin_ContextStore) Pb() mempoolpb.RequestBatchIDOrigin_
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &mempoolpb.RequestBatchIDOrigin_ContextStore{}
+	}
 	return &mempoolpb.RequestBatchIDOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -908,6 +1019,9 @@ func (w *RequestBatchIDOrigin_Dsl) Unwrap() *types6.Origin {
 func (w *RequestBatchIDOrigin_Dsl) Pb() mempoolpb.RequestBatchIDOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &mempoolpb.RequestBatchIDOrigin_Dsl{}
 	}
 	return &mempoolpb.RequestBatchIDOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -930,10 +1044,15 @@ func (m *RequestBatchIDOrigin) Pb() *mempoolpb.RequestBatchIDOrigin {
 	if m == nil {
 		return nil
 	}
-	return &mempoolpb.RequestBatchIDOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &mempoolpb.RequestBatchIDOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestBatchIDOrigin) MirReflect() mirreflect.Type {

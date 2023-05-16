@@ -53,6 +53,9 @@ func (w *Event_NewModule) Pb() factorypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewModule == nil {
+		return &factorypb.Event_NewModule{}
+	}
 	return &factorypb.Event_NewModule{NewModule: (w.NewModule).Pb()}
 }
 
@@ -74,6 +77,9 @@ func (w *Event_GarbageCollect) Pb() factorypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.GarbageCollect == nil {
+		return &factorypb.Event_GarbageCollect{}
+	}
 	return &factorypb.Event_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
 }
 
@@ -94,9 +100,14 @@ func (m *Event) Pb() *factorypb.Event {
 	if m == nil {
 		return nil
 	}
-	return &factorypb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &factorypb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -124,11 +135,16 @@ func (m *NewModule) Pb() *factorypb.NewModule {
 	if m == nil {
 		return nil
 	}
-	return &factorypb.NewModule{
-		ModuleId:       (string)(m.ModuleId),
-		RetentionIndex: (uint64)(m.RetentionIndex),
-		Params:         (m.Params).Pb(),
+	pbMessage := &factorypb.NewModule{}
+	{
+		pbMessage.ModuleId = (string)(m.ModuleId)
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
+		if m.Params != nil {
+			pbMessage.Params = (m.Params).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*NewModule) MirReflect() mirreflect.Type {
@@ -152,9 +168,12 @@ func (m *GarbageCollect) Pb() *factorypb.GarbageCollect {
 	if m == nil {
 		return nil
 	}
-	return &factorypb.GarbageCollect{
-		RetentionIndex: (uint64)(m.RetentionIndex),
+	pbMessage := &factorypb.GarbageCollect{}
+	{
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 	}
+
+	return pbMessage
 }
 
 func (*GarbageCollect) MirReflect() mirreflect.Type {
@@ -207,6 +226,9 @@ func (w *GeneratorParams_MultisigCollector) Pb() factorypb.GeneratorParams_Type 
 	if w == nil {
 		return nil
 	}
+	if w.MultisigCollector == nil {
+		return &factorypb.GeneratorParams_MultisigCollector{}
+	}
 	return &factorypb.GeneratorParams_MultisigCollector{MultisigCollector: (w.MultisigCollector).Pb()}
 }
 
@@ -227,6 +249,9 @@ func (w *GeneratorParams_Checkpoint) Unwrap() *types3.InstanceParams {
 func (w *GeneratorParams_Checkpoint) Pb() factorypb.GeneratorParams_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Checkpoint == nil {
+		return &factorypb.GeneratorParams_Checkpoint{}
 	}
 	return &factorypb.GeneratorParams_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
@@ -249,6 +274,9 @@ func (w *GeneratorParams_EchoTestModule) Pb() factorypb.GeneratorParams_Type {
 	if w == nil {
 		return nil
 	}
+	if w.EchoTestModule == nil {
+		return &factorypb.GeneratorParams_EchoTestModule{}
+	}
 	return &factorypb.GeneratorParams_EchoTestModule{EchoTestModule: (w.EchoTestModule).Pb()}
 }
 
@@ -270,6 +298,9 @@ func (w *GeneratorParams_PbftModule) Pb() factorypb.GeneratorParams_Type {
 	if w == nil {
 		return nil
 	}
+	if w.PbftModule == nil {
+		return &factorypb.GeneratorParams_PbftModule{}
+	}
 	return &factorypb.GeneratorParams_PbftModule{PbftModule: (w.PbftModule).Pb()}
 }
 
@@ -290,9 +321,14 @@ func (m *GeneratorParams) Pb() *factorypb.GeneratorParams {
 	if m == nil {
 		return nil
 	}
-	return &factorypb.GeneratorParams{
-		Type: (m.Type).Pb(),
+	pbMessage := &factorypb.GeneratorParams{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*GeneratorParams) MirReflect() mirreflect.Type {
@@ -316,9 +352,12 @@ func (m *EchoModuleParams) Pb() *factorypb.EchoModuleParams {
 	if m == nil {
 		return nil
 	}
-	return &factorypb.EchoModuleParams{
-		Prefix: m.Prefix,
+	pbMessage := &factorypb.EchoModuleParams{}
+	{
+		pbMessage.Prefix = m.Prefix
 	}
+
+	return pbMessage
 }
 
 func (*EchoModuleParams) MirReflect() mirreflect.Type {

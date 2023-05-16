@@ -32,12 +32,15 @@ func (m *Transaction) Pb() *trantorpb.Transaction {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.Transaction{
-		ClientId: (string)(m.ClientId),
-		TxNo:     (uint64)(m.TxNo),
-		Type:     m.Type,
-		Data:     m.Data,
+	pbMessage := &trantorpb.Transaction{}
+	{
+		pbMessage.ClientId = (string)(m.ClientId)
+		pbMessage.TxNo = (uint64)(m.TxNo)
+		pbMessage.Type = m.Type
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*Transaction) MirReflect() mirreflect.Type {
@@ -63,10 +66,15 @@ func (m *StateSnapshot) Pb() *trantorpb.StateSnapshot {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.StateSnapshot{
-		AppData:   m.AppData,
-		EpochData: (m.EpochData).Pb(),
+	pbMessage := &trantorpb.StateSnapshot{}
+	{
+		pbMessage.AppData = m.AppData
+		if m.EpochData != nil {
+			pbMessage.EpochData = (m.EpochData).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*StateSnapshot) MirReflect() mirreflect.Type {
@@ -96,12 +104,21 @@ func (m *EpochData) Pb() *trantorpb.EpochData {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.EpochData{
-		EpochConfig:        (m.EpochConfig).Pb(),
-		ClientProgress:     (m.ClientProgress).Pb(),
-		LeaderPolicy:       m.LeaderPolicy,
-		PreviousMembership: (m.PreviousMembership).Pb(),
+	pbMessage := &trantorpb.EpochData{}
+	{
+		if m.EpochConfig != nil {
+			pbMessage.EpochConfig = (m.EpochConfig).Pb()
+		}
+		if m.ClientProgress != nil {
+			pbMessage.ClientProgress = (m.ClientProgress).Pb()
+		}
+		pbMessage.LeaderPolicy = m.LeaderPolicy
+		if m.PreviousMembership != nil {
+			pbMessage.PreviousMembership = (m.PreviousMembership).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*EpochData) MirReflect() mirreflect.Type {
@@ -133,14 +150,17 @@ func (m *EpochConfig) Pb() *trantorpb.EpochConfig {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.EpochConfig{
-		EpochNr: (uint64)(m.EpochNr),
-		FirstSn: (uint64)(m.FirstSn),
-		Length:  m.Length,
-		Memberships: types1.ConvertSlice(m.Memberships, func(t *Membership) *trantorpb.Membership {
+	pbMessage := &trantorpb.EpochConfig{}
+	{
+		pbMessage.EpochNr = (uint64)(m.EpochNr)
+		pbMessage.FirstSn = (uint64)(m.FirstSn)
+		pbMessage.Length = m.Length
+		pbMessage.Memberships = types1.ConvertSlice(m.Memberships, func(t *Membership) *trantorpb.Membership {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*EpochConfig) MirReflect() mirreflect.Type {
@@ -166,11 +186,14 @@ func (m *Membership) Pb() *trantorpb.Membership {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.Membership{
-		Nodes: types1.ConvertMap(m.Nodes, func(k types2.NodeID, v *NodeIdentity) (string, *trantorpb.NodeIdentity) {
+	pbMessage := &trantorpb.Membership{}
+	{
+		pbMessage.Nodes = types1.ConvertMap(m.Nodes, func(k types2.NodeID, v *NodeIdentity) (string, *trantorpb.NodeIdentity) {
 			return (string)(k), (v).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*Membership) MirReflect() mirreflect.Type {
@@ -200,12 +223,15 @@ func (m *NodeIdentity) Pb() *trantorpb.NodeIdentity {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.NodeIdentity{
-		Id:     (string)(m.Id),
-		Addr:   m.Addr,
-		Key:    m.Key,
-		Weight: m.Weight,
+	pbMessage := &trantorpb.NodeIdentity{}
+	{
+		pbMessage.Id = (string)(m.Id)
+		pbMessage.Addr = m.Addr
+		pbMessage.Key = m.Key
+		pbMessage.Weight = m.Weight
 	}
+
+	return pbMessage
 }
 
 func (*NodeIdentity) MirReflect() mirreflect.Type {
@@ -231,11 +257,14 @@ func (m *ClientProgress) Pb() *trantorpb.ClientProgress {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.ClientProgress{
-		Progress: types1.ConvertMap(m.Progress, func(k types.ClientID, v *DeliveredTXs) (string, *trantorpb.DeliveredTXs) {
+	pbMessage := &trantorpb.ClientProgress{}
+	{
+		pbMessage.Progress = types1.ConvertMap(m.Progress, func(k types.ClientID, v *DeliveredTXs) (string, *trantorpb.DeliveredTXs) {
 			return (string)(k), (v).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*ClientProgress) MirReflect() mirreflect.Type {
@@ -261,10 +290,13 @@ func (m *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
 	if m == nil {
 		return nil
 	}
-	return &trantorpb.DeliveredTXs{
-		LowWm:     m.LowWm,
-		Delivered: m.Delivered,
+	pbMessage := &trantorpb.DeliveredTXs{}
+	{
+		pbMessage.LowWm = m.LowWm
+		pbMessage.Delivered = m.Delivered
 	}
+
+	return pbMessage
 }
 
 func (*DeliveredTXs) MirReflect() mirreflect.Type {

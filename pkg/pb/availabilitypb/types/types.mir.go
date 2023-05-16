@@ -65,6 +65,9 @@ func (w *Event_RequestCert) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestCert == nil {
+		return &availabilitypb.Event_RequestCert{}
+	}
 	return &availabilitypb.Event_RequestCert{RequestCert: (w.RequestCert).Pb()}
 }
 
@@ -85,6 +88,9 @@ func (w *Event_NewCert) Unwrap() *NewCert {
 func (w *Event_NewCert) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.NewCert == nil {
+		return &availabilitypb.Event_NewCert{}
 	}
 	return &availabilitypb.Event_NewCert{NewCert: (w.NewCert).Pb()}
 }
@@ -107,6 +113,9 @@ func (w *Event_VerifyCert) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.VerifyCert == nil {
+		return &availabilitypb.Event_VerifyCert{}
+	}
 	return &availabilitypb.Event_VerifyCert{VerifyCert: (w.VerifyCert).Pb()}
 }
 
@@ -127,6 +136,9 @@ func (w *Event_CertVerified) Unwrap() *CertVerified {
 func (w *Event_CertVerified) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.CertVerified == nil {
+		return &availabilitypb.Event_CertVerified{}
 	}
 	return &availabilitypb.Event_CertVerified{CertVerified: (w.CertVerified).Pb()}
 }
@@ -149,6 +161,9 @@ func (w *Event_RequestTransactions) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestTransactions == nil {
+		return &availabilitypb.Event_RequestTransactions{}
+	}
 	return &availabilitypb.Event_RequestTransactions{RequestTransactions: (w.RequestTransactions).Pb()}
 }
 
@@ -169,6 +184,9 @@ func (w *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
 func (w *Event_ProvideTransactions) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.ProvideTransactions == nil {
+		return &availabilitypb.Event_ProvideTransactions{}
 	}
 	return &availabilitypb.Event_ProvideTransactions{ProvideTransactions: (w.ProvideTransactions).Pb()}
 }
@@ -191,6 +209,9 @@ func (w *Event_ComputeCert) Pb() availabilitypb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ComputeCert == nil {
+		return &availabilitypb.Event_ComputeCert{}
+	}
 	return &availabilitypb.Event_ComputeCert{ComputeCert: (w.ComputeCert).Pb()}
 }
 
@@ -211,9 +232,14 @@ func (m *Event) Pb() *availabilitypb.Event {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &availabilitypb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -237,9 +263,14 @@ func (m *RequestCert) Pb() *availabilitypb.RequestCert {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.RequestCert{
-		Origin: (m.Origin).Pb(),
+	pbMessage := &availabilitypb.RequestCert{}
+	{
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestCert) MirReflect() mirreflect.Type {
@@ -265,10 +296,17 @@ func (m *NewCert) Pb() *availabilitypb.NewCert {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.NewCert{
-		Cert:   (m.Cert).Pb(),
-		Origin: (m.Origin).Pb(),
+	pbMessage := &availabilitypb.NewCert{}
+	{
+		if m.Cert != nil {
+			pbMessage.Cert = (m.Cert).Pb()
+		}
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*NewCert) MirReflect() mirreflect.Type {
@@ -294,10 +332,17 @@ func (m *VerifyCert) Pb() *availabilitypb.VerifyCert {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.VerifyCert{
-		Cert:   (m.Cert).Pb(),
-		Origin: (m.Origin).Pb(),
+	pbMessage := &availabilitypb.VerifyCert{}
+	{
+		if m.Cert != nil {
+			pbMessage.Cert = (m.Cert).Pb()
+		}
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyCert) MirReflect() mirreflect.Type {
@@ -325,11 +370,16 @@ func (m *CertVerified) Pb() *availabilitypb.CertVerified {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.CertVerified{
-		Valid:  m.Valid,
-		Err:    m.Err,
-		Origin: (m.Origin).Pb(),
+	pbMessage := &availabilitypb.CertVerified{}
+	{
+		pbMessage.Valid = m.Valid
+		pbMessage.Err = m.Err
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*CertVerified) MirReflect() mirreflect.Type {
@@ -355,10 +405,17 @@ func (m *RequestTransactions) Pb() *availabilitypb.RequestTransactions {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.RequestTransactions{
-		Cert:   (m.Cert).Pb(),
-		Origin: (m.Origin).Pb(),
+	pbMessage := &availabilitypb.RequestTransactions{}
+	{
+		if m.Cert != nil {
+			pbMessage.Cert = (m.Cert).Pb()
+		}
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactions) MirReflect() mirreflect.Type {
@@ -386,12 +443,17 @@ func (m *ProvideTransactions) Pb() *availabilitypb.ProvideTransactions {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.ProvideTransactions{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &availabilitypb.ProvideTransactions{}
+	{
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*ProvideTransactions) MirReflect() mirreflect.Type {
@@ -441,6 +503,9 @@ func (w *RequestCertOrigin_ContextStore) Pb() availabilitypb.RequestCertOrigin_T
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &availabilitypb.RequestCertOrigin_ContextStore{}
+	}
 	return &availabilitypb.RequestCertOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -461,6 +526,9 @@ func (w *RequestCertOrigin_Dsl) Unwrap() *types4.Origin {
 func (w *RequestCertOrigin_Dsl) Pb() availabilitypb.RequestCertOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &availabilitypb.RequestCertOrigin_Dsl{}
 	}
 	return &availabilitypb.RequestCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -483,10 +551,15 @@ func (m *RequestCertOrigin) Pb() *availabilitypb.RequestCertOrigin {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.RequestCertOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &availabilitypb.RequestCertOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestCertOrigin) MirReflect() mirreflect.Type {
@@ -536,6 +609,9 @@ func (w *RequestTransactionsOrigin_ContextStore) Pb() availabilitypb.RequestTran
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &availabilitypb.RequestTransactionsOrigin_ContextStore{}
+	}
 	return &availabilitypb.RequestTransactionsOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -556,6 +632,9 @@ func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types4.Origin {
 func (w *RequestTransactionsOrigin_Dsl) Pb() availabilitypb.RequestTransactionsOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &availabilitypb.RequestTransactionsOrigin_Dsl{}
 	}
 	return &availabilitypb.RequestTransactionsOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -578,10 +657,15 @@ func (m *RequestTransactionsOrigin) Pb() *availabilitypb.RequestTransactionsOrig
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.RequestTransactionsOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &availabilitypb.RequestTransactionsOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestTransactionsOrigin) MirReflect() mirreflect.Type {
@@ -631,6 +715,9 @@ func (w *VerifyCertOrigin_ContextStore) Pb() availabilitypb.VerifyCertOrigin_Typ
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &availabilitypb.VerifyCertOrigin_ContextStore{}
+	}
 	return &availabilitypb.VerifyCertOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -651,6 +738,9 @@ func (w *VerifyCertOrigin_Dsl) Unwrap() *types4.Origin {
 func (w *VerifyCertOrigin_Dsl) Pb() availabilitypb.VerifyCertOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &availabilitypb.VerifyCertOrigin_Dsl{}
 	}
 	return &availabilitypb.VerifyCertOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -673,10 +763,15 @@ func (m *VerifyCertOrigin) Pb() *availabilitypb.VerifyCertOrigin {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.VerifyCertOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &availabilitypb.VerifyCertOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyCertOrigin) MirReflect() mirreflect.Type {
@@ -723,6 +818,9 @@ func (w *Cert_Mscs) Pb() availabilitypb.Cert_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Mscs == nil {
+		return &availabilitypb.Cert_Mscs{}
+	}
 	return &availabilitypb.Cert_Mscs{Mscs: (w.Mscs).Pb()}
 }
 
@@ -743,9 +841,14 @@ func (m *Cert) Pb() *availabilitypb.Cert {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.Cert{
-		Type: (m.Type).Pb(),
+	pbMessage := &availabilitypb.Cert{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Cert) MirReflect() mirreflect.Type {
@@ -765,7 +868,11 @@ func (m *ComputeCert) Pb() *availabilitypb.ComputeCert {
 	if m == nil {
 		return nil
 	}
-	return &availabilitypb.ComputeCert{}
+	pbMessage := &availabilitypb.ComputeCert{}
+	{
+	}
+
+	return pbMessage
 }
 
 func (*ComputeCert) MirReflect() mirreflect.Type {

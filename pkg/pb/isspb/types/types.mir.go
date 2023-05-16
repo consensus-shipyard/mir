@@ -51,6 +51,9 @@ func (w *ISSMessage_StableCheckpoint) Pb() isspb.ISSMessage_Type {
 	if w == nil {
 		return nil
 	}
+	if w.StableCheckpoint == nil {
+		return &isspb.ISSMessage_StableCheckpoint{}
+	}
 	return &isspb.ISSMessage_StableCheckpoint{StableCheckpoint: (w.StableCheckpoint).Pb()}
 }
 
@@ -71,9 +74,14 @@ func (m *ISSMessage) Pb() *isspb.ISSMessage {
 	if m == nil {
 		return nil
 	}
-	return &isspb.ISSMessage{
-		Type: (m.Type).Pb(),
+	pbMessage := &isspb.ISSMessage{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*ISSMessage) MirReflect() mirreflect.Type {
@@ -126,6 +134,9 @@ func (w *Event_PushCheckpoint) Pb() isspb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.PushCheckpoint == nil {
+		return &isspb.Event_PushCheckpoint{}
+	}
 	return &isspb.Event_PushCheckpoint{PushCheckpoint: (w.PushCheckpoint).Pb()}
 }
 
@@ -146,6 +157,9 @@ func (w *Event_SbDeliver) Unwrap() *SBDeliver {
 func (w *Event_SbDeliver) Pb() isspb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.SbDeliver == nil {
+		return &isspb.Event_SbDeliver{}
 	}
 	return &isspb.Event_SbDeliver{SbDeliver: (w.SbDeliver).Pb()}
 }
@@ -168,6 +182,9 @@ func (w *Event_DeliverCert) Pb() isspb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.DeliverCert == nil {
+		return &isspb.Event_DeliverCert{}
+	}
 	return &isspb.Event_DeliverCert{DeliverCert: (w.DeliverCert).Pb()}
 }
 
@@ -189,6 +206,9 @@ func (w *Event_NewConfig) Pb() isspb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewConfig == nil {
+		return &isspb.Event_NewConfig{}
+	}
 	return &isspb.Event_NewConfig{NewConfig: (w.NewConfig).Pb()}
 }
 
@@ -209,9 +229,14 @@ func (m *Event) Pb() *isspb.Event {
 	if m == nil {
 		return nil
 	}
-	return &isspb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &isspb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -231,7 +256,11 @@ func (m *PushCheckpoint) Pb() *isspb.PushCheckpoint {
 	if m == nil {
 		return nil
 	}
-	return &isspb.PushCheckpoint{}
+	pbMessage := &isspb.PushCheckpoint{}
+	{
+	}
+
+	return pbMessage
 }
 
 func (*PushCheckpoint) MirReflect() mirreflect.Type {
@@ -263,13 +292,16 @@ func (m *SBDeliver) Pb() *isspb.SBDeliver {
 	if m == nil {
 		return nil
 	}
-	return &isspb.SBDeliver{
-		Sn:         (uint64)(m.Sn),
-		Data:       m.Data,
-		Aborted:    m.Aborted,
-		Leader:     (string)(m.Leader),
-		InstanceId: (string)(m.InstanceId),
+	pbMessage := &isspb.SBDeliver{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		pbMessage.Data = m.Data
+		pbMessage.Aborted = m.Aborted
+		pbMessage.Leader = (string)(m.Leader)
+		pbMessage.InstanceId = (string)(m.InstanceId)
 	}
+
+	return pbMessage
 }
 
 func (*SBDeliver) MirReflect() mirreflect.Type {
@@ -297,11 +329,16 @@ func (m *DeliverCert) Pb() *isspb.DeliverCert {
 	if m == nil {
 		return nil
 	}
-	return &isspb.DeliverCert{
-		Sn:    (uint64)(m.Sn),
-		Cert:  (m.Cert).Pb(),
-		Empty: m.Empty,
+	pbMessage := &isspb.DeliverCert{}
+	{
+		pbMessage.Sn = (uint64)(m.Sn)
+		if m.Cert != nil {
+			pbMessage.Cert = (m.Cert).Pb()
+		}
+		pbMessage.Empty = m.Empty
 	}
+
+	return pbMessage
 }
 
 func (*DeliverCert) MirReflect() mirreflect.Type {
@@ -327,10 +364,15 @@ func (m *NewConfig) Pb() *isspb.NewConfig {
 	if m == nil {
 		return nil
 	}
-	return &isspb.NewConfig{
-		EpochNr:    (uint64)(m.EpochNr),
-		Membership: (m.Membership).Pb(),
+	pbMessage := &isspb.NewConfig{}
+	{
+		pbMessage.EpochNr = (uint64)(m.EpochNr)
+		if m.Membership != nil {
+			pbMessage.Membership = (m.Membership).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*NewConfig) MirReflect() mirreflect.Type {

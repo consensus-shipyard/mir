@@ -55,6 +55,9 @@ func (w *Event_SnapshotRequest) Pb() apppb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SnapshotRequest == nil {
+		return &apppb.Event_SnapshotRequest{}
+	}
 	return &apppb.Event_SnapshotRequest{SnapshotRequest: (w.SnapshotRequest).Pb()}
 }
 
@@ -75,6 +78,9 @@ func (w *Event_Snapshot) Unwrap() *Snapshot {
 func (w *Event_Snapshot) Pb() apppb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Snapshot == nil {
+		return &apppb.Event_Snapshot{}
 	}
 	return &apppb.Event_Snapshot{Snapshot: (w.Snapshot).Pb()}
 }
@@ -97,6 +103,9 @@ func (w *Event_RestoreState) Pb() apppb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RestoreState == nil {
+		return &apppb.Event_RestoreState{}
+	}
 	return &apppb.Event_RestoreState{RestoreState: (w.RestoreState).Pb()}
 }
 
@@ -118,6 +127,9 @@ func (w *Event_NewEpoch) Pb() apppb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewEpoch == nil {
+		return &apppb.Event_NewEpoch{}
+	}
 	return &apppb.Event_NewEpoch{NewEpoch: (w.NewEpoch).Pb()}
 }
 
@@ -138,9 +150,14 @@ func (m *Event) Pb() *apppb.Event {
 	if m == nil {
 		return nil
 	}
-	return &apppb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &apppb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -164,9 +181,12 @@ func (m *SnapshotRequest) Pb() *apppb.SnapshotRequest {
 	if m == nil {
 		return nil
 	}
-	return &apppb.SnapshotRequest{
-		ReplyTo: (string)(m.ReplyTo),
+	pbMessage := &apppb.SnapshotRequest{}
+	{
+		pbMessage.ReplyTo = (string)(m.ReplyTo)
 	}
+
+	return pbMessage
 }
 
 func (*SnapshotRequest) MirReflect() mirreflect.Type {
@@ -190,9 +210,12 @@ func (m *Snapshot) Pb() *apppb.Snapshot {
 	if m == nil {
 		return nil
 	}
-	return &apppb.Snapshot{
-		AppData: m.AppData,
+	pbMessage := &apppb.Snapshot{}
+	{
+		pbMessage.AppData = m.AppData
 	}
+
+	return pbMessage
 }
 
 func (*Snapshot) MirReflect() mirreflect.Type {
@@ -216,9 +239,14 @@ func (m *RestoreState) Pb() *apppb.RestoreState {
 	if m == nil {
 		return nil
 	}
-	return &apppb.RestoreState{
-		Checkpoint: (m.Checkpoint).Pb(),
+	pbMessage := &apppb.RestoreState{}
+	{
+		if m.Checkpoint != nil {
+			pbMessage.Checkpoint = (m.Checkpoint).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RestoreState) MirReflect() mirreflect.Type {
@@ -244,10 +272,13 @@ func (m *NewEpoch) Pb() *apppb.NewEpoch {
 	if m == nil {
 		return nil
 	}
-	return &apppb.NewEpoch{
-		EpochNr:        (uint64)(m.EpochNr),
-		ProtocolModule: (string)(m.ProtocolModule),
+	pbMessage := &apppb.NewEpoch{}
+	{
+		pbMessage.EpochNr = (uint64)(m.EpochNr)
+		pbMessage.ProtocolModule = (string)(m.ProtocolModule)
 	}
+
+	return pbMessage
 }
 
 func (*NewEpoch) MirReflect() mirreflect.Type {

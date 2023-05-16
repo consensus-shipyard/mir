@@ -63,6 +63,9 @@ func (w *Event_SignShare) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.SignShare == nil {
+		return &threshcryptopb.Event_SignShare{}
+	}
 	return &threshcryptopb.Event_SignShare{SignShare: (w.SignShare).Pb()}
 }
 
@@ -83,6 +86,9 @@ func (w *Event_SignShareResult) Unwrap() *SignShareResult {
 func (w *Event_SignShareResult) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.SignShareResult == nil {
+		return &threshcryptopb.Event_SignShareResult{}
 	}
 	return &threshcryptopb.Event_SignShareResult{SignShareResult: (w.SignShareResult).Pb()}
 }
@@ -105,6 +111,9 @@ func (w *Event_VerifyShare) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.VerifyShare == nil {
+		return &threshcryptopb.Event_VerifyShare{}
+	}
 	return &threshcryptopb.Event_VerifyShare{VerifyShare: (w.VerifyShare).Pb()}
 }
 
@@ -125,6 +134,9 @@ func (w *Event_VerifyShareResult) Unwrap() *VerifyShareResult {
 func (w *Event_VerifyShareResult) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.VerifyShareResult == nil {
+		return &threshcryptopb.Event_VerifyShareResult{}
 	}
 	return &threshcryptopb.Event_VerifyShareResult{VerifyShareResult: (w.VerifyShareResult).Pb()}
 }
@@ -147,6 +159,9 @@ func (w *Event_VerifyFull) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.VerifyFull == nil {
+		return &threshcryptopb.Event_VerifyFull{}
+	}
 	return &threshcryptopb.Event_VerifyFull{VerifyFull: (w.VerifyFull).Pb()}
 }
 
@@ -167,6 +182,9 @@ func (w *Event_VerifyFullResult) Unwrap() *VerifyFullResult {
 func (w *Event_VerifyFullResult) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.VerifyFullResult == nil {
+		return &threshcryptopb.Event_VerifyFullResult{}
 	}
 	return &threshcryptopb.Event_VerifyFullResult{VerifyFullResult: (w.VerifyFullResult).Pb()}
 }
@@ -189,6 +207,9 @@ func (w *Event_Recover) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Recover == nil {
+		return &threshcryptopb.Event_Recover{}
+	}
 	return &threshcryptopb.Event_Recover{Recover: (w.Recover).Pb()}
 }
 
@@ -210,6 +231,9 @@ func (w *Event_RecoverResult) Pb() threshcryptopb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RecoverResult == nil {
+		return &threshcryptopb.Event_RecoverResult{}
+	}
 	return &threshcryptopb.Event_RecoverResult{RecoverResult: (w.RecoverResult).Pb()}
 }
 
@@ -230,9 +254,14 @@ func (m *Event) Pb() *threshcryptopb.Event {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &threshcryptopb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -258,10 +287,15 @@ func (m *SignShare) Pb() *threshcryptopb.SignShare {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.SignShare{
-		Data:   m.Data,
-		Origin: (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.SignShare{}
+	{
+		pbMessage.Data = m.Data
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignShare) MirReflect() mirreflect.Type {
@@ -287,10 +321,15 @@ func (m *SignShareResult) Pb() *threshcryptopb.SignShareResult {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.SignShareResult{
-		SignatureShare: m.SignatureShare,
-		Origin:         (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.SignShareResult{}
+	{
+		pbMessage.SignatureShare = m.SignatureShare
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignShareResult) MirReflect() mirreflect.Type {
@@ -340,6 +379,9 @@ func (w *SignShareOrigin_ContextStore) Pb() threshcryptopb.SignShareOrigin_Type 
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &threshcryptopb.SignShareOrigin_ContextStore{}
+	}
 	return &threshcryptopb.SignShareOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -360,6 +402,9 @@ func (w *SignShareOrigin_Dsl) Unwrap() *types2.Origin {
 func (w *SignShareOrigin_Dsl) Pb() threshcryptopb.SignShareOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &threshcryptopb.SignShareOrigin_Dsl{}
 	}
 	return &threshcryptopb.SignShareOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -382,10 +427,15 @@ func (m *SignShareOrigin) Pb() *threshcryptopb.SignShareOrigin {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.SignShareOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &threshcryptopb.SignShareOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*SignShareOrigin) MirReflect() mirreflect.Type {
@@ -415,12 +465,17 @@ func (m *VerifyShare) Pb() *threshcryptopb.VerifyShare {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyShare{
-		Data:           m.Data,
-		SignatureShare: m.SignatureShare,
-		NodeId:         (string)(m.NodeId),
-		Origin:         (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.VerifyShare{}
+	{
+		pbMessage.Data = m.Data
+		pbMessage.SignatureShare = m.SignatureShare
+		pbMessage.NodeId = (string)(m.NodeId)
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyShare) MirReflect() mirreflect.Type {
@@ -448,11 +503,16 @@ func (m *VerifyShareResult) Pb() *threshcryptopb.VerifyShareResult {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyShareResult{
-		Ok:     m.Ok,
-		Error:  m.Error,
-		Origin: (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.VerifyShareResult{}
+	{
+		pbMessage.Ok = m.Ok
+		pbMessage.Error = m.Error
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyShareResult) MirReflect() mirreflect.Type {
@@ -502,6 +562,9 @@ func (w *VerifyShareOrigin_ContextStore) Pb() threshcryptopb.VerifyShareOrigin_T
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &threshcryptopb.VerifyShareOrigin_ContextStore{}
+	}
 	return &threshcryptopb.VerifyShareOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -522,6 +585,9 @@ func (w *VerifyShareOrigin_Dsl) Unwrap() *types2.Origin {
 func (w *VerifyShareOrigin_Dsl) Pb() threshcryptopb.VerifyShareOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &threshcryptopb.VerifyShareOrigin_Dsl{}
 	}
 	return &threshcryptopb.VerifyShareOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -544,10 +610,15 @@ func (m *VerifyShareOrigin) Pb() *threshcryptopb.VerifyShareOrigin {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyShareOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &threshcryptopb.VerifyShareOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyShareOrigin) MirReflect() mirreflect.Type {
@@ -575,11 +646,16 @@ func (m *VerifyFull) Pb() *threshcryptopb.VerifyFull {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyFull{
-		Data:          m.Data,
-		FullSignature: m.FullSignature,
-		Origin:        (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.VerifyFull{}
+	{
+		pbMessage.Data = m.Data
+		pbMessage.FullSignature = m.FullSignature
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyFull) MirReflect() mirreflect.Type {
@@ -607,11 +683,16 @@ func (m *VerifyFullResult) Pb() *threshcryptopb.VerifyFullResult {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyFullResult{
-		Ok:     m.Ok,
-		Error:  m.Error,
-		Origin: (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.VerifyFullResult{}
+	{
+		pbMessage.Ok = m.Ok
+		pbMessage.Error = m.Error
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyFullResult) MirReflect() mirreflect.Type {
@@ -661,6 +742,9 @@ func (w *VerifyFullOrigin_ContextStore) Pb() threshcryptopb.VerifyFullOrigin_Typ
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &threshcryptopb.VerifyFullOrigin_ContextStore{}
+	}
 	return &threshcryptopb.VerifyFullOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -681,6 +765,9 @@ func (w *VerifyFullOrigin_Dsl) Unwrap() *types2.Origin {
 func (w *VerifyFullOrigin_Dsl) Pb() threshcryptopb.VerifyFullOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &threshcryptopb.VerifyFullOrigin_Dsl{}
 	}
 	return &threshcryptopb.VerifyFullOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -703,10 +790,15 @@ func (m *VerifyFullOrigin) Pb() *threshcryptopb.VerifyFullOrigin {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.VerifyFullOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &threshcryptopb.VerifyFullOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*VerifyFullOrigin) MirReflect() mirreflect.Type {
@@ -734,11 +826,16 @@ func (m *Recover) Pb() *threshcryptopb.Recover {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.Recover{
-		Data:            m.Data,
-		SignatureShares: m.SignatureShares,
-		Origin:          (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.Recover{}
+	{
+		pbMessage.Data = m.Data
+		pbMessage.SignatureShares = m.SignatureShares
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Recover) MirReflect() mirreflect.Type {
@@ -768,12 +865,17 @@ func (m *RecoverResult) Pb() *threshcryptopb.RecoverResult {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.RecoverResult{
-		FullSignature: m.FullSignature,
-		Ok:            m.Ok,
-		Error:         m.Error,
-		Origin:        (m.Origin).Pb(),
+	pbMessage := &threshcryptopb.RecoverResult{}
+	{
+		pbMessage.FullSignature = m.FullSignature
+		pbMessage.Ok = m.Ok
+		pbMessage.Error = m.Error
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RecoverResult) MirReflect() mirreflect.Type {
@@ -823,6 +925,9 @@ func (w *RecoverOrigin_ContextStore) Pb() threshcryptopb.RecoverOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &threshcryptopb.RecoverOrigin_ContextStore{}
+	}
 	return &threshcryptopb.RecoverOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -843,6 +948,9 @@ func (w *RecoverOrigin_Dsl) Unwrap() *types2.Origin {
 func (w *RecoverOrigin_Dsl) Pb() threshcryptopb.RecoverOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &threshcryptopb.RecoverOrigin_Dsl{}
 	}
 	return &threshcryptopb.RecoverOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -865,10 +973,15 @@ func (m *RecoverOrigin) Pb() *threshcryptopb.RecoverOrigin {
 	if m == nil {
 		return nil
 	}
-	return &threshcryptopb.RecoverOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &threshcryptopb.RecoverOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RecoverOrigin) MirReflect() mirreflect.Type {

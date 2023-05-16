@@ -51,6 +51,9 @@ func (w *Event_NewOrderedBatch) Pb() batchfetcherpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.NewOrderedBatch == nil {
+		return &batchfetcherpb.Event_NewOrderedBatch{}
+	}
 	return &batchfetcherpb.Event_NewOrderedBatch{NewOrderedBatch: (w.NewOrderedBatch).Pb()}
 }
 
@@ -72,6 +75,9 @@ func (w *Event_ClientProgress) Pb() batchfetcherpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ClientProgress == nil {
+		return &batchfetcherpb.Event_ClientProgress{}
+	}
 	return &batchfetcherpb.Event_ClientProgress{ClientProgress: (w.ClientProgress).Pb()}
 }
 
@@ -92,9 +98,14 @@ func (m *Event) Pb() *batchfetcherpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &batchfetcherpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &batchfetcherpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -120,11 +131,14 @@ func (m *NewOrderedBatch) Pb() *batchfetcherpb.NewOrderedBatch {
 	if m == nil {
 		return nil
 	}
-	return &batchfetcherpb.NewOrderedBatch{
-		Txs: types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+	pbMessage := &batchfetcherpb.NewOrderedBatch{}
+	{
+		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*NewOrderedBatch) MirReflect() mirreflect.Type {

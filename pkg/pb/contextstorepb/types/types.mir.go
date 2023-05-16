@@ -23,9 +23,12 @@ func (m *Origin) Pb() *contextstorepb.Origin {
 	if m == nil {
 		return nil
 	}
-	return &contextstorepb.Origin{
-		ItemID: m.ItemID,
+	pbMessage := &contextstorepb.Origin{}
+	{
+		pbMessage.ItemID = m.ItemID
 	}
+
+	return pbMessage
 }
 
 func (*Origin) MirReflect() mirreflect.Type {

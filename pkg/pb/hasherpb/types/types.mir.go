@@ -56,6 +56,9 @@ func (w *Event_Request) Pb() hasherpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Request == nil {
+		return &hasherpb.Event_Request{}
+	}
 	return &hasherpb.Event_Request{Request: (w.Request).Pb()}
 }
 
@@ -76,6 +79,9 @@ func (w *Event_Result) Unwrap() *Result {
 func (w *Event_Result) Pb() hasherpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Result == nil {
+		return &hasherpb.Event_Result{}
 	}
 	return &hasherpb.Event_Result{Result: (w.Result).Pb()}
 }
@@ -98,6 +104,9 @@ func (w *Event_RequestOne) Pb() hasherpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.RequestOne == nil {
+		return &hasherpb.Event_RequestOne{}
+	}
 	return &hasherpb.Event_RequestOne{RequestOne: (w.RequestOne).Pb()}
 }
 
@@ -119,6 +128,9 @@ func (w *Event_ResultOne) Pb() hasherpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ResultOne == nil {
+		return &hasherpb.Event_ResultOne{}
+	}
 	return &hasherpb.Event_ResultOne{ResultOne: (w.ResultOne).Pb()}
 }
 
@@ -139,9 +151,14 @@ func (m *Event) Pb() *hasherpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.Event{
-		Type: (m.Type).Pb(),
+	pbMessage := &hasherpb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -169,12 +186,17 @@ func (m *Request) Pb() *hasherpb.Request {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.Request{
-		Data: types.ConvertSlice(m.Data, func(t *HashData) *hasherpb.HashData {
+	pbMessage := &hasherpb.Request{}
+	{
+		pbMessage.Data = types.ConvertSlice(m.Data, func(t *HashData) *hasherpb.HashData {
 			return (t).Pb()
-		}),
-		Origin: (m.Origin).Pb(),
+		})
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Request) MirReflect() mirreflect.Type {
@@ -200,10 +222,15 @@ func (m *Result) Pb() *hasherpb.Result {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.Result{
-		Digests: m.Digests,
-		Origin:  (m.Origin).Pb(),
+	pbMessage := &hasherpb.Result{}
+	{
+		pbMessage.Digests = m.Digests
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*Result) MirReflect() mirreflect.Type {
@@ -229,10 +256,17 @@ func (m *RequestOne) Pb() *hasherpb.RequestOne {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.RequestOne{
-		Data:   (m.Data).Pb(),
-		Origin: (m.Origin).Pb(),
+	pbMessage := &hasherpb.RequestOne{}
+	{
+		if m.Data != nil {
+			pbMessage.Data = (m.Data).Pb()
+		}
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*RequestOne) MirReflect() mirreflect.Type {
@@ -258,10 +292,15 @@ func (m *ResultOne) Pb() *hasherpb.ResultOne {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.ResultOne{
-		Digest: m.Digest,
-		Origin: (m.Origin).Pb(),
+	pbMessage := &hasherpb.ResultOne{}
+	{
+		pbMessage.Digest = m.Digest
+		if m.Origin != nil {
+			pbMessage.Origin = (m.Origin).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*ResultOne) MirReflect() mirreflect.Type {
@@ -311,6 +350,9 @@ func (w *HashOrigin_ContextStore) Pb() hasherpb.HashOrigin_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ContextStore == nil {
+		return &hasherpb.HashOrigin_ContextStore{}
+	}
 	return &hasherpb.HashOrigin_ContextStore{ContextStore: (w.ContextStore).Pb()}
 }
 
@@ -331,6 +373,9 @@ func (w *HashOrigin_Dsl) Unwrap() *types3.Origin {
 func (w *HashOrigin_Dsl) Pb() hasherpb.HashOrigin_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Dsl == nil {
+		return &hasherpb.HashOrigin_Dsl{}
 	}
 	return &hasherpb.HashOrigin_Dsl{Dsl: (w.Dsl).Pb()}
 }
@@ -353,10 +398,15 @@ func (m *HashOrigin) Pb() *hasherpb.HashOrigin {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.HashOrigin{
-		Module: (string)(m.Module),
-		Type:   (m.Type).Pb(),
+	pbMessage := &hasherpb.HashOrigin{}
+	{
+		pbMessage.Module = (string)(m.Module)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*HashOrigin) MirReflect() mirreflect.Type {
@@ -380,9 +430,12 @@ func (m *HashData) Pb() *hasherpb.HashData {
 	if m == nil {
 		return nil
 	}
-	return &hasherpb.HashData{
-		Data: m.Data,
+	pbMessage := &hasherpb.HashData{}
+	{
+		pbMessage.Data = m.Data
 	}
+
+	return pbMessage
 }
 
 func (*HashData) MirReflect() mirreflect.Type {

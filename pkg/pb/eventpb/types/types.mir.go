@@ -105,6 +105,9 @@ func (w *Event_Init) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Init == nil {
+		return &eventpb.Event_Init{}
+	}
 	return &eventpb.Event_Init{Init: (w.Init).Pb()}
 }
 
@@ -125,6 +128,9 @@ func (w *Event_Timer) Unwrap() *TimerEvent {
 func (w *Event_Timer) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Timer == nil {
+		return &eventpb.Event_Timer{}
 	}
 	return &eventpb.Event_Timer{Timer: (w.Timer).Pb()}
 }
@@ -147,6 +153,9 @@ func (w *Event_Hasher) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Hasher == nil {
+		return &eventpb.Event_Hasher{}
+	}
 	return &eventpb.Event_Hasher{Hasher: (w.Hasher).Pb()}
 }
 
@@ -167,6 +176,9 @@ func (w *Event_Bcb) Unwrap() *types2.Event {
 func (w *Event_Bcb) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Bcb == nil {
+		return &eventpb.Event_Bcb{}
 	}
 	return &eventpb.Event_Bcb{Bcb: (w.Bcb).Pb()}
 }
@@ -189,6 +201,9 @@ func (w *Event_Mempool) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Mempool == nil {
+		return &eventpb.Event_Mempool{}
+	}
 	return &eventpb.Event_Mempool{Mempool: (w.Mempool).Pb()}
 }
 
@@ -209,6 +224,9 @@ func (w *Event_Availability) Unwrap() *types4.Event {
 func (w *Event_Availability) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Availability == nil {
+		return &eventpb.Event_Availability{}
 	}
 	return &eventpb.Event_Availability{Availability: (w.Availability).Pb()}
 }
@@ -231,6 +249,9 @@ func (w *Event_BatchDb) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.BatchDb == nil {
+		return &eventpb.Event_BatchDb{}
+	}
 	return &eventpb.Event_BatchDb{BatchDb: (w.BatchDb).Pb()}
 }
 
@@ -251,6 +272,9 @@ func (w *Event_BatchFetcher) Unwrap() *types6.Event {
 func (w *Event_BatchFetcher) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.BatchFetcher == nil {
+		return &eventpb.Event_BatchFetcher{}
 	}
 	return &eventpb.Event_BatchFetcher{BatchFetcher: (w.BatchFetcher).Pb()}
 }
@@ -273,6 +297,9 @@ func (w *Event_ThreshCrypto) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.ThreshCrypto == nil {
+		return &eventpb.Event_ThreshCrypto{}
+	}
 	return &eventpb.Event_ThreshCrypto{ThreshCrypto: (w.ThreshCrypto).Pb()}
 }
 
@@ -293,6 +320,9 @@ func (w *Event_Checkpoint) Unwrap() *types8.Event {
 func (w *Event_Checkpoint) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Checkpoint == nil {
+		return &eventpb.Event_Checkpoint{}
 	}
 	return &eventpb.Event_Checkpoint{Checkpoint: (w.Checkpoint).Pb()}
 }
@@ -315,6 +345,9 @@ func (w *Event_Factory) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Factory == nil {
+		return &eventpb.Event_Factory{}
+	}
 	return &eventpb.Event_Factory{Factory: (w.Factory).Pb()}
 }
 
@@ -335,6 +368,9 @@ func (w *Event_Iss) Unwrap() *types10.Event {
 func (w *Event_Iss) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Iss == nil {
+		return &eventpb.Event_Iss{}
 	}
 	return &eventpb.Event_Iss{Iss: (w.Iss).Pb()}
 }
@@ -357,6 +393,9 @@ func (w *Event_Orderer) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Orderer == nil {
+		return &eventpb.Event_Orderer{}
+	}
 	return &eventpb.Event_Orderer{Orderer: (w.Orderer).Pb()}
 }
 
@@ -377,6 +416,9 @@ func (w *Event_Crypto) Unwrap() *types12.Event {
 func (w *Event_Crypto) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Crypto == nil {
+		return &eventpb.Event_Crypto{}
 	}
 	return &eventpb.Event_Crypto{Crypto: (w.Crypto).Pb()}
 }
@@ -399,6 +441,9 @@ func (w *Event_App) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.App == nil {
+		return &eventpb.Event_App{}
+	}
 	return &eventpb.Event_App{App: (w.App).Pb()}
 }
 
@@ -419,6 +464,9 @@ func (w *Event_Transport) Unwrap() *types14.Event {
 func (w *Event_Transport) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Transport == nil {
+		return &eventpb.Event_Transport{}
 	}
 	return &eventpb.Event_Transport{Transport: (w.Transport).Pb()}
 }
@@ -441,6 +489,9 @@ func (w *Event_PingPong) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.PingPong == nil {
+		return &eventpb.Event_PingPong{}
+	}
 	return &eventpb.Event_PingPong{PingPong: w.PingPong}
 }
 
@@ -462,6 +513,9 @@ func (w *Event_TestingString) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
+	if w.TestingString == nil {
+		return &eventpb.Event_TestingString{}
+	}
 	return &eventpb.Event_TestingString{TestingString: w.TestingString}
 }
 
@@ -482,6 +536,9 @@ func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 func (w *Event_TestingUint) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
+	}
+	if w.TestingUint == nil {
+		return &eventpb.Event_TestingUint{}
 	}
 	return &eventpb.Event_TestingUint{TestingUint: w.TestingUint}
 }
@@ -507,13 +564,18 @@ func (m *Event) Pb() *eventpb.Event {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.Event{
-		DestModule: (string)(m.DestModule),
-		Type:       (m.Type).Pb(),
-		Next: types15.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
+	pbMessage := &eventpb.Event{}
+	{
+		pbMessage.DestModule = (string)(m.DestModule)
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
+		pbMessage.Next = types15.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
 			return (t).Pb()
-		}),
+		})
 	}
+
+	return pbMessage
 }
 
 func (*Event) MirReflect() mirreflect.Type {
@@ -533,7 +595,11 @@ func (m *Init) Pb() *eventpb.Init {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.Init{}
+	pbMessage := &eventpb.Init{}
+	{
+	}
+
+	return pbMessage
 }
 
 func (*Init) MirReflect() mirreflect.Type {
@@ -584,6 +650,9 @@ func (w *TimerEvent_Delay) Pb() eventpb.TimerEvent_Type {
 	if w == nil {
 		return nil
 	}
+	if w.Delay == nil {
+		return &eventpb.TimerEvent_Delay{}
+	}
 	return &eventpb.TimerEvent_Delay{Delay: (w.Delay).Pb()}
 }
 
@@ -604,6 +673,9 @@ func (w *TimerEvent_Repeat) Unwrap() *TimerRepeat {
 func (w *TimerEvent_Repeat) Pb() eventpb.TimerEvent_Type {
 	if w == nil {
 		return nil
+	}
+	if w.Repeat == nil {
+		return &eventpb.TimerEvent_Repeat{}
 	}
 	return &eventpb.TimerEvent_Repeat{Repeat: (w.Repeat).Pb()}
 }
@@ -626,6 +698,9 @@ func (w *TimerEvent_GarbageCollect) Pb() eventpb.TimerEvent_Type {
 	if w == nil {
 		return nil
 	}
+	if w.GarbageCollect == nil {
+		return &eventpb.TimerEvent_GarbageCollect{}
+	}
 	return &eventpb.TimerEvent_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
 }
 
@@ -646,9 +721,14 @@ func (m *TimerEvent) Pb() *eventpb.TimerEvent {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.TimerEvent{
-		Type: (m.Type).Pb(),
+	pbMessage := &eventpb.TimerEvent{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
 	}
+
+	return pbMessage
 }
 
 func (*TimerEvent) MirReflect() mirreflect.Type {
@@ -676,12 +756,15 @@ func (m *TimerDelay) Pb() *eventpb.TimerDelay {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.TimerDelay{
-		EventsToDelay: types15.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
+	pbMessage := &eventpb.TimerDelay{}
+	{
+		pbMessage.EventsToDelay = types15.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
 			return (t).Pb()
-		}),
-		Delay: (uint64)(m.Delay),
+		})
+		pbMessage.Delay = (uint64)(m.Delay)
 	}
+
+	return pbMessage
 }
 
 func (*TimerDelay) MirReflect() mirreflect.Type {
@@ -711,13 +794,16 @@ func (m *TimerRepeat) Pb() *eventpb.TimerRepeat {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.TimerRepeat{
-		EventsToRepeat: types15.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
+	pbMessage := &eventpb.TimerRepeat{}
+	{
+		pbMessage.EventsToRepeat = types15.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
 			return (t).Pb()
-		}),
-		Delay:          (uint64)(m.Delay),
-		RetentionIndex: (uint64)(m.RetentionIndex),
+		})
+		pbMessage.Delay = (uint64)(m.Delay)
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 	}
+
+	return pbMessage
 }
 
 func (*TimerRepeat) MirReflect() mirreflect.Type {
@@ -741,9 +827,12 @@ func (m *TimerGarbageCollect) Pb() *eventpb.TimerGarbageCollect {
 	if m == nil {
 		return nil
 	}
-	return &eventpb.TimerGarbageCollect{
-		RetentionIndex: (uint64)(m.RetentionIndex),
+	pbMessage := &eventpb.TimerGarbageCollect{}
+	{
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 	}
+
+	return pbMessage
 }
 
 func (*TimerGarbageCollect) MirReflect() mirreflect.Type {
