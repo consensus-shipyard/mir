@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
@@ -96,11 +97,11 @@ type Deployment struct {
 // NewDeployment returns a Deployment initialized according to the passed configuration.
 func NewDeployment(conf *TestConfig) (*Deployment, error) {
 	if conf == nil {
-		return nil, fmt.Errorf("test config is nil")
+		return nil, es.Errorf("test config is nil")
 	}
 
 	if conf.Logger == nil {
-		return nil, fmt.Errorf("logger is nil")
+		return nil, es.Errorf("logger is nil")
 	}
 
 	// The logger will be used concurrently by all clients and nodes, so it has to be thread-safe.

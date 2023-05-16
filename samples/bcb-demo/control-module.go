@@ -10,6 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	es "github.com/go-errors/errors"
 )
 
 type controlModule struct {
@@ -52,11 +53,11 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 				fmt.Println("Leader says: ", string(deliverEvent.Data))
 
 			default:
-				return fmt.Errorf("unknown bcb event type: %T", bcbEvent.Type)
+				return es.Errorf("unknown bcb event type: %T", bcbEvent.Type)
 			}
 
 		default:
-			return fmt.Errorf("unknown event type: %T", event.Type)
+			return es.Errorf("unknown event type: %T", event.Type)
 		}
 	}
 
@@ -74,7 +75,7 @@ func (m *controlModule) readMessageFromConsole() error {
 	fmt.Print("Type in a message and press Enter: ")
 	scanner.Scan()
 	if scanner.Err() != nil {
-		return fmt.Errorf("error reading from console: %w", scanner.Err())
+		return es.Errorf("error reading from console: %w", scanner.Err())
 	}
 
 	m.eventsOut <- events.ListOf(&eventpb.Event{

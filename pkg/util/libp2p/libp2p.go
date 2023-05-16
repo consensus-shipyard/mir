@@ -5,6 +5,7 @@ import (
 	mrand "math/rand"
 	"net"
 
+	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p"
 	libp2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -20,7 +21,7 @@ func NewDummyHostWithPrivKey(listenAddr t.NodeAddress, privKey libp2pcrypto.Priv
 
 	libp2pPeerID, err := peer.AddrInfoFromP2pAddr(listenAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get own libp2p addr info: %w", err)
+		return nil, es.Errorf("failed to get own libp2p addr info: %w", err)
 	}
 	return libp2p.New(
 		libp2p.Identity(privKey),
@@ -128,7 +129,7 @@ func NewDummyMultiaddr(numericID int, sourceAddr t.NodeAddress) multiaddr.Multia
 	}
 
 	if len(addrs) != 1 {
-		panic(fmt.Errorf("wrong number of addresses %d", len(addrs)))
+		panic(es.Errorf("wrong number of addresses %d", len(addrs)))
 	}
 
 	return addrs[0]
@@ -154,7 +155,7 @@ func NewFakeMultiaddr(numericID, port int) multiaddr.Multiaddr {
 	}
 
 	if len(addrs) != 1 {
-		panic(fmt.Errorf("wrong number of addresses %d", len(addrs)))
+		panic(es.Errorf("wrong number of addresses %d", len(addrs)))
 	}
 
 	return addrs[0]

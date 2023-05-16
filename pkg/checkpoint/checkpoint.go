@@ -1,10 +1,10 @@
 package checkpoint
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/fxamacker/cbor/v2"
+	es "github.com/go-errors/errors"
 
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 
@@ -48,7 +48,7 @@ func (sc *StableCheckpoint) Serialize() ([]byte, error) {
 // previously returned from StableCheckpoint.Serialize.
 func (sc *StableCheckpoint) Deserialize(data []byte) error {
 	if err := cbor.Unmarshal(data, sc); err != nil {
-		return fmt.Errorf("failed to CBOR unmarshal stable checkpoint: %w", err)
+		return es.Errorf("failed to CBOR unmarshal stable checkpoint: %w", err)
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 	n := len(membership.Nodes)
 	f := (n - 1) / 3
 	if len(sc.Cert) < f+1 {
-		return fmt.Errorf("not enough signatures in certificate: got %d, expected more than %d",
+		return es.Errorf("not enough signatures in certificate: got %d, expected more than %d",
 			len(sc.Cert), f+1)
 	}
 
@@ -154,12 +154,12 @@ func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership
 		// TODO: Once nodes are identified by more than their ID
 		//   (e.g., if a separate putlic key is part of their identity), adapt the check accordingly.
 		if _, ok := membership.Nodes[nodeID]; !ok {
-			return fmt.Errorf("node %v not in membership", nodeID)
+			return es.Errorf("node %v not in membership", nodeID)
 		}
 
 		// Check if the signature is valid.
 		if err := v.Verify(signedData.Data, sig, nodeID); err != nil {
-			return fmt.Errorf("signature verification error (node %v): %w", nodeID, err)
+			return es.Errorf("signature verification error (node %v): %w", nodeID, err)
 		}
 	}
 	return nil
@@ -179,21 +179,21 @@ func (sc *StableCheckpoint) Verify(
 			logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not valid.",
 				"chkpEpoch", sc.Epoch(),
 			)
-			return fmt.Errorf("invalid starting checkpoint: %w", err)
+			return es.Errorf("invalid starting checkpoint: %w", err)
 		}
 	} else if len(sc.PreviousMembership().Nodes) > 0 {
 		logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not empty for first epoch.")
-		return fmt.Errorf("invalid starting checkpoint: certificate not empty for first epoch")
+		return es.Errorf("invalid starting checkpoint: certificate not empty for first epoch")
 	}
 
 	//verify that sufficient memberships are provided by the checkpoint
 	if len(sc.Memberships()) != params.ConfigOffset+1 {
-		return fmt.Errorf("invalid starting checkpoint: number of memberships does not match params.ConfigOffset")
+		return es.Errorf("invalid starting checkpoint: number of memberships does not match params.ConfigOffset")
 	}
 
 	//verify that memberships are consistent with each other
 	if err := sc.verifyMembershipConsistency(logger); err != nil {
-		return fmt.Errorf("invalid starting checkpoint: %w", err)
+		return es.Errorf("invalid starting checkpoint: %w", err)
 	}
 
 	return nil
@@ -211,7 +211,7 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(logger logging.Logger) e
 					logger.Log(logging.LevelWarn, "Inconsistent membership parameters for node",
 						"nodeID", nodeID,
 					)
-					return fmt.Errorf("inconsistent membership parameters: nodeID %v does not match internal nodeID %v", nodeID, node.Id)
+					return es.Errorf("inconsistent membership parameters: nodeID %v does not match internal nodeID %v", nodeID, node.Id)
 				}
 			} else {
 				// check that all parameters are consistent
@@ -221,7 +221,7 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(logger logging.Logger) e
 						"oldMembership", membershipConsistency[nodeID],
 						"newMembership", node,
 					)
-					return fmt.Errorf("inconsistent membership parameters for node %v", nodeID)
+					return es.Errorf("inconsistent membership parameters for node %v", nodeID)
 				}
 			}
 		}

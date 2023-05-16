@@ -1,14 +1,13 @@
 package batchreconstruction
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/logging"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
@@ -55,7 +54,7 @@ func IncludeBatchReconstruction(
 
 		mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
 		if !ok {
-			return fmt.Errorf("unexpected certificate type")
+			return es.Errorf("unexpected certificate type")
 		}
 		certs := mscCertsWrapper.Mscs.Certs
 

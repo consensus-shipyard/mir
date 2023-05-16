@@ -2,11 +2,11 @@ package common
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -143,7 +143,7 @@ func (vcState *PbftViewChangeState) SetEmptyPreprepareDigests(digests [][]byte) 
 
 	// Sanity check (all digests must have been used)
 	if i != len(digests) {
-		return fmt.Errorf("more digests than empty Preprepares")
+		return es.Errorf("more digests than empty Preprepares")
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func reconstructPSet(entries []*pbftpbtypes.PSetEntry) (ViewChangePSet, error) {
 
 		// There can be at most one entry per sequence number. Otherwise, the set is not valid.
 		if _, ok := pSet[entry.Sn]; ok {
-			return nil, fmt.Errorf("invalid Pset: conflicting prepare entries")
+			return nil, es.Errorf("invalid Pset: conflicting prepare entries")
 		}
 
 		pSet[entry.Sn] = entry
@@ -274,7 +274,7 @@ func reconstructQSet(entries []*pbftpbtypes.QSetEntry) (ViewChangeQSet, error) {
 
 		// There can be at most one entry per digest and sequence number. Otherwise, the set is not valid.
 		if _, ok := snEntry[string(entry.Digest)]; ok {
-			return nil, fmt.Errorf("invalid Qset: conflicting preprepare entries")
+			return nil, es.Errorf("invalid Qset: conflicting preprepare entries")
 		}
 
 		snEntry[string(entry.Digest)] = entry.View

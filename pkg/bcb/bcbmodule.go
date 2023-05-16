@@ -1,8 +1,6 @@
 package bcb
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
 	bcbpbdsl "github.com/filecoin-project/mir/pkg/pb/bcbpb/dsl"
@@ -13,6 +11,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	es "github.com/go-errors/errors"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -73,7 +72,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	// upon event <bcb, Broadcast | m> do    // only process s
 	bcbpbdsl.UponBroadcastRequest(m, func(data []byte) error {
 		if nodeID != params.Leader {
-			return fmt.Errorf("only the leader node can receive requests")
+			return es.Errorf("only the leader node can receive requests")
 		}
 		state.request = data
 		transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.StartMessage(mc.Self, data), params.AllNodes)

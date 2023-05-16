@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
@@ -133,12 +134,12 @@ func run() error {
 	// In this demo code, we always listen on tha address 0.0.0.0.
 	portStr, err := getPortStr(initialMembership.Nodes[args.OwnID].Addr)
 	if err != nil {
-		return fmt.Errorf("could not parse port from own address: %w", err)
+		return es.Errorf("could not parse port from own address: %w", err)
 	}
 	addrStr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", portStr)
 	listenAddr, err := multiaddr.NewMultiaddr(addrStr)
 	if err != nil {
-		return fmt.Errorf("could not create listen address: %w", err)
+		return es.Errorf("could not create listen address: %w", err)
 	}
 
 	// We use the default SMR parameters. The initial membership is, regardless of the starting checkpoint,

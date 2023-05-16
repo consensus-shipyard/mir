@@ -7,11 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package config
 
 import (
-	"fmt"
 	"time"
 
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	es "github.com/go-errors/errors"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -95,43 +95,43 @@ func CheckParams(c *ModuleParams) error {
 
 	// The membership must not be empty.
 	if len(c.InitialMembership.Nodes) == 0 {
-		return fmt.Errorf("empty membership")
+		return es.Errorf("empty membership")
 	}
 
 	// Check that ConfigOffset is at least 1
 	if c.ConfigOffset < 1 {
-		return fmt.Errorf("config offset must be at least 1")
+		return es.Errorf("config offset must be at least 1")
 	}
 
 	// Segment length must not be negative.
 	if c.SegmentLength < 0 {
-		return fmt.Errorf("negative SegmentLength: %d", c.SegmentLength)
+		return es.Errorf("negative SegmentLength: %d", c.SegmentLength)
 	}
 
 	// Epoch length must not be negative.
 	if c.EpochLength < 0 {
-		return fmt.Errorf("negative EpochLength: %d", c.EpochLength)
+		return es.Errorf("negative EpochLength: %d", c.EpochLength)
 	}
 
 	// Exactly one of SegmentLength and EpochLength must be zero.
 	// (The one that is zero is computed based on the non-zero one.)
 	if (c.EpochLength != 0 && c.SegmentLength != 0) || (c.EpochLength == 0 && c.SegmentLength == 0) {
-		return fmt.Errorf("conflicting EpochLength (%d) and SegmentLength (%d) (exactly one must be zero)",
+		return es.Errorf("conflicting EpochLength (%d) and SegmentLength (%d) (exactly one must be zero)",
 			c.EpochLength, c.SegmentLength)
 	}
 
 	// MaxProposeDelay must not be negative.
 	if c.MaxProposeDelay < 0 {
-		return fmt.Errorf("negative MaxProposeDelay: %v", c.MaxProposeDelay)
+		return es.Errorf("negative MaxProposeDelay: %v", c.MaxProposeDelay)
 	}
 
 	// MsgBufCapacity must not be negative.
 	if c.MsgBufCapacity < 0 {
-		return fmt.Errorf("negative MsgBufCapacity: %d", c.MsgBufCapacity)
+		return es.Errorf("negative MsgBufCapacity: %d", c.MsgBufCapacity)
 	}
 
 	if c.CatchUpTimerPeriod <= 0 {
-		return fmt.Errorf("non-positive CatchUpTimerPeriod: %d", c.CatchUpTimerPeriod)
+		return es.Errorf("non-positive CatchUpTimerPeriod: %d", c.CatchUpTimerPeriod)
 	}
 
 	// If all checks passed, return nil error.

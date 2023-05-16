@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"sync"
 
+	es "github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -135,7 +136,7 @@ func (dc *DummyClient) SubmitTransaction(data []byte) error {
 
 	// Return an error summarizing the failed send attempts or nil if the transaction was successfully sent to all nodes.
 	if firstSndErr != nil {
-		return fmt.Errorf("failed sending transaction to nodes: %v first error: %w", sendFailures, firstSndErr)
+		return es.Errorf("failed sending transaction to nodes: %v first error: %w", sendFailures, firstSndErr)
 	}
 
 	return nil

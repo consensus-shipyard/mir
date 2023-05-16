@@ -1,8 +1,6 @@
 package common
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
@@ -15,6 +13,7 @@ import (
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 type ModuleParams struct {
@@ -120,7 +119,7 @@ func (state *State) InitView(
 
 	// Sanity check
 	if view < state.View {
-		return fmt.Errorf("starting a view (%d) older than the current one (%d)", view, state.View)
+		return es.Errorf("starting a view (%d) older than the current one (%d)", view, state.View)
 	}
 
 	// Do not start the same view more than once.

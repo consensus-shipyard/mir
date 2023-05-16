@@ -1,8 +1,7 @@
 package deploytest
 
 import (
-	"fmt"
-
+	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -50,7 +49,7 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 
 func (t *LocalLibp2pTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	if _, ok := t.hosts[sourceID]; !ok {
-		return nil, fmt.Errorf("unexpected node id: %v", sourceID)
+		return nil, es.Errorf("unexpected node id: %v", sourceID)
 	}
 
 	return libp2p.NewTransport(

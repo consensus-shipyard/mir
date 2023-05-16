@@ -1,11 +1,10 @@
 package multisigcollector
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -31,7 +30,7 @@ type ModuleParams = common.ModuleParams
 // other nodes have persistently stored the batch.
 func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
 	if len(params.AllNodes) < 2*params.F+1 {
-		return nil, fmt.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
+		return nil, es.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
 	}
 
 	m := dsl.NewModule(mc.Self)

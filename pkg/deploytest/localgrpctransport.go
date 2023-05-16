@@ -3,6 +3,7 @@ package deploytest
 import (
 	"fmt"
 
+	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -34,7 +35,7 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) (*LocalGrp
 	for i, id := range nodeIDs {
 		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", BaseListenPort+i))
 		if err != nil {
-			return nil, fmt.Errorf("error creating local multiaddress: %w", err)
+			return nil, es.Errorf("error creating local multiaddress: %w", err)
 		}
 		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{id, maddr.String(), nil, 0} // nolint:govet
 	}

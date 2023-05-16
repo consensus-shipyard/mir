@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/orderers/common"
@@ -166,13 +167,13 @@ func New(
 
 	// Check whether the passed configuration is valid.
 	if err := issconfig.CheckParams(params); err != nil {
-		return nil, fmt.Errorf("invalid ISS configuration: %w", err)
+		return nil, es.Errorf("invalid ISS configuration: %w", err)
 	}
 
 	//TODO: Make sure that startingChkp is consistent with params.
 	leaderPolicy, err := lsp.LeaderPolicyFromBytes(startingChkp.Snapshot.EpochData.LeaderPolicy)
 	if err != nil {
-		return nil, fmt.Errorf("invalid leader policy in starting checkpoint: %w", err)
+		return nil, es.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
 
 	err = startingChkp.Verify(params, hashImpl, chkpVerifier, logger)
@@ -271,7 +272,7 @@ func New(
 		}
 		// Sanity check.
 		if iss.nextNewMembership != nil {
-			return fmt.Errorf("already have a new membership for epoch %v", iss.epoch.Nr())
+			return es.Errorf("already have a new membership for epoch %v", iss.epoch.Nr())
 		}
 		// Convenience variable.
 		newMembershipEpoch := iss.epoch.Nr() + tt.EpochNr(len(iss.memberships))
@@ -349,12 +350,12 @@ func New(
 		}
 		chkpData, err := checkpoint.StableCheckpointFromPb(stableCheckpoint.Pb()).Serialize()
 		if err != nil {
-			return fmt.Errorf("failed serializing stable checkpoint: %w", err)
+			return es.Errorf("failed serializing stable checkpoint: %w", err)
 		}
 
 		seg, err := common.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
 		if err != nil {
-			return fmt.Errorf("error creating new segment: %w", err)
+			return es.Errorf("error creating new segment: %w", err)
 		}
 
 		// Instantiate a new PBFT orderer.
@@ -504,7 +505,7 @@ func New(
 		// This must happen after the state is restored,
 		// so the application has the correct state for returning the next configuration.
 		if err := iss.startEpoch(chkp.Epoch()); err != nil {
-			return fmt.Errorf("error starting epoch %v: %w", chkp.Epoch(), err)
+			return es.Errorf("error starting epoch %v: %w", chkp.Epoch(), err)
 		}
 
 		// Deliver the checkpoint to the application in the proper epoch.
@@ -560,7 +561,7 @@ func InitialStateSnapshot(
 			issconfig.StrongQuorum(len(params.InitialMembership.Nodes)),
 		).Bytes()
 	default:
-		return nil, fmt.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
+		return nil, es.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
 	}
 	if err != nil {
 		return nil, err
@@ -648,7 +649,7 @@ func (iss *ISS) initOrderers() error {
 		proposals := freeProposals(iss.nextDeliveredSN+tt.SeqNr(i), tt.SeqNr(len(leaders)), iss.Params.SegmentLength)
 		seg, err := common.NewSegment(leader, iss.epoch.Membership, proposals)
 		if err != nil {
-			return fmt.Errorf("error creating new segment: %w", err)
+			return es.Errorf("error creating new segment: %w", err)
 		}
 		iss.newEpochSN += tt.SeqNr(seg.Len())
 
@@ -716,7 +717,7 @@ func (iss *ISS) processCommitted() error {
 		} else {
 			var certPb availabilitypb.Cert
 			if err := proto.Unmarshal(certData, &certPb); err != nil {
-				return fmt.Errorf("cannot unmarshal availability certificate: %w", err)
+				return es.Errorf("cannot unmarshal availability certificate: %w", err)
 			}
 			cert = apbtypes.CertFromPb(&certPb)
 		}
@@ -763,7 +764,7 @@ func (iss *ISS) advanceEpoch() error {
 	// Serialize current leader selection policy.
 	leaderPolicyData, err := iss.LeaderPolicy.Bytes()
 	if err != nil {
-		return fmt.Errorf("could not serialize leader selection policy: %w", err)
+		return es.Errorf("could not serialize leader selection policy: %w", err)
 	}
 
 	// Start executing the new epoch.
@@ -772,7 +773,7 @@ func (iss *ISS) advanceEpoch() error {
 	// emitted by the checkpoint sub-protocol
 	// (startEpoch emits an event for the application making it transition to the new epoch).
 	if err := iss.startEpoch(newEpochNr); err != nil {
-		return fmt.Errorf("error starting epoch %v: %w", newEpochNr, err)
+		return es.Errorf("error starting epoch %v: %w", newEpochNr, err)
 	}
 
 	// Create a new checkpoint tracker to start the checkpointing protocol.
@@ -871,7 +872,7 @@ func (iss *ISS) deliverCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.No
 func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 	chkp := &checkpoint.StableCheckpoint{}
 	if err := chkp.Deserialize(chkpData); err != nil {
-		return fmt.Errorf("could not deserialize common checkpoint: %w", err)
+		return es.Errorf("could not deserialize common checkpoint: %w", err)
 	}
 
 	// Ignore old checkpoints.

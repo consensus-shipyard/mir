@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 // workChans represents input channels for the modules within the Node.
@@ -105,7 +106,7 @@ func (n *Node) processModuleEvents(
 		}
 
 	default:
-		return false, fmt.Errorf("unknown module type: %T", m)
+		return false, es.Errorf("unknown module type: %T", m)
 	}
 
 	// Return if no output was generated.
@@ -137,9 +138,9 @@ func safelyApplyEventsPassive(
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
+				err = es.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
 			} else {
-				err = fmt.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
+				err = es.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
 			}
 		}
 	}()
@@ -151,9 +152,9 @@ func safelyApplyEventsActive(ctx context.Context, module modules.ActiveModule, e
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
+				err = es.Errorf("module panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
 			} else {
-				err = fmt.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
+				err = es.Errorf("module panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
 			}
 		}
 	}()

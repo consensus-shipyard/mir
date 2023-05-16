@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"fmt"
 	"hash"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -11,6 +10,7 @@ import (
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 type HashImpl interface {
@@ -56,11 +56,11 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 				hasherpbtypes.HashOriginFromPb(e.RequestOne.Origin),
 			).Pb()), nil
 		default:
-			return nil, fmt.Errorf("unexpected hasher event type: %T", e)
+			return nil, es.Errorf("unexpected hasher event type: %T", e)
 		}
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of Hash event: %T", event.Type)
+		return nil, es.Errorf("unexpected type of Hash event: %T", event.Type)
 	}
 }
 

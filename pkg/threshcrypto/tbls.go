@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/drand/kyber"
@@ -14,6 +13,7 @@ import (
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/tbls"
+	es "github.com/go-errors/errors"
 	"golang.org/x/exp/slices"
 
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -171,7 +171,7 @@ func (inst *TBLSInst) UnmarshalFrom(r io.Reader) (int, error) {
 		*v = int(vI64)
 
 		if int64(*v) != vI64 {
-			return fmt.Errorf("loss of int precision during decode")
+			return es.Errorf("loss of int precision during decode")
 		}
 
 		return nil
@@ -264,7 +264,7 @@ func (inst *TBLSInst) VerifyShare(msg [][]byte, sigShare []byte, nodeID t.NodeID
 	}
 
 	if idx != slices.Index(inst.members, nodeID) {
-		return fmt.Errorf("signature share belongs to another node")
+		return es.Errorf("signature share belongs to another node")
 	}
 
 	return inst.scheme.VerifyPartial(inst.public, digest(msg), sigShare)

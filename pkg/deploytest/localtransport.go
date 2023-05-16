@@ -1,7 +1,6 @@
 package deploytest
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -9,6 +8,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 type LocalTransportLayer interface {
@@ -34,6 +34,6 @@ func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDs []t.N
 	case "libp2p":
 		return NewLocalLibp2pTransport(nodeIDs, logger), nil
 	default:
-		return nil, fmt.Errorf("unexpected transport type: %v", transportType)
+		return nil, es.Errorf("unexpected transport type: %v", transportType)
 	}
 }

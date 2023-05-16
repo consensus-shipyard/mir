@@ -1,11 +1,10 @@
 package common
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	es "github.com/go-errors/errors"
 )
 
 // ======================================================================
@@ -50,11 +49,11 @@ func (cvc *CheckpointValidityChecker) Check(data []byte) error {
 	var chkp checkpoint.StableCheckpoint
 
 	if err := chkp.Deserialize(data); err != nil {
-		return fmt.Errorf("could not deserialize checkpoint: %w", err)
+		return es.Errorf("could not deserialize checkpoint: %w", err)
 	}
 
 	if err := chkp.VerifyCert(cvc.HashImpl, cvc.CertVerifier, cvc.Membership); err != nil {
-		return fmt.Errorf("invalid checkpoint certificate: %w", err)
+		return es.Errorf("invalid checkpoint certificate: %w", err)
 	}
 
 	return nil

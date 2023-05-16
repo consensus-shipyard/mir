@@ -3,6 +3,7 @@ package factorymodule
 import (
 	"fmt"
 
+	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -87,10 +88,10 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 			case *factorypbtypes.Event_GarbageCollect:
 				return fm.applyGarbageCollect(e.GarbageCollect)
 			default:
-				return nil, fmt.Errorf("unsupported factory event subtype: %T", e)
+				return nil, es.Errorf("unsupported factory event subtype: %T", e)
 			}
 		default:
-			return nil, fmt.Errorf("unsupported event type for factory module: %T", e)
+			return nil, es.Errorf("unsupported event type for factory module: %T", e)
 		}
 	}
 	return fm.forwardEvent(event)
@@ -104,7 +105,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 
 	// The new module's ID must have the factory's ID as a prefix.
 	if id.Top() != fm.ownID {
-		return nil, fmt.Errorf("submodule (%v) must have the factory's ID (%v) as a prefix", id, fm.ownID)
+		return nil, es.Errorf("submodule (%v) must have the factory's ID (%v) as a prefix", id, fm.ownID)
 	}
 
 	// Skip creation of submodules that should have been already garbage-collected.

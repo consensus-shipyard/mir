@@ -25,6 +25,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
+	es "github.com/go-errors/errors"
 )
 
 type FakeLink struct {
@@ -71,10 +72,10 @@ func (fl *FakeLink) ApplyEvents(
 					}
 				}
 			default:
-				return fmt.Errorf("unexpected transport event type: %T", e)
+				return es.Errorf("unexpected transport event type: %T", e)
 			}
 		default:
-			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
+			return es.Errorf("unexpected type of Net event: %T", event.Type)
 		}
 	}
 

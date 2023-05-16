@@ -8,9 +8,9 @@ package crypto
 
 import (
 	"bytes"
-	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 // TODO: Write comments.
@@ -43,7 +43,7 @@ func (dc *DummyCrypto) DeleteNodeKey(_ t.NodeID) {
 // Both data and nodeID are ignored.
 func (dc *DummyCrypto) Verify(_ [][]byte, signature []byte, _ t.NodeID) error {
 	if !bytes.Equal(signature, dc.DummySig) {
-		return fmt.Errorf("dummy signature mismatch")
+		return es.Errorf("dummy signature mismatch")
 	}
 
 	return nil

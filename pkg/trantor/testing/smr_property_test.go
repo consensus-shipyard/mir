@@ -3,9 +3,9 @@ package testing
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 
+	es "github.com/go-errors/errors"
 	"github.com/reactivex/rxgo/v2"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
@@ -55,7 +55,7 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 	for nodeID, eventLogFile := range eventLogFiles {
 		trace, err := eventTrace(eventLogFile)
 		if err != nil {
-			return fmt.Errorf("failed to load event trace from file %s: %w", eventLogFile, err)
+			return es.Errorf("failed to load event trace from file %s: %w", eventLogFile, err)
 		}
 		deliveredBatches[nodeID] = rxgo.Just(trace)().Filter(isNewOrderedBatch).Map(extractBatch)
 	}
@@ -76,7 +76,7 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 			db,
 			func(_ context.Context, b1 interface{}, b2 interface{}) (interface{}, error) {
 				if err := batchesEqual(b1, b2); err != nil {
-					return nil, fmt.Errorf("batches not equal at index %d for nodes %v and %v: %w",
+					return nil, es.Errorf("batches not equal at index %d for nodes %v and %v: %w",
 						i,
 						firstNodeID,
 						nodeID,
@@ -87,7 +87,7 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 			},
 		).Error()
 		if err != nil {
-			return fmt.Errorf("delivered batch history mismatch: %w", err)
+			return es.Errorf("delivered batch history mismatch: %w", err)
 		}
 	}
 
@@ -98,23 +98,23 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 	// Count the number of batches delivered by the first node.
 	count, err := firstTrace.Count().Get()
 	if err != nil {
-		return fmt.Errorf("could not get number of delivered batches: %w", err)
+		return es.Errorf("could not get number of delivered batches: %w", err)
 	}
 	if count.Error() {
-		return fmt.Errorf("could not read number of delivered batches: %w", count.E)
+		return es.Errorf("could not read number of delivered batches: %w", count.E)
 	}
 
 	// Check if all nodes delivered the same number of batches (as the first node).
 	for _, db := range deliveredBatches {
 		cnt, err := db.Count().Get()
 		if err != nil {
-			return fmt.Errorf("could not get number of delivered batches: %w", err)
+			return es.Errorf("could not get number of delivered batches: %w", err)
 		}
 		if cnt.Error() {
-			return fmt.Errorf("could not read number of delivered batches: %w", cnt.E)
+			return es.Errorf("could not read number of delivered batches: %w", cnt.E)
 		}
 		if count.V.(int64) != cnt.V.(int64) {
-			return fmt.Errorf("delivered different number of batches: %v and %v", count.V, cnt.V)
+			return es.Errorf("delivered different number of batches: %v and %v", count.V, cnt.V)
 		}
 	}
 
@@ -124,13 +124,13 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 			return int64(len(b.(*batchfetcherpb.NewOrderedBatch).Txs)), nil
 		}).SumInt64().Get()
 		if err != nil {
-			return fmt.Errorf("could not get number of delivered transactions: %w", err)
+			return es.Errorf("could not get number of delivered transactions: %w", err)
 		}
 		if cnt.Error() {
-			return fmt.Errorf("could not read number of delivered batches: %w", cnt.E)
+			return es.Errorf("could not read number of delivered batches: %w", cnt.E)
 		}
 		if cnt.V.(int64) != int64(transactionsSubmitted) {
-			return fmt.Errorf("different number of submitted and delivered transactions: %v and %v",
+			return es.Errorf("different number of submitted and delivered transactions: %v and %v",
 				int64(transactionsSubmitted), cnt.V)
 		}
 	}
@@ -160,7 +160,7 @@ func batchesEqual(i1 interface{}, i2 interface{}) error {
 
 	// Check that the bathces contain the same number of transactions.
 	if len(b1.Txs) != len(b2.Txs) {
-		return fmt.Errorf("batches have different lengths: %d and %d", len(b1.Txs), len(b2.Txs))
+		return es.Errorf("batches have different lengths: %d and %d", len(b1.Txs), len(b2.Txs))
 	}
 
 	for i, tx := range b1.Txs {
@@ -174,16 +174,16 @@ func batchesEqual(i1 interface{}, i2 interface{}) error {
 
 func txEqual(tx1 *trantorpb.Transaction, tx2 *trantorpb.Transaction) error {
 	if tx1.ClientId != tx2.ClientId {
-		return fmt.Errorf("client ID mismatch: %v and %v", tx1.ClientId, tx2.ClientId)
+		return es.Errorf("client ID mismatch: %v and %v", tx1.ClientId, tx2.ClientId)
 	}
 	if tx1.TxNo != tx2.TxNo {
-		return fmt.Errorf("transaction number mismatch: %v and %v", tx1.TxNo, tx2.TxNo)
+		return es.Errorf("transaction number mismatch: %v and %v", tx1.TxNo, tx2.TxNo)
 	}
 	if tx1.Type != tx2.Type {
-		return fmt.Errorf("type mismatch: %v and %v", tx1.Type, tx2.Type)
+		return es.Errorf("type mismatch: %v and %v", tx1.Type, tx2.Type)
 	}
 	if !bytes.Equal(tx1.Data, tx2.Data) {
-		return fmt.Errorf("payload mismatch: %v and %v", tx1.Data, tx2.Data)
+		return es.Errorf("payload mismatch: %v and %v", tx1.Data, tx2.Data)
 	}
 
 	return nil

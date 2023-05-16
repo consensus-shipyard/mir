@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
@@ -21,7 +22,7 @@ func FromFileName(fileName string) (*trantorpbtypes.Membership, error) {
 	// Open file.
 	f, err := os.Open(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("could not open file: %w", err)
+		return nil, es.Errorf("could not open file: %w", err)
 	}
 
 	// Schedule closing file.
@@ -126,7 +127,7 @@ func DummyMultiAddrs(membershipIn *trantorpbtypes.Membership) (*trantorpbtypes.M
 	for nodeID, identity := range membershipIn.Nodes {
 		numericID, err := strconv.Atoi(string(nodeID))
 		if err != nil {
-			return nil, fmt.Errorf("node IDs must be numeric in the sample app: %w", err)
+			return nil, es.Errorf("node IDs must be numeric in the sample app: %w", err)
 		}
 
 		newAddr, err := multiaddr.NewMultiaddr(identity.Addr)

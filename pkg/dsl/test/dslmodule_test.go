@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	es "github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -59,7 +60,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 		if s == "good" {
 			// By design, this event will be lost due to the error.
 			EmitTestingString(m, mc.Replies, "lost")
-			return fmt.Errorf("bye")
+			return es.Errorf("bye")
 		}
 		return nil
 	})

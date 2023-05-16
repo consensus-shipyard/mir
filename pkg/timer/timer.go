@@ -2,7 +2,6 @@ package timer
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	es "github.com/go-errors/errors"
 )
 
 // The Timer module abstracts the passage of real time.
@@ -63,7 +63,7 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
 			}
 		default:
-			return fmt.Errorf("unexpected type of Timer event: %T", event.Type)
+			return es.Errorf("unexpected type of Timer event: %T", event.Type)
 		}
 	}
 

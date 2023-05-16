@@ -2,12 +2,12 @@ package certverification
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	es "github.com/go-errors/errors"
 
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -118,13 +118,13 @@ func IncludeVerificationOfCertificates(
 func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert) ([]*mscpbtypes.Cert, error) {
 	// Check that the certificate is present.
 	if cert == nil || cert.Type == nil {
-		return nil, fmt.Errorf("the certificate is nil")
+		return nil, es.Errorf("the certificate is nil")
 	}
 
 	// Check that the certificate is of the right type.
 	mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
 	if !ok {
-		return nil, fmt.Errorf("unexpected certificate type")
+		return nil, es.Errorf("unexpected certificate type")
 	}
 	mscCerts := mscCertsWrapper.Mscs.Certs
 
@@ -132,25 +132,25 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 		// Check that the certificate contains a sufficient number of signatures.
 		if len(mscCert.Signers) < params.F+1 {
-			return nil, fmt.Errorf("insuficient number of signatures: %d, need %d", len(mscCert.Signers), params.F+1)
+			return nil, es.Errorf("insuficient number of signatures: %d, need %d", len(mscCert.Signers), params.F+1)
 		}
 
 		if len(mscCert.Signers) != len(mscCert.Signatures) {
-			return nil, fmt.Errorf("the number of signatures does not correspond to the number of signers")
+			return nil, es.Errorf("the number of signatures does not correspond to the number of signers")
 		}
 
 		// Check that the identities of the signing nodes are not repeated.
 		alreadySeen := make(map[t.NodeID]struct{})
 		for _, nodeID := range mscCert.Signers {
 			if _, ok := alreadySeen[nodeID]; ok {
-				return nil, fmt.Errorf("some node ids in the certificate are repeated multiple times")
+				return nil, es.Errorf("some node ids in the certificate are repeated multiple times")
 			}
 			alreadySeen[nodeID] = struct{}{}
 		}
 
 		// Check that signers are members.
 		if !sliceutil.ContainsAll(params.AllNodes, mscCert.Signers) {
-			return nil, fmt.Errorf("certificate contains signatures from non members, signers %v", mscCert.Signers)
+			return nil, es.Errorf("certificate contains signatures from non members, signers %v", mscCert.Signers)
 		}
 
 	}

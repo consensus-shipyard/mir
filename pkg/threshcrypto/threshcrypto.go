@@ -3,14 +3,13 @@
 package threshcrypto
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	tcEvents "github.com/filecoin-project/mir/pkg/threshcrypto/events"
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 type MirModule struct {
@@ -34,7 +33,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of event in threshcrypto MirModule: %T", event.Type)
+		return nil, es.Errorf("unexpected type of event in threshcrypto MirModule: %T", event.Type)
 	}
 }
 
@@ -99,7 +98,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 		), nil
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of threshcrypto event in threshcrypto MirModule: %T", event.Type)
+		return nil, es.Errorf("unexpected type of threshcrypto event in threshcrypto MirModule: %T", event.Type)
 	}
 }
 

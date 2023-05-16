@@ -7,6 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
+	es "github.com/go-errors/errors"
 
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
@@ -75,12 +76,12 @@ func IncludeGoodCase(
 
 			certBytes, err := proto.Marshal(cert.Pb())
 			if err != nil {
-				return fmt.Errorf("error marshalling certificate: %w", err)
+				return es.Errorf("error marshalling certificate: %w", err)
 			}
 
 			err = propose(m, state, params, moduleConfig, certBytes, logger)
 			if err != nil {
-				return fmt.Errorf("failed to propose: %w", err)
+				return es.Errorf("failed to propose: %w", err)
 			}
 		} else { // nolint:staticcheck,revive
 			// If the PBFT view advanced since the certificate was requested,

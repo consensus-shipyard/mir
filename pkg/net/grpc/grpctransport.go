@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
@@ -147,10 +148,10 @@ func (gt *Transport) ApplyEvents(
 					}
 				}
 			default:
-				return fmt.Errorf("unexpected type of transport event: %T", e)
+				return es.Errorf("unexpected type of transport event: %T", e)
 			}
 		default:
-			return fmt.Errorf("unexpected type of Net event: %T", event.Type)
+			return es.Errorf("unexpected type of Net event: %T", event.Type)
 		}
 	}
 
@@ -175,7 +176,7 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 	if ok {
 		gt.logger.Log(logging.LevelDebug, fmt.Sprintf("Incoming connection from %s", p.Addr.String()))
 	} else {
-		return fmt.Errorf("failed to get grpc peer info from context")
+		return es.Errorf("failed to get grpc peer info from context")
 	}
 
 	// Declare loop variables outside, since err is used also after the loop finishes.
@@ -216,7 +217,7 @@ func (gt *Transport) Start() error {
 	// Obtain net.Dial compatible address.
 	_, dialAddr, err := manet.DialArgs(gt.ownAddr)
 	if err != nil {
-		return fmt.Errorf("failed to obtain Dial address: %w", err)
+		return es.Errorf("failed to obtain Dial address: %w", err)
 	}
 	// Obtain own port number from membership.
 	_, ownPort, err := net.SplitHostPort(dialAddr)
@@ -233,7 +234,7 @@ func (gt *Transport) Start() error {
 	// Start listening on the network
 	conn, err := net.Listen("tcp", ":"+ownPort)
 	if err != nil {
-		return fmt.Errorf("failed to listen for connections on port %s: %w", ownPort, err)
+		return es.Errorf("failed to listen for connections on port %s: %w", ownPort, err)
 	}
 
 	// Start the gRPC server in a separate goroutine.

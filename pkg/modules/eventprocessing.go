@@ -1,11 +1,11 @@
 package modules
 
 import (
-	"fmt"
 	"runtime/debug"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	es "github.com/go-errors/errors"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.
@@ -114,9 +114,9 @@ func applySafely(
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {
-				err = fmt.Errorf("event application panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
+				err = es.Errorf("event application panicked: %w\nStack trace:\n%s", rErr, string(debug.Stack()))
 			} else {
-				err = fmt.Errorf("event application panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
+				err = es.Errorf("event application panicked: %v\nStack trace:\n%s", r, string(debug.Stack()))
 			}
 		}
 	}()

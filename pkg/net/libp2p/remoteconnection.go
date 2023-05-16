@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
+	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -41,7 +41,7 @@ func newRemoteConnection(
 ) (*remoteConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse address: %w", err)
+		return nil, es.Errorf("failed to parse address: %w", err)
 	}
 	conn := &remoteConnection{
 		params:        params,
@@ -73,7 +73,7 @@ func (conn *remoteConnection) Send(msg *messagepb.Message) error {
 	case conn.msgBuffer <- msg:
 		return nil
 	default:
-		return fmt.Errorf("send buffer full")
+		return es.Errorf("send buffer full")
 	}
 }
 
@@ -119,7 +119,7 @@ func (conn *remoteConnection) Wait() (chan error, func()) {
 			select {
 			case <-conn.stop:
 				// and the connection is not closing.
-				result <- fmt.Errorf("connection closed")
+				result <- es.Errorf("connection closed")
 				return
 			default:
 				conn.connectedCond.Wait()
@@ -128,7 +128,7 @@ func (conn *remoteConnection) Wait() (chan error, func()) {
 
 		// If the waiting was aborted, output an error, otherwise exit successfully (by closing the channel).
 		if abort {
-			result <- fmt.Errorf("waiting aborted")
+			result <- es.Errorf("waiting aborted")
 		} else {
 			close(result)
 		}
@@ -169,7 +169,7 @@ func (conn *remoteConnection) connect() error {
 		select {
 		case <-conn.stop:
 			// Stop connection attempts if connection is closing.
-			return fmt.Errorf("context canceled")
+			return es.Errorf("context canceled")
 		default:
 
 			// Try connecting to the peer.
@@ -199,7 +199,7 @@ func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
 	if err != nil {
 		select {
 		case <-conn.stop:
-			return fmt.Errorf("context canceled")
+			return es.Errorf("context canceled")
 		case <-after.C:
 			conn.logger.Log(logging.LevelWarn, "Failed connecting.", "err", err)
 			return nil
@@ -294,7 +294,7 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 		// Set a timeout for the data to be written, so the conn.stream.Write call does not block forever.
 		// This is required so that we can periodically check the conn.stop channel.
 		if err := conn.stream.SetWriteDeadline(time.Now().Add(conn.params.StreamWriteTimeout)); err != nil {
-			return fmt.Errorf("could not set stream write deadline")
+			return es.Errorf("could not set stream write deadline")
 		}
 
 		// Try writing data to the underlying network stream.
@@ -311,7 +311,7 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 
 			select {
 			case <-conn.stop:
-				return fmt.Errorf("connection closing")
+				return es.Errorf("connection closing")
 			default:
 				data = data[bytesWritten:]
 			}
@@ -319,7 +319,7 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 		} else {
 			// If any other error occurred, just return it.
 
-			return fmt.Errorf("failed sending data: %w", err)
+			return es.Errorf("failed sending data: %w", err)
 
 		}
 	}
@@ -343,13 +343,13 @@ func (conn *remoteConnection) closeStream() {
 func encodeMessage(msg *messagepb.Message, nodeID t.NodeID) ([]byte, error) {
 	p, err := proto.Marshal(msg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal message: %w", err)
+		return nil, es.Errorf("failed to marshal message: %w", err)
 	}
 
 	tm := TransportMessage{nodeID.Pb(), p}
 	buf := new(bytes.Buffer)
 	if err = tm.MarshalCBOR(buf); err != nil {
-		return nil, fmt.Errorf("failed to CBOR marshal message: %w", err)
+		return nil, es.Errorf("failed to CBOR marshal message: %w", err)
 	}
 	return buf.Bytes(), nil
 }

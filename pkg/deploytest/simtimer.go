@@ -6,7 +6,6 @@ package deploytest
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -15,6 +14,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	es "github.com/go-errors/errors"
 )
 
 type simTimerModule struct {
@@ -64,10 +64,10 @@ func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error
 			retIdx := tt.RetentionIndex(e.GarbageCollect.RetentionIndex)
 			m.garbageCollect(retIdx)
 		default:
-			return fmt.Errorf("unexpected type of Timer sub-event: %T", e)
+			return es.Errorf("unexpected type of Timer sub-event: %T", e)
 		}
 	default:
-		return fmt.Errorf("unexpected type of Timer event: %T", e)
+		return es.Errorf("unexpected type of Timer event: %T", e)
 	}
 
 	return nil

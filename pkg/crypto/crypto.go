@@ -3,8 +3,6 @@
 package crypto
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
@@ -12,6 +10,7 @@ import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	es "github.com/go-errors/errors"
 )
 
 type MirModule struct {
@@ -87,11 +86,11 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 			).Pb()), nil
 
 		default:
-			return nil, fmt.Errorf("unexpected type of crypto event: %T", e)
+			return nil, es.Errorf("unexpected type of crypto event: %T", e)
 		}
 	default:
 		// Complain about all other incoming event types.
-		return nil, fmt.Errorf("unexpected type of MirModule event: %T", event.Type)
+		return nil, es.Errorf("unexpected type of MirModule event: %T", event.Type)
 	}
 }
 

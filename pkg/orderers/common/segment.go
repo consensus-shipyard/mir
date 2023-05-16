@@ -1,14 +1,13 @@
 package common
 
 import (
-	"fmt"
-
 	"github.com/filecoin-project/mir/pkg/orderers/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	es "github.com/go-errors/errors"
 )
 
 // The Segment type represents an ISS Segment.
@@ -21,7 +20,7 @@ func NewSegment(
 	proposals map[tt.SeqNr][]byte,
 ) (*Segment, error) {
 	if _, ok := membership.Nodes[leader]; !ok {
-		return nil, fmt.Errorf("leader (%v) not in Membership (%v)", leader, maputil.GetKeys(membership.Nodes))
+		return nil, es.Errorf("leader (%v) not in Membership (%v)", leader, maputil.GetKeys(membership.Nodes))
 	}
 
 	return (*Segment)(&ordererpbtypes.PBFTSegment{
