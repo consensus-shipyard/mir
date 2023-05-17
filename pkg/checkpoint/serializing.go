@@ -3,13 +3,15 @@ package checkpoint
 import (
 	"encoding/binary"
 
+	es "github.com/go-errors/errors"
+
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 func serializeCheckpointForSig(epoch tt.EpochNr, seqNr tt.SeqNr, snapshotHash []byte) *cryptopbtypes.SignedData {
@@ -22,21 +24,33 @@ func serializeCheckpointForSig(epoch tt.EpochNr, seqNr tt.SeqNr, snapshotHash []
 	return &cryptopbtypes.SignedData{Data: [][]byte{epochBytes, snBytes, snapshotHash}}
 }
 
-func serializeSnapshotForHash(snapshot *trantorpbtypes.StateSnapshot) *hasherpbtypes.HashData {
-	return &hasherpbtypes.HashData{Data: append(serializeEpochDataForHash(snapshot.EpochData), snapshot.AppData)}
+func serializeSnapshotForHash(snapshot *trantorpbtypes.StateSnapshot) (*hasherpbtypes.HashData, error) {
+	epochData, err := serializeEpochDataForHash(snapshot.EpochData)
+	if err != nil {
+		return nil, es.Errorf("failed serializing epoch data: %w", err)
+	}
+	return &hasherpbtypes.HashData{Data: append(epochData, snapshot.AppData)}, nil
 }
 
-func serializeEpochDataForHash(epochData *trantorpbtypes.EpochData) [][]byte {
-	data := append(serializeEpochConfigForHash(epochData.EpochConfig), epochData.LeaderPolicy)
+func serializeEpochDataForHash(epochData *trantorpbtypes.EpochData) ([][]byte, error) {
+	data, err := serializeEpochConfigForHash(epochData.EpochConfig)
+	if err != nil {
+		return nil, es.Errorf("failed serializing epoch config: %w", err)
+	}
+	data = append(data, epochData.LeaderPolicy)
 	data = append(data, serializeClientProgressForHash(epochData.ClientProgress)...)
 	if len(epochData.PreviousMembership.Nodes) != 0 {
 		// In the initial checkpoint the PreviousMembership is an empty map.
-		data = append(data, serializeMembershipsForHash([]*trantorpbtypes.Membership{epochData.PreviousMembership})...)
+		prevMembData, err := membutil.Serialize(epochData.PreviousMembership)
+		if err != nil {
+			return nil, es.Errorf("failed serializing previous membership: %w", err)
+		}
+		data = append(data, prevMembData)
 	}
-	return data
+	return data, nil
 }
 
-func serializeEpochConfigForHash(epochConfig *trantorpbtypes.EpochConfig) [][]byte {
+func serializeEpochConfigForHash(epochConfig *trantorpbtypes.EpochConfig) ([][]byte, error) {
 
 	// Add simple values.
 	data := [][]byte{
@@ -46,41 +60,29 @@ func serializeEpochConfigForHash(epochConfig *trantorpbtypes.EpochConfig) [][]by
 	}
 
 	// Append memberships.
-	data = append(data, serializeMembershipsForHash(epochConfig.Memberships)...)
+	d, err := serializeMembershipsForHash(epochConfig.Memberships)
+	if err != nil {
+		return nil, err
+	}
+	data = append(data, d...)
 
-	return data
+	return data, nil
 }
 
-func serializeMembershipsForHash(memberships []*trantorpbtypes.Membership) [][]byte {
-	var data [][]byte
+func serializeMembershipsForHash(memberships []*trantorpbtypes.Membership) ([][]byte, error) {
+	data := make([][]byte, 0)
 
 	// Each string representing an ID and an address is explicitly terminated with a zero byte.
 	// This ensures that the last byte of an ID and the first byte of an address are not interchangeable.
 	for _, membership := range memberships {
-		maputil.IterateSorted(membership.Nodes, func(id t.NodeID, identity *trantorpbtypes.NodeIdentity) bool {
-			data = append(data, id.Bytes(), []byte{0})
-			data = append(data, serializeNodeIdentityForHash(identity)...)
-			return true
-		})
+		d, err := membutil.Serialize(membership)
+		if err != nil {
+			return nil, es.Errorf("could not serialize membership: %w", err)
+		}
+		data = append(data, d)
 	}
 
-	return data
-}
-
-func serializeNodeIdentityForHash(identity *trantorpbtypes.NodeIdentity) [][]byte {
-
-	// TODO: Using {0} as a field separator is technically not right,
-	//   since one field ending with 0 still yields the same byte string as another field beginning with 0.
-	return [][]byte{
-		identity.Id.Bytes(),
-		{0},
-		[]byte(identity.Addr),
-		{0},
-		identity.Key,
-		{0},
-		identity.Weight.Bytes(),
-		{0},
-	}
+	return data, nil
 }
 
 func serializeClientProgressForHash(clientProgress *trantorpbtypes.ClientProgress) [][]byte {

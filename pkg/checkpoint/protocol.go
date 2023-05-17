@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/util/membutil"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -26,6 +26,7 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 const (
@@ -89,7 +90,9 @@ func NewModule(
 		if state.StateSnapshot.AppData == nil {
 			state.StateSnapshot.AppData = appData
 			if state.SnapshotReady() {
-				processStateSnapshot(m, state, moduleConfig)
+				if err := processStateSnapshot(m, state, moduleConfig); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
@@ -172,7 +175,9 @@ func NewModule(
 				Progress: progress,
 			}
 			if state.SnapshotReady() {
-				processStateSnapshot(m, state, moduleConfig)
+				if err := processStateSnapshot(m, state, moduleConfig); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
@@ -185,14 +190,22 @@ func NewModule(
 	return m
 }
 
-func processStateSnapshot(m dsl.Module, state *State, mc ModuleConfig) {
+func processStateSnapshot(m dsl.Module, state *State, mc ModuleConfig) error {
+
+	// Serialize the snapshot.
+	snapshotData, err := serializeSnapshotForHash(state.StateSnapshot)
+	if err != nil {
+		return es.Errorf("failed serializing state snapshot: %w", err)
+	}
 
 	// Initiate computing the hash of the snapshot.
 	hasherpbdsl.RequestOne(m,
 		mc.Hasher,
-		serializeSnapshotForHash(state.StateSnapshot),
+		snapshotData,
 		&struct{}{},
 	)
+
+	return nil
 }
 
 func announceStable(m dsl.Module, p *ModuleParams, state *State, mc ModuleConfig) {

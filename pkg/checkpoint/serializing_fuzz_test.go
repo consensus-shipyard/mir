@@ -47,6 +47,9 @@ func FuzzSnapshotForHash(f *testing.F) {
 				make(map[types.NodeID]*trantorpbtypes.NodeIdentity),
 			},
 		}}
-		serializeSnapshotForHash(&state)
+		_, err := serializeSnapshotForHash(&state)
+		if err != nil {
+			panic(err)
+		}
 	})
 }
