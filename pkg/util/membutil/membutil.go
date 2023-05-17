@@ -1,6 +1,9 @@
 package membutil
 
 import (
+	"github.com/fxamacker/cbor/v2"
+	es "github.com/go-errors/errors"
+
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -47,4 +50,20 @@ func maxFaulty(n tt.VoteWeight) tt.VoteWeight {
 	// assuming n > 3f:
 	//   return max f
 	return (n - 1) / 3
+}
+
+func Serialize(membership *trantorpbtypes.Membership) ([]byte, error) {
+	em, err := cbor.CoreDetEncOptions().EncMode()
+	if err != nil {
+		return nil, err
+	}
+	return em.Marshal(membership)
+}
+
+func Deserialize(data []byte) (*trantorpbtypes.Membership, error) {
+	var membership trantorpbtypes.Membership
+	if err := cbor.Unmarshal(data, &membership); err != nil {
+		return nil, es.Errorf("failed to CBOR unmarshal membership: %w", err)
+	}
+	return &membership, nil
 }
