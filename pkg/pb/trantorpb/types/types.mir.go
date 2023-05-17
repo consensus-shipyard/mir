@@ -206,7 +206,7 @@ type NodeIdentity struct {
 	Id     types2.NodeID
 	Addr   string
 	Key    []uint8
-	Weight uint64
+	Weight types.VoteWeight
 }
 
 func NodeIdentityFromPb(pb *trantorpb.NodeIdentity) *NodeIdentity {
@@ -217,7 +217,7 @@ func NodeIdentityFromPb(pb *trantorpb.NodeIdentity) *NodeIdentity {
 		Id:     (types2.NodeID)(pb.Id),
 		Addr:   pb.Addr,
 		Key:    pb.Key,
-		Weight: pb.Weight,
+		Weight: (types.VoteWeight)(pb.Weight),
 	}
 }
 
@@ -230,7 +230,7 @@ func (m *NodeIdentity) Pb() *trantorpb.NodeIdentity {
 		pbMessage.Id = (string)(m.Id)
 		pbMessage.Addr = m.Addr
 		pbMessage.Key = m.Key
-		pbMessage.Weight = m.Weight
+		pbMessage.Weight = (uint64)(m.Weight)
 	}
 
 	return pbMessage

@@ -8,6 +8,11 @@ import (
 
 // ================================================================================
 
+// VoteWeight represents the weight of a node's vote when gathering quorums.
+type VoteWeight uint64
+
+// ================================================================================
+
 // ClientID represents the ID of a client.
 type ClientID string
 
