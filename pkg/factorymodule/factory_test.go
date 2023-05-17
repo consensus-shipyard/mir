@@ -154,7 +154,7 @@ func TestFactoryModule(t *testing.T) {
 			wrongEvent := events.TestingUint(echoFactoryID, 42)
 			evOut, err := echoFactory.ApplyEvents(events.ListOf(wrongEvent))
 			if assert.Error(t, err) {
-				assert.Equal(t, es.Errorf("unsupported event type for factory module: %T", wrongEvent.Type), err)
+				assert.Equal(t, err.Error(), fmt.Sprintf("unsupported event type for factory module: %T", wrongEvent.Type))
 			}
 			assert.Nil(t, evOut)
 		},
