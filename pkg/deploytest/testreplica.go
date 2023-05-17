@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -19,7 +21,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	es "github.com/go-errors/errors"
 )
 
 // TestReplica represents one replica (that uses one instance of the mir.Node) in the test system.

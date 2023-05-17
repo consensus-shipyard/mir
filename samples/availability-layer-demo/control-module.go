@@ -8,10 +8,11 @@ import (
 	"os"
 	"strings"
 
+	es "github.com/go-errors/errors"
+
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	es "github.com/go-errors/errors"
 
 	"google.golang.org/protobuf/proto"
 

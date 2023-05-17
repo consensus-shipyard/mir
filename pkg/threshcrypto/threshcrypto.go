@@ -3,13 +3,14 @@
 package threshcrypto
 
 import (
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	tcEvents "github.com/filecoin-project/mir/pkg/threshcrypto/events"
 	t "github.com/filecoin-project/mir/pkg/types"
-	es "github.com/go-errors/errors"
 )
 
 type MirModule struct {

@@ -1,10 +1,11 @@
 package multisigcollector
 
 import (
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
-	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/dsl"

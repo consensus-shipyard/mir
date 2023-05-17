@@ -3,6 +3,8 @@ package dsl
 import (
 	"reflect"
 
+	es "github.com/go-errors/errors"
+
 	cs "github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -10,7 +12,6 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
-	es "github.com/go-errors/errors"
 )
 
 type dslModuleImpl struct {

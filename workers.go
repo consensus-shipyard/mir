@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
-	es "github.com/go-errors/errors"
 )
 
 // workChans represents input channels for the modules within the Node.

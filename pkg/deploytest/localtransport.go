@@ -3,12 +3,13 @@ package deploytest
 import (
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
-	es "github.com/go-errors/errors"
 )
 
 type LocalTransportLayer interface {

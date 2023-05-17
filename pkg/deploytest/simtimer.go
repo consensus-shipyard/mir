@@ -8,13 +8,14 @@ import (
 	"context"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	es "github.com/go-errors/errors"
 )
 
 type simTimerModule struct {

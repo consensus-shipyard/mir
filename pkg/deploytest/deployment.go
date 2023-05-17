@@ -15,10 +15,11 @@ import (
 	"sync"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/modules"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"

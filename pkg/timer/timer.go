@@ -5,11 +5,12 @@ import (
 	"sync"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	es "github.com/go-errors/errors"
 )
 
 // The Timer module abstracts the passage of real time.

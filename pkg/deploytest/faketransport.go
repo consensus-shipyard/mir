@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"sync"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -25,7 +27,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
-	es "github.com/go-errors/errors"
 )
 
 type FakeLink struct {

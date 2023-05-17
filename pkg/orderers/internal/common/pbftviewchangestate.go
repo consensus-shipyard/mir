@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"sort"
 
+	es "github.com/go-errors/errors"
+
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"

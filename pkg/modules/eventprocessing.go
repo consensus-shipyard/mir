@@ -3,9 +3,10 @@ package modules
 import (
 	"runtime/debug"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	es "github.com/go-errors/errors"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.

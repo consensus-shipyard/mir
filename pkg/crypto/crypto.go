@@ -3,6 +3,8 @@
 package crypto
 
 import (
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
@@ -10,7 +12,6 @@ import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	es "github.com/go-errors/errors"
 )
 
 type MirModule struct {

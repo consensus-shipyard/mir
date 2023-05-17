@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-	es "github.com/go-errors/errors"
 
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -21,7 +23,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
-	es "github.com/go-errors/errors"
 )
 
 type MessageDelayFn func(from, to t.NodeID) time.Duration

@@ -1,10 +1,11 @@
 package common
 
 import (
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	es "github.com/go-errors/errors"
 )
 
 // ======================================================================

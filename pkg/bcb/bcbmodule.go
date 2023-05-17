@@ -1,6 +1,8 @@
 package bcb
 
 import (
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
 	bcbpbdsl "github.com/filecoin-project/mir/pkg/pb/bcbpb/dsl"
@@ -11,7 +13,6 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-	es "github.com/go-errors/errors"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.

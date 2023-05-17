@@ -3,11 +3,12 @@ package goodcase
 import (
 	"fmt"
 
+	es "github.com/go-errors/errors"
+
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
-	es "github.com/go-errors/errors"
 
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"

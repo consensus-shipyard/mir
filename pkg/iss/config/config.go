@@ -9,9 +9,10 @@ package config
 import (
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	es "github.com/go-errors/errors"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.

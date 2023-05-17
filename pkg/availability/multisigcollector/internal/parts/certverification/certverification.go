@@ -3,18 +3,17 @@ package certverification
 import (
 	"errors"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
-	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
-	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	es "github.com/go-errors/errors"
 
-	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
+	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // State represents the state related to this part of the module.
