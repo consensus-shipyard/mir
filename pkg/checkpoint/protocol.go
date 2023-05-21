@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/iss/config"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -280,8 +280,7 @@ func (state *State) SnapshotReady() bool {
 }
 
 func (state *State) Stable(p *ModuleParams) bool {
-
-	return state.SnapshotReady() && len(state.Signatures) >= config.StrongQuorum(len(p.Membership.Nodes))
+	return state.SnapshotReady() && membutil.HaveStrongQuorum(p.Membership, maputil.GetKeys(state.Signatures))
 }
 
 type verificationContext struct {
