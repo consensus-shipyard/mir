@@ -78,7 +78,7 @@ func serializeNodeIdentityForHash(identity *trantorpbtypes.NodeIdentity) [][]byt
 		{0},
 		identity.Key,
 		{0},
-		serializing.Uint64ToBytes(identity.Weight),
+		identity.Weight.Bytes(),
 		{0},
 	}
 }
