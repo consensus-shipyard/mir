@@ -120,6 +120,12 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 
 	// Check if each node delivered as many transactions as were submitted.
 	for _, db := range deliveredBatches {
+
+		// Skip this check if no transactions were submitted.
+		if transactionsSubmitted == 0 {
+			break
+		}
+
 		cnt, err := db.Map(func(_ context.Context, b interface{}) (interface{}, error) {
 			return int64(len(b.(*batchfetcherpb.NewOrderedBatch).Txs)), nil
 		}).SumInt64().Get()
@@ -128,6 +134,9 @@ func checkEventTraces(eventLogFiles map[t.NodeID]string, transactionsSubmitted i
 		}
 		if cnt.Error() {
 			return es.Errorf("could not read number of delivered batches: %w", cnt.E)
+		}
+		if cnt.V == nil {
+			return es.Errorf("no transactions were delivered")
 		}
 		if cnt.V.(int64) != int64(transactionsSubmitted) {
 			return es.Errorf("different number of submitted and delivered transactions: %v and %v",
