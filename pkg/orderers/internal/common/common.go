@@ -1,7 +1,7 @@
 package common
 
 import (
-	"fmt"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -120,7 +120,7 @@ func (state *State) InitView(
 
 	// Sanity check
 	if view < state.View {
-		return fmt.Errorf("starting a view (%d) older than the current one (%d)", view, state.View)
+		return es.Errorf("starting a view (%d) older than the current one (%d)", view, state.View)
 	}
 
 	// Do not start the same view more than once.

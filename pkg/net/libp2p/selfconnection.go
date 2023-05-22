@@ -1,8 +1,7 @@
 package libp2p
 
 import (
-	"fmt"
-
+	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -30,7 +29,7 @@ type selfConnection struct {
 func newSelfConnection(params Params, ownID t.NodeID, ownAddr t.NodeAddress, deliverChan chan<- *events.EventList) (*selfConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(ownAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse address: %w", err)
+		return nil, es.Errorf("failed to parse address: %w", err)
 	}
 
 	conn := &selfConnection{
@@ -60,7 +59,7 @@ func (conn *selfConnection) Send(msg *messagepb.Message) error {
 	case conn.msgBuffer <- msg:
 		return nil
 	default:
-		return fmt.Errorf("send buffer full")
+		return es.Errorf("send buffer full")
 	}
 
 }
@@ -89,7 +88,7 @@ func (conn *selfConnection) Wait() (chan error, func()) {
 	result := make(chan error, 1)
 	select {
 	case <-conn.stop:
-		result <- fmt.Errorf("connection closed")
+		result <- es.Errorf("connection closed")
 	default:
 		close(result)
 	}

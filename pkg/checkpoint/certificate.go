@@ -1,9 +1,8 @@
 package checkpoint
 
 import (
-	"fmt"
-
 	"github.com/fxamacker/cbor/v2"
+	es "github.com/go-errors/errors"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -32,7 +31,7 @@ func (cert *Certificate) Serialize() ([]byte, error) {
 
 func (cert *Certificate) Deserialize(data []byte) error {
 	if err := cbor.Unmarshal(data, cert); err != nil {
-		return fmt.Errorf("failed to CBOR unmarshal checkpoint certificate: %w", err)
+		return es.Errorf("failed to CBOR unmarshal checkpoint certificate: %w", err)
 	}
 	return nil
 }

@@ -2,9 +2,10 @@ package timer
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
+
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -63,7 +64,7 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
 			}
 		default:
-			return fmt.Errorf("unexpected type of Timer event: %T", event.Type)
+			return es.Errorf("unexpected type of Timer event: %T", event.Type)
 		}
 	}
 

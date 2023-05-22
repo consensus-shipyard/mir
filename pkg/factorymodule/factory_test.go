@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	es "github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 
@@ -48,7 +49,7 @@ func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error
 	case *eventpb.Event_TestingString:
 		return events.ListOf(events.TestingString(destModuleID.Top(), em.prefix+e.TestingString.GetValue())), nil
 	default:
-		return nil, fmt.Errorf("unknown echo module event type: %T", e)
+		return nil, es.Errorf("unknown echo module event type: %T", e)
 	}
 }
 
@@ -153,7 +154,7 @@ func TestFactoryModule(t *testing.T) {
 			wrongEvent := events.TestingUint(echoFactoryID, 42)
 			evOut, err := echoFactory.ApplyEvents(events.ListOf(wrongEvent))
 			if assert.Error(t, err) {
-				assert.Equal(t, fmt.Errorf("unsupported event type for factory module: %T", wrongEvent.Type), err)
+				assert.Equal(t, err.Error(), fmt.Sprintf("unsupported event type for factory module: %T", wrongEvent.Type))
 			}
 			assert.Nil(t, evOut)
 		},

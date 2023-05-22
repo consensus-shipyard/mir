@@ -7,11 +7,11 @@ SPDX-License-Identifier: Apache-2.0
 package issutil
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 
 	"github.com/fxamacker/cbor/v2"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -69,7 +69,7 @@ func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
 	case Blacklist:
 		return BlacklistLeaderPolicyFromBytes(bytes[8:])
 	default:
-		return nil, fmt.Errorf("invalid LeaderSelectionPolicy type: %v", leaderPolicyType)
+		return nil, es.Errorf("invalid LeaderSelectionPolicy type: %v", leaderPolicyType)
 	}
 
 }

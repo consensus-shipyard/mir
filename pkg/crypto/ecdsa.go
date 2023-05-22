@@ -12,9 +12,10 @@ import (
 	"crypto/rand"
 	"encoding/asn1"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
+
+	es "github.com/go-errors/errors"
 )
 
 // TODO: Write comments.
@@ -32,7 +33,7 @@ func ecdsaSignatureFromBytes(raw []byte) (*big.Int, *big.Int, error) {
 	sig := new(ecdsaSignature)
 	_, err := asn1.Unmarshal(raw, sig)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed unmashalling signature [%w]", err)
+		return nil, nil, es.Errorf("failed unmashalling signature [%w]", err)
 	}
 
 	// Validate sig
@@ -68,7 +69,7 @@ func verifyEcdsaSignature(pk *ecdsa.PublicKey, hash []byte, signature []byte) er
 	}
 	ok := ecdsa.Verify(pk, hash, r, s)
 	if !ok {
-		return fmt.Errorf("signature verification failed")
+		return es.Errorf("signature verification failed")
 	}
 	return nil
 }

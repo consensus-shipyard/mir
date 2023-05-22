@@ -1,7 +1,7 @@
 package bcb
 
 import (
-	"fmt"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -73,7 +73,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	// upon event <bcb, Broadcast | m> do    // only process s
 	bcbpbdsl.UponBroadcastRequest(m, func(data []byte) error {
 		if nodeID != params.Leader {
-			return fmt.Errorf("only the leader node can receive requests")
+			return es.Errorf("only the leader node can receive requests")
 		}
 		state.request = data
 		transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.StartMessage(mc.Self, data), params.AllNodes)

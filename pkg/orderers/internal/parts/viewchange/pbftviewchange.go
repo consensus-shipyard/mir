@@ -2,8 +2,8 @@ package viewchange
 
 import (
 	"bytes"
-	"fmt"
 
+	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -142,7 +142,7 @@ func IncludeViewChange( //nolint:gocognit
 
 		// Set the digests of empty Preprepares that have just been computed.
 		if err := vcstate.SetEmptyPreprepareDigests(digests); err != nil {
-			return fmt.Errorf("error setting empty preprepare digests: %w", err)
+			return es.Errorf("error setting empty preprepare digests: %w", err)
 		}
 
 		// Check if all preprepare messages that need to be re-proposed are locally present.
@@ -774,6 +774,6 @@ func getMsgView(msgPb proto.Message) (ot.ViewNr, error) {
 	case *pbftpb.Commit:
 		return ot.ViewNr(msg.View), nil
 	default:
-		return 0, fmt.Errorf("invalid PBFT message for view extraction: %T (%v)", msg, msg)
+		return 0, es.Errorf("invalid PBFT message for view extraction: %T (%v)", msg, msg)
 	}
 }

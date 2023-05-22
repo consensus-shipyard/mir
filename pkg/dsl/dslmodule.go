@@ -1,8 +1,9 @@
 package dsl
 
 import (
-	"fmt"
 	"reflect"
+
+	es "github.com/go-errors/errors"
 
 	cs "github.com/filecoin-project/mir/pkg/contextstore"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -233,5 +234,5 @@ func failExceptForInit(ev *eventpb.Event) error {
 	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
 		return nil
 	}
-	return fmt.Errorf("unknown event type '%T'", ev.Type)
+	return es.Errorf("unknown event type '%T'", ev.Type)
 }

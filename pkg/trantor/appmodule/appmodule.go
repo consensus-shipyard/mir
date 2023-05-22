@@ -1,7 +1,7 @@
 package appmodule
 
 import (
-	"fmt"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -59,7 +59,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 	// Emit no event
 	apppbdsl.UponRestoreState(m, func(chkp *checkpointpbtypes.StableCheckpoint) error {
 		if err := appModule.appLogic.RestoreState((*checkpoint.StableCheckpoint)(chkp)); err != nil {
-			return fmt.Errorf("app restore state error: %w", err)
+			return es.Errorf("app restore state error: %w", err)
 		}
 		return nil
 	})
@@ -69,7 +69,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 	apppbdsl.UponNewEpoch(m, func(epochNr types.EpochNr, protocolModule t.ModuleID) error {
 		membership, err := appModule.appLogic.NewEpoch(epochNr)
 		if err != nil {
-			return fmt.Errorf("error handling NewEpoch event: %w", err)
+			return es.Errorf("error handling NewEpoch event: %w", err)
 		}
 		appModule.transport.Connect(membership)
 		isspbdsl.NewConfig(m, protocolModule, epochNr, membership)
@@ -83,7 +83,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 			Cert:     cert,
 		}
 		if err := appModule.appLogic.Checkpoint(chkp); err != nil {
-			return fmt.Errorf("error handling StableCheckpoint event: %w", err)
+			return es.Errorf("error handling StableCheckpoint event: %w", err)
 		}
 
 		return nil

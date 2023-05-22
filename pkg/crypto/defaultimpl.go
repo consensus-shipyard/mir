@@ -16,10 +16,11 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	es "github.com/go-errors/errors"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -44,7 +45,7 @@ func NewDefaultImpl(privKey []byte) (*DefaultImpl, error) {
 	key, err := privKeyFromBytes(privKey)
 	if err != nil {
 		// Report error if deserialization of the private key fails.
-		return nil, fmt.Errorf("error parsing private key: %w", err)
+		return nil, es.Errorf("error parsing private key: %w", err)
 	}
 
 	// If deserialization succeeds, return the pointer to a new initialized instance of MirModule.
@@ -64,7 +65,7 @@ func (c *DefaultImpl) Sign(data [][]byte) ([]byte, error) {
 	case *ecdsa.PrivateKey:
 		return signEcdsa(key, digest(data))
 	default:
-		return nil, fmt.Errorf("unsupported private key type: %T", key)
+		return nil, es.Errorf("unsupported private key type: %T", key)
 	}
 }
 
@@ -78,7 +79,7 @@ func (c *DefaultImpl) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 	key, err := pubKeyFromBytes(pubKey)
 	if err != nil {
 		// If deserialization fails, report error.
-		return fmt.Errorf("error parsing node public key: %w", err)
+		return es.Errorf("error parsing node public key: %w", err)
 	}
 
 	// If deserialization succeeds, save public key under the given node ID.
@@ -103,7 +104,7 @@ func (c *DefaultImpl) Verify(data [][]byte, signature []byte, nodeID t.NodeID) e
 
 	pubKey, ok := c.nodeKeys[nodeID]
 	if !ok {
-		return fmt.Errorf("no public key for node with ID %v", nodeID)
+		return es.Errorf("no public key for node with ID %v", nodeID)
 	}
 
 	return c.verifySig(data, signature, pubKey)
@@ -118,7 +119,7 @@ func (c *DefaultImpl) verifySig(data [][]byte, signature []byte, pubKey interfac
 	case *rsa.PublicKey:
 		return rsa.VerifyPKCS1v15(key, cstd.SHA256, digest(data), signature)
 	default:
-		return fmt.Errorf("unsupported public key type: %T", key)
+		return es.Errorf("unsupported public key type: %T", key)
 	}
 }
 
@@ -132,17 +133,17 @@ func GenerateKeyPair(randomness io.Reader) (priv []byte, pub []byte, err error) 
 	var privKey, pubKey interface{}
 	privKey, pubKey, err = generateEcdsaKeyPair(randomness)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error generating ecdsa key: %w", err)
+		return nil, nil, es.Errorf("error generating ecdsa key: %w", err)
 	}
 
 	// Serialize private key.
 	if priv, err = SerializePrivKey(privKey); err != nil {
-		return nil, nil, fmt.Errorf("error serializing private key: %w", err)
+		return nil, nil, es.Errorf("error serializing private key: %w", err)
 	}
 
 	// Serialized public key.
 	if pub, err = SerializePubKey(pubKey); err != nil {
-		return nil, nil, fmt.Errorf("error serializing public key: %w", err)
+		return nil, nil, es.Errorf("error serializing public key: %w", err)
 	}
 
 	// All output variables have been set, just return.
@@ -172,7 +173,7 @@ func privKeyFromBytes(raw []byte) (interface{}, error) {
 	case *ecdsa.PrivateKey, *rsa.PrivateKey:
 		return p, nil
 	default:
-		return nil, fmt.Errorf("unsupported private key type: %T", p)
+		return nil, es.Errorf("unsupported private key type: %T", p)
 	}
 }
 
@@ -190,7 +191,7 @@ func pubKeyFromBytes(raw []byte) (interface{}, error) {
 	case *ecdsa.PublicKey, *rsa.PublicKey:
 		return p, nil
 	default:
-		return nil, fmt.Errorf("unsupported public key type: %T", p)
+		return nil, es.Errorf("unsupported public key type: %T", p)
 	}
 }
 
@@ -206,7 +207,7 @@ func SerializePubKey(pubKey interface{}) (pubKeyBytes []byte, err error) {
 		return x509.MarshalPKIXPublicKey(key)
 	default:
 		// Return error if key type is not supported.
-		return nil, fmt.Errorf("unsupported public key type: %T", key)
+		return nil, es.Errorf("unsupported public key type: %T", key)
 	}
 }
 
@@ -222,7 +223,7 @@ func SerializePrivKey(privKey interface{}) (privKeyBytes []byte, err error) {
 		return x509.MarshalPKCS8PrivateKey(key)
 	default:
 		// Return error if key type is not supported.
-		return nil, fmt.Errorf("unsupported private key type: %T", key)
+		return nil, es.Errorf("unsupported private key type: %T", key)
 	}
 }
 
@@ -240,7 +241,7 @@ func PubKeyFromFile(fileName string) ([]byte, error) {
 	// Decode the data.
 	block, _ := pem.Decode(certBytes)
 	if block == nil {
-		return nil, fmt.Errorf("failed to decode PEM block")
+		return nil, es.Errorf("failed to decode PEM block")
 	}
 
 	// If the file only contains the key, return the bytes of the key directly.
@@ -264,12 +265,12 @@ func PubKeyFromFile(fileName string) ([]byte, error) {
 			return SerializePubKey(key)
 		default:
 			// Return error if key type is not supported.
-			return nil, fmt.Errorf("unsupported public key type: %T", key)
+			return nil, es.Errorf("unsupported public key type: %T", key)
 		}
 	}
 
 	// Return error if public key was not found in the file.
-	return nil, fmt.Errorf("failed to find public key in the PEM block")
+	return nil, es.Errorf("failed to find public key in the PEM block")
 }
 
 // PrivKeyFromFile extracts a private key from a PEM key file.
@@ -296,16 +297,16 @@ func PrivKeyFromFile(file string) ([]byte, error) {
 		block, rest = pem.Decode(rest)
 	}
 
-	return nil, fmt.Errorf("no valid key PEM block found")
+	return nil, es.Errorf("no valid key PEM block found")
 }
 
 // privKeyFromPEMBlock extracts a private key from block of a PEM file.
 // If the block does not contain a private key, returns nil as the key and a corresponding non-nil error.
 func privKeyFromPEMBlock(block *pem.Block) (interface{}, error) {
 	if block == nil {
-		return nil, fmt.Errorf("PEM block is nil")
+		return nil, es.Errorf("PEM block is nil")
 	} else if !strings.Contains(block.Type, "PRIVATE KEY") {
-		return nil, fmt.Errorf("wrong PEM block type: %s", block.Type)
+		return nil, es.Errorf("wrong PEM block type: %s", block.Type)
 	} else {
 		return privKeyFromBytes(block.Bytes)
 	}

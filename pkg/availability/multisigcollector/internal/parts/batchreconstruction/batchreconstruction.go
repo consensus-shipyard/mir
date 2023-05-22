@@ -1,7 +1,7 @@
 package batchreconstruction
 
 import (
-	"fmt"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
@@ -55,7 +55,7 @@ func IncludeBatchReconstruction(
 
 		mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
 		if !ok {
-			return fmt.Errorf("unexpected certificate type")
+			return es.Errorf("unexpected certificate type")
 		}
 		certs := mscCertsWrapper.Mscs.Certs
 

@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
@@ -356,7 +358,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	}
 	transportLayer, err := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
 	if err != nil {
-		return nil, fmt.Errorf("error creating local transport system: %w", err)
+		return nil, es.Errorf("error creating local transport system: %w", err)
 	}
 	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
 
@@ -383,16 +385,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 
 		transport, err := transportLayer.Link(nodeID)
 		if err != nil {
-			return nil, fmt.Errorf("error initializing Mir transport: %w", err)
+			return nil, es.Errorf("error initializing Mir transport: %w", err)
 		}
 		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, issConfig)
 		if err != nil {
-			return nil, fmt.Errorf("error initializing Mir state snapshot: %w", err)
+			return nil, es.Errorf("error initializing Mir state snapshot: %w", err)
 		}
 
 		localCrypto, err := cryptoSystem.Crypto(nodeID)
 		if err != nil {
-			return nil, fmt.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
+			return nil, es.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
 		}
 
 		system, err := trantor.New(

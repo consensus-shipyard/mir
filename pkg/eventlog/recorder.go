@@ -10,13 +10,13 @@ SPDX-License-Identifier: Apache-2.0
 package eventlog
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
 
+	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -119,12 +119,12 @@ func NewRecorder(
 	}
 
 	if err := os.MkdirAll(path, 0700); err != nil {
-		return nil, fmt.Errorf("error creating interceptor directory: %w", err)
+		return nil, es.Errorf("error creating interceptor directory: %w", err)
 	}
 
 	writer, err := i.newEventWriter(filepath.Join(path, "eventlog0"), nodeID, logger)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing event writer: %w", err)
+		return nil, es.Errorf("error initializing event writer: %w", err)
 	}
 	i.dest = writer
 
@@ -191,7 +191,7 @@ func (i *Recorder) Stop() error {
 	return i.exitErr
 }
 
-var errStopped = fmt.Errorf("interceptor stopped at caller request")
+var errStopped = es.Errorf("interceptor stopped at caller request")
 
 func (i *Recorder) run() (exitErr error) {
 	cnt := 0 // Counts total number of Events written.

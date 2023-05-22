@@ -3,10 +3,10 @@ package eventlog
 import (
 	"compress/gzip"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"os"
 
+	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -25,7 +25,7 @@ type gzipWriter struct {
 func NewGzipWriter(filename string, compressionLevel int, nodeID t.NodeID, logger logging.Logger) (EventWriter, error) {
 	dest, err := os.Create(filename + ".gz")
 	if err != nil {
-		return nil, fmt.Errorf("error creating event log file: %w", err)
+		return nil, es.Errorf("error creating event log file: %w", err)
 	}
 	return &gzipWriter{
 		dest:             dest,

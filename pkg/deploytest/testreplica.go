@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -70,7 +72,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// Initialize recording of events.
 	interceptor, err := eventlog.NewRecorder(tr.ID, tr.Dir, logging.Decorate(tr.Config.Logger, "Interceptor: "))
 	if err != nil {
-		return fmt.Errorf("error creating interceptor: %w", err)
+		return es.Errorf("error creating interceptor: %w", err)
 	}
 	defer func() {
 		if err := interceptor.Stop(); err != nil {
@@ -92,7 +94,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 		interceptor,
 	)
 	if err != nil {
-		return fmt.Errorf("error creating Mir node: %w", err)
+		return es.Errorf("error creating Mir node: %w", err)
 	}
 
 	// Create a Transactionreceiver for transactions coming over the network.
@@ -101,11 +103,11 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// TODO: do not assume that node IDs are integers.
 	p, err := strconv.Atoi(tr.ID.Pb())
 	if err != nil {
-		return fmt.Errorf("error converting node ID %s: %w", tr.ID, err)
+		return es.Errorf("error converting node ID %s: %w", tr.ID, err)
 	}
 	err = txreceiver.Start(TXListenPort + p)
 	if err != nil {
-		return fmt.Errorf("error starting transaction receiver: %w", err)
+		return es.Errorf("error starting transaction receiver: %w", err)
 	}
 
 	// Initialize WaitGroup for the replica's transaction submission thread.
@@ -127,7 +129,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 		err = transport.Start()
 		if err != nil {
-			return fmt.Errorf("error starting the network link: %w", err)
+			return es.Errorf("error starting the network link: %w", err)
 		}
 		transport.Connect(tr.Membership)
 		defer transport.Stop()
@@ -140,7 +142,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	// Stop the transaction receiver.
 	txreceiver.Stop()
 	if err := txreceiver.ServerError(); err != nil {
-		return fmt.Errorf("transaction receiver returned server error: %w", err)
+		return es.Errorf("transaction receiver returned server error: %w", err)
 	}
 
 	// Wait for the local transaction submission thread.

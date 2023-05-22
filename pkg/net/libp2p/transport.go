@@ -2,9 +2,9 @@ package libp2p
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
+	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -72,10 +72,10 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 					}
 				}
 			default:
-				return fmt.Errorf("unexpected transport event: %T", e)
+				return es.Errorf("unexpected transport event: %T", e)
 			}
 		default:
-			return fmt.Errorf("unexpected event: %T", event.Type)
+			return es.Errorf("unexpected event: %T", event.Type)
 		}
 	}
 
@@ -198,7 +198,7 @@ func (tr *Transport) WaitFor(n int) error {
 			}
 			numConnected++
 		case <-tr.stop:
-			return fmt.Errorf("transport stopped while waiting for connections")
+			return es.Errorf("transport stopped while waiting for connections")
 		}
 	}
 
@@ -240,7 +240,7 @@ func (tr *Transport) getConnection(nodeID t.NodeID) (connection, error) {
 
 	conn, ok := tr.connections[nodeID]
 	if !ok {
-		return nil, fmt.Errorf("no connection to node: %v", nodeID)
+		return nil, es.Errorf("no connection to node: %v", nodeID)
 	}
 	return conn, nil
 }

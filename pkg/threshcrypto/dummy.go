@@ -2,7 +2,8 @@ package threshcrypto
 
 import (
 	"bytes"
-	"fmt"
+
+	es "github.com/go-errors/errors"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -32,7 +33,7 @@ func (dc *DummyCrypto) SignShare(_ [][]byte) ([]byte, error) {
 // data is ignored.
 func (dc *DummyCrypto) VerifyShare(_ [][]byte, sigShare []byte, nodeID t.NodeID) error {
 	if !bytes.Equal(sigShare, dc.buildSigShare(nodeID)) {
-		return fmt.Errorf("dummy signature mismatch")
+		return es.Errorf("dummy signature mismatch")
 	}
 
 	return nil
@@ -42,7 +43,7 @@ func (dc *DummyCrypto) VerifyShare(_ [][]byte, sigShare []byte, nodeID t.NodeID)
 // data is ignored.
 func (dc *DummyCrypto) VerifyFull(_ [][]byte, signature []byte) error {
 	if !bytes.Equal(signature, dc.DummySigFull) {
-		return fmt.Errorf("dummy signature mismatch")
+		return es.Errorf("dummy signature mismatch")
 	}
 
 	return nil

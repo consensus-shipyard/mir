@@ -7,9 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package crypto
 
 import (
-	"fmt"
 	"io"
 	insecureRNG "math/rand"
+
+	es "github.com/go-errors/errors"
 
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -56,7 +57,7 @@ func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64) 
 		}
 
 		// Own ID was not found and CryptoImpl module instantiation was not even attempted.
-		return nil, fmt.Errorf("ownID (%v) not found among nodes", ownID)
+		return nil, es.Errorf("ownID (%v) not found among nodes", ownID)
 	}
 
 	// Populate the CryptoImpl module instance with the generated keys

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"sync"
 
+	es "github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 
@@ -76,7 +77,7 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 	if ok {
 		rr.logger.Log(logging.LevelDebug, fmt.Sprintf("Incoming connection from %s", p.Addr.String()))
 	} else {
-		return fmt.Errorf("failed to get grpc peer info from context")
+		return es.Errorf("failed to get grpc peer info from context")
 	}
 
 	// Declare loop variables outside, since err is checked also after the loop finishes.
@@ -125,7 +126,7 @@ func (rr *TransactionReceiver) Start(port int) error {
 	// Start listening on the network
 	conn, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
-		return fmt.Errorf("failed to listen for connections on port %d: %w", port, err)
+		return es.Errorf("failed to listen for connections on port %d: %w", port, err)
 	}
 
 	// Start the gRPC server in a separate goroutine.

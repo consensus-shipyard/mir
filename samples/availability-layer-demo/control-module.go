@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	es "github.com/go-errors/errors"
+
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
@@ -53,7 +55,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 			case *availabilitypb.Event_NewCert:
 				certBytes, err := proto.Marshal(event.NewCert.Cert)
 				if err != nil {
-					return fmt.Errorf("error marshalling certificate: %w", err)
+					return es.Errorf("error marshalling certificate: %w", err)
 				}
 
 				fmt.Println(base64.StdEncoding.EncodeToString(certBytes))
@@ -84,7 +86,7 @@ func (m *controlModule) readConsole() error {
 		fmt.Println("Type in the command ('createBatch', 'readBatch', 'exit')")
 		scanner.Scan()
 		if scanner.Err() != nil {
-			return fmt.Errorf("error reading from console: %w", scanner.Err())
+			return es.Errorf("error reading from console: %w", scanner.Err())
 		}
 
 		text := scanner.Text()
@@ -121,7 +123,7 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 	for {
 		scanner.Scan()
 		if scanner.Err() != nil {
-			return fmt.Errorf("error reading user data: %w", scanner.Err())
+			return es.Errorf("error reading user data: %w", scanner.Err())
 		}
 
 		text := scanner.Text()
@@ -146,19 +148,19 @@ func (m *controlModule) readBatch(scanner *bufio.Scanner) error {
 
 	scanner.Scan()
 	if scanner.Err() != nil {
-		return fmt.Errorf("error reading batch id: %w", scanner.Err())
+		return es.Errorf("error reading batch id: %w", scanner.Err())
 	}
 
 	certBase64 := strings.TrimSpace(scanner.Text())
 	certBytes, err := base64.StdEncoding.DecodeString(certBase64)
 	if err != nil {
-		return fmt.Errorf("error decoding certificate: %w", err)
+		return es.Errorf("error decoding certificate: %w", err)
 	}
 
 	_cert := new(availabilitypb.Cert)
 	err = proto.Unmarshal(certBytes, _cert)
 	if err != nil {
-		return fmt.Errorf("error unmarshalling certificate: %w", err)
+		return es.Errorf("error unmarshalling certificate: %w", err)
 	}
 	cert := apbtypes.CertFromPb(_cert)
 

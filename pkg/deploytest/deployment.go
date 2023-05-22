@@ -15,15 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/modules"
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/modules"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/errstack"
 )
 
 const (
@@ -96,11 +98,11 @@ type Deployment struct {
 // NewDeployment returns a Deployment initialized according to the passed configuration.
 func NewDeployment(conf *TestConfig) (*Deployment, error) {
 	if conf == nil {
-		return nil, fmt.Errorf("test config is nil")
+		return nil, es.Errorf("test config is nil")
 	}
 
 	if conf.Logger == nil {
-		return nil, fmt.Errorf("logger is nil")
+		return nil, es.Errorf("logger is nil")
 	}
 
 	// The logger will be used concurrently by all clients and nodes, so it has to be thread-safe.
@@ -192,7 +194,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
 			nodeErrors[i] = testReplica.Run(ctx2)
 			if err := nodeErrors[i]; err != nil {
-				testReplica.Config.Logger.Log(logging.LevelError, "exit with error", "err", err)
+				testReplica.Config.Logger.Log(logging.LevelError, "exit with error", "err", errstack.ToString(err))
 			} else {
 				testReplica.Config.Logger.Log(logging.LevelDebug, "exit")
 			}

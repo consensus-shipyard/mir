@@ -1,9 +1,10 @@
 package eventmangler
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
+
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
@@ -48,19 +49,19 @@ func DefaultParams() *ModuleParams {
 
 func CheckParams(p *ModuleParams) error {
 	if p.MinDelay < 0 {
-		return fmt.Errorf("MinDelay must be non-negative, given: %v", p.MinDelay)
+		return es.Errorf("MinDelay must be non-negative, given: %v", p.MinDelay)
 	}
 
 	if p.MaxDelay < 0 {
-		return fmt.Errorf("MaxDelay must be non-negative, given: %v", p.MaxDelay)
+		return es.Errorf("MaxDelay must be non-negative, given: %v", p.MaxDelay)
 	}
 
 	if p.MinDelay > p.MaxDelay {
-		return fmt.Errorf("MinDelay (%v) must be smaller than MaxDelay (%v)", p.MinDelay, p.MaxDelay)
+		return es.Errorf("MinDelay (%v) must be smaller than MaxDelay (%v)", p.MinDelay, p.MaxDelay)
 	}
 
 	if p.DropRate < 0 {
-		return fmt.Errorf("DropRate must be non-negative, given: %f", p.DropRate)
+		return es.Errorf("DropRate must be non-negative, given: %f", p.DropRate)
 	}
 
 	return nil
@@ -72,7 +73,7 @@ func CheckParams(p *ModuleParams) error {
 func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, error) {
 	// Check whether parameters are valid.
 	if err := CheckParams(params); err != nil {
-		return nil, fmt.Errorf("invalid event mangler parameters: %w", err)
+		return nil, es.Errorf("invalid event mangler parameters: %w", err)
 	}
 
 	// Initialize randomness source.

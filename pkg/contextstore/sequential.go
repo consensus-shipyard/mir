@@ -1,6 +1,6 @@
 package contextstore
 
-import "fmt"
+import es "github.com/go-errors/errors"
 
 type sequentialContextStoreImpl[T any] struct {
 	nextID  ItemID
@@ -30,7 +30,7 @@ func (s *sequentialContextStoreImpl[T]) Store(t T) ItemID {
 func (s *sequentialContextStoreImpl[T]) Recover(id ItemID) T {
 	item, present := s.storage[id]
 	if !present {
-		panic(fmt.Errorf("item with id '%v' is not present in the ContextStore", id))
+		panic(es.Errorf("item with id '%v' is not present in the ContextStore", id))
 	}
 
 	return item

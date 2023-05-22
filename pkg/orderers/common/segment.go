@@ -1,7 +1,7 @@
 package common
 
 import (
-	"fmt"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/orderers/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
@@ -21,7 +21,7 @@ func NewSegment(
 	proposals map[tt.SeqNr][]byte,
 ) (*Segment, error) {
 	if _, ok := membership.Nodes[leader]; !ok {
-		return nil, fmt.Errorf("leader (%v) not in Membership (%v)", leader, maputil.GetKeys(membership.Nodes))
+		return nil, es.Errorf("leader (%v) not in Membership (%v)", leader, maputil.GetKeys(membership.Nodes))
 	}
 
 	return (*Segment)(&ordererpbtypes.PBFTSegment{

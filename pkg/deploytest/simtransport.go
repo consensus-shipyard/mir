@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -131,10 +133,10 @@ func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) e
 			targets := t.NodeIDSlice(e.SendMessage.Destinations)
 			m.multicastMessage(ctx, e.SendMessage.Msg, targets)
 		default:
-			return fmt.Errorf("unexpected transport event type: %T", e)
+			return es.Errorf("unexpected transport event type: %T", e)
 		}
 	default:
-		return fmt.Errorf("unexpected type of Net event: %T", e)
+		return es.Errorf("unexpected type of Net event: %T", e)
 	}
 
 	return nil

@@ -2,10 +2,10 @@ package threshcrypto
 
 import (
 	"crypto/cipher"
-	"fmt"
 	prand "math/rand"
 
 	"github.com/drand/kyber/util/random"
+	es "github.com/go-errors/errors"
 	"golang.org/x/exp/slices"
 
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -35,7 +35,7 @@ func TBLSPseudo(nodes []t.NodeID, threshold int, ownID t.NodeID, seed int64) (Th
 
 	idx := slices.Index(nodes, ownID)
 	if idx == -1 {
-		return nil, fmt.Errorf("own node ID not in node list")
+		return nil, es.Errorf("own node ID not in node list")
 	}
 
 	tcInstances := TBLS12381Keygen(threshold, nodes, randomness)
