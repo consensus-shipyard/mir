@@ -230,7 +230,7 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 // The failExceptForInit returns an error for every received event type except for Init.
 // For convenience, if this is used as the default event handler,
 // it is not considered an error to not have handlers for the Init event.
-func failExceptForInit(ev *eventpb.Event) error {
+func failExceptForInit(ev *eventpb.Event) error { //nolint
 	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
 		return nil
 	}
@@ -248,5 +248,5 @@ func failExceptForInitAndTransport(ev *eventpb.Event) error {
 	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
 		return nil
 	}
-	return es.Errorf("unknown event type '%T',wrapper type '%T' ", ev.Type, ev)
+	return es.Errorf("unknown event type '%T'", ev.Type)
 }

@@ -20,6 +20,7 @@ import "ordererpb/ordererpb.proto";
 import "hasherpb/hasherpb.proto";
 import "cryptopb/cryptopb.proto";
 import "transportpb/transportpb.proto";
+import "testerpb/testerpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -60,6 +61,7 @@ message Event {
     // for unit-tests
     google.protobuf.StringValue testingString = 301;
     google.protobuf.UInt64Value testingUint   = 302;
+    testerpb.Tester tester = 303;
   }
 
   // A list of follow-up events to process after this event has been processed.

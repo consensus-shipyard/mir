@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package testerpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/testerpb";
+
+import "mir/codegen_extensions.proto";
+
+message Tester {
+    option (mir.event) = true;
+}
+
