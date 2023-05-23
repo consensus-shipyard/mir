@@ -201,7 +201,7 @@ func IncludeViewChange( //nolint:gocognit
 
 		// Create a temporary view change state object
 		// to use for reconstructing the re-proposals from the obtained view change messages.
-		vcState := common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.NodeIDs())
+		vcState := common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.Membership)
 
 		// Feed all obtained ViewChange messages to the view change state.
 		for i, signedViewChange := range context.SignedViewChanges {
@@ -667,7 +667,7 @@ func getViewChangeState(state *common.State, view ot.ViewNr) *common.PbftViewCha
 	}
 
 	// If no view change state is yet associated with this view, allocate a new one and return it.
-	state.ViewChangeStates[view] = common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.NodeIDs())
+	state.ViewChangeStates[view] = common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.Membership)
 
 	return state.ViewChangeStates[view]
 }
