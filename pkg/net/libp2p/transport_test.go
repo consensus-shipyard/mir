@@ -59,7 +59,7 @@ func newMockLibp2pCommunication(
 			id,
 			libp2putil.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
-			0,
+			1,
 		}
 		lt.transports[id] = NewTransport(params, id, lt.hosts[id], logger)
 	}
@@ -866,8 +866,8 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	b := NewTransport(DefaultParams(), nodeB, hostB, logger)
 
 	membershipA := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)} // nolint:govet
-	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 0}            // nolint:govet
-	membershipA.Nodes[nodeB] = &trantorpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 0}            // nolint:govet
+	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, 1}            // nolint:govet
+	membershipA.Nodes[nodeB] = &trantorpbtypes.NodeIdentity{nodeB, addrB.String(), nil, 1}            // nolint:govet
 
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)

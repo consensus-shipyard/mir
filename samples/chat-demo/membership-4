@@ -4,22 +4,22 @@
         {
             "addr": "0",
             "net_addr": "/ip4/127.0.0.1/tcp/10000",
-            "weight": "0"
+            "weight": "1"
         },
         {
             "addr": "1",
             "net_addr": "/ip4/127.0.0.1/tcp/10001",
-            "weight": "0"
+            "weight": "1"
         },
         {
             "addr": "2",
             "net_addr": "/ip4/127.0.0.1/tcp/10002",
-            "weight": "0"
+            "weight": "1"
         },
         {
             "addr": "3",
             "net_addr": "/ip4/127.0.0.1/tcp/10003",
-            "weight": "0"
+            "weight": "1"
         }
     ]
 }

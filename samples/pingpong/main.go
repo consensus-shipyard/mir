@@ -19,8 +19,8 @@ func main() {
 	fmt.Println("Starting ping-pong.")
 
 	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
-		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, 0}, // nolint:govet
-		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, 0}, // nolint:govet
+		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, 1}, // nolint:govet
+		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, 1}, // nolint:govet
 	}}
 
 	ownID := t.NodeID(os.Args[1])

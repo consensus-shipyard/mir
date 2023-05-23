@@ -40,7 +40,7 @@ func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLi
 			id,
 			libp2ptools.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
-			0,
+			1,
 		}
 	}
 

@@ -153,7 +153,7 @@ func (ft *FakeTransport) Membership() *trantorpbtypes.Membership {
 			libp2p.NewDummyHostAddr(0,
 				0).String(),
 			nil,
-			0,
+			1,
 		}
 	}
 
