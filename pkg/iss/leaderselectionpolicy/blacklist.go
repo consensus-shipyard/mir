@@ -28,7 +28,8 @@ func NewBlackListLeaderPolicy(members []t.NodeID, MinLeaders int) *BlacklistLead
 	}
 }
 
-// Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
+// Leaders returns a list of least recently suspected leaders
+// that cumulatively have a strong quorum of the voting power.
 func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 
 	curLeaders := make([]t.NodeID, 0, len(l.Membership))
@@ -36,7 +37,7 @@ func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 		curLeaders = append(curLeaders, nodeID)
 	}
 
-	// Sort the values in ascending order of latest epoch where they each were suspected
+	// Sort the values in ascending order of the latest epoch where they each were suspected.
 	sort.Slice(curLeaders, func(i, j int) bool {
 		_, oki := l.Suspected[curLeaders[i]]
 		_, okj := l.Suspected[curLeaders[j]]
@@ -68,7 +69,7 @@ func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 }
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
-// if this one is more recent than the one it already has
+// if this one is more recent than the one it already has.
 func (l *BlacklistLeaderPolicy) Suspect(e tt.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
 		//TODO error but cannot be passed through
