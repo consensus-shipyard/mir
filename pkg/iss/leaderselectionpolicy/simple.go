@@ -1,13 +1,13 @@
 package leaderselectionpolicy
 
 import (
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/fxamacker/cbor/v2"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // The SimpleLeaderPolicy is a trivial leader selection policy.

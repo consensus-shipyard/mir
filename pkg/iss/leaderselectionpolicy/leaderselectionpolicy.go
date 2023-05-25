@@ -3,10 +3,10 @@ package leaderselectionpolicy
 import (
 	"sync"
 
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"

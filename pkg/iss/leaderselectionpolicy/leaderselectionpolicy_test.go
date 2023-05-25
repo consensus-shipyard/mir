@@ -4,14 +4,14 @@ import (
 	"sort"
 	"testing"
 
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 func TestSimpleLeaderPolicy(t *testing.T) {

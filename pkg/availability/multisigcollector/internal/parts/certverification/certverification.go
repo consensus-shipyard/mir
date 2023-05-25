@@ -3,8 +3,6 @@ package certverification
 import (
 	"errors"
 
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"github.com/filecoin-project/mir/pkg/util/membutil"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
@@ -15,6 +13,8 @@ import (
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 

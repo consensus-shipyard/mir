@@ -3,14 +3,14 @@ package leaderselectionpolicy
 import (
 	"sort"
 
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
-	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"github.com/fxamacker/cbor/v2"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // BlacklistLeaderPolicy represents the state of the blacklist leader selection policy.
