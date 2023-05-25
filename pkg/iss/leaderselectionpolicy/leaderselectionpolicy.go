@@ -3,6 +3,7 @@ package leaderselectionpolicy
 import (
 	"sync"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
 
@@ -43,9 +44,8 @@ type LeaderSelectionPolicy interface {
 	Suspect(e tt.EpochNr, node t.NodeID)
 
 	// Reconfigure returns a new LeaderSelectionPolicy based on the state of the current one,
-	// but using a new configuration.
-	// TODO: Use the whole configuration, not just the node IDs.
-	Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy
+	// but using a new membership.
+	Reconfigure(membership *trantorpbtypes.Membership) LeaderSelectionPolicy
 
 	Bytes() ([]byte, error)
 }
