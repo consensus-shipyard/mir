@@ -135,6 +135,10 @@ func (sc *StableCheckpoint) Certificate() Certificate {
 // Moreover, the number of nodes that signed the certificate must be greater than one third of the membership size.
 func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership *trantorpbtypes.Membership) error {
 
+	if err := sc.Sanitized(); err != nil {
+		return err
+	}
+
 	// Check if there is enough signatures.
 	n := len(membership.Nodes)
 	f := (n - 1) / 3
@@ -257,4 +261,50 @@ func hash(data [][]byte, hasher crypto.HashImpl) []byte {
 		h.Write(d)
 	}
 	return h.Sum(nil)
+}
+
+// Sanitized checks whether the stable checkpoint is well-formed.
+func (sc *StableCheckpoint) Sanitized() error {
+
+	if sc.StateSnapshot() == nil {
+		return es.Errorf("snapshot is nil")
+	}
+
+	if sc.StateSnapshot().EpochData == nil {
+		return es.Errorf("epoch data is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.EpochConfig == nil {
+		return es.Errorf("epoch config is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.EpochConfig.Memberships == nil {
+		return es.Errorf("memberships is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.PreviousMembership == nil {
+		return es.Errorf("previous membership is nil")
+	}
+
+	if sc.Cert == nil {
+		return es.Errorf("certificate is nil")
+	}
+
+	if sc.StateSnapshot().AppData == nil {
+		return es.Errorf("app data is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.ClientProgress == nil {
+		return es.Errorf("client progress is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.LeaderPolicy == nil {
+		return es.Errorf("leader policy is nil")
+	}
+
+	if sc.StateSnapshot().EpochData.PreviousMembership == nil {
+		return es.Errorf("previous membership is nil")
+	}
+
+	return nil
 }

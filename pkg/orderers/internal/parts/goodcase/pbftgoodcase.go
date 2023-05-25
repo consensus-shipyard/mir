@@ -277,6 +277,10 @@ func ApplyMsgPreprepare(
 	// Convenience variable
 	sn := preprepare.Sn
 
+	if preprepare.Data == nil {
+		return
+	}
+
 	// Preprocess message, looking up the corresponding pbftSlot.
 	slot := preprocessMessage(state, sn, preprepare.View, preprepare.Pb(), from, logger)
 	if slot == nil {
@@ -334,6 +338,9 @@ func applyMsgPrepare(
 	logger logging.Logger,
 ) {
 
+	if prepare.Digest == nil {
+		return // Ignore Prepare messages with nil digest.
+	}
 	// Convenience variable
 	sn := prepare.Sn
 
@@ -369,6 +376,10 @@ func applyMsgCommit(
 	from t.NodeID,
 	logger logging.Logger,
 ) {
+
+	if commit.Digest == nil {
+		return
+	}
 
 	// Convenience variable
 	sn := commit.Sn
