@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -112,7 +111,7 @@ func (chkp *PbftSegmentChkp) NodeDone(nodeID types.NodeID, doneDigests [][]byte,
 	chkp.doneMsgIndex[strKey] = append(chkp.doneMsgIndex[strKey], nodeID)
 
 	// If a quorum of nodes has sent a Done message
-	if len(chkp.doneMsgIndex[strKey]) >= config.WeakQuorum(len(segment.Membership.Nodes)) {
+	if membutil.HaveWeakQuorum(segment.Membership, chkp.doneMsgIndex[strKey]) {
 
 		// Save the IDs of the nodes that are done with the segment
 		chkp.doneNodes = chkp.doneMsgIndex[strKey]
