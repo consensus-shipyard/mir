@@ -15,6 +15,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
+//TODO Sanitize messages received by this module (e.g. check that the sender is the expected one, make sure no crashing if data=nil, etc.)
+
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
 type ModuleConfig struct {
 	Self     t.ModuleID // id of this module
