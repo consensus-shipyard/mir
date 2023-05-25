@@ -19,13 +19,27 @@ import (
 func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
 	mc common.ModuleConfig,
-	_ *common.ModuleParams,
+	params *common.ModuleParams,
 	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
-		txMsgs := make([]*hasherpbtypes.HashData, len(txs))
+		if txs == nil || len(txs) > params.MaxTransactionsInBatch {
+			// Invalid request, ignore
+			return nil
+		}
+
+		txMsgs := make([]*hasherpbtypes.HashData, 0, len(txs))
 		for i, tx := range txs {
+			serializedTx := serializeTXForHash(tx.Pb())
+			if serializedTx == nil {
+				continue
+			}
 			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeTXForHash(tx.Pb())}
+		}
+
+		// There should be at least one transaction, otherwise we would not have gotten here (see batchfetcher/UponDeliverCert)
+		if len(txMsgs) == 0 {
+			return nil
 		}
 
 		hasherpbdsl.Request(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
@@ -75,6 +89,10 @@ type computeHashForBatchIDContext struct {
 // Auxiliary functions
 
 func serializeTXForHash(tx *trantorpb.Transaction) [][]byte {
+	if tx == nil {
+		return nil
+	}
+
 	// Encode integer fields.
 	clientIDBuf := []byte(tx.ClientId)
 

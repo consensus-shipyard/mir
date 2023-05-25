@@ -132,8 +132,11 @@ func IncludeBatchReconstruction(
 			return nil
 		}
 
-		if _, ok := state.RequestState[reqID]; !ok {
+		if req, ok := state.RequestState[reqID]; !ok {
 			// Ignore a message with an invalid or outdated request id.
+			return nil
+		} else if _, ok = req.Txs[batchID]; !ok {
+			// Ignore a message with a batchID that was not requested.
 			return nil
 		}
 
