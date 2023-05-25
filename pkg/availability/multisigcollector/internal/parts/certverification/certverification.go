@@ -3,6 +3,8 @@ package certverification
 import (
 	"errors"
 
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
@@ -130,8 +132,12 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 	for _, mscCert := range mscCerts {
 
 		// Check that the certificate contains a sufficient number of signatures.
-		if len(mscCert.Signers) < params.F+1 {
-			return nil, es.Errorf("insuficient number of signatures: %d, need %d", len(mscCert.Signers), params.F+1)
+		if !membutil.HaveWeakQuorum(params.Membership, mscCert.Signers) {
+			return nil, es.Errorf("insufficient weight of signatures: %d, need %d (signers: %v)",
+				membutil.WeightOf(params.Membership, mscCert.Signers),
+				membutil.WeakQuorum(params.Membership),
+				mscCert.Signers,
+			)
 		}
 
 		if len(mscCert.Signers) != len(mscCert.Signatures) {
@@ -148,7 +154,8 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 		}
 
 		// Check that signers are members.
-		if !sliceutil.ContainsAll(params.AllNodes, mscCert.Signers) {
+		// TODO: This check can be extremely inefficient (quadratic in membership size), especially at large scale.
+		if !sliceutil.ContainsAll(maputil.GetKeys(params.Membership.Nodes), mscCert.Signers) {
 			return nil, es.Errorf("certificate contains signatures from non members, signers %v", mscCert.Signers)
 		}
 

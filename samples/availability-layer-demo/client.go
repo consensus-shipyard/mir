@@ -125,8 +125,7 @@ func run() error {
 		},
 		&multisigcollector.ModuleParams{
 			InstanceUID: []byte("testing instance"),
-			AllNodes:    nodeIDs,
-			F:           (len(nodeIDs) - 1) / 2,
+			Membership:  membership,
 		},
 		logger,
 	)

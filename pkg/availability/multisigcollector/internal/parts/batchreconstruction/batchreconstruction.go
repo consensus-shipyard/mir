@@ -5,12 +5,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
-	"github.com/filecoin-project/mir/pkg/logging"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
@@ -18,7 +14,9 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -55,7 +53,7 @@ func IncludeBatchReconstruction(
 
 		mscCertsWrapper, ok := cert.Type.(*apbtypes.Cert_Mscs)
 		if !ok {
-			return es.Errorf("unexpected certificate type")
+			return es.Errorf("unexpected certificate type: %T (%v)", cert.Type, cert.Type)
 		}
 		certs := mscCertsWrapper.Mscs.Certs
 
@@ -106,7 +104,7 @@ func IncludeBatchReconstruction(
 	// When receive a request for batch from another node, lookup the batch in the local storage.
 	mscpbdsl.UponRequestBatchMessageReceived(m, func(from t.NodeID, batchID msctypes.BatchID, reqID msctypes.RequestID) error {
 		// check that sender is a member
-		if !sliceutil.Contains(params.AllNodes, from) {
+		if _, ok := params.Membership.Nodes[from]; !ok {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
@@ -129,7 +127,7 @@ func IncludeBatchReconstruction(
 	// When receive a requested batch, compute the ids of the received transactions.
 	mscpbdsl.UponProvideBatchMessageReceived(m, func(from t.NodeID, txs []*trantorpbtypes.Transaction, reqID msctypes.RequestID, batchID msctypes.BatchID) error {
 		// check that sender is a member
-		if !sliceutil.Contains(params.AllNodes, from) {
+		if _, ok := params.Membership.Nodes[from]; !ok {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
