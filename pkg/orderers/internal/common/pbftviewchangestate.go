@@ -22,7 +22,7 @@ import (
 // It is only associated with a single view transition, e.g., the transition from view 1 to view 2.
 // The transition from view 2 to view 3 will be tracked by a different instance of PbftViewChangeState.
 type PbftViewChangeState struct {
-	Membersip         *trantorpbtypes.Membership
+	Membership        *trantorpbtypes.Membership
 	SignedViewChanges map[t.NodeID]*pbftpbtypes.SignedViewChange
 
 	// Digests of Preprepares that need to be repropsed in a new view.
@@ -54,7 +54,7 @@ func NewPbftViewChangeState(seqNrs []tt.SeqNr, membership *trantorpbtypes.Member
 	}
 
 	return &PbftViewChangeState{
-		Membersip:         membership,
+		Membership:        membership,
 		SignedViewChanges: make(map[t.NodeID]*pbftpbtypes.SignedViewChange),
 		Reproposals:       reproposals,
 		PrepreparedIDs:    make(map[tt.SeqNr][]t.NodeID),
@@ -83,7 +83,7 @@ func (vcState *PbftViewChangeState) AddSignedViewChange(svc *pbftpbtypes.SignedV
 
 	vcState.SignedViewChanges[from] = svc
 
-	if membutil.HaveStrongQuorum(vcState.Membersip, maputil.GetKeys(vcState.SignedViewChanges)) {
+	if membutil.HaveStrongQuorum(vcState.Membership, maputil.GetKeys(vcState.SignedViewChanges)) {
 		vcState.updateReproposals(logger)
 	}
 }
@@ -94,7 +94,7 @@ func (vcState *PbftViewChangeState) updateReproposals(logger logging.Logger) {
 
 	for sn, r := range vcState.Reproposals {
 		if r == nil {
-			vcState.Reproposals[sn], vcState.PrepreparedIDs[sn] = reproposal(pSets, qSets, sn, vcState.Membersip)
+			vcState.Reproposals[sn], vcState.PrepreparedIDs[sn] = reproposal(pSets, qSets, sn, vcState.Membership)
 		}
 	}
 }
