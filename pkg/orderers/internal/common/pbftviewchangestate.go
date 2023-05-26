@@ -7,9 +7,10 @@ import (
 	es "github.com/go-errors/errors"
 
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 
-	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -21,7 +22,7 @@ import (
 // It is only associated with a single view transition, e.g., the transition from view 1 to view 2.
 // The transition from view 2 to view 3 will be tracked by a different instance of PbftViewChangeState.
 type PbftViewChangeState struct {
-	NumNodes          int
+	Membership        *trantorpbtypes.Membership
 	SignedViewChanges map[t.NodeID]*pbftpbtypes.SignedViewChange
 
 	// Digests of Preprepares that need to be repropsed in a new view.
@@ -44,7 +45,7 @@ type PbftViewChangeState struct {
 	PrepreparedIDs map[tt.SeqNr][]t.NodeID
 }
 
-func NewPbftViewChangeState(seqNrs []tt.SeqNr, membership []t.NodeID) *PbftViewChangeState {
+func NewPbftViewChangeState(seqNrs []tt.SeqNr, membership *trantorpbtypes.Membership) *PbftViewChangeState {
 	reproposals := make(map[tt.SeqNr][]byte)
 	preprepares := make(map[tt.SeqNr]*pbftpbtypes.Preprepare)
 	for _, sn := range seqNrs {
@@ -53,7 +54,7 @@ func NewPbftViewChangeState(seqNrs []tt.SeqNr, membership []t.NodeID) *PbftViewC
 	}
 
 	return &PbftViewChangeState{
-		NumNodes:          len(membership),
+		Membership:        membership,
 		SignedViewChanges: make(map[t.NodeID]*pbftpbtypes.SignedViewChange),
 		Reproposals:       reproposals,
 		PrepreparedIDs:    make(map[tt.SeqNr][]t.NodeID),
@@ -82,7 +83,7 @@ func (vcState *PbftViewChangeState) AddSignedViewChange(svc *pbftpbtypes.SignedV
 
 	vcState.SignedViewChanges[from] = svc
 
-	if len(vcState.SignedViewChanges) >= config.StrongQuorum(vcState.NumNodes) {
+	if membutil.HaveStrongQuorum(vcState.Membership, maputil.GetKeys(vcState.SignedViewChanges)) {
 		vcState.updateReproposals(logger)
 	}
 }
@@ -93,7 +94,7 @@ func (vcState *PbftViewChangeState) updateReproposals(logger logging.Logger) {
 
 	for sn, r := range vcState.Reproposals {
 		if r == nil {
-			vcState.Reproposals[sn], vcState.PrepreparedIDs[sn] = reproposal(pSets, qSets, sn, vcState.NumNodes)
+			vcState.Reproposals[sn], vcState.PrepreparedIDs[sn] = reproposal(pSets, qSets, sn, vcState.Membership)
 		}
 	}
 }
@@ -182,22 +183,22 @@ func noPrepareConflictsA1(
 	sn tt.SeqNr,
 	digest []byte,
 	view ot.ViewNr,
-	numNodes int,
+	membership *trantorpbtypes.Membership,
 ) bool {
-	numNonConflicting := 0
+	nonConflicting := make([]t.NodeID, 0)
 
-	for _, pSet := range pSets {
+	for nodeID, pSet := range pSets {
 		if entry, ok := pSet[sn]; !ok {
-			numNonConflicting++
+			nonConflicting = append(nonConflicting, nodeID)
 		} else {
 			if entry.View < view ||
 				(entry.View == view && bytes.Equal(entry.Digest, digest)) {
-				numNonConflicting++
+				nonConflicting = append(nonConflicting, nodeID)
 			}
 		}
 	}
 
-	return numNonConflicting >= config.StrongQuorum(numNodes)
+	return membutil.HaveStrongQuorum(membership, nonConflicting)
 }
 
 func enoughPrepreparesA2(
@@ -205,34 +206,32 @@ func enoughPrepreparesA2(
 	sn tt.SeqNr,
 	digest []byte,
 	view ot.ViewNr,
-	numNodes int,
+	membership *trantorpbtypes.Membership,
 ) (bool, []t.NodeID) {
 
-	numPrepares := 0
-	nodeIDs := make([]t.NodeID, 0, numNodes)
+	nodeIDs := make([]t.NodeID, 0)
 
 	for nodeID, qSet := range qSets {
 		if snEntry, ok := qSet[sn]; ok {
 			if snEntry[string(digest)] >= view {
-				numPrepares++
 				nodeIDs = append(nodeIDs, nodeID)
 			}
 		}
 	}
 
-	return numPrepares >= config.WeakQuorum(numNodes), nodeIDs
+	return membutil.HaveWeakQuorum(membership, nodeIDs), nodeIDs
 }
 
-func nothingPreparedB(pSets map[t.NodeID]ViewChangePSet, sn tt.SeqNr, numNodes int) bool {
-	nothingPrepared := 0
+func nothingPreparedB(pSets map[t.NodeID]ViewChangePSet, sn tt.SeqNr, membership *trantorpbtypes.Membership) bool {
+	nothingPrepared := make([]t.NodeID, 0)
 
-	for _, pSet := range pSets {
+	for nodeID, pSet := range pSets {
 		if _, ok := pSet[sn]; !ok {
-			nothingPrepared++
+			nothingPrepared = append(nothingPrepared, nodeID)
 		}
 	}
 
-	return nothingPrepared >= config.StrongQuorum(numNodes)
+	return membutil.HaveStrongQuorum(membership, nothingPrepared)
 }
 
 // ViewChangePSet represents the P set of a PBFT view change message.
@@ -321,10 +320,10 @@ func reproposal(
 	pSets map[t.NodeID]ViewChangePSet,
 	qSets map[t.NodeID]ViewChangeQSet,
 	sn tt.SeqNr,
-	numNodes int,
+	membership *trantorpbtypes.Membership,
 ) ([]byte, []t.NodeID) {
 
-	if nothingPreparedB(pSets, sn, numNodes) {
+	if nothingPreparedB(pSets, sn, membership) {
 
 		return []byte{}, nil
 
@@ -332,8 +331,8 @@ func reproposal(
 
 	for _, pSet := range pSets {
 		if entry, ok := pSet[sn]; ok {
-			a2, prepreparedIDs := enoughPrepreparesA2(qSets, sn, entry.Digest, entry.View, numNodes)
-			if noPrepareConflictsA1(pSets, sn, entry.Digest, entry.View, numNodes) && a2 {
+			a2, prepreparedIDs := enoughPrepreparesA2(qSets, sn, entry.Digest, entry.View, membership)
+			if noPrepareConflictsA1(pSets, sn, entry.Digest, entry.View, membership) && a2 {
 
 				return entry.Digest, prepreparedIDs
 

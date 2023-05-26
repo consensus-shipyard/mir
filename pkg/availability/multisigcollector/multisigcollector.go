@@ -1,8 +1,6 @@
 package multisigcollector
 
 import (
-	es "github.com/go-errors/errors"
-
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
@@ -14,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -30,10 +27,6 @@ type ModuleParams = common.ModuleParams
 // sends it to all replicas and collects params.F+1 signatures confirming that
 // other nodes have persistently stored the batch.
 func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
-	if len(params.AllNodes) < 2*params.F+1 {
-		return nil, es.Errorf("cannot tolerate %v / %v failures", params.F, len(params.AllNodes))
-	}
-
 	m := dsl.NewModule(mc.Self)
 
 	certcreation.IncludeCreatingCertificates(m, mc, params, logger)
@@ -57,8 +50,6 @@ func NewReconfigurableModule(mc ModuleConfig, logger logging.Logger) modules.Pas
 				// Extract the IDs of the nodes in the membership associated with this instance
 				mscParams := params.Type.(*factorypbtypes.GeneratorParams_MultisigCollector).MultisigCollector
 
-				mscNodeIDs := maputil.GetSortedKeys(mscParams.Membership.Nodes)
-
 				// Create a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
 				submc.Self = mscID
@@ -70,10 +61,7 @@ func NewReconfigurableModule(mc ModuleConfig, logger logging.Logger) modules.Pas
 						// TODO: Use InstanceUIDs properly.
 						//       (E.g., concatenate this with the instantiating protocol's InstanceUID when introduced.)
 						InstanceUID: []byte(mscID),
-						AllNodes:    mscNodeIDs,
-						// TODO: Consider lowering this threshold or make it configurable
-						//       for the case where fault assumptions are stricter because of other modules.
-						F:           (len(mscNodeIDs) - 1) / 2,
+						Membership:  mscParams.Membership,
 						Limit:       int(mscParams.Limit),
 						MaxRequests: int(mscParams.MaxRequests),
 					},

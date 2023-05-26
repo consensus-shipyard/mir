@@ -513,7 +513,7 @@ func advanceSlotState(
 		// The timeout event contains the current view and the number of committed slots.
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all certificates.
-		if !state.SegmentCheckpoint.Stable(len(state.Segment.Membership.Nodes)) {
+		if !state.SegmentCheckpoint.Stable(state.Segment.Membership) {
 			eventpbdsl.TimerDelay(
 				m,
 				moduleConfig.Timer,

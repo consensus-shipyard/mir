@@ -3,9 +3,11 @@ package leaderselectionpolicy
 import (
 	"github.com/fxamacker/cbor/v2"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // The SimpleLeaderPolicy is a trivial leader selection policy.
@@ -15,9 +17,9 @@ type SimpleLeaderPolicy struct {
 	Membership []t.NodeID
 }
 
-func NewSimpleLeaderPolicy(membership []t.NodeID) *SimpleLeaderPolicy {
+func NewSimpleLeaderPolicy(membership *trantorpbtypes.Membership) *SimpleLeaderPolicy {
 	return &SimpleLeaderPolicy{
-		membership,
+		maputil.GetSortedKeys(membership.Nodes),
 	}
 }
 
@@ -33,9 +35,9 @@ func (simple *SimpleLeaderPolicy) Suspect(_ tt.EpochNr, _ t.NodeID) {
 }
 
 // Reconfigure informs the leader selection policy about a change in the membership.
-func (simple *SimpleLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
-	newPolicy := SimpleLeaderPolicy{Membership: make([]t.NodeID, len(nodeIDs))}
-	copy(newPolicy.Membership, nodeIDs)
+func (simple *SimpleLeaderPolicy) Reconfigure(membership *trantorpbtypes.Membership) LeaderSelectionPolicy {
+	newPolicy := SimpleLeaderPolicy{Membership: make([]t.NodeID, len(membership.Nodes))}
+	copy(newPolicy.Membership, maputil.GetSortedKeys(membership.Nodes))
 	return &newPolicy
 }
 

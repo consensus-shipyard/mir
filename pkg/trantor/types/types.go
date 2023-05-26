@@ -8,6 +8,15 @@ import (
 
 // ================================================================================
 
+// VoteWeight represents the weight of a node's vote when gathering quorums.
+type VoteWeight uint64
+
+func (vw VoteWeight) Bytes() []byte {
+	return serializing.Uint64ToBytes(uint64(vw))
+}
+
+// ================================================================================
+
 // ClientID represents the ID of a client.
 type ClientID string
 

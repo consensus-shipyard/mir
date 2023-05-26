@@ -1,10 +1,11 @@
 package common
 
 import (
-	"github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/orderers/common"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // PbftSegmentChkp groups data structures pertaining to an instance-local checkpoint
@@ -77,7 +78,7 @@ func (chkp *PbftSegmentChkp) DoneNodes() []types.NodeID {
 // i.e., if all slots have been committed and a strong quorum of matching Done messages has been received.
 // This ensures that at least a weak quorum of correct nodes has a local checkpoint
 // and thus evey correct node will be able to catch up.
-func (chkp *PbftSegmentChkp) Stable(numNodes int) bool {
+func (chkp *PbftSegmentChkp) Stable(membership *trantorpbtypes.Membership) bool {
 
 	// If not all slots are committed (i.e. no checkpoint is present locally), the checkpoint is not considered stable.
 	if !chkp.done {
@@ -86,7 +87,7 @@ func (chkp *PbftSegmentChkp) Stable(numNodes int) bool {
 
 	// Return true if a strong quorum of nodes sent the same Done message.
 	for _, nodeIDs := range chkp.doneMsgIndex {
-		if len(nodeIDs) >= config.StrongQuorum(numNodes) {
+		if membutil.HaveStrongQuorum(membership, nodeIDs) {
 			return true
 		}
 	}
@@ -110,7 +111,7 @@ func (chkp *PbftSegmentChkp) NodeDone(nodeID types.NodeID, doneDigests [][]byte,
 	chkp.doneMsgIndex[strKey] = append(chkp.doneMsgIndex[strKey], nodeID)
 
 	// If a quorum of nodes has sent a Done message
-	if len(chkp.doneMsgIndex[strKey]) >= config.WeakQuorum(len(segment.Membership.Nodes)) {
+	if membutil.HaveWeakQuorum(segment.Membership, chkp.doneMsgIndex[strKey]) {
 
 		// Save the IDs of the nodes that are done with the segment
 		chkp.doneNodes = chkp.doneMsgIndex[strKey]

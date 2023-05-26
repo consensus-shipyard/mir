@@ -177,22 +177,3 @@ func (mp *ModuleParams) AdjustSpeed(maxProposeDelay time.Duration) *ModuleParams
 
 	return mp
 }
-
-func StrongQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: 2q > n+f
-	f := MaxFaulty(n)
-	return (n+f)/2 + 1
-}
-
-func WeakQuorum(n int) int {
-	// assuming n > 3f:
-	//   return min q: q > f
-	return MaxFaulty(n) + 1
-}
-
-func MaxFaulty(n int) int {
-	// assuming n > 3f:
-	//   return max f
-	return (n - 1) / 3
-}

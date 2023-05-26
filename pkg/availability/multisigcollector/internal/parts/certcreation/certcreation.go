@@ -13,6 +13,7 @@ import (
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -116,7 +117,12 @@ func IncludeCreatingCertificates(
 		}
 		state.certificates[context.reqID].batchID = batchID
 		// TODO: add persistent storage for crash-recovery.
-		transportpbdsl.SendMessage(m, mc.Net, mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID), params.AllNodes)
+		transportpbdsl.SendMessage(
+			m,
+			mc.Net,
+			mscpbmsgs.RequestSigMessage(mc.Self, context.txs, context.reqID),
+			maputil.GetKeys(params.Membership.Nodes),
+		)
 		return nil
 	})
 
@@ -129,7 +135,7 @@ func IncludeCreatingCertificates(
 		}
 
 		// check that sender is a member
-		if !sliceutil.Contains(params.AllNodes, from) {
+		if _, ok := params.Membership.Nodes[from]; !ok {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
@@ -156,7 +162,7 @@ func IncludeCreatingCertificates(
 
 		cert.sigs[nodeID] = context.signature
 
-		newDue := len(cert.sigs) >= params.F+1 // keep this here...
+		newDue := membutil.HaveWeakQuorum(params.Membership, maputil.GetKeys(cert.sigs)) // keep this here...
 
 		if len(state.requestStates) > 0 {
 			respondIfReady(m, &state, params) // ... because this call changes the state
@@ -176,7 +182,7 @@ func IncludeCreatingCertificates(
 	// When receive a request for a signature, compute the ids of the received transactions.
 	mscpbdsl.UponRequestSigMessageReceived(m, func(from t.NodeID, txs []*trantorpbtypes.Transaction, reqID requestID) error {
 		// check that sender is a member
-		if !sliceutil.Contains(params.AllNodes, from) {
+		if _, ok := params.Membership.Nodes[from]; !ok {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
@@ -217,7 +223,7 @@ func respondIfReady(m dsl.Module, state *certCreationState, params *common.Modul
 
 	// Select certificates with enough signatures.
 	finishedCerts := maputil.RemoveAll(state.certificates, func(_ requestID, cert *certificate) bool {
-		return len(cert.sigs) >= params.F+1
+		return membutil.HaveWeakQuorum(params.Membership, maputil.GetKeys(cert.sigs))
 	})
 
 	// Return immediately if there are no finished certificates.

@@ -37,7 +37,7 @@ func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) (*LocalGrp
 		if err != nil {
 			return nil, es.Errorf("error creating local multiaddress: %w", err)
 		}
-		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{id, maddr.String(), nil, 0} // nolint:govet
+		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{id, maddr.String(), nil, 1} // nolint:govet
 	}
 
 	return &LocalGrpcTransport{membership, logger}, nil

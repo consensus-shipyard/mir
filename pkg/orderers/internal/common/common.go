@@ -138,7 +138,7 @@ func (state *State) InitView(
 
 		// Create a fresh, empty slot.
 		// For n being the Membership size, f = (n-1) / 3
-		state.Slots[view][sn] = NewPbftSlot(len(state.Segment.Membership.Nodes))
+		state.Slots[view][sn] = NewPbftSlot(state.Segment.Membership)
 
 		// Except for initialization of view 0, carry over state from the previous view.
 		if view > 0 {

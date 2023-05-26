@@ -201,7 +201,7 @@ func IncludeViewChange( //nolint:gocognit
 
 		// Create a temporary view change state object
 		// to use for reconstructing the re-proposals from the obtained view change messages.
-		vcState := common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.NodeIDs())
+		vcState := common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.Membership)
 
 		// Feed all obtained ViewChange messages to the view change state.
 		for i, signedViewChange := range context.SignedViewChanges {
@@ -356,7 +356,7 @@ func applyViewChangeSNTimeout(
 	// if nothing has been committed since then, and if the segment-level checkpoint is not yet stable
 	if view == state.View &&
 		int(numCommitted) == state.NumCommitted(state.View) &&
-		!state.SegmentCheckpoint.Stable(len(state.Segment.Membership.Nodes)) {
+		!state.SegmentCheckpoint.Stable(state.Segment.Membership) {
 
 		// Start the view change sub-protocol.
 		logger.Log(logging.LevelWarn, "View change SN timer expired.",
@@ -384,7 +384,7 @@ func applyViewChangeSegmentTimeout(
 	//       An instance-local stable checkpoint must be created as well.
 
 	// If the view is still the same as when the timer was set up and the segment-level checkpoint is not yet stable
-	if view == state.View && !state.SegmentCheckpoint.Stable(len(state.Segment.Membership.Nodes)) {
+	if view == state.View && !state.SegmentCheckpoint.Stable(state.Segment.Membership) {
 		// Start the view change sub-protocol.
 		logger.Log(logging.LevelWarn, "View change segment timer expired.", "view", state.View)
 		return startViewChange(m, state, params, moduleConfig, logger)
@@ -667,7 +667,7 @@ func getViewChangeState(state *common.State, view ot.ViewNr) *common.PbftViewCha
 	}
 
 	// If no view change state is yet associated with this view, allocate a new one and return it.
-	state.ViewChangeStates[view] = common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.NodeIDs())
+	state.ViewChangeStates[view] = common.NewPbftViewChangeState(state.Segment.SeqNrs(), state.Segment.Membership)
 
 	return state.ViewChangeStates[view]
 }

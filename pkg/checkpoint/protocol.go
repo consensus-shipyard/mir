@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/iss/config"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -39,10 +39,11 @@ type State struct {
 	// Hash of the state snapshot data associated with this checkpoint.
 	StateSnapshotHash []byte
 
-	// Set of (potentially invalid) nodes' Signatures.
+	// Set of nodes' valid checkpoint Signatures (these will make up a checkpoint certificate).
 	Signatures map[t.NodeID][]byte
 
-	// Set of nodes from which a valid Checkpoint messages has been received.
+	// Set of nodes from which a (potentially invalid) Checkpoint messages has been received
+	// (used to ignore duplicate messages).
 	SigReceived map[t.NodeID]struct{}
 
 	// Set of Checkpoint messages that were received ahead of time.
@@ -118,7 +119,7 @@ func NewModule(
 			announceStable(m, params, state, moduleConfig)
 		}
 
-		// Send a checkpoint message to all nodes after persisting checkpoint to the WAL.
+		// Send a checkpoint message to all nodes.
 		chkpMessage := checkpointpbmsgs.Checkpoint(moduleConfig.Self, params.EpochConfig.EpochNr, params.EpochConfig.FirstSn, state.StateSnapshotHash, sig)
 		sortedMembership := maputil.GetSortedKeys(params.Membership.Nodes)
 		eventpbdsl.TimerRepeat(m,
@@ -202,7 +203,7 @@ func announceStable(m dsl.Module, p *ModuleParams, state *State, mc ModuleConfig
 	}
 	state.Announced = true
 
-	// Assemble a multisig certificate from the received signatures.
+	// Assemble a multisig certificate from the received valid signatures.
 	cert := make(map[t.NodeID][]byte)
 	for node, sig := range state.Signatures {
 		cert[node] = sig
@@ -279,7 +280,7 @@ func (state *State) SnapshotReady() bool {
 }
 
 func (state *State) Stable(p *ModuleParams) bool {
-	return state.SnapshotReady() && len(state.Signatures) >= config.StrongQuorum(len(p.Membership.Nodes))
+	return state.SnapshotReady() && membutil.HaveStrongQuorum(p.Membership, maputil.GetKeys(state.Signatures))
 }
 
 type verificationContext struct {

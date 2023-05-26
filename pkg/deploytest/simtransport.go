@@ -60,7 +60,7 @@ func (st *SimTransport) Membership() *trantorpbtypes.Membership {
 			nID,
 			libp2p.NewDummyHostAddr(0, 0).String(),
 			nil,
-			0,
+			1,
 		}
 	}
 

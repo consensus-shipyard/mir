@@ -3,11 +3,12 @@ package common
 import (
 	"bytes"
 
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-
-	"github.com/filecoin-project/mir/pkg/iss/config"
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // PbftSlot tracks the state of the agreement protocol for one sequence number,
@@ -17,20 +18,20 @@ type PbftSlot struct {
 	// The received preprepare message.
 	Preprepare *pbftpbtypes.Preprepare
 
-	// Prepare messages received.
+	// Prepare messages received, indexed by sending node's ID.
 	// A nil entry signifies that an invalid message has been discarded.
 	PrepareDigests map[t.NodeID][]byte
 
-	// Valid prepare messages received.
+	// Valid prepare messages received, indexed by sending node's ID.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidPrepareDigests [][]byte
+	ValidPrepareDigests map[t.NodeID][]byte
 
-	// Commit messages received.
+	// Commit messages received, indexed by sending node's ID.
 	CommitDigests map[t.NodeID][]byte
 
-	// Valid commit messages received.
+	// Valid commit messages received, indexed by sending node's ID.
 	// Serves mostly as an optimization to not re-validate already validated messages.
-	ValidCommitDigests [][]byte
+	ValidCommitDigests map[t.NodeID][]byte
 
 	// The digest of the proposed (preprepared) certificate
 	Digest []byte
@@ -44,23 +45,22 @@ type PbftSlot struct {
 	Committed   bool
 
 	// Number of nodes executing this instance of PBFT
-	numNodes int
+	membership *trantorpbtypes.Membership
 }
 
 // NewPbftSlot allocates a new PbftSlot object and returns it, initializing all its fields.
-// The f parameter designates the number of tolerated failures of the PBFT instance this slot belongs to.
-func NewPbftSlot(numNodes int) *PbftSlot {
+func NewPbftSlot(membership *trantorpbtypes.Membership) *PbftSlot {
 	return &PbftSlot{
 		Preprepare:          nil,
 		PrepareDigests:      make(map[t.NodeID][]byte),
-		ValidPrepareDigests: make([][]byte, 0),
+		ValidPrepareDigests: make(map[t.NodeID][]byte, 0),
 		CommitDigests:       make(map[t.NodeID][]byte),
-		ValidCommitDigests:  make([][]byte, 0),
+		ValidCommitDigests:  make(map[t.NodeID][]byte, 0),
 		Digest:              nil,
 		Preprepared:         false,
 		Prepared:            false,
 		Committed:           false,
-		numNodes:            numNodes,
+		membership:          membership,
 	}
 }
 
@@ -90,7 +90,7 @@ func (slot *PbftSlot) CheckPrepared() bool {
 
 	// Check if enough unique Prepare messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.PrepareDigests) < config.StrongQuorum(slot.numNodes) {
+	if !membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.PrepareDigests)) {
 		return false
 	}
 
@@ -106,13 +106,13 @@ func (slot *PbftSlot) CheckPrepared() bool {
 
 			// If the digest in the Prepare message matches that of the Preprepare, add the message to the valid ones.
 			if bytes.Equal(digest, slot.Digest) {
-				slot.ValidPrepareDigests = append(slot.ValidPrepareDigests, digest)
+				slot.ValidPrepareDigests[from] = digest
 			}
 		}
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidPrepareDigests) >= config.StrongQuorum(slot.numNodes)
+	return membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.ValidPrepareDigests))
 }
 
 // CheckCommitted evaluates whether the PbftSlot fulfills the conditions to be committed.
@@ -126,7 +126,7 @@ func (slot *PbftSlot) CheckCommitted() bool {
 
 	// Check if enough unique Commit messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if len(slot.CommitDigests) < config.StrongQuorum(slot.numNodes) {
+	if !membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.CommitDigests)) {
 		return false
 	}
 
@@ -142,13 +142,13 @@ func (slot *PbftSlot) CheckCommitted() bool {
 
 			// If the digest in the Commit message matches that of the Preprepare, add the message to the valid ones.
 			if bytes.Equal(digest, slot.Digest) {
-				slot.ValidCommitDigests = append(slot.ValidCommitDigests, digest)
+				slot.ValidCommitDigests[from] = digest
 			}
 		}
 	}
 
 	// Return true if enough matching Prepare messages have been received.
-	return len(slot.ValidCommitDigests) >= config.StrongQuorum(slot.numNodes)
+	return membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.ValidCommitDigests))
 }
 
 func (slot *PbftSlot) GetPreprepare(digest []byte) *pbftpbtypes.Preprepare {

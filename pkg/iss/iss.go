@@ -552,14 +552,9 @@ func InitialStateSnapshot(
 	var err error
 	switch params.LeaderSelectionPolicy {
 	case lsp.Simple:
-		leaderPolicyData, err = lsp.NewSimpleLeaderPolicy(
-			maputil.GetSortedKeys(params.InitialMembership.Nodes),
-		).Bytes()
+		leaderPolicyData, err = lsp.NewSimpleLeaderPolicy(params.InitialMembership).Bytes()
 	case lsp.Blacklist:
-		leaderPolicyData, err = lsp.NewBlackListLeaderPolicy(
-			maputil.GetSortedKeys(params.InitialMembership.Nodes),
-			issconfig.StrongQuorum(len(params.InitialMembership.Nodes)),
-		).Bytes()
+		leaderPolicyData, err = lsp.NewBlackListLeaderPolicy(params.InitialMembership).Bytes()
 	default:
 		return nil, es.Errorf("unknown leader selection policy type: %v", params.LeaderSelectionPolicy)
 	}
@@ -759,7 +754,7 @@ func (iss *ISS) advanceEpoch() error {
 	oldMembership := iss.memberships[0]
 	iss.memberships = append(iss.memberships[1:], iss.nextNewMembership)
 	iss.nextNewMembership = nil
-	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(maputil.GetSortedKeys(iss.memberships[0].Nodes))
+	iss.LeaderPolicy = iss.LeaderPolicy.Reconfigure(iss.memberships[0])
 
 	// Serialize current leader selection policy.
 	leaderPolicyData, err := iss.LeaderPolicy.Bytes()

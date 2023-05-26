@@ -5,44 +5,42 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
+// BlacklistLeaderPolicy represents the state of the blacklist leader selection policy.
 type BlacklistLeaderPolicy struct {
-	Membership map[t.NodeID]struct{}
+	Membership *trantorpbtypes.Membership
 	Suspected  map[t.NodeID]tt.EpochNr
-	MinLeaders int
+	// All fields must be exported, otherwise they would be ignored when serializing.
 }
 
-func NewBlackListLeaderPolicy(members []t.NodeID, MinLeaders int) *BlacklistLeaderPolicy {
-	membership := make(map[t.NodeID]struct{}, len(members))
-	for _, node := range members {
-		membership[node] = struct{}{}
-	}
+func NewBlackListLeaderPolicy(membership *trantorpbtypes.Membership) *BlacklistLeaderPolicy {
 	return &BlacklistLeaderPolicy{
 		membership,
-		make(map[t.NodeID]tt.EpochNr, len(members)),
-		MinLeaders,
+		make(map[t.NodeID]tt.EpochNr, len(membership.Nodes)),
 	}
 }
 
-// Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
+// Leaders returns a list of least recently suspected leaders
+// that cumulatively have a strong quorum of the voting power.
 func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 
-	curLeaders := make([]t.NodeID, 0, len(l.Membership))
-	for nodeID := range l.Membership {
-		curLeaders = append(curLeaders, nodeID)
-	}
+	nodeIDs := maputil.GetKeys(l.Membership.Nodes)
 
-	// Sort the values in ascending order of latest epoch where they each were suspected
-	sort.Slice(curLeaders, func(i, j int) bool {
-		_, oki := l.Suspected[curLeaders[i]]
-		_, okj := l.Suspected[curLeaders[j]]
+	// Sort the values in ascending order of the latest epoch where they each were suspected.
+	sort.Slice(nodeIDs, func(i, j int) bool {
+		_, oki := l.Suspected[nodeIDs[i]]
+		_, okj := l.Suspected[nodeIDs[j]]
+
 		// If both nodeIDs have never been suspected, then lexicographical order (both will be leaders)
 		if !oki && !okj {
-			return string(curLeaders[i]) < string(curLeaders[j])
+			return string(nodeIDs[i]) < string(nodeIDs[j])
 		}
 
 		// If one node is suspected and the other is not, the suspected one comes last
@@ -54,23 +52,29 @@ func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 		}
 
 		// If both keys are in the suspected map, sort by value in the suspected map
-		return l.Suspected[curLeaders[i]] < l.Suspected[curLeaders[j]]
+		return l.Suspected[nodeIDs[i]] < l.Suspected[nodeIDs[j]]
 	})
 
+	// Calculate the minimal number of least recently suspected nodes for a strong quorum.
+	minLeaders := 1 // We always need at least one leader.
+	for !membutil.HaveStrongQuorum(l.Membership, nodeIDs[:minLeaders]) {
+		minLeaders++
+	}
+
 	// Calculate number of leaders
-	leadersSize := len(l.Membership) - len(l.Suspected)
-	if leadersSize < l.MinLeaders {
-		leadersSize = l.MinLeaders // must at least return l.MinLeaders
+	numLeaders := len(l.Membership.Nodes) - len(l.Suspected)
+	if numLeaders < minLeaders {
+		numLeaders = minLeaders // must at least return l.minLeaders
 	}
 
 	// return the leadersSize least recently suspected nodes as currentLeaders
-	return curLeaders[:leadersSize]
+	return nodeIDs[:numLeaders]
 }
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
-// if this one is more recent than the one it already has
+// if this one is more recent than the one it already has.
 func (l *BlacklistLeaderPolicy) Suspect(e tt.EpochNr, node t.NodeID) {
-	if _, ok := l.Membership[node]; !ok { //node is a not a member
+	if _, ok := l.Membership.Nodes[node]; !ok { // node is a not a member
 		//TODO error but cannot be passed through
 		return
 	}
@@ -81,11 +85,9 @@ func (l *BlacklistLeaderPolicy) Suspect(e tt.EpochNr, node t.NodeID) {
 }
 
 // Reconfigure informs the leader selection policy about a change in the membership.
-func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
-	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
-	suspected := make(map[t.NodeID]tt.EpochNr, len(nodeIDs))
-	for _, nodeID := range nodeIDs {
-		membership[nodeID] = struct{}{}
+func (l *BlacklistLeaderPolicy) Reconfigure(membership *trantorpbtypes.Membership) LeaderSelectionPolicy {
+	suspected := make(map[t.NodeID]tt.EpochNr, len(membership.Nodes))
+	for _, nodeID := range maputil.GetKeys(membership.Nodes) {
 		if epoch, ok := l.Suspected[nodeID]; ok {
 			suspected[nodeID] = epoch
 		}
@@ -94,7 +96,6 @@ func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionP
 	newPolicy := BlacklistLeaderPolicy{
 		membership,
 		suspected,
-		l.MinLeaders,
 	}
 
 	return &newPolicy
