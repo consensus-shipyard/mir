@@ -1,9 +1,10 @@
 package common
 
 import (
+	es "github.com/go-errors/errors"
+
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
-	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"

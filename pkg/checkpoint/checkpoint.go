@@ -1,8 +1,9 @@
 package checkpoint
 
 import (
-	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"reflect"
+
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"

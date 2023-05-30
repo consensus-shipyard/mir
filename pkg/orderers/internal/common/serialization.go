@@ -11,7 +11,6 @@ package common
 import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 )
 
@@ -40,12 +39,6 @@ func SerializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpb
 }
 
 func SerializeViewChangeForSigning(vc *pbftpbtypes.ViewChange) *cryptopbtypes.SignedData {
-	_ = &pbftpb.ViewChange{
-		View: 0,
-		PSet: nil,
-		QSet: nil,
-	}
-
 	// Allocate result data structure.
 	data := make([][]byte, 0)
 
