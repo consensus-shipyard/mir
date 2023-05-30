@@ -144,6 +144,7 @@ func IncludeGoodCase(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
+
 		prepare := &pbftpbtypes.Prepare{
 			Sn:     sn,
 			View:   view,
@@ -341,6 +342,7 @@ func applyMsgPrepare(
 	if prepare.Digest == nil {
 		return // Ignore Prepare messages with nil digest.
 	}
+
 	// Convenience variable
 	sn := prepare.Sn
 

@@ -7,13 +7,6 @@
 package eventpb
 
 import (
-	reflect "reflect"
-	sync "sync"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -31,6 +24,11 @@ import (
 	testerpb "github.com/filecoin-project/mir/pkg/pb/testerpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -879,30 +877,31 @@ func file_eventpb_eventpb_proto_rawDescGZIP() []byte {
 
 var file_eventpb_eventpb_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_eventpb_eventpb_proto_goTypes = []interface{}{
-	(*Event)(nil),                // 0: eventpb.Event
-	(*Init)(nil),                 // 1: eventpb.Init
-	(*TimerEvent)(nil),           // 2: eventpb.TimerEvent
-	(*TimerDelay)(nil),           // 3: eventpb.TimerDelay
-	(*TimerRepeat)(nil),          // 4: eventpb.TimerRepeat
-	(*TimerGarbageCollect)(nil),  // 5: eventpb.TimerGarbageCollect
-	(*hasherpb.Event)(nil),       // 6: hasherpb.Event
-	(*bcbpb.Event)(nil),          // 7: bcbpb.Event
-	(*mempoolpb.Event)(nil),      // 8: mempoolpb.Event
-	(*availabilitypb.Event)(nil), // 9: availabilitypb.Event
-	(*batchdbpb.Event)(nil),      // 10: batchdbpb.Event
-	(*batchfetcherpb.Event)(nil), // 11: batchfetcherpb.Event
-	(*threshcryptopb.Event)(nil), // 12: threshcryptopb.Event
-	(*checkpointpb.Event)(nil),   // 13: checkpointpb.Event
-	(*factorypb.Event)(nil),      // 14: factorypb.Event
-	(*isspb.Event)(nil),          // 15: isspb.Event
-	(*ordererpb.Event)(nil),      // 16: ordererpb.Event
-	(*cryptopb.Event)(nil),       // 17: cryptopb.Event
-	(*apppb.Event)(nil),          // 18: apppb.Event
-	(*transportpb.Event)(nil),    // 19: transportpb.Event
-	(*pingpongpb.Event)(nil),     // 20: pingpongpb.Event
-	(*wrappers.StringValue)(nil), // 21: google.protobuf.StringValue
-	(*wrappers.UInt64Value)(nil), // 22: google.protobuf.UInt64Value
-	(*testerpb.Tester)(nil),      // 23: testerpb.Tester}
+	(*Event)(nil),                  // 0: eventpb.Event
+	(*Init)(nil),                   // 1: eventpb.Init
+	(*TimerEvent)(nil),             // 2: eventpb.TimerEvent
+	(*TimerDelay)(nil),             // 3: eventpb.TimerDelay
+	(*TimerRepeat)(nil),            // 4: eventpb.TimerRepeat
+	(*TimerGarbageCollect)(nil),    // 5: eventpb.TimerGarbageCollect
+	(*hasherpb.Event)(nil),         // 6: hasherpb.Event
+	(*bcbpb.Event)(nil),            // 7: bcbpb.Event
+	(*mempoolpb.Event)(nil),        // 8: mempoolpb.Event
+	(*availabilitypb.Event)(nil),   // 9: availabilitypb.Event
+	(*batchdbpb.Event)(nil),        // 10: batchdbpb.Event
+	(*batchfetcherpb.Event)(nil),   // 11: batchfetcherpb.Event
+	(*threshcryptopb.Event)(nil),   // 12: threshcryptopb.Event
+	(*checkpointpb.Event)(nil),     // 13: checkpointpb.Event
+	(*factorypb.Event)(nil),        // 14: factorypb.Event
+	(*isspb.Event)(nil),            // 15: isspb.Event
+	(*ordererpb.Event)(nil),        // 16: ordererpb.Event
+	(*cryptopb.Event)(nil),         // 17: cryptopb.Event
+	(*apppb.Event)(nil),            // 18: apppb.Event
+	(*transportpb.Event)(nil),      // 19: transportpb.Event
+	(*pingpongpb.Event)(nil),       // 20: pingpongpb.Event
+	(*wrapperspb.StringValue)(nil), // 21: google.protobuf.StringValue
+	(*wrapperspb.UInt64Value)(nil), // 22: google.protobuf.UInt64Value
+	(*testerpb.Tester)(nil),        // 23: testerpb.Tester
+}
 var file_eventpb_eventpb_proto_depIdxs = []int32{
 	1,  // 0: eventpb.Event.init:type_name -> eventpb.Init
 	2,  // 1: eventpb.Event.timer:type_name -> eventpb.TimerEvent

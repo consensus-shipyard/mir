@@ -176,7 +176,7 @@ func New(
 		return nil, es.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
 
-	err = startingChkp.Verify(params, hashImpl, chkpVerifier, logger)
+	err = startingChkp.Verify(params, hashImpl, chkpVerifier, params.InitialMembership, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -424,6 +424,11 @@ func New(
 		}
 		chkp := checkpoint.StableCheckpointFromPb(_chkp.Pb())
 
+		if err := chkp.SyntacticCheck(params); err != nil {
+			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Syntactic check failed %w", err)
+			return nil
+		}
+
 		// Check how far the received stable checkpoint is ahead of the local node's state.
 		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
 		if chkpMembershipOffset <= 0 {
@@ -455,19 +460,11 @@ func New(
 		} else {
 			chkpMembership = iss.memberships[chkpMembershipOffset]
 		}
-		if err := chkp.VerifyCert(iss.hashImpl, iss.chkpVerifier, chkpMembership); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Certificate not valid.",
+		if err := chkp.Verify(iss.Params, iss.hashImpl, iss.chkpVerifier, chkpMembership, iss.logger); err != nil {
+			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. %w", err,
 				"localEpoch", iss.epoch.Nr(),
 				"chkpEpoch", chkp.Epoch(),
 			)
-			return nil
-		}
-
-		// Check if checkpoint contains the configured number of configurations.
-		if len(chkp.Memberships()) != iss.Params.ConfigOffset+1 {
-			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. Membership configuration mismatch.",
-				"expectedNum", iss.Params.ConfigOffset+1,
-				"receivedNum", len(chkp.Memberships()))
 			return nil
 		}
 

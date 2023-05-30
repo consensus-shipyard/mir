@@ -1,6 +1,7 @@
 package checkpoint
 
 import (
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"reflect"
 
 	"github.com/fxamacker/cbor/v2"
@@ -16,6 +17,8 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // StableCheckpoint represents a stable checkpoint.
@@ -135,16 +138,9 @@ func (sc *StableCheckpoint) Certificate() Certificate {
 // Moreover, the number of nodes that signed the certificate must be greater than one third of the membership size.
 func (sc *StableCheckpoint) VerifyCert(h crypto.HashImpl, v Verifier, membership *trantorpbtypes.Membership) error {
 
-	if err := sc.Sanitized(); err != nil {
-		return err
-	}
-
 	// Check if there is enough signatures.
-	n := len(membership.Nodes)
-	f := (n - 1) / 3
-	if len(sc.Cert) < f+1 {
-		return es.Errorf("not enough signatures in certificate: got %d, expected more than %d",
-			len(sc.Cert), f+1)
+	if !membutil.HaveWeakQuorum(membership, maputil.GetKeys(sc.Cert)) {
+		return es.New("not enough signatures in certificate to have weak quorum")
 	}
 
 	// Check whether all signatures are valid.
@@ -177,29 +173,30 @@ func (sc *StableCheckpoint) Verify(
 	params *issconfig.ModuleParams,
 	hashImpl crypto.HashImpl,
 	chkpVerifier Verifier,
+	membership *trantorpbtypes.Membership,
 	logger logging.Logger,
 ) error {
 
-	// Only verify certificate if not the first epoch
-	if sc.Epoch() > 0 {
-		if err := sc.VerifyCert(hashImpl, chkpVerifier, sc.PreviousMembership()); err != nil {
-			logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not valid.",
-				"chkpEpoch", sc.Epoch(),
-			)
-			return es.Errorf("invalid starting checkpoint: %w", err)
-		}
-	} else if len(sc.PreviousMembership().Nodes) > 0 {
-		logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Certificate not empty for first epoch.")
-		return es.Errorf("invalid starting checkpoint: certificate not empty for first epoch")
+	if err := sc.SyntacticCheck(params); err != nil {
+		logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Syntactic check failed.")
+		return es.Errorf("invalid starting checkpoint: %w", err)
 	}
 
-	//verify that sufficient memberships are provided by the checkpoint
-	if len(sc.Memberships()) != params.ConfigOffset+1 {
-		return es.Errorf("invalid starting checkpoint: number of memberships does not match params.ConfigOffset")
+	// Only verify certificate if not the first epoch
+	if sc.Epoch() > 0 {
+		if err := sc.VerifyCert(hashImpl, chkpVerifier, membership); err != nil {
+			logger.Log(logging.LevelWarn, "Ignoring checkpoint. Certificate not valid.",
+				"chkpEpoch", sc.Epoch(),
+			)
+			return es.Errorf("invalid checkpoint: %w", err)
+		}
+	} else if len(sc.PreviousMembership().Nodes) > 0 {
+		logger.Log(logging.LevelWarn, "Ignoring checkpoint. Certificate not empty for first epoch.")
+		return es.Errorf("invalid checkpoint: certificate not empty for first epoch")
 	}
 
 	//verify that memberships are consistent with each other
-	if err := sc.verifyMembershipConsistency(logger); err != nil {
+	if err := sc.verifyMembershipConsistency(membership, logger); err != nil {
 		return es.Errorf("invalid starting checkpoint: %w", err)
 	}
 
@@ -207,7 +204,7 @@ func (sc *StableCheckpoint) Verify(
 }
 
 // verifyMembershipConsistency verifies that if the same node appears then the same parameters are always used
-func (sc *StableCheckpoint) verifyMembershipConsistency(logger logging.Logger) error {
+func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtypes.Membership, logger logging.Logger) error {
 	membershipConsistency := map[t.NodeID]*trantorpbtypes.NodeIdentity{}
 	for _, membership := range sc.Memberships() {
 		for nodeID, node := range membership.Nodes {
@@ -233,6 +230,12 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(logger logging.Logger) e
 			}
 		}
 	}
+
+	if sc.Epoch() > 0 && reflect.DeepEqual(sc.PreviousMembership(), membership) {
+		logger.Log(logging.LevelWarn, "Inconsistent sc.PreviousMembership() with membership")
+		return es.Errorf("inconsistent sc.PreviousMembership() with membership")
+	}
+
 	return nil
 }
 
@@ -263,8 +266,10 @@ func hash(data [][]byte, hasher crypto.HashImpl) []byte {
 	return h.Sum(nil)
 }
 
-// Sanitized checks whether the stable checkpoint is well-formed.
-func (sc *StableCheckpoint) Sanitized() error {
+// SyntacticCheck checks whether the stable checkpoint is well-formed.
+func (sc *StableCheckpoint) SyntacticCheck(
+	params *issconfig.ModuleParams,
+) error {
 
 	if sc.StateSnapshot() == nil {
 		return es.Errorf("snapshot is nil")
@@ -280,6 +285,13 @@ func (sc *StableCheckpoint) Sanitized() error {
 
 	if sc.StateSnapshot().EpochData.EpochConfig.Memberships == nil {
 		return es.Errorf("memberships is nil")
+	}
+
+	// Check if checkpoint contains the configured number of configurations.
+	if len(sc.Memberships()) != params.ConfigOffset+1 {
+		return es.Errorf("invalid checkpoint: number of memberships %v does not match expected %v",
+			params.ConfigOffset+1,
+			len(sc.Memberships()))
 	}
 
 	if sc.StateSnapshot().EpochData.PreviousMembership == nil {

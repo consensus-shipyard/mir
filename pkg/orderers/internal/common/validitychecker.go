@@ -1,6 +1,8 @@
 package common
 
 import (
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	"github.com/filecoin-project/mir/pkg/logging"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -32,17 +34,23 @@ type CheckpointValidityChecker struct {
 	HashImpl     crypto.HashImpl
 	CertVerifier checkpoint.Verifier
 	Membership   *trantorpbtypes.Membership
+	issParams    *issconfig.ModuleParams
+	logger       logging.Logger
 }
 
 func NewCheckpointValidityChecker(
 	hashImpl crypto.HashImpl,
 	certVerifier checkpoint.Verifier,
 	membership *trantorpbtypes.Membership,
+	issParams *issconfig.ModuleParams,
+	logger logging.Logger,
 ) *CheckpointValidityChecker {
 	return &CheckpointValidityChecker{
 		HashImpl:     hashImpl,
 		CertVerifier: certVerifier,
 		Membership:   membership,
+		issParams:    issParams,
+		logger:       logger,
 	}
 }
 
@@ -53,8 +61,8 @@ func (cvc *CheckpointValidityChecker) Check(data []byte) error {
 		return es.Errorf("could not deserialize checkpoint: %w", err)
 	}
 
-	if err := chkp.VerifyCert(cvc.HashImpl, cvc.CertVerifier, cvc.Membership); err != nil {
-		return es.Errorf("invalid checkpoint certificate: %w", err)
+	if err := chkp.Verify(cvc.issParams, cvc.HashImpl, cvc.CertVerifier, cvc.Membership, cvc.logger); err != nil {
+		return es.Errorf("invalid checkpoint: %w", err)
 	}
 
 	return nil

@@ -237,11 +237,22 @@ func applyCheckpointReceived(m dsl.Module,
 	signature []uint8,
 	logger logging.Logger) error {
 
+	if sn != p.EpochConfig.FirstSn {
+		logger.Log(logging.LevelWarn, "invalid sequence number %v, expected %v as first sequence number.\n", sn, p.EpochConfig.FirstSn)
+		return nil
+	}
+
+	if epoch != p.EpochConfig.EpochNr {
+		logger.Log(logging.LevelWarn, "invalid epoch number %v, expected %v.\n", epoch, p.EpochConfig.EpochNr)
+		return nil
+	}
+
 	// check if from is part of the membership
 	if _, ok := p.Membership.Nodes[from]; !ok {
 		logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 		return nil
 	}
+
 	// Notify the protocol about the progress of the from node.
 	// If no progress is made for a configured number of epochs,
 	// the node is considered to be a straggler and is sent a stable checkpoint to catch uparams.

@@ -29,12 +29,12 @@ func IncludeComputationOfTransactionAndBatchIDs(
 		}
 
 		txMsgs := make([]*hasherpbtypes.HashData, 0, len(txs))
-		for i, tx := range txs {
+		for _, tx := range txs {
 			serializedTx := serializeTXForHash(tx.Pb())
 			if serializedTx == nil {
 				continue
 			}
-			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeTXForHash(tx.Pb())}
+			txMsgs = append(txMsgs, &hasherpbtypes.HashData{Data: serializedTx})
 		}
 
 		// There should be at least one transaction, otherwise we would not have gotten here (see batchfetcher/UponDeliverCert)

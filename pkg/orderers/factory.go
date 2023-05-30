@@ -54,13 +54,16 @@ func Factory(
 				// Create new configuration for this particular orderer instance.
 				ordererConfig := newOrdererConfig(issParams, segment.NodeIDs(), epoch)
 
+				//TODO better logging here
+				logger := logging.Decorate(logger, "", "submoduleID", submoduleID)
+
 				// Select validity checker
 				var validityChecker common.ValidityChecker
 				switch ValidityCheckerType(p.ValidityChecker) {
 				case PermissiveValidityChecker:
 					validityChecker = common.NewPermissiveValidityChecker()
 				case CheckpointValidityChecker:
-					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership)
+					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership, issParams, logger)
 
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.
@@ -75,9 +78,7 @@ func Factory(
 					segment,
 					ordererConfig,
 					validityChecker,
-
-					//TODO better logging here
-					logging.Decorate(logger, "", "submoduleID", submoduleID),
+					logger,
 				)
 
 				return protocol, nil
