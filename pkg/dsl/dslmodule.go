@@ -242,11 +242,9 @@ func failExceptForInit(ev *eventpb.Event) error { //nolint
 // ignores it. This prevents external nodes from crashing the node by sending
 // transport events to modules that do not tolerate it.
 func failExceptForInitAndTransport(ev *eventpb.Event) error {
-	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
-		return nil
-	}
 	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
 		return nil
 	}
-	return es.Errorf("unknown event type '%T'", ev.Type)
+
+	return failExceptForInit(ev)
 }

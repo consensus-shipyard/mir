@@ -152,7 +152,7 @@ func (slot *PbftSlot) CheckCommitted() bool {
 }
 
 func (slot *PbftSlot) GetPreprepare(digest []byte) *pbftpbtypes.Preprepare {
-	if digest == nil || slot.Preprepare == nil {
+	if digest == nil {
 		return nil
 	}
 

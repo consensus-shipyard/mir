@@ -335,7 +335,7 @@ func IncludeViewChange( //nolint:gocognit
 			PreprepareSeqNrs:  preprepareSeqNrs,
 			Preprepares:       preprepares,
 		}
-		applyMsgNewView(m, state, moduleConfig, nv, from)
+		applyMsgNewView(m, state, moduleConfig, nv, from, logger)
 		return nil
 	})
 }
@@ -626,6 +626,7 @@ func applyMsgNewView(
 	moduleConfig common2.ModuleConfig,
 	newView *pbftpbtypes.NewView,
 	from t.NodeID,
+	logger logging.Logger,
 ) {
 
 	// Ignore message if the sender is not the primary of the view.
@@ -633,7 +634,8 @@ func applyMsgNewView(
 		return
 	}
 
-	if len(newView.ViewChangeSenders) == 0 || len(newView.ViewChangeSenders) != len(newView.SignedViewChanges) {
+	if len(newView.ViewChangeSenders) != len(newView.SignedViewChanges) {
+		logger.Log(logging.LevelDebug, "Ignoring NewView message with invalid view change data.")
 		return
 	}
 

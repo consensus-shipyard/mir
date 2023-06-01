@@ -175,29 +175,23 @@ func (sc *StableCheckpoint) Verify(
 	hashImpl crypto.HashImpl,
 	chkpVerifier Verifier,
 	membership *trantorpbtypes.Membership,
-	logger logging.Logger,
 ) error {
 
 	if err := sc.SyntacticCheck(params); err != nil {
-		logger.Log(logging.LevelWarn, "Ignoring starting checkpoint. Syntactic check failed.")
 		return es.Errorf("invalid starting checkpoint: %w", err)
 	}
 
 	// Only verify certificate if not the first epoch
 	if sc.Epoch() > 0 {
 		if err := sc.VerifyCert(hashImpl, chkpVerifier, membership); err != nil {
-			logger.Log(logging.LevelWarn, "Ignoring checkpoint. Certificate not valid.",
-				"chkpEpoch", sc.Epoch(),
-			)
 			return es.Errorf("invalid checkpoint: %w", err)
 		}
 	} else if len(sc.PreviousMembership().Nodes) > 0 {
-		logger.Log(logging.LevelWarn, "Ignoring checkpoint. Certificate not empty for first epoch.")
 		return es.Errorf("invalid checkpoint: certificate not empty for first epoch")
 	}
 
 	//verify that memberships are consistent with each other
-	if err := sc.verifyMembershipConsistency(membership, logger); err != nil {
+	if err := sc.verifyMembershipConsistency(membership); err != nil {
 		return es.Errorf("invalid starting checkpoint: %w", err)
 	}
 
@@ -205,27 +199,19 @@ func (sc *StableCheckpoint) Verify(
 }
 
 // verifyMembershipConsistency verifies that if the same node appears then the same parameters are always used
-func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtypes.Membership, logger logging.Logger) error {
+func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtypes.Membership) error {
 	membershipConsistency := map[t.NodeID]*trantorpbtypes.NodeIdentity{}
-	for _, membership := range sc.Memberships() {
-		for nodeID, node := range membership.Nodes {
+	for _, chkpMembership := range sc.Memberships() {
+		for nodeID, node := range chkpMembership.Nodes {
 			if _, ok := membershipConsistency[nodeID]; !ok {
 				membershipConsistency[nodeID] = node
 				// check that internal nodeID is consistent with key nodeID
 				if nodeID != node.Id {
-					logger.Log(logging.LevelWarn, "Inconsistent membership parameters for node",
-						"nodeID", nodeID,
-					)
 					return es.Errorf("inconsistent membership parameters: nodeID %v does not match internal nodeID %v", nodeID, node.Id)
 				}
 			} else {
 				// check that all parameters are consistent
 				if !reflect.DeepEqual(membershipConsistency[nodeID], node) {
-					logger.Log(logging.LevelWarn, "Inconsistent membership parameters for node",
-						"nodeID", nodeID,
-						"oldMembership", membershipConsistency[nodeID],
-						"newMembership", node,
-					)
 					return es.Errorf("inconsistent membership parameters for node %v", nodeID)
 				}
 			}
@@ -233,7 +219,6 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtyp
 	}
 
 	if sc.Epoch() > 0 && reflect.DeepEqual(sc.PreviousMembership(), membership) {
-		logger.Log(logging.LevelWarn, "Inconsistent sc.PreviousMembership() with membership")
 		return es.Errorf("inconsistent sc.PreviousMembership() with membership")
 	}
 
@@ -284,7 +269,7 @@ func (sc *StableCheckpoint) SyntacticCheck(
 		return es.Errorf("epoch config is nil")
 	}
 
-	if sc.StateSnapshot().EpochData.EpochConfig.Memberships == nil {
+	if sc.Memberships() == nil {
 		return es.Errorf("memberships is nil")
 	}
 
@@ -295,11 +280,11 @@ func (sc *StableCheckpoint) SyntacticCheck(
 			len(sc.Memberships()))
 	}
 
-	if sc.StateSnapshot().EpochData.PreviousMembership == nil {
+	if sc.PreviousMembership() == nil {
 		return es.Errorf("previous membership is nil")
 	}
 
-	if sc.Cert == nil {
+	if sc.Certificate() == nil {
 		return es.Errorf("certificate is nil")
 	}
 
@@ -313,10 +298,6 @@ func (sc *StableCheckpoint) SyntacticCheck(
 
 	if sc.StateSnapshot().EpochData.LeaderPolicy == nil {
 		return es.Errorf("leader policy is nil")
-	}
-
-	if sc.StateSnapshot().EpochData.PreviousMembership == nil {
-		return es.Errorf("previous membership is nil")
 	}
 
 	return nil

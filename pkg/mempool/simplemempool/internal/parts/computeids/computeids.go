@@ -32,14 +32,9 @@ func IncludeComputationOfTransactionAndBatchIDs(
 		for _, tx := range txs {
 			serializedTx := serializeTXForHash(tx.Pb())
 			if serializedTx == nil {
-				continue
+				return nil
 			}
 			txMsgs = append(txMsgs, &hasherpbtypes.HashData{Data: serializedTx})
-		}
-
-		// There should be at least one transaction, otherwise we would not have gotten here (see batchfetcher/UponDeliverCert)
-		if len(txMsgs) == 0 {
-			return nil
 		}
 
 		hasherpbdsl.Request(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})

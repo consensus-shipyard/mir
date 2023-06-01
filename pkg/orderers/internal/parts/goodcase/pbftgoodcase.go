@@ -279,6 +279,7 @@ func ApplyMsgPreprepare(
 	sn := preprepare.Sn
 
 	if preprepare.Data == nil {
+		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with nil proposal.")
 		return
 	}
 
@@ -340,7 +341,8 @@ func applyMsgPrepare(
 ) {
 
 	if prepare.Digest == nil {
-		return // Ignore Prepare messages with nil digest.
+		logger.Log(logging.LevelWarn, "Ignoring Prepare message with nil digest.")
+		return
 	}
 
 	// Convenience variable
@@ -380,6 +382,7 @@ func applyMsgCommit(
 ) {
 
 	if commit.Digest == nil {
+		logger.Log(logging.LevelWarn, "Ignoring Commit message with nil digest.")
 		return
 	}
 

@@ -62,7 +62,7 @@ func (cvc *CheckpointValidityChecker) Check(data []byte) error {
 		return es.Errorf("could not deserialize checkpoint: %w", err)
 	}
 
-	if err := chkp.Verify(cvc.issParams, cvc.HashImpl, cvc.CertVerifier, cvc.Membership, cvc.logger); err != nil {
+	if err := chkp.Verify(cvc.issParams, cvc.HashImpl, cvc.CertVerifier, cvc.Membership); err != nil {
 		return es.Errorf("invalid checkpoint: %w", err)
 	}
 
