@@ -190,7 +190,7 @@ func (sc *StableCheckpoint) Verify(
 		return es.Errorf("invalid checkpoint: certificate not empty for first epoch")
 	}
 
-	//verify that memberships are consistent with each other
+	// Verify that memberships are consistent with each other
 	if err := sc.verifyMembershipConsistency(membership); err != nil {
 		return es.Errorf("invalid checkpoint memberships: %w", err)
 	}
