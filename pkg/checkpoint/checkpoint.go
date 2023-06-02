@@ -178,7 +178,7 @@ func (sc *StableCheckpoint) Verify(
 ) error {
 
 	if err := sc.SyntacticCheck(params); err != nil {
-		return es.Errorf("invalid starting checkpoint: %w", err)
+		return es.Errorf("invalid checkpoint: %w", err)
 	}
 
 	// Only verify certificate if not the first epoch
