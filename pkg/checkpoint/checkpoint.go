@@ -192,7 +192,7 @@ func (sc *StableCheckpoint) Verify(
 
 	//verify that memberships are consistent with each other
 	if err := sc.verifyMembershipConsistency(membership); err != nil {
-		return es.Errorf("invalid starting checkpoint: %w", err)
+		return es.Errorf("invalid checkpoint memberships: %w", err)
 	}
 
 	return nil
