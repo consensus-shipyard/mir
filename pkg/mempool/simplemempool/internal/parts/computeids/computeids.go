@@ -2,6 +2,7 @@ package computeids
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
@@ -20,11 +21,13 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
 	mc common.ModuleConfig,
 	params *common.ModuleParams,
+	logger logging.Logger,
 	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
-		if txs == nil || len(txs) > params.MaxTransactionsInBatch {
+		if len(txs) > params.MaxTransactionsInBatch {
 			// Invalid request, ignore
+			logger.Log(logging.LevelWarn, "invalid request too big for mempool", "txs", txs)
 			return nil
 		}
 

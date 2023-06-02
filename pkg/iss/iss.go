@@ -424,6 +424,21 @@ func New(
 		}
 		chkp := checkpoint.StableCheckpointFromPb(_chkp.Pb())
 
+		// Check syntactic validity of the checkpoint.
+		if err := chkp.SyntacticCheck(params); err != nil {
+			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Syntactic check failed.", err)
+			return nil
+		}
+
+		// Ignore checkpoint if we are not part of its membership
+		// (more precisely, membership of the epoch the checkpoint is at the start of).
+		// Correct nodes should never send such checkpoints, but faulty ones could.
+		if _, ok := chkp.Memberships()[0].Nodes[iss.ownID]; !ok {
+			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Not in membership.",
+				"sender", sender, "memberships", chkp.Memberships())
+			return nil
+		}
+
 		// Check how far the received stable checkpoint is ahead of the local node's state.
 		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
 		if chkpMembershipOffset <= 0 {
@@ -452,15 +467,6 @@ func New(
 				"localEpoch", iss.epoch.Nr(),
 				"chkpEpoch", chkp.Epoch(),
 			)
-			return nil
-		}
-
-		// Ignore checkpoint if we are not part of its membership
-		// (more precisely, membership of the epoch the checkpoint is at the start of).
-		// Correct nodes should never send such checkpoints, but faulty ones could.
-		if _, ok := chkp.Memberships()[0].Nodes[iss.ownID]; !ok {
-			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Not in membership.",
-				"sender", sender, "memberships", chkp.Memberships())
 			return nil
 		}
 

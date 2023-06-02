@@ -109,6 +109,7 @@ func run() error {
 		&simplemempool.ModuleParams{
 			MaxTransactionsInBatch: 10,
 		},
+		logger,
 	)
 
 	batchdb := fakebatchdb.NewModule(fakebatchdb.ModuleConfig{

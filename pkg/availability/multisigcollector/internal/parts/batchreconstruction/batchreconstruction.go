@@ -3,6 +3,8 @@ package batchreconstruction
 import (
 	es "github.com/go-errors/errors"
 
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -137,6 +139,11 @@ func IncludeBatchReconstruction(
 			return nil
 		} else if _, ok = req.Txs[batchID]; !ok {
 			// Ignore a message with a batchID that was not requested.
+			return nil
+		}
+
+		if txs == nil || sliceutil.Contains(txs, nil) {
+			// Ignore an empty txs list or a txs list with a nil tx.
 			return nil
 		}
 
