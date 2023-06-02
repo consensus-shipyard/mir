@@ -635,7 +635,7 @@ func applyMsgNewView(
 	}
 
 	if len(newView.ViewChangeSenders) != len(newView.SignedViewChanges) {
-		logger.Log(logging.LevelDebug, "Ignoring NewView message with invalid view change data.")
+		logger.Log(logging.LevelWarn, "Ignoring NewView message with invalid view change data.")
 		return
 	}
 
