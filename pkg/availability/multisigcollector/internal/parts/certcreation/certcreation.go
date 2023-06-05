@@ -186,11 +186,6 @@ func IncludeCreatingCertificates(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
-		if txs == nil || sliceutil.Contains(txs, nil) {
-			// Ignore an empty txs list or a txs list with a nil tx.
-			logger.Log(logging.LevelWarn, "received an empty txs list or a txs list with a nil tx.\n", txs)
-			return nil
-		}
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})

@@ -25,16 +25,17 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
-		if len(txs) > params.MaxTransactionsInBatch {
+		if len(txs) == 0 && len(txs) > params.MaxTransactionsInBatch {
 			// Invalid request, ignore
 			logger.Log(logging.LevelWarn, "Ignoring invalid request: too big for mempool", "numTXs", len(txs))
 			return nil
 		}
 
 		txMsgs := make([]*hasherpbtypes.HashData, 0, len(txs))
-		for _, tx := range txs {
+		for i, tx := range txs {
 			serializedTx := serializeTXForHash(tx.Pb())
 			if serializedTx == nil {
+				logger.Log(logging.LevelWarn, "Ignoring invalid request: contains nil transaction", "offset", i)
 				return nil
 			}
 			txMsgs = append(txMsgs, &hasherpbtypes.HashData{Data: serializedTx})
