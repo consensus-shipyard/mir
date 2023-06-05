@@ -27,7 +27,7 @@ func IncludeComputationOfTransactionAndBatchIDs(
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
 		if len(txs) > params.MaxTransactionsInBatch {
 			// Invalid request, ignore
-			logger.Log(logging.LevelWarn, "invalid request too big for mempool", "txs", txs)
+			logger.Log(logging.LevelWarn, "Ignoring invalid request: too big for mempool", "numTXs", len(txs))
 			return nil
 		}
 
