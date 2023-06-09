@@ -47,11 +47,17 @@ func Contains[T comparable](ts []T, t T) bool {
 
 // ContainsAll returns true if the slice contains all elements of the given slice.
 func ContainsAll[T comparable](ts []T, ts2 []T) bool {
+	elements := make(map[T]struct{})
+	for _, t := range ts {
+		elements[t] = struct{}{}
+	}
+
 	for _, t := range ts2 {
-		if !Contains(ts, t) {
+		if _, ok := elements[t]; !ok {
 			return false
 		}
 	}
+
 	return true
 }
 
