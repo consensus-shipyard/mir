@@ -1,9 +1,11 @@
 package sliceutil_test
 
 import (
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 type args[T comparable] struct {
