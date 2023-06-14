@@ -186,6 +186,12 @@ func IncludeCreatingCertificates(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
+
+		if len(txs) == 0 {
+			logger.Log(logging.LevelWarn, "Ignoring empty batch %v.\n")
+			return nil
+		}
+
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})

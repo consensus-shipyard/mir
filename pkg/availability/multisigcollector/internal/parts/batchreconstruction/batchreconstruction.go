@@ -136,7 +136,12 @@ func IncludeBatchReconstruction(
 			// Ignore a message with an invalid or outdated request id.
 			return nil
 		} else if _, ok = req.Txs[batchID]; !ok {
-			// Ignore a message with a batchID that was not requested.
+			logger.Log(logging.LevelWarn, "Ignoring received batch %v that was not requested.\n", batchID)
+			return nil
+		}
+
+		if len(txs) == 0 {
+			logger.Log(logging.LevelWarn, "Ignoring empty batch %v.\n")
 			return nil
 		}
 
