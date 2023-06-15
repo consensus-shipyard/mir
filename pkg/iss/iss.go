@@ -463,7 +463,8 @@ func New(
 		}
 
 		if err := chkp.Verify(iss.Params, iss.hashImpl, iss.chkpVerifier, chkpMembership); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint. %w", err,
+			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint",
+				"error", err,
 				"localEpoch", iss.epoch.Nr(),
 				"chkpEpoch", chkp.Epoch(),
 			)
