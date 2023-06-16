@@ -92,20 +92,23 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 		case *eventpb.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
-			evtsOut, errs := fm.applySubmodulesEvents()
+			submoduleOutputEvts, err := fm.applySubmodulesEvents()
+			if err != nil {
+				return nil, err
+			}
 			switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
 			case *factorypbtypes.Event_NewModule:
 				evOut, err := fm.applyNewModule(e.NewModule)
-				if errs != nil {
-					err = errs
+				if err != nil {
+					return nil, err
 				}
-				return evtsOut.PushBackList(evOut), err
+				return submoduleOutputEvts.PushBackList(evOut), nil
 			case *factorypbtypes.Event_GarbageCollect:
 				evOut, err := fm.applyGarbageCollect(e.GarbageCollect)
-				if errs != nil {
-					err = errs
+				if err != nil {
+					return nil, err
 				}
-				return evtsOut.PushBackList(evOut), err
+				return submoduleOutputEvts.PushBackList(evOut), nil
 			default:
 				return nil, es.Errorf("unsupported factory event subtype: %T", e)
 			}
@@ -118,7 +121,7 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 	return events.EmptyList(), nil
 }
 
-// bufferSubmoduleEvent buffers event in a list that is a map where the keys is the moduleID and the value is a list of events
+// bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are each a list of events
 func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
 	smID := t.ModuleID(event.DestModule)
 	if _, ok := fm.eventBuffer[smID]; !ok {
@@ -133,45 +136,42 @@ func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
 func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
 	// Convenience variable.
 	eventsOut := events.EmptyList()
-	errChan := make(chan error, len(fm.eventBuffer))
-	evtsChan := make(chan *events.EventList, len(fm.eventBuffer))
+	errChan := make(chan error)
+	evtsChan := make(chan *events.EventList)
 
 	existingSubmodules := 0
 	for smID, eventList := range fm.eventBuffer {
-		var submodule modules.PassiveModule
-		var ok bool
-		if submodule, ok = fm.submodules[smID]; !ok {
-			iter := eventList.Iterator()
-			for event := iter.Next(); event != nil; event = iter.Next() {
-				fm.tryBuffering(event)
-			}
+		if submodule, ok := fm.submodules[smID]; !ok {
+			fm.bufferEvents(eventList)
 		} else {
 			existingSubmodules++
 			go func(submodule modules.PassiveModule, eventList *events.EventList) {
 				evtsOut, err := submodule.ApplyEvents(eventList)
-				if err != nil {
-					errChan <- err
-				} else {
-					evtsChan <- evtsOut
-				}
+				errChan <- err
+				evtsChan <- evtsOut
 			}(submodule, eventList)
 		}
 	}
 
 	// Wait for all goroutines to complete and collect errors and events.
 	for i := 0; i < existingSubmodules; i++ {
-		select {
-		case err := <-errChan:
-			if err != nil {
-				return nil, err
-			}
-		case evtsOut := <-evtsChan:
-			eventsOut.PushBackList(evtsOut)
+		err := <-errChan
+		if err != nil {
+			return nil, err
 		}
+		eventsOut.PushBackList(<-evtsChan)
 	}
 
 	fm.eventBuffer = make(map[t.ModuleID]*events.EventList)
 	return eventsOut, nil
+}
+
+// bufferEvents buffers events in the message buffer
+func (fm *FactoryModule) bufferEvents(eventList *events.EventList) {
+	iter := eventList.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		fm.tryBuffering(event)
+	}
 }
 
 func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*events.EventList, error) {
