@@ -39,7 +39,8 @@ type FactoryModule struct {
 	retIdx          tt.RetentionIndex
 	messageBuffer   *messagebuffer.MessageBuffer // TODO: Split by NodeID (using NewBuffers). Future configurations...?
 
-	logger logging.Logger
+	eventBuffer map[t.ModuleID]*events.EventList
+	logger      logging.Logger
 }
 
 // New creates a new factory module.
@@ -62,7 +63,8 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		retIdx:          0,
 		messageBuffer:   messagebuffer.New(zeroID, params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ")),
 
-		logger: logger,
+		eventBuffer: make(map[t.ModuleID]*events.EventList),
+		logger:      logger,
 	}
 }
 
@@ -72,21 +74,38 @@ func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList,
 	// TODO: Perform event processing in parallel (applyEvent will need to be made thread-safe).
 	//       The idea is to have one internal thread per submodule, distribute the events to them through channels,
 	//       and wait until all are processed.
-	return modules.ApplyEventsSequentially(evts, fm.applyEvent)
+
+	eventsOut, err := modules.ApplyEventsSequentially(evts, fm.applyEvent)
+	if err != nil {
+		return nil, err
+	}
+	submoduleEventsOut, err := fm.applySubmodulesEvents()
+	if err != nil {
+		return nil, err
+	}
+	return eventsOut.PushBackList(submoduleEventsOut), nil
 }
 
 func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, error) {
-
 	if t.ModuleID(event.DestModule) == fm.ownID {
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
+			evtsOut, errs := fm.applySubmodulesEvents()
 			switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
 			case *factorypbtypes.Event_NewModule:
-				return fm.applyNewModule(e.NewModule)
+				evOut, err := fm.applyNewModule(e.NewModule)
+				if errs != nil {
+					err = errs
+				}
+				return evtsOut.PushBackList(evOut), err
 			case *factorypbtypes.Event_GarbageCollect:
-				return fm.applyGarbageCollect(e.GarbageCollect)
+				evOut, err := fm.applyGarbageCollect(e.GarbageCollect)
+				if errs != nil {
+					err = errs
+				}
+				return evtsOut.PushBackList(evOut), err
 			default:
 				return nil, es.Errorf("unsupported factory event subtype: %T", e)
 			}
@@ -94,7 +113,65 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 			return nil, es.Errorf("unsupported event type for factory module: %T", e)
 		}
 	}
-	return fm.forwardEvent(event)
+	fm.bufferSubmoduleEvent(event)
+
+	return events.EmptyList(), nil
+}
+
+// bufferSubmoduleEvent buffers event in a list that is a map where the keys is the moduleID and the value is a list of events
+func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
+	smID := t.ModuleID(event.DestModule)
+	if _, ok := fm.eventBuffer[smID]; !ok {
+		fm.eventBuffer[smID] = events.EmptyList()
+	}
+
+	fm.eventBuffer[smID] = fm.eventBuffer[smID].PushBack(event)
+}
+
+// applySubmodulesEvents applies all buffered events to the existing submodules, returns the first encountered error if any,
+// or the full list of outgoing events after applying all the events to each of the submodules
+func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
+	// Convenience variable.
+	eventsOut := events.EmptyList()
+	errChan := make(chan error, len(fm.eventBuffer))
+	evtsChan := make(chan *events.EventList, len(fm.eventBuffer))
+
+	existingSubmodules := 0
+	for smID, eventList := range fm.eventBuffer {
+		var submodule modules.PassiveModule
+		var ok bool
+		if submodule, ok = fm.submodules[smID]; !ok {
+			iter := eventList.Iterator()
+			for event := iter.Next(); event != nil; event = iter.Next() {
+				fm.tryBuffering(event)
+			}
+		} else {
+			existingSubmodules++
+			go func(submodule modules.PassiveModule, eventList *events.EventList) {
+				evtsOut, err := submodule.ApplyEvents(eventList)
+				if err != nil {
+					errChan <- err
+				} else {
+					evtsChan <- evtsOut
+				}
+			}(submodule, eventList)
+		}
+	}
+
+	// Wait for all goroutines to complete and collect errors and events.
+	for i := 0; i < existingSubmodules; i++ {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				return nil, err
+			}
+		case evtsOut := <-evtsChan:
+			eventsOut.PushBackList(evtsOut)
+		}
+	}
+
+	fm.eventBuffer = make(map[t.ModuleID]*events.EventList)
+	return eventsOut, nil
 }
 
 func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*events.EventList, error) {
@@ -170,23 +247,6 @@ func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) 
 	}
 
 	return events.EmptyList(), nil
-}
-
-func (fm *FactoryModule) forwardEvent(event *eventpb.Event) (*events.EventList, error) {
-
-	// Convenience variable.
-	mID := t.ModuleID(event.DestModule)
-
-	var submodule modules.PassiveModule
-	var ok bool
-	if submodule, ok = fm.submodules[mID]; !ok {
-		fm.tryBuffering(event)
-		return events.EmptyList(), nil
-	}
-
-	// TODO: This might be inefficient. Try to not forward events one by one.
-	//       Especially once parallel processing is supported.
-	return submodule.ApplyEvents(events.ListOf(event))
 }
 
 func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
