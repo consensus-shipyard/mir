@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	testerpbevents "github.com/filecoin-project/mir/pkg/pb/testerpb/events"
+
 	es "github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -166,14 +168,19 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 				events.TestingUint(mc.Reports, 300), events.TestingUint(mc.Reports, 400),
 				events.TestingUint(mc.Reports, 500)),
 		},
-		"test unknown event type": {
+		"test unknown message event type": {
 			eventsIn: events.ListOf(transportpbevents.SendMessage(
 				mc.Self,
 				&messagepbtypes.Message{},
 				[]types.NodeID{}).Pb(),
 			),
 			eventsOut: events.EmptyList(),
-			err:       errors.New("unknown event type '*eventpb.Event_Transport'"),
+			err:       nil,
+		},
+		"test unknown event type": {
+			eventsIn:  events.ListOf(testerpbevents.Tester(mc.Self).Pb()),
+			eventsOut: events.EmptyList(),
+			err:       errors.New("unknown event type '*eventpb.Event_Tester'"),
 		},
 		"test failed condition": {
 			eventsIn:  events.ListOf(events.TestingUint(mc.Self, 2000)),

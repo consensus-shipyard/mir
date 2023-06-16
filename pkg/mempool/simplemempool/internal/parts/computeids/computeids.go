@@ -2,6 +2,7 @@ package computeids
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
@@ -19,13 +20,25 @@ import (
 func IncludeComputationOfTransactionAndBatchIDs(
 	m dsl.Module,
 	mc common.ModuleConfig,
-	_ *common.ModuleParams,
+	params *common.ModuleParams,
+	logger logging.Logger,
 	_ *common.State,
 ) {
 	mppbdsl.UponRequestTransactionIDs(m, func(txs []*trantorpbtypes.Transaction, origin *mppbtypes.RequestTransactionIDsOrigin) error {
-		txMsgs := make([]*hasherpbtypes.HashData, len(txs))
+		if len(txs) > params.MaxTransactionsInBatch {
+			// Invalid request, ignore
+			logger.Log(logging.LevelWarn, "Ignoring invalid request: too big for mempool", "numTXs", len(txs))
+			return nil
+		}
+
+		txMsgs := make([]*hasherpbtypes.HashData, 0, len(txs))
 		for i, tx := range txs {
-			txMsgs[i] = &hasherpbtypes.HashData{Data: serializeTXForHash(tx.Pb())}
+			serializedTx := serializeTXForHash(tx.Pb())
+			if serializedTx == nil {
+				logger.Log(logging.LevelWarn, "Ignoring invalid request: contains nil transaction", "offset", i)
+				return nil
+			}
+			txMsgs = append(txMsgs, &hasherpbtypes.HashData{Data: serializedTx})
 		}
 
 		hasherpbdsl.Request(m, mc.Hasher, txMsgs, &computeHashForTransactionIDsContext{origin})
@@ -75,6 +88,10 @@ type computeHashForBatchIDContext struct {
 // Auxiliary functions
 
 func serializeTXForHash(tx *trantorpb.Transaction) [][]byte {
+	if tx == nil {
+		return nil
+	}
+
 	// Encode integer fields.
 	clientIDBuf := []byte(tx.ClientId)
 

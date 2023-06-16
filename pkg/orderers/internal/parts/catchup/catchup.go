@@ -104,6 +104,12 @@ func IncludeSegmentCheckpoint(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
+
+		if digest == nil {
+			// Not necessary as this is checked where relevant later on, but an optimization
+			return nil
+		}
+
 		applyMsgCatchUpRequest(m, state, moduleConfig, digest, sn, from)
 		return nil
 	})
@@ -230,10 +236,16 @@ func applyMsgCatchUpResponse(
 	_ t.NodeID,
 ) {
 
-	// Ignore preprepare if received in the meantime.
-	// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
-	// However, it might prevent some unnecessary hash computation if performed here as well.
-	if state.Slots[state.View][preprepare.Sn].Committed {
+	if preprepare == nil {
+		return
+	}
+
+	if slot, ok := state.Slots[state.View][preprepare.Sn]; !ok {
+		return
+	} else if slot.Committed {
+		// Ignore preprepare if received in the meantime.
+		// This check is technically redundant, as it is (and must be) performed also after the Preprepare is hashed.
+		// However, it might prevent some unnecessary hash computation if performed here as well.
 		return
 	}
 

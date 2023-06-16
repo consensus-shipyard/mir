@@ -135,7 +135,7 @@ func IncludeCreatingCertificates(
 		}
 
 		// check that sender is a member
-		if _, ok := params.Membership.Nodes[from]; !ok {
+		if _, ok = params.Membership.Nodes[from]; !ok {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
@@ -186,6 +186,12 @@ func IncludeCreatingCertificates(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
+
+		if len(txs) == 0 {
+			logger.Log(logging.LevelWarn, "Ignoring empty batch %v.\n")
+			return nil
+		}
+
 		mempooldsl.RequestTransactionIDs(m, mc.Mempool, txs, &computeIDsOfReceivedTxsContext{from, txs, reqID})
 		return nil
 	})

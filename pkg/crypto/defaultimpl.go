@@ -113,6 +113,10 @@ func (c *DefaultImpl) Verify(data [][]byte, signature []byte, nodeID t.NodeID) e
 // verifySig performs the actual signature verification.
 // It is called by Verify after looking up the appropriate verification key.
 func (c *DefaultImpl) verifySig(data [][]byte, signature []byte, pubKey interface{}) error {
+	if signature == nil {
+		return es.Errorf("signature is nil")
+	}
+
 	switch key := pubKey.(type) {
 	case *ecdsa.PublicKey:
 		return verifyEcdsaSignature(key, digest(data), signature)

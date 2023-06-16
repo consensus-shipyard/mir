@@ -108,6 +108,7 @@ func (chkp *PbftSegmentChkp) NodeDone(nodeID types.NodeID, doneDigests [][]byte,
 	// Store Done message
 	chkp.doneReceived[nodeID] = struct{}{}
 	strKey := chkp.aggregateToString(doneDigests)
+
 	chkp.doneMsgIndex[strKey] = append(chkp.doneMsgIndex[strKey], nodeID)
 
 	// If a quorum of nodes has sent a Done message

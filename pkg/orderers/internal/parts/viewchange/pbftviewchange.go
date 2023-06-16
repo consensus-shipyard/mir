@@ -107,6 +107,7 @@ func IncludeViewChange( //nolint:gocognit
 			)
 			return nil
 		}
+
 		// Serialize obtained Preprepare messages for hashing.
 		dataToHash := make([]*hasherpbtypes.HashData, len(context.Preprepares))
 		for i, preprepare := range context.Preprepares { // Preprepares in a NewView message are sorted by sequence number.
@@ -291,7 +292,7 @@ func IncludeViewChange( //nolint:gocognit
 			ViewChange: viewChange,
 			Signature:  signature,
 		}
-		applyMsgSignedViewChange(m, moduleConfig, svc, from)
+		applyMsgSignedViewChange(m, moduleConfig, svc, from, logger)
 		return nil
 	})
 
@@ -334,7 +335,7 @@ func IncludeViewChange( //nolint:gocognit
 			PreprepareSeqNrs:  preprepareSeqNrs,
 			Preprepares:       preprepares,
 		}
-		applyMsgNewView(m, state, moduleConfig, nv, from)
+		applyMsgNewView(m, state, moduleConfig, nv, from, logger)
 		return nil
 	})
 }
@@ -435,8 +436,13 @@ func startViewChange(
 
 // applyMsgSignedViewChange applies a signed view change message.
 // The only thing it does is request verification of the signature.
-func applyMsgSignedViewChange(m dsl.Module, moduleConfig common2.ModuleConfig, svc *pbftpbtypes.SignedViewChange, from t.NodeID) {
+func applyMsgSignedViewChange(m dsl.Module, moduleConfig common2.ModuleConfig, svc *pbftpbtypes.SignedViewChange, from t.NodeID, logger logging.Logger) {
 	viewChange := svc.ViewChange
+	if err := syntacticCheckSignedViewChange(svc); err != nil {
+		logger.Log(logging.LevelWarn, "Received invalid ViewChange.", "sender", from, "err", err)
+		return
+	}
+
 	cryptopbdsl.VerifySig(
 		m,
 		moduleConfig.Crypto,
@@ -620,10 +626,16 @@ func applyMsgNewView(
 	moduleConfig common2.ModuleConfig,
 	newView *pbftpbtypes.NewView,
 	from t.NodeID,
+	logger logging.Logger,
 ) {
 
 	// Ignore message if the sender is not the primary of the view.
 	if from != state.Segment.PrimaryNode(newView.View) {
+		return
+	}
+
+	if len(newView.ViewChangeSenders) != len(newView.SignedViewChanges) {
+		logger.Log(logging.LevelWarn, "Ignoring NewView message with invalid view change data.")
 		return
 	}
 
@@ -776,4 +788,16 @@ func getMsgView(msgPb proto.Message) (ot.ViewNr, error) {
 	default:
 		return 0, es.Errorf("invalid PBFT message for view extraction: %T (%v)", msg, msg)
 	}
+}
+
+func syntacticCheckSignedViewChange(svc *pbftpbtypes.SignedViewChange) error {
+	if svc.Signature == nil {
+		return es.Errorf("nil signature in signed view change")
+	}
+
+	if svc.ViewChange == nil {
+		return es.Errorf("nil view change in signed view change")
+	}
+
+	return nil
 }

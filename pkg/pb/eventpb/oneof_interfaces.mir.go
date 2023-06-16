@@ -3,8 +3,6 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -18,8 +16,10 @@ import (
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	testerpb "github.com/filecoin-project/mir/pkg/pb/testerpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -103,6 +103,10 @@ func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
 
 func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 	return w.TestingUint
+}
+
+func (w *Event_Tester) Unwrap() *testerpb.Tester {
+	return w.Tester
 }
 
 type TimerEvent_Type = isTimerEvent_Type

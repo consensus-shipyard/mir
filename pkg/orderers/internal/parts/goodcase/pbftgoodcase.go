@@ -144,6 +144,7 @@ func IncludeGoodCase(
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
 		}
+
 		prepare := &pbftpbtypes.Prepare{
 			Sn:     sn,
 			View:   view,
@@ -277,6 +278,11 @@ func ApplyMsgPreprepare(
 	// Convenience variable
 	sn := preprepare.Sn
 
+	if preprepare.Data == nil {
+		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with nil proposal.")
+		return
+	}
+
 	// Preprocess message, looking up the corresponding pbftSlot.
 	slot := preprocessMessage(state, sn, preprepare.View, preprepare.Pb(), from, logger)
 	if slot == nil {
@@ -334,6 +340,11 @@ func applyMsgPrepare(
 	logger logging.Logger,
 ) {
 
+	if prepare.Digest == nil {
+		logger.Log(logging.LevelWarn, "Ignoring Prepare message with nil digest.")
+		return
+	}
+
 	// Convenience variable
 	sn := prepare.Sn
 
@@ -369,6 +380,11 @@ func applyMsgCommit(
 	from t.NodeID,
 	logger logging.Logger,
 ) {
+
+	if commit.Digest == nil {
+		logger.Log(logging.LevelWarn, "Ignoring Commit message with nil digest.")
+		return
+	}
 
 	// Convenience variable
 	sn := commit.Sn

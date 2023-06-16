@@ -51,7 +51,7 @@ type Module interface {
 func NewModule(moduleID t.ModuleID) Module {
 	return &dslModuleImpl{
 		moduleID:               moduleID,
-		defaultEventHandler:    failExceptForInit,
+		defaultEventHandler:    failExceptForInitAndTransport,
 		eventHandlers:          make(map[reflect.Type][]func(ev *eventpb.Event) error),
 		outputEvents:           &events.EventList{},
 		contextStore:           cs.NewSequentialContextStore[any](),
@@ -230,9 +230,21 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 // The failExceptForInit returns an error for every received event type except for Init.
 // For convenience, if this is used as the default event handler,
 // it is not considered an error to not have handlers for the Init event.
-func failExceptForInit(ev *eventpb.Event) error {
+func failExceptForInit(ev *eventpb.Event) error { //nolint
 	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
 		return nil
 	}
 	return es.Errorf("unknown event type '%T'", ev.Type)
+}
+
+// The failExceptForInitAndTransport is just like failExceptForInit except
+// that if the module does not tolerate a transport event, it gracefully
+// ignores it. This prevents external nodes from crashing the node by sending
+// transport events to modules that do not tolerate it.
+func failExceptForInitAndTransport(ev *eventpb.Event) error {
+	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
+		return nil
+	}
+
+	return failExceptForInit(ev)
 }

@@ -2,6 +2,7 @@ package simplemempool
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/computeids"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/formbatchesext"
@@ -32,14 +33,14 @@ func DefaultModuleParams() *ModuleParams {
 // previous batch request as possible with respect to params.MaxTransactionsInBatch.
 //
 // This implementation uses the hash function provided by the mc.Hasher module to compute transaction IDs and batch IDs.
-func NewModule(mc ModuleConfig, params *ModuleParams) modules.Module {
+func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{
 		TxByID: make(map[string]*trantorpbtypes.Transaction),
 	}
 
-	computeids.IncludeComputationOfTransactionAndBatchIDs(m, mc, params, commonState)
+	computeids.IncludeComputationOfTransactionAndBatchIDs(m, mc, params, logger, commonState)
 	lookuptxs.IncludeTransactionLookupByID(m, mc, params, commonState)
 
 	if params.TxFetcher != nil {
