@@ -2,6 +2,7 @@ package testlogger
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,14 +17,17 @@ type testLogEntry struct {
 }
 
 type TestLogger struct {
-	entries    []*testLogEntry
-	entryIndex map[string]int
+	entries        map[int]*testLogEntry
+	entryIndex     map[string]int
+	internalMutex  sync.Mutex
+	entriesCounter int
 }
 
 func New() *TestLogger {
 	return &TestLogger{
-		entries:    make([]*testLogEntry, 0),
-		entryIndex: make(map[string]int),
+		entries:       make(map[int]*testLogEntry, 0),
+		entryIndex:    make(map[string]int),
+		internalMutex: sync.Mutex{},
 	}
 }
 
@@ -33,9 +37,12 @@ func (tl *TestLogger) Log(level logging.LogLevel, text string, args ...interface
 		text:  text,
 		args:  args,
 	}
+	tl.internalMutex.Lock()
+	defer tl.internalMutex.Unlock()
 	// TODO: With this implementation, duplicate entries are overwritten. Make duplicates possible.
-	tl.entryIndex[fmt.Sprintf("%v", newEntry)] = len(tl.entries)
-	tl.entries = append(tl.entries, &newEntry)
+	tl.entryIndex[fmt.Sprintf("%v", newEntry)] = tl.entriesCounter
+	tl.entries[tl.entriesCounter] = &newEntry
+	tl.entriesCounter++
 }
 
 func (tl *TestLogger) MinLevel() logging.LogLevel {
@@ -65,8 +72,7 @@ func (tl *TestLogger) CheckAnyEntry(t *testing.T, level logging.LogLevel, text s
 		text:  text,
 		args:  args,
 	}
-	entryStr := fmt.Sprintf("%v", entry)
-	idx, ok := tl.entryIndex[entryStr]
+	idx, ok := tl.entryIndex[fmt.Sprintf("%v", entry)]
 	if assert.True(t, ok, "entry not in log") {
 		tl.checkAndRemoveEntry(t, &entry, idx)
 	}
@@ -78,9 +84,9 @@ func (tl *TestLogger) checkAndRemoveEntry(t *testing.T, refEntry *testLogEntry, 
 	t.Helper()
 
 	// Check that the log contains enough entries.
-	assert.Less(t, idx, len(tl.entries),
-		"log only contains %d entries, expected at least %d", len(tl.entries), idx+1)
-	entry := tl.entries[idx]
+	entry, ok := tl.entries[idx]
+
+	assert.True(t, ok, "log does not contain entry at index %d", idx)
 
 	// Check the content of the log entry.
 	assert.Equal(t, refEntry.level, entry.level, "unexpected log level")
@@ -91,6 +97,7 @@ func (tl *TestLogger) checkAndRemoveEntry(t *testing.T, refEntry *testLogEntry, 
 	}
 
 	// Remove entry from the log.
-	tl.entries = append(tl.entries[:idx], tl.entries[idx+1:]...)
-	delete(tl.entryIndex, fmt.Sprintf("%v", entry))
+	delete(tl.entries, idx)
+	delete(tl.entryIndex, fmt.Sprintf("%v", *entry))
+
 }
