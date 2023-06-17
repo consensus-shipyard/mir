@@ -92,10 +92,15 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 		case *eventpb.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
+
+			// Before applying an event for the factory itself, process all the buffered submodule events
+			// (as the factory event might change the submodules themselves).
 			submoduleOutputEvts, err := fm.applySubmodulesEvents()
 			if err != nil {
 				return nil, err
 			}
+
+			// Apply the factory event itself, appending its output to the result of submodule event processing.
 			switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
 			case *factorypbtypes.Event_NewModule:
 				evOut, err := fm.applyNewModule(e.NewModule)
@@ -116,12 +121,15 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 			return nil, es.Errorf("unsupported event type for factory module: %T", e)
 		}
 	}
+
+	// Submodule events are not applied directly, but buffered for later concurrent execution.
+	// Note that this is different from (and orthogonal to) buffering early messages for non-existent submodules.
 	fm.bufferSubmoduleEvent(event)
 
 	return events.EmptyList(), nil
 }
 
-// bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are each a list of events
+// bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are lists of events.
 func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
 	smID := t.ModuleID(event.DestModule)
 	if _, ok := fm.eventBuffer[smID]; !ok {
@@ -131,19 +139,22 @@ func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
 	fm.eventBuffer[smID] = fm.eventBuffer[smID].PushBack(event)
 }
 
-// applySubmodulesEvents applies all buffered events to the existing submodules, returns the first encountered error if any,
+// applySubmodulesEvents applies all buffered events to the existing submodules,
+// returns the first encountered error if any,
 // or the full list of outgoing events after applying all the events to each of the submodules
 func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
-	// Convenience variable.
 	eventsOut := events.EmptyList()
 	errChan := make(chan error)
 	evtsChan := make(chan *events.EventList)
 
+	// Apply submodule events concurrently to their respective submodules.
 	existingSubmodules := 0
 	for smID, eventList := range fm.eventBuffer {
 		if submodule, ok := fm.submodules[smID]; !ok {
-			fm.bufferEvents(eventList)
+			// If the target submodule does not exist (yet), buffer its incoming messages.
+			fm.bufferEarlyMsgs(eventList)
 		} else {
+			// Otherwise, call the submodule's ApplyEvents method in the background.
 			existingSubmodules++
 			go func(submodule modules.PassiveModule, eventList *events.EventList) {
 				evtsOut, err := submodule.ApplyEvents(eventList)
@@ -166,11 +177,40 @@ func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
 	return eventsOut, nil
 }
 
-// bufferEvents buffers events in the message buffer
-func (fm *FactoryModule) bufferEvents(eventList *events.EventList) {
+// bufferEarlyMsgs buffers message events for later application.
+// It is used when receiving early messages for submodules that do not exist yet.
+func (fm *FactoryModule) bufferEarlyMsgs(eventList *events.EventList) {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		fm.tryBuffering(event)
+	}
+}
+
+func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
+
+	// Check if this is a MessageReceived event.
+	isMessageReceivedEvent := false
+	var msg *transportpb.Event_MessageReceived
+	e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+	if isTransportEvent {
+		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
+	}
+
+	if !isMessageReceivedEvent {
+		// Events other than MessageReceived are ignored.
+		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
+			"moduleID", t.ModuleID(event.DestModule),
+			"eventType", fmt.Sprintf("%T", event.Type),
+			"eventValue", fmt.Sprintf("%v", event.Type))
+		// TODO: Get rid of Sprintf of the value and just use the value directly. Using Sprintf is just a work-around
+		//       for a sloppy implementation of the testing log used in tests that cannot handle pointers yet.
+		return
+	}
+
+	if !fm.messageBuffer.Store(event) {
+		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
+			"moduleID", t.ModuleID(event.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
+			"from", msg.MessageReceived.From)
 	}
 }
 
@@ -247,32 +287,4 @@ func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) 
 	}
 
 	return events.EmptyList(), nil
-}
-
-func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
-
-	// Check if this is a MessageReceived event.
-	isMessageReceivedEvent := false
-	var msg *transportpb.Event_MessageReceived
-	e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
-	if isTransportEvent {
-		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
-	}
-
-	if !isMessageReceivedEvent {
-		// Events other than MessageReceived are ignored.
-		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
-			"moduleID", t.ModuleID(event.DestModule),
-			"eventType", fmt.Sprintf("%T", event.Type),
-			"eventValue", fmt.Sprintf("%v", event.Type))
-		// TODO: Get rid of Sprintf of the value and just use the value directly. Using Sprintf is just a work-around
-		//       for a sloppy implementation of the testing log used in tests that cannot handle pointers yet.
-		return
-	}
-
-	if !fm.messageBuffer.Store(event) {
-		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
-			"moduleID", t.ModuleID(event.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
-			"from", msg.MessageReceived.From)
-	}
 }
