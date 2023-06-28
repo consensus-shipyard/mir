@@ -3,6 +3,8 @@ package testing
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -56,7 +58,7 @@ func BenchmarkIntegration(b *testing.B) {
 type TestConfig struct {
 	Info                string
 	RandomSeed          int64
-	NumReplicas         int
+	NodeIDsWeight       map[t.NodeID]types.VoteWeight
 	NumClients          int
 	Transport           string
 	NumFakeTXs          int
@@ -74,29 +76,28 @@ func testIntegrationWithISS(t *testing.T) {
 	}{
 		0: {"Do nothing with 1 node",
 			&TestConfig{
-				NumReplicas: 1,
-				Transport:   "fake",
-				Duration:    4 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				Transport:     "fake",
+				Duration:      4 * time.Second,
 			}},
 		1: {"Do nothing with 4 nodes, one of them slow",
 			&TestConfig{
-				NumReplicas:         4,
+				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
 				Transport:           "fake",
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 		2: {"Submit 10 fake transactions with 1 node",
 			&TestConfig{
-				NumReplicas: 1,
-				Transport:   "fake",
-				NumFakeTXs:  10,
-				Directory:   "mirbft-deployment-test",
-				Duration:    4 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				Transport:     "fake",
+				NumFakeTXs:    10,
+				Directory:     "mirbft-deployment-test",
+				Duration:      4 * time.Second,
 			}},
 		3: {"Submit 100 fake transactions with 4 nodes, one of them slow",
 			&TestConfig{
-				NumReplicas:         4,
-				NumClients:          0,
+				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
 				Transport:           "fake",
 				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
@@ -104,71 +105,67 @@ func testIntegrationWithISS(t *testing.T) {
 			}},
 		4: {"Submit 10 fake transactions with 4 nodes and libp2p networking",
 			&TestConfig{
-				NumReplicas: 4,
-				NumClients:  1,
-				Transport:   "libp2p",
-				NumFakeTXs:  10,
-				Duration:    10 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				Transport:     "libp2p",
+				NumFakeTXs:    10,
+				Duration:      10 * time.Second,
 			}},
 		5: {"Submit 10 transactions with 1 node and libp2p networking",
 			&TestConfig{
-				NumReplicas: 1,
-				NumClients:  1,
-				Transport:   "libp2p",
-				NumNetTXs:   10,
-				Duration:    10 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				Transport:     "libp2p",
+				NumNetTXs:     10,
+				Duration:      10 * time.Second,
 			}},
 		6: {"Submit 10 transactions with 4 nodes and libp2p networking",
 			&TestConfig{
-				Info:        "libp2p 10 transactions and 4 nodes",
-				NumReplicas: 4,
-				NumClients:  1,
-				Transport:   "libp2p",
-				NumNetTXs:   10,
-				Duration:    15 * time.Second,
+				Info:          "libp2p 10 transactions and 4 nodes",
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				Transport:     "libp2p",
+				NumNetTXs:     10,
+				Duration:      15 * time.Second,
 			}},
 		7: {"Do nothing with 1 node in simulation",
 			&TestConfig{
-				NumReplicas: 1,
-				Transport:   "sim",
-				Duration:    4 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				Transport:     "sim",
+				Duration:      4 * time.Second,
 			}},
-
 		8: {"Do nothing with 4 nodes in simulation, one of them slow",
 			&TestConfig{
-				NumReplicas:         4,
+				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
 				Transport:           "sim",
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 		9: {"Submit 10 fake transactions with 1 node in simulation",
 			&TestConfig{
-				NumReplicas: 1,
-				Transport:   "sim",
-				NumFakeTXs:  10,
-				Directory:   "mirbft-deployment-test",
-				Duration:    4 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				Transport:     "sim",
+				NumFakeTXs:    10,
+				Directory:     "mirbft-deployment-test",
+				Duration:      4 * time.Second,
 			}},
 		10: {"Submit 10 fake transactions with 1 node in simulation, loading WAL",
 			&TestConfig{
-				NumReplicas: 1,
-				NumClients:  1,
-				Transport:   "sim",
-				NumFakeTXs:  10,
-				Directory:   "mirbft-deployment-test",
-				Duration:    4 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				NumClients:    1,
+				Transport:     "sim",
+				NumFakeTXs:    10,
+				Directory:     "mirbft-deployment-test",
+				Duration:      4 * time.Second,
 			}},
 		11: {"Submit 100 fake transactions with 1 node in simulation",
 			&TestConfig{
-				NumReplicas: 1,
-				NumClients:  0,
-				Transport:   "sim",
-				NumFakeTXs:  100,
-				Duration:    20 * time.Second,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				NumClients:    0,
+				Transport:     "sim",
+				NumFakeTXs:    100,
+				Duration:      20 * time.Second,
 			}},
 		12: {"Submit 100 fake transactions with 4 nodes in simulation, one of them slow",
 			&TestConfig{
-				NumReplicas:         4,
+				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
 				NumClients:          0,
 				Transport:           "sim",
 				NumFakeTXs:          100,
@@ -220,19 +217,19 @@ func benchmarkIntegrationWithISS(b *testing.B) {
 	}{
 		0: {"Runs for 10s with 4 nodes",
 			&TestConfig{
-				NumReplicas: 4,
-				NumClients:  1,
-				Transport:   "fake",
-				Duration:    10 * time.Second,
-				Logger:      logging.ConsoleErrorLogger,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				NumClients:    1,
+				Transport:     "fake",
+				Duration:      10 * time.Second,
+				Logger:        logging.ConsoleErrorLogger,
 			}},
 		1: {"Runs for 100s with 4 nodes",
 			&TestConfig{
-				NumReplicas: 4,
-				NumClients:  1,
-				Transport:   "fake",
-				Duration:    100 * time.Second,
-				Logger:      logging.ConsoleErrorLogger,
+				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				NumClients:    1,
+				Transport:     "fake",
+				Duration:      100 * time.Second,
+				Logger:        logging.ConsoleErrorLogger,
 			}},
 	}
 
@@ -289,7 +286,7 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	nodeErrors, heapObjects, heapAlloc = deployment.Run(ctx)
 
 	// Check whether all the test replicas exited correctly.
-	assert.Len(tb, nodeErrors, conf.NumReplicas)
+	assert.Len(tb, nodeErrors, len(conf.NodeIDsWeight))
 	for _, err := range nodeErrors {
 		if err != nil {
 			assert.Equal(tb, mir.ErrStopped, err)
@@ -344,7 +341,7 @@ func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 }
 
 func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
-	nodeIDs := deploytest.NewNodeIDs(conf.NumReplicas)
+	nodeIDs := maputil.GetKeys(conf.NodeIDsWeight)
 	logger := deploytest.NewLogger(conf.Logger)
 
 	var simulation *deploytest.Simulation
