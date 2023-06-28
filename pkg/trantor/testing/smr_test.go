@@ -3,14 +3,15 @@ package testing
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 
 	es "github.com/go-errors/errors"
 
@@ -98,6 +99,7 @@ func testIntegrationWithISS(t *testing.T) {
 		3: {"Submit 100 fake transactions with 4 nodes, one of them slow",
 			&TestConfig{
 				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
+				NumClients:          0,
 				Transport:           "fake",
 				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
@@ -106,6 +108,7 @@ func testIntegrationWithISS(t *testing.T) {
 		4: {"Submit 10 fake transactions with 4 nodes and libp2p networking",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				NumClients:    1,
 				Transport:     "libp2p",
 				NumFakeTXs:    10,
 				Duration:      10 * time.Second,
@@ -113,6 +116,7 @@ func testIntegrationWithISS(t *testing.T) {
 		5: {"Submit 10 transactions with 1 node and libp2p networking",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
+				NumClients:    1,
 				Transport:     "libp2p",
 				NumNetTXs:     10,
 				Duration:      10 * time.Second,
@@ -121,6 +125,7 @@ func testIntegrationWithISS(t *testing.T) {
 			&TestConfig{
 				Info:          "libp2p 10 transactions and 4 nodes",
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
+				NumClients:    1,
 				Transport:     "libp2p",
 				NumNetTXs:     10,
 				Duration:      15 * time.Second,
@@ -353,7 +358,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		}
 		simulation = deploytest.NewSimulation(r, nodeIDs, eventDelayFn)
 	}
-	transportLayer, err := deploytest.NewLocalTransportLayer(simulation, conf.Transport, nodeIDs, logger)
+	transportLayer, err := deploytest.NewLocalTransportLayer(simulation, conf.Transport, conf.NodeIDsWeight, logger)
 	if err != nil {
 		return nil, es.Errorf("error creating local transport system: %w", err)
 	}

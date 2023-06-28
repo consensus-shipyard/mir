@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -99,17 +101,18 @@ var _ LocalTransportLayer = &FakeTransport{}
 
 type FakeTransport struct {
 	// Buffers is source x dest
-	Buffers   map[t.NodeID]map[t.NodeID]chan *events.EventList
-	NodeSinks map[t.NodeID]chan *events.EventList
-	logger    logging.Logger
+	Buffers       map[t.NodeID]map[t.NodeID]chan *events.EventList
+	NodeSinks     map[t.NodeID]chan *events.EventList
+	logger        logging.Logger
+	nodeIDsWeight map[t.NodeID]types.VoteWeight
 }
 
-func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
+func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTransport {
 	buffers := make(map[t.NodeID]map[t.NodeID]chan *events.EventList)
 	nodeSinks := make(map[t.NodeID]chan *events.EventList)
-	for _, sourceID := range nodeIDs {
+	for sourceID := range nodeIDsWeight {
 		buffers[sourceID] = make(map[t.NodeID]chan *events.EventList)
-		for _, destID := range nodeIDs {
+		for destID := range nodeIDsWeight {
 			if sourceID == destID {
 				continue
 			}
@@ -119,9 +122,10 @@ func NewFakeTransport(nodeIDs []t.NodeID) *FakeTransport {
 	}
 
 	return &FakeTransport{
-		Buffers:   buffers,
-		NodeSinks: nodeSinks,
-		logger:    logging.ConsoleErrorLogger,
+		Buffers:       buffers,
+		NodeSinks:     nodeSinks,
+		logger:        logging.ConsoleErrorLogger,
+		nodeIDsWeight: nodeIDsWeight,
 	}
 }
 
@@ -153,7 +157,7 @@ func (ft *FakeTransport) Membership() *trantorpbtypes.Membership {
 			libp2p.NewDummyHostAddr(0,
 				0).String(),
 			nil,
-			1,
+			ft.nodeIDsWeight[nID],
 		}
 	}
 

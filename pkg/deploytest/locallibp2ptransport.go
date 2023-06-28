@@ -4,6 +4,8 @@ import (
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
@@ -24,24 +26,26 @@ type LocalLibp2pTransport struct {
 	logger logging.Logger
 }
 
-func NewLocalLibp2pTransport(nodeIDs []t.NodeID, logger logging.Logger) *LocalLibp2pTransport {
+func NewLocalLibp2pTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight, logger logging.Logger) *LocalLibp2pTransport {
 	lt := &LocalLibp2pTransport{
 		membership: &trantorpbtypes.Membership{ // nolint:govet
-			make(map[t.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDs)),
+			make(map[t.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDsWeight)),
 		},
 		hosts:  make(map[t.NodeID]host.Host),
 		logger: logger,
 	}
 
-	for i, id := range nodeIDs {
+	i := 0
+	for id, weight := range nodeIDsWeight {
 		hostAddr := libp2ptools.NewDummyHostAddr(i, BaseListenPort)
 		lt.hosts[id] = libp2ptools.NewDummyHost(i, hostAddr)
 		lt.membership.Nodes[id] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			id,
 			libp2ptools.NewDummyMultiaddr(i, hostAddr).String(),
 			nil,
-			1,
+			weight,
 		}
+		i++
 	}
 
 	return lt

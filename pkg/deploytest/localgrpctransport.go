@@ -3,6 +3,8 @@ package deploytest
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 
@@ -25,19 +27,21 @@ type LocalGrpcTransport struct {
 	logger logging.Logger
 }
 
-func NewLocalGrpcTransport(nodeIDs []t.NodeID, logger logging.Logger) (*LocalGrpcTransport, error) {
+func NewLocalGrpcTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight, logger logging.Logger) (*LocalGrpcTransport, error) {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 	// Compute network addresses and ports for all test replicas.
 	// Each test replica is on the local machine - 127.0.0.1
 	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
-	for i, id := range nodeIDs {
+	i := 0
+	for id, weight := range nodeIDsWeight {
 		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", BaseListenPort+i))
 		if err != nil {
 			return nil, es.Errorf("error creating local multiaddress: %w", err)
 		}
-		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{id, maddr.String(), nil, 1} // nolint:govet
+		membership.Nodes[id] = &trantorpbtypes.NodeIdentity{id, maddr.String(), nil, weight} // nolint:govet
+		i++
 	}
 
 	return &LocalGrpcTransport{membership, logger}, nil

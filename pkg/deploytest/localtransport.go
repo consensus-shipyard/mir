@@ -3,6 +3,8 @@ package deploytest
 import (
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -20,20 +22,20 @@ type LocalTransportLayer interface {
 
 // NewLocalTransportLayer creates an instance of LocalTransportLayer suitable for tests.
 // transportType is one of: "sim", "fake", "grpc", or "libp2p".
-func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDs []t.NodeID, logger logging.Logger) (LocalTransportLayer, error) {
+func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDsWeight map[t.NodeID]types.VoteWeight, logger logging.Logger) (LocalTransportLayer, error) {
 	switch transportType {
 	case "sim":
 		messageDelayFn := func(from, to t.NodeID) time.Duration {
 			// TODO: Make min and max message delay configurable
 			return testsim.RandDuration(sim.Rand, 0, 10*time.Millisecond)
 		}
-		return NewSimTransport(sim, nodeIDs, messageDelayFn), nil
+		return NewSimTransport(sim, nodeIDsWeight, messageDelayFn), nil
 	case "fake":
-		return NewFakeTransport(nodeIDs), nil
+		return NewFakeTransport(nodeIDsWeight), nil
 	case "grpc":
-		return NewLocalGrpcTransport(nodeIDs, logger)
+		return NewLocalGrpcTransport(nodeIDsWeight, logger)
 	case "libp2p":
-		return NewLocalLibp2pTransport(nodeIDs, logger), nil
+		return NewLocalLibp2pTransport(nodeIDsWeight, logger), nil
 	default:
 		return nil, es.Errorf("unexpected transport type: %v", transportType)
 	}
