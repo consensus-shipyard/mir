@@ -197,7 +197,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				CrashedReplicas: map[int]bool{2: true, 3: true},
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
 					require.Error(tb, conf.ErrorExpected)
-					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
+					for replica := range conf.NodeIDsWeight {
 						app := deployment.TestConfig.FakeApps[replica]
 						require.Equal(tb, 0, int(app.TransactionsProcessed))
 					}
@@ -217,7 +217,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				CrashedReplicas: map[int]bool{2: true, 3: true},
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
 					require.Error(tb, conf.ErrorExpected)
-					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
+					for replica := range conf.NodeIDsWeight {
 						app := deployment.TestConfig.FakeApps[replica]
 						require.Equal(tb, conf.NumNetTXs+conf.NumFakeTXs, int(app.TransactionsProcessed))
 					}
@@ -438,7 +438,6 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
-			print("Slowing down node", nodeID)
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeSNTimeout
 		}
 
@@ -479,7 +478,6 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			// Set MaxProposeDelay to 0 such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
-			print("Slowing down node to simulate crash ", nodeID, "\n")
 			err := trantor.PerturbMessages(&eventmangler.ModuleParams{
 				DropRate: 1,
 			}, trantor.DefaultModuleConfig().Net, system)
