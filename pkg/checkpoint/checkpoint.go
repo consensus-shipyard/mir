@@ -218,7 +218,7 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtyp
 		}
 	}
 
-	if sc.Epoch() > 0 && reflect.DeepEqual(sc.PreviousMembership(), membership) {
+	if sc.Epoch() > 0 && !reflect.DeepEqual(sc.PreviousMembership(), membership) {
 		return es.Errorf("inconsistent sc.PreviousMembership() with membership")
 	}
 
