@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/mir/pkg/eventmangler"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -180,6 +181,46 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
+			}},
+		13: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (not messages sent, yes received) and holding the supermajority of stake",
+			&TestConfig{
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
+					idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
+					return types.VoteWeight(math.Pow(2, idfloat)) // ensures last 2 nodes weight is greater than twice the sum of the others'
+				}),
+				NumClients:      0,
+				Transport:       "libp2p",
+				NumFakeTXs:      100,
+				Duration:        20 * time.Second,
+				ErrorExpected:   es.Errorf("no transactions were delivered"),
+				CrashedReplicas: map[int]bool{2: true, 3: true},
+				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
+					require.Error(tb, conf.ErrorExpected)
+					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
+						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						require.Equal(tb, 0, int(app.TransactionsProcessed))
+					}
+				},
+			}},
+		14: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (no messages sent, yes received) but holding the minority of stake",
+			&TestConfig{
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
+					idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
+					return types.VoteWeight(math.Pow(2, 4-idfloat)) // ensures first 2 nodes weight is greater than twice the sum of the others'
+				}),
+				NumClients:      0,
+				Transport:       "libp2p",
+				NumFakeTXs:      100,
+				Duration:        20 * time.Second,
+				ErrorExpected:   es.Errorf("no transactions were delivered"),
+				CrashedReplicas: map[int]bool{2: true, 3: true},
+				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
+					require.Error(tb, conf.ErrorExpected)
+					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
+						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						require.Equal(tb, conf.NumNetTXs+conf.NumFakeTXs, int(app.TransactionsProcessed))
+					}
+				},
 			}},
 	}
 
