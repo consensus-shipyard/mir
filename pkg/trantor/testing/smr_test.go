@@ -3,6 +3,7 @@ package testing
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventmangler"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -65,12 +66,15 @@ type TestConfig struct {
 	NumFakeTXs          int
 	NumNetTXs           int
 	Duration            time.Duration
+	ErrorExpected       *es.Error // whether to expect an error from the test
 	Directory           string
 	SlowProposeReplicas map[int]bool
+	CrashedReplicas     map[int]bool
+	CheckFunc           func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig)
 	Logger              logging.Logger
 }
 
-func testIntegrationWithISS(t *testing.T) {
+func testIntegrationWithISS(tt *testing.T) {
 	tests := []struct {
 		Desc   string // test description
 		Config *TestConfig
@@ -184,9 +188,9 @@ func testIntegrationWithISS(t *testing.T) {
 
 		// Create a directory for the deployment-generated files and set the test directory name.
 		// The directory will be automatically removed when the outer test function exits.
-		createDeploymentDir(t, test.Config)
+		createDeploymentDir(tt, test.Config)
 
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+		tt.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			simMode := (test.Config.Transport == "sim")
 			if testing.Short() && !simMode {
 				t.SkipNow()
@@ -299,6 +303,16 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	}
 
 	// Check event logs
+	if conf.CheckFunc != nil {
+		conf.CheckFunc(tb, deployment, conf)
+		return heapObjects, heapAlloc
+	}
+
+	if conf.ErrorExpected != nil {
+		require.Error(tb, conf.ErrorExpected)
+		return heapObjects, heapAlloc
+	}
+
 	require.NoError(tb, checkEventTraces(deployment.EventLogFiles(), conf.NumNetTXs+conf.NumFakeTXs))
 
 	// Check if all transactions were delivered.
@@ -382,6 +396,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
+			print("Slowing down node", nodeID)
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeSNTimeout
 		}
 
@@ -416,6 +431,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if conf.CrashedReplicas[i] {
+			// Set MaxProposeDelay to 0 such that it is likely to trigger view change by the SN timeout.
+			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
+			// in the worst case, it will trigger view change by the segment timeout.
+			print("Slowing down node to simulate crash ", nodeID, "\n")
+			trantor.PerturbMessages(&eventmangler.ModuleParams{
+				DropRate: 1,
+			}, trantor.DefaultModuleConfig().Net, system)
 		}
 
 		nodeModules[nodeID] = system.Modules()
