@@ -3,7 +3,6 @@ package testing
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventmangler"
 	"math"
 	"math/rand"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/eventmangler"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -197,7 +198,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
 					require.Error(tb, conf.ErrorExpected)
 					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
-						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						app := deployment.TestConfig.FakeApps[replica]
 						require.Equal(tb, 0, int(app.TransactionsProcessed))
 					}
 				},
@@ -217,7 +218,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
 					require.Error(tb, conf.ErrorExpected)
 					for _, replica := range maputil.GetKeys(conf.NodeIDsWeight) {
-						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						app := deployment.TestConfig.FakeApps[replica]
 						require.Equal(tb, conf.NumNetTXs+conf.NumFakeTXs, int(app.TransactionsProcessed))
 					}
 				},
@@ -479,9 +480,12 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
 			print("Slowing down node to simulate crash ", nodeID, "\n")
-			trantor.PerturbMessages(&eventmangler.ModuleParams{
+			err := trantor.PerturbMessages(&eventmangler.ModuleParams{
 				DropRate: 1,
 			}, trantor.DefaultModuleConfig().Net, system)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		nodeModules[nodeID] = system.Modules()
