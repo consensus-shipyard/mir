@@ -278,8 +278,9 @@ func ApplyMsgPreprepare(
 	// Convenience variable
 	sn := preprepare.Sn
 
-	if preprepare.Data == nil {
-		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with nil proposal.")
+	if err := params.ExternalValidator.Check(preprepare); err != nil {
+		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
+			"sn", sn, "from", from, "err", err)
 		return
 	}
 
@@ -287,13 +288,6 @@ func ApplyMsgPreprepare(
 	slot := preprocessMessage(state, sn, preprepare.View, preprepare.Pb(), from, logger)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return
-	}
-
-	// Check whether valid data has been proposed.
-	if err := params.ExternalValidator.Check(preprepare.Data); err != nil {
-		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
-			"sn", sn, "from", from, "err", err)
 		return
 	}
 
