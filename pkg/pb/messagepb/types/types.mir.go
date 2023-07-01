@@ -6,11 +6,11 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
-	types5 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	types6 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -43,11 +43,11 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	case *messagepb.Message_MultisigCollector:
 		return &Message_MultisigCollector{MultisigCollector: types3.MessageFromPb(pb.MultisigCollector)}
 	case *messagepb.Message_Pingpong:
-		return &Message_Pingpong{Pingpong: pb.Pingpong}
+		return &Message_Pingpong{Pingpong: types4.MessageFromPb(pb.Pingpong)}
 	case *messagepb.Message_Checkpoint:
-		return &Message_Checkpoint{Checkpoint: types4.MessageFromPb(pb.Checkpoint)}
+		return &Message_Checkpoint{Checkpoint: types5.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_Orderer:
-		return &Message_Orderer{Orderer: types5.MessageFromPb(pb.Orderer)}
+		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
 	}
 	return nil
 }
@@ -125,12 +125,12 @@ func (*Message_MultisigCollector) MirReflect() mirreflect.Type {
 }
 
 type Message_Pingpong struct {
-	Pingpong *pingpongpb.Message
+	Pingpong *types4.Message
 }
 
 func (*Message_Pingpong) isMessage_Type() {}
 
-func (w *Message_Pingpong) Unwrap() *pingpongpb.Message {
+func (w *Message_Pingpong) Unwrap() *types4.Message {
 	return w.Pingpong
 }
 
@@ -141,7 +141,7 @@ func (w *Message_Pingpong) Pb() messagepb.Message_Type {
 	if w.Pingpong == nil {
 		return &messagepb.Message_Pingpong{}
 	}
-	return &messagepb.Message_Pingpong{Pingpong: w.Pingpong}
+	return &messagepb.Message_Pingpong{Pingpong: (w.Pingpong).Pb()}
 }
 
 func (*Message_Pingpong) MirReflect() mirreflect.Type {
@@ -149,12 +149,12 @@ func (*Message_Pingpong) MirReflect() mirreflect.Type {
 }
 
 type Message_Checkpoint struct {
-	Checkpoint *types4.Message
+	Checkpoint *types5.Message
 }
 
 func (*Message_Checkpoint) isMessage_Type() {}
 
-func (w *Message_Checkpoint) Unwrap() *types4.Message {
+func (w *Message_Checkpoint) Unwrap() *types5.Message {
 	return w.Checkpoint
 }
 
@@ -173,12 +173,12 @@ func (*Message_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type Message_Orderer struct {
-	Orderer *types5.Message
+	Orderer *types6.Message
 }
 
 func (*Message_Orderer) isMessage_Type() {}
 
-func (w *Message_Orderer) Unwrap() *types5.Message {
+func (w *Message_Orderer) Unwrap() *types6.Message {
 	return w.Orderer
 }
 
