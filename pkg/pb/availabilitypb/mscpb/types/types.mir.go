@@ -381,7 +381,6 @@ func (*Certs) MirReflect() mirreflect.Type {
 
 type InstanceParams struct {
 	Membership  *types.Membership
-	Limit       uint64
 	MaxRequests uint64
 }
 
@@ -391,7 +390,6 @@ func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 	}
 	return &InstanceParams{
 		Membership:  types.MembershipFromPb(pb.Membership),
-		Limit:       pb.Limit,
 		MaxRequests: pb.MaxRequests,
 	}
 }
@@ -405,7 +403,6 @@ func (m *InstanceParams) Pb() *mscpb.InstanceParams {
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}
-		pbMessage.Limit = m.Limit
 		pbMessage.MaxRequests = m.MaxRequests
 	}
 
