@@ -11,16 +11,13 @@ import (
 	"time"
 
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/pkg/trantor"
-	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-
 	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/iss"
@@ -31,6 +28,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/pkg/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -407,8 +406,9 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 				Mempool: &simplemempool.ModuleParams{
 					MaxTransactionsInBatch: 10,
 				},
-				Iss: issConfig,
-				Net: libp2p.Params{},
+				Iss:          issConfig,
+				Net:          libp2p.Params{},
+				Availability: multisigcollector.DefaultParamsTemplate(),
 			},
 			nodeLogger,
 		)
