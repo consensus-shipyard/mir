@@ -2,7 +2,6 @@ package common
 
 import (
 	msctypes "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
-	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -32,7 +31,6 @@ type ModuleConfig struct {
 type ModuleParams struct {
 	InstanceUID []byte                     // unique identifier for this instance used to prevent replay attacks
 	Membership  *trantorpbtypes.Membership // the list of participating nodes
-	Certs       []*mscpbtypes.Cert         // the list of generated certificates
 	Limit       int                        // the maximum number of certificates to generate before a request is completed
 	MaxRequests int                        // the maximum number of requests to be provided by this module
 }
