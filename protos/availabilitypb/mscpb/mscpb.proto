@@ -82,7 +82,6 @@ message Certs {
 message InstanceParams {
   option (mir.struct) = true;
 
-  trantorpb.Membership membership   = 1;
-  uint64              limit        = 2;
-  uint64              max_requests = 3;
+  trantorpb.Membership membership  = 1;
+  uint64              max_requests = 2;
 }
