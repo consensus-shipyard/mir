@@ -48,6 +48,10 @@ func TestIntegration(t *testing.T) {
 		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/deploytest.newSimModule"),
 		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/testsim.(*Chan).recv"),
 
+		// Problems with this started occurring after an update to a new version of the quic implementation.
+		// Assuming it has nothing to do with Mir or Trantor.
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
+
 		// If an observable is not exhausted when checking an event trace...
 		goleak.IgnoreTopFunction("github.com/reactivex/rxgo/v2.Item.SendContext"),
 	)

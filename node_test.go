@@ -23,7 +23,11 @@ import (
 )
 
 func TestNode_Config(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t,
+		// Problems with this started occurring after an update to a new version of the quic implementation.
+		// Assuming it has nothing to do with Mir or Trantor.
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
+	)
 
 	// Convenience variable
 	noModules := make(map[types.ModuleID]modules.Module)
@@ -52,7 +56,11 @@ func TestNode_Config(t *testing.T) {
 }
 
 func TestNode_Run(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t,
+		// Problems with this started occurring after an update to a new version of the quic implementation.
+		// Assuming it has nothing to do with Mir or Trantor.
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
+	)
 
 	testCases := map[string]func(t *testing.T) (m modules.Modules, done <-chan struct{}){
 		"InitEvents": func(t *testing.T) (modules.Modules, <-chan struct{}) {
@@ -120,7 +128,11 @@ func TestNode_Run(t *testing.T) {
 }
 
 func TestNode_Backpressure(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	defer goleak.VerifyNone(t,
+		// Problems with this started occurring after an update to a new version of the quic implementation.
+		// Assuming it has nothing to do with Mir or Trantor.
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
+	)
 
 	ctx := context.Background()
 

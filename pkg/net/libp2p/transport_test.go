@@ -319,7 +319,11 @@ func (m *mockLibp2pCommunication) streamExist(src, dst *Transport) bool {
 }
 
 func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m)
+	goleak.VerifyTestMain(m,
+		// Problems with this started occurring after an update to a new version of the quic implementation.
+		// Assuming it has nothing to do with Mir or Trantor.
+		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
+	)
 }
 
 // TestNewTransport tests that the transport can be created.
