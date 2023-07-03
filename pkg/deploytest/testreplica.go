@@ -125,7 +125,10 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// TODO: avoid hacky special cases like this.
 	if transport, ok := tr.Modules["net"]; ok {
-		transport := transport.(net.Transport)
+		transport, ok := transport.(net.Transport)
+		if !ok {
+			transport = tr.Modules["truenet"].(net.Transport)
+		}
 
 		err = transport.Start()
 		if err != nil {

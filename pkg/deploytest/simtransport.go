@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -29,18 +31,20 @@ type MessageDelayFn func(from, to t.NodeID) time.Duration
 
 type SimTransport struct {
 	*Simulation
-	delayFn MessageDelayFn
-	nodes   map[t.NodeID]*simTransportModule
+	delayFn       MessageDelayFn
+	nodes         map[t.NodeID]*simTransportModule
+	nodeIDsWeight map[t.NodeID]types.VoteWeight
 }
 
-func NewSimTransport(s *Simulation, nodeIDs []t.NodeID, delayFn MessageDelayFn) *SimTransport {
+func NewSimTransport(s *Simulation, nodeIDsWeight map[t.NodeID]types.VoteWeight, delayFn MessageDelayFn) *SimTransport {
 	st := &SimTransport{
-		Simulation: s,
-		delayFn:    delayFn,
-		nodes:      make(map[t.NodeID]*simTransportModule, len(nodeIDs)),
+		Simulation:    s,
+		delayFn:       delayFn,
+		nodes:         make(map[t.NodeID]*simTransportModule, len(nodeIDsWeight)),
+		nodeIDsWeight: nodeIDsWeight,
 	}
 
-	for _, id := range nodeIDs {
+	for id := range nodeIDsWeight {
 		st.nodes[id] = newModule(st, id, s.Node(id))
 	}
 
@@ -60,7 +64,7 @@ func (st *SimTransport) Membership() *trantorpbtypes.Membership {
 			nID,
 			libp2p.NewDummyHostAddr(0, 0).String(),
 			nil,
-			1,
+			st.nodeIDsWeight[nID],
 		}
 	}
 

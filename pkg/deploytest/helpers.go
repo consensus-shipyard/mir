@@ -2,15 +2,24 @@ package deploytest
 
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
-// NewNodeIDs returns a slice of node ids of the given size suitable for testing.
-func NewNodeIDs(nNodes int) []t.NodeID {
-	return sliceutil.Generate(nNodes, func(i int) t.NodeID {
-		// TODO: use non-integer node IDs once all calls to strconv.Atoi are cleaned up.
-		return t.NewNodeIDFromInt(i)
+// NewNodeIDsWeights returns a map of node ids of the given size suitable for testing with the nodeID as key and their weight as value. The weight is calculated
+// with a function parameter that is iteratively called in order from the first nodeID 0 to the last nodeID nNodes-1
+func NewNodeIDsWeights(nNodes int, weightFunction func(t.NodeID) types.VoteWeight) map[t.NodeID]types.VoteWeight {
+	nodeIDs := make(map[t.NodeID]types.VoteWeight, nNodes)
+	for i := 0; i < nNodes; i++ {
+		nodeID := t.NewNodeIDFromInt(i)
+		nodeIDs[nodeID] = weightFunction(nodeID)
+	}
+	return nodeIDs
+}
+
+func NewNodeIDsDefaultWeights(nNodes int) map[t.NodeID]types.VoteWeight {
+	return NewNodeIDsWeights(nNodes, func(t.NodeID) types.VoteWeight {
+		return 1
 	})
 }
 
