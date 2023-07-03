@@ -28,7 +28,7 @@ type ModuleParams = common.ModuleParams
 // are left empty (zero values for their corresponding type).
 func DefaultParamsTemplate() ModuleParams {
 	return ModuleParams{
-		Limit:       1,           // Disable batching of availability certificates by default.
+		Limit:       5,           // Number of sub-certificates in one availability certificate.
 		MaxRequests: math.MaxInt, // By default, have the availability module run (basically) forever.
 	}
 }

@@ -396,6 +396,9 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, es.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
 		}
 
+		avParamsTemplate := multisigcollector.DefaultParamsTemplate()
+		avParamsTemplate.Limit = 1
+
 		system, err := trantor.New(
 			nodeID,
 			transport,
@@ -408,7 +411,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 				},
 				Iss:          issConfig,
 				Net:          libp2p.Params{},
-				Availability: multisigcollector.DefaultParamsTemplate(),
+				Availability: avParamsTemplate,
 			},
 			nodeLogger,
 		)
