@@ -126,6 +126,7 @@ func New(
 	// The multisig collector's certificates consist of signatures of a quorum of the nodes.
 	trantorModules[moduleConfig.Availability] = multisigcollector.NewReconfigurableModule(
 		moduleConfig.ConfigureMultisigCollector(),
+		params.Availability,
 		logging.Decorate(logger, "AVA: "),
 	)
 
