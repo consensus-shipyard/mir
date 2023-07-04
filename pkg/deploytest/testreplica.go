@@ -70,7 +70,13 @@ func (tr *TestReplica) EventLogFile() string {
 func (tr *TestReplica) Run(ctx context.Context) error {
 
 	// Initialize recording of events.
-	interceptor, err := eventlog.NewRecorder(tr.ID, tr.Dir, logging.Decorate(tr.Config.Logger, "Interceptor: "))
+	interceptor, err := eventlog.NewRecorder(
+		tr.ID,
+		tr.Dir,
+		logging.Decorate(tr.Config.Logger, "Interceptor: "),
+		//eventlog.SyncWriteOpt(),
+	)
+
 	if err != nil {
 		return es.Errorf("error creating interceptor: %w", err)
 	}
