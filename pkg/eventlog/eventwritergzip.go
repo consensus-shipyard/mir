@@ -53,6 +53,10 @@ func (w *gzipWriter) Write(record EventRecord) error {
 	})
 }
 
+func (w *gzipWriter) Flush() error {
+	return w.dest.Sync()
+}
+
 func (w *gzipWriter) Close() error {
 	return w.dest.Close()
 }
