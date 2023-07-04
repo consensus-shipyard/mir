@@ -421,7 +421,10 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	if err != nil {
 		return nil, es.Errorf("error creating local transport system: %w", err)
 	}
-	cryptoSystem := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
+	cryptoSystem, err := deploytest.NewLocalCryptoSystem("pseudo", nodeIDs, logger)
+	if err != nil {
+		return nil, es.Errorf("could not create a local crypto system: %w", err)
+	}
 
 	nodeModules := make(map[t.NodeID]modules.Modules)
 	fakeApps := make(map[t.NodeID]*deploytest.FakeApp)

@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package crypto
 
 import (
-	"io"
 	insecureRNG "math/rand"
 
 	es "github.com/go-errors/errors"
@@ -32,28 +31,7 @@ type KeyPairs struct {
 // It also assumes a static membership known to all nodes,
 // InsecureCryptoForTestingOnly can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64, keyPairs *KeyPairs) (Crypto, error) { //nolint:dupl
-
-	// Create a new pseudorandom source from the given seed.
-	randomness := insecureRNG.New(insecureRNG.NewSource(seed)) //nolint:gosec
-
-	// Generate node keys.
-	// All private keys except the own one will be discarded.
-	if len(keyPairs.PrivateKeys) > 0 {
-
-		// Use the provided key pairs if available
-		if len(keyPairs.PrivateKeys) != len(nodes) || len(keyPairs.PublicKeys) != len(nodes) {
-			return nil, es.Errorf("number of provided key pairs does not match the number of nodes")
-		}
-	} else {
-		// Generate node keys.
-		// All private keys except the own one will be discarded.
-		var err error
-		keyPairs.PrivateKeys, keyPairs.PublicKeys, err = generateKeys(len(nodes), randomness)
-		if err != nil {
-			return nil, err
-		}
-	}
+func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, keyPairs *KeyPairs) (Crypto, error) { //nolint:dupl
 
 	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
 	var c *DefaultImpl
@@ -85,18 +63,21 @@ func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64, 
 	return c, nil
 }
 
-// generateKeys generates numKeys keys, using the given randomness source.
+// GenerateKeys generates numKeys keys, using the given randomness source.
 // returns private keys and public keys in two separate arrays, where privKeys[i] and pubKeys[i] represent one key pair.
-func generateKeys(numKeys int, randomness io.Reader) (privKeys [][]byte, pubKeys [][]byte, err error) {
+func GenerateKeys(numKeys int, seed int64) (kp KeyPairs, err error) {
+
+	// Create a new pseudorandom source from the given seed.
+	randomness := insecureRNG.New(insecureRNG.NewSource(seed)) //nolint:gosec
 
 	// Initialize empty lists of keys.
-	privKeys = make([][]byte, numKeys)
-	pubKeys = make([][]byte, numKeys)
+	kp.PrivateKeys = make([][]byte, numKeys)
+	kp.PublicKeys = make([][]byte, numKeys)
 
 	// Generate key pairs.
 	for i := 0; i < numKeys; i++ {
-		if privKeys[i], pubKeys[i], err = GenerateKeyPair(randomness); err != nil {
-			return nil, nil, err
+		if kp.PrivateKeys[i], kp.PublicKeys[i], err = GenerateKeyPair(randomness); err != nil {
+			return KeyPairs{}, err
 		}
 	}
 
