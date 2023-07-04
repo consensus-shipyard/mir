@@ -21,29 +21,46 @@ var (
 	DefaultPseudoSeed int64 = 12345
 )
 
-// InsecureCryptoForTestingOnly returns a CryptoImpl module to be used by a node, generating new keys in a pseudo-random manner.
-// It is initialized and populated deterministically, based on a given configuration and a random seed.
+type KeyPairs struct {
+	PrivateKeys [][]byte
+	PublicKeys  [][]byte
+}
+
+// InsecureCryptoForTestingOnly returns a CryptoImpl module to be used by a node, generating new keys in a pseudo-random manner if no local keys were generated already.
+// Determinism is obtained by only generating the keys once and storing them in the struct to be reused by future calls, based on a given configuration and a random seed.
 // InsecureCryptoForTestingOnly is not secure and intended for testing purposes only.
 // It also assumes a static membership known to all nodes,
 // InsecureCryptoForTestingOnly can be invoked by each Node independently (specifying the same seed, e.g. DefaultPseudoSeed)
 // and generates the same set of keys for the whole system at each node, obviating the exchange of public keys.
-func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64) (Crypto, error) { //nolint:dupl
+func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64, keyPairs *KeyPairs) (Crypto, error) { //nolint:dupl
 
 	// Create a new pseudorandom source from the given seed.
 	randomness := insecureRNG.New(insecureRNG.NewSource(seed)) //nolint:gosec
 
 	// Generate node keys.
 	// All private keys except the own one will be discarded.
-	nodePrivKeys, nodePubKeys, err := generateKeys(len(nodes), randomness)
-	if err != nil {
-		return nil, err
+	if len(keyPairs.PrivateKeys) > 0 {
+
+		// Use the provided key pairs if available
+		if len(keyPairs.PrivateKeys) != len(nodes) || len(keyPairs.PublicKeys) != len(nodes) {
+			return nil, es.Errorf("number of provided key pairs does not match the number of nodes")
+		}
+	} else {
+		// Generate node keys.
+		// All private keys except the own one will be discarded.
+		var err error
+		keyPairs.PrivateKeys, keyPairs.PublicKeys, err = generateKeys(len(nodes), randomness)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Look up the own private key and create a CryptoImpl module instance that would sign with this key.
 	var c *DefaultImpl
+	var err error
 	for i, id := range nodes {
 		if id == ownID {
-			if c, err = NewDefaultImpl(nodePrivKeys[i]); err != nil {
+			if c, err = NewDefaultImpl(keyPairs.PrivateKeys[i]); err != nil {
 				return nil, err
 			}
 		}
@@ -61,7 +78,7 @@ func InsecureCryptoForTestingOnly(nodes []t.NodeID, ownID t.NodeID, seed int64) 
 	}
 
 	// Populate the CryptoImpl module instance with the generated keys
-	if err := registerPubKeys(c, nodes, nodePubKeys); err != nil {
+	if err := registerPubKeys(c, nodes, keyPairs.PublicKeys); err != nil {
 		return nil, err
 	}
 
