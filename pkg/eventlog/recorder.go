@@ -244,7 +244,7 @@ func (i *Recorder) run() (exitErr error) {
 				case record := <-i.eventC:
 
 					if err := writeInFiles(record); err != nil {
-						return errors.WithMessage(err, "error serializing to stream")
+						return es.Errorf("error serializing to stream: %w", err)
 					}
 				default:
 					return errStopped
@@ -252,7 +252,7 @@ func (i *Recorder) run() (exitErr error) {
 			}
 		case record := <-i.eventC:
 			if err := writeInFiles(record); err != nil {
-				return errors.WithMessage(err, "error serializing to stream")
+				return es.Errorf("error serializing to stream: %w", err)
 			}
 			cnt++
 		}
