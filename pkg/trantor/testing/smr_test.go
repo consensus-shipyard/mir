@@ -215,7 +215,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:      0,
 				Transport:       "libp2p",
 				NumFakeTXs:      100,
-				Duration:        20 * time.Second,
+				Duration:        40 * time.Second,
 				ErrorExpected:   es.Errorf("no transactions were delivered"),
 				CrashedReplicas: map[int]bool{2: true, 3: true},
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
