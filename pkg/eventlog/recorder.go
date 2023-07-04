@@ -57,12 +57,14 @@ type Recorder struct {
 	path           string
 	filter         func(event *eventpb.Event) bool
 	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
+	syncWrite      bool
 
-	logger    logging.Logger
-	eventC    chan EventRecord
-	doneC     chan struct{}
-	exitC     chan struct{}
-	fileCount int
+	logger     logging.Logger
+	eventC     chan EventRecord
+	doneC      chan struct{}
+	exitC      chan struct{}
+	fileCount  int
+	writerLock sync.Mutex
 
 	exitErr      error
 	exitErrMutex sync.Mutex
@@ -96,6 +98,7 @@ func NewRecorder(
 			return true
 		},
 		newEventWriter: DefaultNewEventWriter,
+		syncWrite:      false,
 		logger:         logger,
 	}
 
@@ -115,6 +118,8 @@ func NewRecorder(
 			}
 		case eventWriterOpt:
 			i.newEventWriter = v
+		case syncWriteOpt:
+			i.syncWrite = true
 		}
 	}
 
@@ -128,14 +133,17 @@ func NewRecorder(
 	}
 	i.dest = writer
 
-	go func() {
-		err := i.run()
-		if err != nil {
-			logger.Log(logging.LevelError, "Interceptor returned with error.", "err", err)
-		} else {
-			logger.Log(logging.LevelDebug, "Interceptor returned successfully.")
-		}
-	}()
+	// Only start background writing goroutine if synchronous writing is not enabled.
+	if !i.syncWrite {
+		go func() {
+			err := i.run()
+			if err != nil {
+				logger.Log(logging.LevelError, "Interceptor returned with error.", "err", err)
+			} else {
+				logger.Log(logging.LevelDebug, "Interceptor returned successfully.")
+			}
+		}()
+	}
 
 	return i, nil
 }
@@ -154,11 +162,28 @@ func (i *Recorder) Intercept(events *events.EventList) error {
 		return nil
 	}
 
-	select {
-	case i.eventC <- EventRecord{
+	record := EventRecord{
 		Events: events,
 		Time:   i.timeSource(),
-	}:
+	}
+
+	// If synchronous writing is enabled, write data and return immediately, without using any channels.
+	if i.syncWrite {
+		i.writerLock.Lock()
+		defer i.writerLock.Unlock()
+
+		if err := i.writeEvents(record); err != nil {
+			return es.Errorf("error writing events: %w", err)
+		}
+		if err := i.dest.Flush(); err != nil {
+			return es.Errorf("error flushing written events: %w", err)
+		}
+		return nil
+	}
+
+	// If writing is asynchronous, pass the record to the background writing goroutine.
+	select {
+	case i.eventC <- record:
 		return nil
 	case <-i.exitC:
 		i.exitErrMutex.Lock()
@@ -171,6 +196,13 @@ func (i *Recorder) Intercept(events *events.EventList) error {
 // Interceptor, and should only be invoked after the mir node has completely
 // exited.  The returned error
 func (i *Recorder) Stop() error {
+
+	// In synchronous mode, the interceptor has nothing to stop.
+	// Since we assume that the Mir node has already completely stopped,
+	// we do not need to worry about concurrent or later invocations of Intercept().
+	if i.syncWrite {
+		return nil
+	}
 
 	// Send stop signal to writer thread and wait for it to stop.
 	close(i.doneC)
@@ -204,38 +236,6 @@ func (i *Recorder) run() (exitErr error) {
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt, ", path", i.path)
 	}()
 
-	writeInFiles := func(record EventRecord) error {
-		eventByDests := i.newDests(record)
-		count := 0
-		for _, rec := range eventByDests {
-			if count > 0 {
-				// newDest required
-				dest, err := i.newEventWriter(
-					filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)),
-					i.nodeID,
-					i.logger,
-				)
-				if err != nil {
-					return err
-				}
-				err = i.dest.Close()
-				if err != nil {
-					return err
-				}
-				i.dest = dest
-				i.fileCount++
-			}
-
-			if rec.Events.Len() != 0 {
-				if err := i.dest.Write(rec.Filter(i.filter)); err != nil {
-					return err
-				}
-			}
-			count++
-		}
-		return nil
-	}
-
 	for {
 		select {
 		case <-i.doneC:
@@ -243,18 +243,50 @@ func (i *Recorder) run() (exitErr error) {
 				select {
 				case record := <-i.eventC:
 
-					if err := writeInFiles(record); err != nil {
-						return errors.WithMessage(err, "error serializing to stream")
+					if err := i.writeEvents(record); err != nil {
+						return es.Errorf("error serializing to stream: %w", err)
 					}
 				default:
 					return errStopped
 				}
 			}
 		case record := <-i.eventC:
-			if err := writeInFiles(record); err != nil {
-				return errors.WithMessage(err, "error serializing to stream")
+			if err := i.writeEvents(record); err != nil {
+				return es.Errorf("error serializing to stream: %w", err)
 			}
 			cnt++
 		}
 	}
+}
+
+func (i *Recorder) writeEvents(record EventRecord) error {
+	eventByDests := i.newDests(record)
+	count := 0
+	for _, rec := range eventByDests {
+		if count > 0 {
+			// newDest required
+			dest, err := i.newEventWriter(
+				filepath.Join(i.path, "eventlog"+strconv.Itoa(i.fileCount)),
+				i.nodeID,
+				i.logger,
+			)
+			if err != nil {
+				return err
+			}
+			err = i.dest.Close()
+			if err != nil {
+				return err
+			}
+			i.dest = dest
+			i.fileCount++
+		}
+
+		if rec.Events.Len() != 0 {
+			if err := i.dest.Write(rec.Filter(i.filter)); err != nil {
+				return err
+			}
+		}
+		count++
+	}
+	return nil
 }

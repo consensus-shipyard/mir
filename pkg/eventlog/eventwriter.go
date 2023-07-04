@@ -9,6 +9,7 @@ import (
 
 type EventWriter interface {
 	Write(record EventRecord) error
+	Flush() error
 	Close() error
 }
 

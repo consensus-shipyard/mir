@@ -55,3 +55,9 @@ func EventWriterOpt(
 ) RecorderOpt {
 	return eventWriterOpt(factory)
 }
+
+type syncWriteOpt bool
+
+func SyncWriteOpt() RecorderOpt {
+	return syncWriteOpt(true)
+}

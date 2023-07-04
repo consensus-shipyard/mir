@@ -66,6 +66,10 @@ func (w sqliteWriter) Write(record EventRecord) error {
 	return nil
 }
 
+func (w sqliteWriter) Flush() error {
+	return nil
+}
+
 func (w sqliteWriter) Close() error {
 	return w.db.Close()
 }
