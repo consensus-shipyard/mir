@@ -247,8 +247,10 @@ func New(
 
 	apbdsl.UponCertVerified(iss.m, func(valid bool, err string, context *verifyCertContext) error {
 		if !valid {
+			iss.logger.Log(logging.LevelWarn, "Ordered invalid availability certificate.", "err", err)
 			// decide empty cert
 			context.data = []byte{}
+			context.aborted = true
 			// suspect leader
 			iss.LeaderPolicy.Suspect(iss.epoch.Nr(), context.leader)
 		}
