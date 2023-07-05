@@ -405,7 +405,7 @@ func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 }
 
 func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
-	nodeIDs := maputil.GetKeys(conf.NodeIDsWeight)
+	nodeIDs := maputil.GetSortedKeys(conf.NodeIDsWeight)
 	logger := deploytest.NewLogger(conf.Logger)
 
 	var simulation *deploytest.Simulation
