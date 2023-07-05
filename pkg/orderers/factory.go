@@ -37,7 +37,7 @@ func Factory(
 		factorymodule.DefaultParams(
 
 			// This function will be called whenever the factory module
-			// is asked to create a new instance of the Checkpoint protocol.
+			// is asked to create a new instance of the Ordering protocol.
 			func(submoduleID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Crate a copy of basic module config with an adapted ID for the submodule.
