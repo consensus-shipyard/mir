@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -27,7 +27,7 @@ func (n *NullTransport) Start() error {
 
 func (n *NullTransport) Stop() {}
 
-func (n *NullTransport) Send(_ t.NodeID, _ *messagepb.Message) error {
+func (n *NullTransport) Send(_ t.NodeID, _ *messagepbtypes.Message) error {
 	return nil
 }
 

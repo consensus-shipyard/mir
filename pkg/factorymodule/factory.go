@@ -11,8 +11,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -86,12 +87,12 @@ func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList,
 	return eventsOut.PushBackList(submoduleEventsOut), nil
 }
 
-func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, error) {
-	if t.ModuleID(event.DestModule) == fm.ownID {
+func (fm *FactoryModule) applyEvent(event *eventpbtypes.Event) (*events.EventList, error) {
+	if event.DestModule == fm.ownID {
 		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
-		case *eventpb.Event_Factory:
+		case *eventpbtypes.Event_Factory:
 
 			// Before applying an event for the factory itself, process all the buffered submodule events
 			// (as the factory event might change the submodules themselves).
@@ -101,7 +102,7 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 			}
 
 			// Apply the factory event itself, appending its output to the result of submodule event processing.
-			switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
+			switch e := e.Factory.Type.(type) {
 			case *factorypbtypes.Event_NewModule:
 				evOut, err := fm.applyNewModule(e.NewModule)
 				if err != nil {
@@ -130,8 +131,8 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 }
 
 // bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are lists of events.
-func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
-	smID := t.ModuleID(event.DestModule)
+func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpbtypes.Event) {
+	smID := event.DestModule
 	if _, ok := fm.eventBuffer[smID]; !ok {
 		fm.eventBuffer[smID] = events.EmptyList()
 	}
@@ -186,20 +187,20 @@ func (fm *FactoryModule) bufferEarlyMsgs(eventList *events.EventList) {
 	}
 }
 
-func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
+func (fm *FactoryModule) tryBuffering(event *eventpbtypes.Event) {
 
 	// Check if this is a MessageReceived event.
 	isMessageReceivedEvent := false
-	var msg *transportpb.Event_MessageReceived
-	e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+	var msg *transportpbtypes.Event_MessageReceived
+	e, isTransportEvent := event.Type.(*eventpbtypes.Event_Transport)
 	if isTransportEvent {
-		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
+		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpbtypes.Event_MessageReceived)
 	}
 
 	if !isMessageReceivedEvent {
 		// Events other than MessageReceived are ignored.
 		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
-			"moduleID", t.ModuleID(event.DestModule),
+			"moduleID", event.DestModule,
 			"eventType", fmt.Sprintf("%T", event.Type),
 			"eventValue", fmt.Sprintf("%v", event.Type))
 		// TODO: Get rid of Sprintf of the value and just use the value directly. Using Sprintf is just a work-around
@@ -207,9 +208,10 @@ func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
 		return
 	}
 
-	if !fm.messageBuffer.Store(event) {
+	// TODO: avoid message conversions
+	if !fm.messageBuffer.Store(event.Pb()) {
 		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
-			"moduleID", t.ModuleID(event.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
+			"moduleID", event.DestModule, "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
 			"from", msg.MessageReceived.From)
 	}
 }
@@ -256,7 +258,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 		}
 		return messagebuffer.Future
 	}, func(_ t.NodeID, msg proto.Message) {
-		bufferedMessages.PushBack(msg.(*eventpb.Event))
+		bufferedMessages.PushBack(eventpbtypes.EventFromPb(msg.(*eventpb.Event)))
 	})
 
 	// Apply buffered messages

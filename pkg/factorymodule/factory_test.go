@@ -12,7 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -37,16 +37,16 @@ func (em *echoModule) ApplyEvents(evts *events.EventList) (*events.EventList, er
 	return modules.ApplyEventsSequentially(evts, em.applyEvent)
 }
 
-func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (em *echoModule) applyEvent(event *eventpbtypes.Event) (*events.EventList, error) {
 
 	// Convenience variable
-	destModuleID := tp.ModuleID(event.DestModule)
+	destModuleID := event.DestModule
 
 	assert.Equal(em.t, em.id, destModuleID)
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		return events.ListOf(events.TestingString(destModuleID.Top(), string(em.id)+" Init")), nil
-	case *eventpb.Event_TestingString:
+	case *eventpbtypes.Event_TestingString:
 		return events.ListOf(events.TestingString(destModuleID.Top(), em.prefix+e.TestingString.GetValue())), nil
 	default:
 		return nil, es.Errorf("unknown echo module event type: %T", e)
@@ -81,13 +81,13 @@ func TestFactoryModule(t *testing.T) {
 				echoFactoryID.Then("inst0"),
 				0,
 				EchoModuleParams("Inst 0: "),
-			).Pb()))
+			)))
 			assert.NoError(t, err)
 			assert.Equal(t, 1, evOut.Len())
-			assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
+			assert.Equal(t, echoFactoryID, evOut.Slice()[0].DestModule)
 			assert.Equal(t,
 				string(echoFactoryID.Then("inst0"))+" Init",
-				evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+				evOut.Slice()[0].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue(),
 			)
 		},
 
@@ -100,7 +100,7 @@ func TestFactoryModule(t *testing.T) {
 			assert.Equal(t, 1, evOut.Len())
 			assert.Equal(t,
 				"Inst 0: Hi!",
-				evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+				evOut.Slice()[0].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue(),
 			)
 		},
 
@@ -111,13 +111,13 @@ func TestFactoryModule(t *testing.T) {
 					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
 					tt.RetentionIndex(i),
 					EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
-				).Pb()))
+				)))
 				assert.NoError(t, err)
 				assert.Equal(t, 1, evOut.Len())
-				assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
+				assert.Equal(t, echoFactoryID, evOut.Slice()[0].DestModule)
 				assert.Equal(t,
 					string(echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))+" Init",
-					evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					evOut.Slice()[0].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 		},
@@ -137,15 +137,15 @@ func TestFactoryModule(t *testing.T) {
 			sortedOutput := evOut.Slice()
 
 			sort.Slice(sortedOutput, func(i, j int) bool {
-				return sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
-					sortedOutput[j].Type.(*eventpb.Event_TestingString).TestingString.GetValue()
+				return sortedOutput[i].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue() <
+					sortedOutput[j].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue()
 			})
 
 			for i := 0; i <= 5; i++ {
-				assert.Equal(t, echoFactoryID.Pb(), sortedOutput[0].DestModule)
+				assert.Equal(t, echoFactoryID, sortedOutput[0].DestModule)
 				assert.Equal(t,
 					fmt.Sprintf("Inst %d: Hi!", i),
-					sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					sortedOutput[i].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 		},
@@ -175,7 +175,7 @@ func TestFactoryModule(t *testing.T) {
 			evOut, err := echoFactory.ApplyEvents(events.ListOf(factorypbevents.GarbageCollect(
 				echoFactoryID,
 				3,
-			).Pb()))
+			)))
 			assert.NoError(t, err)
 			assert.Equal(t, 0, evOut.Len())
 		},
@@ -196,8 +196,8 @@ func TestFactoryModule(t *testing.T) {
 			sortedOutput := evOut.Slice()
 
 			sort.Slice(sortedOutput, func(i, j int) bool {
-				return sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
-					sortedOutput[j].Type.(*eventpb.Event_TestingString).TestingString.GetValue()
+				return sortedOutput[i].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue() <
+					sortedOutput[j].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue()
 			})
 
 			for i := 0; i < 3; i++ {
@@ -209,10 +209,10 @@ func TestFactoryModule(t *testing.T) {
 			}
 
 			for i := 3; i <= 5; i++ {
-				assert.Equal(t, echoFactoryID.Pb(), sortedOutput[i-3].DestModule)
+				assert.Equal(t, echoFactoryID, sortedOutput[i-3].DestModule)
 				assert.Equal(t,
 					fmt.Sprintf("Inst %d: Hi!", i),
-					sortedOutput[i-3].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					sortedOutput[i-3].Type.(*eventpbtypes.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 

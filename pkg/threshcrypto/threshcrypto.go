@@ -7,10 +7,9 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
-	tcEvents "github.com/filecoin-project/mir/pkg/threshcrypto/events"
-	t "github.com/filecoin-project/mir/pkg/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	tcEvents "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/events"
+	threshcryptopbtypes "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 )
 
 type MirModule struct {
@@ -25,12 +24,12 @@ func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, 
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (c *MirModule) ApplyEvent(event *eventpbtypes.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
-	case *eventpb.Event_ThreshCrypto:
+	case *eventpbtypes.Event_ThreshCrypto:
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:
 		// Complain about all other incoming event types.
@@ -38,10 +37,10 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 	}
 }
 
-// apply a thresholdcryptopb.Event
-func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList, error) {
+// apply a thresholdcryptopbtypes.Event
+func (c *MirModule) applyTCEvent(event *threshcryptopbtypes.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-	case *threshcryptopb.Event_SignShare:
+	case *threshcryptopbtypes.Event_SignShare:
 		// Compute signature share
 
 		sigShare, err := c.threshCrypto.SignShare(e.SignShare.Data)
@@ -49,14 +48,15 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			return nil, err
 		}
 
+		origin := e.SignShare.Origin
 		return events.ListOf(
-			tcEvents.SignShareResult(t.ModuleID(e.SignShare.Origin.Module), sigShare, e.SignShare.Origin),
+			tcEvents.SignShareResult(origin.Module, sigShare, origin),
 		), nil
 
-	case *threshcryptopb.Event_VerifyShare:
+	case *threshcryptopbtypes.Event_VerifyShare:
 		// Verify signature share
 
-		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, t.NodeID(e.VerifyShare.NodeId))
+		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, e.VerifyShare.NodeId)
 
 		ok := err == nil
 		var errStr string
@@ -64,11 +64,12 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
+		origin := e.VerifyShare.Origin
 		return events.ListOf(
-			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, errStr, e.VerifyShare.Origin),
+			tcEvents.VerifyShareResult(origin.Module, ok, errStr, origin),
 		), nil
 
-	case *threshcryptopb.Event_VerifyFull:
+	case *threshcryptopbtypes.Event_VerifyFull:
 		// Verify full signature
 
 		err := c.threshCrypto.VerifyFull(e.VerifyFull.Data, e.VerifyFull.FullSignature)
@@ -79,11 +80,12 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
+		origin := e.VerifyFull.Origin
 		return events.ListOf(
-			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, errStr, e.VerifyFull.Origin),
+			tcEvents.VerifyFullResult(origin.Module, ok, errStr, origin),
 		), nil
 
-	case *threshcryptopb.Event_Recover:
+	case *threshcryptopbtypes.Event_Recover:
 		// Recover full signature from shares
 
 		fullSig, err := c.threshCrypto.Recover(e.Recover.Data, e.Recover.SignatureShares)
@@ -94,8 +96,9 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
+		origin := e.Recover.Origin
 		return events.ListOf(
-			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, errStr, e.Recover.Origin),
+			tcEvents.RecoverResult(origin.Module, fullSig, ok, errStr, origin),
 		), nil
 	default:
 		// Complain about all other incoming event types.

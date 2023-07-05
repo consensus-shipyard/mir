@@ -26,7 +26,7 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -111,7 +111,8 @@ func debug(args *arguments) error {
 			}
 
 			// Process each event in the entry.
-			for _, event := range entry.Events {
+			for _, eventPb := range entry.Events {
+				event := eventpbtypes.EventFromPb(eventPb)
 
 				// Set the index of the event in the event log.
 				metadata.index = uint64(index)
@@ -217,7 +218,7 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 
 // stopBeforeNext waits for two confirmations of the user, a confirmation being a new line on the standard input.
 // After the first one, event is displayed and after the second one, the function returns.
-func stopBeforeNext(event *eventpb.Event, metadata eventMetadata) {
+func stopBeforeNext(event *eventpbtypes.Event, metadata eventMetadata) {
 	bufio.NewScanner(os.Stdin).Scan()
 	fmt.Printf("========================================\n")
 	fmt.Printf("Next step (%d):\n", metadata.index)
@@ -233,7 +234,7 @@ func printNodeOutput(eventChan chan *events.EventList) {
 		fmt.Printf("========================================\n")
 		fmt.Printf("Node produced the following events:\n\n")
 		for _, event := range receivedEvents.Slice() {
-			fmt.Println(protojson.Format(event))
+			fmt.Println(protojson.Format(event.Pb()))
 		}
 	}
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
@@ -61,13 +61,13 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			// no actions on init
-		case *eventpb.Event_Transport:
-			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+		case *eventpbtypes.Event_Transport:
+			switch e := e.Transport.Type.(type) {
 			case *transportpbtypes.Event_SendMessage:
 				for _, destID := range e.SendMessage.Destinations {
-					if err := tr.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+					if err := tr.Send(destID, e.SendMessage.Msg); err != nil {
 						tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
 					}
 				}
@@ -153,7 +153,7 @@ func (tr *Transport) Connect(membership *trantorpbtypes.Membership) {
 	}
 }
 
-func (tr *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (tr *Transport) Send(dest t.NodeID, msg *messagepbtypes.Message) error {
 	conn, err := tr.getConnection(dest)
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 			t.ModuleID(msg.DestModule),
 			sender,
 			messagepbtypes.MessageFromPb(msg),
-		).Pb()):
+		)):
 			// Nothing to do in this case message has written to the receiving channel.
 		case <-tr.stop:
 			tr.logger.Log(logging.LevelError, "Shutdown. Stopping incoming connection.",

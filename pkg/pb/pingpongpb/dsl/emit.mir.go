@@ -11,5 +11,5 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func PingTime(m dsl.Module, destModule types.ModuleID) {
-	dsl.EmitMirEvent(m, events.PingTime(destModule))
+	dsl.EmitEvent(m, events.PingTime(destModule))
 }

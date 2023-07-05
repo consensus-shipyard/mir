@@ -1,53 +1,53 @@
 package lowlevel
 
 import (
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	pingpongpbtypes "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Message(destModule t.ModuleID, message *pingpongpb.Message) *messagepb.Message {
-	return &messagepb.Message{
-		DestModule: destModule.Pb(),
-		Type:       &messagepb.Message_Pingpong{Pingpong: message},
+func Message(destModule t.ModuleID, message *pingpongpbtypes.Message) *messagepbtypes.Message {
+	return &messagepbtypes.Message{
+		DestModule: destModule,
+		Type:       &messagepbtypes.Message_Pingpong{Pingpong: message},
 	}
 }
 
-func PingMessage(destModule t.ModuleID, seqNr uint64) *messagepb.Message {
+func PingMessage(destModule t.ModuleID, seqNr uint64) *messagepbtypes.Message {
 	return Message(
 		destModule,
-		&pingpongpb.Message{
-			Type: &pingpongpb.Message_Ping{Ping: &pingpongpb.Ping{
+		&pingpongpbtypes.Message{
+			Type: &pingpongpbtypes.Message_Ping{Ping: &pingpongpbtypes.Ping{
 				SeqNr: seqNr,
 			}}},
 	)
 }
 
-func PongMessage(destModule t.ModuleID, seqNr uint64) *messagepb.Message {
+func PongMessage(destModule t.ModuleID, seqNr uint64) *messagepbtypes.Message {
 	return Message(
 		destModule,
-		&pingpongpb.Message{
-			Type: &pingpongpb.Message_Pong{Pong: &pingpongpb.Pong{
+		&pingpongpbtypes.Message{
+			Type: &pingpongpbtypes.Message_Pong{Pong: &pingpongpbtypes.Pong{
 				SeqNr: seqNr,
 			}}},
 	)
 }
 
-func Event(destModule t.ModuleID, ppEvent *pingpongpb.Event) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: destModule.Pb(),
-		Type: &eventpb.Event_PingPong{
+func Event(destModule t.ModuleID, ppEvent *pingpongpbtypes.Event) *eventpbtypes.Event {
+	return &eventpbtypes.Event{
+		DestModule: destModule,
+		Type: &eventpbtypes.Event_PingPong{
 			PingPong: ppEvent,
 		},
 	}
 }
 
-func PingTimeEvent(destModule t.ModuleID) *eventpb.Event {
+func PingTimeEvent(destModule t.ModuleID) *eventpbtypes.Event {
 	return Event(
 		destModule,
-		&pingpongpb.Event{Type: &pingpongpb.Event_PingTime{
-			PingTime: &pingpongpb.PingTime{},
+		&pingpongpbtypes.Event{Type: &pingpongpbtypes.Event_PingTime{
+			PingTime: &pingpongpbtypes.PingTime{},
 		}},
 	)
 }

@@ -2,17 +2,17 @@ package dsl
 
 import (
 	dslpbtypes "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
-// Origin creates a dslpb.Origin protobuf.
+// Origin creates a dslpbtypes.Origin protobuf.
 func Origin(contextID ContextID) *dslpbtypes.Origin {
 	return &dslpbtypes.Origin{
 		ContextID: contextID.Pb(),
 	}
 }
 
-// MirOrigin creates a dslpb.Origin protobuf.
+// MirOrigin creates a dslpbtypes.Origin protobuf.
 func MirOrigin(contextID ContextID) *dslpbtypes.Origin {
 	return &dslpbtypes.Origin{
 		ContextID: contextID.Pb(),
@@ -21,7 +21,7 @@ func MirOrigin(contextID ContextID) *dslpbtypes.Origin {
 
 // UponInit invokes handler when the module is initialized.
 func UponInit(m Module, handler func() error) {
-	UponEvent[*eventpb.Event_Init](m, func(ev *eventpb.Init) error {
+	UponEvent[*eventpbtypes.Event_Init](m, func(ev *eventpbtypes.Init) error {
 		return handler()
 	})
 }

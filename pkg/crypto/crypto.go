@@ -7,11 +7,9 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 type MirModule struct {
@@ -26,14 +24,14 @@ func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, 
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (c *MirModule) ApplyEvent(event *eventpbtypes.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
-	case *eventpb.Event_Crypto:
+	case *eventpbtypes.Event_Crypto:
 		switch e := e.Crypto.Type.(type) {
-		case *cryptopb.Event_SignRequest:
+		case *cryptopbtypes.Event_SignRequest:
 			// Compute a signature over the provided data and produce a SignResult event.
 
 			signature, err := c.crypto.Sign(e.SignRequest.Data.Data)
@@ -42,12 +40,12 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 			}
 			return events.ListOf(
 				cryptopbevents.SignResult(
-					t.ModuleID(e.SignRequest.Origin.Module),
+					e.SignRequest.Origin.Module,
 					signature,
-					cryptopbtypes.SignOriginFromPb(e.SignRequest.Origin),
-				).Pb()), nil
+					e.SignRequest.Origin,
+				)), nil
 
-		case *cryptopb.Event_VerifySigs:
+		case *cryptopbtypes.Event_VerifySigs:
 			// Verify a batch of node signatures
 
 			// Convenience variables
@@ -57,7 +55,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 
 			// Verify each signature.
 			for i, data := range verifyEvent.Data {
-				errors[i] = c.crypto.Verify(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
+				errors[i] = c.crypto.Verify(data.Data, verifyEvent.Signatures[i], verifyEvent.NodeIds[i])
 				if errors[i] != nil {
 					allOK = false
 				}
@@ -65,26 +63,26 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 
 			// Return result event
 			return events.ListOf(cryptopbevents.SigsVerified(
-				t.ModuleID(verifyEvent.Origin.Module),
-				cryptopbtypes.SigVerOriginFromPb(verifyEvent.Origin),
-				t.NodeIDSlice(verifyEvent.NodeIds),
+				verifyEvent.Origin.Module,
+				verifyEvent.Origin,
+				verifyEvent.NodeIds,
 				errors,
 				allOK,
-			).Pb()), nil
+			)), nil
 
-		case *cryptopb.Event_VerifySig:
+		case *cryptopbtypes.Event_VerifySig:
 			err := c.crypto.Verify(
 				e.VerifySig.Data.Data,
 				e.VerifySig.Signature,
-				t.NodeID(e.VerifySig.NodeId),
+				e.VerifySig.NodeId,
 			)
 
 			return events.ListOf(cryptopbevents.SigVerified(
-				t.ModuleID(e.VerifySig.Origin.Module),
-				cryptopbtypes.SigVerOriginFromPb(e.VerifySig.Origin),
-				t.NodeID(e.VerifySig.NodeId),
+				e.VerifySig.Origin.Module,
+				e.VerifySig.Origin,
+				e.VerifySig.NodeId,
 				err,
-			).Pb()), nil
+			)), nil
 
 		default:
 			return nil, es.Errorf("unexpected type of crypto event: %T", e)

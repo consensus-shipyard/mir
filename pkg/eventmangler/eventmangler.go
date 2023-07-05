@@ -9,7 +9,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
@@ -90,7 +89,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 	m := dsl.NewModule(mc.Self)
 
 	// Register only a single handler for all events, dropping and / or delaying them as configured.
-	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
+	dsl.UponOtherEvent(m, func(ev *eventpbtypes.Event) error {
 
 		// Drop event completely with probability params.DropRate
 		if r.Float32() < params.DropRate {
@@ -113,11 +112,11 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 			eventpbdsl.TimerDelay(
 				m,
 				mc.Timer,
-				[]*eventpbtypes.Event{events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest)},
+				[]*eventpbtypes.Event{events.Redirect(ev, mc.Dest)},
 				types.Duration(delay),
 			)
 		} else {
-			dsl.EmitEvent(m, events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest).Pb())
+			dsl.EmitEvent(m, events.Redirect(ev, mc.Dest))
 		}
 
 		return nil

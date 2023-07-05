@@ -13,9 +13,9 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func NewModule(m dsl.Module, destModule types.ModuleID, moduleId types.ModuleID, retentionIndex types1.RetentionIndex, params *types2.GeneratorParams) {
-	dsl.EmitMirEvent(m, events.NewModule(destModule, moduleId, retentionIndex, params))
+	dsl.EmitEvent(m, events.NewModule(destModule, moduleId, retentionIndex, params))
 }
 
 func GarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types1.RetentionIndex) {
-	dsl.EmitMirEvent(m, events.GarbageCollect(destModule, retentionIndex))
+	dsl.EmitEvent(m, events.GarbageCollect(destModule, retentionIndex))
 }

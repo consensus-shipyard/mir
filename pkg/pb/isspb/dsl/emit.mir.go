@@ -14,17 +14,17 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func PushCheckpoint(m dsl.Module, destModule types.ModuleID) {
-	dsl.EmitMirEvent(m, events.PushCheckpoint(destModule))
+	dsl.EmitEvent(m, events.PushCheckpoint(destModule))
 }
 
 func SBDeliver(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, data []uint8, aborted bool, leader types.NodeID, instanceId types.ModuleID) {
-	dsl.EmitMirEvent(m, events.SBDeliver(destModule, sn, data, aborted, leader, instanceId))
+	dsl.EmitEvent(m, events.SBDeliver(destModule, sn, data, aborted, leader, instanceId))
 }
 
 func DeliverCert(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, cert *types2.Cert, empty bool) {
-	dsl.EmitMirEvent(m, events.DeliverCert(destModule, sn, cert, empty))
+	dsl.EmitEvent(m, events.DeliverCert(destModule, sn, cert, empty))
 }
 
 func NewConfig(m dsl.Module, destModule types.ModuleID, epochNr types1.EpochNr, membership *types3.Membership) {
-	dsl.EmitMirEvent(m, events.NewConfig(destModule, epochNr, membership))
+	dsl.EmitEvent(m, events.NewConfig(destModule, epochNr, membership))
 }

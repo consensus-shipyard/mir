@@ -16,7 +16,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -68,7 +68,9 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 				time:   entry.Time,
 			}
 			// getting events from entry
-			for _, event := range entry.Events {
+			for _, eventPb := range entry.Events {
+				event := eventpbtypes.EventFromPb(eventPb)
+
 				metadata.index = uint64(index)
 
 				_, validEvent := args.selectedEventNames[eventName(event)]
@@ -79,7 +81,7 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 					// If event type has been selected for displaying
 
 					switch e := event.Type.(type) {
-					case *eventpb.Event_Iss:
+					case *eventpbtypes.Event_Iss:
 						// Only display selected sub-types of the ISS Event
 						if _, validIssEvent := args.selectedIssEventNames[issEventName(e.Iss)]; validIssEvent {
 							displayEvent(event, metadata)
@@ -111,13 +113,13 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 }
 
 // Displays one event according to its type.
-func displayEvent(event *eventpb.Event, metadata eventMetadata) {
+func displayEvent(event *eventpbtypes.Event, metadata eventMetadata) {
 
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Iss:
-		display(fmt.Sprintf("%s : %s", eventName(event), issEventName(e.Iss)), protojson.Format(event), metadata)
+	case *eventpbtypes.Event_Iss:
+		display(fmt.Sprintf("%s : %s", eventName(event), issEventName(e.Iss)), protojson.Format(event.Pb()), metadata)
 	default:
-		display(eventName(event), protojson.Format(event), metadata)
+		display(eventName(event), protojson.Format(event.Pb()), metadata)
 	}
 }
 

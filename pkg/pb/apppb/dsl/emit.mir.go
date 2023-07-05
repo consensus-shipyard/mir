@@ -13,17 +13,17 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func SnapshotRequest(m dsl.Module, destModule types.ModuleID, replyTo types.ModuleID) {
-	dsl.EmitMirEvent(m, events.SnapshotRequest(destModule, replyTo))
+	dsl.EmitEvent(m, events.SnapshotRequest(destModule, replyTo))
 }
 
 func Snapshot(m dsl.Module, destModule types.ModuleID, appData []uint8) {
-	dsl.EmitMirEvent(m, events.Snapshot(destModule, appData))
+	dsl.EmitEvent(m, events.Snapshot(destModule, appData))
 }
 
 func RestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types1.StableCheckpoint) {
-	dsl.EmitMirEvent(m, events.RestoreState(destModule, checkpoint))
+	dsl.EmitEvent(m, events.RestoreState(destModule, checkpoint))
 }
 
 func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types2.EpochNr, protocolModule types.ModuleID) {
-	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr, protocolModule))
+	dsl.EmitEvent(m, events.NewEpoch(destModule, epochNr, protocolModule))
 }

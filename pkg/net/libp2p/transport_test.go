@@ -16,11 +16,10 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/types"
 	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
@@ -222,11 +221,11 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeI
 }
 
 func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
-	tEvent, valid := events.Iterator().Next().Type.(*eventpb.Event_Transport)
+	tEvent, valid := events.Iterator().Next().Type.(*eventpbtypes.Event_Transport)
 	require.True(m.t, valid)
-	msg, valid := tEvent.Transport.Type.(*transportpb.Event_MessageReceived)
+	msg, valid := tEvent.Transport.Type.(*transportpbtypes.Event_MessageReceived)
 	require.True(m.t, valid)
-	require.Equal(m.t, msg.MessageReceived.From, nodeID.Pb())
+	require.Equal(m.t, msg.MessageReceived.From, nodeID)
 }
 
 // testEventuallyHasConnection tests that there is a connection between the nodes initiated by initiator.
@@ -388,7 +387,7 @@ func TestCallSendWithoutConnect(t *testing.T) {
 	a := m.transports[nodeA]
 	m.StartAllTransports()
 
-	err := a.Send(nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, &messagepbtypes.Message{})
 	require.Error(t, err)
 
 	m.StopAllTransports()
@@ -446,11 +445,11 @@ func TestSendReceive(t *testing.T) {
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
 
-	err := a.Send(nodeB, testMsg.Pb())
+	err := a.Send(nodeB, testMsg)
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
-	err = a.Send(nodeC, testMsg.Pb())
+	err = a.Send(nodeC, testMsg)
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
@@ -515,11 +514,11 @@ func TestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
 	nodeBEventsChan := b.EventsOut()
 	nodeCEventsChan := c.EventsOut()
 
-	err := a.Send(nodeB, &messagepb.Message{})
+	err := a.Send(nodeB, &messagepbtypes.Message{})
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
-	err = a.Send(nodeC, &messagepb.Message{})
+	err = a.Send(nodeC, &messagepbtypes.Message{})
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeCEventsChan, nodeA)
 
@@ -683,7 +682,7 @@ func TestMessaging(t *testing.T) {
 				sentBeforeDisconnect = sent
 				disconnect <- struct{}{}
 			case <-send.C:
-				err := a.Send(nodeB, testMsg.Pb())
+				err := a.Send(nodeB, testMsg)
 				if err != nil {
 					m.t.Log(err)
 				} else {
@@ -741,7 +740,7 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 
 	t.Log(">>> sending messages")
 	nodeBEventsChan := b.EventsOut()
-	err = a.Send(nodeB, testMsg.Pb())
+	err = a.Send(nodeB, testMsg)
 	require.NoError(t, err)
 	m.testThatSenderIs(<-nodeBEventsChan, nodeA)
 
@@ -817,7 +816,7 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Log(">>> send a message")
-	err = a.Send(nodeB, testMsg.Pb())
+	err = a.Send(nodeB, testMsg)
 	require.NoError(t, err)
 
 	nodeBEventsChan := b.incomingMessages
@@ -828,13 +827,13 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 
 	go func() {
 		b.incomingMessages <- events.ListOf(
-			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
+			transportpbevents.MessageReceived("1", "blocker", testMsg),
 		)
 		b.incomingMessages <- events.ListOf(
-			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
+			transportpbevents.MessageReceived("1", "blocker", testMsg),
 		)
 	}()
-	err = a.Send(nodeB, testMsg.Pb())
+	err = a.Send(nodeB, testMsg)
 	time.Sleep(5 * time.Second)
 	require.NoError(t, err)
 
@@ -968,7 +967,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 
 		for i := 0; i < 100; i++ {
 			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond) // nolint
-			err := m.transports[src].Send(dst, testMsg.Pb())
+			err := m.transports[src].Send(dst, testMsg)
 			if err != nil {
 				t.Logf("%v->%v failed to send: %v", src, dst, err)
 			} else {
@@ -988,7 +987,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 				if !ok {
 					return
 				}
-				_, valid := e.Iterator().Next().Type.(*eventpb.Event_Transport).Transport.Type.(*transportpb.Event_MessageReceived)
+				_, valid := e.Iterator().Next().Type.(*eventpbtypes.Event_Transport).Transport.Type.(*transportpbtypes.Event_MessageReceived)
 				require.Equal(m.t, true, valid)
 				atomic.AddInt64(&received, 1)
 			}

@@ -14,17 +14,17 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func Init(m dsl.Module, destModule types.ModuleID) {
-	dsl.EmitMirEvent(m, events.Init(destModule))
+	dsl.EmitEvent(m, events.Init(destModule))
 }
 
 func TimerDelay(m dsl.Module, destModule types.ModuleID, eventsToDelay []*types1.Event, delay types2.Duration) {
-	dsl.EmitMirEvent(m, events.TimerDelay(destModule, eventsToDelay, delay))
+	dsl.EmitEvent(m, events.TimerDelay(destModule, eventsToDelay, delay))
 }
 
 func TimerRepeat(m dsl.Module, destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types3.RetentionIndex) {
-	dsl.EmitMirEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
+	dsl.EmitEvent(m, events.TimerRepeat(destModule, eventsToRepeat, delay, retentionIndex))
 }
 
 func TimerGarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types3.RetentionIndex) {
-	dsl.EmitMirEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
+	dsl.EmitEvent(m, events.TimerGarbageCollect(destModule, retentionIndex))
 }

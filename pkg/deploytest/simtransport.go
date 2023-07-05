@@ -16,11 +16,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -103,7 +103,7 @@ func (m *simTransportModule) Stop() {
 	close(m.stopChan)
 }
 
-func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (m *simTransportModule) Send(dest t.NodeID, msg *messagepbtypes.Message) error {
 	m.sendMessage(msg, dest)
 	return nil
 }
@@ -121,20 +121,20 @@ func (m *simTransportModule) WaitFor(_ int) error {
 }
 
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpb.Event) (*events.EventList, error) {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpbtypes.Event) (*events.EventList, error) {
 		return events.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) error {
+func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpbtypes.Event) error {
 	switch e := e.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		// do nothing
-	case *eventpb.Event_Transport:
+	case *eventpbtypes.Event_Transport:
 		switch e := e.Transport.Type.(type) {
-		case *transportpb.Event_SendMessage:
-			targets := t.NodeIDSlice(e.SendMessage.Destinations)
+		case *transportpbtypes.Event_SendMessage:
+			targets := e.SendMessage.Destinations
 			m.multicastMessage(ctx, e.SendMessage.Msg, targets)
 		default:
 			return es.Errorf("unexpected transport event type: %T", e)
@@ -146,13 +146,13 @@ func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) e
 	return nil
 }
 
-func (m *simTransportModule) multicastMessage(_ context.Context, msg *messagepb.Message, targets []t.NodeID) {
+func (m *simTransportModule) multicastMessage(_ context.Context, msg *messagepbtypes.Message, targets []t.NodeID) {
 	for _, target := range targets {
 		m.sendMessage(msg, target)
 	}
 }
 
-func (m *simTransportModule) sendMessage(msg *messagepb.Message, target t.NodeID) {
+func (m *simTransportModule) sendMessage(msg *messagepbtypes.Message, target t.NodeID) {
 	proc := m.SimTransport.Simulation.Spawn()
 
 	done := make(chan struct{})
@@ -177,7 +177,7 @@ func (m *simTransportModule) sendMessage(msg *messagepb.Message, target t.NodeID
 		if !ok {
 			panic(fmt.Sprintf("Destination node does not exist: %v", target))
 		}
-		proc.Send(destModule.simChan, message{m.id, target, msg})
+		proc.Send(destModule.simChan, message{m.id, target, msg.Pb()})
 
 		proc.Exit()
 	}()
@@ -199,13 +199,14 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 			return
 		}
 		msg := v.(message)
+		msgPayload := messagepbtypes.MessageFromPb(msg.message)
 
-		destModule := t.ModuleID(msg.message.DestModule)
+		destModule := msgPayload.DestModule
 		eventList := events.ListOf(transportpbevents.MessageReceived(
 			destModule,
 			msg.from,
-			messagepbtypes.MessageFromPb(msg.message),
-		).Pb())
+			msgPayload,
+		))
 
 		select {
 		case eventsOut := <-m.outChan:
@@ -219,7 +220,9 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 }
 
 type message struct {
-	from    t.NodeID
-	to      t.NodeID
+	from t.NodeID
+	to   t.NodeID
+
+	// use protobuf-encoded message to ensure (de)serialization causes no problems
 	message *messagepb.Message
 }

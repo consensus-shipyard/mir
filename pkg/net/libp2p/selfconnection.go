@@ -5,7 +5,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -16,7 +15,7 @@ import (
 type selfConnection struct {
 	ownID       t.NodeID
 	peerID      peer.ID
-	msgBuffer   chan *messagepb.Message
+	msgBuffer   chan *messagepbtypes.Message
 	deliverChan chan<- *events.EventList
 	stop        chan struct{}
 	done        chan struct{}
@@ -35,7 +34,7 @@ func newSelfConnection(params Params, ownID t.NodeID, ownAddr t.NodeAddress, del
 	conn := &selfConnection{
 		ownID:       ownID,
 		peerID:      addrInfo.ID,
-		msgBuffer:   make(chan *messagepb.Message, params.ConnectionBufferSize),
+		msgBuffer:   make(chan *messagepbtypes.Message, params.ConnectionBufferSize),
 		deliverChan: deliverChan,
 		stop:        make(chan struct{}),
 		done:        make(chan struct{}),
@@ -53,7 +52,7 @@ func (conn *selfConnection) PeerID() peer.ID {
 
 // Send feeds the given message directly to the sink of delivered messages.
 // Send is non-blocking and if the buffer for delivered messages is full, the message is dropped.
-func (conn *selfConnection) Send(msg *messagepb.Message) error {
+func (conn *selfConnection) Send(msg *messagepbtypes.Message) error {
 
 	select {
 	case conn.msgBuffer <- msg:
@@ -109,10 +108,10 @@ func (conn *selfConnection) process() {
 			case <-conn.stop:
 				return
 			case conn.deliverChan <- events.ListOf(transportpbevents.MessageReceived(
-				t.ModuleID(msg.DestModule),
+				msg.DestModule,
 				conn.ownID,
-				messagepbtypes.MessageFromPb(msg)).Pb(),
-			):
+				msg,
+			)):
 				// Nothing to do in this case, message has been delivered.
 			}
 		}

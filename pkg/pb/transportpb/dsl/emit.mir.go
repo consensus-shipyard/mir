@@ -12,9 +12,9 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func SendMessage(m dsl.Module, destModule types.ModuleID, msg *types1.Message, destinations []types.NodeID) {
-	dsl.EmitMirEvent(m, events.SendMessage(destModule, msg, destinations))
+	dsl.EmitEvent(m, events.SendMessage(destModule, msg, destinations))
 }
 
 func MessageReceived(m dsl.Module, destModule types.ModuleID, from types.NodeID, msg *types1.Message) {
-	dsl.EmitMirEvent(m, events.MessageReceived(destModule, from, msg))
+	dsl.EmitEvent(m, events.MessageReceived(destModule, from, msg))
 }

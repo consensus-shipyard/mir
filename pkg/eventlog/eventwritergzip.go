@@ -11,8 +11,11 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 type gzipWriter struct {
@@ -49,7 +52,7 @@ func (w *gzipWriter) Write(record EventRecord) error {
 	return writeRecordedEvent(gzWriter, &recordingpb.Entry{
 		NodeId: w.nodeID.Pb(),
 		Time:   record.Time,
-		Events: record.Events.Slice(),
+		Events: sliceutil.Transform(record.Events.Slice(), func(_ int, ev *eventpbtypes.Event) *eventpb.Event { return ev.Pb() }),
 	})
 }
 

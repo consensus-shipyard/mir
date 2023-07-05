@@ -6,14 +6,13 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/isspb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	isspbtypes "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -26,10 +25,10 @@ type eventMetadata struct {
 
 // Returns the list of event names and destinations present in the given eventlog file,
 // along with the total number of events present in the file.
-func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}, map[string]struct{}, int, error) {
+func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}, map[t.ModuleID]struct{}, int, error) {
 	events := make(map[string]struct{})
 	issEvents := make(map[string]struct{})
-	eventDests := make(map[string]struct{})
+	eventDests := make(map[t.ModuleID]struct{})
 
 	totalCount := 0
 	for _, filename := range *filenames {
@@ -60,7 +59,9 @@ func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}
 		for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 			// For each entry of the event log
 
-			for _, event := range entry.Events {
+			for _, eventPb := range entry.Events {
+				event := eventpbtypes.EventFromPb(eventPb)
+
 				// For each Event in the entry
 				cnt++
 
@@ -68,7 +69,7 @@ func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}
 				events[eventName(event)] = struct{}{}
 				eventDests[event.DestModule] = struct{}{}
 				switch e := event.Type.(type) {
-				case *eventpb.Event_Iss:
+				case *eventpbtypes.Event_Iss:
 					// For ISS Events, also add the type of the ISS event to a set of known ISS events.
 					issEvents[issEventName(e.Iss)] = struct{}{}
 				}
@@ -85,21 +86,21 @@ func getEventList(filenames *[]string) (map[string]struct{}, map[string]struct{}
 }
 
 // eventName returns a string name of an Event.
-func eventName(event *eventpb.Event) string {
+func eventName(event *eventpbtypes.Event) string {
 	return strings.ReplaceAll(
 		reflect.TypeOf(event.Type).Elem().Name(), // gets the type's name i.e. Event_Tick , Event_Iss,etc
 		"Event_", "")
 }
 
 // issEventName returns a string name of an ISS event.
-func issEventName(issEvent *isspb.Event) string {
+func issEventName(issEvent *isspbtypes.Event) string {
 	return strings.ReplaceAll(
 		reflect.TypeOf(issEvent.Type).Elem().Name(), // gets the type's name i.e. ISSEvent_sb , ISSEvent_PersistCheckpoint,etc
 		"ISSEvent_", "") // replaces the given substring from the name
 }
 
 // selected returns true if the given event has been selected by the user according to the given criteria.
-func selected(event *eventpb.Event, selectedEvents map[string]struct{}, selectedIssEvents map[string]struct{}) bool {
+func selected(event *eventpbtypes.Event, selectedEvents map[string]struct{}, selectedIssEvents map[string]struct{}) bool {
 	if _, ok := selectedEvents[eventName(event)]; !ok {
 		// If the basic type of the event has not been selected, return false.
 		return false
@@ -108,24 +109,12 @@ func selected(event *eventpb.Event, selectedEvents map[string]struct{}, selected
 	// If the basic type of the event has been selected,
 	// check whether the sub-type has been selected as well for ISS events.
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Iss:
+	case *eventpbtypes.Event_Iss:
 		_, ok := selectedIssEvents[issEventName(e.Iss)]
 		return ok
 	default:
 		return true
 	}
-}
-
-// Converts a set of strings (represented as a map) to a list.
-// Returns a slice containing all the keys present in the given set.
-// toList is used to convert sets to a format used by the survey library.
-func toList(set map[string]struct{}) []string {
-	list := make([]string, 0, len(set))
-	for item := range set {
-		list = append(list, item)
-	}
-	sort.Strings(list)
-	return list
 }
 
 // Converts a list of strings to a set (represented as a map).

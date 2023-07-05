@@ -11,5 +11,5 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func Tester(m dsl.Module, destModule types.ModuleID) {
-	dsl.EmitMirEvent(m, events.Tester(destModule))
+	dsl.EmitEvent(m, events.Tester(destModule))
 }

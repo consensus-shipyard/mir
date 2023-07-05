@@ -8,7 +8,7 @@ import (
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -43,25 +43,25 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 		// when they are later stripped off their follow-ups, as this happens potentially concurrently
 		// with the original event being processed by the interceptor.
 		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			// no actions on init
-		case *eventpb.Event_Timer:
+		case *eventpbtypes.Event_Timer:
 			switch e := e.Timer.Type.(type) {
-			case *eventpb.TimerEvent_Delay:
+			case *eventpbtypes.TimerEvent_Delay:
 				tm.Delay(
 					ctx,
 					events.ListOf(e.Delay.EventsToDelay...),
-					types.Duration(e.Delay.Delay),
+					e.Delay.Delay,
 				)
-			case *eventpb.TimerEvent_Repeat:
+			case *eventpbtypes.TimerEvent_Repeat:
 				tm.Repeat(
 					ctx,
 					events.ListOf(e.Repeat.EventsToRepeat...),
-					types.Duration(e.Repeat.Delay),
-					tt.RetentionIndex(e.Repeat.RetentionIndex),
+					e.Repeat.Delay,
+					e.Repeat.RetentionIndex,
 				)
-			case *eventpb.TimerEvent_GarbageCollect:
-				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
+			case *eventpbtypes.TimerEvent_GarbageCollect:
+				tm.GarbageCollect(e.GarbageCollect.RetentionIndex)
 			}
 		default:
 			return es.Errorf("unexpected type of Timer event: %T", event.Type)

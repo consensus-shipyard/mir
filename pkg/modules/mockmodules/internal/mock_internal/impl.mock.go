@@ -10,7 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 
 	events "github.com/filecoin-project/mir/pkg/events"
-	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 // MockModuleImpl is a mock of ModuleImpl interface.
@@ -37,7 +37,7 @@ func (m *MockModuleImpl) EXPECT() *MockModuleImplMockRecorder {
 }
 
 // Event mocks base method.
-func (m *MockModuleImpl) Event(ev *eventpb.Event) (*events.EventList, error) {
+func (m *MockModuleImpl) Event(ev *types.Event) (*events.EventList, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Event", ev)
 	ret0, _ := ret[0].(*events.EventList)
