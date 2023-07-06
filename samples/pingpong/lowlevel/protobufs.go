@@ -1,4 +1,4 @@
-package protobufs
+package lowlevel
 
 import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"

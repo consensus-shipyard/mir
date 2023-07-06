@@ -4,117 +4,60 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
-
-	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
-	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	ppdsl "github.com/filecoin-project/mir/pkg/pb/pingpongpb/dsl"
+	ppevents "github.com/filecoin-project/mir/pkg/pb/pingpongpb/events"
+	ppmsgs "github.com/filecoin-project/mir/pkg/pb/pingpongpb/msgs"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/pingpong/protobufs"
 )
 
-type Pingpong struct {
-	ownID  t.NodeID
-	nextSn uint64
-}
+func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 
-func NewPingPong(ownID t.NodeID) *Pingpong {
-	return &Pingpong{
-		ownID:  ownID,
-		nextSn: 0,
-	}
-}
+	m := dsl.NewModule("pingpong")
+	nextSN := uint64(0)
 
-func (p *Pingpong) ImplementsModule() {}
+	dsl.UponInit(m, func() error {
+		eventpbdsl.TimerRepeat(
+			m,
+			"timer",
+			[]*eventpbtypes.Event{ppevents.PingTime("pingpong")},
+			types.Duration(time.Second),
+			0,
+		)
+		return nil
+	})
 
-func (p *Pingpong) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
-	return modules.ApplyEventsSequentially(evts, p.applyEvent)
-}
+	ppdsl.UponPingTime(m, func() error {
 
-func (p *Pingpong) applyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
-		return p.applyInit()
-	case *eventpb.Event_Transport:
-		switch e := e.Transport.Type.(type) {
-		case *transportpb.Event_MessageReceived:
-			return p.applyMessageReceived(e.MessageReceived)
-		default:
-			return nil, errors.Errorf("unknown transport event type: %T", e)
+		// Get ID of other node.
+		var destNodeID t.NodeID
+		if ownNodeID == "0" {
+			destNodeID = "1"
+		} else {
+			destNodeID = "0"
 		}
-	case *eventpb.Event_PingPong:
-		switch e := e.PingPong.Type.(type) {
-		case *pingpongpb.Event_PingTime:
-			return p.applyPingTime(e.PingTime)
-		default:
-			return nil, errors.Errorf("unknown pingpong event type: %T", e)
-		}
-	default:
-		return nil, errors.Errorf("unknown event type: %T", event.Type)
-	}
-}
 
-func (p *Pingpong) applyInit() (*events.EventList, error) {
-	p.nextSn = 0
-	timerEvent := eventpbevents.TimerRepeat(
-		"timer",
-		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(protobufs.PingTimeEvent("pingpong"))},
-		types.Duration(time.Second),
-		0,
-	)
-	return events.ListOf(timerEvent.Pb()), nil
-}
+		// Send PING message.
+		nextSN++
+		transportpbdsl.SendMessage(m, "transport", ppmsgs.Ping("pingpong", nextSN), []t.NodeID{destNodeID})
+		return nil
+	})
 
-func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*events.EventList, error) {
-	return p.sendPing()
-}
+	ppdsl.UponPingReceived(m, func(from t.NodeID, seqNr uint64) error {
+		fmt.Printf("Received ping from %s: %d\n", from, seqNr)
+		transportpbdsl.SendMessage(m, "transport", ppmsgs.Pong("pingpong", seqNr), []t.NodeID{from})
+		return nil
+	})
 
-func (p *Pingpong) sendPing() (*events.EventList, error) {
-	var destID t.NodeID
-	if p.ownID == "0" {
-		destID = "1"
-	} else {
-		destID = "0"
-	}
+	ppdsl.UponPongReceived(m, func(from t.NodeID, seqNr uint64) error {
+		fmt.Printf("Received pong from %s: %d\n", from, seqNr)
+		return nil
+	})
 
-	ping := protobufs.PingMessage("pingpong", p.nextSn)
-	p.nextSn++
-	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []t.NodeID{destID})
-	return events.ListOf(sendMsgEvent.Pb()), nil
-}
-
-func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*events.EventList, error) {
-	switch message := msg.Msg.Type.(type) {
-	case *messagepb.Message_Pingpong:
-		switch m := message.Pingpong.Type.(type) {
-		case *pingpongpb.Message_Ping:
-			return p.applyPing(m.Ping, t.NodeID(msg.From))
-		case *pingpongpb.Message_Pong:
-			return p.applyPong(m.Pong, t.NodeID(msg.From))
-		default:
-			return nil, errors.Errorf("unknown pingpong message type: %T", m)
-		}
-	default:
-		return nil, errors.Errorf("unknown message type: %T", message)
-	}
-}
-
-func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*events.EventList, error) {
-	fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
-	pong := protobufs.PongMessage("pingpong", ping.SeqNr)
-	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []t.NodeID{from})
-	return events.ListOf(sendMsgEvent.Pb()), nil
-}
-
-func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from t.NodeID) (*events.EventList, error) {
-	fmt.Printf("Received pong from %s: %d\n", from, pong.SeqNr)
-	return events.EmptyList(), nil
+	return m
 }

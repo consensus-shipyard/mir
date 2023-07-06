@@ -4,25 +4,42 @@ package pingpongpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/pingpongpb";
 
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
 message Event {
+  option (mir.event_class) = true;
+
   oneof type {
+    option (mir.event_type) = true;
+
     PingTime ping_time = 1;
   }
 }
 
-message PingTime {}
+message PingTime {
+  option (mir.event) = true;
+}
 
 message Message {
+  option (net.message_class) = true;
+
   oneof type {
+    option (net.message_type) = true;
+
     Ping ping = 1;
     Pong pong = 2;
   }
 }
 
 message Ping {
+  option (net.message) = true;
+
   uint64 seq_nr = 1;
 }
 
 message Pong {
+  option (net.message) = true;
+
   uint64 seq_nr = 1;
 }
