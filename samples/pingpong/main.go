@@ -13,6 +13,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/samples/pingpong/lowlevel"
 )
 
 func main() {
@@ -43,9 +44,9 @@ func main() {
 		mir.DefaultNodeConfig(),
 		map[t.ModuleID]modules.Module{
 			"transport": transport,
-			"pingpong":  NewPingPong(ownID),
-			//"pingpong": NewPingPongLowLevel(ownID),
-			"timer": timer.New(),
+			//"pingpong":  NewPingPong(ownID),
+			"pingpong": lowlevel.NewPingPong(ownID),
+			"timer":    timer.New(),
 		},
 		nil,
 	)
@@ -58,12 +59,11 @@ func main() {
 	go func() {
 		nodeError <- node.Run(context.Background())
 	}()
-
 	fmt.Println("Mir node running.")
-
 	time.Sleep(5 * time.Second)
 
+	// Stop the node.
 	node.Stop()
-
+	transport.Stop()
 	fmt.Printf("Mir node stopped: %v\n", <-nodeError)
 }

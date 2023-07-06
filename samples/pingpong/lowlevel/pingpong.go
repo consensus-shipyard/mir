@@ -1,4 +1,4 @@
-package main
+package lowlevel
 
 import (
 	"fmt"
@@ -18,7 +18,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/pingpong/protobufs"
 )
 
 type Pingpong struct {
@@ -26,7 +25,7 @@ type Pingpong struct {
 	nextSn uint64
 }
 
-func NewPingPongLowLevel(ownID t.NodeID) *Pingpong {
+func NewPingPong(ownID t.NodeID) *Pingpong {
 	return &Pingpong{
 		ownID:  ownID,
 		nextSn: 0,
@@ -66,7 +65,7 @@ func (p *Pingpong) applyInit() (*events.EventList, error) {
 	p.nextSn = 0
 	timerEvent := eventpbevents.TimerRepeat(
 		"timer",
-		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(protobufs.PingTimeEvent("pingpong"))},
+		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(PingTimeEvent("pingpong"))},
 		types.Duration(time.Second),
 		0,
 	)
@@ -85,7 +84,7 @@ func (p *Pingpong) sendPing() (*events.EventList, error) {
 		destID = "0"
 	}
 
-	ping := protobufs.PingMessage("pingpong", p.nextSn)
+	ping := PingMessage("pingpong", p.nextSn)
 	p.nextSn++
 	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []t.NodeID{destID})
 	return events.ListOf(sendMsgEvent.Pb()), nil
@@ -109,7 +108,7 @@ func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*even
 
 func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*events.EventList, error) {
 	fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
-	pong := protobufs.PongMessage("pingpong", ping.SeqNr)
+	pong := PongMessage("pingpong", ping.SeqNr)
 	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []t.NodeID{from})
 	return events.ListOf(sendMsgEvent.Pb()), nil
 }
