@@ -1,6 +1,8 @@
 package simplemempool
 
 import (
+	"time"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
@@ -21,7 +23,9 @@ type ModuleParams = common.ModuleParams
 
 func DefaultModuleParams() *ModuleParams {
 	return &ModuleParams{
-		MaxTransactionsInBatch: 10,
+		MaxTransactionsInBatch: 1024,
+		MaxPayloadInBatch:      1024 * 1024, // 1 MiB
+		BatchTimeout:           100 * time.Millisecond,
 		TxFetcher:              nil,
 	}
 }
@@ -46,7 +50,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) mod
 	if params.TxFetcher != nil {
 		formbatchesext.IncludeBatchCreation(m, mc, params.TxFetcher)
 	} else {
-		formbatchesint.IncludeBatchCreation(m, mc, params, commonState)
+		formbatchesint.IncludeBatchCreation(m, mc, params, commonState, logger)
 	}
 
 	return m

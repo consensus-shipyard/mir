@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 )
@@ -105,11 +106,12 @@ func run() error {
 		simplemempool.ModuleConfig{
 			Self:   "mempool",
 			Hasher: "hasher",
+			Timer:  "timer",
 		},
 		&simplemempool.ModuleParams{
 			MaxTransactionsInBatch: 10,
 		},
-		logger,
+		logging.Decorate(logger, "Mempool: "),
 	)
 
 	batchdb := fakebatchdb.NewModule(fakebatchdb.ModuleConfig{
@@ -145,6 +147,7 @@ func run() error {
 		"crypto":       mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 		"availability": availability,
 		"control":      control,
+		"timer":        timer.New(),
 	}
 
 	// create a Mir node

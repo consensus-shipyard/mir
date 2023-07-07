@@ -28,6 +28,7 @@ message Event {
     RequestBatchID         request_batch_id         = 7;
     BatchIDResponse        batch_id_response        = 8;
     NewTransactions        new_transactions         = 9;
+    BatchTimeout           batch_timeout            = 10;
   }
 }
 
@@ -104,6 +105,14 @@ message BatchIDResponse {
   bytes                batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   RequestBatchIDOrigin origin   = 2 [(mir.origin_response) = true];
 }
+
+// BatchTimeout is sent by the timer to the mempool when a batch request times out.
+message BatchTimeout {
+  option (mir.event) = true;
+
+  uint64 batchReqID = 1;
+}
+
 
 // TODO: add events related to garbage collection.
 

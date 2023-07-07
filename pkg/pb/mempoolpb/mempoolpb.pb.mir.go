@@ -17,6 +17,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_RequestBatchId)(nil)),
 		reflect.TypeOf((*Event_BatchIdResponse)(nil)),
 		reflect.TypeOf((*Event_NewTransactions)(nil)),
+		reflect.TypeOf((*Event_BatchTimeout)(nil)),
 	}
 }
 

@@ -77,3 +77,7 @@ func BatchIDResponse(m dsl.Module, destModule types.ModuleID, batchId types4.Bat
 func NewTransactions(m dsl.Module, destModule types.ModuleID, transactions []*types3.Transaction) {
 	dsl.EmitMirEvent(m, events.NewTransactions(destModule, transactions))
 }
+
+func BatchTimeout(m dsl.Module, destModule types.ModuleID, batchReqID uint64) {
+	dsl.EmitMirEvent(m, events.BatchTimeout(destModule, batchReqID))
+}
