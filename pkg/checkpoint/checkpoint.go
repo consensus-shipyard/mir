@@ -3,23 +3,21 @@ package checkpoint
 import (
 	"reflect"
 
-	"github.com/filecoin-project/mir/pkg/util/membutil"
-
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
-
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
+	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // StableCheckpoint represents a stable checkpoint.
@@ -45,15 +43,40 @@ func (sc *StableCheckpoint) Serialize() ([]byte, error) {
 		return nil, err
 	}
 
-	return em.Marshal(sc)
+	// TODO: This is a DIRTY DIRTY hack. It works around the problem of protocol buffers not distinguishing between
+	//   an empty slice and a nil value (both get serialized to the same bytes and deserialized to nil).
+	//   CBOR, however does make this distinction. The checkpoint data structure does contain slices that may be empty
+	//   (DeliveredTXs inside ClientProgress). Thus, if a checkpoint were directly serialized locally,
+	//   and the very same checkpoint transmitted to another node
+	//   (which implies protobuf marshalling and unmarshalling) and serialized there, the two outputs (local and remote)
+	//   would not be the same (an empty slice locally and nil on the remote node).
+	//   To keep the serialization consistent, we always perform a protobuf marshalling-unmarshalling of the checkpoint.
+	//   Note that we cannot use the protobuf serialization directly either, as it is not deterministic.
+	//   This is very very inefficient and something should be done about it.
+	pbData, err := proto.Marshal(sc.Pb())
+	if err != nil {
+		return nil, err
+	}
+	var pbChkp checkpointpb.StableCheckpoint
+	err = proto.Unmarshal(pbData, &pbChkp)
+	if err != nil {
+		return nil, err
+	}
+
+	return em.Marshal(&pbChkp)
 }
 
 // Deserialize populates its fields from the serialized representation
 // previously returned from StableCheckpoint.Serialize.
 func (sc *StableCheckpoint) Deserialize(data []byte) error {
-	if err := cbor.Unmarshal(data, sc); err != nil {
+
+	// TODO: See comment in the serialization function for an explanation of
+	//   why we serialize the protobuf and not the checkpoint object directly.
+	var pbChkp checkpointpb.StableCheckpoint
+	if err := cbor.Unmarshal(data, &pbChkp); err != nil {
 		return es.Errorf("failed to CBOR unmarshal stable checkpoint: %w", err)
 	}
+	*sc = StableCheckpoint(*checkpointpbtypes.StableCheckpointFromPb(&pbChkp))
 	return nil
 }
 
