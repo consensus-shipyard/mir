@@ -27,7 +27,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/iss"
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -438,20 +437,20 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, err
 		}
 
-		// ISS configuration
-		issConfig := issconfig.DefaultParams(transportLayer.Membership())
+		// Trantor configuration
+		tConf := trantor.DefaultParams(transportLayer.Membership())
 		if conf.SlowProposeReplicas[i] {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
-			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeSNTimeout
+			tConf.Iss.MaxProposeDelay = tConf.Iss.PBFTViewChangeSNTimeout
 		}
 
 		transport, err := transportLayer.Link(nodeID)
 		if err != nil {
 			return nil, es.Errorf("error initializing Mir transport: %w", err)
 		}
-		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, issConfig)
+		stateSnapshotpb, err := iss.InitialStateSnapshot(initialSnapshot, tConf.Iss)
 		if err != nil {
 			return nil, es.Errorf("error initializing Mir state snapshot: %w", err)
 		}
@@ -461,8 +460,11 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			return nil, es.Errorf("error creating local crypto system for node %v: %w", nodeID, err)
 		}
 
+		// Use small batches so even a few transactions keep being proposed even after epoch transitions.
+		mempoolParams := simplemempool.DefaultModuleParams()
+		mempoolParams.MaxTransactionsInBatch = 10
 		avParamsTemplate := multisigcollector.DefaultParamsTemplate()
-		avParamsTemplate.Limit = 1
+		avParamsTemplate.Limit = 1 // This prevents "batching of batches" by the availability component.
 
 		system, err := trantor.New(
 			nodeID,
@@ -471,10 +473,8 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			localCrypto,
 			appmodule.AppLogicFromStatic(fakeApp, transportLayer.Membership()),
 			trantor.Params{
-				Mempool: &simplemempool.ModuleParams{
-					MaxTransactionsInBatch: 10,
-				},
-				Iss:          issConfig,
+				Mempool:      mempoolParams,
+				Iss:          tConf.Iss,
 				Net:          libp2p.Params{},
 				Availability: avParamsTemplate,
 			},

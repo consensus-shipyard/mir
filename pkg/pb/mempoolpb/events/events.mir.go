@@ -154,3 +154,18 @@ func NewTransactions(destModule types.ModuleID, transactions []*types4.Transacti
 		},
 	}
 }
+
+func BatchTimeout(destModule types.ModuleID, batchReqID uint64) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Mempool{
+			Mempool: &types1.Event{
+				Type: &types1.Event_BatchTimeout{
+					BatchTimeout: &types1.BatchTimeout{
+						BatchReqID: batchReqID,
+					},
+				},
+			},
+		},
+	}
+}

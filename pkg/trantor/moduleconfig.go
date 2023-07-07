@@ -84,6 +84,7 @@ func (mc ModuleConfig) ConfigureSimpleMempool() simplemempool.ModuleConfig {
 	return simplemempool.ModuleConfig{
 		Self:   mc.Mempool,
 		Hasher: mc.Hasher,
+		Timer:  mc.Timer,
 	}
 }
 
