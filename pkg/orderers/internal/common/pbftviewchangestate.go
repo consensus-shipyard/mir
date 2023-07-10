@@ -157,9 +157,9 @@ func (vcState *PbftViewChangeState) SetLocalPreprepares(state *State, view ot.Vi
 			if preprepare := state.LookUpPreprepare(sn, digest); preprepare != nil {
 				// The re-proposed Preprepare must have an updated view.
 				// We create a copy of the found Preprepare
-				prepareCopy := *preprepare
-				preprepare.View = view
-				vcState.Preprepares[sn] = &prepareCopy
+				preprepareCopy := *preprepare
+				preprepareCopy.View = view
+				vcState.Preprepares[sn] = &preprepareCopy
 			}
 		}
 	}
