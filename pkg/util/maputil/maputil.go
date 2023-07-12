@@ -81,10 +81,23 @@ func Copy[K comparable, V any](m map[K]V) map[K]V {
 	return newMap
 }
 
-// Any returns an arbitrary element of the map m.
+// AnyKey returns an arbitrary key of the map m.
 // If m is not empty, the second return value is true.
-// If the map is empty, Any returns the zero value of the m's value type and false.
-func Any[K comparable, V any](m map[K]V) (V, bool) {
+// If the map is empty, AnyKey returns the zero value of the m's key type and false.
+func AnyKey[K comparable, V any](m map[K]V) (K, bool) {
+
+	for key := range m {
+		return key, true
+	}
+
+	var zeroVal K
+	return zeroVal, false
+}
+
+// AnyVal returns an arbitrary value of the map m.
+// If m is not empty, the second return value is true.
+// If the map is empty, AnyVal returns the zero value of the m's value type and false.
+func AnyVal[K comparable, V any](m map[K]V) (V, bool) {
 
 	for _, val := range m {
 		return val, true
