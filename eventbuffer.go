@@ -32,10 +32,10 @@ func newEventBuffer(modules modules.Modules) eventBuffer {
 	return wi
 }
 
-// AddEvents adds events produced by modules to the eventBuffer buffer.
+// Add adds events produced by modules to the eventBuffer buffer.
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
-// When AddEvents returns a non-nil error, any subset of the events may have been added.
-func (wi *eventBuffer) AddEvents(events *events.EventList) error {
+// When Add returns a non-nil error, any subset of the events may have been added.
+func (eb *eventBuffer) Add(events *events.EventList) error {
 	// Note that this MUST be a pointer receiver.
 	// Otherwise, we'd increment a copy of the event counter rather than the counter itself.
 	iter := events.Iterator()
@@ -44,9 +44,9 @@ func (wi *eventBuffer) AddEvents(events *events.EventList) error {
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		// Look up the corresponding module's buffer and add the event to it.
-		if buffer, ok := wi.buffers[t.ModuleID(event.DestModule).Top()]; ok {
+		if buffer, ok := eb.buffers[t.ModuleID(event.DestModule).Top()]; ok {
 			buffer.PushBack(event)
-			wi.totalEvents++
+			eb.totalEvents++
 		} else {
 
 			// If there is no buffer for the event, check if it is a MessgeReceived event.
@@ -67,4 +67,13 @@ func (wi *eventBuffer) AddEvents(events *events.EventList) error {
 		}
 	}
 	return nil
+}
+
+// Stats returns a map containing the number of buffered events for each module.
+func (eb *eventBuffer) Stats() map[t.ModuleID]int {
+	stats := make(map[t.ModuleID]int)
+	for mID, evts := range eb.buffers {
+		stats[mID] = evts.Len()
+	}
+	return stats
 }

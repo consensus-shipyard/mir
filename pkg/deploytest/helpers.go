@@ -30,5 +30,5 @@ func NewLogger(parentLogger logging.Logger) logging.Logger {
 	if parentLogger != nil {
 		return logging.Synchronize(parentLogger)
 	}
-	return logging.Synchronize(logging.ConsoleDebugLogger)
+	return logging.ConsoleDebugLogger // No need to synchronize, the ConsoleDebugLogger is already synchronized.
 }
