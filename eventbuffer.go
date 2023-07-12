@@ -32,10 +32,10 @@ func newEventBuffer(modules modules.Modules) eventBuffer {
 	return wi
 }
 
-// AddEvents adds events produced by modules to the eventBuffer buffer.
+// Add adds events produced by modules to the eventBuffer buffer.
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
-// When AddEvents returns a non-nil error, any subset of the events may have been added.
-func (wi *eventBuffer) AddEvents(events *events.EventList) error {
+// When Add returns a non-nil error, any subset of the events may have been added.
+func (wi *eventBuffer) Add(events *events.EventList) error {
 	// Note that this MUST be a pointer receiver.
 	// Otherwise, we'd increment a copy of the event counter rather than the counter itself.
 	iter := events.Iterator()

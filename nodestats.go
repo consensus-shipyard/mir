@@ -93,7 +93,7 @@ func (n *Node) flushStats() {
 	n.statsLock.Lock()
 	defer n.statsLock.Unlock()
 
-	eventBufferStats := n.workItems.Stats()
+	eventBufferStats := n.pendingEvents.Stats()
 	stats := n.dispatchStats.CombinedStats(eventBufferStats)
 
 	if n.inputIsPaused() {
