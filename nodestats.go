@@ -14,7 +14,7 @@ import (
 // ==============================================================================================================
 
 // eventDispatchStats saves statistical information about the dispatching of events between modules,
-// such the numbers of events dispatched for each module.
+// such as the numbers of events dispatched for each module.
 type eventDispatchStats struct {
 	dispatchCounts map[t.ModuleID]int
 	eventCounts    map[t.ModuleID]int
