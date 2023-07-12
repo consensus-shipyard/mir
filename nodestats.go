@@ -2,6 +2,7 @@ package mir
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -78,15 +79,16 @@ func (ds *eventDispatchStats) CombinedStats(
 // ==============================================================================================================
 
 // monitorStats prints and resets the dispatching statistics every given time interval, until the node is stopped.
-func (n *Node) monitorStats(interval time.Duration) {
+func (n *Node) monitorStats(interval time.Duration, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	ticker := time.NewTicker(interval)
 
-Loop:
 	for {
 		select {
 		case <-n.workErrNotifier.ExitC():
 			ticker.Stop()
-			break Loop
+			return
 		case <-ticker.C:
 			n.flushStats()
 		}

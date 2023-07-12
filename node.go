@@ -231,7 +231,8 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 	// Periodically log statistics about dispatched events and the state of the event buffers.
 	if n.Config.StatsLogInterval > 0 {
-		go n.monitorStats(n.Config.StatsLogInterval)
+		wg.Add(1)
+		go n.monitorStats(n.Config.StatsLogInterval, &wg)
 	}
 
 	// Start processing module events.
