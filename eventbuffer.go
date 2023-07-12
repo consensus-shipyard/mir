@@ -68,3 +68,12 @@ func (wi *eventBuffer) AddEvents(events *events.EventList) error {
 	}
 	return nil
 }
+
+// Stats returns a map containing the number of buffered events for each module.
+func (wi *eventBuffer) Stats() map[t.ModuleID]int {
+	stats := make(map[t.ModuleID]int)
+	for mID, evts := range wi.buffers {
+		stats[mID] = evts.Len()
+	}
+	return stats
+}

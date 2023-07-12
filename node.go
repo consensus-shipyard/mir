@@ -19,6 +19,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
@@ -76,6 +77,15 @@ type Node struct {
 	// This channel is closed by the Run and Debug methods on returning.
 	// Closing of the channel indicates that the node has stopped and the Stop method can also return.
 	stopped chan struct{}
+
+	// This data structure holds statistics about recently dispatched events.
+	dispatchStats eventDispatchStats
+
+	// Lock guarding event processing stats.
+	// This data is accessed concurrently by both the main event loop and the stats monitoring goroutine.
+	// Access to the event buffers is also guarded by this lock,
+	// since they need to be accessed when generating statistics.
+	statsLock sync.Mutex
 }
 
 // NewNode creates a new node with ID id.
@@ -117,6 +127,8 @@ func NewNode(
 
 		inputPaused:     false,
 		inputPausedCond: sync.NewCond(&sync.Mutex{}),
+
+		dispatchStats: newDispatchStats(maputil.GetSortedKeys(m)),
 
 		stopped: make(chan struct{}),
 	}, nil
@@ -208,6 +220,11 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	// so it is executed before wg.Wait() (since defers are stacked). Otherwise, we get into a deadlock.
 	defer n.resumeInput()
 
+	// Periodically log statistics about dispatched events and the state of the event buffers.
+	if n.Config.StatsLogInterval > 0 {
+		go n.monitorStats(n.Config.StatsLogInterval)
+	}
+
 	// Start processing module events.
 	n.startModules(ctx, &wg)
 
@@ -237,6 +254,9 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 			Chan: reflect.ValueOf(n.eventsIn),
 		})
 		selectReactions = append(selectReactions, func(newEventsVal reflect.Value) {
+			n.statsLock.Lock()
+			defer n.statsLock.Unlock()
+
 			newEvents := newEventsVal.Interface().(*events.EventList)
 			if err := n.workItems.AddEvents(newEvents); err != nil {
 				n.workErrNotifier.Fail(err)
@@ -261,7 +281,7 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 
 		// For each generic event buffer in eventBuffer that contains events to be submitted to its corresponding module,
 		// create a selectCase for writing those events to the module's work channel.
-
+		n.statsLock.Lock()
 		for moduleID, buffer := range n.workItems.buffers {
 			if buffer.Len() > 0 {
 
@@ -283,6 +303,9 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 				// React to writing to a work channel by emptying the corresponding event buffer
 				// (i.e., removing events just written to the channel from the buffer).
 				selectReactions = append(selectReactions, func(_ reflect.Value) {
+					n.statsLock.Lock()
+					defer n.statsLock.Unlock()
+
 					n.workItems.buffers[mID].RemoveFront(numEvents)
 
 					// Keep track of the size of the event buffer.
@@ -291,15 +314,17 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 					if n.workItems.totalEvents <= n.Config.ResumeInputThreshold {
 						n.resumeInput()
 					}
+
+					n.dispatchStats.AddDispatch(mID, numEvents)
 				})
 			}
 		}
+		n.statsLock.Unlock()
 
 		// Choose one case from above and execute the corresponding reaction.
 
 		chosenCase, receivedValue, _ := reflect.Select(selectCases)
 		selectReactions[chosenCase](receivedValue)
-
 	}
 
 	n.workErrNotifier.SetExitStatus(nil, nil) // TODO: change this when statuses are implemented.
@@ -451,6 +476,12 @@ func (n *Node) waitForInputEnabled() {
 		n.inputPausedCond.Wait()
 	}
 	n.inputPausedCond.L.Unlock()
+}
+
+func (n *Node) inputIsPaused() bool {
+	n.inputPausedCond.L.Lock()
+	defer n.inputPausedCond.L.Unlock()
+	return n.inputPaused
 }
 
 func createInitEvents(m modules.Modules) *events.EventList {
