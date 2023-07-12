@@ -50,13 +50,16 @@ func (ds *eventDispatchStats) AddDispatch(mID t.ModuleID, numEvents int) {
 // For each module, it includes the number of event lists dispatched to that module (d),
 // the total number of events in those lists (e),
 // and the number of events still buffered at the input of that module (b).
-func (ds *eventDispatchStats) CombinedStats(bufferStats map[t.ModuleID]int) []interface{} {
+func (ds *eventDispatchStats) CombinedStats(
+	bufferStats map[t.ModuleID]int,
+	processingTimes map[t.ModuleID]time.Duration,
+) []interface{} {
 	logVals := make([]interface{}, 0, len(ds.eventCounts)+2)
 	totalEventsDispatched := 0
 	totalEventsBuffered := 0
 	maputil.IterateSorted(ds.dispatchCounts, func(mID t.ModuleID, cnt int) (cont bool) {
-		logVals = append(logVals,
-			fmt.Sprint(mID), fmt.Sprintf("d(%d)-e(%d)-b(%d)", cnt, ds.eventCounts[mID], bufferStats[mID]),
+		logVals = append(logVals, fmt.Sprint(mID), fmt.Sprintf("d(%d)-e(%d)-b(%d)-t(%s)",
+			cnt, ds.eventCounts[mID], bufferStats[mID], processingTimes[mID]),
 		)
 		totalEventsDispatched += ds.eventCounts[mID]
 		totalEventsBuffered += bufferStats[mID]
@@ -95,7 +98,7 @@ func (n *Node) flushStats() {
 	defer n.statsLock.Unlock()
 
 	eventBufferStats := n.pendingEvents.Stats()
-	stats := n.dispatchStats.CombinedStats(eventBufferStats)
+	stats := n.dispatchStats.CombinedStats(eventBufferStats, n.resetStopwatches())
 
 	if n.inputIsPaused() {
 		n.Config.Logger.Log(logging.LevelDebug, "External event processing paused.", stats...)
@@ -104,4 +107,14 @@ func (n *Node) flushStats() {
 	}
 
 	n.dispatchStats = newDispatchStats(maputil.GetSortedKeys(n.modules))
+}
+
+// resetStopwatches resets all the nodes stopwatches tracking the processing time of each module.
+// It returns the durations read from the stopwatches just before resetting.
+func (n *Node) resetStopwatches() map[t.ModuleID]time.Duration {
+	processingTimes := make(map[t.ModuleID]time.Duration, len(n.stopwatches))
+	for mID, stopwatch := range n.stopwatches {
+		processingTimes[mID] = stopwatch.Reset()
+	}
+	return processingTimes
 }
