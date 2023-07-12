@@ -81,6 +81,9 @@ type Node struct {
 	// This data structure holds statistics about recently dispatched events.
 	dispatchStats eventDispatchStats
 
+	// Each module has a stopwatch that is measuring the time the module spent processing events.
+	stopwatches map[t.ModuleID]*Stopwatch
+
 	// Lock guarding event processing stats.
 	// This data is accessed concurrently by both the main event loop and the stats monitoring goroutine.
 	// Access to the event buffers is also guarded by this lock,
@@ -110,6 +113,11 @@ func NewNode(
 		config.Logger = logging.Synchronize(config.Logger)
 	}
 
+	stopwatches := make(map[t.ModuleID]*Stopwatch, len(m))
+	for mID := range m {
+		stopwatches[mID] = &Stopwatch{}
+	}
+
 	// Return a new Node.
 	return &Node{
 		ID:     id,
@@ -129,6 +137,7 @@ func NewNode(
 		inputPausedCond: sync.NewCond(&sync.Mutex{}),
 
 		dispatchStats: newDispatchStats(maputil.GetKeys(m)),
+		stopwatches:   stopwatches,
 
 		stopped: make(chan struct{}),
 	}, nil
@@ -342,7 +351,6 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 		go func(mID t.ModuleID, m modules.Module, workChan chan *events.EventList) {
 			n.Config.Logger.Log(logging.LevelInfo, "module started", "ID", mID.Pb())
 			defer n.Config.Logger.Log(logging.LevelInfo, "module finished", "ID", mID.Pb())
-
 			defer wg.Done()
 
 			// Create a context that is passed to the module event application function
@@ -357,10 +365,22 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 			for continueProcessing {
 				if n.debugMode {
 					// In debug mode, all produced events are routed to the debug output.
-					continueProcessing, err = n.processModuleEvents(processingCtx, m, workChan, n.debugOut)
+					continueProcessing, err = n.processModuleEvents(
+						processingCtx,
+						m,
+						workChan,
+						n.debugOut,
+						n.stopwatches[mID],
+					)
 				} else {
 					// During normal operation, feed all produced events back into the event loop.
-					continueProcessing, err = n.processModuleEvents(processingCtx, m, workChan, n.eventsIn)
+					continueProcessing, err = n.processModuleEvents(
+						processingCtx,
+						m,
+						workChan,
+						n.eventsIn,
+						n.stopwatches[mID],
+					)
 				}
 				if err != nil {
 					n.workErrNotifier.Fail(es.Errorf("could not process PassiveModule (%v) events: %w", mID, err))

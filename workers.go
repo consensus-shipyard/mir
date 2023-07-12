@@ -49,6 +49,7 @@ func (n *Node) processModuleEvents(
 	module modules.Module,
 	eventSource <-chan *events.EventList,
 	eventSink chan<- *events.EventList,
+	sw *Stopwatch,
 ) (bool, error) {
 	var eventsIn *events.EventList
 	var inputOpen bool
@@ -69,6 +70,8 @@ func (n *Node) processModuleEvents(
 	// in order to re-insert them in the processing loop after the input events have been processed.
 	plainEvents, followUps := eventsIn.StripFollowUps()
 	eventsOut := followUps // Follow-up events go directly to the output after the plainEvents are processed.
+
+	sw.Start()
 
 	// Intercept the (stripped of all follow-ups) events that are about to be processed.
 	// This is only for debugging / diagnostic purposes.
@@ -109,6 +112,8 @@ func (n *Node) processModuleEvents(
 	default:
 		return false, es.Errorf("unknown module type: %T", m)
 	}
+
+	sw.Stop()
 
 	// Return if no output was generated.
 	// This is only an optimization to prevent the processor loop from handling empty EventLists.
