@@ -54,13 +54,14 @@ func (ds *eventDispatchStats) CombinedStats(bufferStats map[t.ModuleID]int) []in
 	logVals := make([]interface{}, 0, len(ds.eventCounts)+2)
 	totalEventsDispatched := 0
 	totalEventsBuffered := 0
-	for mID, cnt := range ds.dispatchCounts {
+	maputil.IterateSorted(ds.dispatchCounts, func(mID t.ModuleID, cnt int) (cont bool) {
 		logVals = append(logVals,
 			fmt.Sprint(mID), fmt.Sprintf("d(%d)-e(%d)-b(%d)", cnt, ds.eventCounts[mID], bufferStats[mID]),
 		)
 		totalEventsDispatched += ds.eventCounts[mID]
 		totalEventsBuffered += bufferStats[mID]
-	}
+		return true
+	})
 	logVals = append(logVals,
 		"numDispatches", ds.numDispatches,
 		"totalEventsDispatched", totalEventsDispatched,

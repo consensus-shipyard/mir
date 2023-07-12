@@ -128,7 +128,7 @@ func NewNode(
 		inputPaused:     false,
 		inputPausedCond: sync.NewCond(&sync.Mutex{}),
 
-		dispatchStats: newDispatchStats(maputil.GetSortedKeys(m)),
+		dispatchStats: newDispatchStats(maputil.GetKeys(m)),
 
 		stopped: make(chan struct{}),
 	}, nil
