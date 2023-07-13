@@ -88,6 +88,8 @@ func (n *Node) monitorStats(interval time.Duration, wg *sync.WaitGroup) {
 		select {
 		case <-n.workErrNotifier.ExitC():
 			ticker.Stop()
+			n.Config.Logger.Log(logging.LevelInfo, "Event processing monitoring finished.")
+			n.flushStats()
 			return
 		case <-ticker.C:
 			n.flushStats()
