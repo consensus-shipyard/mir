@@ -42,16 +42,16 @@ func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs, logger logging.Logger) *Deli
 // Add adds a transaction number that is considered delivered to the DeliveredTXs.
 // Returns true if the transaction number has been added now (after not being previously present).
 // Returns false if the transaction number has already been added before the call to Add.
-func (dr *DeliveredTXs) Add(txNo tt.TxNo) bool {
+func (dt *DeliveredTXs) Add(txNo tt.TxNo) bool {
 
-	if txNo < dr.lowWM {
-		dr.logger.Log(logging.LevelDebug, "Transaction number below client's watermark window.",
-			"lowWM", dr.lowWM, "txNo", txNo)
+	if txNo < dt.lowWM {
+		dt.logger.Log(logging.LevelDebug, "Transaction number below client's watermark window.",
+			"lowWM", dt.lowWM, "txNo", txNo)
 		return false
 	}
 
-	_, alreadyPresent := dr.delivered[txNo]
-	dr.delivered[txNo] = struct{}{}
+	_, alreadyPresent := dt.delivered[txNo]
+	dt.delivered[txNo] = struct{}{}
 	return !alreadyPresent
 }
 
@@ -59,24 +59,24 @@ func (dr *DeliveredTXs) Add(txNo tt.TxNo) bool {
 // by deleting a contiguous prefix of delivered transaction numbers
 // and increasing the low watermark accordingly.
 // Returns the new low watermark.
-func (dr *DeliveredTXs) GarbageCollect() tt.TxNo {
+func (dt *DeliveredTXs) GarbageCollect() tt.TxNo {
 
-	for _, ok := dr.delivered[dr.lowWM]; ok; _, ok = dr.delivered[dr.lowWM] {
-		delete(dr.delivered, dr.lowWM)
-		dr.lowWM++
+	for _, ok := dt.delivered[dt.lowWM]; ok; _, ok = dt.delivered[dt.lowWM] {
+		delete(dt.delivered, dt.lowWM)
+		dt.lowWM++
 	}
 
-	return dr.lowWM
+	return dt.lowWM
 }
 
-func (dr *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
-	delivered := make([]uint64, len(dr.delivered))
-	for i, txNo := range maputil.GetSortedKeys(dr.delivered) {
+func (dt *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
+	delivered := make([]uint64, len(dt.delivered))
+	for i, txNo := range maputil.GetSortedKeys(dt.delivered) {
 		delivered[i] = txNo.Pb()
 	}
 
 	return &trantorpb.DeliveredTXs{
-		LowWm:     dr.lowWM.Pb(),
+		LowWm:     dt.lowWM.Pb(),
 		Delivered: delivered,
 	}
 }
