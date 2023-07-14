@@ -19,6 +19,13 @@ func NewClientProgress(logger logging.Logger) *ClientProgress {
 	}
 }
 
+func (cp *ClientProgress) Contains(clID tt.ClientID, txNo tt.TxNo) bool {
+	if _, ok := cp.ClientTrackers[clID]; !ok {
+		return false
+	}
+	return cp.ClientTrackers[clID].Contains(txNo)
+}
+
 func (cp *ClientProgress) Add(clID tt.ClientID, txNo tt.TxNo) bool {
 	if _, ok := cp.ClientTrackers[clID]; !ok {
 		cp.ClientTrackers[clID] = EmptyDeliveredTXs(logging.Decorate(cp.logger, "", "clID", clID))

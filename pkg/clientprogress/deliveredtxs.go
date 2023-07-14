@@ -39,6 +39,17 @@ func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs, logger logging.Logger) *Deli
 	return dr
 }
 
+// Contains returns true if the given txNo has already been added.
+func (dt *DeliveredTXs) Contains(txNo tt.TxNo) bool {
+
+	if txNo < dt.lowWM {
+		return true
+	}
+
+	_, alreadyPresent := dt.delivered[txNo]
+	return alreadyPresent
+}
+
 // Add adds a transaction number that is considered delivered to the DeliveredTXs.
 // Returns true if the transaction number has been added now (after not being previously present).
 // Returns false if the transaction number has already been added before the call to Add.
