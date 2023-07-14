@@ -24,6 +24,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Crypto)(nil)),
 		reflect.TypeOf((*Event_App)(nil)),
 		reflect.TypeOf((*Event_Transport)(nil)),
+		reflect.TypeOf((*Event_Cvc)(nil)),
 		reflect.TypeOf((*Event_PingPong)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),

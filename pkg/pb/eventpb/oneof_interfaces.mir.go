@@ -3,12 +3,15 @@
 package eventpb
 
 import (
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	checkpointvaliditycheckerpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
@@ -19,7 +22,6 @@ import (
 	testerpb "github.com/filecoin-project/mir/pkg/pb/testerpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -91,6 +93,10 @@ func (w *Event_App) Unwrap() *apppb.Event {
 
 func (w *Event_Transport) Unwrap() *transportpb.Event {
 	return w.Transport
+}
+
+func (w *Event_Cvc) Unwrap() *checkpointvaliditycheckerpb.Event {
+	return w.Cvc
 }
 
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
