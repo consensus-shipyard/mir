@@ -18,6 +18,8 @@ import (
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
+	cvcpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb/dsl"
+
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -69,9 +71,6 @@ type ISS struct {
 
 	// Implementation of the hash function to use by ISS for computing all hashes.
 	hashImpl crypto.HashImpl
-
-	// Verifier of received stable checkpoints. This is most likely going to be the crypto module used by the protocol.
-	chkpVerifier checkpoint.Verifier
 
 	// Logger the ISS implementation uses to output log messages.
 	// This is mostly for debugging - not to be confused with the commit log.
@@ -187,7 +186,6 @@ func New(
 		moduleConfig:            moduleConfig,
 		Params:                  params,
 		hashImpl:                hashImpl,
-		chkpVerifier:            chkpVerifier,
 		logger:                  logger,
 		epoch:                   nil, // Initialized later.
 		epochs:                  make(map[tt.EpochNr]*epochInfo),
@@ -419,57 +417,29 @@ func New(
 	})
 
 	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
-		_chkp := checkpointpbtypes.StableCheckpoint{
+		_chkp := &checkpointpbtypes.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,
 			Cert:     cert,
 		}
-		chkp := checkpoint.StableCheckpointFromPb(_chkp.Pb())
 
-		// Check syntactic validity of the checkpoint.
-		if err := chkp.SyntacticCheck(params); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Syntactic check failed.", err)
+		cvcpbdsl.ValidateCheckpoint(iss.m, iss.moduleConfig.CVC, _chkp, iss.epoch.Nr(), iss.memberships, &validateChechkpointContext{
+			checkpoint: _chkp,
+		})
+		return nil
+	})
+
+	cvcpbdsl.UponCheckpointValidated(iss.m, func(err error, c *validateChechkpointContext) error {
+		if err != nil {
+			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Validation failed:", err)
 			return nil
 		}
 
-		// Ignore checkpoint if we are not part of its membership
-		// (more precisely, membership of the epoch the checkpoint is at the start of).
-		// Correct nodes should never send such checkpoints, but faulty ones could.
-		if _, ok := chkp.Memberships()[0].Nodes[iss.ownID]; !ok {
-			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Not in membership.",
-				"sender", sender, "memberships", chkp.Memberships())
-			return nil
-		}
-
-		// Check how far the received stable checkpoint is ahead of the local node's state.
+		chkp := checkpoint.StableCheckpointFromPb(c.checkpoint.Pb())
 		chkpMembershipOffset := int(chkp.Epoch()) - 1 - int(iss.epoch.Nr())
 		if chkpMembershipOffset <= 0 {
-			// Ignore stable checkpoints that are not far enough
-			// ahead of the current state of the local node.
-			return nil
-		}
-
-		chkpMembership := chkp.PreviousMembership() // TODO this is wrong and it is a vulnerability, come back to fix after discussion (issue #384)
-		if chkpMembershipOffset > iss.Params.ConfigOffset {
-			// cannot verify checkpoint signatures, too far ahead
-			// TODO here we should externalize verification/decision to dedicated module (issue #402)
-			iss.logger.Log(logging.LevelWarn, "-----------------------------------------------------\n",
-				"ATTENTION: cannot verify membership of checkpoint, too far ahead, proceed with caution\n",
-				"-----------------------------------------------------\n",
-				"localEpoch", iss.epoch.Nr(),
-				"chkpEpoch", chkp.Epoch(),
-				"configOffset", iss.Params.ConfigOffset,
-			)
-		} else {
-			chkpMembership = iss.memberships[chkpMembershipOffset]
-		}
-
-		if err := chkp.Verify(iss.Params, iss.hashImpl, iss.chkpVerifier, chkpMembership); err != nil {
-			iss.logger.Log(logging.LevelWarn, "Ignoring stable checkpoint",
-				"error", err,
-				"localEpoch", iss.epoch.Nr(),
-				"chkpEpoch", chkp.Epoch(),
-			)
+			// Ignore stable checkpoints that have been lagged behind
+			// during validation
 			return nil
 		}
 
@@ -534,6 +504,7 @@ func New(
 
 		return nil
 	})
+
 	return iss.m, nil
 }
 
@@ -995,4 +966,8 @@ type verifyCertContext struct {
 	data    []uint8
 	aborted bool
 	leader  t.NodeID
+}
+
+type validateChechkpointContext struct {
+	checkpoint *checkpointpbtypes.StableCheckpoint
 }

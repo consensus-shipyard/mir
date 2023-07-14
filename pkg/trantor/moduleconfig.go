@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/checkpoint/checkpointvaliditychecker"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
@@ -17,6 +18,7 @@ type ModuleConfig struct {
 	BatchDB       t.ModuleID
 	BatchFetcher  t.ModuleID
 	Checkpointing t.ModuleID
+	CVC           t.ModuleID
 	Crypto        t.ModuleID
 	Hasher        t.ModuleID
 	ISS           t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
@@ -34,6 +36,7 @@ func DefaultModuleConfig() ModuleConfig {
 		BatchDB:       "batchdb",
 		BatchFetcher:  "batchfetcher",
 		Checkpointing: "checkpoint",
+		CVC:           "checkpointvaliditychecker",
 		Crypto:        "crypto",
 		Hasher:        "hasher",
 		ISS:           "iss",
@@ -51,11 +54,13 @@ func (mc ModuleConfig) ConfigureISS() iss.ModuleConfig {
 		App:          mc.BatchFetcher,
 		Availability: mc.Availability,
 		Checkpoint:   mc.Checkpointing,
+		CVC:          mc.CVC,
 		Net:          mc.Net,
 		Ordering:     mc.Ordering,
 		Timer:        mc.Timer,
 	}
 }
+
 func (mc ModuleConfig) ConfigureCheckpointing() checkpoint.ModuleConfig {
 	return checkpoint.ModuleConfig{
 		Self:   mc.Checkpointing,
@@ -64,6 +69,12 @@ func (mc ModuleConfig) ConfigureCheckpointing() checkpoint.ModuleConfig {
 		Hasher: mc.Hasher,
 		Net:    mc.Net,
 		Ord:    mc.ISS,
+	}
+}
+
+func (mc ModuleConfig) ConfigureCheckpointValidityChecker() checkpointvaliditychecker.ModuleConfig {
+	return checkpointvaliditychecker.ModuleConfig{
+		Self: mc.CVC,
 	}
 }
 

@@ -10,6 +10,7 @@ type ModuleConfig struct {
 	App          t.ModuleID
 	Availability t.ModuleID
 	Checkpoint   t.ModuleID
+	CVC          t.ModuleID
 	Net          t.ModuleID
 	Ordering     t.ModuleID
 	Timer        t.ModuleID
