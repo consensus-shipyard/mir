@@ -53,7 +53,7 @@ message ValidatePreprepareOrigin {
 message PPrepValidator {
   option (mir.struct) = true;
 
-  uint64      validity_checker    = 1;
+  uint64      ppv_type    = 1;
   trantorpb.Membership membership = 2;
 
 

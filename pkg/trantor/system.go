@@ -7,6 +7,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
+
 	"github.com/filecoin-project/mir/pkg/timer"
 
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
@@ -159,9 +161,17 @@ func New(
 		moduleConfig.ConfigureOrdering(),
 		params.Iss,
 		ownID,
+		logging.Decorate(logger, "PBFT: "),
+	)
+
+	// The PPV factory creates modules that check the validity of the preprepare messages produced by the ordering protocol.
+	// It must be a factory given the checkpoint ordering instance, which requires stateful verification
+	trantorModules[moduleConfig.PPrepValidator] = ppv.NewFactory(
+		moduleConfig.ConfigurePreprepareValidityChecker(),
 		hashImpl,
 		cryptoImpl,
-		logging.Decorate(logger, "PBFT: "),
+		params.Iss.ConfigOffset,
+		logging.Decorate(logger, "PPV: "),
 	)
 
 	// The checkpoint protocol periodically (at the beginning of each epoch) creates a checkpoint of the system state.

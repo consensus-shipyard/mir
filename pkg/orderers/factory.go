@@ -1,32 +1,20 @@
 package orderers
 
 import (
-	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
-	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-)
-
-type ValidityCheckerType uint64
-
-const (
-	PermissiveValidityChecker = iota
-	CheckpointValidityChecker
 )
 
 func Factory(
 	mc common2.ModuleConfig,
 	issParams *issconfig.ModuleParams,
 	ownID t.NodeID,
-	hashImpl crypto.HashImpl,
-	chkpVerifier checkpoint.Verifier,
 	logger logging.Logger,
 ) modules.PassiveModule {
 	if logger == nil {
@@ -47,7 +35,9 @@ func Factory(
 				// Load parameters from received protobuf
 				p := params.Type.(*factorypbtypes.GeneratorParams_PbftModule).PbftModule
 				availabilityID := t.ModuleID(p.AvailabilityId)
+				ppvID := t.ModuleID(p.PpvModuleId)
 				submc.Ava = availabilityID
+				submc.PPrepValidator = ppvID
 				epoch := tt.EpochNr(p.Epoch)
 				segment := (*common2.Segment)(p.Segment)
 
@@ -58,17 +48,11 @@ func Factory(
 				logger := logging.Decorate(logger, "", "submoduleID", submoduleID)
 
 				// Select validity checker
-				var validityChecker common.ValidityChecker
-				switch ValidityCheckerType(p.ValidityChecker) {
-				case PermissiveValidityChecker:
-					validityChecker = common.NewPermissiveValidityChecker()
-				case CheckpointValidityChecker:
-					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership, issParams.ConfigOffset, logger)
 
+				if p.PpvModuleId == "prepreparevaliditycheckerpermissive" { // this must change but that's the scope of a different PR
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.
 					ordererConfig.MaxProposeDelay = 0
-
 				}
 
 				// Instantiate new protocol instance.
@@ -77,7 +61,6 @@ func Factory(
 					ownID,
 					segment,
 					ordererConfig,
-					validityChecker,
 					logger,
 				)
 

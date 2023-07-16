@@ -294,8 +294,8 @@ func (*ValidatePreprepareOrigin) MirReflect() mirreflect.Type {
 }
 
 type PPrepValidator struct {
-	ValidityChecker uint64
-	Membership      *types5.Membership
+	PpvType    uint64
+	Membership *types5.Membership
 }
 
 func PPrepValidatorFromPb(pb *pprepvalidatorpb.PPrepValidator) *PPrepValidator {
@@ -303,8 +303,8 @@ func PPrepValidatorFromPb(pb *pprepvalidatorpb.PPrepValidator) *PPrepValidator {
 		return nil
 	}
 	return &PPrepValidator{
-		ValidityChecker: pb.ValidityChecker,
-		Membership:      types5.MembershipFromPb(pb.Membership),
+		PpvType:    pb.PpvType,
+		Membership: types5.MembershipFromPb(pb.Membership),
 	}
 }
 
@@ -314,7 +314,7 @@ func (m *PPrepValidator) Pb() *pprepvalidatorpb.PPrepValidator {
 	}
 	pbMessage := &pprepvalidatorpb.PPrepValidator{}
 	{
-		pbMessage.ValidityChecker = m.ValidityChecker
+		pbMessage.PpvType = m.PpvType
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}

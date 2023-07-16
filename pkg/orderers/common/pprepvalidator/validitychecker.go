@@ -1,4 +1,4 @@
-package prepreparevaliditychecker
+package pprepvalidator
 
 import (
 	es "github.com/go-errors/errors"
@@ -13,17 +13,17 @@ import (
 )
 
 // ======================================================================
-// PermissiveValidityChecker
+// PermissivePreprepareValidator
 // (no check performed, everything considered valid)
 // ======================================================================
 
-type PermissiveValidityChecker struct{}
+type PermissivePreprepareValidator struct{}
 
-func NewPermissiveValidityChecker() *PermissiveValidityChecker {
-	return &PermissiveValidityChecker{}
+func NewPermissiveValidityChecker() *PermissivePreprepareValidator {
+	return &PermissivePreprepareValidator{}
 }
 
-func (pvc *PermissiveValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
+func (ppv *PermissivePreprepareValidator) Check(preprepare *pbftpbtypes.Preprepare) error {
 	if preprepare.Data == nil && !preprepare.Aborted {
 		return es.Errorf("invalid preprepare: data is nil")
 	}
@@ -31,11 +31,11 @@ func (pvc *PermissiveValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) 
 }
 
 // ======================================================================
-// CheckpointValidityChecker
+// CheckpointPreprepareValidator
 // (for checking checkpoint certificates)
 // ======================================================================
 
-type CheckpointValidityChecker struct {
+type CheckpointPreprepareValidator struct {
 	HashImpl     crypto.HashImpl
 	CertVerifier checkpoint.Verifier
 	Membership   *trantorpbtypes.Membership
@@ -49,8 +49,8 @@ func NewCheckpointValidityChecker(
 	membership *trantorpbtypes.Membership,
 	configOffset int,
 	logger logging.Logger,
-) *CheckpointValidityChecker {
-	return &CheckpointValidityChecker{
+) *CheckpointPreprepareValidator {
+	return &CheckpointPreprepareValidator{
 		HashImpl:     hashImpl,
 		CertVerifier: certVerifier,
 		Membership:   membership,
@@ -59,7 +59,7 @@ func NewCheckpointValidityChecker(
 	}
 }
 
-func (cv *CheckpointValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
+func (cv *CheckpointPreprepareValidator) Check(preprepare *pbftpbtypes.Preprepare) error {
 	var chkp checkpoint.StableCheckpoint
 
 	if err := chkp.Deserialize(preprepare.Data); err != nil {

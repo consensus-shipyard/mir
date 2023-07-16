@@ -12,11 +12,13 @@
 package grpc
 
 import (
-	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
+	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 )
 
 const (

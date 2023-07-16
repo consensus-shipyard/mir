@@ -212,7 +212,7 @@ type PBFTModule struct {
 	Segment        *PBFTSegment
 	AvailabilityId string
 	Epoch          uint64
-	PvcId          string
+	PpvModuleId    string
 }
 
 func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
@@ -223,7 +223,7 @@ func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
 		Segment:        PBFTSegmentFromPb(pb.Segment),
 		AvailabilityId: pb.AvailabilityId,
 		Epoch:          pb.Epoch,
-		PvcId:          pb.PvcId,
+		PpvModuleId:    pb.PpvModuleId,
 	}
 }
 
@@ -238,7 +238,7 @@ func (m *PBFTModule) Pb() *ordererpb.PBFTModule {
 		}
 		pbMessage.AvailabilityId = m.AvailabilityId
 		pbMessage.Epoch = m.Epoch
-		pbMessage.PvcId = m.PvcId
+		pbMessage.PpvModuleId = m.PpvModuleId
 	}
 
 	return pbMessage

@@ -9,55 +9,59 @@ import (
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
+	"github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type ModuleConfig struct {
-	App           t.ModuleID
-	Availability  t.ModuleID
-	BatchDB       t.ModuleID
-	BatchFetcher  t.ModuleID
-	Checkpointing t.ModuleID
-	ChkpValidator t.ModuleID
-	Crypto        t.ModuleID
-	Hasher        t.ModuleID
-	ISS           t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
-	Mempool       t.ModuleID
-	Net           t.ModuleID
-	Null          t.ModuleID
-	Ordering      t.ModuleID
-	Timer         t.ModuleID
+	App            t.ModuleID
+	Availability   t.ModuleID
+	BatchDB        t.ModuleID
+	BatchFetcher   t.ModuleID
+	Checkpointing  t.ModuleID
+	ChkpValidator  t.ModuleID
+	Crypto         t.ModuleID
+	Hasher         t.ModuleID
+	ISS            t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
+	Mempool        t.ModuleID
+	Net            t.ModuleID
+	Null           t.ModuleID
+	Ordering       t.ModuleID
+	PPrepValidator t.ModuleID
+	Timer          t.ModuleID
 }
 
 func DefaultModuleConfig() ModuleConfig {
 	return ModuleConfig{
-		App:           "app",
-		Availability:  "availability",
-		BatchDB:       "batchdb",
-		BatchFetcher:  "batchfetcher",
-		Checkpointing: "checkpoint",
-		ChkpValidator: "chkpvalidator",
-		Crypto:        "crypto",
-		Hasher:        "hasher",
-		ISS:           "iss",
-		Mempool:       "mempool",
-		Net:           "net",
-		Null:          "null",
-		Ordering:      "ordering",
-		Timer:         "timer",
+		App:            "app",
+		Availability:   "availability",
+		BatchDB:        "batchdb",
+		BatchFetcher:   "batchfetcher",
+		Checkpointing:  "checkpoint",
+		ChkpValidator:  "chkpvalidator",
+		Crypto:         "crypto",
+		Hasher:         "hasher",
+		ISS:            "iss",
+		Mempool:        "mempool",
+		Net:            "net",
+		Null:           "null",
+		Ordering:       "ordering",
+		PPrepValidator: "pprepvalidator",
+		Timer:          "timer",
 	}
 }
 
 func (mc ModuleConfig) ConfigureISS() iss.ModuleConfig {
 	return iss.ModuleConfig{
-		Self:          mc.ISS,
-		App:           mc.BatchFetcher,
-		Availability:  mc.Availability,
-		Checkpoint:    mc.Checkpointing,
-		ChkpValidator: mc.ChkpValidator,
-		Net:           mc.Net,
-		Ordering:      mc.Ordering,
-		Timer:         mc.Timer,
+		Self:           mc.ISS,
+		App:            mc.BatchFetcher,
+		Availability:   mc.Availability,
+		Checkpoint:     mc.Checkpointing,
+		ChkpValidator:  mc.ChkpValidator,
+		Net:            mc.Net,
+		Ordering:       mc.Ordering,
+		PPrepValidator: mc.PPrepValidator,
+		Timer:          mc.Timer,
 	}
 }
 
@@ -80,14 +84,22 @@ func (mc ModuleConfig) ConfigureChkpValidator() chkpvalidator.ModuleConfig {
 
 func (mc ModuleConfig) ConfigureOrdering() ordererscommon.ModuleConfig {
 	return ordererscommon.ModuleConfig{
-		Self:   mc.Ordering,
-		App:    mc.BatchFetcher,
-		Ava:    "", // Ava not initialized yet. It will be set at sub-module instantiation within the factory.
-		Crypto: mc.Crypto,
-		Hasher: mc.Hasher,
-		Net:    mc.Net,
-		Ord:    mc.ISS,
-		Timer:  mc.Timer,
+		Self:           mc.Ordering,
+		App:            mc.BatchFetcher,
+		Ava:            "", // Ava not initialized yet. It will be set at sub-module instantiation within the factory.
+		Crypto:         mc.Crypto,
+		Hasher:         mc.Hasher,
+		Net:            mc.Net,
+		Ord:            mc.ISS,
+		PPrepValidator: mc.PPrepValidator,
+		Timer:          mc.Timer,
+	}
+}
+
+func (mc ModuleConfig) ConfigurePreprepareValidityChecker() pprepvalidator.ModuleConfig {
+	return pprepvalidator.ModuleConfig{
+		Self:          mc.PPrepValidator,
+		ChkpValidator: mc.ChkpValidator,
 	}
 }
 
