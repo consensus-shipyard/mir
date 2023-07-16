@@ -49,7 +49,7 @@ func Factory(
 
 				// Select validity checker
 
-				if p.PpvModuleId == "prepreparevaliditycheckerpermissive" { // this must change but that's the scope of a different PR
+				if p.PpvModuleId == string(mc.PPrepValidator.Then("permissive")) { // this must change but that's the scope of a different PR
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.
 					ordererConfig.MaxProposeDelay = 0
