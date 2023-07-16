@@ -225,7 +225,6 @@ func New(
 		)
 
 		//Instantiate the stateless PPV module for the permissive validity checker
-		// Instantiate a new PBFT orderer.
 		factorypbdsl.NewModule(iss.m,
 			iss.moduleConfig.PPrepValidator,
 			iss.moduleConfig.PPrepValidator.Then("permissive"),
