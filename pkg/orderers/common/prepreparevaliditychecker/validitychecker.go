@@ -1,4 +1,4 @@
-package common
+package prepreparevaliditychecker
 
 import (
 	es "github.com/go-errors/errors"
@@ -71,13 +71,4 @@ func (cv *CheckpointValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) e
 	}
 
 	return nil
-}
-
-// ValidityChecker is the interface of an external checker of validity of proposed data.
-// Each orderer is provided with an object implementing this interface
-// and applies its Check method to all received proposals.
-type ValidityChecker interface {
-
-	// Check returns nil if the provided proposal data is valid, a non-nil error otherwise.
-	Check(preprepare *pbftpbtypes.Preprepare) error
 }
