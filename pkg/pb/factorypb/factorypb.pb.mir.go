@@ -19,5 +19,6 @@ func (*GeneratorParams) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*GeneratorParams_Checkpoint)(nil)),
 		reflect.TypeOf((*GeneratorParams_EchoTestModule)(nil)),
 		reflect.TypeOf((*GeneratorParams_PbftModule)(nil)),
+		reflect.TypeOf((*GeneratorParams_PpvModule)(nil)),
 	}
 }

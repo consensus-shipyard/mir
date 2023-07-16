@@ -3,8 +3,6 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -18,10 +16,12 @@ import (
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+	pprepvalidatorpb "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	testerpb "github.com/filecoin-project/mir/pkg/pb/testerpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -97,6 +97,10 @@ func (w *Event_Transport) Unwrap() *transportpb.Event {
 
 func (w *Event_ChkpValidator) Unwrap() *chkpvalidatorpb.Event {
 	return w.ChkpValidator
+}
+
+func (w *Event_PprepValiadtor) Unwrap() *pprepvalidatorpb.Event {
+	return w.PprepValiadtor
 }
 
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {

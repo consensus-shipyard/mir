@@ -39,6 +39,7 @@ package protos
 //go:generate protoc-events checkpointpb/checkpointpb.proto
 //go:generate protoc-events checkpointpb/chkpvalidatorpb/chkpvalidatorpb.proto
 //go:generate protoc-events ordererpb/ordererpb.proto
+//go:generate protoc-events ordererpb/pprepvalidatorpb/pprepvalidatorpb.proto
 //go:generate protoc-events cryptopb/cryptopb.proto
 //go:generate protoc-events apppb/apppb.proto
 //go:generate protoc-events transportpb/transportpb.proto
@@ -65,6 +66,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/isspb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorypb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
