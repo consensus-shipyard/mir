@@ -12,7 +12,7 @@ import (
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types15 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb/types"
+	types15 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
 	types8 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types12 "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -85,8 +85,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_App{App: types13.EventFromPb(pb.App)}
 	case *eventpb.Event_Transport:
 		return &Event_Transport{Transport: types14.EventFromPb(pb.Transport)}
-	case *eventpb.Event_Cvc:
-		return &Event_Cvc{Cvc: types15.EventFromPb(pb.Cvc)}
+	case *eventpb.Event_ChkpValidator:
+		return &Event_ChkpValidator{ChkpValidator: types15.EventFromPb(pb.ChkpValidator)}
 	case *eventpb.Event_PingPong:
 		return &Event_PingPong{PingPong: types16.EventFromPb(pb.PingPong)}
 	case *eventpb.Event_TestingString:
@@ -483,28 +483,28 @@ func (*Event_Transport) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Transport]()}
 }
 
-type Event_Cvc struct {
-	Cvc *types15.Event
+type Event_ChkpValidator struct {
+	ChkpValidator *types15.Event
 }
 
-func (*Event_Cvc) isEvent_Type() {}
+func (*Event_ChkpValidator) isEvent_Type() {}
 
-func (w *Event_Cvc) Unwrap() *types15.Event {
-	return w.Cvc
+func (w *Event_ChkpValidator) Unwrap() *types15.Event {
+	return w.ChkpValidator
 }
 
-func (w *Event_Cvc) Pb() eventpb.Event_Type {
+func (w *Event_ChkpValidator) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
-	if w.Cvc == nil {
-		return &eventpb.Event_Cvc{}
+	if w.ChkpValidator == nil {
+		return &eventpb.Event_ChkpValidator{}
 	}
-	return &eventpb.Event_Cvc{Cvc: (w.Cvc).Pb()}
+	return &eventpb.Event_ChkpValidator{ChkpValidator: (w.ChkpValidator).Pb()}
 }
 
-func (*Event_Cvc) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Cvc]()}
+func (*Event_ChkpValidator) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_ChkpValidator]()}
 }
 
 type Event_PingPong struct {

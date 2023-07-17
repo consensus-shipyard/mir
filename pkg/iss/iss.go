@@ -18,7 +18,7 @@ import (
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
-	cvcpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb/dsl"
+	cvpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/dsl"
 
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 
@@ -175,7 +175,7 @@ func New(
 		return nil, es.Errorf("invalid leader policy in starting checkpoint: %w", err)
 	}
 
-	err = startingChkp.Verify(params, hashImpl, chkpVerifier, params.InitialMembership)
+	err = startingChkp.Verify(params.ConfigOffset, hashImpl, chkpVerifier, params.InitialMembership)
 	if err != nil {
 		return nil, err
 	}
@@ -423,13 +423,22 @@ func New(
 			Cert:     cert,
 		}
 
-		cvcpbdsl.ValidateCheckpoint(iss.m, iss.moduleConfig.CVC, _chkp, iss.epoch.Nr(), iss.memberships, &validateChechkpointContext{
+		sc := checkpoint.StableCheckpointFromPb(_chkp.Pb())
+		// Check how far the received stable checkpoint is ahead of the local node's state.
+		chkpMembershipOffset := int(sc.Epoch()) - 1 - int(iss.epoch.Nr())
+		if chkpMembershipOffset <= 0 {
+			// Ignore stable checkpoints that are not far enough
+			// ahead of the current state of the local node.
+			return nil
+		}
+
+		cvpbdsl.ValidateCheckpoint(iss.m, iss.moduleConfig.ChkpValidator, _chkp, iss.epoch.Nr(), iss.memberships, &validateChechkpointContext{
 			checkpoint: _chkp,
 		})
 		return nil
 	})
 
-	cvcpbdsl.UponCheckpointValidated(iss.m, func(err error, c *validateChechkpointContext) error {
+	cvpbdsl.UponCheckpointValidated(iss.m, func(err error, c *validateChechkpointContext) error {
 		if err != nil {
 			iss.logger.Log(logging.LevelWarn, "Ignoring checkpoint. Validation failed:", err)
 			return nil

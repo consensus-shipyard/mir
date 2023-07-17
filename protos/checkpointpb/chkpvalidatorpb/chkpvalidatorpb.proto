@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package checkpointvaliditycheckerpb;
+package chkpvalidatorpb;
 
-option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb";
+option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb";
 
 import "contextstorepb/contextstorepb.proto";
 import "dslpb/dslpb.proto";

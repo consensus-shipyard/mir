@@ -16,7 +16,7 @@ import "batchfetcherpb/batchfetcherpb.proto";
 import "threshcryptopb/threshcryptopb.proto";
 import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
-import "checkpointpb/checkpointvaliditycheckerpb/checkpointvaliditycheckerpb.proto";
+import "checkpointpb/chkpvalidatorpb/chkpvalidatorpb.proto";
 import "ordererpb/ordererpb.proto";
 import "hasherpb/hasherpb.proto";
 import "cryptopb/cryptopb.proto";
@@ -55,7 +55,7 @@ message Event {
           cryptopb.Event crypto           = 21;
              apppb.Event app              = 22;
        transportpb.Event transport        = 23;
-    checkpointvaliditycheckerpb.Event cvc = 24;
+    chkpvalidatorpb.Event chkp_validator   = 24;
 
     // Events for code samples
     pingpongpb.Event ping_pong = 200;

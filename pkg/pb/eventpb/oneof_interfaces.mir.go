@@ -11,7 +11,7 @@ import (
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
-	checkpointvaliditycheckerpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/checkpointvaliditycheckerpb"
+	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
@@ -95,8 +95,8 @@ func (w *Event_Transport) Unwrap() *transportpb.Event {
 	return w.Transport
 }
 
-func (w *Event_Cvc) Unwrap() *checkpointvaliditycheckerpb.Event {
-	return w.Cvc
+func (w *Event_ChkpValidator) Unwrap() *chkpvalidatorpb.Event {
+	return w.ChkpValidator
 }
 
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {

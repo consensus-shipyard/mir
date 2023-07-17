@@ -15,7 +15,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	cvc "github.com/filecoin-project/mir/pkg/checkpoint/checkpointvaliditychecker"
+	cv "github.com/filecoin-project/mir/pkg/checkpoint/chkpvalidator"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -172,8 +172,8 @@ func New(
 		logging.Decorate(logger, "CHKP: "),
 	)
 
-	trantorModules[moduleConfig.CVC] = cvc.NewModule(moduleConfig.ConfigureCheckpointValidityChecker(), cvc.NewConservativeCVC(
-		params.Iss,
+	trantorModules[moduleConfig.ChkpValidator] = cv.NewModule(moduleConfig.ConfigureChkpValidator(), cv.NewConservativeCV(
+		params.Iss.ConfigOffset,
 		ownID,
 		hashImpl,
 		cryptoImpl,

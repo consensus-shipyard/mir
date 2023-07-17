@@ -5,7 +5,6 @@ import (
 
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 
-	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -40,7 +39,7 @@ type CheckpointValidityChecker struct {
 	HashImpl     crypto.HashImpl
 	CertVerifier checkpoint.Verifier
 	Membership   *trantorpbtypes.Membership
-	issParams    *issconfig.ModuleParams
+	configOffset int
 	logger       logging.Logger
 }
 
@@ -48,26 +47,26 @@ func NewCheckpointValidityChecker(
 	hashImpl crypto.HashImpl,
 	certVerifier checkpoint.Verifier,
 	membership *trantorpbtypes.Membership,
-	issParams *issconfig.ModuleParams,
+	configOffset int,
 	logger logging.Logger,
 ) *CheckpointValidityChecker {
 	return &CheckpointValidityChecker{
 		HashImpl:     hashImpl,
 		CertVerifier: certVerifier,
 		Membership:   membership,
-		issParams:    issParams,
+		configOffset: configOffset,
 		logger:       logger,
 	}
 }
 
-func (cvc *CheckpointValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
+func (cv *CheckpointValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
 	var chkp checkpoint.StableCheckpoint
 
 	if err := chkp.Deserialize(preprepare.Data); err != nil {
 		return es.Errorf("could not deserialize checkpoint: %w", err)
 	}
 
-	if err := chkp.Verify(cvc.issParams, cvc.HashImpl, cvc.CertVerifier, cvc.Membership); err != nil {
+	if err := chkp.Verify(cv.configOffset, cv.HashImpl, cv.CertVerifier, cv.Membership); err != nil {
 		return es.Errorf("invalid checkpoint: %w", err)
 	}
 
