@@ -28,7 +28,7 @@ type ModuleParams = common.ModuleParams
 // are left empty (zero values for their corresponding type).
 func DefaultParamsTemplate() ModuleParams {
 	return ModuleParams{
-		Limit:       1,           // Number of sub-certificates in one availability certificate.
+		Limit: 1, // Number of sub-certificates in one availability certificate.
 		// TODO: Increase the Limit when https://github.com/filecoin-project/mir/issues/495 is fixed.
 		MaxRequests: math.MaxInt, // By default, have the availability module run (basically) forever.
 	}
