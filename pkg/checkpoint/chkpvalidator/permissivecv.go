@@ -49,12 +49,11 @@ func (pcv *PermissiveCV) Verify(chkp *checkpointpbtypes.StableCheckpoint, epochN
 		return es.Errorf("nodeID not in membership")
 	}
 
-	chkpMembership := sc.PreviousMembership() // TODO this is wrong and it is a vulnerability, come back to fix after discussion (issue #384)
+	chkpMembership := sc.PreviousMembership() // This is wrong and it is a vulnerability, come back to fix (issue #384)
 	chkpMembershipOffset := int(sc.Epoch()) - 1 - int(epochNr)
 
 	if chkpMembershipOffset > pcv.configOffset {
 		// cannot verify checkpoint signatures, too far ahead
-		// TODO here we should externalize verification/decision to dedicated module (issue #402)
 		pcv.logger.Log(logging.LevelWarn, "-----------------------------------------------------\n",
 			"ATTENTION: cannot verify membership of checkpoint, too far ahead, proceed with caution\n",
 			"-----------------------------------------------------\n",
@@ -64,11 +63,6 @@ func (pcv *PermissiveCV) Verify(chkp *checkpointpbtypes.StableCheckpoint, epochN
 		)
 	} else {
 		chkpMembership = memberships[chkpMembershipOffset]
-	}
-
-	if chkpMembershipOffset > pcv.configOffset {
-		// cannot verify checkpoint signatures, too far ahead
-		return es.Errorf("checkpoint too far ahead")
 	}
 
 	return sc.Verify(pcv.configOffset, pcv.hashImpl, pcv.chkpVerifier, chkpMembership)

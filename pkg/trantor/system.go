@@ -172,11 +172,12 @@ func New(
 		logging.Decorate(logger, "CHKP: "),
 	)
 
-	trantorModules[moduleConfig.ChkpValidator] = cv.NewModule(moduleConfig.ConfigureChkpValidator(), cv.NewConservativeCV(
+	trantorModules[moduleConfig.ChkpValidator] = cv.NewModule(moduleConfig.ConfigureChkpValidator(), cv.NewPermissiveCV(
 		params.Iss.ConfigOffset,
 		ownID,
 		hashImpl,
 		cryptoImpl,
+		logger,
 	))
 
 	// The batch fetcher module transforms availability certificates ordered by ISS
