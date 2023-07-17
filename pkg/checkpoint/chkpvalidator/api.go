@@ -6,7 +6,8 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
-// The ChkpValidator interface represents an implementation of the checkpoint validity checker primitives inside the MirModule module.
+// The ChkpValidator interface represents an implementation of
+// the checkpoint validity checker primitives inside the MirModule module.
 // It is responsible for verifying the validity of checkpoints.
 type ChkpValidator interface {
 

@@ -21,7 +21,12 @@ type ConservativeCV struct {
 // NewConservativeCV returns a new ConservativeCV. This checkpoint validity checker
 // simply rejects checkpoints whose signatures cannot be verified because
 // the node does not know the membership of the relevant epoch yet/anymore.
-func NewConservativeCV(configOffset int, ownID t.NodeID, hashImpl crypto.HashImpl, chkpVerifier checkpoint.Verifier) *ConservativeCV {
+func NewConservativeCV(
+	configOffset int,
+	ownID t.NodeID,
+	hashImpl crypto.HashImpl,
+	chkpVerifier checkpoint.Verifier,
+) *ConservativeCV {
 	return &ConservativeCV{
 		configOffset: configOffset,
 		ownID:        ownID,
@@ -30,7 +35,11 @@ func NewConservativeCV(configOffset int, ownID t.NodeID, hashImpl crypto.HashImp
 	}
 }
 
-func (ccv *ConservativeCV) Verify(chkp *checkpointpbtypes.StableCheckpoint, epochNr tt.EpochNr, memberships []*trantorpbtypes.Membership) error {
+func (ccv *ConservativeCV) Verify(
+	chkp *checkpointpbtypes.StableCheckpoint,
+	epochNr tt.EpochNr,
+	memberships []*trantorpbtypes.Membership,
+) error {
 	sc := checkpoint.StableCheckpointFromPb(chkp.Pb())
 
 	// Check syntactic validity of the checkpoint.

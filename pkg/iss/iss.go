@@ -87,7 +87,8 @@ type ISS struct {
 
 	// The memberships for the current epoch and the params.ConfigOffset following epochs
 	// (totalling params.ConfigOffset memberships).
-	// E.g., if params.ConfigOffset 3 and the current epoch is 5, this field contains memberships for epoch 5, 6, 7 and 8.
+	// E.g., if params.ConfigOffset 3 and the current epoch is 5,
+	// this field contains memberships for epoch 5, 6, 7 and 8.
 	memberships []*trantorpbtypes.Membership
 
 	// The latest new membership obtained from the application.
@@ -228,20 +229,22 @@ func New(
 	// Upon SBDeliver event, process the event of an SB instance delivering data.
 	// It invokes the appropriate handler depending on whether this data is
 	// an availability certificate (or the special abort value) or a common checkpoint.
-	isspbdsl.UponSBDeliver(iss.m, func(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
-		// If this is a delivery of an agreed-upon stable checkpoint, deliver without verification.
-		if instanceId.Sub().Sub() == "chkp" {
-			return iss.deliverCommonCheckpoint(data)
-		}
+	isspbdsl.UponSBDeliver(iss.m,
+		func(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
+			// If this is a delivery of an agreed-upon stable checkpoint, deliver without verification.
+			if instanceId.Sub().Sub() == "chkp" {
+				return iss.deliverCommonCheckpoint(data)
+			}
 
-		// If the agreement on this sequence number has been aborted, deliver no certificate.
-		if aborted {
-			return iss.deliverCert(sn, data, aborted, leader)
-		}
+			// If the agreement on this sequence number has been aborted, deliver no certificate.
+			if aborted {
+				return iss.deliverCert(sn, data, aborted, leader)
+			}
 
-		// Verify the certificate before delivering it.
-		return iss.verifyCert(sn, data, aborted, leader)
-	})
+			// Verify the certificate before delivering it.
+			return iss.verifyCert(sn, data, aborted, leader)
+		},
+	)
 
 	apbdsl.UponCertVerified(iss.m, func(valid bool, err string, context *verifyCertContext) error {
 		if !valid {
@@ -310,68 +313,70 @@ func New(
 
 	// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
 	// It serializes and submits the checkpoint for agreement.
-	chkppbdsl.UponStableCheckpoint(iss.m, func(sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
-		// Ignore old checkpoints.
-		if sn <= iss.lastPendingCheckpointSN {
-			iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
+	chkppbdsl.UponStableCheckpoint(iss.m,
+		func(sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+			// Ignore old checkpoints.
+			if sn <= iss.lastPendingCheckpointSN {
+				iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
+				return nil
+			}
+			iss.lastPendingCheckpointSN = sn
+
+			// Convenience variables
+			membership := snapshot.EpochData.PreviousMembership
+			epoch := snapshot.EpochData.EpochConfig.EpochNr
+
+			// If this is the most recent checkpoint observed, save it.
+			iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
+				"currentEpoch", iss.epoch.Nr(),
+				"chkpEpoch", epoch,
+				"sn", sn,
+				"replacingEpoch", iss.lastStableCheckpoint.Epoch(),
+				"replacingSn", iss.lastStableCheckpoint.SeqNr(),
+				"numMemberships", len(snapshot.EpochData.EpochConfig.Memberships),
+			)
+
+			// The remainder of this function creates a new orderer instance to agree on a common checkpoint.
+			// This is only necessary because different nodes might have different checkpoint certificates
+			// (as they consist of quorums of collected signatures, which might differ at different nodes).
+			// Since we want all nodes to deliver the same checkpoint certificate to the application,
+			// we first need to agree on one (any of them).
+
+			// Choose a leader for the new orderer instance.
+			// TODO: Use the corresponding epoch's leader set to pick a leader, instead of just selecting one from all nodes.
+			leader := maputil.GetSortedKeys(membership.Nodes)[int(epoch)%len(membership.Nodes)]
+
+			// Serialize checkpoint, so it can be proposed as a value.
+			stableCheckpoint := checkpointpbtypes.StableCheckpoint{
+				Sn:       sn,
+				Snapshot: snapshot,
+				Cert:     cert,
+			}
+			chkpData, err := checkpoint.StableCheckpointFromPb(stableCheckpoint.Pb()).Serialize()
+			if err != nil {
+				return es.Errorf("failed serializing stable checkpoint: %w", err)
+			}
+
+			seg, err := common.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
+			if err != nil {
+				return es.Errorf("error creating new segment: %w", err)
+			}
+
+			// Instantiate a new PBFT orderer.
+			factorypbdsl.NewModule(iss.m,
+				iss.moduleConfig.Ordering,
+				iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
+				tt.RetentionIndex(epoch),
+				orderers.InstanceParams(
+					seg,
+					"", // The checkpoint orderer never talks to the availability module, as it has a set proposal.
+					epoch,
+					orderers.CheckpointValidityChecker,
+				),
+			)
+
 			return nil
-		}
-		iss.lastPendingCheckpointSN = sn
-
-		// Convenience variables
-		membership := snapshot.EpochData.PreviousMembership
-		epoch := snapshot.EpochData.EpochConfig.EpochNr
-
-		// If this is the most recent checkpoint observed, save it.
-		iss.logger.Log(logging.LevelInfo, "New stable checkpoint.",
-			"currentEpoch", iss.epoch.Nr(),
-			"chkpEpoch", epoch,
-			"sn", sn,
-			"replacingEpoch", iss.lastStableCheckpoint.Epoch(),
-			"replacingSn", iss.lastStableCheckpoint.SeqNr(),
-			"numMemberships", len(snapshot.EpochData.EpochConfig.Memberships),
-		)
-
-		// The remainder of this function creates a new orderer instance to agree on a common checkpoint.
-		// This is only necessary because different nodes might have different checkpoint certificates
-		// (as they consist of quorums of collected signatures, which might differ at different nodes).
-		// Since we want all nodes to deliver the same checkpoint certificate to the application,
-		// we first need to agree on one (any of them).
-
-		// Choose a leader for the new orderer instance.
-		// TODO: Use the corresponding epoch's leader set to pick a leader, instead of just selecting one from all nodes.
-		leader := maputil.GetSortedKeys(membership.Nodes)[int(epoch)%len(membership.Nodes)]
-
-		// Serialize checkpoint, so it can be proposed as a value.
-		stableCheckpoint := checkpointpbtypes.StableCheckpoint{
-			Sn:       sn,
-			Snapshot: snapshot,
-			Cert:     cert,
-		}
-		chkpData, err := checkpoint.StableCheckpointFromPb(stableCheckpoint.Pb()).Serialize()
-		if err != nil {
-			return es.Errorf("failed serializing stable checkpoint: %w", err)
-		}
-
-		seg, err := common.NewSegment(leader, membership, map[tt.SeqNr][]byte{0: chkpData})
-		if err != nil {
-			return es.Errorf("error creating new segment: %w", err)
-		}
-
-		// Instantiate a new PBFT orderer.
-		factorypbdsl.NewModule(iss.m,
-			iss.moduleConfig.Ordering,
-			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
-			tt.RetentionIndex(epoch),
-			orderers.InstanceParams(
-				seg,
-				"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
-				epoch,
-				orderers.CheckpointValidityChecker,
-			))
-
-		return nil
-	})
+		})
 
 	isspbdsl.UponPushCheckpoint(iss.m, func() error {
 		// Send the latest stable checkpoint to potentially
@@ -416,27 +421,35 @@ func New(
 		return nil
 	})
 
-	chkppbdsl.UponStableCheckpointReceived(iss.m, func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
-		_chkp := &checkpointpbtypes.StableCheckpoint{
-			Sn:       sn,
-			Snapshot: snapshot,
-			Cert:     cert,
-		}
+	chkppbdsl.UponStableCheckpointReceived(iss.m,
+		func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+			chkp := &checkpointpbtypes.StableCheckpoint{
+				Sn:       sn,
+				Snapshot: snapshot,
+				Cert:     cert,
+			}
 
-		sc := checkpoint.StableCheckpointFromPb(_chkp.Pb())
-		// Check how far the received stable checkpoint is ahead of the local node's state.
-		chkpMembershipOffset := int(sc.Epoch()) - 1 - int(iss.epoch.Nr())
-		if chkpMembershipOffset <= 0 {
-			// Ignore stable checkpoints that are not far enough
-			// ahead of the current state of the local node.
+			sc := checkpoint.StableCheckpointFromPb(chkp.Pb())
+			// Check how far the received stable checkpoint is ahead of the local node's state.
+			chkpMembershipOffset := int(sc.Epoch()) - 1 - int(iss.epoch.Nr())
+			if chkpMembershipOffset <= 0 {
+				// Ignore stable checkpoints that are not far enough
+				// ahead of the current state of the local node.
+				return nil
+			}
+
+			cvpbdsl.ValidateCheckpoint(iss.m,
+				iss.moduleConfig.ChkpValidator,
+				chkp,
+				iss.epoch.Nr(),
+				iss.memberships,
+				&validateChechkpointContext{
+					checkpoint: chkp,
+				},
+			)
 			return nil
-		}
-
-		cvpbdsl.ValidateCheckpoint(iss.m, iss.moduleConfig.ChkpValidator, _chkp, iss.epoch.Nr(), iss.memberships, &validateChechkpointContext{
-			checkpoint: _chkp,
-		})
-		return nil
-	})
+		},
+	)
 
 	cvpbdsl.UponCheckpointValidated(iss.m, func(err error, c *validateChechkpointContext) error {
 		if err != nil {
@@ -493,8 +506,8 @@ func New(
 		// Technically, this could be made redundant, since it is the same checkpoint the application is restoring from.
 		// However, it helps preserve the pattern of calls to the application where a checkpoint is explicitly delivered
 		// in each epoch.
-		// Note: It is important that this line goes after the call to iss.startEpoch(), as iss.startEpoch() also interacts
-		//       with the application, notifying it about the new epoch.
+		// Note: It is important that this line goes after the call to iss.startEpoch(),
+		//       as iss.startEpoch() also interacts with the application, notifying it about the new epoch.
 		chkppbdsl.StableCheckpoint(iss.m,
 			iss.moduleConfig.App,
 			chkp.SeqNr(),
@@ -631,7 +644,9 @@ func (iss *ISS) initOrderers() error {
 
 		// Instantiate a new PBFT orderer.
 		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
-			iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).Then(t.ModuleID(fmt.Sprintf("%v", i))),
+			iss.moduleConfig.Ordering.
+				Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).
+				Then(t.ModuleID(fmt.Sprintf("%v", i))),
 			tt.RetentionIndex(iss.epoch.Nr()),
 			orderers.InstanceParams(
 				seg,
