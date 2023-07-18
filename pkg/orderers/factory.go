@@ -63,7 +63,7 @@ func Factory(
 				case PermissiveValidityChecker:
 					validityChecker = common.NewPermissiveValidityChecker()
 				case CheckpointValidityChecker:
-					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership, issParams, logger)
+					validityChecker = common.NewCheckpointValidityChecker(hashImpl, chkpVerifier, segment.Membership, issParams.ConfigOffset, logger)
 
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.

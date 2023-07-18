@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/checkpoint/chkpvalidator"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
@@ -17,6 +18,7 @@ type ModuleConfig struct {
 	BatchDB       t.ModuleID
 	BatchFetcher  t.ModuleID
 	Checkpointing t.ModuleID
+	ChkpValidator t.ModuleID
 	Crypto        t.ModuleID
 	Hasher        t.ModuleID
 	ISS           t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
@@ -34,6 +36,7 @@ func DefaultModuleConfig() ModuleConfig {
 		BatchDB:       "batchdb",
 		BatchFetcher:  "batchfetcher",
 		Checkpointing: "checkpoint",
+		ChkpValidator: "chkpvalidator",
 		Crypto:        "crypto",
 		Hasher:        "hasher",
 		ISS:           "iss",
@@ -47,15 +50,17 @@ func DefaultModuleConfig() ModuleConfig {
 
 func (mc ModuleConfig) ConfigureISS() iss.ModuleConfig {
 	return iss.ModuleConfig{
-		Self:         mc.ISS,
-		App:          mc.BatchFetcher,
-		Availability: mc.Availability,
-		Checkpoint:   mc.Checkpointing,
-		Net:          mc.Net,
-		Ordering:     mc.Ordering,
-		Timer:        mc.Timer,
+		Self:          mc.ISS,
+		App:           mc.BatchFetcher,
+		Availability:  mc.Availability,
+		Checkpoint:    mc.Checkpointing,
+		ChkpValidator: mc.ChkpValidator,
+		Net:           mc.Net,
+		Ordering:      mc.Ordering,
+		Timer:         mc.Timer,
 	}
 }
+
 func (mc ModuleConfig) ConfigureCheckpointing() checkpoint.ModuleConfig {
 	return checkpoint.ModuleConfig{
 		Self:   mc.Checkpointing,
@@ -64,6 +69,12 @@ func (mc ModuleConfig) ConfigureCheckpointing() checkpoint.ModuleConfig {
 		Hasher: mc.Hasher,
 		Net:    mc.Net,
 		Ord:    mc.ISS,
+	}
+}
+
+func (mc ModuleConfig) ConfigureChkpValidator() chkpvalidator.ModuleConfig {
+	return chkpvalidator.ModuleConfig{
+		Self: mc.ChkpValidator,
 	}
 }
 

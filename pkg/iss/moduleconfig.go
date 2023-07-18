@@ -7,10 +7,11 @@ import t "github.com/filecoin-project/mir/pkg/types"
 type ModuleConfig struct {
 	Self t.ModuleID
 
-	App          t.ModuleID
-	Availability t.ModuleID
-	Checkpoint   t.ModuleID
-	Net          t.ModuleID
-	Ordering     t.ModuleID
-	Timer        t.ModuleID
+	App           t.ModuleID
+	Availability  t.ModuleID
+	Checkpoint    t.ModuleID
+	ChkpValidator t.ModuleID
+	Net           t.ModuleID
+	Ordering      t.ModuleID
+	Timer         t.ModuleID
 }

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package chkpvalidatorpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb";
+
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "trantorpb/trantorpb.proto";
+import "checkpointpb/checkpointpb.proto";
+
+import "mir/codegen_extensions.proto";
+
+// ============================================================
+// Events
+// ============================================================
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    ValidateCheckpoint validate_checkpoint   = 1;
+    CheckpointValidated checkpoint_validated = 2;
+  }
+}
+
+message ValidateCheckpoint {
+  option (mir.event) = true;
+
+  checkpointpb.StableCheckpoint checkpoint = 1;
+  uint64 epoch_nr = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  repeated trantorpb.Membership memberships = 3;
+  ValidateChkpOrigin origin = 4 [(mir.origin_request) = true];
+}
+
+message CheckpointValidated {
+  option (mir.event) = true;
+
+  string       error   = 1 [(mir.type) = "error"];
+  ValidateChkpOrigin origin = 2 [(mir.origin_response) = true];
+}
+
+message ValidateChkpOrigin {
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}

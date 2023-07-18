@@ -15,6 +15,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
+	cv "github.com/filecoin-project/mir/pkg/checkpoint/chkpvalidator"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -145,6 +146,7 @@ func New(
 		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),
 	)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating ISS protocol module")
 	}
@@ -169,6 +171,14 @@ func New(
 		ownID,
 		logging.Decorate(logger, "CHKP: "),
 	)
+
+	trantorModules[moduleConfig.ChkpValidator] = cv.NewModule(moduleConfig.ConfigureChkpValidator(), cv.NewPermissiveCV(
+		params.Iss.ConfigOffset,
+		ownID,
+		hashImpl,
+		cryptoImpl,
+		logger,
+	))
 
 	// The batch fetcher module transforms availability certificates ordered by ISS
 	// into batches of transactions that can be applied to the replicated application.
