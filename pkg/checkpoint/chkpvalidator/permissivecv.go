@@ -49,7 +49,12 @@ func (pcv *PermissiveCV) Verify(chkp *checkpointpbtypes.StableCheckpoint, epochN
 		return es.Errorf("nodeID not in membership")
 	}
 
-	chkpMembership := sc.PreviousMembership() // This is wrong and it is a vulnerability, come back to fix (issue #384)
+	// ATTENTION: We are using the membership contained in the checkpoint itself
+	// as the one to verify its certificate against.
+	// This is a vulnerability, since any the state of any node can be corrupted
+	// simply by receiving a maliciously crafted checkpoint.
+	// Thus, the permissive checker is a form of a stub and should not be used in production.
+	chkpMembership := sc.PreviousMembership()
 	chkpMembershipOffset := int(sc.Epoch()) - 1 - int(epochNr)
 
 	if chkpMembershipOffset > pcv.configOffset {
