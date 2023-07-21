@@ -101,7 +101,7 @@ func (il *IndexedList[K, V]) appendElement(e *element[K, V]) {
 
 // prependElement prepends a given element to the start of the list if not already present (anywhere in the list).
 // ATTENTION: The list must be locked when calling this function!
-func (il *IndexedList[K, V]) prependElement(e *element[K, V]) {
+func (il *IndexedList[K, V]) prependElement(e *element[K, V]) { //nolint:unused
 
 	// Ignore element if one with the same key already exists.
 	if _, ok := il.index[e.key]; ok {
