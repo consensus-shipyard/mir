@@ -141,6 +141,24 @@ func (il *IndexedList[K, V]) Remove(keys []K) ([]K, []V) {
 	return removedKeys, removedVals
 }
 
+func (il *IndexedList[K, V]) RemoveSelected(predicate func(K, V) bool) ([]K, []V) {
+	il.lock.Lock()
+	defer il.lock.Unlock()
+
+	removedKeys := make([]K, 0)
+	removedVals := make([]V, 0)
+
+	for key, e := range il.index {
+		if predicate(key, e.val) {
+			removedKeys = append(removedKeys, key)
+			removedVals = append(removedVals, e.val)
+			il.removeElement(e)
+		}
+	}
+
+	return removedKeys, removedVals
+}
+
 // removeElement removes an element from the list, including the index.
 // ATTENTION: The list must be locked when calling this function!
 // ATTENTION: The element must be in the list. If it is not, removeElement will corrupt the state

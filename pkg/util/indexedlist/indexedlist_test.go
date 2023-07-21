@@ -59,6 +59,33 @@ func TestIndexedList_Remove(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestIndexedList_RemoveSelected(t *testing.T) {
+	il := New[string, int]()
+	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
+	assert.Equal(t, 3, il.Len())
+
+	keys, vals := il.RemoveSelected(func(key string, val int) bool {
+		return key == "b"
+	})
+	assert.Equal(t, "b", keys[0])
+	assert.Equal(t, 1, vals[0])
+	assert.Equal(t, 2, il.Len())
+
+	iter := il.Iterator(0)
+	key, val, ok := iter.Next()
+	assert.Equal(t, "a", key)
+	assert.Equal(t, 0, val)
+	assert.True(t, ok)
+	key, val, ok = iter.Next()
+	assert.Equal(t, "c", key)
+	assert.Equal(t, 2, val)
+	assert.True(t, ok)
+	key, val, ok = iter.Next()
+	assert.Equal(t, "", key)
+	assert.Equal(t, 0, val)
+	assert.False(t, ok)
+}
+
 func TestIndexedList_EmptyIterator(t *testing.T) {
 	il := New[string, int]()
 	il.Append([]string{"a"}, []int{0})
