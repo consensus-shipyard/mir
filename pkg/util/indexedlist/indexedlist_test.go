@@ -96,6 +96,56 @@ func TestIndexedList_IteratorModify(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestIterator_NextWhile(t *testing.T) {
+	il := New[string, int]()
+	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
+	assert.Equal(t, 3, il.Len())
+
+	// Condition allowing all elements to be traversed.
+	iter := il.Iterator(0)
+	sum := 0
+	keys, vals, ok := iter.NextWhile(func(key string, val int) bool {
+		if sum+val <= 10 {
+			sum += val
+			return true
+		}
+		return false
+	})
+	assert.True(t, ok)
+	assert.Equal(t, 3, len(keys))
+	assert.Equal(t, 3, len(vals))
+	assert.Equal(t, "a", keys[0])
+	assert.Equal(t, 0, vals[0])
+	assert.Equal(t, "b", keys[1])
+	assert.Equal(t, 1, vals[1])
+	assert.Equal(t, "c", keys[2])
+	assert.Equal(t, 2, vals[2])
+	_, _, ok = iter.Next()
+	assert.False(t, ok)
+
+	// Condition allowing only part of the elements to be traversed.
+	iter = il.Iterator(0)
+	sum = 0
+	keys, vals, ok = iter.NextWhile(func(key string, val int) bool {
+		if sum+val <= 1 {
+			sum += val
+			return true
+		}
+		return false
+	})
+	assert.True(t, ok)
+	assert.Equal(t, 2, len(keys))
+	assert.Equal(t, 2, len(vals))
+	assert.Equal(t, "a", keys[0])
+	assert.Equal(t, 0, vals[0])
+	assert.Equal(t, "b", keys[1])
+	assert.Equal(t, 1, vals[1])
+	key, val, ok := iter.Next()
+	assert.Equal(t, "c", key)
+	assert.Equal(t, 2, val)
+	assert.True(t, ok)
+}
+
 func TestIndexedList_GarbageCollect(t *testing.T) {
 	il := New[string, int]()
 	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
