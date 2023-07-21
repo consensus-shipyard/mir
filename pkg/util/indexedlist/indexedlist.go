@@ -123,12 +123,19 @@ func (il *IndexedList[K, V]) prependElement(e *element[K, V]) { //nolint:unused
 }
 
 // Remove removes list entries with the given keys, if they are in the list.
-func (il *IndexedList[K, V]) Remove(keys []K) {
+// Returns the keys and values actually removed.
+func (il *IndexedList[K, V]) Remove(keys []K) ([]K, []V) {
+	removedKeys := make([]K, 0, len(keys))
+	removedVals := make([]V, 0, len(keys))
 	for _, key := range keys {
 		if e, ok := il.index[key]; ok {
 			il.removeElement(e)
+			removedKeys = append(removedKeys, e.key)
+			removedVals = append(removedVals, e.val)
 		}
 	}
+
+	return removedKeys, removedVals
 }
 
 // removeElement removes an element from the list, including the index.

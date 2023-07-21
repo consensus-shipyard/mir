@@ -39,7 +39,9 @@ func TestIndexedList_Remove(t *testing.T) {
 	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
 	assert.Equal(t, 3, il.Len())
 
-	il.Remove([]string{"b"})
+	keys, vals := il.Remove([]string{"b"})
+	assert.Equal(t, "b", keys[0])
+	assert.Equal(t, 1, vals[0])
 	assert.Equal(t, 2, il.Len())
 
 	iter := il.Iterator(0)
@@ -64,7 +66,9 @@ func TestIndexedList_EmptyIterator(t *testing.T) {
 
 	iter := il.Iterator(0)
 
-	il.Remove([]string{"a"})
+	keys, vals := il.Remove([]string{"a"})
+	assert.Equal(t, "a", keys[0])
+	assert.Equal(t, 0, vals[0])
 	assert.Equal(t, 0, il.Len())
 
 	key, val, ok := iter.Next()
@@ -84,7 +88,9 @@ func TestIndexedList_IteratorModify(t *testing.T) {
 	assert.Equal(t, 0, val)
 	assert.True(t, ok)
 
-	il.Remove([]string{"b"})
+	keys, vals := il.Remove([]string{"b"})
+	assert.Equal(t, "b", keys[0])
+	assert.Equal(t, 1, vals[0])
 
 	key, val, ok = iter.Next()
 	assert.Equal(t, "c", key)
