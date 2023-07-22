@@ -57,6 +57,32 @@ func (il *IndexedList[K, V]) Len() int {
 	return len(il.index)
 }
 
+// LookUp takes a slice of keys and returns 3 slices containing, respectively,
+// 1. Those among the given keys that have been found in the list
+// 2. The corresponding values
+// 3. Those among the given keys that have not been found in the list
+// The order of elements in the returned slices respects the order of the given keys.
+func (il *IndexedList[K, V]) LookUp(keys []K) ([]K, []V, []K) {
+	il.lock.Lock()
+	defer il.lock.Unlock()
+
+	// Create output slices. (The memory pre-allocations expect to find all keys, but are not relevant for correctness.)
+	foundKeys := make([]K, 0, len(keys))
+	foundVals := make([]V, 0, len(keys))
+	missingKeys := make([]K, 0)
+
+	for _, key := range keys {
+		if e, ok := il.index[key]; ok {
+			foundKeys = append(foundKeys, key)
+			foundVals = append(foundVals, e.val)
+		} else {
+			missingKeys = append(missingKeys, key)
+		}
+	}
+
+	return foundKeys, foundVals, missingKeys
+}
+
 // Append adds multiple key-value pairs to the end of the list, in the given order.
 // Append skips a key-value pair if an item is already stored under the same key anywhere in the list.
 // Returns lists of actually appended keys and values.

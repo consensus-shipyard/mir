@@ -41,6 +41,15 @@ func TestIndexedList_Append(t *testing.T) {
 	assert.Equal(t, []int{3}, vals)
 }
 
+func TestIndexedList_LookUp(t *testing.T) {
+	il := New[string, int]()
+	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
+	foundKeys, foundVals, missingKeys := il.LookUp([]string{"c", "a", "d"})
+	assert.Equal(t, []string{"c", "a"}, foundKeys)
+	assert.Equal(t, []int{2, 0}, foundVals)
+	assert.Equal(t, []string{"d"}, missingKeys)
+}
+
 func TestIndexedList_Remove(t *testing.T) {
 	il := New[string, int]()
 	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
