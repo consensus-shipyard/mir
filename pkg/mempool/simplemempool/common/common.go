@@ -43,5 +43,8 @@ type ModuleParams struct {
 
 // State represents the common state accessible to all parts of the module implementation.
 type State struct {
-	TxByID map[string]*trantorpbtypes.Transaction
+	// All the transactions in the mempool.
+	// Incoming transactions that have not yet been delivered are added to this list.
+	// They are removed upon delivery.
+	Transactions *indexedlist.IndexedList[tt.TxID, *trantorpbtypes.Transaction]
 }
