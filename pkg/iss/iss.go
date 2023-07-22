@@ -224,7 +224,7 @@ func New(
 			checkpointpbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()),
 		)
 
-		//Instantiate the stateless PPV module for the permissive validity checker
+		// Instantiate the stateless PPV module for the permissive validity checker.
 		factorypbdsl.NewModule(iss.m,
 			iss.moduleConfig.PPrepValidator,
 			iss.moduleConfig.PPrepValidator.Then("permissive"),
