@@ -58,8 +58,10 @@ func (il *IndexedList[K, V]) Len() int {
 }
 
 // Append adds multiple key-value pairs to the end of the list, in the given order.
+// Append skips a key-value pair if an item is already stored under the same key anywhere in the list.
+// Returns lists of actually appended keys and values.
 // If the two arguments have different lengths, Append panics.
-func (il *IndexedList[K, V]) Append(keys []K, vals []V) {
+func (il *IndexedList[K, V]) Append(keys []K, vals []V) ([]K, []V) {
 	il.lock.Lock()
 	defer il.lock.Unlock()
 
@@ -67,22 +69,28 @@ func (il *IndexedList[K, V]) Append(keys []K, vals []V) {
 		panic(fmt.Sprintf("key and value slices have different lengths: %d, %d", len(keys), len(vals)))
 	}
 
+	appendedKeys := make([]K, 0, len(keys))
+	appendedVals := make([]V, 0, len(vals))
+
 	for i, k := range keys {
 		// TODO: This can be optimized by creating a chain of elements directly and then appending it as a whole.
-		il.appendElement(&element[K, V]{
-			key: k,
-			val: vals[i],
-		})
+		if il.appendElement(&element[K, V]{key: k, val: vals[i]}) {
+			appendedKeys = append(appendedKeys, k)
+			appendedVals = append(appendedVals, vals[i])
+		}
 	}
+
+	return appendedKeys, appendedVals
 }
 
 // appendElement appends a given element to the end of the list if not already present (anywhere in the list).
+// Returns true if the element was appended, false if it was already present and thus not appended.
 // ATTENTION: The list must be locked when calling this function!
-func (il *IndexedList[K, V]) appendElement(e *element[K, V]) {
+func (il *IndexedList[K, V]) appendElement(e *element[K, V]) bool {
 
 	// Ignore element if one with the same key already exists.
 	if _, ok := il.index[e.key]; ok {
-		return
+		return false
 	}
 
 	// Add element to the index.
@@ -97,6 +105,7 @@ func (il *IndexedList[K, V]) appendElement(e *element[K, V]) {
 	}
 	il.last = e
 
+	return true
 }
 
 // prependElement prepends a given element to the start of the list if not already present (anywhere in the list).

@@ -8,8 +8,10 @@ import (
 
 func TestIndexedList_Append(t *testing.T) {
 	il := New[string, int]()
-	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
+	keys, vals := il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
 	assert.Equal(t, 3, il.Len())
+	assert.Equal(t, []string{"a", "b", "c"}, keys)
+	assert.Equal(t, []int{0, 1, 2}, vals)
 
 	iter := il.Iterator(0)
 	key, val, ok := iter.Next()
@@ -32,6 +34,11 @@ func TestIndexedList_Append(t *testing.T) {
 	assert.Equal(t, "", key)
 	assert.Equal(t, 0, val)
 	assert.False(t, ok)
+
+	keys, vals = il.Append([]string{"b", "d"}, []int{1, 3})
+	assert.Equal(t, 4, il.Len())
+	assert.Equal(t, []string{"d"}, keys)
+	assert.Equal(t, []int{3}, vals)
 }
 
 func TestIndexedList_Remove(t *testing.T) {
