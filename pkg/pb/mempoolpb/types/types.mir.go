@@ -4,14 +4,14 @@ package mempoolpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	types3 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
-	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -56,6 +56,8 @@ func Event_TypeFromPb(pb mempoolpb.Event_Type) Event_Type {
 		return &Event_NewTransactions{NewTransactions: NewTransactionsFromPb(pb.NewTransactions)}
 	case *mempoolpb.Event_BatchTimeout:
 		return &Event_BatchTimeout{BatchTimeout: BatchTimeoutFromPb(pb.BatchTimeout)}
+	case *mempoolpb.Event_NewEpoch:
+		return &Event_NewEpoch{NewEpoch: NewEpochFromPb(pb.NewEpoch)}
 	}
 	return nil
 }
@@ -300,6 +302,30 @@ func (*Event_BatchTimeout) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event_BatchTimeout]()}
 }
 
+type Event_NewEpoch struct {
+	NewEpoch *NewEpoch
+}
+
+func (*Event_NewEpoch) isEvent_Type() {}
+
+func (w *Event_NewEpoch) Unwrap() *NewEpoch {
+	return w.NewEpoch
+}
+
+func (w *Event_NewEpoch) Pb() mempoolpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.NewEpoch == nil {
+		return &mempoolpb.Event_NewEpoch{}
+	}
+	return &mempoolpb.Event_NewEpoch{NewEpoch: (w.NewEpoch).Pb()}
+}
+
+func (*Event_NewEpoch) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event_NewEpoch]()}
+}
+
 func EventFromPb(pb *mempoolpb.Event) *Event {
 	if pb == nil {
 		return nil
@@ -327,8 +353,42 @@ func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.Event]()}
 }
 
+type NewEpoch struct {
+	EpochNr        types.EpochNr
+	ClientProgress *types1.ClientProgress
+}
+
+func NewEpochFromPb(pb *mempoolpb.NewEpoch) *NewEpoch {
+	if pb == nil {
+		return nil
+	}
+	return &NewEpoch{
+		EpochNr:        (types.EpochNr)(pb.EpochNr),
+		ClientProgress: types1.ClientProgressFromPb(pb.ClientProgress),
+	}
+}
+
+func (m *NewEpoch) Pb() *mempoolpb.NewEpoch {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &mempoolpb.NewEpoch{}
+	{
+		pbMessage.EpochNr = (uint64)(m.EpochNr)
+		if m.ClientProgress != nil {
+			pbMessage.ClientProgress = (m.ClientProgress).Pb()
+		}
+	}
+
+	return pbMessage
+}
+
+func (*NewEpoch) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*mempoolpb.NewEpoch]()}
+}
+
 type NewTransactions struct {
-	Transactions []*types.Transaction
+	Transactions []*types1.Transaction
 }
 
 func NewTransactionsFromPb(pb *mempoolpb.NewTransactions) *NewTransactions {
@@ -336,8 +396,8 @@ func NewTransactionsFromPb(pb *mempoolpb.NewTransactions) *NewTransactions {
 		return nil
 	}
 	return &NewTransactions{
-		Transactions: types1.ConvertSlice(pb.Transactions, func(t *trantorpb.Transaction) *types.Transaction {
-			return types.TransactionFromPb(t)
+		Transactions: types2.ConvertSlice(pb.Transactions, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 	}
 }
@@ -348,7 +408,7 @@ func (m *NewTransactions) Pb() *mempoolpb.NewTransactions {
 	}
 	pbMessage := &mempoolpb.NewTransactions{}
 	{
-		pbMessage.Transactions = types1.ConvertSlice(m.Transactions, func(t *types.Transaction) *trantorpb.Transaction {
+		pbMessage.Transactions = types2.ConvertSlice(m.Transactions, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		})
 	}
@@ -361,6 +421,7 @@ func (*NewTransactions) MirReflect() mirreflect.Type {
 }
 
 type RequestBatch struct {
+	Epoch  types.EpochNr
 	Origin *RequestBatchOrigin
 }
 
@@ -369,6 +430,7 @@ func RequestBatchFromPb(pb *mempoolpb.RequestBatch) *RequestBatch {
 		return nil
 	}
 	return &RequestBatch{
+		Epoch:  (types.EpochNr)(pb.Epoch),
 		Origin: RequestBatchOriginFromPb(pb.Origin),
 	}
 }
@@ -379,6 +441,7 @@ func (m *RequestBatch) Pb() *mempoolpb.RequestBatch {
 	}
 	pbMessage := &mempoolpb.RequestBatch{}
 	{
+		pbMessage.Epoch = (uint64)(m.Epoch)
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
@@ -392,8 +455,8 @@ func (*RequestBatch) MirReflect() mirreflect.Type {
 }
 
 type NewBatch struct {
-	TxIds  []types2.TxID
-	Txs    []*types.Transaction
+	TxIds  []types.TxID
+	Txs    []*types1.Transaction
 	Origin *RequestBatchOrigin
 }
 
@@ -402,11 +465,11 @@ func NewBatchFromPb(pb *mempoolpb.NewBatch) *NewBatch {
 		return nil
 	}
 	return &NewBatch{
-		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
-			return (types2.TxID)(t)
+		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
 		}),
-		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
-			return types.TransactionFromPb(t)
+		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 		Origin: RequestBatchOriginFromPb(pb.Origin),
 	}
@@ -418,10 +481,10 @@ func (m *NewBatch) Pb() *mempoolpb.NewBatch {
 	}
 	pbMessage := &mempoolpb.NewBatch{}
 	{
-		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types.TxID) []uint8 {
 			return ([]uint8)(t)
 		})
-		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		})
 		if m.Origin != nil {
@@ -437,7 +500,7 @@ func (*NewBatch) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactions struct {
-	TxIds  []types2.TxID
+	TxIds  []types.TxID
 	Origin *RequestTransactionsOrigin
 }
 
@@ -446,8 +509,8 @@ func RequestTransactionsFromPb(pb *mempoolpb.RequestTransactions) *RequestTransa
 		return nil
 	}
 	return &RequestTransactions{
-		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
-			return (types2.TxID)(t)
+		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
 		}),
 		Origin: RequestTransactionsOriginFromPb(pb.Origin),
 	}
@@ -459,7 +522,7 @@ func (m *RequestTransactions) Pb() *mempoolpb.RequestTransactions {
 	}
 	pbMessage := &mempoolpb.RequestTransactions{}
 	{
-		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types.TxID) []uint8 {
 			return ([]uint8)(t)
 		})
 		if m.Origin != nil {
@@ -475,9 +538,10 @@ func (*RequestTransactions) MirReflect() mirreflect.Type {
 }
 
 type TransactionsResponse struct {
-	Present []bool
-	Txs     []*types.Transaction
-	Origin  *RequestTransactionsOrigin
+	FoundIds   []types.TxID
+	FoundTxs   []*types1.Transaction
+	MissingIds []types.TxID
+	Origin     *RequestTransactionsOrigin
 }
 
 func TransactionsResponseFromPb(pb *mempoolpb.TransactionsResponse) *TransactionsResponse {
@@ -485,9 +549,14 @@ func TransactionsResponseFromPb(pb *mempoolpb.TransactionsResponse) *Transaction
 		return nil
 	}
 	return &TransactionsResponse{
-		Present: pb.Present,
-		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
-			return types.TransactionFromPb(t)
+		FoundIds: types2.ConvertSlice(pb.FoundIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
+		}),
+		FoundTxs: types2.ConvertSlice(pb.FoundTxs, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
+		}),
+		MissingIds: types2.ConvertSlice(pb.MissingIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
 		}),
 		Origin: RequestTransactionsOriginFromPb(pb.Origin),
 	}
@@ -499,9 +568,14 @@ func (m *TransactionsResponse) Pb() *mempoolpb.TransactionsResponse {
 	}
 	pbMessage := &mempoolpb.TransactionsResponse{}
 	{
-		pbMessage.Present = m.Present
-		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+		pbMessage.FoundIds = types2.ConvertSlice(m.FoundIds, func(t types.TxID) []uint8 {
+			return ([]uint8)(t)
+		})
+		pbMessage.FoundTxs = types2.ConvertSlice(m.FoundTxs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
+		})
+		pbMessage.MissingIds = types2.ConvertSlice(m.MissingIds, func(t types.TxID) []uint8 {
+			return ([]uint8)(t)
 		})
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
@@ -516,7 +590,7 @@ func (*TransactionsResponse) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionIDs struct {
-	Txs    []*types.Transaction
+	Txs    []*types1.Transaction
 	Origin *RequestTransactionIDsOrigin
 }
 
@@ -525,8 +599,8 @@ func RequestTransactionIDsFromPb(pb *mempoolpb.RequestTransactionIDs) *RequestTr
 		return nil
 	}
 	return &RequestTransactionIDs{
-		Txs: types1.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types.Transaction {
-			return types.TransactionFromPb(t)
+		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
+			return types1.TransactionFromPb(t)
 		}),
 		Origin: RequestTransactionIDsOriginFromPb(pb.Origin),
 	}
@@ -538,7 +612,7 @@ func (m *RequestTransactionIDs) Pb() *mempoolpb.RequestTransactionIDs {
 	}
 	pbMessage := &mempoolpb.RequestTransactionIDs{}
 	{
-		pbMessage.Txs = types1.ConvertSlice(m.Txs, func(t *types.Transaction) *trantorpb.Transaction {
+		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		})
 		if m.Origin != nil {
@@ -554,7 +628,7 @@ func (*RequestTransactionIDs) MirReflect() mirreflect.Type {
 }
 
 type TransactionIDsResponse struct {
-	TxIds  []types2.TxID
+	TxIds  []types.TxID
 	Origin *RequestTransactionIDsOrigin
 }
 
@@ -563,8 +637,8 @@ func TransactionIDsResponseFromPb(pb *mempoolpb.TransactionIDsResponse) *Transac
 		return nil
 	}
 	return &TransactionIDsResponse{
-		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
-			return (types2.TxID)(t)
+		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
 		}),
 		Origin: RequestTransactionIDsOriginFromPb(pb.Origin),
 	}
@@ -576,7 +650,7 @@ func (m *TransactionIDsResponse) Pb() *mempoolpb.TransactionIDsResponse {
 	}
 	pbMessage := &mempoolpb.TransactionIDsResponse{}
 	{
-		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types.TxID) []uint8 {
 			return ([]uint8)(t)
 		})
 		if m.Origin != nil {
@@ -592,7 +666,7 @@ func (*TransactionIDsResponse) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchID struct {
-	TxIds  []types2.TxID
+	TxIds  []types.TxID
 	Origin *RequestBatchIDOrigin
 }
 
@@ -601,8 +675,8 @@ func RequestBatchIDFromPb(pb *mempoolpb.RequestBatchID) *RequestBatchID {
 		return nil
 	}
 	return &RequestBatchID{
-		TxIds: types1.ConvertSlice(pb.TxIds, func(t []uint8) types2.TxID {
-			return (types2.TxID)(t)
+		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types.TxID {
+			return (types.TxID)(t)
 		}),
 		Origin: RequestBatchIDOriginFromPb(pb.Origin),
 	}
@@ -614,7 +688,7 @@ func (m *RequestBatchID) Pb() *mempoolpb.RequestBatchID {
 	}
 	pbMessage := &mempoolpb.RequestBatchID{}
 	{
-		pbMessage.TxIds = types1.ConvertSlice(m.TxIds, func(t types2.TxID) []uint8 {
+		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types.TxID) []uint8 {
 			return ([]uint8)(t)
 		})
 		if m.Origin != nil {

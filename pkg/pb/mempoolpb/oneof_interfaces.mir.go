@@ -54,6 +54,10 @@ func (w *Event_BatchTimeout) Unwrap() *BatchTimeout {
 	return w.BatchTimeout
 }
 
+func (w *Event_NewEpoch) Unwrap() *NewEpoch {
+	return w.NewEpoch
+}
+
 type RequestBatchOrigin_Type = isRequestBatchOrigin_Type
 
 type RequestBatchOrigin_TypeWrapper[T any] interface {
