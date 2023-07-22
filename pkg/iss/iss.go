@@ -616,6 +616,7 @@ func (iss *ISS) initAvailability() {
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 				MultisigCollector: &mscpbtypes.InstanceParams{
+					Epoch:       iss.epoch.Nr(),
 					Membership:  iss.memberships[0],
 					MaxRequests: uint64(iss.Params.SegmentLength)},
 			},

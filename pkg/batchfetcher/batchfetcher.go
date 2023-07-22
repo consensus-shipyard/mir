@@ -78,6 +78,10 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
+			f: func(_ *eventpb.Event) {
+				clientProgress.GarbageCollect()
+				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()))
+			},
 		})
 		output.Flush(m)
 		return nil
@@ -139,10 +143,10 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
 			f: func(_ *eventpb.Event) {
 				clientProgress.GarbageCollect()
-				dsl.EmitEvent(m, bfevents.ClientProgress(
+				trantorpbdsl.ClientProgress(m,
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-					clientProgress.Pb(),
-				))
+					trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()).Progress,
+				)
 			},
 		})
 		output.Flush(m)

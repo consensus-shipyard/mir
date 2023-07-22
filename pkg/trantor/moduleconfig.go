@@ -121,5 +121,6 @@ func (mc ModuleConfig) ConfigureBatchFetcher() batchfetcher.ModuleConfig {
 		Availability: mc.Availability,
 		Checkpoint:   mc.Checkpointing,
 		Destination:  mc.App,
+		Mempool:      mc.Mempool,
 	}
 }

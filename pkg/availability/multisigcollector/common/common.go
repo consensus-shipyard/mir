@@ -31,6 +31,7 @@ type ModuleConfig struct {
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
 	InstanceUID []byte                     // unique identifier for this instance used to prevent replay attacks
+	EpochNr     tt.EpochNr                 // The epoch in which this instance of MultisigCollector operates
 	Membership  *trantorpbtypes.Membership // the list of participating nodes
 	Limit       int                        // the maximum number of certificates to generate before a request is completed
 	MaxRequests int                        // the maximum number of requests to be provided by this module

@@ -9,4 +9,5 @@ type ModuleConfig struct {
 	Availability t.ModuleID // ID of the factory module containing the availability modules.
 	Checkpoint   t.ModuleID // ID of the checkpoint factory module to which to submit client progress.
 	Destination  t.ModuleID // ID of the module to deliver the produced event stream to (usually the application).
+	Mempool      t.ModuleID // ID of the mempool module to send updates on client progress to.
 }
