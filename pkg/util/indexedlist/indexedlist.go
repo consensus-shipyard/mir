@@ -176,6 +176,9 @@ func (il *IndexedList[K, V]) Remove(keys []K) ([]K, []V) {
 	return removedKeys, removedVals
 }
 
+// RemoveSelected removes all items satisfying the given predicate from the list.
+// Returns the removed items as two slices of equal lengths, for keys and values respectively.
+// The returned values preserve the order of the removed elements in the list.
 func (il *IndexedList[K, V]) RemoveSelected(predicate func(K, V) bool) ([]K, []V) {
 	il.lock.Lock()
 	defer il.lock.Unlock()
@@ -183,9 +186,11 @@ func (il *IndexedList[K, V]) RemoveSelected(predicate func(K, V) bool) ([]K, []V
 	removedKeys := make([]K, 0)
 	removedVals := make([]V, 0)
 
-	for key, e := range il.index {
-		if predicate(key, e.val) {
-			removedKeys = append(removedKeys, key)
+	var next *element[K, V]
+	for e := il.first; e != nil; e = next {
+		next = e.next // We need this for not having to assume anything about the removed element's "next" pointer.
+		if predicate(e.key, e.val) {
+			removedKeys = append(removedKeys, e.key)
 			removedVals = append(removedVals, e.val)
 			il.removeElement(e)
 		}

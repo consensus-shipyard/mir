@@ -81,20 +81,16 @@ func TestIndexedList_RemoveSelected(t *testing.T) {
 	assert.Equal(t, 3, il.Len())
 
 	keys, vals := il.RemoveSelected(func(key string, val int) bool {
-		return key == "b"
+		return key == "b" || key == "c"
 	})
-	assert.Equal(t, "b", keys[0])
-	assert.Equal(t, 1, vals[0])
-	assert.Equal(t, 2, il.Len())
+	assert.Equal(t, []string{"b", "c"}, keys)
+	assert.Equal(t, []int{1, 2}, vals)
+	assert.Equal(t, 1, il.Len())
 
 	iter := il.Iterator(0)
 	key, val, ok := iter.Next()
 	assert.Equal(t, "a", key)
 	assert.Equal(t, 0, val)
-	assert.True(t, ok)
-	key, val, ok = iter.Next()
-	assert.Equal(t, "c", key)
-	assert.Equal(t, 2, val)
 	assert.True(t, ok)
 	key, val, ok = iter.Next()
 	assert.Equal(t, "", key)
