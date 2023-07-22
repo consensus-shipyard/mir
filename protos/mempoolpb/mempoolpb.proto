@@ -29,7 +29,15 @@ message Event {
     BatchIDResponse        batch_id_response        = 8;
     NewTransactions        new_transactions         = 9;
     BatchTimeout           batch_timeout            = 10;
+    NewEpoch               new_epoch                = 11;
   }
+}
+
+message NewEpoch {
+  option (mir.event) = true;
+
+  uint64                   epoch_nr         = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  trantorpb.ClientProgress client_progress  = 2;
 }
 
 message NewTransactions {
@@ -40,9 +48,10 @@ message NewTransactions {
 
 // RequestBatch is used by the availability layer to request a new batch of transactions from the mempool.
 message RequestBatch {
-    option (mir.event) = true;
+  option (mir.event) = true;
 
-  RequestBatchOrigin origin = 1 [(mir.origin_request) = true];
+  uint64             epoch  = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  RequestBatchOrigin origin = 2 [(mir.origin_request) = true];
 }
 
 // NewBatch is a response to a RequestBatch event.
@@ -67,9 +76,10 @@ message RequestTransactions {
 message TransactionsResponse {
   option (mir.event) = true;
 
-  repeated bool              present = 1;
-  repeated trantorpb.Transaction txs     = 2;
-  RequestTransactionsOrigin  origin  = 3 [(mir.origin_response) = true];
+  repeated bytes                 found_ids   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxID"];
+  repeated trantorpb.Transaction found_txs   = 2;
+  repeated bytes                 missing_ids = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxID"];
+  RequestTransactionsOrigin      origin      = 4 [(mir.origin_response) = true];
 }
 
 // RequestTransactionIDs allows other modules to request the mempool module to compute IDs for the given transactions.

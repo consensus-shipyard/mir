@@ -82,6 +82,7 @@ message Certs {
 message InstanceParams {
   option (mir.struct) = true;
 
-  trantorpb.Membership membership  = 1;
-  uint64              max_requests = 2;
+  uint64               epoch        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  trantorpb.Membership membership   = 2;
+  uint64               max_requests = 3;
 }
