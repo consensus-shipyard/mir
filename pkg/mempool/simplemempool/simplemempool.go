@@ -43,7 +43,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) mod
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{
-		TxByID: make(map[string]*trantorpbtypes.Transaction),
+		Transactions: indexedlist.New[tt.TxID, *trantorpbtypes.Transaction](),
 	}
 
 	computeids.IncludeComputationOfTransactionAndBatchIDs(m, mc, params, logger, commonState)
