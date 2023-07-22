@@ -9,6 +9,7 @@ import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types3 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -380,6 +381,7 @@ func (*Certs) MirReflect() mirreflect.Type {
 }
 
 type InstanceParams struct {
+	Epoch       types4.EpochNr
 	Membership  *types.Membership
 	MaxRequests uint64
 }
@@ -389,6 +391,7 @@ func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 		return nil
 	}
 	return &InstanceParams{
+		Epoch:       (types4.EpochNr)(pb.Epoch),
 		Membership:  types.MembershipFromPb(pb.Membership),
 		MaxRequests: pb.MaxRequests,
 	}
@@ -400,6 +403,7 @@ func (m *InstanceParams) Pb() *mscpb.InstanceParams {
 	}
 	pbMessage := &mscpb.InstanceParams{}
 	{
+		pbMessage.Epoch = (uint64)(m.Epoch)
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}

@@ -24,9 +24,9 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponRequestBatch(m dsl.Module, handler func(origin *types.RequestBatchOrigin) error) {
+func UponRequestBatch(m dsl.Module, handler func(epoch types2.EpochNr, origin *types.RequestBatchOrigin) error) {
 	UponEvent[*types.Event_RequestBatch](m, func(ev *types.RequestBatch) error {
-		return handler(ev.Origin)
+		return handler(ev.Epoch, ev.Origin)
 	})
 }
 
@@ -53,7 +53,7 @@ func UponRequestTransactions(m dsl.Module, handler func(txIds []types2.TxID, ori
 	})
 }
 
-func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, txs []*types3.Transaction, context *C) error) {
+func UponTransactionsResponse[C any](m dsl.Module, handler func(foundIds []types2.TxID, foundTxs []*types3.Transaction, missingIds []types2.TxID, context *C) error) {
 	UponEvent[*types.Event_TransactionsResponse](m, func(ev *types.TransactionsResponse) error {
 		originWrapper, ok := ev.Origin.Type.(*types.RequestTransactionsOrigin_Dsl)
 		if !ok {
@@ -66,7 +66,7 @@ func UponTransactionsResponse[C any](m dsl.Module, handler func(present []bool, 
 			return nil
 		}
 
-		return handler(ev.Present, ev.Txs, context)
+		return handler(ev.FoundIds, ev.FoundTxs, ev.MissingIds, context)
 	})
 }
 
@@ -125,5 +125,11 @@ func UponNewTransactions(m dsl.Module, handler func(transactions []*types3.Trans
 func UponBatchTimeout(m dsl.Module, handler func(batchReqID uint64) error) {
 	UponEvent[*types.Event_BatchTimeout](m, func(ev *types.BatchTimeout) error {
 		return handler(ev.BatchReqID)
+	})
+}
+
+func UponNewEpoch(m dsl.Module, handler func(epochNr types2.EpochNr, clientProgress *types3.ClientProgress) error) {
+	UponEvent[*types.Event_NewEpoch](m, func(ev *types.NewEpoch) error {
+		return handler(ev.EpochNr, ev.ClientProgress)
 	})
 }
