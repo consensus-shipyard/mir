@@ -23,7 +23,7 @@ type ModuleConfig = common.ModuleConfig
 type ModuleParams = common.ModuleParams
 
 // DefaultParamsTemplate returns the availability module parameters structure partially filled with default values.
-// Fields without a meaningful default value (like InstanceUID and Membership)
+// Fields without a meaningful default value (like InstanceUID, Epoch, and Membership)
 // are left empty (zero values for their corresponding type).
 func DefaultParamsTemplate() ModuleParams {
 	return ModuleParams{
@@ -69,6 +69,7 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 				// Fill in instance-specific parameters.
 				moduleParams := paramsTemplate
 				moduleParams.InstanceUID = []byte(mscID)
+				moduleParams.EpochNr = mscParams.Epoch
 				moduleParams.Membership = mscParams.Membership
 				moduleParams.MaxRequests = int(mscParams.MaxRequests)
 				// TODO: Use InstanceUIDs properly.

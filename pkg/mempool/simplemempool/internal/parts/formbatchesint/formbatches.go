@@ -19,8 +19,13 @@ import (
 type State struct {
 	*common.State
 
-	// Transactions received, but not yet emitted in any batch.
-	NewTxIDs []tt.TxID
+	// The current epoch.
+	// If a batch requests from a higher epoch is received, it needs to be buffered until its epoch is reached.
+	Epoch tt.EpochNr
+
+	// Progress made by all clients so far.
+	// This data structure is used to avoid storing transactions that have already been delivered.
+	ClientProgress *clientprogress.ClientProgress
 
 	// Combined total payload size of all the transactions in the mempool.
 	TotalPayloadSize int
@@ -46,7 +51,8 @@ func IncludeBatchCreation(
 ) {
 	state := &State{
 		State:                  commonState,
-		NewTxIDs:               nil,
+		Epoch:                  0,
+		ClientProgress:         clientprogress.NewClientProgress(logger),
 		TotalPayloadSize:       0,
 		PendingBatchRequests:   make(map[int]*mppbtypes.RequestBatchOrigin),
 		FirstPendingBatchReqID: 0,
