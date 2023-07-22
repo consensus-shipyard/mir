@@ -116,7 +116,8 @@ func (vcState *PbftViewChangeState) SetEmptyPreprepares(view ot.ViewNr, proposal
 			}
 
 			// Create a new empty Preprepare message.
-			vcState.Preprepares[sn] = &pbftpbtypes.Preprepare{sn, view, data, true} // nolint:govet
+			//ACC-UPDATE HERE one must sign too
+			vcState.Preprepares[sn] = &pbftpbtypes.Preprepare{sn, view, data, true, nil} // nolint:govet
 
 			// Serialize the newly created Preprepare message for hashing.
 			dataToHash = append(dataToHash, SerializePreprepareForHashing(vcState.Preprepares[sn]))

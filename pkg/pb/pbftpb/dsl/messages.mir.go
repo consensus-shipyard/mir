@@ -25,21 +25,21 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponPreprepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, data []uint8, aborted bool) error) {
+func UponPreprepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, data []uint8, aborted bool, signature []uint8) error) {
 	UponMessageReceived[*types.Message_Preprepare](m, func(from types1.NodeID, msg *types.Preprepare) error {
-		return handler(from, msg.Sn, msg.View, msg.Data, msg.Aborted)
+		return handler(from, msg.Sn, msg.View, msg.Data, msg.Aborted, msg.Signature)
 	})
 }
 
-func UponPrepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8) error) {
+func UponPrepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8, signature []uint8) error) {
 	UponMessageReceived[*types.Message_Prepare](m, func(from types1.NodeID, msg *types.Prepare) error {
-		return handler(from, msg.Sn, msg.View, msg.Digest)
+		return handler(from, msg.Sn, msg.View, msg.Digest, msg.Signature)
 	})
 }
 
-func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8) error) {
+func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8, signature []uint8) error) {
 	UponMessageReceived[*types.Message_Commit](m, func(from types1.NodeID, msg *types.Commit) error {
-		return handler(from, msg.Sn, msg.View, msg.Digest)
+		return handler(from, msg.Sn, msg.View, msg.Digest, msg.Signature)
 	})
 }
 

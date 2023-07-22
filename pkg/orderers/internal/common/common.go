@@ -23,7 +23,17 @@ type ModuleParams struct {
 
 	// PBFT-specific configuration parameters (e.g. view change timeout, etc.)
 	Config *PBFTConfig
+
+	//accountability determines whether we want accountability of leader, of all processes, of none at all
+	AccountabilityMode int
 }
+
+// iota value to determine whether we want accountability of leader, of all processes, of none at all
+const (
+	NoAccountability = iota
+	LeaderAccountable
+	AllAccountable
+)
 
 // State represents a PBFT State.
 // It implements the sbInstance (instance of Sequenced broadcast) interface and thus can be used as an State for ISS.

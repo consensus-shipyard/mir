@@ -11,7 +11,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, data []uint8, aborted bool) *types3.Message {
+func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, data []uint8, aborted bool, signature []uint8) *types3.Message {
 	return &types3.Message{
 		DestModule: destModule,
 		Type: &types3.Message_Orderer{
@@ -20,10 +20,11 @@ func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, 
 					Pbft: &types5.Message{
 						Type: &types5.Message_Preprepare{
 							Preprepare: &types5.Preprepare{
-								Sn:      sn,
-								View:    view,
-								Data:    data,
-								Aborted: aborted,
+								Sn:        sn,
+								View:      view,
+								Data:      data,
+								Aborted:   aborted,
+								Signature: signature,
 							},
 						},
 					},
@@ -33,7 +34,7 @@ func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, 
 	}
 }
 
-func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8) *types3.Message {
+func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8, signature []uint8) *types3.Message {
 	return &types3.Message{
 		DestModule: destModule,
 		Type: &types3.Message_Orderer{
@@ -42,9 +43,10 @@ func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dig
 					Pbft: &types5.Message{
 						Type: &types5.Message_Prepare{
 							Prepare: &types5.Prepare{
-								Sn:     sn,
-								View:   view,
-								Digest: digest,
+								Sn:        sn,
+								View:      view,
+								Digest:    digest,
+								Signature: signature,
 							},
 						},
 					},
@@ -54,7 +56,7 @@ func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dig
 	}
 }
 
-func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8) *types3.Message {
+func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8, signature []uint8) *types3.Message {
 	return &types3.Message{
 		DestModule: destModule,
 		Type: &types3.Message_Orderer{
@@ -63,9 +65,10 @@ func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dige
 					Pbft: &types5.Message{
 						Type: &types5.Message_Commit{
 							Commit: &types5.Commit{
-								Sn:     sn,
-								View:   view,
-								Digest: digest,
+								Sn:        sn,
+								View:      view,
+								Digest:    digest,
+								Signature: signature,
 							},
 						},
 					},

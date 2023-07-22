@@ -42,7 +42,8 @@ func NewOrdererModule(
 	ownID t.NodeID,
 	segment *common2.Segment,
 	config *common.PBFTConfig,
-	logger logging.Logger) modules.PassiveModule {
+	logger logging.Logger,
+	accMode int) modules.PassiveModule {
 
 	// Set all the necessary fields of the new instance and return it.
 	state := &common.State{
@@ -67,8 +68,9 @@ func NewOrdererModule(
 	}
 
 	params := &common.ModuleParams{
-		OwnID:  ownID,
-		Config: config,
+		OwnID:              ownID,
+		Config:             config,
+		AccountabilityMode: accMode,
 	}
 	m := dsl.NewModule(moduleConfig.Self)
 

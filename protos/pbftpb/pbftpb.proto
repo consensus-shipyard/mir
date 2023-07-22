@@ -45,6 +45,7 @@ message Preprepare {
   uint64 view    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  data    = 3;
   bool   aborted = 4;
+  bytes  signature = 5; //only used if orderers.common.AccountabilityMode != noAccountability
 }
 
 message Prepare {
@@ -53,6 +54,7 @@ message Prepare {
   uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
+  bytes  signature = 4; //only used if orderers.common.AccountabilityMode == AllAccountable
 }
 
 message Commit {
@@ -61,6 +63,7 @@ message Commit {
   uint64 sn     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   uint64 view   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/orderers/types.ViewNr"];
   bytes  digest = 3;
+  bytes  signature = 4; //only used if orderers.common.AccountabilityMode != noAccountability
 }
 
 // ============================================================

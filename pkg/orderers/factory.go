@@ -6,6 +6,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
+	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -62,6 +63,7 @@ func Factory(
 					segment,
 					ordererConfig,
 					logger,
+					common.NoAccountability,
 				)
 
 				return protocol, nil

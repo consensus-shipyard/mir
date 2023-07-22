@@ -107,11 +107,12 @@ func IncludeGoodCase(
 		slot.Digest = digest
 		slot.Preprepared = true
 
+		//ACC-UPDATE here the process would first sign and then send the signature with the prepare message
 		// Send a Prepare message.
 		transportpbdsl.SendMessage(
 			m,
 			moduleConfig.Net,
-			pbftpbmsgs.Prepare(moduleConfig.Self, context.Sn, state.View, digest),
+			pbftpbmsgs.Prepare(moduleConfig.Self, context.Sn, state.View, digest, nil),
 			state.Segment.NodeIDs(),
 		)
 		// Advance the state of the PbftSlot even more if necessary
@@ -125,7 +126,7 @@ func IncludeGoodCase(
 		return applyProposeTimeout(m, state, params, moduleConfig, int(proposeTimeout), logger)
 	})
 
-	pbftpbdsl.UponPreprepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, data []byte, aborted bool) error {
+	pbftpbdsl.UponPreprepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, data []byte, aborted bool, _ []byte) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -145,7 +146,7 @@ func IncludeGoodCase(
 		return nil
 	})
 
-	pbftpbdsl.UponPrepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte) error {
+	pbftpbdsl.UponPrepareReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte, _ []byte) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -160,7 +161,7 @@ func IncludeGoodCase(
 		return nil
 	})
 
-	pbftpbdsl.UponCommitReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte) error {
+	pbftpbdsl.UponCommitReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte, _ []byte) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -247,12 +248,14 @@ func propose(
 	// Log debug message.
 	logger.Log(logging.LevelDebug, "Proposing.", "sn", sn)
 
+	//ACC-UPDATE here preprepare message must be signed
+
 	// Send a Preprepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
 	transportpbdsl.SendMessage(m,
 		moduleConfig.Net,
-		pbftpbmsgs.Preprepare(moduleConfig.Self, sn, state.View, data, false),
+		pbftpbmsgs.Preprepare(moduleConfig.Self, sn, state.View, data, false, nil),
 		state.Segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
@@ -277,6 +280,8 @@ func ApplyMsgPreprepare(
 	preprepare *pbftpbtypes.Preprepare,
 	from t.NodeID,
 ) {
+
+	// ACC-UPDATE: here there would be a validation of the signature
 	ppvpbdsl.Validatepreprepare(m,
 		moduleConfig.PPrepValidator,
 		preprepare,
@@ -352,6 +357,7 @@ func applyMsgPrepare(
 	logger logging.Logger,
 ) {
 
+	//ACC-UPDATE: here there would be a validation of the signature first, (with storage in some data struture, then handling of
 	if prepare.Digest == nil {
 		logger.Log(logging.LevelWarn, "Ignoring Prepare message with nil digest.")
 		return
@@ -393,6 +399,8 @@ func applyMsgCommit(
 	logger logging.Logger,
 ) {
 
+	// ACC-UPDATE Here there would be a validation of the received leader proposal hash, if not matching then validation of siganture
+	// and unhappy path that will identify leader and some othernodes as malicious.
 	if commit.Digest == nil {
 		logger.Log(logging.LevelWarn, "Ignoring Commit message with nil digest.")
 		return
@@ -521,10 +529,11 @@ func advanceSlotState(
 	if !slot.Prepared && slot.CheckPrepared() {
 		slot.Prepared = true
 
+		//ACC-UPDATE here one must send the leader's signature and proposal hash
 		transportpbdsl.SendMessage(
 			m,
 			moduleConfig.Net,
-			pbftpbmsgs.Commit(moduleConfig.Self, sn, state.View, slot.Digest),
+			pbftpbmsgs.Commit(moduleConfig.Self, sn, state.View, slot.Digest, nil),
 			state.Segment.NodeIDs())
 	}
 

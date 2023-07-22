@@ -323,10 +323,11 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type Preprepare struct {
-	Sn      types.SeqNr
-	View    types1.ViewNr
-	Data    []uint8
-	Aborted bool
+	Sn        types.SeqNr
+	View      types1.ViewNr
+	Data      []uint8
+	Aborted   bool
+	Signature []uint8
 }
 
 func PreprepareFromPb(pb *pbftpb.Preprepare) *Preprepare {
@@ -334,10 +335,11 @@ func PreprepareFromPb(pb *pbftpb.Preprepare) *Preprepare {
 		return nil
 	}
 	return &Preprepare{
-		Sn:      (types.SeqNr)(pb.Sn),
-		View:    (types1.ViewNr)(pb.View),
-		Data:    pb.Data,
-		Aborted: pb.Aborted,
+		Sn:        (types.SeqNr)(pb.Sn),
+		View:      (types1.ViewNr)(pb.View),
+		Data:      pb.Data,
+		Aborted:   pb.Aborted,
+		Signature: pb.Signature,
 	}
 }
 
@@ -351,6 +353,7 @@ func (m *Preprepare) Pb() *pbftpb.Preprepare {
 		pbMessage.View = (uint64)(m.View)
 		pbMessage.Data = m.Data
 		pbMessage.Aborted = m.Aborted
+		pbMessage.Signature = m.Signature
 	}
 
 	return pbMessage
@@ -361,9 +364,10 @@ func (*Preprepare) MirReflect() mirreflect.Type {
 }
 
 type Prepare struct {
-	Sn     types.SeqNr
-	View   types1.ViewNr
-	Digest []uint8
+	Sn        types.SeqNr
+	View      types1.ViewNr
+	Digest    []uint8
+	Signature []uint8
 }
 
 func PrepareFromPb(pb *pbftpb.Prepare) *Prepare {
@@ -371,9 +375,10 @@ func PrepareFromPb(pb *pbftpb.Prepare) *Prepare {
 		return nil
 	}
 	return &Prepare{
-		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types1.ViewNr)(pb.View),
-		Digest: pb.Digest,
+		Sn:        (types.SeqNr)(pb.Sn),
+		View:      (types1.ViewNr)(pb.View),
+		Digest:    pb.Digest,
+		Signature: pb.Signature,
 	}
 }
 
@@ -386,6 +391,7 @@ func (m *Prepare) Pb() *pbftpb.Prepare {
 		pbMessage.Sn = (uint64)(m.Sn)
 		pbMessage.View = (uint64)(m.View)
 		pbMessage.Digest = m.Digest
+		pbMessage.Signature = m.Signature
 	}
 
 	return pbMessage
@@ -396,9 +402,10 @@ func (*Prepare) MirReflect() mirreflect.Type {
 }
 
 type Commit struct {
-	Sn     types.SeqNr
-	View   types1.ViewNr
-	Digest []uint8
+	Sn        types.SeqNr
+	View      types1.ViewNr
+	Digest    []uint8
+	Signature []uint8
 }
 
 func CommitFromPb(pb *pbftpb.Commit) *Commit {
@@ -406,9 +413,10 @@ func CommitFromPb(pb *pbftpb.Commit) *Commit {
 		return nil
 	}
 	return &Commit{
-		Sn:     (types.SeqNr)(pb.Sn),
-		View:   (types1.ViewNr)(pb.View),
-		Digest: pb.Digest,
+		Sn:        (types.SeqNr)(pb.Sn),
+		View:      (types1.ViewNr)(pb.View),
+		Digest:    pb.Digest,
+		Signature: pb.Signature,
 	}
 }
 
@@ -421,6 +429,7 @@ func (m *Commit) Pb() *pbftpb.Commit {
 		pbMessage.Sn = (uint64)(m.Sn)
 		pbMessage.View = (uint64)(m.View)
 		pbMessage.Digest = m.Digest
+		pbMessage.Signature = m.Signature
 	}
 
 	return pbMessage
