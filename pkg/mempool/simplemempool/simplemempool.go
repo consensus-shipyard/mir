@@ -12,6 +12,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/lookuptxs"
 	"github.com/filecoin-project/mir/pkg/modules"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/indexedlist"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.

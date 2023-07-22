@@ -4,7 +4,9 @@ import (
 	"time"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/indexedlist"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
