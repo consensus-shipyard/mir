@@ -251,7 +251,7 @@ func IncludeViewChange( //nolint:gocognit
 		// in case a malicious node has sent conflicting ones before.
 		primary := state.Segment.PrimaryNode(context.View)
 		for _, preprepare := range context.Preprepares {
-			goodcase.ApplyMsgPreprepare(m, moduleConfig, preprepare, primary)
+			goodcase.ApplyMsgPreprepare(m, state, params, moduleConfig, preprepare, primary, logger)
 		}
 
 		// Apply all messages buffered for this view.

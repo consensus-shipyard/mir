@@ -33,7 +33,7 @@ func SerializePreprepareForHashing(preprepare *pbftpbtypes.Preprepare) *hasherpb
 
 	// Put everything together in a slice and return it.
 	// Note that we do not include the view number,
-	// as the view change protocol might compare hashes of Preprepares across vies.
+	// as the view change protocol might compare hashes of Preprepares across views.
 	//TODO Double check that view should not be added to the hash?
 	return &hasherpbtypes.HashData{Data: [][]byte{preprepare.Sn.Bytes(), {aborted}, preprepare.Data}}
 }

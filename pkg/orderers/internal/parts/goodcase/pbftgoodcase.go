@@ -2,7 +2,8 @@ package goodcase
 
 import (
 	"fmt"
-
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
+	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	es "github.com/go-errors/errors"
 
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
@@ -97,28 +98,108 @@ func IncludeGoodCase(
 
 	// UponResultOne process the preprepare message and send a Prepare message to all nodes.
 	hasherpbdsl.UponResultOne(m, func(digest []byte, context *pbftpbtypes.Preprepare) error {
-		// Stop processing the Preprepare if view advanced in the meantime.
-		if context.View < state.View {
+
+		if params.AccountabilityMode == common.AllAccountable {
+
+			data := serializePrepareForSigning(&pbftpbtypes.Prepare{
+				Sn:     context.Sn,
+				View:   state.View,
+				Digest: digest,
+			})
+
+			//sign prepare
+			cryptopbdsl.SignRequest(m,
+				moduleConfig.Crypto,
+				&cryptopbtypes.SignedData{data},
+				&signPrepareContext{
+					preprepare: context,
+					digest:     digest,
+				},
+			)
+		} else {
+			// Send an unsigned Prepare message.
+			return sendPrepare(m,
+				state,
+				params,
+				moduleConfig,
+				digest,
+				context,
+				nil,
+				logger)
+		}
+
+		return nil
+	})
+
+	hasherpbdsl.UponResultOne(m, func(digest []byte, context *signPreprepareContext) error {
+		cryptopbdsl.SignRequest(m,
+			moduleConfig.Crypto,
+			&cryptopbtypes.SignedData{serializePreprepareForSigning(digest, context.preprepare)},
+			context)
+
+		return nil
+	})
+
+	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signPrepareContext) error {
+		// Send a signed Prepare message.
+		return sendPrepare(m,
+			state,
+			params,
+			moduleConfig,
+			context.digest,
+			context.preprepare,
+			signature,
+			logger)
+	})
+
+	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signPreprepareContext) error {
+		// Send a Prepare message.
+		// Send signature on digest but not digest itself (it would be redundant since receives need to calculate digest anyway)
+		// Signature on digest is required for 'easy' verification when leader's signature attached to commit messages
+		sendPreprepare(m, state, params, moduleConfig, context.preprepare, logger)
+		return nil
+	})
+
+	hasherpbdsl.UponResultOne(m, func(digest []byte, context *validatePreprepareContext) error {
+		cryptopbdsl.VerifySig(m,
+			moduleConfig.Crypto,
+			&cryptopbtypes.SignedData{
+				serializePreprepareForSigning(digest, context.preprepare),
+			},
+			context.preprepare.Signature,
+			context.from,
+			context)
+		return nil
+	})
+
+	cryptopbdsl.UponSigVerified(m, func(from t.NodeID, err error, context *validatePreprepareContext) error {
+		if err != nil {
+			logger.Log(logging.LevelWarn, "preprepare signature from %v is invalid", from)
 			return nil
 		}
 
-		// Save the digest of the Preprepare message and mark the slot as preprepared.
-		slot := state.Slots[state.View][context.Sn]
-		slot.Digest = digest
-		slot.Preprepared = true
+		ppvpbdsl.Validatepreprepare(m,
+			moduleConfig.PPrepValidator,
+			context.preprepare,
+			context)
+		return nil
+	})
 
-		//ACC-UPDATE here the process would first sign and then send the signature with the prepare message
-		// Send a Prepare message.
-		transportpbdsl.SendMessage(
+	cryptopbdsl.UponSigVerified(m, func(from t.NodeID, err error, context *validatePrepareSigContext) error {
+		if err != nil {
+			logger.Log(logging.LevelWarn, "prepare signature from %v is invalid", from)
+			return nil
+		}
+
+		applyMsgPrepareSigValidated(
 			m,
-			moduleConfig.Net,
-			pbftpbmsgs.Prepare(moduleConfig.Self, context.Sn, state.View, digest, nil),
-			state.Segment.NodeIDs(),
-		)
-		// Advance the state of the PbftSlot even more if necessary
-		// (potentially sending a Commit message or even delivering).
-		// This is required for the case when the Preprepare message arrives late.
-		advanceSlotState(m, state, params, moduleConfig, slot, context.Sn, logger)
+			state,
+			params,
+			moduleConfig,
+			context.prepare,
+			from,
+			logger)
+
 		return nil
 	})
 
@@ -137,7 +218,7 @@ func IncludeGoodCase(
 			Data:    data,
 			Aborted: aborted,
 		}
-		ApplyMsgPreprepare(m, moduleConfig, preprepare, from)
+		ApplyMsgPreprepare(m, state, params, moduleConfig, preprepare, from, logger)
 		return nil
 	})
 
@@ -175,6 +256,40 @@ func IncludeGoodCase(
 		return nil
 	})
 
+}
+
+func sendPrepare(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	digest []byte,
+	preprepare *pbftpbtypes.Preprepare,
+	signature []byte,
+	logger logging.Logger,
+) error {
+
+	// Stop processing the Preprepare if view advanced in the meantime.
+	if preprepare.View < state.View {
+		return nil
+	}
+
+	// Save the digest of the Preprepare message and mark the slot as preprepared.
+	slot := state.Slots[state.View][preprepare.Sn]
+	slot.Digest = digest
+	slot.Preprepared = true
+	// Send a Prepare message.
+	transportpbdsl.SendMessage(
+		m,
+		moduleConfig.Net,
+		pbftpbmsgs.Prepare(moduleConfig.Self, preprepare.Sn, state.View, digest, signature),
+		state.Segment.NodeIDs(),
+	)
+	// Advance the state of the PbftSlot even more if necessary
+	// (potentially sending a Commit message or even delivering).
+	// This is required for the case when the Preprepare message arrives late.
+	advanceSlotState(m, state, params, moduleConfig, slot, preprepare.Sn, logger)
+	return nil
 }
 
 // applyProposeTimeout applies the event of the proposal timeout firing.
@@ -241,21 +356,51 @@ func propose(
 	logger logging.Logger,
 ) error {
 
-	// Update proposal counter.
-	sn := state.Segment.SeqNrs()[state.Proposal.ProposalsMade]
-	state.Proposal.ProposalsMade++
-
-	// Log debug message.
-	logger.Log(logging.LevelDebug, "Proposing.", "sn", sn)
-
-	//ACC-UPDATE here preprepare message must be signed
-
 	// Send a Preprepare message.
 	// No need for periodic re-transmission.
 	// In the worst case, dropping of these messages may result in a view change, but will not compromise correctness.
+	sn := state.Segment.SeqNrs()[state.Proposal.ProposalsMade]
+	preprepare := &pbftpbtypes.Preprepare{
+		sn,
+		state.View,
+		data,
+		false,
+		nil,
+	}
+
+	if params.AccountabilityMode == common.AllAccountable ||
+		params.AccountabilityMode == common.LeaderAccountable {
+		//first calculate digest, we want to sign the digest for verification when nodes attach the leader's preprepare to their commit
+		hasherpbdsl.RequestOne(
+			m,
+			moduleConfig.Hasher,
+			common.SerializePreprepareForHashing(preprepare),
+			&signPreprepareContext{
+				preprepare: preprepare,
+			})
+	} else {
+		sendPreprepare(m, state, params, moduleConfig, preprepare, logger)
+	}
+
+	return nil
+}
+
+func sendPreprepare(m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	preprepare *pbftpbtypes.Preprepare,
+	logger logging.Logger) {
+
+	// Update proposal counter.
+	state.Proposal.ProposalsMade++
+
+	// Log debug message.
+	logger.Log(logging.LevelDebug, "Proposing.", "sn", preprepare.Sn)
+
 	transportpbdsl.SendMessage(m,
 		moduleConfig.Net,
-		pbftpbmsgs.Preprepare(moduleConfig.Self, sn, state.View, data, false, nil),
+		pbftpbmsgs.Preprepare(moduleConfig.Self, preprepare.Sn, preprepare.View, preprepare.Data, preprepare.Aborted, preprepare.Signature),
 		state.Segment.NodeIDs())
 
 	// Set up a new timer for the next proposal.
@@ -268,24 +413,41 @@ func propose(
 		[]*eventpbtypes.Event{timeoutEvent},
 		types.Duration(params.Config.MaxProposeDelay),
 	)
-
-	return nil
 }
 
 // ApplyMsgPreprepare applies a received preprepare message.
 // It performs the necessary checks and, if successful, submits it for hashing.
 func ApplyMsgPreprepare(
 	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
 	moduleConfig common2.ModuleConfig,
 	preprepare *pbftpbtypes.Preprepare,
 	from t.NodeID,
+	logger logging.Logger,
 ) {
 
-	// ACC-UPDATE: here there would be a validation of the signature
-	ppvpbdsl.Validatepreprepare(m,
-		moduleConfig.PPrepValidator,
-		preprepare,
-		&validatePreprepareContext{preprepare, from})
+	if params.AccountabilityMode == common.LeaderAccountable ||
+		params.AccountabilityMode == common.AllAccountable {
+		hasherpbdsl.RequestOne(
+			m,
+			moduleConfig.Hasher,
+			common.SerializePreprepareForHashing(preprepare),
+			&validatePreprepareContext{
+				preprepare: preprepare,
+				from:       from,
+			},
+		)
+		return
+
+	} else if preprepare.Signature != nil {
+		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with signature while no signature expected")
+		return
+	}
+	ppvpbdsl.Validatepreprepare(m, moduleConfig.PPrepValidator, preprepare, &validatePreprepareContext{
+		preprepare: preprepare,
+		from:       from,
+	})
 }
 
 func ApplyMsgPreprepareValidated(
@@ -336,6 +498,8 @@ func ApplyMsgPreprepareValidated(
 	slot.Preprepare = preprepare
 
 	// Request the computation of the hash of the Preprepare message.
+	//TODO This can be optimized in the case of at least leader accountable because
+	// hash already calculated
 	hasherpbdsl.RequestOne(
 		m,
 		moduleConfig.Hasher,
@@ -344,7 +508,7 @@ func ApplyMsgPreprepareValidated(
 	)
 }
 
-// applyMsgPrepare applies a received prepare message.
+// applyMsgPrepare applies a received preprepare message.
 // It performs the necessary checks and, if successful,
 // may trigger additional events like the sending of a Commit message.
 func applyMsgPrepare(
@@ -357,7 +521,41 @@ func applyMsgPrepare(
 	logger logging.Logger,
 ) {
 
-	//ACC-UPDATE: here there would be a validation of the signature first, (with storage in some data struture, then handling of
+	if params.AccountabilityMode == common.AllAccountable {
+		cryptopbdsl.VerifySig(m,
+			moduleConfig.Crypto,
+			&cryptopbtypes.SignedData{serializePrepareForSigning(prepare)},
+			prepare.Signature,
+			from,
+			&validatePrepareSigContext{
+				prepare: prepare,
+			})
+		return
+	} else if prepare.Signature != nil {
+		logger.Log(logging.LevelWarn, "Ignoring Prepare message with signature while no signature expected")
+		return
+	}
+
+	applyMsgPrepareSigValidated(
+		m,
+		state,
+		params,
+		moduleConfig,
+		prepare,
+		from,
+		logger)
+
+}
+
+func applyMsgPrepareSigValidated(
+	m dsl.Module,
+	state *common.State,
+	params *common.ModuleParams,
+	moduleConfig common2.ModuleConfig,
+	prepare *pbftpbtypes.Prepare,
+	from t.NodeID,
+	logger logging.Logger,
+) {
 	if prepare.Digest == nil {
 		logger.Log(logging.LevelWarn, "Ignoring Prepare message with nil digest.")
 		return
@@ -440,7 +638,7 @@ func ApplyBufferedMsg(
 ) {
 	switch msg := msgPb.(type) {
 	case *pbftpb.Preprepare:
-		ApplyMsgPreprepare(m, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from)
+		ApplyMsgPreprepare(m, state, params, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from, logger)
 	case *pbftpb.Prepare:
 		applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
 	case *pbftpb.Commit:
@@ -529,11 +727,10 @@ func advanceSlotState(
 	if !slot.Prepared && slot.CheckPrepared() {
 		slot.Prepared = true
 
-		//ACC-UPDATE here one must send the leader's signature and proposal hash
 		transportpbdsl.SendMessage(
 			m,
 			moduleConfig.Net,
-			pbftpbmsgs.Commit(moduleConfig.Self, sn, state.View, slot.Digest, nil),
+			pbftpbmsgs.Commit(moduleConfig.Self, sn, state.View, slot.Digest, slot.Preprepare.Signature),
 			state.Segment.NodeIDs())
 	}
 
@@ -582,7 +779,35 @@ func advanceSlotState(
 	}
 }
 
+func serializePreprepareForSigning(digest []byte, preprepare *pbftpbtypes.Preprepare) [][]byte {
+	result := make([][]byte, 0, 2)
+	result[0] = digest
+	result[1] = preprepare.View.Bytes() //this is not being used for hashing , which is why I add it here
+	return result
+}
+
+func serializePrepareForSigning(prepare *pbftpbtypes.Prepare) [][]byte {
+	result := make([][]byte, 0, 3)
+	result[0] = prepare.Digest
+	result[1] = prepare.View.Bytes()
+	result[2] = prepare.Sn.Bytes()
+	return result
+}
+
 type validatePreprepareContext struct {
 	preprepare *pbftpbtypes.Preprepare
 	from       t.NodeID
+}
+
+type signPrepareContext struct {
+	preprepare *pbftpbtypes.Preprepare
+	digest     []byte
+}
+
+type signPreprepareContext struct {
+	preprepare *pbftpbtypes.Preprepare
+}
+
+type validatePrepareSigContext struct {
+	prepare *pbftpbtypes.Prepare
 }
