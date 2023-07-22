@@ -10,17 +10,16 @@ import (
 	mscpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/dsl"
 	mscpbmsgs "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/msgs"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/membutil"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	mempooldsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
 // certCreationState represents the state related to this part of the module.

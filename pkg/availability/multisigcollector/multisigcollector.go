@@ -3,11 +3,10 @@ package multisigcollector
 import (
 	"math"
 
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certverification"
-
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"

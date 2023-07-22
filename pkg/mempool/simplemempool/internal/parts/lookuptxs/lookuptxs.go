@@ -5,7 +5,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
