@@ -35,7 +35,7 @@ func Event_TypeFromPb(pb pprepvalidatorpb.Event_Type) Event_Type {
 	}
 	switch pb := pb.(type) {
 	case *pprepvalidatorpb.Event_ValidatePreprepare:
-		return &Event_ValidatePreprepare{ValidatePreprepare: ValidatepreprepareFromPb(pb.ValidatePreprepare)}
+		return &Event_ValidatePreprepare{ValidatePreprepare: ValidatePreprepareFromPb(pb.ValidatePreprepare)}
 	case *pprepvalidatorpb.Event_PreprepareValidated:
 		return &Event_PreprepareValidated{PreprepareValidated: PreprepareValidatedFromPb(pb.PreprepareValidated)}
 	}
@@ -43,12 +43,12 @@ func Event_TypeFromPb(pb pprepvalidatorpb.Event_Type) Event_Type {
 }
 
 type Event_ValidatePreprepare struct {
-	ValidatePreprepare *Validatepreprepare
+	ValidatePreprepare *ValidatePreprepare
 }
 
 func (*Event_ValidatePreprepare) isEvent_Type() {}
 
-func (w *Event_ValidatePreprepare) Unwrap() *Validatepreprepare {
+func (w *Event_ValidatePreprepare) Unwrap() *ValidatePreprepare {
 	return w.ValidatePreprepare
 }
 
@@ -117,26 +117,26 @@ func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.Event]()}
 }
 
-type Validatepreprepare struct {
+type ValidatePreprepare struct {
 	Preprepare *types.Preprepare
 	Origin     *ValidatePreprepareOrigin
 }
 
-func ValidatepreprepareFromPb(pb *pprepvalidatorpb.Validatepreprepare) *Validatepreprepare {
+func ValidatePreprepareFromPb(pb *pprepvalidatorpb.ValidatePreprepare) *ValidatePreprepare {
 	if pb == nil {
 		return nil
 	}
-	return &Validatepreprepare{
+	return &ValidatePreprepare{
 		Preprepare: types.PreprepareFromPb(pb.Preprepare),
 		Origin:     ValidatePreprepareOriginFromPb(pb.Origin),
 	}
 }
 
-func (m *Validatepreprepare) Pb() *pprepvalidatorpb.Validatepreprepare {
+func (m *ValidatePreprepare) Pb() *pprepvalidatorpb.ValidatePreprepare {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &pprepvalidatorpb.Validatepreprepare{}
+	pbMessage := &pprepvalidatorpb.ValidatePreprepare{}
 	{
 		if m.Preprepare != nil {
 			pbMessage.Preprepare = (m.Preprepare).Pb()
@@ -149,8 +149,8 @@ func (m *Validatepreprepare) Pb() *pprepvalidatorpb.Validatepreprepare {
 	return pbMessage
 }
 
-func (*Validatepreprepare) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.Validatepreprepare]()}
+func (*ValidatePreprepare) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.ValidatePreprepare]()}
 }
 
 type PreprepareValidated struct {
@@ -293,28 +293,25 @@ func (*ValidatePreprepareOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.ValidatePreprepareOrigin]()}
 }
 
-type PPrepValidator struct {
-	PpvType    uint64
+type PPrepValidatorChkp struct {
 	Membership *types5.Membership
 }
 
-func PPrepValidatorFromPb(pb *pprepvalidatorpb.PPrepValidator) *PPrepValidator {
+func PPrepValidatorChkpFromPb(pb *pprepvalidatorpb.PPrepValidatorChkp) *PPrepValidatorChkp {
 	if pb == nil {
 		return nil
 	}
-	return &PPrepValidator{
-		PpvType:    pb.PpvType,
+	return &PPrepValidatorChkp{
 		Membership: types5.MembershipFromPb(pb.Membership),
 	}
 }
 
-func (m *PPrepValidator) Pb() *pprepvalidatorpb.PPrepValidator {
+func (m *PPrepValidatorChkp) Pb() *pprepvalidatorpb.PPrepValidatorChkp {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &pprepvalidatorpb.PPrepValidator{}
+	pbMessage := &pprepvalidatorpb.PPrepValidatorChkp{}
 	{
-		pbMessage.PpvType = m.PpvType
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}
@@ -323,6 +320,6 @@ func (m *PPrepValidator) Pb() *pprepvalidatorpb.PPrepValidator {
 	return pbMessage
 }
 
-func (*PPrepValidator) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.PPrepValidator]()}
+func (*PPrepValidatorChkp) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*pprepvalidatorpb.PPrepValidatorChkp]()}
 }

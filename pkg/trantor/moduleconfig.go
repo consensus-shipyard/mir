@@ -14,54 +14,57 @@ import (
 )
 
 type ModuleConfig struct {
-	App            t.ModuleID
-	Availability   t.ModuleID
-	BatchDB        t.ModuleID
-	BatchFetcher   t.ModuleID
-	Checkpointing  t.ModuleID
-	ChkpValidator  t.ModuleID
-	Crypto         t.ModuleID
-	Hasher         t.ModuleID
-	ISS            t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
-	Mempool        t.ModuleID
-	Net            t.ModuleID
-	Null           t.ModuleID
-	Ordering       t.ModuleID
-	PPrepValidator t.ModuleID
-	Timer          t.ModuleID
+	App                t.ModuleID
+	Availability       t.ModuleID
+	BatchDB            t.ModuleID
+	BatchFetcher       t.ModuleID
+	Checkpointing      t.ModuleID
+	ChkpValidator      t.ModuleID
+	Crypto             t.ModuleID
+	Hasher             t.ModuleID
+	ISS                t.ModuleID // TODO: Rename this when Trantor is generalized to use other high-level protocols
+	Mempool            t.ModuleID
+	Net                t.ModuleID
+	Null               t.ModuleID
+	Ordering           t.ModuleID
+	PPrepValidator     t.ModuleID
+	PPrepValidatorChkp t.ModuleID
+	Timer              t.ModuleID
 }
 
 func DefaultModuleConfig() ModuleConfig {
 	return ModuleConfig{
-		App:            "app",
-		Availability:   "availability",
-		BatchDB:        "batchdb",
-		BatchFetcher:   "batchfetcher",
-		Checkpointing:  "checkpoint",
-		ChkpValidator:  "chkpvalidator",
-		Crypto:         "crypto",
-		Hasher:         "hasher",
-		ISS:            "iss",
-		Mempool:        "mempool",
-		Net:            "net",
-		Null:           "null",
-		Ordering:       "ordering",
-		PPrepValidator: "pprepvalidator",
-		Timer:          "timer",
+		App:                "app",
+		Availability:       "availability",
+		BatchDB:            "batchdb",
+		BatchFetcher:       "batchfetcher",
+		Checkpointing:      "checkpoint",
+		ChkpValidator:      "chkpvalidator",
+		Crypto:             "crypto",
+		Hasher:             "hasher",
+		ISS:                "iss",
+		Mempool:            "mempool",
+		Net:                "net",
+		Null:               "null",
+		Ordering:           "ordering",
+		PPrepValidator:     "pprepvalidator",
+		PPrepValidatorChkp: "pprepvalidatorchkp",
+		Timer:              "timer",
 	}
 }
 
 func (mc ModuleConfig) ConfigureISS() iss.ModuleConfig {
 	return iss.ModuleConfig{
-		Self:           mc.ISS,
-		App:            mc.BatchFetcher,
-		Availability:   mc.Availability,
-		Checkpoint:     mc.Checkpointing,
-		ChkpValidator:  mc.ChkpValidator,
-		Net:            mc.Net,
-		Ordering:       mc.Ordering,
-		PPrepValidator: mc.PPrepValidator,
-		Timer:          mc.Timer,
+		Self:               mc.ISS,
+		App:                mc.BatchFetcher,
+		Availability:       mc.Availability,
+		Checkpoint:         mc.Checkpointing,
+		ChkpValidator:      mc.ChkpValidator,
+		Net:                mc.Net,
+		Ordering:           mc.Ordering,
+		PPrepValidator:     mc.PPrepValidator,
+		PPrepValidatorChkp: mc.PPrepValidatorChkp,
+		Timer:              mc.Timer,
 	}
 }
 
@@ -98,8 +101,13 @@ func (mc ModuleConfig) ConfigureOrdering() ordererscommon.ModuleConfig {
 
 func (mc ModuleConfig) ConfigurePreprepareValidityChecker() pprepvalidator.ModuleConfig {
 	return pprepvalidator.ModuleConfig{
-		Self:          mc.PPrepValidator,
-		ChkpValidator: mc.ChkpValidator,
+		Self: mc.PPrepValidator,
+	}
+}
+
+func (mc ModuleConfig) ConfigurePreprepareValidityCheckerChkp() pprepvalidator.ModuleConfig {
+	return pprepvalidator.ModuleConfig{
+		Self: mc.PPrepValidatorChkp,
 	}
 }
 

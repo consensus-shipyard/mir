@@ -9,13 +9,13 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Validatepreprepare(destModule types.ModuleID, preprepare *types1.Preprepare, origin *types2.ValidatePreprepareOrigin) *types3.Event {
+func ValidatePreprepare(destModule types.ModuleID, preprepare *types1.Preprepare, origin *types2.ValidatePreprepareOrigin) *types3.Event {
 	return &types3.Event{
 		DestModule: destModule,
 		Type: &types3.Event_PprepValiadtor{
 			PprepValiadtor: &types2.Event{
 				Type: &types2.Event_ValidatePreprepare{
-					ValidatePreprepare: &types2.Validatepreprepare{
+					ValidatePreprepare: &types2.ValidatePreprepare{
 						Preprepare: preprepare,
 						Origin:     origin,
 					},

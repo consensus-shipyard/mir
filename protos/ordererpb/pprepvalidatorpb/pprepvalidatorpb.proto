@@ -21,19 +21,19 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    Validatepreprepare  validate_preprepare  = 1;
-    preprepareValidated preprepare_validated = 2;
+    ValidatePreprepare validate_preprepare   = 1;
+    PreprepareValidated preprepare_validated = 2;
   }
 }
 
-message Validatepreprepare {
+message ValidatePreprepare {
   option (mir.event) = true;
 
   pbftpb.Preprepare preprepare    = 1;
   ValidatePreprepareOrigin origin = 2 [(mir.origin_request) = true];
 }
 
-message preprepareValidated {
+message PreprepareValidated {
   option (mir.event) = true;
 
   string                   error  = 1 [(mir.type) = "error"];
@@ -50,10 +50,9 @@ message ValidatePreprepareOrigin {
   }
 }
 
-message PPrepValidator {
+message PPrepValidatorChkp {
   option (mir.struct) = true;
 
-  uint64               ppv_type   = 1;
   trantorpb.Membership membership = 2;
 
 

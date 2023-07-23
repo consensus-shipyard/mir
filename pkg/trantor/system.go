@@ -166,8 +166,10 @@ func New(
 
 	// The PPV factory creates modules that check the validity of the preprepare messages produced by the ordering protocol.
 	// It must be a factory given the checkpoint ordering instance, which requires stateful verification
-	trantorModules[moduleConfig.PPrepValidator] = ppv.NewFactory(
-		moduleConfig.ConfigurePreprepareValidityChecker(),
+	trantorModules[moduleConfig.PPrepValidator] = ppv.NewModule(moduleConfig.ConfigurePreprepareValidityChecker(), ppv.NewPermissiveValidityChecker())
+
+	trantorModules[moduleConfig.PPrepValidatorChkp] = ppv.NewPprepValidatorChkpFactory(
+		moduleConfig.ConfigurePreprepareValidityCheckerChkp(),
 		hashImpl,
 		cryptoImpl,
 		params.Iss.ConfigOffset,

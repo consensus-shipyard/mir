@@ -47,6 +47,6 @@ func (w *GeneratorParams_PbftModule) Unwrap() *ordererpb.PBFTModule {
 	return w.PbftModule
 }
 
-func (w *GeneratorParams_PpvModule) Unwrap() *pprepvalidatorpb.PPrepValidator {
+func (w *GeneratorParams_PpvModule) Unwrap() *pprepvalidatorpb.PPrepValidatorChkp {
 	return w.PpvModule
 }

@@ -277,7 +277,7 @@ func ApplyMsgPreprepare(
 	preprepare *pbftpbtypes.Preprepare,
 	from t.NodeID,
 ) {
-	ppvpbdsl.Validatepreprepare(m,
+	ppvpbdsl.ValidatePreprepare(m,
 		moduleConfig.PPrepValidator,
 		preprepare,
 		&validatePreprepareContext{preprepare, from})

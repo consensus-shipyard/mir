@@ -22,8 +22,8 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponValidatepreprepare(m dsl.Module, handler func(preprepare *types2.Preprepare, origin *types.ValidatePreprepareOrigin) error) {
-	UponEvent[*types.Event_ValidatePreprepare](m, func(ev *types.Validatepreprepare) error {
+func UponValidatePreprepare(m dsl.Module, handler func(preprepare *types2.Preprepare, origin *types.ValidatePreprepareOrigin) error) {
+	UponEvent[*types.Event_ValidatePreprepare](m, func(ev *types.ValidatePreprepare) error {
 		return handler(ev.Preprepare, ev.Origin)
 	})
 }

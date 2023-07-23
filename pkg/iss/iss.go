@@ -224,16 +224,6 @@ func New(
 			checkpointpbtypes.StableCheckpointFromPb(iss.lastStableCheckpoint.Pb()),
 		)
 
-		// Instantiate the stateless PPV module for the permissive validity checker.
-		factorypbdsl.NewModule(iss.m,
-			iss.moduleConfig.PPrepValidator,
-			iss.moduleConfig.PPrepValidator.Then("permissive"),
-			tt.RetentionIndex(1<<64-1), // prevent garbage collection
-			ppv.InstanceParams(
-				ppv.PermissivePPV,
-				iss.Params.InitialMembership, // this parameter is actually not necessary for the permissiveVC
-			))
-
 		// Start the first epoch (not necessarily epoch 0, depending on the starting checkpoint).
 		return iss.startEpoch(iss.lastStableCheckpoint.Epoch())
 	})
@@ -375,13 +365,12 @@ func New(
 			}
 
 			// Instantiate a CheckpointPPV module from the PreprepareValidator factory
-			PPVId := iss.moduleConfig.PPrepValidator.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp")
+			PPVId := iss.moduleConfig.PPrepValidatorChkp.Then(t.ModuleID(fmt.Sprintf("%v", epoch)))
 			factorypbdsl.NewModule(iss.m,
-				iss.moduleConfig.PPrepValidator,
+				iss.moduleConfig.PPrepValidatorChkp,
 				PPVId,
 				tt.RetentionIndex(epoch),
 				ppv.InstanceParams(
-					ppv.CheckpointPPV,
 					seg.Membership,
 				))
 
@@ -674,7 +663,7 @@ func (iss *ISS) initOrderers() error {
 				seg,
 				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 				iss.epoch.Nr(),
-				iss.moduleConfig.PPrepValidator.Then("permissive"),
+				iss.moduleConfig.PPrepValidator,
 			))
 
 		//Add the segment to the list of segments.
@@ -931,7 +920,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidator, tt.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, tt.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.
 		for epoch := range iss.epochs {

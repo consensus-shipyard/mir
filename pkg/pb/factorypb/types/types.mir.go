@@ -212,7 +212,7 @@ func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorPara
 	case *factorypb.GeneratorParams_PbftModule:
 		return &GeneratorParams_PbftModule{PbftModule: types4.PBFTModuleFromPb(pb.PbftModule)}
 	case *factorypb.GeneratorParams_PpvModule:
-		return &GeneratorParams_PpvModule{PpvModule: types5.PPrepValidatorFromPb(pb.PpvModule)}
+		return &GeneratorParams_PpvModule{PpvModule: types5.PPrepValidatorChkpFromPb(pb.PpvModule)}
 	}
 	return nil
 }
@@ -314,12 +314,12 @@ func (*GeneratorParams_PbftModule) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_PpvModule struct {
-	PpvModule *types5.PPrepValidator
+	PpvModule *types5.PPrepValidatorChkp
 }
 
 func (*GeneratorParams_PpvModule) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_PpvModule) Unwrap() *types5.PPrepValidator {
+func (w *GeneratorParams_PpvModule) Unwrap() *types5.PPrepValidatorChkp {
 	return w.PpvModule
 }
 

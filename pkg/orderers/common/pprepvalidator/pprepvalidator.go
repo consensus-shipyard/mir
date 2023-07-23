@@ -17,15 +17,14 @@ import (
 
 // ModuleConfig sets the module ids.
 type ModuleConfig struct {
-	Self          t.ModuleID
-	ChkpValidator t.ModuleID
+	Self t.ModuleID
 }
 
 // NewModule returns a passive module for the PreprepareValidator module.
 func NewModule(mc ModuleConfig, ppv PreprepareValidator) modules.PassiveModule {
 	m := dsl.NewModule(mc.Self)
 
-	ppvpbdsl.UponValidatepreprepare(m, func(preprepare *pbftpbtypes.Preprepare, origin *ppvpbtypes.ValidatePreprepareOrigin) error {
+	ppvpbdsl.UponValidatePreprepare(m, func(preprepare *pbftpbtypes.Preprepare, origin *ppvpbtypes.ValidatePreprepareOrigin) error {
 		err := ppv.Check(preprepare)
 		ppvpbdsl.PreprepareValidated(m, origin.Module, err, origin)
 		return nil
@@ -34,7 +33,7 @@ func NewModule(mc ModuleConfig, ppv PreprepareValidator) modules.PassiveModule {
 	return m
 }
 
-func NewFactory(mc ModuleConfig,
+func NewPprepValidatorChkpFactory(mc ModuleConfig,
 	hashImpl crypto.HashImpl,
 	chkpVerifier checkpoint.Verifier,
 	configOffset int,
@@ -50,15 +49,8 @@ func NewFactory(mc ModuleConfig,
 				submc.Self = submoduleID
 				// Load parameters from received protobuf
 				p := params.Type.(*factorypbtypes.GeneratorParams_PpvModule).PpvModule
-				// Select validity checker
-				var validityChecker PreprepareValidator
-				switch pprepValidatorType(p.PpvType) {
-				case PermissivePPV:
-					validityChecker = NewPermissiveValidityChecker()
-				case CheckpointPPV:
-					validityChecker = NewCheckpointValidityChecker(hashImpl, chkpVerifier, p.Membership, configOffset, logger)
-				}
-				return NewModule(submc, validityChecker), nil
+
+				return NewModule(submc, NewCheckpointValidityChecker(hashImpl, chkpVerifier, p.Membership, configOffset, logger)), nil
 			},
 		),
 		logger,
@@ -67,12 +59,10 @@ func NewFactory(mc ModuleConfig,
 }
 
 func InstanceParams(
-	ppvType pprepValidatorType,
 	membership *trantorpbtypes.Membership,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PpvModule{
-		PpvModule: &ppvpbtypes.PPrepValidator{
-			PpvType:    uint64(ppvType),
+		PpvModule: &ppvpbtypes.PPrepValidatorChkp{
 			Membership: membership,
 		},
 	}}

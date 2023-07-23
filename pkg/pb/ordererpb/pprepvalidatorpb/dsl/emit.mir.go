@@ -12,7 +12,7 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func Validatepreprepare[C any](m dsl.Module, destModule types.ModuleID, preprepare *types1.Preprepare, context *C) {
+func ValidatePreprepare[C any](m dsl.Module, destModule types.ModuleID, preprepare *types1.Preprepare, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types2.ValidatePreprepareOrigin{
@@ -20,7 +20,7 @@ func Validatepreprepare[C any](m dsl.Module, destModule types.ModuleID, preprepa
 		Type:   &types2.ValidatePreprepareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.Validatepreprepare(destModule, preprepare, origin))
+	dsl.EmitMirEvent(m, events.ValidatePreprepare(destModule, preprepare, origin))
 }
 
 func PreprepareValidated(m dsl.Module, destModule types.ModuleID, error error, origin *types2.ValidatePreprepareOrigin) {
