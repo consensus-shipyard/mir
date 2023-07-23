@@ -99,13 +99,13 @@ func (mc ModuleConfig) ConfigureOrdering() ordererscommon.ModuleConfig {
 	}
 }
 
-func (mc ModuleConfig) ConfigurePreprepareValidityChecker() pprepvalidator.ModuleConfig {
+func (mc ModuleConfig) ConfigurePreprepareValidator() pprepvalidator.ModuleConfig {
 	return pprepvalidator.ModuleConfig{
 		Self: mc.PPrepValidator,
 	}
 }
 
-func (mc ModuleConfig) ConfigurePreprepareValidityCheckerChkp() pprepvalidator.ModuleConfig {
+func (mc ModuleConfig) ConfigurePreprepareValidatorChkp() pprepvalidator.ModuleConfig {
 	return pprepvalidator.ModuleConfig{
 		Self: mc.PPrepValidatorChkp,
 	}

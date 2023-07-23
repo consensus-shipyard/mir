@@ -7,14 +7,14 @@ import (
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
+	"github.com/filecoin-project/mir/pkg/orderers/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 func Factory(
-	mc common2.ModuleConfig,
+	mc common.ModuleConfig,
 	issParams *issconfig.ModuleParams,
 	ownID t.NodeID,
 	logger logging.Logger,
@@ -41,7 +41,7 @@ func Factory(
 				submc.Ava = availabilityID
 				submc.PPrepValidator = ppvID
 				epoch := tt.EpochNr(p.Epoch)
-				segment := (*common2.Segment)(p.Segment)
+				segment := (*common.Segment)(p.Segment)
 
 				// Create new configuration for this particular orderer instance.
 				ordererConfig := newOrdererConfig(issParams, segment.NodeIDs(), epoch)

@@ -164,12 +164,23 @@ func New(
 		logging.Decorate(logger, "PBFT: "),
 	)
 
-	// The PPV factory creates modules that check the validity of the preprepare messages produced by the ordering protocol.
-	// It must be a factory given the checkpoint ordering instance, which requires stateful verification
-	trantorModules[moduleConfig.PPrepValidator] = ppv.NewModule(moduleConfig.ConfigurePreprepareValidityChecker(), ppv.NewPermissiveValidityChecker())
+	// The preprepare validator (PPV) module check the validity of preprepare messages
+	// produced by the ordering protocol (PBFT).
+	trantorModules[moduleConfig.PPrepValidator] = ppv.NewModule(
+		moduleConfig.ConfigurePreprepareValidator(),
+		ppv.NewPermissiveValidityChecker(),
+	)
 
+	// The checkpoint preprepare validator checks the validity of preprepare messages containing checkpoints
+	// that are being agreed upon in each epoch before Trantor outputs them to the application.
+	// It is a factory creating a new validator as a submodule in each epoch,
+	// because the validation rules dynamically change - the membership against to verify the checkpoint certificate
+	// might reconfigure.
+	// Note that this validator (verifying PBFT preprepare messages whose content happens to be a checkpoint)
+	// is different from the checkpoint validator (see below),
+	// which directly validates received checkpoints from which state is to be restored.
 	trantorModules[moduleConfig.PPrepValidatorChkp] = ppv.NewPprepValidatorChkpFactory(
-		moduleConfig.ConfigurePreprepareValidityCheckerChkp(),
+		moduleConfig.ConfigurePreprepareValidatorChkp(),
 		hashImpl,
 		cryptoImpl,
 		params.Iss.ConfigOffset,
@@ -184,6 +195,9 @@ func New(
 		logging.Decorate(logger, "CHKP: "),
 	)
 
+	// The checkpoint validator verifies checkpoints from which state is to be restored.
+	// Note that this is different from the checkpoint preprepare validator which is attached to the agreement protocol
+	// in which the proposals happen to be checkpoints.
 	trantorModules[moduleConfig.ChkpValidator] = cv.NewModule(moduleConfig.ConfigureChkpValidator(), cv.NewPermissiveCV(
 		params.Iss.ConfigOffset,
 		ownID,
