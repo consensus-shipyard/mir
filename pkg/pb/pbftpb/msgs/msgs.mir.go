@@ -56,7 +56,7 @@ func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dig
 	}
 }
 
-func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8, signature []uint8) *types3.Message {
+func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8, preprepare *types5.Preprepare) *types3.Message {
 	return &types3.Message{
 		DestModule: destModule,
 		Type: &types3.Message_Orderer{
@@ -65,10 +65,10 @@ func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dige
 					Pbft: &types5.Message{
 						Type: &types5.Message_Commit{
 							Commit: &types5.Commit{
-								Sn:        sn,
-								View:      view,
-								Digest:    digest,
-								Signature: signature,
+								Sn:         sn,
+								View:       view,
+								Digest:     digest,
+								Preprepare: preprepare,
 							},
 						},
 					},

@@ -18,9 +18,9 @@ type PbftSlot struct {
 	// The received preprepare message.
 	Preprepare *pbftpbtypes.Preprepare
 
-	// Prepare messages received, indexed by sending node's ID.
+	// Prepares messages received, indexed by sending node's ID.
 	// A nil entry signifies that an invalid message has been discarded.
-	PrepareDigests map[t.NodeID][]byte
+	Prepares map[t.NodeID]*pbftpbtypes.Prepare
 
 	// Valid prepare messages received, indexed by sending node's ID.
 	// Serves mostly as an optimization to not re-validate already validated messages.
@@ -39,20 +39,25 @@ type PbftSlot struct {
 	// Flags denoting whether a certificate has been, respectively, preprepared, prepared, and committed in this slot.
 	// Note that Preprepared == true is not equivalent to Preprepare != nil, since the Preprepare message is stored
 	// before the node preprepares the proposal (it first has to hash the contents of the message
-	// and only then can preprepare the proposal and send the Prepare messages).
+	// and only then can preprepare the proposal and send the Prepares messages).
 	Preprepared bool
 	Prepared    bool
 	Committed   bool
 
 	// Number of nodes executing this instance of PBFT
 	membership *trantorpbtypes.Membership
+
+	// Convenience variable for accountability
+	// It stores the first preprepare it receives, either from the primary or attached to a commit message
+	// It does not need to be verified (beyond signature verification) because it is only used for accountability
+	PreprepareForAcc *pbftpbtypes.Preprepare
 }
 
 // NewPbftSlot allocates a new PbftSlot object and returns it, initializing all its fields.
 func NewPbftSlot(membership *trantorpbtypes.Membership) *PbftSlot {
 	return &PbftSlot{
 		Preprepare:          nil,
-		PrepareDigests:      make(map[t.NodeID][]byte),
+		Prepares:            make(map[t.NodeID]*pbftpbtypes.Prepare, 0),
 		ValidPrepareDigests: make(map[t.NodeID][]byte, 0),
 		CommitDigests:       make(map[t.NodeID][]byte),
 		ValidCommitDigests:  make(map[t.NodeID][]byte, 0),
@@ -76,11 +81,12 @@ func (slot *PbftSlot) PopulateFromPrevious(prevSlot *PbftSlot, view ot.ViewNr) {
 		preprepareCopy := *prevSlot.Preprepare
 		preprepareCopy.View = view
 		slot.Preprepare = &preprepareCopy
+		slot.PreprepareForAcc = slot.Preprepare
 	}
 }
 
 // CheckPrepared evaluates whether the PbftSlot fulfills the conditions to be prepared.
-// The slot can be prepared when it has been preprepared and when enough valid Prepare messages have been received.
+// The slot can be prepared when it has been preprepared and when enough valid Prepares messages have been received.
 func (slot *PbftSlot) CheckPrepared() bool {
 
 	// The slot must be preprepared first.
@@ -88,30 +94,30 @@ func (slot *PbftSlot) CheckPrepared() bool {
 		return false
 	}
 
-	// Check if enough unique Prepare messages have been received.
+	// Check if enough unique Prepares messages have been received.
 	// (This is just an optimization to allow early returns.)
-	if !membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.PrepareDigests)) {
+	if !membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.Prepares)) {
 		return false
 	}
 
-	// Check newly received Prepare messages for validity (whether they contain the hash of the Preprepare message).
+	// Check newly received Prepares messages for validity (whether they contain the hash of the Preprepare message).
 	// TODO: Do we need to iterate in a deterministic order here?
-	for from, digest := range slot.PrepareDigests {
-
-		// Only check each Prepare message once.
-		// When checked, the entry in slot.PrepareDigests is set to nil (but not deleted!)
-		// to prevent another Prepare message to be considered again.
+	for from, prepare := range slot.Prepares {
+		digest := prepare.Digest
+		// Only check each Prepares message once.
+		// When checked, the entry in slot.Prepares is set to nil (but not deleted!)
+		// to prevent another Prepares message to be considered again.
 		if digest != nil {
-			slot.PrepareDigests[from] = nil
+			slot.Prepares[from] = nil
 
-			// If the digest in the Prepare message matches that of the Preprepare, add the message to the valid ones.
+			// If the digest in the Prepares message matches that of the Preprepare, add the message to the valid ones.
 			if bytes.Equal(digest, slot.Digest) {
 				slot.ValidPrepareDigests[from] = digest
 			}
 		}
 	}
 
-	// Return true if enough matching Prepare messages have been received.
+	// Return true if enough matching Prepares messages have been received.
 	return membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.ValidPrepareDigests))
 }
 
@@ -147,7 +153,7 @@ func (slot *PbftSlot) CheckCommitted() bool {
 		}
 	}
 
-	// Return true if enough matching Prepare messages have been received.
+	// Return true if enough matching Commit messages have been received.
 	return membutil.HaveStrongQuorum(slot.membership, maputil.GetKeys(slot.ValidCommitDigests))
 }
 
@@ -166,6 +172,7 @@ func (slot *PbftSlot) GetPreprepare(digest []byte) *pbftpbtypes.Preprepare {
 // Note: The Preprepare's view must match the view this slot is assigned to!
 func (slot *PbftSlot) CatchUp(preprepare *pbftpbtypes.Preprepare, digest []byte) {
 	slot.Preprepare = preprepare
+	slot.PreprepareForAcc = preprepare
 	slot.Digest = digest
 	slot.Preprepared = true
 	slot.Prepared = true

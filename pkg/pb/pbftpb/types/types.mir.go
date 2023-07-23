@@ -402,10 +402,10 @@ func (*Prepare) MirReflect() mirreflect.Type {
 }
 
 type Commit struct {
-	Sn        types.SeqNr
-	View      types1.ViewNr
-	Digest    []uint8
-	Signature []uint8
+	Sn         types.SeqNr
+	View       types1.ViewNr
+	Digest     []uint8
+	Preprepare *Preprepare
 }
 
 func CommitFromPb(pb *pbftpb.Commit) *Commit {
@@ -413,10 +413,10 @@ func CommitFromPb(pb *pbftpb.Commit) *Commit {
 		return nil
 	}
 	return &Commit{
-		Sn:        (types.SeqNr)(pb.Sn),
-		View:      (types1.ViewNr)(pb.View),
-		Digest:    pb.Digest,
-		Signature: pb.Signature,
+		Sn:         (types.SeqNr)(pb.Sn),
+		View:       (types1.ViewNr)(pb.View),
+		Digest:     pb.Digest,
+		Preprepare: PreprepareFromPb(pb.Preprepare),
 	}
 }
 
@@ -429,7 +429,9 @@ func (m *Commit) Pb() *pbftpb.Commit {
 		pbMessage.Sn = (uint64)(m.Sn)
 		pbMessage.View = (uint64)(m.View)
 		pbMessage.Digest = m.Digest
-		pbMessage.Signature = m.Signature
+		if m.Preprepare != nil {
+			pbMessage.Preprepare = (m.Preprepare).Pb()
+		}
 	}
 
 	return pbMessage

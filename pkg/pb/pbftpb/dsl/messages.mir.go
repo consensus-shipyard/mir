@@ -37,9 +37,9 @@ func UponPrepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types
 	})
 }
 
-func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8, signature []uint8) error) {
+func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8, preprepare *types.Preprepare) error) {
 	UponMessageReceived[*types.Message_Commit](m, func(from types1.NodeID, msg *types.Commit) error {
-		return handler(from, msg.Sn, msg.View, msg.Digest, msg.Signature)
+		return handler(from, msg.Sn, msg.View, msg.Digest, msg.Preprepare)
 	})
 }
 
