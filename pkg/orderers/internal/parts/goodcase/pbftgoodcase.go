@@ -22,6 +22,7 @@ import (
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
+	ppvpbdsl "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/dsl"
 	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 
@@ -135,7 +136,12 @@ func IncludeGoodCase(
 			Data:    data,
 			Aborted: aborted,
 		}
-		ApplyMsgPreprepare(m, state, params, moduleConfig, preprepare, from, logger)
+		ApplyMsgPreprepare(m, moduleConfig, preprepare, from)
+		return nil
+	})
+
+	ppvpbdsl.UponPreprepareValidated(m, func(err error, c *validatePreprepareContext) error {
+		ApplyMsgPreprepareValidated(m, state, moduleConfig, c.preprepare, c.from, logger, err)
 		return nil
 	})
 
@@ -267,18 +273,30 @@ func propose(
 // It performs the necessary checks and, if successful, submits it for hashing.
 func ApplyMsgPreprepare(
 	m dsl.Module,
+	moduleConfig common2.ModuleConfig,
+	preprepare *pbftpbtypes.Preprepare,
+	from t.NodeID,
+) {
+	ppvpbdsl.ValidatePreprepare(m,
+		moduleConfig.PPrepValidator,
+		preprepare,
+		&validatePreprepareContext{preprepare, from})
+}
+
+func ApplyMsgPreprepareValidated(
+	m dsl.Module,
 	state *common.State,
-	params *common.ModuleParams,
 	moduleConfig common2.ModuleConfig,
 	preprepare *pbftpbtypes.Preprepare,
 	from t.NodeID,
 	logger logging.Logger,
+	err error,
 ) {
 
 	// Convenience variable
 	sn := preprepare.Sn
 
-	if err := params.ExternalValidator.Check(preprepare); err != nil {
+	if err != nil {
 		logger.Log(logging.LevelWarn, "Ignoring Preprepare message with invalid proposal.",
 			"sn", sn, "from", from, "err", err)
 		return
@@ -414,7 +432,7 @@ func ApplyBufferedMsg(
 ) {
 	switch msg := msgPb.(type) {
 	case *pbftpb.Preprepare:
-		ApplyMsgPreprepare(m, state, params, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from, logger)
+		ApplyMsgPreprepare(m, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from)
 	case *pbftpb.Prepare:
 		applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
 	case *pbftpb.Commit:
@@ -553,4 +571,9 @@ func advanceSlotState(
 			moduleConfig.Self,
 		)
 	}
+}
+
+type validatePreprepareContext struct {
+	preprepare *pbftpbtypes.Preprepare
+	from       t.NodeID
 }

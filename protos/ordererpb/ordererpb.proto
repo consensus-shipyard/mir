@@ -54,5 +54,5 @@ message PBFTModule{
   PBFTSegment segment          = 1;
   string      availability_id  = 2;
   uint64      epoch            = 3;
-  uint64      validity_checker = 4;
+  string      ppv_module_id    = 4;
 }

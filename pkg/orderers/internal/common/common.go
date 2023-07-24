@@ -23,9 +23,6 @@ type ModuleParams struct {
 
 	// PBFT-specific configuration parameters (e.g. view change timeout, etc.)
 	Config *PBFTConfig
-
-	// Contains the application-specific code for validating incoming proposals.
-	ExternalValidator ValidityChecker
 }
 
 // State represents a PBFT State.

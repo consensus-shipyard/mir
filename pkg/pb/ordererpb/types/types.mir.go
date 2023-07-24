@@ -209,10 +209,10 @@ func (*PBFTSegment) MirReflect() mirreflect.Type {
 }
 
 type PBFTModule struct {
-	Segment         *PBFTSegment
-	AvailabilityId  string
-	Epoch           uint64
-	ValidityChecker uint64
+	Segment        *PBFTSegment
+	AvailabilityId string
+	Epoch          uint64
+	PpvModuleId    string
 }
 
 func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
@@ -220,10 +220,10 @@ func PBFTModuleFromPb(pb *ordererpb.PBFTModule) *PBFTModule {
 		return nil
 	}
 	return &PBFTModule{
-		Segment:         PBFTSegmentFromPb(pb.Segment),
-		AvailabilityId:  pb.AvailabilityId,
-		Epoch:           pb.Epoch,
-		ValidityChecker: pb.ValidityChecker,
+		Segment:        PBFTSegmentFromPb(pb.Segment),
+		AvailabilityId: pb.AvailabilityId,
+		Epoch:          pb.Epoch,
+		PpvModuleId:    pb.PpvModuleId,
 	}
 }
 
@@ -238,7 +238,7 @@ func (m *PBFTModule) Pb() *ordererpb.PBFTModule {
 		}
 		pbMessage.AvailabilityId = m.AvailabilityId
 		pbMessage.Epoch = m.Epoch
-		pbMessage.ValidityChecker = m.ValidityChecker
+		pbMessage.PpvModuleId = m.PpvModuleId
 	}
 
 	return pbMessage

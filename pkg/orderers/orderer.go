@@ -42,7 +42,6 @@ func NewOrdererModule(
 	ownID t.NodeID,
 	segment *common2.Segment,
 	config *common.PBFTConfig,
-	externalValidator common.ValidityChecker,
 	logger logging.Logger) modules.PassiveModule {
 
 	// Set all the necessary fields of the new instance and return it.
@@ -68,9 +67,8 @@ func NewOrdererModule(
 	}
 
 	params := &common.ModuleParams{
-		OwnID:             ownID,
-		Config:            config,
-		ExternalValidator: externalValidator,
+		OwnID:  ownID,
+		Config: config,
 	}
 	m := dsl.NewModule(moduleConfig.Self)
 
@@ -124,14 +122,14 @@ func InstanceParams(
 	segment *common2.Segment,
 	availabilityID t.ModuleID,
 	epoch tt.EpochNr,
-	validityCheckerType ValidityCheckerType,
+	PPVId t.ModuleID,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
 		PbftModule: &ordererpbtypes.PBFTModule{
-			Segment:         segment.PbType(),
-			AvailabilityId:  availabilityID.Pb(),
-			Epoch:           epoch.Pb(),
-			ValidityChecker: uint64(validityCheckerType),
+			Segment:        segment.PbType(),
+			AvailabilityId: availabilityID.Pb(),
+			Epoch:          epoch.Pb(),
+			PpvModuleId:    string(PPVId),
 		},
 	}}
 }

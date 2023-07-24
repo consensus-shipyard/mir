@@ -18,6 +18,7 @@ import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "checkpointpb/chkpvalidatorpb/chkpvalidatorpb.proto";
 import "ordererpb/ordererpb.proto";
+import "ordererpb/pprepvalidatorpb/pprepvalidatorpb.proto";
 import "hasherpb/hasherpb.proto";
 import "cryptopb/cryptopb.proto";
 import "transportpb/transportpb.proto";
@@ -41,21 +42,23 @@ message Event {
     TimerEvent timer = 3;
 
     // Module-specific events
-          hasherpb.Event hasher           = 10;
-             bcbpb.Event bcb              = 11;
-         mempoolpb.Event mempool          = 12;
-    availabilitypb.Event availability     = 13;
-         batchdbpb.Event batch_db         = 14;
-    batchfetcherpb.Event batch_fetcher    = 15;
-    threshcryptopb.Event thresh_crypto    = 16;
-      checkpointpb.Event checkpoint       = 17;
-         factorypb.Event factory          = 18;
-             isspb.Event iss              = 19;
-         ordererpb.Event orderer          = 20;
-          cryptopb.Event crypto           = 21;
-             apppb.Event app              = 22;
-       transportpb.Event transport        = 23;
-    chkpvalidatorpb.Event chkp_validator   = 24;
+            hasherpb.Event hasher          = 10;
+               bcbpb.Event bcb             = 11;
+           mempoolpb.Event mempool         = 12;
+      availabilitypb.Event availability    = 13;
+           batchdbpb.Event batch_db        = 14;
+      batchfetcherpb.Event batch_fetcher   = 15;
+      threshcryptopb.Event thresh_crypto   = 16;
+        checkpointpb.Event checkpoint      = 17;
+           factorypb.Event factory         = 18;
+               isspb.Event iss             = 19;
+           ordererpb.Event orderer         = 20;
+            cryptopb.Event crypto          = 21;
+               apppb.Event app             = 22;
+         transportpb.Event transport       = 23;
+     chkpvalidatorpb.Event chkp_validator  = 24;
+    pprepvalidatorpb.Event pprep_valiadtor = 25;
+
 
     // Events for code samples
     pingpongpb.Event ping_pong = 200;

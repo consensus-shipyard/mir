@@ -15,6 +15,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
+
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -362,6 +364,16 @@ func New(
 				return es.Errorf("error creating new segment: %w", err)
 			}
 
+			// Instantiate a CheckpointPPV module from the PreprepareValidator factory
+			PPVId := iss.moduleConfig.PPrepValidatorChkp.Then(t.ModuleID(fmt.Sprintf("%v", epoch)))
+			factorypbdsl.NewModule(iss.m,
+				iss.moduleConfig.PPrepValidatorChkp,
+				PPVId,
+				tt.RetentionIndex(epoch),
+				ppv.InstanceParams(
+					seg.Membership,
+				))
+
 			// Instantiate a new PBFT orderer.
 			factorypbdsl.NewModule(iss.m,
 				iss.moduleConfig.Ordering,
@@ -369,11 +381,10 @@ func New(
 				tt.RetentionIndex(epoch),
 				orderers.InstanceParams(
 					seg,
-					"", // The checkpoint orderer never talks to the availability module, as it has a set proposal.
+					"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
 					epoch,
-					orderers.CheckpointValidityChecker,
-				),
-			)
+					PPVId,
+				))
 
 			return nil
 		})
@@ -652,7 +663,7 @@ func (iss *ISS) initOrderers() error {
 				seg,
 				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 				iss.epoch.Nr(),
-				orderers.PermissiveValidityChecker,
+				iss.moduleConfig.PPrepValidator,
 			))
 
 		//Add the segment to the list of segments.
@@ -909,6 +920,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, tt.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.
 		for epoch := range iss.epochs {

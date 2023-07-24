@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package pprepvalidatorpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb";
+
+import "contextstorepb/contextstorepb.proto";
+import "dslpb/dslpb.proto";
+import "trantorpb/trantorpb.proto";
+import "pbftpb/pbftpb.proto";
+
+import "mir/codegen_extensions.proto";
+
+// ============================================================
+// Events
+// ============================================================
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    ValidatePreprepare validate_preprepare   = 1;
+    PreprepareValidated preprepare_validated = 2;
+  }
+}
+
+message ValidatePreprepare {
+  option (mir.event) = true;
+
+  pbftpb.Preprepare preprepare    = 1;
+  ValidatePreprepareOrigin origin = 2 [(mir.origin_request) = true];
+}
+
+message PreprepareValidated {
+  option (mir.event) = true;
+
+  string                   error  = 1 [(mir.type) = "error"];
+  ValidatePreprepareOrigin origin = 2 [(mir.origin_response) = true];
+}
+
+message ValidatePreprepareOrigin {
+  option (mir.struct) = true;
+
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  oneof type {
+    contextstorepb.Origin context_store = 2;
+    dslpb.Origin          dsl           = 3;
+  }
+}
+
+message PPrepValidatorChkp {
+  option (mir.struct) = true;
+
+  trantorpb.Membership membership = 2;
+
+
+}

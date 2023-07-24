@@ -6,6 +6,7 @@ import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
+	pprepvalidatorpb "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 )
 
 type Event_Type = isEvent_Type
@@ -44,4 +45,8 @@ func (w *GeneratorParams_EchoTestModule) Unwrap() *EchoModuleParams {
 
 func (w *GeneratorParams_PbftModule) Unwrap() *ordererpb.PBFTModule {
 	return w.PbftModule
+}
+
+func (w *GeneratorParams_PpvModule) Unwrap() *pprepvalidatorpb.PPrepValidatorChkp {
+	return w.PpvModule
 }
