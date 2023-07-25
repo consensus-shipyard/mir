@@ -3,8 +3,12 @@ package localtxgenerator
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"go.uber.org/atomic"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -24,16 +28,18 @@ func DefaultModuleConfig() *ModuleConfig {
 }
 
 type ModuleParams struct {
-	ClientID tt.ClientID
-	Tps      int
-	BufSize  int
+	ClientID        tt.ClientID
+	Tps             int
+	BufSize         int
+	WatermarkWindow tt.TxNo
 }
 
 func DefaultModuleParams(clientID tt.ClientID) *ModuleParams {
 	return &ModuleParams{
-		ClientID: clientID,
-		Tps:      1,
-		BufSize:  0,
+		ClientID:        clientID,
+		Tps:             1,
+		BufSize:         0,
+		WatermarkWindow: 1000000,
 	}
 }
 
@@ -42,6 +48,8 @@ type LocalTXGen struct {
 	params  *ModuleParams
 
 	nextTXNo  tt.TxNo
+	delivered *clientprogress.DeliveredTXs
+	wmCond    *sync.Cond
 	eventsOut chan *events.EventList
 	stopChan  chan struct{}
 	doneChan  chan struct{}
@@ -52,6 +60,8 @@ func New(moduleConfig *ModuleConfig, params *ModuleParams) *LocalTXGen {
 		modules:   moduleConfig,
 		params:    params,
 		nextTXNo:  0,
+		delivered: clientprogress.EmptyDeliveredTXs(logging.ConsoleInfoLogger),
+		wmCond:    sync.NewCond(&sync.Mutex{}),
 		eventsOut: make(chan *events.EventList, params.BufSize),
 		stopChan:  make(chan struct{}),
 		doneChan:  make(chan struct{}),
@@ -90,6 +100,21 @@ func (gen *LocalTXGen) Start() {
 		for {
 			select {
 			case <-ticker.C:
+				// Wait until the new transaction is within the client watermark window.
+				gen.wmCond.L.Lock()
+				// TODO: Dirty hack with .Pb(). Make LowWm accessible directly from DeliveredTXs.
+				for tt.TxNo(gen.delivered.Pb().LowWm)+gen.params.WatermarkWindow < gen.nextTXNo {
+					select {
+					case <-gen.stopChan:
+						gen.wmCond.L.Unlock()
+						return
+					default:
+						gen.wmCond.Wait()
+					}
+				}
+				gen.wmCond.L.Unlock()
+
+				// Create new transaction event.
 				tx := trantorpbtypes.Transaction{
 					ClientId: gen.params.ClientID,
 					TxNo:     gen.nextTXNo,
@@ -100,6 +125,7 @@ func (gen *LocalTXGen) Start() {
 					mempoolpbevents.NewTransactions(gen.modules.Mempool, []*trantorpbtypes.Transaction{&tx}).Pb(),
 				)
 				gen.nextTXNo++
+
 				select {
 				case gen.eventsOut <- evts:
 					cnt.Inc()
@@ -126,6 +152,36 @@ func (gen *LocalTXGen) Start() {
 // and some transactions might be submitted before Stop returns.
 // After Stop returns, however, no transactions will be output.
 func (gen *LocalTXGen) Stop() {
+	gen.wmCond.L.Lock()
 	close(gen.stopChan)
+	gen.wmCond.Broadcast()
+	gen.wmCond.L.Unlock()
 	<-gen.doneChan
+}
+
+// ====================================================================================================
+// Trantor static app interface
+// ====================================================================================================
+
+func (gen *LocalTXGen) ApplyTXs(txs []*trantorpbtypes.Transaction) error {
+	gen.wmCond.L.Lock()
+	for _, tx := range txs {
+		gen.delivered.Add(tx.TxNo)
+	}
+	gen.delivered.GarbageCollect()
+	gen.wmCond.Broadcast()
+	gen.wmCond.L.Unlock()
+	return nil
+}
+
+func (gen *LocalTXGen) Snapshot() ([]byte, error) {
+	return []byte{0}, nil
+}
+
+func (gen *LocalTXGen) RestoreState(_ *checkpoint.StableCheckpoint) error {
+	return nil
+}
+
+func (gen *LocalTXGen) Checkpoint(_ *checkpoint.StableCheckpoint) error {
+	return nil
 }
