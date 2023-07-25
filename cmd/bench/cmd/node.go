@@ -55,9 +55,9 @@ var (
 
 func init() {
 	rootCmd.AddCommand(nodeCmd)
-	nodeCmd.Flags().StringVarP(&statFileName, "statFile", "o", "", "output file for statistics")
-	nodeCmd.Flags().DurationVar(&statPeriod, "statPeriod", time.Second, "statistic record period")
-	nodeCmd.Flags().StringVarP(&readyFileName, "readyFile", "r", "", "file to use for initial synchronization when ready to start the benchmark")
+	nodeCmd.Flags().StringVarP(&statFileName, "stat-file", "o", "", "output file for statistics")
+	nodeCmd.Flags().DurationVar(&statPeriod, "stat-period", time.Second, "statistic record period")
+	nodeCmd.Flags().StringVarP(&readyFileName, "ready-file", "r", "", "file to use for initial synchronization when ready to start the benchmark")
 }
 
 func runNode() error {
