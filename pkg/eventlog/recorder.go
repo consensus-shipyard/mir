@@ -72,7 +72,7 @@ type Recorder struct {
 
 func NewRecorder(
 	nodeID t.NodeID,
-	path string,
+	path string, // TODO: Remove the path argument. It is writer-specific and should be specified in the writer factory.
 	logger logging.Logger,
 	opts ...RecorderOpt,
 ) (*Recorder, error) {
