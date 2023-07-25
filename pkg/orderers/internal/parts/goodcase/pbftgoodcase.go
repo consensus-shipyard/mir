@@ -211,12 +211,12 @@ func applyProposeTimeout(
 }
 
 // requestNewCert asks (by means of a CertRequest event) the availability module to provide a new availability certificate.
-// When the certificate is ready, it must be passed to the State using the CertReady event.
+// When the certificate is ready, it must be passed to the State using the NewCert event.
 func requestNewCert(m dsl.Module, state *common.State, moduleConfig common2.ModuleConfig) {
 
 	// Set a flag indicating that a certificate has been requested,
 	// so that no new certificates will be requested before the reception of this one.
-	// It will be cleared when CertReady is received.
+	// It will be cleared when NewCert is received.
 	state.Proposal.CertRequested = true
 
 	// Remember the view in which the certificate has been requested
@@ -224,7 +224,7 @@ func requestNewCert(m dsl.Module, state *common.State, moduleConfig common2.Modu
 	state.Proposal.CertRequestedView = state.View
 
 	// Emit the CertRequest event.
-	// Operation continues on reception of the CertReady event.
+	// Operation continues on reception of the NewCert event.
 	apbdsl.RequestCert(m, moduleConfig.Ava, &struct{}{})
 }
 
