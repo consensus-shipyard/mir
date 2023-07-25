@@ -9,8 +9,6 @@ Refactored: 1
 package mir
 
 import (
-	"time"
-
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -39,9 +37,9 @@ type NodeConfig struct {
 	// external input events can be added to the event buffer again.
 	ResumeInputThreshold int
 
-	// If not zero, the Node will emit a log entry (level Debug) every StatsLogInterval
-	// containing statistics about event processing.
-	StatsLogInterval time.Duration
+	// Stats configures event processing statistics generation.
+	// Enable by setting Stats.Period to a positive value.
+	Stats StatsConfig
 }
 
 // DefaultNodeConfig returns the default node configuration.
@@ -52,7 +50,11 @@ func DefaultNodeConfig() *NodeConfig {
 		MaxEventBatchSize:    512,
 		PauseInputThreshold:  8192,
 		ResumeInputThreshold: 6144,
-		StatsLogInterval:     0, // Stats logging disabled by default.
+		Stats: StatsConfig{
+			Logger:   logging.ConsoleDebugLogger,
+			LogLevel: logging.LevelDebug,
+			Period:   0, // Stats logging disabled by default.
+		},
 	}
 }
 
