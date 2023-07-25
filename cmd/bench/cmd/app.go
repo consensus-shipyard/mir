@@ -31,7 +31,7 @@ func (a *App) NewEpoch(_ tt.EpochNr) (*trantorpbtypes.Membership, error) {
 }
 
 func (a *App) Snapshot() ([]byte, error) {
-	return nil, nil
+	return []byte{0}, nil
 }
 
 func (a *App) RestoreState(_ *checkpoint.StableCheckpoint) error {
