@@ -84,8 +84,12 @@ func (ds *eventDispatchStats) CombinedStats(
 	totalEventsBuffered := 0
 	maputil.IterateSortedCustom(ds.dispatchCounts, func(mID t.ModuleID, cnt int) (cont bool) {
 		// TODO: Pass these as separate values somehow ahd have the logger figure out what to do with them.
-		logVals = append(logVals, fmt.Sprintf("%"+fmt.Sprint(maxModuleIDLength)+"s", mID), fmt.Sprintf("d(%10d)-e(%10d)-b(%10d)-t(%6.2f%%)\n",
-			cnt, ds.eventCounts[mID], bufferStats[mID], 100*float32(processingTimes[mID])/float32(period)),
+		logVals = append(logVals, fmt.Sprintf("%"+fmt.Sprint(maxModuleIDLength)+"s", mID),
+			fmt.Sprintf("d(%10d)-e(%10d)-b(%10d)-t(%6.2f%%)\n",
+				cnt*int(time.Second)/int(period),
+				ds.eventCounts[mID]*int(time.Second)/int(period),
+				bufferStats[mID],
+				100*float32(processingTimes[mID])/float32(period)),
 		)
 		totalEventsDispatched += ds.eventCounts[mID]
 		totalEventsBuffered += bufferStats[mID]
@@ -95,8 +99,8 @@ func (ds *eventDispatchStats) CombinedStats(
 		return processingTimes[mID1] >= processingTimes[mID2]
 	})
 	logVals = append(logVals,
-		"numDispatches", ds.numDispatches,
-		"totalEventsDispatched", totalEventsDispatched,
+		"numDispatches/s", ds.numDispatches*int(time.Second)/int(period),
+		"totalEventsDispatched/s", totalEventsDispatched*int(time.Second)/int(period),
 		"totalEventsBuffered", totalEventsBuffered,
 	)
 	return logVals
