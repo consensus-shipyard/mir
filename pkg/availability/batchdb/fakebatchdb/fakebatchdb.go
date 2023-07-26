@@ -17,13 +17,12 @@ type ModuleConfig struct {
 }
 
 type moduleState struct {
-	BatchStore       map[msctypes.BatchID]batchInfo
+	BatchStore       map[msctypes.BatchID]batch
 	TransactionStore map[tt.TxID]*trantorpbtypes.Transaction
 }
 
-type batchInfo struct {
-	txIDs    []tt.TxID
-	metadata []byte
+type batch struct {
+	txs []*trantorpbtypes.Transaction
 }
 
 // NewModule returns a new module for a fake batch database.
@@ -32,21 +31,13 @@ func NewModule(mc ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{
-		BatchStore:       make(map[msctypes.BatchID]batchInfo),
+		BatchStore:       make(map[msctypes.BatchID]batch),
 		TransactionStore: make(map[tt.TxID]*trantorpbtypes.Transaction),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txIDs []tt.TxID, txs []*trantorpbtypes.Transaction, metadata []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
-		state.BatchStore[batchID] = batchInfo{
-			txIDs:    txIDs,
-			metadata: metadata,
-		}
-
-		for i, txID := range txIDs {
-			state.TransactionStore[txID] = txs[i]
-		}
-
+	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, _ []tt.TxID, txs []*trantorpbtypes.Transaction, _ []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+		state.BatchStore[batchID] = batch{txs}
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
 		return nil
 	})
@@ -54,18 +45,13 @@ func NewModule(mc ModuleConfig) modules.Module {
 	// On LookupBatch request, just check the local map.
 	batchdbpbdsl.UponLookupBatch(m, func(batchID msctypes.BatchID, origin *batchdbpbtypes.LookupBatchOrigin) error {
 
-		info, found := state.BatchStore[batchID]
+		storedBatch, found := state.BatchStore[batchID]
 		if !found {
 			batchdbpbdsl.LookupBatchResponse(m, origin.Module, false, nil, origin)
 			return nil
 		}
 
-		txs := make([]*trantorpbtypes.Transaction, len(info.txIDs))
-		for i, txID := range info.txIDs {
-			txs[i] = state.TransactionStore[txID]
-		}
-
-		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, txs, origin)
+		batchdbpbdsl.LookupBatchResponse(m, origin.Module, true, storedBatch.txs, origin)
 		return nil
 	})
 
