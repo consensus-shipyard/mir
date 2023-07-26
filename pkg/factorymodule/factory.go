@@ -49,11 +49,6 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		logger = logging.ConsoleErrorLogger
 	}
 
-	// Zero value of the t.NodeID type.
-	// This is used as a dummy value, as for now the node ID is ignored by the message buffer.
-	// TODO: This is hacky, fix when using separate buffers for different nodes.
-	var zeroID t.NodeID
-
 	return &FactoryModule{
 		ownID:     id,
 		generator: params.Generator,
@@ -61,7 +56,7 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		submodules:      make(map[t.ModuleID]modules.PassiveModule),
 		moduleRetention: make(map[tt.RetentionIndex][]t.ModuleID),
 		retIdx:          0,
-		messageBuffer:   messagebuffer.New(zeroID, params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ")),
+		messageBuffer:   messagebuffer.New(params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ", "factory", fmt.Sprintf("%v", id))),
 
 		eventBuffer: make(map[t.ModuleID]*events.EventList),
 		logger:      logger,
@@ -250,12 +245,12 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 
 	// Get messages for the new submodule that arrived early and have been buffered.
 	bufferedMessages := events.EmptyList()
-	fm.messageBuffer.Iterate(func(_ t.NodeID, msg proto.Message) messagebuffer.Applicable {
+	fm.messageBuffer.Iterate(func(msg proto.Message) messagebuffer.Applicable {
 		if t.ModuleID(msg.(*eventpb.Event).DestModule) == id {
 			return messagebuffer.Current
 		}
 		return messagebuffer.Future
-	}, func(_ t.NodeID, msg proto.Message) {
+	}, func(msg proto.Message) {
 		bufferedMessages.PushBack(msg.(*eventpb.Event))
 	})
 
@@ -280,6 +275,14 @@ func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) 
 			//       to give it a chance to clean up.
 			delete(fm.submodules, mID)
 		}
+
+		// TODO: Allow parametrization of the factory with a custom function that could also garbage-collect
+		//   message buffers. In most cases, the destination module of messages also encodes the an epoch number
+		//   that is used as a retention index, and thus all messages destined to modules below the retention index
+		//   can be garbage-collected. This is, however, not necessarily the case from the perspective of the factory.
+		//   But if it is, garbage collection should be easy.
+		//   This is not critical, as it makes no difference functionality-wise (the buffers are FIFO anyway),
+		//   it just reduces the memory footprint.
 
 		// Increase current retention index.
 		delete(fm.moduleRetention, fm.retIdx)
