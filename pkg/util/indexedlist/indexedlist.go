@@ -15,7 +15,7 @@ type element[K comparable, V any] struct {
 }
 
 // IndexedList is a doubly-linked list with a map index.
-// Appending, prepending, and removal of arbitrary elements is in constant time and thread-safe.
+// Appending, prepending, and removing arbitrary elements is performed in constant time and thread-safe.
 type IndexedList[K comparable, V any] struct {
 	// Any modification (or read of potentially concurrently modified values) requires acquiring this lock.
 	lock sync.Mutex
