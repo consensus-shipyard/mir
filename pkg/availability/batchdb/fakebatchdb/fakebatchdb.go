@@ -36,7 +36,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
-	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, _ []tt.TxID, txs []*trantorpbtypes.Transaction, _ []byte, origin *batchdbpbtypes.StoreBatchOrigin) error {
+	batchdbpbdsl.UponStoreBatch(m, func(batchID msctypes.BatchID, txs []*trantorpbtypes.Transaction, origin *batchdbpbtypes.StoreBatchOrigin) error {
 		state.BatchStore[batchID] = batch{txs}
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
 		return nil
