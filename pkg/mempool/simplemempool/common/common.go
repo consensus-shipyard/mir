@@ -42,6 +42,7 @@ type ModuleParams struct {
 }
 
 // State represents the common state accessible to all parts of the module implementation.
+// TODO: Consider moving this definition inside the `internal` subdirectory, as it is only used by the mempool.
 type State struct {
 	// All the transactions in the mempool.
 	// Incoming transactions that have not yet been delivered are added to this list.

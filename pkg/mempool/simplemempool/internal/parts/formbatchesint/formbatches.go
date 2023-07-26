@@ -25,8 +25,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	mpdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
-	mpevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
+	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	mppbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
@@ -123,7 +123,7 @@ func IncludeBatchCreation( // nolint:gocognit
 		})
 
 		// Note that a batch may be empty.
-		mpdsl.NewBatch(m, origin.Module, txIDs, txs, origin)
+		mppbdsl.NewBatch(m, origin.Module, txIDs, txs, origin)
 	}
 
 	// storePendingRequest creates an entry for a new batch request in the pending batch request list.
@@ -160,13 +160,13 @@ func IncludeBatchCreation( // nolint:gocognit
 			reqID := storePendingRequest(origin)
 			eventpbdsl.TimerDelay(m,
 				mc.Timer,
-				[]*eventpbtypes.Event{mpevents.BatchTimeout(mc.Self, uint64(reqID))},
+				[]*eventpbtypes.Event{mppbevents.BatchTimeout(mc.Self, uint64(reqID))},
 				timertypes.Duration(params.BatchTimeout),
 			)
 		}
 	}
 
-	mpdsl.UponNewEpoch(m,
+	mppbdsl.UponNewEpoch(m,
 		func(epochNr tt.EpochNr, clientProgress *trantorpbtypes.ClientProgress) error {
 
 			// Update the local view of the epoch number.
@@ -177,9 +177,9 @@ func IncludeBatchCreation( // nolint:gocognit
 			state.Iterator = state.Transactions.Iterator(tt.RetentionIndex(epochNr))
 
 			// Update client progress and prune delivered transactions.
-			// TODO: This might be inefficient, especially if there are many transactinos in the mempool.
+			// TODO: This might be inefficient, especially if there are many transactions in the mempool.
 			//   A potential solution would be to keep an index of pending transactions similar to
-			//   ClientProgress - for each client, list of pending transactions sorted by clientID - that
+			//   ClientProgress - for each client, list of pending transactions sorted by TxNo - that
 			//   would make pruning significantly more efficient.
 			state.ClientProgress.LoadPb(clientProgress.Pb())
 			_, removedTXs := state.Transactions.RemoveSelected(func(txID tt.TxID, tx *trantorpbtypes.Transaction) bool {
@@ -209,7 +209,7 @@ func IncludeBatchCreation( // nolint:gocognit
 		},
 	)
 
-	mpdsl.UponNewTransactions(m, func(txsReceived []*trantorpbtypes.Transaction) error {
+	mppbdsl.UponNewTransactions(m, func(txsReceived []*trantorpbtypes.Transaction) error {
 
 		// Filter out transactions that have already been delivered to the application.
 		txsToSave := make([]*trantorpbtypes.Transaction, 0, len(txsReceived))
@@ -230,13 +230,13 @@ func IncludeBatchCreation( // nolint:gocognit
 
 		// Compute IDs of the new transactions
 		if len(txsToSave) > 0 {
-			mpdsl.RequestTransactionIDs(m, mc.Self, txsToSave, &requestTxIDsContext{txsToSave})
+			mppbdsl.RequestTransactionIDs(m, mc.Self, txsToSave, &requestTxIDsContext{txsToSave})
 		}
 
 		return nil
 	})
 
-	mpdsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
+	mppbdsl.UponTransactionIDsResponse(m, func(txIDs []tt.TxID, context *requestTxIDsContext) error {
 
 		_, addedTxs := state.Transactions.Append(txIDs, context.txs)
 		for _, tx := range addedTxs {
@@ -258,7 +258,7 @@ func IncludeBatchCreation( // nolint:gocognit
 		return nil
 	})
 
-	mpdsl.UponRequestBatch(m, func(epoch tt.EpochNr, origin *mppbtypes.RequestBatchOrigin) error {
+	mppbdsl.UponRequestBatch(m, func(epoch tt.EpochNr, origin *mppbtypes.RequestBatchOrigin) error {
 		if epoch == state.Epoch {
 			// Only handle batch requests from the current epoch.
 			handleBatchRequest(origin)
@@ -270,7 +270,7 @@ func IncludeBatchCreation( // nolint:gocognit
 		return nil
 	})
 
-	mpdsl.UponBatchTimeout(m, func(batchReqID uint64) error {
+	mppbdsl.UponBatchTimeout(m, func(batchReqID uint64) error {
 
 		reqID := int(batchReqID)
 
