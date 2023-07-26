@@ -7,7 +7,6 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -44,18 +43,16 @@ func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types4.Tr
 	}
 }
 
-func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txIds []types5.TxID, txs []*types4.Transaction, metadata []uint8, origin *types2.StoreBatchOrigin) *types3.Event {
+func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txs []*types4.Transaction, origin *types2.StoreBatchOrigin) *types3.Event {
 	return &types3.Event{
 		DestModule: destModule,
 		Type: &types3.Event_BatchDb{
 			BatchDb: &types2.Event{
 				Type: &types2.Event_Store{
 					Store: &types2.StoreBatch{
-						BatchId:  batchId,
-						TxIds:    txIds,
-						Txs:      txs,
-						Metadata: metadata,
-						Origin:   origin,
+						BatchId: batchId,
+						Txs:     txs,
+						Origin:  origin,
 					},
 				},
 			},
