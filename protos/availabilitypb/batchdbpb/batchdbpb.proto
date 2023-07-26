@@ -39,20 +39,18 @@ message LookupBatch {
 message LookupBatchResponse {
   option (mir.event) = true;
 
-  bool                       found  = 1;
+  bool                           found  = 1;
   repeated trantorpb.Transaction txs    = 2;
-  LookupBatchOrigin          origin = 3 [(mir.origin_response) = true];
+  LookupBatchOrigin              origin = 3 [(mir.origin_response) = true];
 }
 
 // StoreBatch is used to store a new batch in the local batch database.
 message StoreBatch {
   option (mir.event) = true;
 
-  bytes                      batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
-  repeated bytes             tx_ids   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxID"];
+  bytes                          batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   repeated trantorpb.Transaction txs      = 3;
-  bytes                      metadata = 4; // not used at the moment
-  StoreBatchOrigin           origin   = 5 [(mir.origin_request) = true];
+  StoreBatchOrigin               origin   = 5 [(mir.origin_request) = true];
 }
 
 // BatchStored is a response to a VerifyCert event.
