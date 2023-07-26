@@ -21,7 +21,7 @@ func IncludeBatchCreation(
 		return nil
 	})
 
-	mpdsl.UponRequestBatch(m, func(origin *mppbtypes.RequestBatchOrigin) error {
+	mpdsl.UponRequestBatch(m, func(_ tt.EpochNr, origin *mppbtypes.RequestBatchOrigin) error {
 		txs := fetchTransactions()
 		mpdsl.RequestTransactionIDs(m, mc.Self, txs, &requestTxIDsContext{
 			txs:    txs,

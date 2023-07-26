@@ -12,6 +12,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/parts/lookuptxs"
 	"github.com/filecoin-project/mir/pkg/modules"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/indexedlist"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -41,7 +43,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) mod
 	m := dsl.NewModule(mc.Self)
 
 	commonState := &common.State{
-		TxByID: make(map[string]*trantorpbtypes.Transaction),
+		Transactions: indexedlist.New[tt.TxID, *trantorpbtypes.Transaction](),
 	}
 
 	computeids.IncludeComputationOfTransactionAndBatchIDs(m, mc, params, logger, commonState)

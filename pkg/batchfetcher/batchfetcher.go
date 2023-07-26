@@ -3,30 +3,28 @@ package batchfetcher
 import (
 	"fmt"
 
-	bfevents "github.com/filecoin-project/mir/pkg/batchfetcher/events"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/logging"
-	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
-	apppbevents "github.com/filecoin-project/mir/pkg/pb/apppb/events"
-	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-
-	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
-	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
+	apppbevents "github.com/filecoin-project/mir/pkg/pb/apppb/events"
+	availabilitypbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
+	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
+	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbdsl "github.com/filecoin-project/mir/pkg/pb/trantorpb/dsl"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -80,6 +78,10 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
+			f: func(_ *eventpb.Event) {
+				clientProgress.GarbageCollect()
+				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()))
+			},
 		})
 		output.Flush(m)
 		return nil
@@ -141,10 +143,10 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
 			f: func(_ *eventpb.Event) {
 				clientProgress.GarbageCollect()
-				dsl.EmitEvent(m, bfevents.ClientProgress(
+				trantorpbdsl.ClientProgress(m,
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-					clientProgress.Pb(),
-				))
+					trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()).Progress,
+				)
 			},
 		})
 		output.Flush(m)

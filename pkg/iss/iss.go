@@ -20,10 +20,6 @@ import (
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
-	cvpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/dsl"
-
-	"github.com/filecoin-project/mir/pkg/orderers/common"
-
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
@@ -33,11 +29,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	"github.com/filecoin-project/mir/pkg/orderers/common"
 	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	cvpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/dsl"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
@@ -629,6 +627,7 @@ func (iss *ISS) initAvailability() {
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 				MultisigCollector: &mscpbtypes.InstanceParams{
+					Epoch:       iss.epoch.Nr(),
 					Membership:  iss.memberships[0],
 					MaxRequests: uint64(iss.Params.SegmentLength)},
 			},

@@ -4,7 +4,9 @@ import (
 	"time"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/indexedlist"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -40,6 +42,10 @@ type ModuleParams struct {
 }
 
 // State represents the common state accessible to all parts of the module implementation.
+// TODO: Consider moving this definition inside the `internal` subdirectory, as it is only used by the mempool.
 type State struct {
-	TxByID map[string]*trantorpbtypes.Transaction
+	// All the transactions in the mempool.
+	// Incoming transactions that have not yet been delivered are added to this list.
+	// They are removed upon delivery.
+	Transactions *indexedlist.IndexedList[tt.TxID, *trantorpbtypes.Transaction]
 }
