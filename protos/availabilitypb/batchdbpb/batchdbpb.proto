@@ -24,6 +24,7 @@ message Event {
     LookupBatchResponse lookup_response = 2;
     StoreBatch          store           = 3;
     BatchStored         stored          = 4;
+    GarbageCollect      garbage_collect = 5;
   }
 }
 
@@ -48,9 +49,10 @@ message LookupBatchResponse {
 message StoreBatch {
   option (mir.event) = true;
 
-  bytes                          batch_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
-  repeated trantorpb.Transaction txs      = 3;
-  StoreBatchOrigin               origin   = 5 [(mir.origin_request) = true];
+  bytes                          batch_id        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
+  repeated trantorpb.Transaction txs             = 2;
+  uint64                         retention_index = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
+  StoreBatchOrigin               origin          = 4 [(mir.origin_request) = true];
 }
 
 // BatchStored is a response to a VerifyCert event.
@@ -58,6 +60,12 @@ message BatchStored {
   option (mir.event) = true;
 
   StoreBatchOrigin origin = 1 [(mir.origin_response) = true];
+}
+
+message GarbageCollect {
+  option (mir.event) = true;
+
+  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
 }
 
 // ============================================================
