@@ -9,6 +9,7 @@ import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types3 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -380,8 +381,9 @@ func (*Certs) MirReflect() mirreflect.Type {
 }
 
 type InstanceParams struct {
-	Membership  *types.Membership
-	MaxRequests uint64
+	Membership     *types.Membership
+	MaxRequests    uint64
+	RetentionIndex types4.RetentionIndex
 }
 
 func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
@@ -389,8 +391,9 @@ func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 		return nil
 	}
 	return &InstanceParams{
-		Membership:  types.MembershipFromPb(pb.Membership),
-		MaxRequests: pb.MaxRequests,
+		Membership:     types.MembershipFromPb(pb.Membership),
+		MaxRequests:    pb.MaxRequests,
+		RetentionIndex: (types4.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -404,6 +407,7 @@ func (m *InstanceParams) Pb() *mscpb.InstanceParams {
 			pbMessage.Membership = (m.Membership).Pb()
 		}
 		pbMessage.MaxRequests = m.MaxRequests
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 	}
 
 	return pbMessage
