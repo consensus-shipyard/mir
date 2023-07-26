@@ -7,11 +7,12 @@ import (
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	types "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
-	types4 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types6 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -43,6 +44,8 @@ func Event_TypeFromPb(pb batchdbpb.Event_Type) Event_Type {
 		return &Event_Store{Store: StoreBatchFromPb(pb.Store)}
 	case *batchdbpb.Event_Stored:
 		return &Event_Stored{Stored: BatchStoredFromPb(pb.Stored)}
+	case *batchdbpb.Event_GarbageCollect:
+		return &Event_GarbageCollect{GarbageCollect: GarbageCollectFromPb(pb.GarbageCollect)}
 	}
 	return nil
 }
@@ -141,6 +144,30 @@ func (w *Event_Stored) Pb() batchdbpb.Event_Type {
 
 func (*Event_Stored) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.Event_Stored]()}
+}
+
+type Event_GarbageCollect struct {
+	GarbageCollect *GarbageCollect
+}
+
+func (*Event_GarbageCollect) isEvent_Type() {}
+
+func (w *Event_GarbageCollect) Unwrap() *GarbageCollect {
+	return w.GarbageCollect
+}
+
+func (w *Event_GarbageCollect) Pb() batchdbpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.GarbageCollect == nil {
+		return &batchdbpb.Event_GarbageCollect{}
+	}
+	return &batchdbpb.Event_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
+}
+
+func (*Event_GarbageCollect) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.Event_GarbageCollect]()}
 }
 
 func EventFromPb(pb *batchdbpb.Event) *Event {
@@ -246,9 +273,10 @@ func (*LookupBatchResponse) MirReflect() mirreflect.Type {
 }
 
 type StoreBatch struct {
-	BatchId types.BatchID
-	Txs     []*types1.Transaction
-	Origin  *StoreBatchOrigin
+	BatchId        types.BatchID
+	Txs            []*types1.Transaction
+	RetentionIndex types3.RetentionIndex
+	Origin         *StoreBatchOrigin
 }
 
 func StoreBatchFromPb(pb *batchdbpb.StoreBatch) *StoreBatch {
@@ -260,7 +288,8 @@ func StoreBatchFromPb(pb *batchdbpb.StoreBatch) *StoreBatch {
 		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
 			return types1.TransactionFromPb(t)
 		}),
-		Origin: StoreBatchOriginFromPb(pb.Origin),
+		RetentionIndex: (types3.RetentionIndex)(pb.RetentionIndex),
+		Origin:         StoreBatchOriginFromPb(pb.Origin),
 	}
 }
 
@@ -274,6 +303,7 @@ func (m *StoreBatch) Pb() *batchdbpb.StoreBatch {
 		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		})
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
@@ -317,8 +347,37 @@ func (*BatchStored) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.BatchStored]()}
 }
 
+type GarbageCollect struct {
+	RetentionIndex types3.RetentionIndex
+}
+
+func GarbageCollectFromPb(pb *batchdbpb.GarbageCollect) *GarbageCollect {
+	if pb == nil {
+		return nil
+	}
+	return &GarbageCollect{
+		RetentionIndex: (types3.RetentionIndex)(pb.RetentionIndex),
+	}
+}
+
+func (m *GarbageCollect) Pb() *batchdbpb.GarbageCollect {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &batchdbpb.GarbageCollect{}
+	{
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
+	}
+
+	return pbMessage
+}
+
+func (*GarbageCollect) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.GarbageCollect]()}
+}
+
 type LookupBatchOrigin struct {
-	Module types3.ModuleID
+	Module types4.ModuleID
 	Type   LookupBatchOrigin_Type
 }
 
@@ -339,20 +398,20 @@ func LookupBatchOrigin_TypeFromPb(pb batchdbpb.LookupBatchOrigin_Type) LookupBat
 	}
 	switch pb := pb.(type) {
 	case *batchdbpb.LookupBatchOrigin_ContextStore:
-		return &LookupBatchOrigin_ContextStore{ContextStore: types4.OriginFromPb(pb.ContextStore)}
+		return &LookupBatchOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *batchdbpb.LookupBatchOrigin_Dsl:
-		return &LookupBatchOrigin_Dsl{Dsl: types5.OriginFromPb(pb.Dsl)}
+		return &LookupBatchOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type LookupBatchOrigin_ContextStore struct {
-	ContextStore *types4.Origin
+	ContextStore *types5.Origin
 }
 
 func (*LookupBatchOrigin_ContextStore) isLookupBatchOrigin_Type() {}
 
-func (w *LookupBatchOrigin_ContextStore) Unwrap() *types4.Origin {
+func (w *LookupBatchOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -371,12 +430,12 @@ func (*LookupBatchOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type LookupBatchOrigin_Dsl struct {
-	Dsl *types5.Origin
+	Dsl *types6.Origin
 }
 
 func (*LookupBatchOrigin_Dsl) isLookupBatchOrigin_Type() {}
 
-func (w *LookupBatchOrigin_Dsl) Unwrap() *types5.Origin {
+func (w *LookupBatchOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -399,7 +458,7 @@ func LookupBatchOriginFromPb(pb *batchdbpb.LookupBatchOrigin) *LookupBatchOrigin
 		return nil
 	}
 	return &LookupBatchOrigin{
-		Module: (types3.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   LookupBatchOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -424,7 +483,7 @@ func (*LookupBatchOrigin) MirReflect() mirreflect.Type {
 }
 
 type StoreBatchOrigin struct {
-	Module types3.ModuleID
+	Module types4.ModuleID
 	Type   StoreBatchOrigin_Type
 }
 
@@ -445,20 +504,20 @@ func StoreBatchOrigin_TypeFromPb(pb batchdbpb.StoreBatchOrigin_Type) StoreBatchO
 	}
 	switch pb := pb.(type) {
 	case *batchdbpb.StoreBatchOrigin_ContextStore:
-		return &StoreBatchOrigin_ContextStore{ContextStore: types4.OriginFromPb(pb.ContextStore)}
+		return &StoreBatchOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
 	case *batchdbpb.StoreBatchOrigin_Dsl:
-		return &StoreBatchOrigin_Dsl{Dsl: types5.OriginFromPb(pb.Dsl)}
+		return &StoreBatchOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type StoreBatchOrigin_ContextStore struct {
-	ContextStore *types4.Origin
+	ContextStore *types5.Origin
 }
 
 func (*StoreBatchOrigin_ContextStore) isStoreBatchOrigin_Type() {}
 
-func (w *StoreBatchOrigin_ContextStore) Unwrap() *types4.Origin {
+func (w *StoreBatchOrigin_ContextStore) Unwrap() *types5.Origin {
 	return w.ContextStore
 }
 
@@ -477,12 +536,12 @@ func (*StoreBatchOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type StoreBatchOrigin_Dsl struct {
-	Dsl *types5.Origin
+	Dsl *types6.Origin
 }
 
 func (*StoreBatchOrigin_Dsl) isStoreBatchOrigin_Type() {}
 
-func (w *StoreBatchOrigin_Dsl) Unwrap() *types5.Origin {
+func (w *StoreBatchOrigin_Dsl) Unwrap() *types6.Origin {
 	return w.Dsl
 }
 
@@ -505,7 +564,7 @@ func StoreBatchOriginFromPb(pb *batchdbpb.StoreBatchOrigin) *StoreBatchOrigin {
 		return nil
 	}
 	return &StoreBatchOrigin{
-		Module: (types3.ModuleID)(pb.Module),
+		Module: (types4.ModuleID)(pb.Module),
 		Type:   StoreBatchOrigin_TypeFromPb(pb.Type),
 	}
 }

@@ -7,6 +7,7 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -43,16 +44,17 @@ func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types4.Tr
 	}
 }
 
-func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txs []*types4.Transaction, origin *types2.StoreBatchOrigin) *types3.Event {
+func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txs []*types4.Transaction, retentionIndex types5.RetentionIndex, origin *types2.StoreBatchOrigin) *types3.Event {
 	return &types3.Event{
 		DestModule: destModule,
 		Type: &types3.Event_BatchDb{
 			BatchDb: &types2.Event{
 				Type: &types2.Event_Store{
 					Store: &types2.StoreBatch{
-						BatchId: batchId,
-						Txs:     txs,
-						Origin:  origin,
+						BatchId:        batchId,
+						Txs:            txs,
+						RetentionIndex: retentionIndex,
+						Origin:         origin,
 					},
 				},
 			},
@@ -68,6 +70,21 @@ func BatchStored(destModule types.ModuleID, origin *types2.StoreBatchOrigin) *ty
 				Type: &types2.Event_Stored{
 					Stored: &types2.BatchStored{
 						Origin: origin,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GarbageCollect(destModule types.ModuleID, retentionIndex types5.RetentionIndex) *types3.Event {
+	return &types3.Event{
+		DestModule: destModule,
+		Type: &types3.Event_BatchDb{
+			BatchDb: &types2.Event{
+				Type: &types2.Event_GarbageCollect{
+					GarbageCollect: &types2.GarbageCollect{
+						RetentionIndex: retentionIndex,
 					},
 				},
 			},

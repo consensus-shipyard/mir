@@ -8,6 +8,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -46,9 +47,9 @@ func UponLookupBatchResponse[C any](m dsl.Module, handler func(found bool, txs [
 	})
 }
 
-func UponStoreBatch(m dsl.Module, handler func(batchId types2.BatchID, txs []*types3.Transaction, origin *types.StoreBatchOrigin) error) {
+func UponStoreBatch(m dsl.Module, handler func(batchId types2.BatchID, txs []*types3.Transaction, retentionIndex types4.RetentionIndex, origin *types.StoreBatchOrigin) error) {
 	UponEvent[*types.Event_Store](m, func(ev *types.StoreBatch) error {
-		return handler(ev.BatchId, ev.Txs, ev.Origin)
+		return handler(ev.BatchId, ev.Txs, ev.RetentionIndex, ev.Origin)
 	})
 }
 
@@ -66,5 +67,11 @@ func UponBatchStored[C any](m dsl.Module, handler func(context *C) error) {
 		}
 
 		return handler(context)
+	})
+}
+
+func UponGarbageCollect(m dsl.Module, handler func(retentionIndex types4.RetentionIndex) error) {
+	UponEvent[*types.Event_GarbageCollect](m, func(ev *types.GarbageCollect) error {
+		return handler(ev.RetentionIndex)
 	})
 }
