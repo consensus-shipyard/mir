@@ -204,7 +204,7 @@ func IncludeCreatingCertificates(
 
 	// When the id of the batch is computed, store the batch persistently.
 	mempooldsl.UponBatchIDResponse(m, func(batchID msctypes.BatchID, context *computeIDOfReceivedBatchContext) error {
-		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txs,
+		batchdbpbdsl.StoreBatch(m, mc.BatchDB, batchID, context.txs, tt.RetentionIndex(params.EpochNr),
 			&storeBatchContext{context.sourceID, context.reqID, batchID})
 		// TODO minor optimization: start computing cert without waiting for reply (maybe do not even get a reply from batchdb)
 		return nil
