@@ -17,8 +17,7 @@ type ModuleConfig struct {
 }
 
 type moduleState struct {
-	BatchStore       map[msctypes.BatchID]batch
-	TransactionStore map[tt.TxID]*trantorpbtypes.Transaction
+	BatchStore map[msctypes.BatchID]batch
 }
 
 type batch struct {
@@ -31,8 +30,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 	m := dsl.NewModule(mc.Self)
 
 	state := moduleState{
-		BatchStore:       make(map[msctypes.BatchID]batch),
-		TransactionStore: make(map[tt.TxID]*trantorpbtypes.Transaction),
+		BatchStore: make(map[msctypes.BatchID]batch),
 	}
 
 	// On StoreBatch request, just store the data in the local memory.
