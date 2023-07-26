@@ -170,6 +170,7 @@ func debuggerNode(id t.NodeID, membership *trantorpbtypes.Membership) (*mir.Node
 			Self:         "iss",
 			App:          "batchfetcher",
 			Availability: "availability",
+			BatchDB:      "batchdb",
 			Checkpoint:   "checkpointing",
 			Net:          "net",
 			Ordering:     "ordering",

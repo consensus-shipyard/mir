@@ -44,6 +44,8 @@ func Event_TypeFromPb(pb batchdbpb.Event_Type) Event_Type {
 		return &Event_Store{Store: StoreBatchFromPb(pb.Store)}
 	case *batchdbpb.Event_Stored:
 		return &Event_Stored{Stored: BatchStoredFromPb(pb.Stored)}
+	case *batchdbpb.Event_GarbageCollect:
+		return &Event_GarbageCollect{GarbageCollect: GarbageCollectFromPb(pb.GarbageCollect)}
 	}
 	return nil
 }
@@ -142,6 +144,30 @@ func (w *Event_Stored) Pb() batchdbpb.Event_Type {
 
 func (*Event_Stored) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.Event_Stored]()}
+}
+
+type Event_GarbageCollect struct {
+	GarbageCollect *GarbageCollect
+}
+
+func (*Event_GarbageCollect) isEvent_Type() {}
+
+func (w *Event_GarbageCollect) Unwrap() *GarbageCollect {
+	return w.GarbageCollect
+}
+
+func (w *Event_GarbageCollect) Pb() batchdbpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.GarbageCollect == nil {
+		return &batchdbpb.Event_GarbageCollect{}
+	}
+	return &batchdbpb.Event_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
+}
+
+func (*Event_GarbageCollect) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.Event_GarbageCollect]()}
 }
 
 func EventFromPb(pb *batchdbpb.Event) *Event {
@@ -247,11 +273,10 @@ func (*LookupBatchResponse) MirReflect() mirreflect.Type {
 }
 
 type StoreBatch struct {
-	BatchId  types.BatchID
-	TxIds    []types3.TxID
-	Txs      []*types1.Transaction
-	Metadata []uint8
-	Origin   *StoreBatchOrigin
+	BatchId        types.BatchID
+	Txs            []*types1.Transaction
+	RetentionIndex types3.RetentionIndex
+	Origin         *StoreBatchOrigin
 }
 
 func StoreBatchFromPb(pb *batchdbpb.StoreBatch) *StoreBatch {
@@ -260,14 +285,11 @@ func StoreBatchFromPb(pb *batchdbpb.StoreBatch) *StoreBatch {
 	}
 	return &StoreBatch{
 		BatchId: (types.BatchID)(pb.BatchId),
-		TxIds: types2.ConvertSlice(pb.TxIds, func(t []uint8) types3.TxID {
-			return (types3.TxID)(t)
-		}),
 		Txs: types2.ConvertSlice(pb.Txs, func(t *trantorpb.Transaction) *types1.Transaction {
 			return types1.TransactionFromPb(t)
 		}),
-		Metadata: pb.Metadata,
-		Origin:   StoreBatchOriginFromPb(pb.Origin),
+		RetentionIndex: (types3.RetentionIndex)(pb.RetentionIndex),
+		Origin:         StoreBatchOriginFromPb(pb.Origin),
 	}
 }
 
@@ -278,13 +300,10 @@ func (m *StoreBatch) Pb() *batchdbpb.StoreBatch {
 	pbMessage := &batchdbpb.StoreBatch{}
 	{
 		pbMessage.BatchId = ([]uint8)(m.BatchId)
-		pbMessage.TxIds = types2.ConvertSlice(m.TxIds, func(t types3.TxID) []uint8 {
-			return ([]uint8)(t)
-		})
 		pbMessage.Txs = types2.ConvertSlice(m.Txs, func(t *types1.Transaction) *trantorpb.Transaction {
 			return (t).Pb()
 		})
-		pbMessage.Metadata = m.Metadata
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
@@ -326,6 +345,35 @@ func (m *BatchStored) Pb() *batchdbpb.BatchStored {
 
 func (*BatchStored) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.BatchStored]()}
+}
+
+type GarbageCollect struct {
+	RetentionIndex types3.RetentionIndex
+}
+
+func GarbageCollectFromPb(pb *batchdbpb.GarbageCollect) *GarbageCollect {
+	if pb == nil {
+		return nil
+	}
+	return &GarbageCollect{
+		RetentionIndex: (types3.RetentionIndex)(pb.RetentionIndex),
+	}
+}
+
+func (m *GarbageCollect) Pb() *batchdbpb.GarbageCollect {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &batchdbpb.GarbageCollect{}
+	{
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
+	}
+
+	return pbMessage
+}
+
+func (*GarbageCollect) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*batchdbpb.GarbageCollect]()}
 }
 
 type LookupBatchOrigin struct {
