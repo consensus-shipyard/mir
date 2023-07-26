@@ -15,14 +15,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
-
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
-
-	cvpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/dsl"
-
-	"github.com/filecoin-project/mir/pkg/orderers/common"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
@@ -33,11 +27,15 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/orderers"
+	"github.com/filecoin-project/mir/pkg/orderers/common"
+	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
 	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
+	batchdbpbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/dsl"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	cvpbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/dsl"
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
@@ -629,8 +627,10 @@ func (iss *ISS) initAvailability() {
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 				MultisigCollector: &mscpbtypes.InstanceParams{
-					Membership:  iss.memberships[0],
-					MaxRequests: uint64(iss.Params.SegmentLength)},
+					Membership:     iss.memberships[0],
+					MaxRequests:    uint64(iss.Params.SegmentLength),
+					RetentionIndex: tt.RetentionIndex(iss.epoch.Nr()),
+				},
 			},
 		},
 	)
@@ -915,12 +915,13 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 	pruneIndex := int(chkp.Epoch()) - iss.Params.RetainedEpochs
 	if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
-		// Prune timer, checkpointing, availability, and orderers.
+		// Prune timer, checkpointing, availability, orderers, and other modules.
 		eventpbdsl.TimerGarbageCollect(iss.m, iss.moduleConfig.Timer, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, tt.RetentionIndex(pruneIndex))
+		batchdbpbdsl.GarbageCollect(iss.m, iss.moduleConfig.BatchDB, tt.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.
 		for epoch := range iss.epochs {
