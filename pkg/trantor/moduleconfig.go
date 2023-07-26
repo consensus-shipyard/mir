@@ -58,6 +58,7 @@ func (mc ModuleConfig) ConfigureISS() iss.ModuleConfig {
 		Self:               mc.ISS,
 		App:                mc.BatchFetcher,
 		Availability:       mc.Availability,
+		BatchDB:            mc.BatchDB,
 		Checkpoint:         mc.Checkpointing,
 		ChkpValidator:      mc.ChkpValidator,
 		Net:                mc.Net,

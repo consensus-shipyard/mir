@@ -8,6 +8,7 @@ type ModuleConfig struct {
 	Self               t.ModuleID
 	App                t.ModuleID
 	Availability       t.ModuleID
+	BatchDB            t.ModuleID
 	Checkpoint         t.ModuleID
 	ChkpValidator      t.ModuleID
 	Net                t.ModuleID
