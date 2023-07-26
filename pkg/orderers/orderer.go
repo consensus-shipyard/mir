@@ -58,8 +58,7 @@ func NewOrdererModule(
 		MessageBuffers: messagebuffer.NewBuffers(
 			removeNodeID(config.Membership, ownID), // Create a message buffer for everyone except for myself.
 			config.MsgBufCapacity,
-			//       Even better, share the same buffers with ISS.
-			logging.Decorate(logger, "Msgbuf: "),
+			logging.Decorate(logger, "MsgBufs: "),
 		),
 		View:             0,
 		InViewChange:     false,

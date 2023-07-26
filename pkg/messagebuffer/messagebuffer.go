@@ -56,9 +56,6 @@ const (
 // MessageBuffer represents a message buffer, buffering messages from a single node.
 type MessageBuffer struct {
 
-	// ID of the node sending the messages stored by this buffer.
-	nodeID t.NodeID
-
 	// Maximal number of bytes of message data this MessageBuffer can store.
 	// Can be changed using the Resize method.
 	capacity int
@@ -73,13 +70,12 @@ type MessageBuffer struct {
 	logger logging.Logger
 }
 
-// New returns a newly allocated and initialized MessageBuffer for the given nodeID and with the given initial capacity.
-func New(nodeID t.NodeID, capacity int, logger logging.Logger) *MessageBuffer {
+// New returns a newly allocated and initialized MessageBuffer with the given capacity.
+func New(capacity int, logger logging.Logger) *MessageBuffer {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
 	return &MessageBuffer{
-		nodeID:   nodeID,
 		logger:   logger,
 		capacity: capacity,
 		size:     0,
@@ -105,10 +101,7 @@ func NewBuffers(nodeIDs []t.NodeID, totalCapacity int, logger logging.Logger) ma
 	for _, nodeID := range nodeIDs {
 
 		// Create a new MessageBuffer.
-		buffers[nodeID] = New(nodeID,
-			totalCapacity/len(nodeIDs),
-			logging.Decorate(logger, "", "source", nodeID),
-		)
+		buffers[nodeID] = New(totalCapacity/len(nodeIDs), logging.Decorate(logger, "", "source", nodeID))
 	}
 
 	// Return the new buffers.
@@ -134,7 +127,7 @@ func (mb *MessageBuffer) Store(msg proto.Message) bool {
 	// If message does not fit in the buffer, even if all its contents were removed, return immediately.
 	if msgSize > mb.capacity {
 		mb.logger.Log(logging.LevelWarn, "Ignoring message larger than capacity.",
-			"source", mb.nodeID, "capacity", mb.capacity, "msgSize", msgSize)
+			"capacity", mb.capacity, "msgSize", msgSize)
 		return false
 	}
 
@@ -142,7 +135,7 @@ func (mb *MessageBuffer) Store(msg proto.Message) bool {
 	for mb.size+msgSize > mb.capacity {
 		e := mb.messages.Front()
 		mb.remove(e)
-		mb.logger.Log(logging.LevelWarn, "Dropped old message, storing newer message.", "source", mb.nodeID)
+		mb.logger.Log(logging.LevelDebug, "Dropped old message, storing newer message.")
 	}
 
 	// Add message to buffer and update current size.
@@ -167,7 +160,7 @@ func (mb *MessageBuffer) Resize(newCapacity int) {
 		// Remove least recently added message.
 		e := mb.messages.Front()
 		mb.remove(e)
-		mb.logger.Log(logging.LevelWarn, "Dropped message when resizing buffer.", "source", mb.nodeID)
+		mb.logger.Log(logging.LevelDebug, "Dropped message when resizing buffer.")
 	}
 }
 
@@ -191,8 +184,8 @@ func (mb *MessageBuffer) remove(e *list.Element) proto.Message {
 //
 // (2) apply is called with every message for which filter returns the Current value.
 func (mb *MessageBuffer) Iterate(
-	filter func(source t.NodeID, msg proto.Message) Applicable,
-	apply func(source t.NodeID, msg proto.Message),
+	filter func(msg proto.Message) Applicable,
+	apply func(msg proto.Message),
 ) {
 
 	// Start with the element storing the least recently added message.
@@ -208,12 +201,12 @@ func (mb *MessageBuffer) Iterate(
 
 		// Perform the appropriate action on the message,
 		// based on the outcome of the user-provided filter function.
-		switch filter(mb.nodeID, msg) {
+		switch filter(msg) {
 		case Past:
 			mb.remove(currentElement)
 		case Current:
 			mb.remove(currentElement)
-			apply(mb.nodeID, msg)
+			apply(msg)
 		case Future:
 			// Skip future messages
 		case Invalid:
