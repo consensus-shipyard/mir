@@ -44,12 +44,20 @@ func NewModule(mc ModuleConfig) modules.Module {
 		retIdx tt.RetentionIndex,
 		origin *batchdbpbtypes.StoreBatchOrigin,
 	) error {
+
+		// Only save the batch if its retention index has not yet been garbage-collected.
 		if retIdx >= state.retIdx {
 			b := batch{txs}
 			state.batchStore[batchID] = &b
 			state.batchesByRetIdx[retIdx] = append(state.batchesByRetIdx[retIdx], batchID)
 		}
 
+		// Note that we emit a BatchStored event even if the batch's retention index was too low
+		// (and thus the batch was not actually stored).
+		// However, since this situation is indistinguishable from
+		// storing the batch and immediately garbage-collecting it,
+		// it is simpler to report success to the module that produced the StoreBatch event
+		// (rather than creating a whole different code branch with no real utility).
 		batchdbpbdsl.BatchStored(m, origin.Module, origin)
 		return nil
 	})
