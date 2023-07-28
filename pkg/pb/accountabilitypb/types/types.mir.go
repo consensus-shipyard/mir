@@ -521,7 +521,7 @@ func FullCertificateFromPb(pb *accountabilitypb.FullCertificate) *FullCertificat
 		return nil
 	}
 	return &FullCertificate{
-		Certificate: types1.ConvertMap(pb.Certificate, func(k uint64, v *accountabilitypb.SignedPredecision) (types.NodeID, *SignedPredecision) {
+		Certificate: types1.ConvertMap(pb.Certificate, func(k string, v *accountabilitypb.SignedPredecision) (types.NodeID, *SignedPredecision) {
 			return (types.NodeID)(k), SignedPredecisionFromPb(v)
 		}),
 	}
@@ -533,8 +533,8 @@ func (m *FullCertificate) Pb() *accountabilitypb.FullCertificate {
 	}
 	pbMessage := &accountabilitypb.FullCertificate{}
 	{
-		pbMessage.Certificate = types1.ConvertMap(m.Certificate, func(k types.NodeID, v *SignedPredecision) (uint64, *accountabilitypb.SignedPredecision) {
-			return (uint64)(k), (v).Pb()
+		pbMessage.Certificate = types1.ConvertMap(m.Certificate, func(k types.NodeID, v *SignedPredecision) (string, *accountabilitypb.SignedPredecision) {
+			return (string)(k), (v).Pb()
 		})
 	}
 

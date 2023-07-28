@@ -79,7 +79,7 @@ message SignedPredecision {
 message FullCertificate {
   option (net.message) = true;
 
-  map<uint64,SignedPredecision> certificate = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  map<string,SignedPredecision> certificate = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message InstanceParams {
