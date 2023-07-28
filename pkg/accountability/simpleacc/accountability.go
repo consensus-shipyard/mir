@@ -3,6 +3,7 @@ package simpleacc
 import (
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/common"
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/certificates/fullcertificates"
+	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/certificates/lightcertificates"
 	incommon "github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/common"
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/poms"
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/predecisions"
@@ -92,6 +93,9 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (mo
 
 	predecisions.IncludePredecisions(m, &mc, params, state, logger)
 	fullcertificates.IncludeFullCertificate(m, &mc, params, state, logger)
+	if params.LightCertificates {
+		lightcertificates.IncludeLightCertificate(m, &mc, params, state, logger)
+	}
 	poms.IncludePoMs(m, &mc, params, state, logger)
 
 	return m, nil

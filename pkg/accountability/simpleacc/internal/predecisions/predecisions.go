@@ -149,12 +149,21 @@ func ApplySigVerified(
 
 		accpbdsl.Decided(m, mc.App, sp.Predecision)
 
-		transportpbdsl.SendMessage(
-			m,
-			mc.Net,
-			accpbmsgs.FullCertificate(mc.Self,
-				state.DecidedCertificate),
-			maputil.GetKeys(params.Membership.Nodes))
+		if params.LightCertificates {
+			transportpbdsl.SendMessage(
+				m,
+				mc.Net,
+				accpbmsgs.LightCertificate(mc.Self,
+					sp.Predecision),
+				maputil.GetKeys(params.Membership.Nodes))
+		} else {
+			transportpbdsl.SendMessage(
+				m,
+				mc.Net,
+				accpbmsgs.FullCertificate(mc.Self,
+					state.DecidedCertificate),
+				maputil.GetKeys(params.Membership.Nodes))
+		}
 	}
 
 	return nil
