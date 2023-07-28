@@ -3,6 +3,7 @@
 package factorypb
 
 import (
+	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
@@ -49,4 +50,8 @@ func (w *GeneratorParams_PbftModule) Unwrap() *ordererpb.PBFTModule {
 
 func (w *GeneratorParams_PpvModule) Unwrap() *pprepvalidatorpb.PPrepValidatorChkp {
 	return w.PpvModule
+}
+
+func (w *GeneratorParams_AccModule) Unwrap() *accountabilitypb.InstanceParams {
+	return w.AccModule
 }

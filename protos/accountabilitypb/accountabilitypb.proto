@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package accountabilitypb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/accountabilitypb";
+
+import "trantorpb/trantorpb.proto";
+
+import "net/codegen_extensions.proto";
+import "mir/codegen_extensions.proto";
+
+
+message Event{
+  option (mir.event_class) = true;
+  oneof type {
+    option (mir.event_type) = true;
+
+    Predecided predecided = 1;
+    Decided decided = 2;
+    PoMs poms = 3;
+    InstanceParams instance_params = 4;
+  }
+}
+
+message Predecided {
+  option (mir.event) = true;
+
+  bytes data = 1;
+}
+
+message Decided {
+  option (mir.event) = true;
+
+  bytes data = 1;
+}
+
+message PoM {
+  option (mir.struct) = true;
+
+  string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  SignedPredecision conflicting_msg_1 = 2;
+  SignedPredecision conflicting_msg_2 = 3;
+
+}
+
+message LightCertificate {
+  option (net.message) = true;
+  bytes data = 1;
+}
+
+message PoMs {
+  option (mir.event) = true;
+  option (net.message) = true;
+
+  repeated PoM poms = 1;
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    SignedPredecision signed_predecision = 1;
+    FullCertificate certificate = 2;
+    PoMs poms = 3;
+    LightCertificate light_certificate = 4;
+  }
+}
+
+message SignedPredecision {
+  option (net.message) = true;
+  option (mir.struct) = true;
+
+  bytes predecision = 1;
+  bytes signature = 2;
+}
+
+message FullCertificate {
+  option (net.message) = true;
+
+  map<uint64,SignedPredecision> certificate = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+}
+
+message InstanceParams {
+  option (mir.event) = true;
+
+  trantorpb.Membership membership = 3;
+}

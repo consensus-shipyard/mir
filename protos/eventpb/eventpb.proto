@@ -23,6 +23,7 @@ import "hasherpb/hasherpb.proto";
 import "cryptopb/cryptopb.proto";
 import "transportpb/transportpb.proto";
 import "testerpb/testerpb.proto";
+import "accountabilitypb/accountabilitypb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -58,6 +59,7 @@ message Event {
          transportpb.Event transport       = 23;
      chkpvalidatorpb.Event chkp_validator  = 24;
     pprepvalidatorpb.Event pprep_valiadtor = 25;
+    accountabilitypb.Event accountability  = 26;
 
 
     // Events for code samples

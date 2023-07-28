@@ -116,6 +116,16 @@ func Transform[Ki comparable, Vi any, Ko comparable, Vo any](mi map[Ki]Vi, f fun
 	return mo
 }
 
+func Filter[K comparable, V any](m map[K]V, pred func(K, V) bool) map[K]V {
+	result := make(map[K]V)
+	for k, v := range m {
+		if pred(k, v) {
+			result[k] = v
+		}
+	}
+	return result
+}
+
 // FromSlices constructs and returns a map from two separate slices of keys and corresponding values.
 // FromSlices panics if the number of keys differs from the number of values.
 func FromSlices[K comparable, V any](keys []K, vals []V) map[K]V {

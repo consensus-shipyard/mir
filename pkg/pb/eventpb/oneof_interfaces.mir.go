@@ -3,6 +3,7 @@
 package eventpb
 
 import (
+	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -101,6 +102,10 @@ func (w *Event_ChkpValidator) Unwrap() *chkpvalidatorpb.Event {
 
 func (w *Event_PprepValiadtor) Unwrap() *pprepvalidatorpb.Event {
 	return w.PprepValiadtor
+}
+
+func (w *Event_Accountability) Unwrap() *accountabilitypb.Event {
+	return w.Accountability
 }
 
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
