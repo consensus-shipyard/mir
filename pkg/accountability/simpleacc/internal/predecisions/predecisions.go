@@ -42,7 +42,7 @@ func IncludePredecisions(
 		state.Predecided = true
 
 		// Sign predecision attaching mc.Self to prevent replay attacks
-		cryptopbdsl.SignRequest(m, mc.Crypto, &cryptopbtypes.SignedData{[][]byte{data, []byte(mc.Self)}}, &signRequest{data})
+		cryptopbdsl.SignRequest(m, mc.Crypto, &cryptopbtypes.SignedData{Data: [][]byte{data, []byte(mc.Self)}}, &signRequest{data: data})
 
 		return nil
 	})
@@ -69,7 +69,7 @@ func IncludePredecisions(
 
 		// Verify signature of received signed predecision
 		cryptopbdsl.VerifySig(m, mc.Crypto,
-			&cryptopbtypes.SignedData{[][]byte{predecision, []byte(mc.Self)}},
+			&cryptopbtypes.SignedData{Data: [][]byte{predecision, []byte(mc.Self)}},
 			signature,
 			from,
 			&accpbtypes.SignedPredecision{
@@ -80,7 +80,8 @@ func IncludePredecisions(
 	})
 
 	cryptopbdsl.UponSigVerified(m, func(nodeId t.NodeID, err error, sp *accpbtypes.SignedPredecision) error {
-		return ApplySigVerified(m, mc, params, state, nodeId, err, sp, true, logger)
+		ApplySigVerified(m, mc, params, state, nodeId, err, sp, true, logger)
+		return nil
 	})
 
 }
@@ -94,27 +95,26 @@ func ApplySigVerified(
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	state *incommon.State,
-	nodeId t.NodeID,
+	nodeID t.NodeID,
 	err error,
 	sp *accpbtypes.SignedPredecision,
 	flushPoMs bool,
 	logger logging.Logger,
-) error {
+) {
 	if err != nil {
 		logger.Log(logging.LevelDebug, "Signature verification failed")
-		return nil
 	}
 
 	// Check if PoM found
-	if state.SignedPredecisions[nodeId] != nil {
-		if !reflect.DeepEqual(state.SignedPredecisions[nodeId].Predecision, sp.Predecision) {
+	if state.SignedPredecisions[nodeID] != nil {
+		if !reflect.DeepEqual(state.SignedPredecisions[nodeID].Predecision, sp.Predecision) {
 			logger.Log(logging.LevelWarn, "Received conflicting signed predecisions from same node")
 			// if a PoM for this node has not already been sent
-			if _, ok := state.SentPoMs[nodeId]; !ok {
+			if _, ok := state.SentPoMs[nodeID]; !ok {
 				state.UnsentPoMs = append(state.UnsentPoMs,
 					&accpbtypes.PoM{
-						NodeId:           nodeId,
-						ConflictingMsg_1: state.SignedPredecisions[nodeId],
+						NodeId:           nodeID,
+						ConflictingMsg_1: state.SignedPredecisions[nodeID],
 						ConflictingMsg_2: sp,
 					})
 
@@ -124,16 +124,15 @@ func ApplySigVerified(
 			}
 
 			logger.Log(logging.LevelDebug, "Discarding signed predecision as already received one from same node")
-			return nil
 		}
 	}
 
 	// Store signed predecision
-	state.SignedPredecisions[nodeId] = sp
+	state.SignedPredecisions[nodeID] = sp
 	if state.PredecisionCount[string(sp.Predecision)] == nil {
 		state.PredecisionCount[string(sp.Predecision)] = make([]t.NodeID, 0)
 	}
-	state.PredecisionCount[string(sp.Predecision)] = append(state.PredecisionCount[string(sp.Predecision)], nodeId)
+	state.PredecisionCount[string(sp.Predecision)] = append(state.PredecisionCount[string(sp.Predecision)], nodeID)
 
 	// Once verified, if strong quorum, broadcast accpbdsl.FullCertificate
 	if state.DecidedCertificate == nil &&
@@ -165,8 +164,6 @@ func ApplySigVerified(
 				maputil.GetKeys(params.Membership.Nodes))
 		}
 	}
-
-	return nil
 }
 
 type signRequest struct {

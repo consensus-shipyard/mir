@@ -53,7 +53,7 @@ func IncludeFullCertificate(m dsl.Module,
 			mc.Crypto,
 			sliceutil.Transform(maputil.GetValues(certificate),
 				func(i int, sp *accpbtypes.SignedPredecision) *cryptopbtypes.SignedData {
-					return &cryptopbtypes.SignedData{[][]byte{sp.Predecision, []byte(mc.Self)}}
+					return &cryptopbtypes.SignedData{Data: [][]byte{sp.Predecision, []byte(mc.Self)}}
 				}),
 			sliceutil.Transform(maputil.GetValues(certificate),
 				func(i int, sp *accpbtypes.SignedPredecision) []byte {
@@ -68,8 +68,8 @@ func IncludeFullCertificate(m dsl.Module,
 	})
 
 	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errs []error, allOk bool, vsr *verifySigs) error {
-		for i, nodeId := range nodeIds {
-			predecisions.ApplySigVerified(m, mc, params, state, nodeId, errs[i], vsr.certificate[nodeId], false, logger)
+		for i, nodeID := range nodeIds {
+			predecisions.ApplySigVerified(m, mc, params, state, nodeID, errs[i], vsr.certificate[nodeID], false, logger)
 		}
 		poms.SendPoMs(m, mc, params, state, logger)
 		return nil

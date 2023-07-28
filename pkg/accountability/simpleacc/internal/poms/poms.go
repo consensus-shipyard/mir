@@ -47,8 +47,8 @@ func IncludePoMs(
 			nodeIds = append(nodeIds, pom.NodeId, pom.NodeId)
 
 			data = append(data,
-				&cryptopbtypes.SignedData{[][]byte{pom.ConflictingMsg_1.Predecision, []byte(mc.Self)}},
-				&cryptopbtypes.SignedData{[][]byte{pom.ConflictingMsg_2.Predecision, []byte(mc.Self)}})
+				&cryptopbtypes.SignedData{Data: [][]byte{pom.ConflictingMsg_1.Predecision, []byte(mc.Self)}},
+				&cryptopbtypes.SignedData{Data: [][]byte{pom.ConflictingMsg_2.Predecision, []byte(mc.Self)}})
 
 			signatures = append(signatures, pom.ConflictingMsg_1.Signature, pom.ConflictingMsg_2.Signature)
 		}

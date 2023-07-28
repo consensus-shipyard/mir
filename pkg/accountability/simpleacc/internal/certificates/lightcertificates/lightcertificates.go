@@ -29,6 +29,10 @@ func IncludeLightCertificate(m dsl.Module,
 
 	accpbdsl.UponLightCertificateReceived(m, func(from t.NodeID, data []byte) error {
 
+		if !params.LightCertificates {
+			return nil
+		}
+
 		if state.DecidedCertificate == nil {
 			logger.Log(logging.LevelDebug, "Received light certificate before decided certificate, buffering it")
 			lightCertificates[from] = data
