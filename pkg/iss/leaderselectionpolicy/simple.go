@@ -4,7 +4,6 @@ import (
 	"github.com/fxamacker/cbor/v2"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -46,7 +45,7 @@ func (simple *SimpleLeaderPolicy) Bytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := serializing.Uint64ToBytes(uint64(Simple))
+	out := []byte(Simple)
 	out = append(out, ser...)
 	return out, nil
 }
