@@ -21,8 +21,8 @@ func main() {
 
 	// Manually create system membership with just 2 nodes.
 	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
-		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, 1}, // nolint:govet
-		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, 1}, // nolint:govet
+		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, "1"}, // nolint:govet
+		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, "1"}, // nolint:govet
 	}}
 
 	// Get own ID from command line.

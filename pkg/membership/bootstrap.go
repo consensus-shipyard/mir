@@ -74,7 +74,7 @@ func FromFile(f *os.File) (*trantorpbtypes.Membership, error) {
 		Identities []struct {
 			ID     string `json:"addr"`
 			Addr   string `json:"net_addr"`
-			Weight uint64 `json:"weight,string"`
+			Weight string `json:"weight,string"`
 		} `json:"validators"`
 	}{}
 
@@ -140,7 +140,7 @@ func DummyMultiAddrs(membershipIn *trantorpbtypes.Membership) (*trantorpbtypes.M
 			identity.Id,
 			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
 			nil,
-			1,
+			"1",
 		}
 	}
 

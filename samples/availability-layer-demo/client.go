@@ -89,7 +89,7 @@ func run() error {
 			Id:     id,
 			Addr:   addr.String(),
 			Key:    nil,
-			Weight: 1,
+			Weight: "1",
 		}
 	}
 

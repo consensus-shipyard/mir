@@ -3,7 +3,6 @@ package testing
 import (
 	"context"
 	"fmt"
-	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -188,8 +187,8 @@ func testIntegrationWithISS(tt *testing.T) {
 		13: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (not messages sent, yes received) and holding the supermajority of stake",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
-					idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
-					return types.VoteWeight(math.Pow(2, idfloat)) // ensures last 2 nodes weight is greater than twice the sum of the others'
+					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
+					return types.VoteWeight(fmt.Sprintf("%d", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
 				Transport:       "libp2p",
@@ -208,8 +207,8 @@ func testIntegrationWithISS(tt *testing.T) {
 		14: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (no messages sent, yes received) but holding the minority of stake",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
-					idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
-					return types.VoteWeight(math.Pow(2, 4-idfloat)) // ensures first 2 nodes weight is greater than twice the sum of the others'
+					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
+					return types.VoteWeight(fmt.Sprintf("%d", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
 				Transport:       "libp2p",
@@ -517,4 +516,14 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	}
 
 	return deploytest.NewDeployment(deployConf)
+}
+
+func pow2(exp int) uint64 {
+	y := uint64(1)
+
+	for i := 0; i < exp; i++ {
+		y *= 2
+	}
+
+	return y
 }

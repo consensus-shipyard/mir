@@ -133,7 +133,7 @@ func verifyCertificateStructure(params *common.ModuleParams, cert *apbtypes.Cert
 
 		// Check that a quorum of nodes signed the certificate.
 		if !membutil.HaveWeakQuorum(params.Membership, mscCert.Signers) {
-			return nil, es.Errorf("insufficient weight of signatures: %d, need %d (signers: %v)",
+			return nil, es.Errorf("insufficient weight of signatures: %v, need %v (signers: %v)",
 				membutil.WeightOf(params.Membership, mscCert.Signers),
 				membutil.WeakQuorum(params.Membership),
 				mscCert.Signers,

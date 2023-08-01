@@ -230,7 +230,7 @@ func (m *NodeIdentity) Pb() *trantorpb.NodeIdentity {
 		pbMessage.Id = (string)(m.Id)
 		pbMessage.Addr = m.Addr
 		pbMessage.Key = m.Key
-		pbMessage.Weight = (uint64)(m.Weight)
+		pbMessage.Weight = (string)(m.Weight)
 	}
 
 	return pbMessage

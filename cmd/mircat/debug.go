@@ -44,7 +44,7 @@ func debug(args *arguments) error {
 			Id:     nID,
 			Addr:   libp2p.NewDummyHostAddr(0, 0).String(),
 			Key:    nil,
-			Weight: 1,
+			Weight: "1",
 		}
 	}
 
