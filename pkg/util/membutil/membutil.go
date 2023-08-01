@@ -97,3 +97,24 @@ func Deserialize(data []byte) (*trantorpbtypes.Membership, error) {
 	}
 	return &membership, nil
 }
+
+func Valid(membership *trantorpbtypes.Membership) error {
+	if len(membership.Nodes) == 0 {
+		return es.Errorf("membership is empty")
+	}
+
+	for nodeID, node := range membership.Nodes {
+		if node.Id != nodeID {
+			return es.Errorf("node ID %v does not match key under which node is stored %v", node.Id, nodeID)
+		}
+		if !node.Weight.IsValid() {
+			return es.Errorf("invalid weight of node %v (%v): %v", node.Id, node.Addr, node.Weight)
+		}
+	}
+
+	if TotalWeight(membership).BigInt().Cmp(big.NewInt(0)) == 0 {
+		return es.Errorf("zero total weight")
+	}
+
+	return nil
+}
