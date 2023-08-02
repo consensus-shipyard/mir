@@ -1,7 +1,6 @@
 package leaderselectionpolicy
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestSimpleLeaderPolicy(t *testing.T) {
 
 func TestBlackListLeaderPolicy(t *testing.T) {
 	// Create a BlacklistLeaderPolicy with 3 nodes and a minimum of 2 leaders
-	nodes := testMembership([]types.NodeID{"node1", "node2", "node3"})
+	nodes := testMembership([]types.NodeID{"node1", "node2", "node3", "node4"})
 	policy := NewBlackListLeaderPolicy(nodes)
 
 	// Check that all nodes are returned as leaders
@@ -52,27 +51,27 @@ func TestBlackListLeaderPolicy(t *testing.T) {
 
 	// Suspect a node and check that it is not returned as a leader
 	policy.Suspect(1, "node1")
-	expected = []types.NodeID{"node2", "node3"}
-	actual = policy.Leaders()
-	sort.Slice(expected, func(i, j int) bool {
-		return string(expected[i]) < string(expected[j])
-	})
-	sort.Slice(actual, func(i, j int) bool {
-		return string(actual[i]) < string(actual[j])
-	})
-	require.Equal(t, expected, actual)
-
-	// Suspect another node and check that it is not returned as a leader
-	policy.Suspect(2, "node2")
-	expected = []types.NodeID{"node3", "node1"}
+	expected = []types.NodeID{"node2", "node3", "node4"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 
-	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set
-	newNodes := testMembership([]types.NodeID{"node4", "node5", "node6"})
-	policy, ok := policy.Reconfigure(newNodes).(*BlacklistLeaderPolicy)
+	// Suspect another node and check that the previously suspected node is again returned as a leader.
+	policy.Suspect(2, "node4")
+	expected = []types.NodeID{"node2", "node3", "node1"}
+	actual = policy.Leaders()
+	require.Equal(t, expected, actual)
+
+	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set.
+	policy, ok := policy.Reconfigure(testMembership([]types.NodeID{"node1", "node5"})).(*BlacklistLeaderPolicy)
 	require.Equal(t, ok, true)
-	expected = maputil.GetSortedKeys(newNodes.Nodes)
+	expected = []types.NodeID{"node5", "node1"}
+	actual = policy.Leaders()
+	require.Equal(t, expected, actual)
+
+	// Add one more node and check that the suspected node is removed again from the leader set.
+	policy, ok = policy.Reconfigure(testMembership([]types.NodeID{"node1", "node5", "node6"})).(*BlacklistLeaderPolicy)
+	require.Equal(t, ok, true)
+	expected = []types.NodeID{"node5", "node6"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 }
@@ -142,7 +141,7 @@ func testMembership(nodeIDs []types.NodeID) *trantorpbtypes.Membership {
 			Id:     nodeID,
 			Addr:   "",
 			Key:    nil,
-			Weight: 1,
+			Weight: "1",
 		}
 	}
 	return &m

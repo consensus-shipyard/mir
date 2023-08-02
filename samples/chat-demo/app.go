@@ -119,7 +119,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 			fmt.Printf("Adding node failed. Invalid address: %v\n", err)
 		}
 		tmpMembership, err := membership.DummyMultiAddrs(&trantorpbtypes.Membership{ // nolint:govet
-			map[t.NodeID]*trantorpbtypes.NodeIdentity{nodeID: {nodeID, netAddr.String(), nil, 1}}, // nolint:govet
+			map[t.NodeID]*trantorpbtypes.NodeIdentity{nodeID: {nodeID, netAddr.String(), nil, "1"}}, // nolint:govet
 		})
 		if err != nil {
 			fmt.Printf("Adding node failed. Could not construct dummy multiaddress: %v\n", err)
@@ -131,7 +131,7 @@ func (chat *ChatApp) applyConfigTX(configMsg string) {
 		if _, ok := chat.newMembership.Nodes[nodeID]; ok {
 			fmt.Printf("Adding node failed. Node already present in membership: %v\n", nodeID)
 		} else {
-			chat.newMembership.Nodes[nodeID] = &trantorpbtypes.NodeIdentity{nodeID, nodeAddr, nil, 1} // nolint:govet
+			chat.newMembership.Nodes[nodeID] = &trantorpbtypes.NodeIdentity{nodeID, nodeAddr, nil, "1"} // nolint:govet
 		}
 	case "remove-node":
 		// Parse out the node ID and remove it from the next membership.

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math/big"
 	"strconv"
 
 	"github.com/filecoin-project/mir/pkg/serializing"
@@ -9,10 +10,41 @@ import (
 // ================================================================================
 
 // VoteWeight represents the weight of a node's vote when gathering quorums.
-type VoteWeight uint64
+// The underlying type is a string containing a decimal integer representation of the weight.
+// This is required to support large integers that would not fit in a native data type like uint64.
+// For example, this can occur if Trantor is used as a PoS system with cryptocurrency units as weights.
+// We do not store the weights directly as big.Int, since that would make it harder to use them in protocol buffers.
+// Instead, when performing mathematical operations on weights, we convert them to the big.Int type.
+type VoteWeight string
 
 func (vw VoteWeight) Bytes() []byte {
-	return serializing.Uint64ToBytes(uint64(vw))
+	return []byte(vw)
+}
+
+func (vw VoteWeight) Pb() string {
+	return string(vw)
+}
+
+func (vw VoteWeight) String() string {
+	return string(vw)
+}
+
+func (vw VoteWeight) IsValid() bool {
+	if _, ok := new(big.Int).SetString(vw.String(), 10); !ok {
+		return false
+	}
+	return true
+}
+
+// BigInt converts a VoteWeight (normally represented as a string) to a big.Int.
+// BigInt panics if the underlying string is not a valid decimal representation of an integer.
+// Thus, BigInt must not be called on received input without having validated VoteWeight by calling the IsValid method.
+func (vw VoteWeight) BigInt() *big.Int {
+	var bi big.Int
+	if _, ok := bi.SetString(vw.String(), 10); !ok {
+		panic("invalid vote weight representation")
+	}
+	return &bi
 }
 
 // ================================================================================

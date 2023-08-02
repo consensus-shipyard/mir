@@ -1,6 +1,8 @@
 package membutil
 
 import (
+	"math/big"
+
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
 
@@ -11,11 +13,11 @@ import (
 )
 
 func WeightOf(membership *trantorpbtypes.Membership, nodeIDs []t.NodeID) tt.VoteWeight {
-	w := tt.VoteWeight(0)
+	sum := big.NewInt(0)
 	for _, node := range maputil.GetValuesOf(membership.Nodes, nodeIDs) {
-		w += node.Weight
+		sum.Add(sum, node.Weight.BigInt())
 	}
-	return w
+	return tt.VoteWeight(sum.String())
 }
 
 func TotalWeight(membership *trantorpbtypes.Membership) tt.VoteWeight {
@@ -25,31 +27,59 @@ func TotalWeight(membership *trantorpbtypes.Membership) tt.VoteWeight {
 func StrongQuorum(membership *trantorpbtypes.Membership) tt.VoteWeight {
 	// assuming n > 3f:
 	//   return min q: 2q > n+f
-	n := TotalWeight(membership)
+	n := TotalWeight(membership).BigInt()
 	f := maxFaulty(n)
-	return (n+f)/2 + 1
+
+	result := new(big.Int).Add(n, f)
+	result.Div(result, big.NewInt(2))
+	result.Add(result, big.NewInt(1))
+	return tt.VoteWeight(result.String())
+
+	// If a native integer type was used, the above would be equivalent to
+	// return (n+f)/2 + 1
 }
 
 func WeakQuorum(membership *trantorpbtypes.Membership) tt.VoteWeight {
 	// assuming n > 3f:
 	//   return min q: q > f
-	n := TotalWeight(membership)
+	n := TotalWeight(membership).BigInt()
 	f := maxFaulty(n)
-	return f + 1
+
+	result := new(big.Int).Add(f, big.NewInt(1))
+	return tt.VoteWeight(result.String())
+
+	// If a native integer type was used, the above would be equivalent to
+	// return f + 1
 }
 
 func HaveStrongQuorum(membership *trantorpbtypes.Membership, nodeIDs []t.NodeID) bool {
-	return WeightOf(membership, nodeIDs) >= StrongQuorum(membership)
+	w := WeightOf(membership, nodeIDs).BigInt()
+	strongQuorum := StrongQuorum(membership).BigInt()
+
+	// The following replaces WeightOf(membership, nodeIDs) >= StrongQuorum(membership)
+	// (if Cmp returned -1, then w would be smaller than strongQuorum)
+	return w.Cmp(strongQuorum) != -1
 }
 
 func HaveWeakQuorum(membership *trantorpbtypes.Membership, nodeIDs []t.NodeID) bool {
-	return WeightOf(membership, nodeIDs) >= WeakQuorum(membership)
+	w := WeightOf(membership, nodeIDs).BigInt()
+	weakQuorum := WeakQuorum(membership).BigInt()
+
+	// The following replaces WeightOf(membership, nodeIDs) >= WeakQuorum(membership)
+	// (if Cmp returned -1, then w would be smaller than weakQuorum)
+	return w.Cmp(weakQuorum) != -1
 }
 
-func maxFaulty(n tt.VoteWeight) tt.VoteWeight {
+func maxFaulty(n *big.Int) *big.Int {
 	// assuming n > 3f:
 	//   return max f
-	return (n - 1) / 3
+
+	result := new(big.Int).Sub(n, big.NewInt(1))
+	result.Div(result, big.NewInt(3))
+	return result
+
+	// If a native integer type was used, the above would be equivalent to
+	// return (n - 1) / 3
 }
 
 func Serialize(membership *trantorpbtypes.Membership) ([]byte, error) {
@@ -66,4 +96,25 @@ func Deserialize(data []byte) (*trantorpbtypes.Membership, error) {
 		return nil, es.Errorf("failed to CBOR unmarshal membership: %w", err)
 	}
 	return &membership, nil
+}
+
+func Valid(membership *trantorpbtypes.Membership) error {
+	if len(membership.Nodes) == 0 {
+		return es.Errorf("membership is empty")
+	}
+
+	for nodeID, node := range membership.Nodes {
+		if node.Id != nodeID {
+			return es.Errorf("node ID %v does not match key under which node is stored %v", node.Id, nodeID)
+		}
+		if !node.Weight.IsValid() {
+			return es.Errorf("invalid weight of node %v (%v): %v", node.Id, node.Addr, node.Weight)
+		}
+	}
+
+	if TotalWeight(membership).BigInt().Cmp(big.NewInt(0)) == 0 {
+		return es.Errorf("zero total weight")
+	}
+
+	return nil
 }

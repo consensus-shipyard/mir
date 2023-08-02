@@ -61,7 +61,7 @@ message NodeIdentity {
   string id     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   string addr   = 2; // Value type is Multiaddr, convert in code directly.
   bytes  key    = 3;
-  uint64 weight = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.VoteWeight"];
+  string weight = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.VoteWeight"];
 }
 
 // ================================================================================

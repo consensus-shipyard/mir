@@ -227,10 +227,6 @@ func (sc *StableCheckpoint) verifyMembershipConsistency(membership *trantorpbtyp
 		for nodeID, node := range chkpMembership.Nodes {
 			if _, ok := membershipConsistency[nodeID]; !ok {
 				membershipConsistency[nodeID] = node
-				// check that internal nodeID is consistent with key nodeID
-				if nodeID != node.Id {
-					return es.Errorf("inconsistent membership parameters: nodeID %v does not match internal nodeID %v", nodeID, node.Id)
-				}
 			} else {
 				// check that all parameters are consistent
 				if !reflect.DeepEqual(membershipConsistency[nodeID], node) {
@@ -302,8 +298,21 @@ func (sc *StableCheckpoint) SyntacticCheck(
 			len(sc.Memberships()))
 	}
 
+	// Check the contained memberships for validity.
+	for _, membership := range sc.Memberships() {
+		if err := membutil.Valid(membership); err != nil {
+			return es.Errorf("invalid membership: %w", err)
+		}
+	}
+
 	if sc.PreviousMembership() == nil {
 		return es.Errorf("previous membership is nil")
+	}
+
+	if sc.Epoch() > 0 {
+		if err := membutil.Valid(sc.PreviousMembership()); err != nil {
+			return es.Errorf("invalid previous membership: %w", err)
+		}
 	}
 
 	if sc.Certificate() == nil {

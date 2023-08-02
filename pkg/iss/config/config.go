@@ -13,6 +13,7 @@ import (
 
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // The ModuleParams type defines all the ISS configuration parameters.
@@ -94,9 +95,9 @@ type ModuleParams struct {
 // CheckParams checks whether the given configuration satisfies all necessary constraints.
 func CheckParams(c *ModuleParams) error {
 
-	// The membership must not be empty.
-	if len(c.InitialMembership.Nodes) == 0 {
-		return es.Errorf("empty membership")
+	// The membership must be valid.
+	if err := membutil.Valid(c.InitialMembership); err != nil {
+		return es.Errorf("invalid initial membership: %w", err)
 	}
 
 	// Check that ConfigOffset is at least 1

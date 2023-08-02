@@ -19,7 +19,7 @@ func NewNodeIDsWeights(nNodes int, weightFunction func(t.NodeID) types.VoteWeigh
 
 func NewNodeIDsDefaultWeights(nNodes int) map[t.NodeID]types.VoteWeight {
 	return NewNodeIDsWeights(nNodes, func(t.NodeID) types.VoteWeight {
-		return 1
+		return "100000000000000000000" // This does not fit in 64 bits
 	})
 }
 

@@ -73,7 +73,7 @@ message DeliverCert {
 message NewConfig {
   option (mir.event) = true;
 
-  uint64              epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
+  uint64               epoch_nr   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
   trantorpb.Membership membership = 2;
 }
 

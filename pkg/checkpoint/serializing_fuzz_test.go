@@ -34,7 +34,7 @@ func FuzzSnapshotForHash(f *testing.F) {
 				Id:     id,
 				Addr:   addr,
 				Key:    nil,
-				Weight: 1,
+				Weight: "1",
 			}
 		}
 

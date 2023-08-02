@@ -15,6 +15,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
 // AppModule is the module within the SMR system that handles the application logic.
@@ -71,6 +72,11 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 		if err != nil {
 			return es.Errorf("error handling NewEpoch event: %w", err)
 		}
+
+		if err = membutil.Valid(membership); err != nil {
+			return es.Errorf("app logic provided invalid membership: %w", err)
+		}
+
 		appModule.transport.Connect(membership)
 		isspbdsl.NewConfig(m, protocolModule, epochNr, membership)
 		return nil
