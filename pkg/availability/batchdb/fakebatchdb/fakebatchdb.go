@@ -23,7 +23,16 @@ type moduleState struct {
 }
 
 type batch struct {
+
+	// Transactions in the batch.
 	txs []*trantorpbtypes.Transaction
+
+	// The maximal retention index with which the batch was stored.
+	// Note that the same batch can be stored in the batchDB (under the same batch ID)
+	// multiple times if, e.g., multiple nodes propose the same transactions in different epoch in Trantor.
+	// Thus, when garbage-collecting, we must not delete a batch that still needs to be retained
+	// for a higher retention index.
+	maxRetIdx tt.RetentionIndex
 }
 
 // NewModule returns a new module for a fake batch database.
@@ -47,8 +56,13 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 		// Only save the batch if its retention index has not yet been garbage-collected.
 		if retIdx >= state.retIdx {
-			b := batch{txs}
-			state.batchStore[batchID] = &b
+			// Check if we already have the batch.
+			b, ok := state.batchStore[batchID]
+			if !ok || b.maxRetIdx < retIdx {
+				// If we do not, or if the stored batch's retention index is lower,
+				// store the received batch with the up-to-date retention index
+				state.batchStore[batchID] = &batch{txs, retIdx}
+			}
 			state.batchesByRetIdx[retIdx] = append(state.batchesByRetIdx[retIdx], batchID)
 		}
 
@@ -78,7 +92,9 @@ func NewModule(mc ModuleConfig) modules.Module {
 	batchdbpbdsl.UponGarbageCollect(m, func(retentionIndex tt.RetentionIndex) error {
 		for ; state.retIdx < retentionIndex; state.retIdx++ {
 			for _, batchID := range state.batchesByRetIdx[state.retIdx] {
-				delete(state.batchStore, batchID)
+				if state.batchStore[batchID].maxRetIdx <= state.retIdx {
+					delete(state.batchStore, batchID)
+				}
 			}
 			delete(state.batchesByRetIdx, state.retIdx)
 		}
