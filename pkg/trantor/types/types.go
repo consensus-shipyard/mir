@@ -11,10 +11,10 @@ import (
 
 // VoteWeight represents the weight of a node's vote when gathering quorums.
 // The underlying type is a string containing a decimal integer representation of the weight.
-// This is required to support large integers that would not fit in the native uint64 data type
-// which can occur if cryptocurrency units are used as weights in a PoS-like system.
-// When performing mathematical operations on weights, we convert them to the big.Int type.
-// We do not store them as big.Int, since that would make it harder to use them in protocol buffers.
+// This is required to support large integers that would not fit in a native data type like uint64.
+// For example, this can occur if Trantor is used as a PoS system with cryptocurrency units as weights.
+// We do not store the weights directly as big.Int, since that would make it harder to use them in protocol buffers.
+// Instead, when performing mathematical operations on weights, we convert them to the big.Int type.
 type VoteWeight string
 
 func (vw VoteWeight) Bytes() []byte {
