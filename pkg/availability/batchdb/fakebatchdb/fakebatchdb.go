@@ -17,9 +17,19 @@ type ModuleConfig struct {
 }
 
 type moduleState struct {
-	batchStore      map[msctypes.BatchID]*batch
-	batchesByRetIdx map[tt.RetentionIndex][]msctypes.BatchID
-	retIdx          tt.RetentionIndex
+
+	// batchStore stores the actual batch data.
+	batchStore map[msctypes.BatchID]*batch
+
+	// batchesByRetIdx is an index that stores a set of batches associated with each particular retention index
+	// that has not yet been garbage-collected.
+	// Upon garbage-collection of a particular retention index, all the batches stored here under that retention index
+	// are deleted, unless they are also associated with a higher retention index.
+	// Using a set of batches rather than a list prevents duplicate entries.
+	batchesByRetIdx map[tt.RetentionIndex]map[msctypes.BatchID]struct{}
+
+	// retIdx is the lowest retention index that has not yet been garbage-collected.
+	retIdx tt.RetentionIndex
 }
 
 type batch struct {
@@ -42,7 +52,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 	state := moduleState{
 		batchStore:      make(map[msctypes.BatchID]*batch),
-		batchesByRetIdx: make(map[tt.RetentionIndex][]msctypes.BatchID),
+		batchesByRetIdx: make(map[tt.RetentionIndex]map[msctypes.BatchID]struct{}),
 		retIdx:          0,
 	}
 
@@ -63,7 +73,11 @@ func NewModule(mc ModuleConfig) modules.Module {
 				// store the received batch with the up-to-date retention index
 				state.batchStore[batchID] = &batch{txs, retIdx}
 			}
-			state.batchesByRetIdx[retIdx] = append(state.batchesByRetIdx[retIdx], batchID)
+
+			if _, ok := state.batchesByRetIdx[retIdx]; !ok {
+				state.batchesByRetIdx[retIdx] = make(map[msctypes.BatchID]struct{})
+			}
+			state.batchesByRetIdx[retIdx][batchID] = struct{}{}
 		}
 
 		// Note that we emit a BatchStored event even if the batch's retention index was too low
@@ -91,7 +105,7 @@ func NewModule(mc ModuleConfig) modules.Module {
 
 	batchdbpbdsl.UponGarbageCollect(m, func(retentionIndex tt.RetentionIndex) error {
 		for ; state.retIdx < retentionIndex; state.retIdx++ {
-			for _, batchID := range state.batchesByRetIdx[state.retIdx] {
+			for batchID := range state.batchesByRetIdx[state.retIdx] {
 				if state.batchStore[batchID].maxRetIdx <= state.retIdx {
 					delete(state.batchStore, batchID)
 				}
