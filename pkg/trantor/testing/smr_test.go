@@ -188,7 +188,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
 					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
-					return types.VoteWeight(fmt.Sprintf("%d", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
+					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
 				Transport:       "libp2p",
@@ -208,7 +208,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
 					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
-					return types.VoteWeight(fmt.Sprintf("%d", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
+					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
 				Transport:       "libp2p",
