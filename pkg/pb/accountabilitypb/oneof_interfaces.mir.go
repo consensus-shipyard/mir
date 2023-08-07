@@ -2,17 +2,6 @@
 
 package accountabilitypb
 
-type Event_Type = isEvent_Type
-
-type Event_TypeWrapper[T any] interface {
-	Event_Type
-	Unwrap() *T
-}
-
-func (w *Event_Poms) Unwrap() *PoMs {
-	return w.Poms
-}
-
 type Message_Type = isMessage_Type
 
 type Message_TypeWrapper[T any] interface {
