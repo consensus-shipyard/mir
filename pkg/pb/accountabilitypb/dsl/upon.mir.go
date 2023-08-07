@@ -21,18 +21,6 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponPredecided(m dsl.Module, handler func(data []uint8) error) {
-	UponEvent[*types.Event_Predecided](m, func(ev *types.Predecided) error {
-		return handler(ev.Data)
-	})
-}
-
-func UponDecided(m dsl.Module, handler func(data []uint8) error) {
-	UponEvent[*types.Event_Decided](m, func(ev *types.Decided) error {
-		return handler(ev.Data)
-	})
-}
-
 func UponPoMs(m dsl.Module, handler func(poms []*types.PoM) error) {
 	UponEvent[*types.Event_Poms](m, func(ev *types.PoMs) error {
 		return handler(ev.Poms)

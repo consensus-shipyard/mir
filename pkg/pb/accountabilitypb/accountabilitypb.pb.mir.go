@@ -8,8 +8,6 @@ import (
 
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Event_Predecided)(nil)),
-		reflect.TypeOf((*Event_Decided)(nil)),
 		reflect.TypeOf((*Event_Poms)(nil)),
 	}
 }
@@ -20,5 +18,7 @@ func (*Message) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Message_Certificate)(nil)),
 		reflect.TypeOf((*Message_Poms)(nil)),
 		reflect.TypeOf((*Message_LightCertificate)(nil)),
+		reflect.TypeOf((*Message_RequestSbMessage)(nil)),
+		reflect.TypeOf((*Message_ProvideSbMessage)(nil)),
 	}
 }

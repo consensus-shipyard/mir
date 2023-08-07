@@ -11,14 +11,6 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func Predecided(m dsl.Module, destModule types.ModuleID, data []uint8) {
-	dsl.EmitMirEvent(m, events.Predecided(destModule, data))
-}
-
-func Decided(m dsl.Module, destModule types.ModuleID, data []uint8) {
-	dsl.EmitMirEvent(m, events.Decided(destModule, data))
-}
-
 func PoMs(m dsl.Module, destModule types.ModuleID, poms []*types1.PoM) {
 	dsl.EmitMirEvent(m, events.PoMs(destModule, poms))
 }

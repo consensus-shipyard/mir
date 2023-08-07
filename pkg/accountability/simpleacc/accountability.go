@@ -84,7 +84,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (mo
 	state := &incommon.State{
 		SignedPredecisions: make(map[t.NodeID]*accpbtypes.SignedPredecision),
 		PredecisionNodeIDs: make(map[string][]t.NodeID),
-		SignedPredecision:  nil,
+		LocalPredecision:   nil,
 		DecidedCertificate: nil,
 		Predecided:         false,
 		UnsentPoMs:         make([]*accpbtypes.PoM, 0),

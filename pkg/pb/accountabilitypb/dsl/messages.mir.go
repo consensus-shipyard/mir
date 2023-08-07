@@ -5,6 +5,7 @@ package accountabilitypbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
@@ -29,9 +30,9 @@ func UponSignedPredecisionReceived(m dsl.Module, handler func(from types1.NodeID
 	})
 }
 
-func UponFullCertificateReceived(m dsl.Module, handler func(from types1.NodeID, certificate map[types1.NodeID]*types.SignedPredecision) error) {
+func UponFullCertificateReceived(m dsl.Module, handler func(from types1.NodeID, decision []uint8, certificate map[types1.NodeID][]uint8) error) {
 	UponMessageReceived[*types.Message_Certificate](m, func(from types1.NodeID, msg *types.FullCertificate) error {
-		return handler(from, msg.Certificate)
+		return handler(from, msg.Decision, msg.Certificate)
 	})
 }
 
@@ -44,5 +45,17 @@ func UponPoMsReceived(m dsl.Module, handler func(from types1.NodeID, poms []*typ
 func UponLightCertificateReceived(m dsl.Module, handler func(from types1.NodeID, data []uint8) error) {
 	UponMessageReceived[*types.Message_LightCertificate](m, func(from types1.NodeID, msg *types.LightCertificate) error {
 		return handler(from, msg.Data)
+	})
+}
+
+func UponRequestSBMessageReceived(m dsl.Module, handler func(from types1.NodeID, predecision []uint8) error) {
+	UponMessageReceived[*types.Message_RequestSbMessage](m, func(from types1.NodeID, msg *types.RequestSBMessage) error {
+		return handler(from, msg.Predecision)
+	})
+}
+
+func UponProvideSBMessageReceived(m dsl.Module, handler func(from types1.NodeID, sbDeliver *types3.SBDeliver) error) {
+	UponMessageReceived[*types.Message_ProvideSbMessage](m, func(from types1.NodeID, msg *types.ProvideSBMessage) error {
+		return handler(from, msg.SbDeliver)
 	})
 }

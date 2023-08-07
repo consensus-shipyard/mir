@@ -5,6 +5,7 @@ package accountabilitypb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/accountabilitypb";
 
 import "trantorpb/trantorpb.proto";
+import "isspb/isspb.proto";
 
 import "net/codegen_extensions.proto";
 import "mir/codegen_extensions.proto";
@@ -15,22 +16,8 @@ message Event{
   oneof type {
     option (mir.event_type) = true;
 
-    Predecided predecided = 1;
-    Decided decided = 2;
     PoMs poms = 3;
   }
-}
-
-message Predecided {
-  option (mir.event) = true;
-
-  bytes data = 1;
-}
-
-message Decided {
-  option (mir.event) = true;
-
-  bytes data = 1;
 }
 
 message PoM {
@@ -61,9 +48,11 @@ message Message {
     option (net.message_type) = true;
 
     SignedPredecision signed_predecision = 1;
-    FullCertificate certificate = 2;
-    PoMs poms = 3;
-    LightCertificate light_certificate = 4;
+    FullCertificate certificate          = 2;
+    PoMs poms                            = 3;
+    LightCertificate light_certificate   = 4;
+    RequestSBMessage request_sb_message  = 5;
+    ProvideSBMessage provide_sb_message  = 6;
   }
 }
 
@@ -78,11 +67,25 @@ message SignedPredecision {
 message FullCertificate {
   option (net.message) = true;
 
-  map<string,SignedPredecision> certificate = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  bytes decision = 1;
+  map<string, bytes> certificate = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message InstanceParams {
   option (mir.struct) = true;
 
   trantorpb.Membership membership = 3;
+}
+
+
+message RequestSBMessage {
+  option (net.message) = true;
+
+  bytes  predecision = 1;
+}
+
+message ProvideSBMessage {
+  option (net.message) = true;
+
+  isspb.SBDeliver sb_deliver = 1;
 }

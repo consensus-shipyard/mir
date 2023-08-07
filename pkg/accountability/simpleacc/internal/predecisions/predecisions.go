@@ -1,6 +1,9 @@
 package predecisions
 
 import (
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	isspbtypes "github.com/filecoin-project/mir/pkg/pb/isspb/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"reflect"
 
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/common"
@@ -32,26 +35,46 @@ func IncludePredecisions(
 	logger logging.Logger,
 ) {
 
-	accpbdsl.UponPredecided(m, func(data []byte) error {
+	// Upon predecision received, sign it and broadcast it.
+	isspbdsl.UponSBDeliver(m,
+		func(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
 
-		if state.Predecided {
-			logger.Log(logging.LevelWarn, "Received Predecided event while already Predecided")
+			if state.Predecided {
+				logger.Log(logging.LevelWarn, "Received Predecided event while already Predecided")
+				return nil
+			}
+
+			state.Predecided = true
+
+			predecision := &isspbtypes.SBDeliver{
+				Sn:         sn,
+				Data:       data,
+				Aborted:    aborted,
+				Leader:     leader,
+				InstanceId: instanceId,
+			}
+
+			serializedPredecision := serializePredecision(predecision)
+
+			state.LocalPredecision = &incommon.LocalPredecision{
+				SBDeliver: predecision,
+				SignedPredecision: &accpbtypes.SignedPredecision{
+					Predecision: serializedPredecision,
+				},
+			}
+
+			// Sign predecision attaching mc.Self to prevent replay attacks.
+			cryptopbdsl.SignRequest(m,
+				mc.Crypto,
+				&cryptopbtypes.SignedData{
+					Data: [][]byte{serializedPredecision}},
+				&signRequest{data: serializedPredecision})
+
 			return nil
-		}
-
-		state.Predecided = true
-
-		// Sign predecision attaching mc.Self to prevent replay attacks.
-		cryptopbdsl.SignRequest(m, mc.Crypto, &cryptopbtypes.SignedData{Data: [][]byte{data, []byte(mc.Self)}}, &signRequest{data: data})
-
-		return nil
-	})
+		})
 
 	cryptopbdsl.UponSignResult(m, func(signature []byte, sr *signRequest) error {
-		state.SignedPredecision = &accpbtypes.SignedPredecision{
-			Predecision: sr.data,
-			Signature:   signature,
-		}
+		state.LocalPredecision.SignedPredecision.Signature = signature
 
 		// Broadcast signed predecision to all participants (including oneself).
 		transportpbdsl.SendMessage(m, mc.Net, accpbmsgs.SignedPredecision(mc.Self, sr.data, signature), maputil.GetKeys(params.Membership.Nodes))
@@ -134,16 +157,25 @@ func ApplySigVerified(
 	// Once verified, if strong quorum, broadcast accpbdsl.FullCertificate.
 	if state.DecidedCertificate == nil &&
 		membutil.HaveStrongQuorum(params.Membership, state.PredecisionNodeIDs[string(sp.Predecision)]) {
-		state.DecidedCertificate = maputil.Filter(
-			state.SignedPredecisions,
-			func(
-				nodeId t.NodeID,
-				predecision *accpbtypes.SignedPredecision,
-			) bool {
-				return reflect.DeepEqual(predecision.Predecision, sp.Predecision)
-			})
+		state.DecidedCertificate = &incommon.Certificate{
+			Decision: sp.Predecision,
+			Signatures: maputil.Transform(
+				maputil.Filter(
+					state.SignedPredecisions,
+					func(
+						nodeId t.NodeID,
+						predecision *accpbtypes.SignedPredecision,
+					) bool {
+						return reflect.DeepEqual(predecision.Predecision, sp.Predecision)
+					}),
+				func(nodeID t.NodeID, sp *accpbtypes.SignedPredecision) (t.NodeID, []byte) {
+					return nodeID, sp.Signature
+				},
+			),
+		}
 
-		accpbdsl.Decided(m, mc.App, sp.Predecision)
+		// Now decision is not just the bytes, need to retrieve actual decision.
+		decide(m, mc, state, sp.Predecision)
 
 		if params.LightCertificates {
 			transportpbdsl.SendMessage(
@@ -157,10 +189,72 @@ func ApplySigVerified(
 				m,
 				mc.Net,
 				accpbmsgs.FullCertificate(mc.Self,
-					state.DecidedCertificate),
+					state.DecidedCertificate.Decision,
+					state.DecidedCertificate.Signatures),
 				maputil.GetKeys(params.Membership.Nodes))
 		}
 	}
+
+	accpbdsl.UponRequestSBMessageReceived(m, func(from t.NodeID, predecision []byte) error {
+		if reflect.DeepEqual(predecision, state.LocalPredecision.SignedPredecision.Predecision) {
+			transportpbdsl.SendMessage(m,
+				mc.Net,
+				accpbmsgs.ProvideSBMessage(mc.Self, state.LocalPredecision.SBDeliver),
+				[]t.NodeID{from})
+		}
+		return nil
+	})
+
+	accpbdsl.UponProvideSBMessageReceived(m, func(from t.NodeID, sbDeliver *isspbtypes.SBDeliver) error {
+		if state.DecidedCertificate == nil {
+			logger.Log(logging.LevelDebug, "Ignoring received SBDeliver message from node %v, no local decision yet", from)
+			return nil
+		}
+
+		if reflect.DeepEqual(state.DecidedCertificate.Decision, serializePredecision(sbDeliver)) {
+			finishWithDecision(m, mc, sbDeliver)
+		}
+
+		return nil
+	})
+}
+
+func decide(m dsl.Module, mc *common.ModuleConfig, state *incommon.State, predecision []byte) {
+	// Retrieve actual decision.
+	if reflect.DeepEqual(predecision, state.LocalPredecision.SignedPredecision.Predecision) {
+		sb := state.LocalPredecision.SBDeliver // convenience variable.
+		finishWithDecision(m, mc, sb)
+		return
+	}
+
+	// Find the actual predecision from other nodes
+	transportpbdsl.SendMessage(
+		m,
+		mc.Net,
+		accpbmsgs.RequestSBMessage(mc.Self,
+			predecision),
+		state.PredecisionNodeIDs[string(predecision)])
+
+}
+
+func finishWithDecision(m dsl.Module, mc *common.ModuleConfig, sb *isspbtypes.SBDeliver) {
+	isspbdsl.SBDeliver(m, mc.App, sb.Sn, sb.Data, sb.Aborted, sb.Leader, sb.InstanceId)
+}
+
+func serializePredecision(sbDeliver *isspbtypes.SBDeliver) []byte {
+	b := make([]byte, 0)
+	b = append(b, sbDeliver.Sn.Bytes()...)
+	b = append(b, sbDeliver.Data...)
+
+	abortedByte := uint8(0)
+	if sbDeliver.Aborted {
+		abortedByte = uint8(1)
+	}
+
+	b = append(b, abortedByte)
+	b = append(b, sbDeliver.Leader...)
+	b = append(b, sbDeliver.InstanceId...)
+	return b
 }
 
 type signRequest struct {

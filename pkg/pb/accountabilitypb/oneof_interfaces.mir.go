@@ -9,14 +9,6 @@ type Event_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Event_Predecided) Unwrap() *Predecided {
-	return w.Predecided
-}
-
-func (w *Event_Decided) Unwrap() *Decided {
-	return w.Decided
-}
-
 func (w *Event_Poms) Unwrap() *PoMs {
 	return w.Poms
 }
@@ -42,4 +34,12 @@ func (w *Message_Poms) Unwrap() *PoMs {
 
 func (w *Message_LightCertificate) Unwrap() *LightCertificate {
 	return w.LightCertificate
+}
+
+func (w *Message_RequestSbMessage) Unwrap() *RequestSBMessage {
+	return w.RequestSbMessage
+}
+
+func (w *Message_ProvideSbMessage) Unwrap() *ProvideSBMessage {
+	return w.ProvideSbMessage
 }
