@@ -1,6 +1,7 @@
 package predecisions
 
 import (
+	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/certificates/lightcertificates"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbtypes "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -175,7 +176,7 @@ func ApplySigVerified(
 		}
 
 		// Now decision is not just the bytes, need to retrieve actual decision.
-		decide(m, mc, state, sp.Predecision)
+		decide(m, mc, params, state, sp.Predecision, logger)
 
 		if params.LightCertificates {
 			transportpbdsl.SendMessage(
@@ -212,18 +213,18 @@ func ApplySigVerified(
 		}
 
 		if reflect.DeepEqual(state.DecidedCertificate.Decision, serializePredecision(sbDeliver)) {
-			finishWithDecision(m, mc, sbDeliver)
+			finishWithDecision(m, mc, params, state, sbDeliver, logger)
 		}
 
 		return nil
 	})
 }
 
-func decide(m dsl.Module, mc *common.ModuleConfig, state *incommon.State, predecision []byte) {
+func decide(m dsl.Module, mc *common.ModuleConfig, params *common.ModuleParams, state *incommon.State, predecision []byte, logger logging.Logger) {
 	// Retrieve actual decision.
 	if reflect.DeepEqual(predecision, state.LocalPredecision.SignedPredecision.Predecision) {
 		sb := state.LocalPredecision.SBDeliver // convenience variable.
-		finishWithDecision(m, mc, sb)
+		finishWithDecision(m, mc, params, state, sb, logger)
 		return
 	}
 
@@ -237,8 +238,20 @@ func decide(m dsl.Module, mc *common.ModuleConfig, state *incommon.State, predec
 
 }
 
-func finishWithDecision(m dsl.Module, mc *common.ModuleConfig, sb *isspbtypes.SBDeliver) {
+func finishWithDecision(
+	m dsl.Module,
+	mc *common.ModuleConfig,
+	params *common.ModuleParams,
+	state *incommon.State,
+	sb *isspbtypes.SBDeliver,
+	logger logging.Logger,
+) {
+
 	isspbdsl.SBDeliver(m, mc.App, sb.Sn, sb.Data, sb.Aborted, sb.Leader, sb.InstanceId)
+	if params.LightCertificates {
+		lightcertificates.ApplyLightCertificatesBuffered(m, mc, state, logger)
+	}
+
 }
 
 func serializePredecision(sbDeliver *isspbtypes.SBDeliver) []byte {

@@ -15,6 +15,7 @@ type State struct {
 	Predecided         bool                         // Whether this process has received a predecided value from calling module.
 	UnsentPoMs         []*accpbtypes.PoM            // List of PoMs not yet sent to the application.
 	SentPoMs           map[t.NodeID]*accpbtypes.PoM // List of PoMs already sent to the application with the signer as key.
+	LightCertificates  map[t.NodeID][]byte          // Map of light certificates with the signer as key, buffered if no local decision made yet.
 }
 
 type LocalPredecision struct {
