@@ -17,7 +17,7 @@ import (
 // IncludeLightCertificate implements the (optional) light certificate optimization
 // that optimistically sends only the predecision during the light certificate
 // so that in the good case where there are no disagreements and all processes
-// are correct there is no need to broadcast a full certificate containing O(n) signatures
+// are correct there is no need to broadcast a full certificate containing O(n) signatures.
 func IncludeLightCertificate(m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,

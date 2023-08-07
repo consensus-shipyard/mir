@@ -25,9 +25,10 @@ type ModuleParams = common.ModuleParams
 
 // NewModule creates a new instance of the (optinal) accountability
 // module.
-// This module can receive predecisions from an
-// ordering module (instead of the ordering module delivering them to the
-// application layer directly). It performs two all-to-all broadcasts
+// This module can receive decisions from a module that ensures agreement
+// (for example, receive a decision from the ordering module, instead of
+// the ordering module delivering them to the application layer directly),
+// and treats them as predecisions. It performs two all-to-all broadcasts
 // with signatures to ensure accountability. The first broadcast is a
 // signed predecision per participant. In the second broadcast, each
 // participant broadcasts a certificate containing a strong quorum of
@@ -37,10 +38,10 @@ type ModuleParams = common.ModuleParams
 // *Accountability* states that if an adversary (controlling less than a
 // strong quorum, but perhaps more or as much as a weak quorum) causes
 // a disagreement (two different correct processes delivering different
-// decisions) then there is at least a weak quorum of processes for which
-// all correct processes eventually receive Proofs-of-Misbehavior (PoMs).
-// In the case of this module, a PoM is a pair of signed predecisions for
-// different predecisions from the same node.
+// decisions) then all correct processes eventually receive Proofs-of-Misbehavior (PoMs)
+// for a provably malicious coalition at least the size of a weak quorum.
+// In the case of this module, a PoM is a pair of different predecisions signed
+// by the same node.
 // The module keeps looking for PoMs with newly received messages
 // (signed predecisions or certificates) after termination, until
 // it is garbage collected.
@@ -63,8 +64,7 @@ type ModuleParams = common.ModuleParams
 //
 // This module effectively implements a variant of the accountability
 // module of Civit et al. at https://ieeexplore.ieee.org/document/9820722/
-// Except that it	ReportedPoMs       map[t.NodeID]*accpbtypes.PoM
-// does not implement the optimization using threshold
+// Except that it does not implement the optimization using threshold
 // signatures (as we have members with associated weight)
 //
 
@@ -83,7 +83,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (mo
 
 	state := &incommon.State{
 		SignedPredecisions: make(map[t.NodeID]*accpbtypes.SignedPredecision),
-		PredecisionCount:   make(map[string][]t.NodeID),
+		PredecisionNodeIDs: make(map[string][]t.NodeID),
 		SignedPredecision:  nil,
 		DecidedCertificate: nil,
 		Predecided:         false,
@@ -110,10 +110,9 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 		factorymodule.DefaultParams(
 
 			// This function will be called whenever the factory module
-			// is asked to create a new instance of the multisig collector.
+			// is asked to create a new instance of the accountabuility module.
 			func(accID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 
-				// Extract the IDs of the nodes in the membership associated with this instance
 				accParams := params.Type.(*factorypbtypes.GeneratorParams_AccModule).AccModule
 
 				// Create a copy of basic module config with an adapted ID for the submodule.

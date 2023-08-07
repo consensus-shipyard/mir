@@ -6,11 +6,12 @@ import (
 )
 
 type State struct {
-	SignedPredecisions map[t.NodeID]*accpbtypes.SignedPredecision
-	PredecisionCount   map[string][]t.NodeID
-	SignedPredecision  *accpbtypes.SignedPredecision
-	DecidedCertificate map[t.NodeID]*accpbtypes.SignedPredecision
-	Predecided         bool
-	UnsentPoMs         []*accpbtypes.PoM
-	SentPoMs           map[t.NodeID]*accpbtypes.PoM
+	SignedPredecisions map[t.NodeID]*accpbtypes.SignedPredecision // Map of received signed predicisions (including own's) with their signer as key.
+	PredecisionNodeIDs map[string][]t.NodeID                      // Map of predecisions and the nodes that have signed them with the predecision as key,
+	// used for fast verification of whether a predecision is predecided by a strong quorum.
+	SignedPredecision  *accpbtypes.SignedPredecision              // Own signed predecision.
+	DecidedCertificate map[t.NodeID]*accpbtypes.SignedPredecision // Locally decided certificate as a map with signer as key.
+	Predecided         bool                                       // Whether this process has received a predecided value from calling module.
+	UnsentPoMs         []*accpbtypes.PoM                          // List of PoMs not yet sent to the application.
+	SentPoMs           map[t.NodeID]*accpbtypes.PoM               // List of PoMs already sent to the application with the signer as key.
 }

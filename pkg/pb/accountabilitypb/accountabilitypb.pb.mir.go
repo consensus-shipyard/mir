@@ -11,7 +11,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Predecided)(nil)),
 		reflect.TypeOf((*Event_Decided)(nil)),
 		reflect.TypeOf((*Event_Poms)(nil)),
-		reflect.TypeOf((*Event_InstanceParams)(nil)),
 	}
 }
 

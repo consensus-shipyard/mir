@@ -20,7 +20,7 @@ import (
 )
 
 // IncludeFullCertificate implements the full certificate brodcast and verification
-// in order to find PoMs
+// in order to find PoMs.
 func IncludeFullCertificate(m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
@@ -31,23 +31,23 @@ func IncludeFullCertificate(m dsl.Module,
 	accpbdsl.UponFullCertificateReceived(m, func(from t.NodeID, certificate map[t.NodeID]*accpbtypes.SignedPredecision) error {
 		predecision, empty := maputil.AnyVal(certificate)
 		if empty {
-			logger.Log(logging.LevelDebug, "Received empty predecision certificate")
+			logger.Log(logging.LevelDebug, "Ignoring empty predecision certificate")
 			return nil
 		}
 
 		if !membutil.HaveStrongQuorum(params.Membership, maputil.GetKeys(certificate)) {
-			logger.Log(logging.LevelDebug, "Received predecision certificate without strong quorum")
+			logger.Log(logging.LevelDebug, "Ignoring predecision certificate without strong quorum")
 			return nil
 		}
 
 		for _, v := range certificate {
 			if !reflect.DeepEqual(predecision.Predecision, v.Predecision) {
-				logger.Log(logging.LevelDebug, "Received predecision certificate with different predecisions")
+				logger.Log(logging.LevelDebug, "Ignoring predecision certificate with different predecisions")
 				return nil
 			}
 		}
 
-		// Verify all signatures in certificate
+		// Verify all signatures in certificate.
 		cryptopbdsl.VerifySigs(
 			m,
 			mc.Crypto,

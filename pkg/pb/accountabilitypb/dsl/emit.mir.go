@@ -6,7 +6,6 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/events"
 	types1 "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -22,8 +21,4 @@ func Decided(m dsl.Module, destModule types.ModuleID, data []uint8) {
 
 func PoMs(m dsl.Module, destModule types.ModuleID, poms []*types1.PoM) {
 	dsl.EmitMirEvent(m, events.PoMs(destModule, poms))
-}
-
-func InstanceParams(m dsl.Module, destModule types.ModuleID, membership *types2.Membership) {
-	dsl.EmitMirEvent(m, events.InstanceParams(destModule, membership))
 }

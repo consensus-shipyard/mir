@@ -5,7 +5,6 @@ package accountabilitypbevents
 import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -47,21 +46,6 @@ func PoMs(destModule types.ModuleID, poms []*types2.PoM) *types1.Event {
 				Type: &types2.Event_Poms{
 					Poms: &types2.PoMs{
 						Poms: poms,
-					},
-				},
-			},
-		},
-	}
-}
-
-func InstanceParams(destModule types.ModuleID, membership *types3.Membership) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_Accountability{
-			Accountability: &types2.Event{
-				Type: &types2.Event_InstanceParams{
-					InstanceParams: &types2.InstanceParams{
-						Membership: membership,
 					},
 				},
 			},

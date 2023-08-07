@@ -18,7 +18,6 @@ message Event{
     Predecided predecided = 1;
     Decided decided = 2;
     PoMs poms = 3;
-    InstanceParams instance_params = 4;
   }
 }
 
@@ -83,7 +82,7 @@ message FullCertificate {
 }
 
 message InstanceParams {
-  option (mir.event) = true;
+  option (mir.struct) = true;
 
   trantorpb.Membership membership = 3;
 }

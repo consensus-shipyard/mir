@@ -17,7 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
-// IncludePoMs verifies receives PoMs and sends found PoMs to other members
+// IncludePoMs verifies receives PoMs and sends found PoMs to other members.
 func IncludePoMs(
 	m dsl.Module,
 	mc *common.ModuleConfig,
@@ -32,7 +32,7 @@ func IncludePoMs(
 
 		for _, pom := range poms {
 			if reflect.DeepEqual(pom.ConflictingMsg_1.Predecision, pom.ConflictingMsg_2.Predecision) ||
-				reflect.DeepEqual(pom.ConflictingMsg_1.Signature, pom.ConflictingMsg_2.Signature) { // no need to check, no PoM possible here
+				reflect.DeepEqual(pom.ConflictingMsg_1.Signature, pom.ConflictingMsg_2.Signature) { // no PoM possible here
 				continue
 			}
 
@@ -40,7 +40,7 @@ func IncludePoMs(
 				continue
 			}
 
-			if _, ok := state.SentPoMs[pom.NodeId]; !ok {
+			if _, ok := state.SentPoMs[pom.NodeId]; ok {
 				continue
 			}
 
@@ -82,7 +82,7 @@ func IncludePoMs(
 	})
 }
 
-// SendPoMs sends all PoMs in State.UnsentPoMs to all nodes and to the application module (from the POV of this module, i.e. mc.App)
+// SendPoMs sends all PoMs in State.UnsentPoMs to all nodes and to the application module (from the POV of this module, i.e. mc.App).
 func SendPoMs(
 	m dsl.Module,
 	mc *common.ModuleConfig,

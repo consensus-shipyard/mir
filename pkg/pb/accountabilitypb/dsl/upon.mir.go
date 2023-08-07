@@ -6,7 +6,6 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -37,11 +36,5 @@ func UponDecided(m dsl.Module, handler func(data []uint8) error) {
 func UponPoMs(m dsl.Module, handler func(poms []*types.PoM) error) {
 	UponEvent[*types.Event_Poms](m, func(ev *types.PoMs) error {
 		return handler(ev.Poms)
-	})
-}
-
-func UponInstanceParams(m dsl.Module, handler func(membership *types2.Membership) error) {
-	UponEvent[*types.Event_InstanceParams](m, func(ev *types.InstanceParams) error {
-		return handler(ev.Membership)
 	})
 }

@@ -37,8 +37,6 @@ func Event_TypeFromPb(pb accountabilitypb.Event_Type) Event_Type {
 		return &Event_Decided{Decided: DecidedFromPb(pb.Decided)}
 	case *accountabilitypb.Event_Poms:
 		return &Event_Poms{Poms: PoMsFromPb(pb.Poms)}
-	case *accountabilitypb.Event_InstanceParams:
-		return &Event_InstanceParams{InstanceParams: InstanceParamsFromPb(pb.InstanceParams)}
 	}
 	return nil
 }
@@ -113,30 +111,6 @@ func (w *Event_Poms) Pb() accountabilitypb.Event_Type {
 
 func (*Event_Poms) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.Event_Poms]()}
-}
-
-type Event_InstanceParams struct {
-	InstanceParams *InstanceParams
-}
-
-func (*Event_InstanceParams) isEvent_Type() {}
-
-func (w *Event_InstanceParams) Unwrap() *InstanceParams {
-	return w.InstanceParams
-}
-
-func (w *Event_InstanceParams) Pb() accountabilitypb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.InstanceParams == nil {
-		return &accountabilitypb.Event_InstanceParams{}
-	}
-	return &accountabilitypb.Event_InstanceParams{InstanceParams: (w.InstanceParams).Pb()}
-}
-
-func (*Event_InstanceParams) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.Event_InstanceParams]()}
 }
 
 func EventFromPb(pb *accountabilitypb.Event) *Event {

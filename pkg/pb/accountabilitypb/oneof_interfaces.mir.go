@@ -21,10 +21,6 @@ func (w *Event_Poms) Unwrap() *PoMs {
 	return w.Poms
 }
 
-func (w *Event_InstanceParams) Unwrap() *InstanceParams {
-	return w.InstanceParams
-}
-
 type Message_Type = isMessage_Type
 
 type Message_TypeWrapper[T any] interface {
