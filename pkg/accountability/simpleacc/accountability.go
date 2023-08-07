@@ -125,6 +125,7 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 				// Fill in instance-specific parameters.
 				moduleParams := paramsTemplate
 				moduleParams.Membership = accParams.Membership
+				moduleParams.RetentionIndex = accParams.RetentionIndex
 
 				// Create a new instance of the multisig collector.
 				accountabilityModule, err := NewModule(

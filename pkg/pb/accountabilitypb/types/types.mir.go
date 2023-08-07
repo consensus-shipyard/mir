@@ -6,8 +6,9 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -389,7 +390,8 @@ func (*FullCertificate) MirReflect() mirreflect.Type {
 }
 
 type InstanceParams struct {
-	Membership *types2.Membership
+	Membership     *types2.Membership
+	RetentionIndex types3.RetentionIndex
 }
 
 func InstanceParamsFromPb(pb *accountabilitypb.InstanceParams) *InstanceParams {
@@ -397,7 +399,8 @@ func InstanceParamsFromPb(pb *accountabilitypb.InstanceParams) *InstanceParams {
 		return nil
 	}
 	return &InstanceParams{
-		Membership: types2.MembershipFromPb(pb.Membership),
+		Membership:     types2.MembershipFromPb(pb.Membership),
+		RetentionIndex: (types3.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -410,6 +413,7 @@ func (m *InstanceParams) Pb() *accountabilitypb.InstanceParams {
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}
+		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
 	}
 
 	return pbMessage
@@ -449,7 +453,7 @@ func (*RequestSBMessage) MirReflect() mirreflect.Type {
 }
 
 type ProvideSBMessage struct {
-	SbDeliver *types3.SBDeliver
+	SbDeliver *types4.SBDeliver
 }
 
 func ProvideSBMessageFromPb(pb *accountabilitypb.ProvideSBMessage) *ProvideSBMessage {
@@ -457,7 +461,7 @@ func ProvideSBMessageFromPb(pb *accountabilitypb.ProvideSBMessage) *ProvideSBMes
 		return nil
 	}
 	return &ProvideSBMessage{
-		SbDeliver: types3.SBDeliverFromPb(pb.SbDeliver),
+		SbDeliver: types4.SBDeliverFromPb(pb.SbDeliver),
 	}
 }
 

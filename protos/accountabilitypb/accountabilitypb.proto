@@ -63,7 +63,8 @@ message FullCertificate {
 message InstanceParams {
   option (mir.struct) = true;
 
-  trantorpb.Membership membership = 3;
+  trantorpb.Membership membership = 1;
+  uint64      retention_index     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
 }
 
 

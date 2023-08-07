@@ -6,6 +6,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	accpbtypes "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -17,15 +19,18 @@ type ModuleConfig struct {
 	Ordering t.ModuleID // provides Predecisions
 	App      t.ModuleID // receives Decisions and/or PoMs
 	Crypto   t.ModuleID // provides cryptographic primitives
+	Timer    t.ModuleID // provides Timing primitives
 	Net      t.ModuleID // provides network primitives
 }
 
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
-	Membership        *trantorpbtypes.Membership // the list of participating nodes
+	Membership        *trantorpbtypes.Membership // The list of participating nodes.
 	LightCertificates bool
-	PomsHandler       func(m dsl.Module, // function to be called when PoMs detected
+	ResendFrequency   timertypes.Duration // Frequency with which messages in the critical path are re-sent
+	RetentionIndex    tt.RetentionIndex
+	PoMsHandler       func(m dsl.Module, // Function to be called when PoMs detected.
 		mc *ModuleConfig,
 		params *ModuleParams,
 		state *incommon.State,

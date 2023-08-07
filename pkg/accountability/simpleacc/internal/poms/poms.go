@@ -93,7 +93,7 @@ func HandlePoMs(
 	logger.Log(logging.LevelWarn, "Found valid PoMs! sending...")
 
 	// Handle PoMs according to the application's logic defined when creating the accountability factory
-	params.PomsHandler(m, mc, params, state, state.UnhandledPoMs, logger)
+	params.PoMsHandler(m, mc, params, state, state.UnhandledPoMs, logger)
 
 	for _, pom := range state.UnhandledPoMs {
 		state.HandledPoMs[pom.NodeId] = pom

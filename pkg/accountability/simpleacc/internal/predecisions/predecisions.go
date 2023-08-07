@@ -3,6 +3,9 @@ package predecisions
 import (
 	"reflect"
 
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/certificates/lightcertificates"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbtypes "github.com/filecoin-project/mir/pkg/pb/isspb/types"
@@ -19,6 +22,7 @@ import (
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
@@ -79,7 +83,13 @@ func IncludePredecisions(
 		state.LocalPredecision.SignedPredecision.Signature = signature
 
 		// Broadcast signed predecision to all participants (including oneself).
-		transportpbdsl.SendMessage(m, mc.Net, accpbmsgs.SignedPredecision(mc.Self, sr.data, signature), maputil.GetKeys(params.Membership.Nodes))
+		eventpbdsl.TimerRepeat(m,
+			mc.Timer,
+			[]*eventpbtypes.Event{transportpbevents.SendMessage(mc.Net, accpbmsgs.SignedPredecision(mc.Self, sr.data, signature), maputil.GetKeys(params.Membership.Nodes))},
+			params.ResendFrequency,
+			params.RetentionIndex,
+		)
+
 		return nil
 	})
 
@@ -230,13 +240,16 @@ func decide(m dsl.Module, mc *common.ModuleConfig, params *common.ModuleParams, 
 	}
 
 	// Find the actual predecision from other nodes
-	transportpbdsl.SendMessage(
-		m,
-		mc.Net,
-		accpbmsgs.RequestSBMessage(mc.Self,
-			predecision),
-		state.PredecisionNodeIDs[string(predecision)])
-
+	eventpbdsl.TimerRepeat(m,
+		mc.Timer,
+		[]*eventpbtypes.Event{transportpbevents.SendMessage(
+			mc.Net,
+			accpbmsgs.RequestSBMessage(mc.Self,
+				predecision),
+			state.PredecisionNodeIDs[string(predecision)])},
+		params.ResendFrequency,
+		params.RetentionIndex,
+	)
 }
 
 func finishWithDecision(
