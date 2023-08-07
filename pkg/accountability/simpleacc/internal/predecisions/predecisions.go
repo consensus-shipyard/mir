@@ -2,6 +2,9 @@ package predecisions
 
 import (
 	"reflect"
+	"sync"
+
+	"github.com/fxamacker/cbor/v2"
 
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -60,7 +63,12 @@ func IncludePredecisions(
 				InstanceId: instanceId,
 			}
 
-			serializedPredecision := serializePredecision(predecision)
+			serializedPredecision, err := serializePredecision(predecision)
+
+			if err != nil {
+				logger.Log(logging.LevelError, "Error serializing predecision", err)
+				return err
+			}
 
 			state.LocalPredecision = &incommon.LocalPredecision{
 				SBDeliver: predecision,
@@ -187,7 +195,12 @@ func ApplySigVerified(
 		}
 
 		// Now decision is not just the bytes, need to retrieve actual decision.
-		decide(m, mc, params, state, sp.Predecision, logger)
+		sb, err := deserializePredecision(state.DecidedCertificate.Decision)
+		if err != nil {
+			logger.Log(logging.LevelWarn, "Error deserializing predecision: %v", err)
+			return
+		}
+		decide(m, mc, params, state, sb, logger)
 
 		if params.LightCertificates {
 			transportpbdsl.SendMessage(
@@ -207,83 +220,39 @@ func ApplySigVerified(
 		}
 	}
 
-	accpbdsl.UponRequestSBMessageReceived(m, func(from t.NodeID, predecision []byte) error {
-		if reflect.DeepEqual(predecision, state.LocalPredecision.SignedPredecision.Predecision) {
-			transportpbdsl.SendMessage(m,
-				mc.Net,
-				accpbmsgs.ProvideSBMessage(mc.Self, state.LocalPredecision.SBDeliver),
-				[]t.NodeID{from})
-		}
-		return nil
-	})
-
-	accpbdsl.UponProvideSBMessageReceived(m, func(from t.NodeID, sbDeliver *isspbtypes.SBDeliver) error {
-		if state.DecidedCertificate == nil {
-			logger.Log(logging.LevelDebug, "Ignoring received SBDeliver message from node %v, no local decision yet", from)
-			return nil
-		}
-
-		if reflect.DeepEqual(state.DecidedCertificate.Decision, serializePredecision(sbDeliver)) {
-			finishWithDecision(m, mc, params, state, sbDeliver, logger)
-		}
-
-		return nil
-	})
 }
 
-func decide(m dsl.Module, mc *common.ModuleConfig, params *common.ModuleParams, state *incommon.State, predecision []byte, logger logging.Logger) {
-	// Retrieve actual decision.
-	if reflect.DeepEqual(predecision, state.LocalPredecision.SignedPredecision.Predecision) {
-		sb := state.LocalPredecision.SBDeliver // convenience variable.
-		finishWithDecision(m, mc, params, state, sb, logger)
-		return
-	}
-
-	// Find the actual predecision from other nodes
-	eventpbdsl.TimerRepeat(m,
-		mc.Timer,
-		[]*eventpbtypes.Event{transportpbevents.SendMessage(
-			mc.Net,
-			accpbmsgs.RequestSBMessage(mc.Self,
-				predecision),
-			state.PredecisionNodeIDs[string(predecision)])},
-		params.ResendFrequency,
-		params.RetentionIndex,
-	)
-}
-
-func finishWithDecision(
-	m dsl.Module,
-	mc *common.ModuleConfig,
-	params *common.ModuleParams,
-	state *incommon.State,
-	sb *isspbtypes.SBDeliver,
-	logger logging.Logger,
-) {
-
+func decide(m dsl.Module, mc *common.ModuleConfig, params *common.ModuleParams, state *incommon.State, sb *isspbtypes.SBDeliver, logger logging.Logger) {
 	isspbdsl.SBDeliver(m, mc.App, sb.Sn, sb.Data, sb.Aborted, sb.Leader, sb.InstanceId)
 	if params.LightCertificates {
 		lightcertificates.ApplyLightCertificatesBuffered(m, mc, state, logger)
 	}
-
 }
 
-func serializePredecision(sbDeliver *isspbtypes.SBDeliver) []byte {
-	b := make([]byte, 0)
-	b = append(b, sbDeliver.Sn.Bytes()...)
-	b = append(b, sbDeliver.Data...)
-
-	abortedByte := uint8(0)
-	if sbDeliver.Aborted {
-		abortedByte = uint8(1)
+func serializePredecision(sbDeliver *isspbtypes.SBDeliver) ([]byte, error) {
+	ser, err := getEncMode().Marshal(sbDeliver)
+	if err != nil {
+		return nil, err
 	}
+	return ser, nil
+}
 
-	b = append(b, abortedByte)
-	b = append(b, sbDeliver.Leader...)
-	b = append(b, sbDeliver.InstanceId...)
-	return b
+func deserializePredecision(data []byte) (*isspbtypes.SBDeliver, error) {
+	sb := &isspbtypes.SBDeliver{}
+	err := cbor.Unmarshal(data, sb)
+	return sb, err
 }
 
 type signRequest struct {
 	data []byte
+}
+
+var encMode cbor.EncMode
+var once sync.Once
+
+func getEncMode() cbor.EncMode {
+	once.Do(func() {
+		encMode, _ = cbor.CoreDetEncOptions().EncMode()
+	})
+	return encMode
 }

@@ -12,7 +12,5 @@ func (*Message) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Message_Certificate)(nil)),
 		reflect.TypeOf((*Message_Poms)(nil)),
 		reflect.TypeOf((*Message_LightCertificate)(nil)),
-		reflect.TypeOf((*Message_RequestSbMessage)(nil)),
-		reflect.TypeOf((*Message_ProvideSbMessage)(nil)),
 	}
 }

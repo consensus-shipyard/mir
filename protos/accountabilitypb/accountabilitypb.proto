@@ -5,7 +5,6 @@ package accountabilitypb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/accountabilitypb";
 
 import "trantorpb/trantorpb.proto";
-import "isspb/isspb.proto";
 
 import "net/codegen_extensions.proto";
 import "mir/codegen_extensions.proto";
@@ -40,8 +39,6 @@ message Message {
     FullCertificate certificate          = 2;
     PoMs poms                            = 3;
     LightCertificate light_certificate   = 4;
-    RequestSBMessage request_sb_message  = 5;
-    ProvideSBMessage provide_sb_message  = 6;
   }
 }
 
@@ -65,17 +62,4 @@ message InstanceParams {
 
   trantorpb.Membership membership = 1;
   uint64      retention_index     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
-}
-
-
-message RequestSBMessage {
-  option (net.message) = true;
-
-  bytes  predecision = 1;
-}
-
-message ProvideSBMessage {
-  option (net.message) = true;
-
-  isspb.SBDeliver sb_deliver = 1;
 }

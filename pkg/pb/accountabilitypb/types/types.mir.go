@@ -6,7 +6,6 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
-	types4 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
@@ -142,10 +141,6 @@ func Message_TypeFromPb(pb accountabilitypb.Message_Type) Message_Type {
 		return &Message_Poms{Poms: PoMsFromPb(pb.Poms)}
 	case *accountabilitypb.Message_LightCertificate:
 		return &Message_LightCertificate{LightCertificate: LightCertificateFromPb(pb.LightCertificate)}
-	case *accountabilitypb.Message_RequestSbMessage:
-		return &Message_RequestSbMessage{RequestSbMessage: RequestSBMessageFromPb(pb.RequestSbMessage)}
-	case *accountabilitypb.Message_ProvideSbMessage:
-		return &Message_ProvideSbMessage{ProvideSbMessage: ProvideSBMessageFromPb(pb.ProvideSbMessage)}
 	}
 	return nil
 }
@@ -244,54 +239,6 @@ func (w *Message_LightCertificate) Pb() accountabilitypb.Message_Type {
 
 func (*Message_LightCertificate) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.Message_LightCertificate]()}
-}
-
-type Message_RequestSbMessage struct {
-	RequestSbMessage *RequestSBMessage
-}
-
-func (*Message_RequestSbMessage) isMessage_Type() {}
-
-func (w *Message_RequestSbMessage) Unwrap() *RequestSBMessage {
-	return w.RequestSbMessage
-}
-
-func (w *Message_RequestSbMessage) Pb() accountabilitypb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.RequestSbMessage == nil {
-		return &accountabilitypb.Message_RequestSbMessage{}
-	}
-	return &accountabilitypb.Message_RequestSbMessage{RequestSbMessage: (w.RequestSbMessage).Pb()}
-}
-
-func (*Message_RequestSbMessage) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.Message_RequestSbMessage]()}
-}
-
-type Message_ProvideSbMessage struct {
-	ProvideSbMessage *ProvideSBMessage
-}
-
-func (*Message_ProvideSbMessage) isMessage_Type() {}
-
-func (w *Message_ProvideSbMessage) Unwrap() *ProvideSBMessage {
-	return w.ProvideSbMessage
-}
-
-func (w *Message_ProvideSbMessage) Pb() accountabilitypb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.ProvideSbMessage == nil {
-		return &accountabilitypb.Message_ProvideSbMessage{}
-	}
-	return &accountabilitypb.Message_ProvideSbMessage{ProvideSbMessage: (w.ProvideSbMessage).Pb()}
-}
-
-func (*Message_ProvideSbMessage) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.Message_ProvideSbMessage]()}
 }
 
 func MessageFromPb(pb *accountabilitypb.Message) *Message {
@@ -421,64 +368,4 @@ func (m *InstanceParams) Pb() *accountabilitypb.InstanceParams {
 
 func (*InstanceParams) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.InstanceParams]()}
-}
-
-type RequestSBMessage struct {
-	Predecision []uint8
-}
-
-func RequestSBMessageFromPb(pb *accountabilitypb.RequestSBMessage) *RequestSBMessage {
-	if pb == nil {
-		return nil
-	}
-	return &RequestSBMessage{
-		Predecision: pb.Predecision,
-	}
-}
-
-func (m *RequestSBMessage) Pb() *accountabilitypb.RequestSBMessage {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &accountabilitypb.RequestSBMessage{}
-	{
-		pbMessage.Predecision = m.Predecision
-	}
-
-	return pbMessage
-}
-
-func (*RequestSBMessage) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.RequestSBMessage]()}
-}
-
-type ProvideSBMessage struct {
-	SbDeliver *types4.SBDeliver
-}
-
-func ProvideSBMessageFromPb(pb *accountabilitypb.ProvideSBMessage) *ProvideSBMessage {
-	if pb == nil {
-		return nil
-	}
-	return &ProvideSBMessage{
-		SbDeliver: types4.SBDeliverFromPb(pb.SbDeliver),
-	}
-}
-
-func (m *ProvideSBMessage) Pb() *accountabilitypb.ProvideSBMessage {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &accountabilitypb.ProvideSBMessage{}
-	{
-		if m.SbDeliver != nil {
-			pbMessage.SbDeliver = (m.SbDeliver).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*ProvideSBMessage) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*accountabilitypb.ProvideSBMessage]()}
 }
