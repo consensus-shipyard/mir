@@ -1,6 +1,10 @@
 package common
 
 import (
+	incommon "github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/common"
+	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
+	accpbtypes "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -21,4 +25,10 @@ type ModuleConfig struct {
 type ModuleParams struct {
 	Membership        *trantorpbtypes.Membership // the list of participating nodes
 	LightCertificates bool
+	PomsHandler       func(m dsl.Module, // function to be called when PoMs detected
+		mc *ModuleConfig,
+		params *ModuleParams,
+		state *incommon.State,
+		poms []*accpbtypes.PoM,
+		logger logging.Logger)
 }

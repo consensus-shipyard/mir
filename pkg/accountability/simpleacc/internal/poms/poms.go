@@ -8,13 +8,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	accpbdsl "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/dsl"
-	accountabilitypbmsgs "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/msgs"
 	accpbtypes "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // IncludePoMs verifies receives PoMs and sends found PoMs to other members.
@@ -40,7 +37,7 @@ func IncludePoMs(
 				continue
 			}
 
-			if _, ok := state.SentPoMs[pom.NodeId]; ok {
+			if _, ok := state.HandledPoMs[pom.NodeId]; ok {
 				continue
 			}
 
@@ -72,43 +69,37 @@ func IncludePoMs(
 	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errs []error, allOk bool, vpoms *verifyPoMs) error {
 		for i := 0; i < len(nodeIds); i += 2 {
 			if errs[i] == nil && errs[i+1] == nil {
-				state.UnsentPoMs = append(state.UnsentPoMs, vpoms.poms[i/2])
+				state.UnhandledPoMs = append(state.UnhandledPoMs, vpoms.poms[i/2])
 			}
 		}
 
-		SendPoMs(m, mc, params, state, logger)
+		HandlePoMs(m, mc, params, state, logger)
 
 		return nil
 	})
 }
 
-// SendPoMs sends all PoMs in State.UnsentPoMs to all nodes and to the application module (from the POV of this module, i.e. mc.App).
-func SendPoMs(
+// HandlePoMs sends all PoMs in State.UnhandledPoMs to all nodes and to the application module (from the POV of this module, i.e. mc.App).
+func HandlePoMs(
 	m dsl.Module,
 	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	state *incommon.State,
 	logger logging.Logger,
 ) {
-	if len(state.UnsentPoMs) == 0 {
+	if len(state.UnhandledPoMs) == 0 {
 		return
 	}
 	logger.Log(logging.LevelWarn, "Found valid PoMs! sending...")
 
-	//TODO do something here (function that will be passed on factory creation)
+	// Handle PoMs according to the application's logic defined when creating the accountability factory
+	params.PomsHandler(m, mc, params, state, state.UnhandledPoMs, logger)
 
-	transportpbdsl.SendMessage(
-		m,
-		mc.Net,
-		accountabilitypbmsgs.PoMs(mc.Self, state.UnsentPoMs),
-		maputil.GetKeys(params.Membership.Nodes),
-	)
-
-	for _, pom := range state.UnsentPoMs {
-		state.SentPoMs[pom.NodeId] = pom
+	for _, pom := range state.UnhandledPoMs {
+		state.HandledPoMs[pom.NodeId] = pom
 	}
 
-	state.UnsentPoMs = make([]*accpbtypes.PoM, 0)
+	state.UnhandledPoMs = make([]*accpbtypes.PoM, 0)
 }
 
 type verifyPoMs struct {

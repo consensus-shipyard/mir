@@ -1,11 +1,12 @@
 package predecisions
 
 import (
+	"reflect"
+
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/certificates/lightcertificates"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbtypes "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"reflect"
 
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/common"
 	incommon "github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/common"
@@ -134,8 +135,8 @@ func ApplySigVerified(
 		if !reflect.DeepEqual(state.SignedPredecisions[nodeID].Predecision, sp.Predecision) {
 			logger.Log(logging.LevelWarn, "Received conflicting signed predecisions from same node")
 			// if a PoM for this node has not already been sent.
-			if _, ok := state.SentPoMs[nodeID]; !ok {
-				state.UnsentPoMs = append(state.UnsentPoMs,
+			if _, ok := state.HandledPoMs[nodeID]; !ok {
+				state.UnhandledPoMs = append(state.UnhandledPoMs,
 					&accpbtypes.PoM{
 						NodeId:           nodeID,
 						ConflictingMsg_1: state.SignedPredecisions[nodeID],
@@ -143,7 +144,7 @@ func ApplySigVerified(
 					})
 
 				if flushPoMs {
-					poms.SendPoMs(m, mc, params, state, logger)
+					poms.HandlePoMs(m, mc, params, state, logger)
 				}
 			}
 

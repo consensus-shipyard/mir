@@ -78,7 +78,10 @@ type ModuleParams = common.ModuleParams
 //
 // ATTENTION: This module is intended to be used once per instance
 // (to avoid replay attacks) and reinstantiated in a factory.
-func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
+func NewModule(
+	mc ModuleConfig,
+	params *ModuleParams,
+	logger logging.Logger) (modules.PassiveModule, error) {
 	m := dsl.NewModule(mc.Self)
 
 	state := &incommon.State{
@@ -87,8 +90,8 @@ func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (mo
 		LocalPredecision:   nil,
 		DecidedCertificate: nil,
 		Predecided:         false,
-		UnsentPoMs:         make([]*accpbtypes.PoM, 0),
-		SentPoMs:           make(map[t.NodeID]*accpbtypes.PoM),
+		UnhandledPoMs:      make([]*accpbtypes.PoM, 0),
+		HandledPoMs:        make(map[t.NodeID]*accpbtypes.PoM),
 	}
 
 	predecisions.IncludePredecisions(m, &mc, params, state, logger)

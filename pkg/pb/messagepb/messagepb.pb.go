@@ -12,6 +12,12 @@
 package messagepb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
@@ -21,10 +27,6 @@ import (
 	_ "github.com/filecoin-project/mir/pkg/pb/net"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

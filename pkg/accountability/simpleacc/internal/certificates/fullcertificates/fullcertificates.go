@@ -1,8 +1,6 @@
 package fullcertificates
 
 import (
-	"reflect"
-
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/common"
 	incommon "github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/common"
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/poms"
@@ -28,9 +26,8 @@ func IncludeFullCertificate(m dsl.Module,
 	logger logging.Logger,
 ) {
 
-	accpbdsl.UponFullCertificateReceived(m, func(from t.NodeID, certificate map[t.NodeID]*accpbtypes.SignedPredecision) error {
-		predecision, empty := maputil.AnyVal(certificate)
-		if empty {
+	accpbdsl.UponFullCertificateReceived(m, func(from t.NodeID, decision []byte, certificate map[t.NodeID][]byte) error {
+		if len(certificate) == 0 {
 			logger.Log(logging.LevelDebug, "Ignoring empty predecision certificate")
 			return nil
 		}
@@ -40,28 +37,24 @@ func IncludeFullCertificate(m dsl.Module,
 			return nil
 		}
 
-		for _, v := range certificate {
-			if !reflect.DeepEqual(predecision.Predecision, v.Predecision) {
-				logger.Log(logging.LevelDebug, "Ignoring predecision certificate with different predecisions")
-				return nil
-			}
-		}
-
 		// Verify all signatures in certificate.
 		cryptopbdsl.VerifySigs(
 			m,
 			mc.Crypto,
-			sliceutil.Transform(maputil.GetValues(certificate),
-				func(i int, sp *accpbtypes.SignedPredecision) *cryptopbtypes.SignedData {
-					return &cryptopbtypes.SignedData{Data: [][]byte{sp.Predecision, []byte(mc.Self)}}
+			sliceutil.Generate(
+				len(certificate),
+				func(i int) *cryptopbtypes.SignedData {
+					return &cryptopbtypes.SignedData{
+						Data: [][]byte{decision},
+					}
 				}),
-			sliceutil.Transform(maputil.GetValues(certificate),
-				func(i int, sp *accpbtypes.SignedPredecision) []byte {
-					return sp.Signature
-				}),
+			maputil.GetValues(certificate),
 			maputil.GetKeys(certificate),
 			&verifySigs{
-				certificate: certificate,
+				certificate: &accpbtypes.FullCertificate{
+					Decision:   decision,
+					Signatures: certificate,
+				},
 			},
 		)
 		return nil
@@ -69,13 +62,17 @@ func IncludeFullCertificate(m dsl.Module,
 
 	cryptopbdsl.UponSigsVerified(m, func(nodeIds []t.NodeID, errs []error, allOk bool, vsr *verifySigs) error {
 		for i, nodeID := range nodeIds {
-			predecisions.ApplySigVerified(m, mc, params, state, nodeID, errs[i], vsr.certificate[nodeID], false, logger)
+			sp := &accpbtypes.SignedPredecision{
+				Predecision: vsr.certificate.Decision,
+				Signature:   vsr.certificate.Signatures[nodeID],
+			}
+			predecisions.ApplySigVerified(m, mc, params, state, nodeID, errs[i], sp, false, logger)
 		}
-		poms.SendPoMs(m, mc, params, state, logger)
+		poms.HandlePoMs(m, mc, params, state, logger)
 		return nil
 	})
 }
 
 type verifySigs struct {
-	certificate map[t.NodeID]*accpbtypes.SignedPredecision
+	certificate *accpbtypes.FullCertificate
 }

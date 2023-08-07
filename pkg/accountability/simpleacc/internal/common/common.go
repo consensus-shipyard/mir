@@ -13,8 +13,8 @@ type State struct {
 	LocalPredecision   *LocalPredecision            // Decision locally decided
 	DecidedCertificate *accpbtypes.FullCertificate  // Locally decided certificate (predecision and list of signatures with signers as key)
 	Predecided         bool                         // Whether this process has received a predecided value from calling module.
-	UnsentPoMs         []*accpbtypes.PoM            // List of PoMs not yet sent to the application.
-	SentPoMs           map[t.NodeID]*accpbtypes.PoM // List of PoMs already sent to the application with the signer as key.
+	UnhandledPoMs      []*accpbtypes.PoM            // List of PoMs not yet sent to the application.
+	HandledPoMs        map[t.NodeID]*accpbtypes.PoM // List of PoMs already sent to the application with the signer as key.
 	LightCertificates  map[t.NodeID][]byte          // Map of light certificates with the signer as key, buffered if no local decision made yet.
 }
 

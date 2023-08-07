@@ -1,6 +1,8 @@
 package lightcertificates
 
 import (
+	"reflect"
+
 	"github.com/filecoin-project/mir/pkg/accountability/simpleacc/common"
 	incommon "github.com/filecoin-project/mir/pkg/accountability/simpleacc/internal/common"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -9,7 +11,6 @@ import (
 	accpbmsgs "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"reflect"
 )
 
 // IncludeLightCertificate implements the (optional) light certificate optimization
