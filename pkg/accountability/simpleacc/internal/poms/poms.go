@@ -95,7 +95,7 @@ func SendPoMs(
 	}
 	logger.Log(logging.LevelWarn, "Found valid PoMs! sending...")
 
-	accpbdsl.PoMs(m, mc.App, state.UnsentPoMs)
+	//TODO do something here (function that will be passed on factory creation)
 
 	transportpbdsl.SendMessage(
 		m,

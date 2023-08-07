@@ -30,9 +30,9 @@ func UponSignedPredecisionReceived(m dsl.Module, handler func(from types1.NodeID
 	})
 }
 
-func UponFullCertificateReceived(m dsl.Module, handler func(from types1.NodeID, decision []uint8, certificate map[types1.NodeID][]uint8) error) {
+func UponFullCertificateReceived(m dsl.Module, handler func(from types1.NodeID, decision []uint8, signatures map[types1.NodeID][]uint8) error) {
 	UponMessageReceived[*types.Message_Certificate](m, func(from types1.NodeID, msg *types.FullCertificate) error {
-		return handler(from, msg.Decision, msg.Certificate)
+		return handler(from, msg.Decision, msg.Signatures)
 	})
 }
 

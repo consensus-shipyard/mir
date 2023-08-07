@@ -57,7 +57,7 @@ message FullCertificate {
   option (net.message) = true;
 
   bytes decision = 1;
-  map<string, bytes> certificate = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  map<string, bytes> signatures = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
 
 message InstanceParams {

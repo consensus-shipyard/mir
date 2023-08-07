@@ -25,15 +25,15 @@ func SignedPredecision(destModule types.ModuleID, predecision []uint8, signature
 	}
 }
 
-func FullCertificate(destModule types.ModuleID, decision []uint8, certificate map[types.NodeID][]uint8) *types1.Message {
+func FullCertificate(destModule types.ModuleID, decision []uint8, signatures map[types.NodeID][]uint8) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Accountability{
 			Accountability: &types2.Message{
 				Type: &types2.Message_Certificate{
 					Certificate: &types2.FullCertificate{
-						Decision:    decision,
-						Certificate: certificate,
+						Decision:   decision,
+						Signatures: signatures,
 					},
 				},
 			},

@@ -157,7 +157,7 @@ func ApplySigVerified(
 	// Once verified, if strong quorum, broadcast accpbdsl.FullCertificate.
 	if state.DecidedCertificate == nil &&
 		membutil.HaveStrongQuorum(params.Membership, state.PredecisionNodeIDs[string(sp.Predecision)]) {
-		state.DecidedCertificate = &incommon.Certificate{
+		state.DecidedCertificate = &accpbtypes.FullCertificate{
 			Decision: sp.Predecision,
 			Signatures: maputil.Transform(
 				maputil.Filter(

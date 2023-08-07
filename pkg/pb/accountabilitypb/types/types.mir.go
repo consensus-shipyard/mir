@@ -353,8 +353,8 @@ func (*SignedPredecision) MirReflect() mirreflect.Type {
 }
 
 type FullCertificate struct {
-	Decision    []uint8
-	Certificate map[types.NodeID][]uint8
+	Decision   []uint8
+	Signatures map[types.NodeID][]uint8
 }
 
 func FullCertificateFromPb(pb *accountabilitypb.FullCertificate) *FullCertificate {
@@ -363,7 +363,7 @@ func FullCertificateFromPb(pb *accountabilitypb.FullCertificate) *FullCertificat
 	}
 	return &FullCertificate{
 		Decision: pb.Decision,
-		Certificate: types1.ConvertMap(pb.Certificate, func(k string, v []uint8) (types.NodeID, []uint8) {
+		Signatures: types1.ConvertMap(pb.Signatures, func(k string, v []uint8) (types.NodeID, []uint8) {
 			return (types.NodeID)(k), v
 		}),
 	}
@@ -376,7 +376,7 @@ func (m *FullCertificate) Pb() *accountabilitypb.FullCertificate {
 	pbMessage := &accountabilitypb.FullCertificate{}
 	{
 		pbMessage.Decision = m.Decision
-		pbMessage.Certificate = types1.ConvertMap(m.Certificate, func(k types.NodeID, v []uint8) (string, []uint8) {
+		pbMessage.Signatures = types1.ConvertMap(m.Signatures, func(k types.NodeID, v []uint8) (string, []uint8) {
 			return (string)(k), v
 		})
 	}

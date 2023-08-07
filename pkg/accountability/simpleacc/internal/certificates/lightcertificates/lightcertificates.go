@@ -11,7 +11,6 @@ import (
 	accpbmsgs "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // IncludeLightCertificate implements the (optional) light certificate optimization
@@ -39,15 +38,16 @@ func IncludeLightCertificate(m dsl.Module,
 			return nil
 		}
 
-		decision, _ := maputil.AnyVal(state.DecidedCertificate)
+		decision := state.DecidedCertificate.Decision
 
-		if !reflect.DeepEqual(decision.Predecision, data) {
+		if !reflect.DeepEqual(decision, data) {
 			logger.Log(logging.LevelWarn, "Received light certificate with different predecision than local decision! sending full certificate to node %v", from)
 			transportpbdsl.SendMessage(
 				m,
 				mc.Net,
 				accpbmsgs.FullCertificate(mc.Self,
-					state.DecidedCertificate),
+					state.DecidedCertificate.Decision,
+					state.DecidedCertificate.Signatures),
 				[]t.NodeID{from})
 		}
 		return nil
