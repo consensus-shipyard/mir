@@ -28,7 +28,7 @@ type ModuleParams struct {
 	// Number of epochs by which to delay configuration changes.
 	// If a configuration is agreed upon in epoch e, it will take effect in epoch e + 1 + configOffset.
 	// Thus, in the "current" configuration, ConfigOffset subsequent configurations are already known.
-	ConfigOffset int
+	ConfigOffset int `json:",string"`
 
 	// The length of an ISS segment, in sequence numbers.
 	// This is the number of commitLog entries each orderer needs to output in an epoch.
@@ -36,7 +36,7 @@ type ModuleParams struct {
 	// If set to 0, the EpochLength parameter must be non-zero and will be used to calculate the length of the segments
 	// such that their lengths sum up to EpochLength.
 	// Must not be negative.
-	SegmentLength int
+	SegmentLength int `json:",string"`
 
 	// The length of an ISS epoch, in sequence numbers.
 	// If EpochLength is non-zero, the epoch will always have a fixed
@@ -46,7 +46,7 @@ type ModuleParams struct {
 	// If set to zero, SegmentLength must be non-zero and will be used directly to set the length of each segment.
 	// Must not be negative.
 	// TODO: That EpochLength is not implemented now. SegmentLength has to be used.
-	EpochLength int
+	EpochLength int `json:",string"`
 
 	// The maximum time duration between two proposals of an orderer, where applicable.
 	// For orderers that wait for an availability certificate to fill before proposing it (e.g. PBFT),
@@ -54,7 +54,7 @@ type ModuleParams struct {
 	// When MaxProposeDelay has elapsed since the last proposal made by an orderer,
 	// the orderer proposes a new availability certificate.
 	// Must not be negative.
-	MaxProposeDelay time.Duration
+	MaxProposeDelay time.Duration `json:",string"`
 
 	// Maximal number of bytes used for message backlogging buffers
 	// (only message payloads are counted towards MsgBufCapacity).
@@ -66,17 +66,17 @@ type ModuleParams struct {
 	// The most recently received messages that together do not exceed the capacity are stored.
 	// If the capacity is set to 0, all messages that cannot yet be processed are dropped on reception.
 	// Must not be negative.
-	MsgBufCapacity int
+	MsgBufCapacity int `json:",string"`
 
 	// Number of most recent epochs that are older than the latest stable checkpoint.
-	RetainedEpochs int
+	RetainedEpochs int `json:",string"`
 
 	// Every CatchUpTimerPeriod, a node checks whether other nodes have fallen behind
 	// and, if so, sends them the latest state.
-	CatchUpTimerPeriod time.Duration
+	CatchUpTimerPeriod time.Duration `json:",string"`
 
 	// Time interval for repeated retransmission of checkpoint messages.
-	CheckpointResendPeriod time.Duration
+	CheckpointResendPeriod time.Duration `json:",string"`
 
 	// Leader selection policy to use for generating the initial state snapshot. See type for possible options.
 	// This field is only used for initialization of the state snapshot that might be provided to a new instance of ISS.
@@ -85,11 +85,11 @@ type ModuleParams struct {
 
 	// View change timeout for the PBFT sub-protocol, in ticks.
 	// TODO: Separate this in a sub-group of the ISS params, maybe even use a field of type PBFTConfig in ModuleParams.
-	PBFTDoneResendPeriod         time.Duration
-	PBFTCatchUpDelay             time.Duration
-	PBFTViewChangeSNTimeout      time.Duration
-	PBFTViewChangeSegmentTimeout time.Duration
-	PBFTViewChangeResendPeriod   time.Duration
+	PBFTDoneResendPeriod         time.Duration `json:",string"`
+	PBFTCatchUpDelay             time.Duration `json:",string"`
+	PBFTViewChangeSNTimeout      time.Duration `json:",string"`
+	PBFTViewChangeSegmentTimeout time.Duration `json:",string"`
+	PBFTViewChangeResendPeriod   time.Duration `json:",string"`
 }
 
 // CheckParams checks whether the given configuration satisfies all necessary constraints.

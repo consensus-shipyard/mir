@@ -23,29 +23,31 @@ type ModuleConfig struct {
 	Mempool t.ModuleID
 }
 
-func DefaultModuleConfig() *ModuleConfig {
-	return &ModuleConfig{Mempool: "mempool"}
+func DefaultModuleConfig() ModuleConfig {
+	return ModuleConfig{Mempool: "mempool"}
 }
 
 type ModuleParams struct {
 	ClientID        tt.ClientID
-	Tps             int
-	BufSize         int
-	WatermarkWindow tt.TxNo
+	Tps             int     `json:",string"`
+	PayloadSize     int     `json:",string"`
+	BufSize         int     `json:",string"`
+	WatermarkWindow tt.TxNo `json:",string"`
 }
 
-func DefaultModuleParams(clientID tt.ClientID) *ModuleParams {
-	return &ModuleParams{
+func DefaultModuleParams(clientID tt.ClientID) ModuleParams {
+	return ModuleParams{
 		ClientID:        clientID,
 		Tps:             1,
+		PayloadSize:     512,
 		BufSize:         0,
 		WatermarkWindow: 1000000,
 	}
 }
 
 type LocalTXGen struct {
-	modules *ModuleConfig
-	params  *ModuleParams
+	modules ModuleConfig
+	params  ModuleParams
 
 	nextTXNo  tt.TxNo
 	delivered *clientprogress.DeliveredTXs
@@ -55,7 +57,7 @@ type LocalTXGen struct {
 	doneChan  chan struct{}
 }
 
-func New(moduleConfig *ModuleConfig, params *ModuleParams) *LocalTXGen {
+func New(moduleConfig ModuleConfig, params ModuleParams) *LocalTXGen {
 	return &LocalTXGen{
 		modules:   moduleConfig,
 		params:    params,

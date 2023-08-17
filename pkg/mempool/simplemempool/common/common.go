@@ -21,24 +21,24 @@ type ModuleConfig struct {
 type ModuleParams struct {
 
 	// Maximal number of individual transactions in a single batch.
-	MaxTransactionsInBatch int
+	MaxTransactionsInBatch int `json:",string"`
 
 	// Maximal total combined payload size of all transactions in a batch (in Bytes)
-	MaxPayloadInBatch int
+	MaxPayloadInBatch int `json:",string"`
 
 	// Maximal time between receiving a batch request and emitting a batch.
 	// On reception of a batch request, the mempool generally waits
 	// until it contains enough transactions to fill a batch (by number or by payload size)
 	// and only then emits the new batch.
 	// If no batch has been filled by BatchTimeout, the mempool emits a non-full (even a completely empty) batch.
-	BatchTimeout time.Duration
+	BatchTimeout time.Duration `json:",string"`
 
 	// If this parameter is not nil, the mempool will not receive transactions directly (through NewTransactions) events.
 	// On reception of such an event, it will report an error (making the system crash).
 	// Instead, TxFetcher will be called to pull transactions from an external source
 	// when they are needed to form a batch (upon the RequestBatch event).
 	// Looking up transactions by ID will also always fail (return no transactions).
-	TxFetcher func() []*trantorpbtypes.Transaction
+	TxFetcher func() []*trantorpbtypes.Transaction `json:"-"`
 }
 
 // State represents the common state accessible to all parts of the module implementation.
