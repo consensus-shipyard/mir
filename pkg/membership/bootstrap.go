@@ -74,7 +74,7 @@ func FromFile(f *os.File) (*trantorpbtypes.Membership, error) {
 		Identities []struct {
 			ID     string `json:"addr"`
 			Addr   string `json:"net_addr"`
-			Weight string `json:"weight,string"`
+			Weight string `json:"weight"`
 		} `json:"validators"`
 	}{}
 

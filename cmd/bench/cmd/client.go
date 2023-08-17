@@ -25,6 +25,10 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
+const (
+	TxReceiverBasePort = 20000
+)
+
 var (
 	txSize   int
 	rate     float64
