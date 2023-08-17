@@ -29,20 +29,23 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 const (
-	TxReceiverBasePort = 20000
+	syncLimit        = 30 * time.Second
+	syncPollInterval = 100 * time.Millisecond
 )
 
 var (
-	statFileName  string
-	statPeriod    time.Duration
-	readyFileName string
+	configFileName      string
+	liveStatFileName    string
+	clientStatFileName  string
+	statPeriod          time.Duration
+	readySyncFileName   string
+	deliverSyncFileName string
 
 	nodeCmd = &cobra.Command{
 		Use:   "node",
@@ -55,9 +58,21 @@ var (
 
 func init() {
 	rootCmd.AddCommand(nodeCmd)
-	nodeCmd.Flags().StringVarP(&statFileName, "stat-file", "o", "", "output file for statistics")
+
+	// Required arguments
+	nodeCmd.Flags().StringVarP(&configFileName, "config-file", "c", "", "configuration file")
+	_ = nodeCmd.MarkFlagRequired("config-file")
+	nodeCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "node ID")
+	_ = nodeCmd.MarkPersistentFlagRequired("id")
+
+	// Optional arguments
 	nodeCmd.Flags().DurationVar(&statPeriod, "stat-period", time.Second, "statistic record period")
-	nodeCmd.Flags().StringVarP(&readyFileName, "ready-file", "r", "", "file to use for initial synchronization when ready to start the benchmark")
+	nodeCmd.Flags().StringVar(&clientStatFileName, "client-stat-file", "bench-output.json", "statistics output file")
+	nodeCmd.Flags().StringVar(&liveStatFileName, "live-stat-file", "", "output file for live statistics, default is standard output")
+
+	// Sync files
+	nodeCmd.Flags().StringVar(&readySyncFileName, "ready-sync-file", "", "file to use for initial synchronization when ready to start the benchmark")
+	nodeCmd.Flags().StringVar(&deliverSyncFileName, "deliver-sync-file", "", "file to use for synchronization when waiting to deliver all transactions")
 }
 
 func runNode() error {
@@ -183,12 +198,6 @@ func runNode() error {
 		return es.Errorf("could not create node: %w", err)
 	}
 
-	txReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
-	if err := txReceiver.Start(TxReceiverBasePort + ownNumericID); err != nil {
-		return es.Errorf("could not start transaction receiver: %w", err)
-	}
-	defer txReceiver.Stop()
-
 	if err := trantorInstance.Start(); err != nil {
 		return es.Errorf("could not start bench app: %w", err)
 	}
@@ -201,9 +210,9 @@ func runNode() error {
 	// Synchronize with other nodes if necessary.
 	// If invoked, this code blocks until all the nodes have connected to each other.
 	// (The file created by Ready must be deleted by some external code (or manually) after all nodes have created it.)
-	if readyFileName != "" {
-		syncCtx, cancelFunc := context.WithTimeout(ctx, 10*time.Second)
-		err = rendezvous.NewFileSyncer(readyFileName, 200*time.Millisecond).Ready(syncCtx)
+	if readySyncFileName != "" {
+		syncCtx, cancelFunc := context.WithTimeout(ctx, syncLimit)
+		err = rendezvous.NewFileSyncer(readySyncFileName, syncPollInterval).Ready(syncCtx)
 		cancelFunc()
 		if err != nil {
 			return fmt.Errorf("error synchronizing nodes: %w", err)
@@ -216,8 +225,8 @@ func runNode() error {
 
 	// Output the statistics.
 	var statFile *os.File
-	if statFileName != "" {
-		statFile, err = os.Create(statFileName)
+	if liveStatFileName != "" {
+		statFile, err = os.Create(liveStatFileName)
 		if err != nil {
 			return es.Errorf("could not open output file for statistics: %w", err)
 		}
