@@ -32,9 +32,5 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "node/client ID")
-	_ = rootCmd.MarkPersistentFlagRequired("id")
-	rootCmd.PersistentFlags().StringVarP(&membershipFile, "membership", "m", "", "total number of nodes")
-	_ = rootCmd.MarkPersistentFlagRequired("membership")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose mode")
 }

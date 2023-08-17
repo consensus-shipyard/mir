@@ -17,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/rendezvous"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -88,31 +89,24 @@ func runNode() error {
 
 	ctx := context.Background()
 
-	// Load system membership.
-	nodeAddrs, err := membership.FromFileName(membershipFile)
-	if err != nil {
-		return es.Errorf("could not load membership: %w", err)
-	}
-	initialMembership, err := membership.DummyMultiAddrs(nodeAddrs)
-	if err != nil {
-		return es.Errorf("could not create dummy multiaddrs: %w", err)
+	// Load configuration parameters
+	var params BenchParams
+	if err := loadFromFile(configFileName, &params); err != nil {
+		return es.Errorf("could not load parameters from file '%s': %w", configFileName, err)
 	}
 
 	// Parse own ID.
 	ownNumericID, err := strconv.Atoi(id)
 	if err != nil {
 		return es.Errorf("unable to convert node ID: %w", err)
-	} else if ownNumericID < 0 || ownNumericID >= len(initialMembership.Nodes) {
-		return es.Errorf("ID must be in [0, %d]", len(initialMembership.Nodes)-1)
+	}
+
+	// Check if own id is in the membership
+	initialMembership := params.Trantor.Iss.InitialMembership
+	if _, ok := initialMembership.Nodes[t.NodeID(id)]; !ok {
+		return es.Errorf("own ID (%v) not found in membership (%v)", id, maputil.GetKeys(initialMembership.Nodes))
 	}
 	ownID := t.NodeID(id)
-
-	// Set Trantor parameters.
-	trantorParams := trantor.DefaultParams(initialMembership)
-	trantorParams.Mempool.MaxTransactionsInBatch = 1024
-	trantorParams.Iss.MaxProposeDelay = 0 * time.Millisecond
-	trantorParams.Iss.PBFTViewChangeSNTimeout = 8 * time.Second
-	trantorParams.Iss.PBFTViewChangeSegmentTimeout = time.Duration(trantorParams.Iss.SegmentLength) * trantorParams.Iss.PBFTViewChangeSNTimeout
 
 	// Assemble listening address.
 	// In this benchmark code, we always listen on the address 0.0.0.0.
@@ -136,7 +130,7 @@ func runNode() error {
 	}
 
 	// Initialize the libp2p transport subsystem.
-	transport := libp2p2.NewTransport(trantorParams.Net, ownID, h, logger)
+	transport := libp2p2.NewTransport(params.Trantor.Net, ownID, h, logger)
 
 	// Instantiate the crypto module.
 	localCryptoSystem, err := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
@@ -149,22 +143,19 @@ func runNode() error {
 	}
 
 	// Generate the initial checkpoint.
-	genesisCheckpoint, err := trantor.GenesisCheckpoint([]byte{}, trantorParams)
+	genesisCheckpoint, err := trantor.GenesisCheckpoint([]byte{}, params.Trantor)
 	if err != nil {
 		return es.Errorf("could not create genesis checkpoint: %w", err)
 	}
 
-	// Create a local transaction generator. It has, at the same time, the interface of a trantor App,
-	// So it knows when transactions are delivered and can submit new ones accordingly.
-	txGenParams := localtxgenerator.DefaultModuleParams(tt.ClientID(ownID))
-	// Use this line instead of the above one to simulate submitting transactions to all nodes.
-	//txGenParams := localtxgenerator.DefaultModuleParams(t.NewClientIDFromInt(0))
-	txGenParams.BufSize = 100
-	txGenParams.Tps = 100
-	txGen := localtxgenerator.New(
-		localtxgenerator.DefaultModuleConfig(),
-		txGenParams,
-	)
+	// Create a local transaction generator.
+	// It has, at the same time, the interface of a trantor App,
+	// so it knows when transactions are delivered and can submit new ones accordingly.
+	// If the client ID is not specified, use the local node's ID
+	if params.TxGen.ClientID == "" {
+		params.TxGen.ClientID = tt.ClientID(ownID)
+	}
+	txGen := localtxgenerator.New(localtxgenerator.DefaultModuleConfig(), params.TxGen)
 
 	// Create a Trantor instance.
 	trantorInstance, err := trantor.New(
@@ -173,7 +164,7 @@ func runNode() error {
 		genesisCheckpoint,
 		localCrypto,
 		appmodule.AppLogicFromStatic(txGen, initialMembership), // The transaction generator is also a static app.
-		trantorParams,
+		params.Trantor,
 		logger,
 	)
 	if err != nil {
