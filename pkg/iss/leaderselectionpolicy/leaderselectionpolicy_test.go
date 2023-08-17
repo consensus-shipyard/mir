@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -84,8 +83,8 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 	}
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := serializing.Uint64FromBytes(bytes[0:8])
-	assert.Equal(t, uint64(Blacklist), policyType)
+	policyType := bytes[0:len(Blacklist)]
+	assert.Equal(t, []byte(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
 	assert.NoError(t, err)
@@ -120,8 +119,8 @@ func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
 	policy := NewBlackListLeaderPolicy(testMembership([]types.NodeID{"node1", "node2", "node3"}))
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
-	policyType := serializing.Uint64FromBytes(bytes[0:8])
-	assert.Equal(t, uint64(Blacklist), policyType)
+	policyType := bytes[0:len(Blacklist)]
+	assert.Equal(t, []byte(Blacklist), policyType)
 
 	reconstitutedPolicy, err := LeaderPolicyFromBytes(bytes)
 	assert.NoError(t, err)

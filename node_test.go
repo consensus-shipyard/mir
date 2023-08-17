@@ -137,7 +137,7 @@ func TestNode_Backpressure(t *testing.T) {
 	ctx := context.Background()
 
 	nodeConfig := DefaultNodeConfig().WithLogger(logging.ConsoleDebugLogger)
-	nodeConfig.StatsLogInterval = 100 * time.Millisecond
+	nodeConfig.Stats.Period = 100 * time.Millisecond
 
 	// Set an input event rate that would fill the node's event buffers in one second in 10 batches.
 	blabberModule := newBlabber(uint64(nodeConfig.PauseInputThreshold/10), 100*time.Millisecond)
