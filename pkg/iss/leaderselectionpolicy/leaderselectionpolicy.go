@@ -15,7 +15,7 @@ type LeaderPolicyType string
 
 const (
 	Simple    LeaderPolicyType = "simple"
-	Blacklist                  = "blacklist"
+	Blacklist LeaderPolicyType = "blacklist"
 )
 
 var encMode cbor.EncMode

@@ -6,17 +6,18 @@ import (
 	"os"
 	"time"
 
+	es "github.com/go-errors/errors"
+	"github.com/spf13/cobra"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+	"gopkg.in/yaml.v3"
+
 	"github.com/filecoin-project/mir/cmd/bench/localtxgenerator"
 	"github.com/filecoin-project/mir/cmd/bench/parameterset"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/membership"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
-	es "github.com/go-errors/errors"
-	"github.com/spf13/cobra"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -99,20 +100,20 @@ func generateParams(args []string) error {
 	if err != nil {
 		return es.Errorf("could not marshal params to json: %w", err)
 	}
-	paramsJson := string(paramsData)
+	paramsJSON := string(paramsData)
 
 	// Update parameter values as specified on the command line.
 	if len(args)%2 != 0 {
 		return es.Errorf("number of positional arguments must be even (key-value pairs)")
 	}
 	for i := 0; i < len(args); i += 2 {
-		if paramsJson, err = setParam(paramsJson, args[i], args[i+1]); err != nil {
+		if paramsJSON, err = setParam(paramsJSON, args[i], args[i+1]); err != nil {
 			return es.Errorf("could not set parameter '%s' to value '%s': %w", args[i], args[i+1], err)
 		}
 	}
 
 	// Check if initial parameters are valid.
-	if err := checkParams(paramsJson); err != nil {
+	if err := checkParams(paramsJSON); err != nil {
 		return es.Errorf("generated parameters in valid: %w", err)
 	}
 
@@ -143,13 +144,15 @@ func generateParams(args []string) error {
 		for _, item := range settings.Elements() {
 
 			// Create a copy of the base configuration and update it with the generated parameters.
-			newJson := paramsJson
+			newJSON := paramsJSON
 			for _, setting := range item {
-				newJson, err = setParam(newJson, setting.Key, setting.Val)
+				if newJSON, err = setParam(newJSON, setting.Key, setting.Val); err != nil {
+					return es.Errorf("could not set param '%v' to '%v': %w", setting.Key, setting.Val, err)
+				}
 			}
 
 			// Check if initial parameters are valid.
-			if err := checkParams(newJson); err != nil {
+			if err := checkParams(newJSON); err != nil {
 				return es.Errorf("generated parameters for experiment %d in valid: %w", expID, err)
 			}
 
@@ -159,7 +162,7 @@ func generateParams(args []string) error {
 			if err := os.Mkdir(expDirName, 0777); err != nil {
 				return es.Errorf("failed creating experiment subdirectory %s: %w", expDirName, err)
 			}
-			if err := os.WriteFile(destFileName, []byte(fmt.Sprintf("%s\n", newJson)), 0644); err != nil {
+			if err := os.WriteFile(destFileName, []byte(fmt.Sprintf("%s\n", newJSON)), 0600); err != nil {
 				return es.Errorf("could not write output to file '%s': %w", destFileName, err)
 			}
 
@@ -170,31 +173,31 @@ func generateParams(args []string) error {
 		// (or standard output if no `output` was specified).
 
 		if outFile != "" {
-			if err := os.WriteFile(outFile, []byte(fmt.Sprintf("%s\n", paramsJson)), 0644); err != nil {
+			if err := os.WriteFile(outFile, []byte(fmt.Sprintf("%s\n", paramsJSON)), 0600); err != nil {
 				return es.Errorf("could not write output to file '%s': %w", outFile, err)
 			}
 		} else {
-			fmt.Println(paramsJson)
+			fmt.Println(paramsJSON)
 		}
 	}
 
 	return nil
 }
 
-func setParam(paramsJson string, paramName string, value string) (string, error) {
-	param := gjson.Get(paramsJson, paramName)
+func setParam(paramsJSON string, paramName string, value string) (string, error) {
+	param := gjson.Get(paramsJSON, paramName)
 	if !param.Exists() {
 		return "", es.Errorf("parameter does not exist: %s", paramName)
 	}
 
-	return sjson.Set(paramsJson, paramName, value)
+	return sjson.Set(paramsJSON, paramName, value)
 }
 
-func checkParams(paramsJson string) error {
+func checkParams(paramsJSON string) error {
 
 	// Unmarshalling the parameters also serves as a (syntactic) sanity check.
 	var params BenchParams
-	if err := json.Unmarshal([]byte(paramsJson), &params); err != nil {
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
 		return es.Errorf("generated parameters in valid: %w", err)
 	}
 

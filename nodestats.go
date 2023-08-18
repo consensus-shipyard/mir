@@ -73,8 +73,8 @@ func (ds *eventDispatchStats) CombinedStats(
 	// Calculate the column width for the module IDs.
 	maxModuleIDLength := 0
 	for mID := range ds.eventCounts {
-		if len(fmt.Sprintf("%s", mID)) > maxModuleIDLength {
-			maxModuleIDLength = len(fmt.Sprintf("%s", mID))
+		if len(string(mID)) > maxModuleIDLength {
+			maxModuleIDLength = len(string(mID))
 		}
 	}
 
