@@ -130,8 +130,11 @@ func runNode() error {
 		return es.Errorf("failed to create libp2p host: %w", err)
 	}
 
+	// Initialize tracking of networking statistics.
+	netStats := stats.NewNetStats(time.Second)
+
 	// Initialize the libp2p transport subsystem.
-	transport := libp2p2.NewTransport(params.Trantor.Net, ownID, h, logger)
+	transport := libp2p2.NewTransport(params.Trantor.Net, ownID, h, logger, netStats)
 
 	// Instantiate the crypto module.
 	localCryptoSystem, err := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)
@@ -280,6 +283,7 @@ func runNode() error {
 
 		// Fill (potentially empty) statistics with zeroes where no activity was happening.
 		clientStats.Fill()
+		netStats.Fill()
 
 		if err := clientStats.WriteCSVHeader(statCSV); err != nil {
 			logger.Log(logging.LevelError, "Could not write client stats header.", "error", err)
@@ -289,8 +293,17 @@ func runNode() error {
 		}
 		statCSV.Flush()
 
+		if err := netStats.WriteCSVHeader(statCSV); err != nil {
+			logger.Log(logging.LevelError, "Could not write networking stats header.", "error", err)
+		}
+		if err := netStats.WriteCSVRecord(statCSV); err != nil {
+			logger.Log(logging.LevelError, "Could not write networking statistics.", "error", err)
+		}
+		statCSV.Flush()
+
 		if clientStatFileName != "" {
 			data := make(map[string]any)
+			data["Net"] = netStats
 			data["Client"] = clientStats
 
 			statsData, err := json.MarshalIndent(data, "", "  ")
@@ -322,6 +335,7 @@ func runNode() error {
 
 	// Start generating the load and measuring performance.
 	clientStats.Start()
+	netStats.Start()
 	txGen.Start()
 
 	nodeError := node.Run(ctx)

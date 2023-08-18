@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"sync"
+	"time"
 
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -22,6 +23,16 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
+// Stats represents a statistics tracker for networking.
+// It tracks the amount of data that is sent, received, and dropped (i.e., not sent).
+// The data can be categorized using string labels, and it is the implementation's choice how to interpret them.
+// All method implementations must be thread-save, as they can be called concurrently.
+type Stats interface {
+	Sent(nBytes int, label string)
+	Received(nBytes int, label string)
+	Dropped(nBytes int, label string)
+}
+
 type TransportMessage struct {
 	Sender  string
 	Payload []byte
@@ -32,16 +43,19 @@ type Transport struct {
 	ownID  t.NodeID
 	host   host.Host
 	logger logging.Logger
+	stats  Stats
 
 	connections     map[t.NodeID]connection
 	nodeIDs         map[peer.ID]t.NodeID
 	connectionsLock sync.RWMutex
 	stop            chan struct{}
+	incomingConnWg  sync.WaitGroup
+	lastComplaint   time.Time
 
 	incomingMessages chan *events.EventList
 }
 
-func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Logger) *Transport {
+func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Logger, stats Stats) *Transport {
 	return &Transport{
 		params:           params,
 		ownID:            ownID,
@@ -51,6 +65,7 @@ func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Log
 		nodeIDs:          make(map[peer.ID]t.NodeID),
 		incomingMessages: make(chan *events.EventList),
 		stop:             make(chan struct{}),
+		stats:            stats,
 	}
 }
 
@@ -69,6 +84,16 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 				for _, destID := range e.SendMessage.Destinations {
 					if err := tr.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
 						tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
+
+						// Update statistics about dropped message.
+						if tr.stats != nil {
+							if msgData, err := encodeMessage(e.SendMessage.Msg.Pb(), tr.ownID); err != nil {
+								return es.Errorf("failed to encode message (type %T)", e.SendMessage.Msg.Type)
+							} else {
+								tr.stats.Dropped(len(msgData), string(e.SendMessage.Msg.DestModule.Top()))
+							}
+						}
+
 					}
 				}
 			default:
@@ -92,11 +117,19 @@ func (tr *Transport) Start() error {
 }
 
 func (tr *Transport) Stop() {
+
+	// Stop receiving new connections.
+	// After the lock is released, no new incoming connections can be created anymore.
+	tr.connectionsLock.Lock()
 	tr.host.RemoveStreamHandler(tr.params.ProtocolID)
 	close(tr.stop)
+	tr.connectionsLock.Unlock()
+
 	// Passing an empty membership means that no connections will be kept.
 	tr.CloseOldConnections(&trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{}}) // nolint:govet
-	// TODO: Force the termination of incoming connections too and wait here until that happens.
+
+	// Wait for incoming connection handlers to terminate.
+	tr.incomingConnWg.Wait()
 }
 
 func (tr *Transport) Connect(membership *trantorpbtypes.Membership) {
@@ -136,6 +169,7 @@ func (tr *Transport) Connect(membership *trantorpbtypes.Membership) {
 					addr,
 					tr.host,
 					logging.Decorate(tr.logger, "SND: ", "dest", nodeID),
+					tr.stats,
 				)
 			}
 
@@ -260,17 +294,52 @@ func (tr *Transport) handleIncomingConnection(s network.Stream) {
 		}
 	}()
 
-	// Check if connection has been received from a known node (as per ID declared by the remote node).
 	tr.connectionsLock.RLock()
+
+	// Check if connection has been received from a known node (as per ID declared by the remote node).
+	// (The actual check is performed after we release the lock.)
 	nodeID, ok := tr.nodeIDs[peerID]
-	// TODO: Also keep a synchronized map of incoming streams.
-	//       On shutdown, close them all and wait until the corresponding handlers return.
+
+	select {
+	case <-tr.stop:
+		// If we are shutting down right now, ignore this connection.
+		return
+	default:
+		// If new connections are still accepted, make sure we will wait for this handler to terminate when stopping.
+		tr.incomingConnWg.Add(1)
+		defer tr.incomingConnWg.Done()
+	}
+
 	tr.connectionsLock.RUnlock()
+
 	if !ok {
 		tr.logger.Log(logging.LevelWarn, "Received message from unknown peer. Stopping incoming connection",
 			"remotePeer", peerID)
 		return
 	}
+
+	// Create a goroutine watching for the stop signal (closing tr.stop) and closing the connection on shutdown.
+	// It is necessary for the case where the handler is blocked on tr.readAndProcessMessages and needs to shut down.
+	// TODO: Resetting and closing the connection is done both in this goroutine and when the handler returns.
+	//   This might be redundant and is, in general, a mess. Clean it up.
+	connStopChan := make(chan struct{})
+	defer close(connStopChan)
+	go func() {
+		select {
+		case <-tr.stop:
+			if err := s.Reset(); err != nil {
+				tr.logger.Log(logging.LevelWarn, "Could not reset incoming stream on shutdown.",
+					"remotePeer", peerID, "err", err)
+			}
+			if err := s.Close(); err != nil {
+				tr.logger.Log(logging.LevelWarn, "Could not close incoming stream on shutdown.",
+					"remotePeer", peerID, "err", err)
+			}
+		case <-connStopChan:
+			// Do nothing here.
+			// This is only used to return from this goroutine if the connection handler stops by itself.
+		}
+	}()
 
 	// Start reading and processig incoming messages.
 	// This call blocks until an error occurs (e.g. the connection breaks) or the Transport is explicitly shut down.
@@ -282,7 +351,7 @@ func (tr *Transport) handleIncomingConnection(s network.Stream) {
 func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, peerID peer.ID) {
 	for {
 		// Read message from the network.
-		msg, sender, err := readAndDecode(s)
+		msg, sender, err := readAndDecode(s, tr.stats)
 		if err != nil {
 			tr.logger.Log(logging.LevelDebug, "Failed reading message. Stopping incoming connection",
 				"remotePeer", peerID, "err", err)
@@ -313,7 +382,7 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 	}
 }
 
-func readAndDecode(s network.Stream) (*messagepb.Message, t.NodeID, error) {
+func readAndDecode(s network.Stream, stats Stats) (*messagepb.Message, t.NodeID, error) {
 	var tm TransportMessage
 	err := tm.UnmarshalCBOR(s)
 	if err != nil {
@@ -324,5 +393,16 @@ func readAndDecode(s network.Stream) (*messagepb.Message, t.NodeID, error) {
 	if err := proto.Unmarshal(tm.Payload, &msg); err != nil {
 		return nil, "", err
 	}
+
+	// Record statistics about received data.
+	// TODO: There is an asymmetry between the recorded sent data size and the received one:
+	//   When sending we record the size of the CBOR serialized data (thus including the CBOR serialization overhead),
+	//   but we only record the size of the deserialized elements of the CBOR-serializable message type.
+	//   Thus, in the end result the amount of data received will be less (by the CBOR serialization overhead)
+	//   than the amount of data sent. The difference is expected to be marginal though.
+	if stats != nil {
+		stats.Received(len(tm.Payload)+len(tm.Sender), string(t.ModuleID(msg.DestModule).Top()))
+	}
+
 	return &msg, t.NodeID(tm.Sender), nil
 }

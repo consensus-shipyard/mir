@@ -30,6 +30,8 @@ type remoteConnection struct {
 	stop          chan struct{}
 	done          chan struct{}
 	connectedCond *sync.Cond
+
+	stats Stats
 }
 
 func newRemoteConnection(
@@ -38,6 +40,7 @@ func newRemoteConnection(
 	addr t.NodeAddress,
 	h host.Host,
 	logger logging.Logger,
+	stats Stats,
 ) (*remoteConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
@@ -48,6 +51,7 @@ func newRemoteConnection(
 		ownID:         ownID,
 		addrInfo:      addrInfo,
 		logger:        logger,
+		stats:         stats,
 		host:          h,
 		stream:        nil,
 		msgBuffer:     make(chan *messagepb.Message, params.ConnectionBufferSize),
@@ -228,6 +232,9 @@ func (conn *remoteConnection) process() {
 	// If nil, a new message from conn.msgBuffer will be read, encoded, and stored here.
 	var msgData []byte
 
+	// Label to associate the data with. Only relevant for recording statistics.
+	var statsLabel string
+
 	for {
 		// The processing loop runs indefinitely (until interrupted by explicitly returning).
 		// One iteration corresponds to one attempt of sending a message.
@@ -264,11 +271,12 @@ func (conn *remoteConnection) process() {
 					conn.logger.Log(logging.LevelError, "Could not encode message. Disconnecting.", "err", err)
 					return
 				}
+				statsLabel = string(t.ModuleID(msg.DestModule).Top())
 			}
 		}
 
 		// Write the encoded data to the network stream.
-		if err := conn.writeDataToStream(msgData); err != nil {
+		if err := conn.writeDataToStream(msgData, statsLabel); err != nil {
 			// If writing fails, close the stream, such that a new one will be re-established in the next iteration.
 			conn.logger.Log(logging.LevelWarn, "Failed sending data.", "err", err)
 			conn.closeStream()
@@ -283,7 +291,8 @@ func (conn *remoteConnection) process() {
 // writeDataToStream writes data to the underlying network stream.
 // It blocks until all data is written, the connection closes, or an error occurs.
 // In the first case, writeDataToStream returns nil. Otherwise, it returns the corresponding error.
-func (conn *remoteConnection) writeDataToStream(data []byte) error {
+// The statsLabel denotes the label under which to record this write in the statistics, if applicable.
+func (conn *remoteConnection) writeDataToStream(data []byte, statsLabel string) error {
 
 	// Retry sending data until:
 	// - all data is sent, or
@@ -299,6 +308,11 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 
 		// Try writing data to the underlying network stream.
 		bytesWritten, err := conn.stream.Write(data)
+
+		// Gather statistics if applicable.
+		if bytesWritten > 0 && conn.stats != nil {
+			conn.stats.Sent(bytesWritten, statsLabel)
+		}
 
 		if err == nil {
 			// If all data was successfully written, return.
