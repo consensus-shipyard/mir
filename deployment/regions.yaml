@@ -1,0 +1,32 @@
+us-east-1:
+    ami-id: ami-053b0d53c279acc90 # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-074d9eb0b840b7037
+    key-name: matej-pl-aws-key
+us-west-1:
+    ami-id: ami-0f8e81a3da6e2510a # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-073d7bb0cd12fa51d
+    key-name: matej-pl-aws-key
+ap-northeast-2:
+    ami-id: ami-0c9c942bd7bf113a2 # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-0a8b188eed0054d8d
+    key-name: matej-pl-aws-key
+ap-southeast-2:
+    ami-id: ami-0310483fb2b488153 # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-050d3412484405a8e
+    key-name: matej-pl-aws-key
+ca-central-1:
+    ami-id: ami-0ea18256de20ecdfc # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-051d00f9ca07c7740
+    key-name: matej-pl-aws-key
+eu-central-1:
+    ami-id: ami-04e601abe3e1a910f # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-050739272e631b581
+    key-name: matej-pl-aws-key
+eu-west-1:
+    ami-id: ami-01dd271720c1ba44f # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-0f19ecd37cf077e54
+    key-name: matej-pl-aws-key
+sa-east-1:
+    ami-id: ami-0af6e9042ea5a4e3e # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+    security-group: sg-090e47d2e77475236
+    key-name: matej-pl-aws-key
