@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -176,7 +177,9 @@ func runNode() error {
 
 	// Create trackers for gathering statistics about the performance.
 	liveStats := stats.NewLiveStats()
+	clientStats := stats.NewClientStats(time.Millisecond, time.Second)
 	txGen.TrackStats(liveStats)
+	txGen.TrackStats(clientStats)
 
 	// Instantiate the Mir Node.
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
@@ -273,6 +276,31 @@ func runNode() error {
 		trantorInstance.Stop()
 		logger.Log(logging.LevelInfo, "Trantor stopped.")
 
+		// At this point, no statistics are updated anymore, and we can start reading them.
+
+		// Fill (potentially empty) statistics with zeroes where no activity was happening.
+		clientStats.Fill()
+
+		if err := clientStats.WriteCSVHeader(statCSV); err != nil {
+			logger.Log(logging.LevelError, "Could not write client stats header.", "error", err)
+		}
+		if err := clientStats.WriteCSVRecord(statCSV); err != nil {
+			logger.Log(logging.LevelError, "Could not write client statistics.", "error", err)
+		}
+		statCSV.Flush()
+
+		if clientStatFileName != "" {
+			data := make(map[string]any)
+			data["Client"] = clientStats
+
+			statsData, err := json.MarshalIndent(data, "", "  ")
+			if err != nil {
+				logger.Log(logging.LevelError, "Could not marshal benchmark output", "error", err)
+			}
+			if err = os.WriteFile(clientStatFileName, []byte(fmt.Sprintf("%s\n", string(statsData))), 0644); err != nil {
+				logger.Log(logging.LevelError, "Could not write benchmark output to file", "file", clientStatFileName, "error", err)
+			}
+		}
 	}
 
 	done := make(chan struct{})
@@ -293,6 +321,7 @@ func runNode() error {
 	}
 
 	// Start generating the load and measuring performance.
+	clientStats.Start()
 	txGen.Start()
 
 	nodeError := node.Run(ctx)
