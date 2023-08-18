@@ -86,7 +86,8 @@ func runNode() error {
 		logger = logging.ConsoleWarnLogger
 	}
 
-	ctx := context.Background()
+	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
 
 	// Load configuration parameters
 	var params BenchParams
@@ -188,7 +189,6 @@ func runNode() error {
 	if err := trantorInstance.Start(); err != nil {
 		return es.Errorf("could not start bench app: %w", err)
 	}
-	defer trantorInstance.Stop()
 
 	if err := transport.WaitFor(len(initialMembership.Nodes)); err != nil {
 		return es.Errorf("failed waiting for network connections: %w", err)
@@ -206,10 +206,6 @@ func runNode() error {
 		}
 	}
 
-	// Start generating the load.
-	txGen.Start()
-	defer txGen.Stop()
-
 	// Output the statistics.
 	var statFile *os.File
 	if liveStatFileName != "" {
@@ -224,7 +220,6 @@ func runNode() error {
 	statCSV := csv.NewWriter(statFile)
 	liveStats.WriteCSVHeader(statCSV)
 	liveStatsCtx, stopLiveStats := context.WithCancel(ctx)
-	defer stopLiveStats()
 
 	go func() {
 		timestamp := time.Now()
@@ -244,8 +239,65 @@ func runNode() error {
 		}
 	}()
 
-	defer node.Stop()
-	return node.Run(ctx)
+	// Stop outputting real-time stats and submitting transactions,
+	// wait until everything is delivered, and stop node.
+	shutDown := func() {
+
+		stopLiveStats()
+		txGen.Stop()
+		txGenCtx, stopTxGen := context.WithTimeout(ctx, syncLimit)
+		if err := txGen.Wait(txGenCtx); err != nil {
+			logger.Log(logging.LevelError, "Not all submitted transactions delivered.", "error", err)
+		} else {
+			logger.Log(logging.LevelInfo, "Successfully delivered all submitted transactions.", "error", err)
+		}
+		stopTxGen()
+
+		// Wait for other nodes to deliver their transactions.
+		if deliverSyncFileName != "" {
+			syncerCtx, stopWaiting := context.WithTimeout(ctx, syncLimit)
+			err := rendezvous.NewFileSyncer(deliverSyncFileName, syncPollInterval).Ready(syncerCtx)
+			stopWaiting()
+			if err != nil {
+				logger.Log(logging.LevelError, "Aborting waiting for other nodes transaction delivery.", "error", err)
+			} else {
+				logger.Log(logging.LevelInfo, "All nodes successfully delivered all transactions they submitted.", "error", err)
+			}
+		}
+
+		// Stop Mir node and Trantor instance.
+		logger.Log(logging.LevelInfo, "Stopping Mir node.")
+		node.Stop()
+		logger.Log(logging.LevelInfo, "Mir node stopped.")
+		logger.Log(logging.LevelInfo, "Stopping Trantor.")
+		trantorInstance.Stop()
+		logger.Log(logging.LevelInfo, "Trantor stopped.")
+
+	}
+
+	done := make(chan struct{})
+	if params.Duration > 0 {
+		go func() {
+			// Wait until the end of the benchmark and shut down the node.
+			select {
+			case <-ctx.Done():
+			case <-time.After(params.Duration):
+			}
+			shutDown()
+			close(done)
+		}()
+	} else {
+		// TODO: This is not right. Only have this branch to quit on node error.
+		//   Set up signal handlers so that the nodes stops and cleans up after itself upon SIGINT and / or SIGTERM.
+		close(done)
+	}
+
+	// Start generating the load and measuring performance.
+	txGen.Start()
+
+	nodeError := node.Run(ctx)
+	<-done
+	return nodeError
 }
 
 func getPortStr(addressStr string) (string, error) {
