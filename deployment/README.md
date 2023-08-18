@@ -39,7 +39,7 @@ ansible-playbook -i hosts start-chat-demo.yaml
 ```
 or
 ```bash
-ansible-playbook -i hosts start-benchmark.yaml
+ansible-playbook -i hosts run-benchmark.yaml
 ```
 
 Each of the commands above will start the respective application on all machines specified in `hosts`.

@@ -12,13 +12,12 @@
         name:
           - go
         classic: True
-        channel: 1.18/stable
+        channel: 1.19/stable
         state: present
     - name: "Install snaps"
       become: True
       community.general.snap:
         name:
-          - tmux
           - protobuf
         classic: True
         state: present
@@ -28,14 +27,17 @@
         name:
           - make
           - python3
+          - gcc
+          - tmux
+        update_cache: True
         state: present
-    - name: Clone Mir repo from GitHub
+    - name: Clone Mir repo from GitHub ({{ git_repo }})
       ansible.builtin.git:
-        repo: https://github.com/matejpavlovic/mir.git
+        repo: "{{ git_repo }}"
         dest: ~/mir
     - name: "Check out the selected code version: {{ git_version }}"
       ansible.builtin.git:
-        repo: https://github.com/matejpavlovic/mir.git
+        repo: "{{ git_repo }}"
         dest: ~/mir
         single_branch: True
         version: "{{ git_version }}"
@@ -44,10 +46,6 @@
       make:
         chdir: ~/mir
         target: bin/bench
-    - name: compile Chat demo
-      make:
-        chdir: ~/mir
-        target: bin/chat-demo
     - name: "Run setup script"
       ansible.builtin.script:
         # Single quotes are important here (https://github.com/ansible/ansible/issues/44897)
