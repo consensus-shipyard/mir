@@ -8,7 +8,7 @@ matplotlib.use("agg") # "agg" or "pdf" for PNG or PDF output, respectively.
 import matplotlib.pyplot as plt
 
 outFileName = "plot.png"
-valFields = {'experiment-id', 'load-per-node', 'duration-actual', 'latency-95p', 'latency-avg', 'latency-max', 'latency-median', 'throughput'}
+valFields = {'experiment-id', 'load-per-node', 'duration-actual', 'latency-95p', 'latency-avg', 'latency-max', 'latency-median', 'net-down-avg', 'net-loss-avg', 'net-up-avg', 'throughput'}
 #valFields = {'exp', 'batchtimeout', 'msgbatchperiod', 'cl-watermarks', 'buckets', 'num-connections', 'requests', 'rate-per-client', 'batch-size-10pctile-trunc', 'batch-size-90pctile-trunc', 'batch-size-avg-trunc', 'client-slack-1pctile-raw', 'client-slack-1pctile-trunc', 'client-slack-avg-raw', 'client-slack-avg-trunc', 'client-slack-stdev-raw', 'client-slack-stdev-trunc', 'commit-rate-raw', 'commit-rate-trunc', 'cpu-system', 'cpu-total', 'duration-raw', 'duration-trunc', 'epochs-avg', 'epochs-max', 'epochs-min', 'latency-95pctile-raw', 'latency-95pctile-raw-nowm', 'latency-95pctile-trunc', 'latency-95pctile-trunc-nowm', 'latency-avg-raw', 'latency-avg-raw-nowm', 'latency-avg-trunc', 'latency-avg-trunc-nowm', 'latency-stdev-raw', 'latency-stdev-raw-nowm', 'latency-stdev-trunc', 'latency-stdev-trunc-nowm', 'msg-batch-avg-trunc', 'nreq-raw', 'nreq-trunc', 'propose-rate-raw', 'propose-rate-trunc', 'throughput-raw', 'throughput-trunc', 'viewchanges-avg', 'viewchanges-total', 'latency-avg-shortened-raw', 'latency-95pctile-shortened-raw'}
 
 # DEBUG: temporarily don't consider some fields as a parameters
@@ -19,6 +19,7 @@ valFields = {'experiment-id', 'load-per-node', 'duration-actual', 'latency-95p',
 def filterData(data, f):
     return [d for d in data if all(d[key] == val for key, val in f.items())]
 
+
 def conflictParams(line):
     if len(line) < 2:
         return []
@@ -27,6 +28,7 @@ def conflictParams(line):
         for i in range(0, len(line)-1):
             keys |= {key for key in paramNames if line[i][key] != line[i+1][key]}
         return keys - {sortField}
+
 
 def splitLine(line):
     params = conflictParams(line)
