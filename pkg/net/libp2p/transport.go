@@ -83,7 +83,12 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 			case *transportpbtypes.Event_SendMessage:
 				for _, destID := range e.SendMessage.Destinations {
 					if err := tr.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
-						tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
+
+						// Complain if not complained recently.
+						if time.Since(tr.lastComplaint) >= tr.params.MinComplainPeriod {
+							tr.logger.Log(logging.LevelWarn, "Failed to send a message", "dest", destID, "err", err)
+							tr.lastComplaint = time.Now()
+						}
 
 						// Update statistics about dropped message.
 						if tr.stats != nil {
@@ -280,6 +285,16 @@ func (tr *Transport) getConnection(nodeID t.NodeID) (connection, error) {
 }
 
 func (tr *Transport) handleIncomingConnection(s network.Stream) {
+	// In case there is a panic in the main processing loop, log an error message.
+	// (Otherwise, since this function is run as a goroutine, panicking would be completely silent.)
+	defer func() {
+		if r := recover(); r != nil {
+			err := es.New(r)
+			tr.logger.Log(logging.LevelError, "Incoming connection handler panicked.",
+				"cause", r, "stack", err.ErrorStack())
+		}
+	}()
+
 	peerID := s.Conn().RemotePeer()
 
 	tr.logger.Log(logging.LevelDebug, "Incoming connection", "remotePeer", peerID)
