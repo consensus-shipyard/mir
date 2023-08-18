@@ -7,15 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/cmd/bench/stats"
-	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/clientprogress"
-	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	es "github.com/go-errors/errors"
 	"go.uber.org/atomic"
 
+	"github.com/filecoin-project/mir/cmd/bench/stats"
+	"github.com/filecoin-project/mir/pkg/checkpoint"
+	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -51,7 +51,7 @@ func DefaultModuleParams(clientID tt.ClientID) ModuleParams {
 type LocalTXGen struct {
 	modules       ModuleConfig
 	params        ModuleParams
-	statsTrackers []stats.StatsTracker
+	statsTrackers []stats.Tracker
 
 	nextTXNo  tt.TxNo
 	delivered *clientprogress.DeliveredTXs
@@ -74,7 +74,7 @@ func New(moduleConfig ModuleConfig, params ModuleParams) *LocalTXGen {
 	}
 }
 
-func (gen *LocalTXGen) TrackStats(tracker stats.StatsTracker) {
+func (gen *LocalTXGen) TrackStats(tracker stats.Tracker) {
 	gen.statsTrackers = append(gen.statsTrackers, tracker)
 }
 
@@ -250,7 +250,7 @@ func (gen *LocalTXGen) Checkpoint(_ *checkpoint.StableCheckpoint) error {
 func newTX(clID tt.ClientID, txNo tt.TxNo, payloadSize int) *trantorpbtypes.Transaction {
 	// Generate random transaction payload.
 	data := make([]byte, payloadSize)
-	rand.Read(data)
+	rand.Read(data) //nolint:gosec
 
 	// Create new transaction event.
 	return &trantorpbtypes.Transaction{

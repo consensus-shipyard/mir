@@ -92,13 +92,12 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 
 						// Update statistics about dropped message.
 						if tr.stats != nil {
-							if msgData, err := encodeMessage(e.SendMessage.Msg.Pb(), tr.ownID); err != nil {
+							var msgData []byte
+							if msgData, err = encodeMessage(e.SendMessage.Msg.Pb(), tr.ownID); err != nil {
 								return es.Errorf("failed to encode message (type %T)", e.SendMessage.Msg.Type)
-							} else {
-								tr.stats.Dropped(len(msgData), string(e.SendMessage.Msg.DestModule.Top()))
 							}
+							tr.stats.Dropped(len(msgData), string(e.SendMessage.Msg.DestModule.Top()))
 						}
-
 					}
 				}
 			default:

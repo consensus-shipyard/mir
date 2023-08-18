@@ -14,25 +14,25 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/filecoin-project/mir/cmd/bench/localtxgenerator"
-	"github.com/filecoin-project/mir/pkg/rendezvous"
-	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/cmd/bench/localtxgenerator"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
+	"github.com/filecoin-project/mir/pkg/rendezvous"
 	"github.com/filecoin-project/mir/pkg/trantor"
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 const (
@@ -224,26 +224,7 @@ func runNode() error {
 	}
 
 	statCSV := csv.NewWriter(statFile)
-	liveStats.WriteCSVHeader(statCSV)
-	liveStatsCtx, stopLiveStats := context.WithCancel(ctx)
-
-	go func() {
-		timestamp := time.Now()
-		ticker := time.NewTicker(statPeriod)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-liveStatsCtx.Done():
-				return
-			case ts := <-ticker.C:
-				d := ts.Sub(timestamp)
-				liveStats.WriteCSVRecord(statCSV, d)
-				statCSV.Flush()
-				timestamp = ts
-				liveStats.Reset()
-			}
-		}
-	}()
+	stopLiveStats := goDisplayLiveStats(ctx, liveStats, statCSV)
 
 	// Stop outputting real-time stats and submitting transactions,
 	// wait until everything is delivered, and stop node.
@@ -267,7 +248,8 @@ func runNode() error {
 			if err != nil {
 				logger.Log(logging.LevelError, "Aborting waiting for other nodes transaction delivery.", "error", err)
 			} else {
-				logger.Log(logging.LevelInfo, "All nodes successfully delivered all transactions they submitted.", "error", err)
+				logger.Log(logging.LevelInfo, "All nodes successfully delivered all transactions they submitted.",
+					"error", err)
 			}
 		}
 
@@ -279,41 +261,9 @@ func runNode() error {
 		trantorInstance.Stop()
 		logger.Log(logging.LevelInfo, "Trantor stopped.")
 
-		// At this point, no statistics are updated anymore, and we can start reading them.
+		// At this point, no statistics are updated anymore, and we can start dumping them to the output.
+		writeFinalStats(clientStats, netStats, clientStatFileName, statCSV, logger)
 
-		// Fill (potentially empty) statistics with zeroes where no activity was happening.
-		clientStats.Fill()
-		netStats.Fill()
-
-		if err := clientStats.WriteCSVHeader(statCSV); err != nil {
-			logger.Log(logging.LevelError, "Could not write client stats header.", "error", err)
-		}
-		if err := clientStats.WriteCSVRecord(statCSV); err != nil {
-			logger.Log(logging.LevelError, "Could not write client statistics.", "error", err)
-		}
-		statCSV.Flush()
-
-		if err := netStats.WriteCSVHeader(statCSV); err != nil {
-			logger.Log(logging.LevelError, "Could not write networking stats header.", "error", err)
-		}
-		if err := netStats.WriteCSVRecord(statCSV); err != nil {
-			logger.Log(logging.LevelError, "Could not write networking statistics.", "error", err)
-		}
-		statCSV.Flush()
-
-		if clientStatFileName != "" {
-			data := make(map[string]any)
-			data["Net"] = netStats
-			data["Client"] = clientStats
-
-			statsData, err := json.MarshalIndent(data, "", "  ")
-			if err != nil {
-				logger.Log(logging.LevelError, "Could not marshal benchmark output", "error", err)
-			}
-			if err = os.WriteFile(clientStatFileName, []byte(fmt.Sprintf("%s\n", string(statsData))), 0644); err != nil {
-				logger.Log(logging.LevelError, "Could not write benchmark output to file", "file", clientStatFileName, "error", err)
-			}
-		}
 	}
 
 	done := make(chan struct{})
@@ -341,6 +291,74 @@ func runNode() error {
 	nodeError := node.Run(ctx)
 	<-done
 	return nodeError
+}
+
+func writeFinalStats(
+	clientStats *stats.ClientStats,
+	netStats *stats.NetStats,
+	statFileName string,
+	liveStatCSV *csv.Writer,
+	logger logging.Logger,
+) {
+	// Fill (potentially empty) statistics with zeroes where no activity was happening.
+	clientStats.Fill()
+	netStats.Fill()
+
+	if err := clientStats.WriteCSVHeader(liveStatCSV); err != nil {
+		logger.Log(logging.LevelError, "Could not write client stats header.", "error", err)
+	}
+	if err := clientStats.WriteCSVRecord(liveStatCSV); err != nil {
+		logger.Log(logging.LevelError, "Could not write client statistics.", "error", err)
+	}
+	liveStatCSV.Flush()
+
+	if err := netStats.WriteCSVHeader(liveStatCSV); err != nil {
+		logger.Log(logging.LevelError, "Could not write networking stats header.", "error", err)
+	}
+	if err := netStats.WriteCSVRecord(liveStatCSV); err != nil {
+		logger.Log(logging.LevelError, "Could not write networking statistics.", "error", err)
+	}
+	liveStatCSV.Flush()
+
+	if statFileName != "" {
+		data := make(map[string]any)
+		data["Net"] = netStats
+		data["Client"] = clientStats
+
+		statsData, err := json.MarshalIndent(data, "", "  ")
+		if err != nil {
+			logger.Log(logging.LevelError, "Could not marshal benchmark output", "error", err)
+		}
+		if err = os.WriteFile(clientStatFileName, []byte(fmt.Sprintf("%s\n", string(statsData))), 0600); err != nil {
+			logger.Log(logging.LevelError, "Could not write benchmark output to file",
+				"file", clientStatFileName, "error", err)
+		}
+	}
+}
+
+func goDisplayLiveStats(ctx context.Context, liveStats *stats.LiveStats, statCSV *csv.Writer) func() {
+	liveStats.WriteCSVHeader(statCSV)
+	liveStatsCtx, stopFunc := context.WithCancel(ctx)
+
+	go func() {
+		timestamp := time.Now()
+		ticker := time.NewTicker(statPeriod)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-liveStatsCtx.Done():
+				return
+			case ts := <-ticker.C:
+				d := ts.Sub(timestamp)
+				liveStats.WriteCSVRecord(statCSV, d)
+				statCSV.Flush()
+				timestamp = ts
+				liveStats.Reset()
+			}
+		}
+	}()
+
+	return stopFunc
 }
 
 func getPortStr(addressStr string) (string, error) {
