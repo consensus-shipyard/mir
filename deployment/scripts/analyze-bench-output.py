@@ -8,6 +8,11 @@ import sys
 import json
 
 TIME_FACTOR = 1000000000  # Corresponds to the input data using nanoseconds as units of time.
+DATA_FACTOR = (1024 * 1024)  # Corresponds to the input data using bytes and output data reported in MiB
+
+# ====================================================================================================
+# Helper functions
+# ====================================================================================================
 
 
 def accumulate(acc: dict, new: dict, f):
@@ -17,6 +22,19 @@ def accumulate(acc: dict, new: dict, f):
         else:
             acc[k] = v
 
+
+def avg_rate(data, sampling_period):
+    if len(data.keys()) == 0:
+        return 0
+    duration = max(data.keys())
+    if duration == 0:
+        return 0
+    else:
+        # We need to add one sampling period to the denominator, as counting starts at 0.
+        # The constant time_factor normalizes the time units to seconds.
+        return sum(data.values()) * TIME_FACTOR / (duration + sampling_period)
+
+
 # ====================================================================================================
 # Stats
 # ====================================================================================================
@@ -25,22 +43,31 @@ def accumulate(acc: dict, new: dict, f):
 
 class Stats:
     def __init__(self):
+        self.num_datasets = 0
         self.latency_hist = {}
         self.delivered_txs = {}
         self.sampling_period = 0
+        self.upload_rate = {}
+        self.download_rate = {}
+        self.loss_rate = {}
 
     def add_dataset(self, data):
+        self.num_datasets += 1
 
-        data = data["Client"]
         # Set sampling period, or do a sanity check if sampling period already set.
-        sampling_period = data["SamplingPeriod"]
-        if self.sampling_period == 0:
-            self.sampling_period = data["SamplingPeriod"]
-        elif self.sampling_period != data["SamplingPeriod"]:
+        sampling_period = data["Client"]["SamplingPeriod"]
+        if data["Client"]["SamplingPeriod"] != data["Net"]["SamplingPeriod"]:
+            raise ValueError(f"Inconsistent data 'Client' and 'Net' sampling period mismatch: {data['Client']['SamplingPeriod']} and {data['Net']['SamplingPeriod']}")
+        elif self.sampling_period == 0:
+            self.sampling_period = data["Client"]["SamplingPeriod"]
+        elif self.sampling_period != data["Client"]["SamplingPeriod"]:
             raise ValueError(f"Trying to add dataset with sampling period {sampling_period} to dataset with sampling period {self.sampling_period}")
 
-        accumulate(self.latency_hist, {int(lat): n for lat, n in data["LatencyHistogram"].items()}, (lambda x, y: x+y))
-        accumulate(self.delivered_txs, {int(t): n for t, n in data["DeliveredTxs"].items()}, (lambda x, y: x+y))
+        accumulate(self.latency_hist, {int(lat): n for lat, n in data["Client"]["LatencyHistogram"].items()}, (lambda x, y: x+y))
+        accumulate(self.delivered_txs, {int(t): n for t, n in data["Client"]["DeliveredTxs"].items()}, (lambda x, y: x+y))
+        accumulate(self.upload_rate, {int(t): r for t, r in data["Net"]["TotalSent"].items()}, (lambda x, y: x+y))
+        accumulate(self.download_rate, {int(t): r for t, r in data["Net"]["TotalReceived"].items()}, (lambda x, y: x+y))
+        accumulate(self.loss_rate, {int(t): r for t, r in data["Net"]["TotalDropped"].items()}, (lambda x, y: x+y))
 
     def to_json(self):
         return json.dumps({"LatencyHistogram": self.latency_hist, "DeliveredTxs": self.delivered_txs}, indent=2)
@@ -56,6 +83,15 @@ class Stats:
             # We need to add one sampling period to the denominator, as counting starts at 0.
             # The constant time_factor normalizes the time units to seconds.
             return sum(self.delivered_txs.values()) * TIME_FACTOR / (duration + self.sampling_period)
+
+    def avg_upload_rate(self):
+        return avg_rate(self.upload_rate, self.sampling_period) / (self.num_datasets * DATA_FACTOR)
+
+    def avg_download_rate(self):
+        return avg_rate(self.download_rate, self.sampling_period) / (self.num_datasets * DATA_FACTOR)
+
+    def avg_loss_rate(self):
+        return avg_rate(self.loss_rate, self.sampling_period) / (self.num_datasets * DATA_FACTOR)
 
     def avg_latency(self):
         total_txs = sum(self.latency_hist.values())
@@ -127,6 +163,9 @@ with open(output_file, 'w') as file:
             "latency-median": stats.latency_pctile(0.5),
             "latency-95p": stats.latency_pctile(0.95),
             "latency-max": stats.latency_pctile(1),
+            "net-down-avg": stats.avg_upload_rate(),
+            "net-up-avg": stats.avg_download_rate(),
+            "net-loss-avg": stats.avg_loss_rate(),
         },
         "plots": {
             "latency-hist": latency_hist,
