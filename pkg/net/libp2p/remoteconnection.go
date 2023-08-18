@@ -77,7 +77,7 @@ func (conn *remoteConnection) Send(msg *messagepb.Message) error {
 	case conn.msgBuffer <- msg:
 		return nil
 	default:
-		return es.Errorf("send buffer full")
+		return es.Errorf("send buffer full (" + conn.addrInfo.String() + ")")
 	}
 }
 
@@ -223,6 +223,15 @@ func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
 // It keeps reading the input data buffer and writes its contents to the network.
 // It automatically creates the underlying network stream and re-establishes it as needed, in case it is dropped.
 func (conn *remoteConnection) process() {
+	// In case there is a panic in the main processing loop, log an error message.
+	// (Otherwise, since this function is run as a goroutine, panicking would be completely silent.)
+	defer func() {
+		if r := recover(); r != nil {
+			err := es.New(r)
+			conn.logger.Log(logging.LevelError, "Remote connection panicked.", "cause", r, "stack", err.ErrorStack())
+		}
+	}()
+
 	// When processing finishes, close the underlying stream and signal to the Stop method that it can return.
 	// Note that the defer order is thus inverted.
 	defer close(conn.done)
