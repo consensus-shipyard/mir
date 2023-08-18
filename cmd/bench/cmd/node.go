@@ -26,7 +26,6 @@ import (
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/deploytest"
-	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
@@ -174,20 +173,14 @@ func runNode() error {
 	// Add transaction generator module to the setup.
 	trantorInstance.WithModule("localtxgen", txGen)
 
-	// Create recorder for gathering statistics about the performance.
-	stat := stats.NewStats()
-	statsRecorder := stats.NewStatInterceptor(stat, "app")
-
-	// Assemble the main event interceptor.
-	// We could use the statsRecorder directly, but this construction makes it convenient to add more when needed.
-	interceptor := eventlog.MultiInterceptor(
-		statsRecorder,
-	)
+	// Create trackers for gathering statistics about the performance.
+	liveStats := stats.NewLiveStats()
+	txGen.TrackStats(liveStats)
 
 	// Instantiate the Mir Node.
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
 	nodeConfig.Stats.Period = time.Second
-	node, err := mir.NewNode(t.NodeID(id), nodeConfig, trantorInstance.Modules(), interceptor)
+	node, err := mir.NewNode(t.NodeID(id), nodeConfig, trantorInstance.Modules(), nil)
 	if err != nil {
 		return es.Errorf("could not create node: %w", err)
 	}
@@ -229,23 +222,24 @@ func runNode() error {
 	}
 
 	statCSV := csv.NewWriter(statFile)
-	stat.WriteCSVHeader(statCSV)
+	liveStats.WriteCSVHeader(statCSV)
+	liveStatsCtx, stopLiveStats := context.WithCancel(ctx)
+	defer stopLiveStats()
 
 	go func() {
 		timestamp := time.Now()
+		ticker := time.NewTicker(statPeriod)
+		defer ticker.Stop()
 		for {
-			ticker := time.NewTicker(statPeriod)
-			defer ticker.Stop()
-
 			select {
-			case <-ctx.Done():
+			case <-liveStatsCtx.Done():
 				return
 			case ts := <-ticker.C:
 				d := ts.Sub(timestamp)
-				stat.WriteCSVRecord(statCSV, d)
+				liveStats.WriteCSVRecord(statCSV, d)
 				statCSV.Flush()
 				timestamp = ts
-				stat.Reset()
+				liveStats.Reset()
 			}
 		}
 	}()
