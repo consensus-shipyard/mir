@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/localtxgenerator"
+	"github.com/filecoin-project/mir/cmd/bench/localtxgenerator"
 	"github.com/filecoin-project/mir/pkg/rendezvous"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
