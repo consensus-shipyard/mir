@@ -11,11 +11,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	es "github.com/go-errors/errors"
 	"go.uber.org/atomic"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -43,8 +43,8 @@ func DefaultModuleParams(clientID tt.ClientID) ModuleParams {
 		ClientID:        clientID,
 		Tps:             1,
 		PayloadSize:     512,
-		BufSize:         0,
-		WatermarkWindow: 1000000,
+		BufSize:         128,
+		WatermarkWindow: 5000,
 	}
 }
 
