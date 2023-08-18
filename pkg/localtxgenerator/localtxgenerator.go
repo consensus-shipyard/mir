@@ -3,12 +3,15 @@ package localtxgenerator
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/logging"
+	es "github.com/go-errors/errors"
 	"go.uber.org/atomic"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -46,8 +49,9 @@ func DefaultModuleParams(clientID tt.ClientID) ModuleParams {
 }
 
 type LocalTXGen struct {
-	modules ModuleConfig
-	params  ModuleParams
+	modules       ModuleConfig
+	params        ModuleParams
+	statsTrackers []stats.StatsTracker
 
 	nextTXNo  tt.TxNo
 	delivered *clientprogress.DeliveredTXs
@@ -70,21 +74,8 @@ func New(moduleConfig ModuleConfig, params ModuleParams) *LocalTXGen {
 	}
 }
 
-func (gen *LocalTXGen) ImplementsModule() {}
-
-// ApplyEvents returns an error on any event it receives, except fot the Init event, which it silently ignores.
-func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *events.EventList) error {
-	for _, evt := range evts.Slice() {
-		if _, ok := evt.Type.(*eventpb.Event_Init); !ok {
-			return fmt.Errorf("local request generator cannot apply events other than Init")
-		}
-	}
-	return nil
-}
-
-// EventsOut returns the channel to which LocalTXGen writes all output events (in this case just NewRequests events).
-func (gen *LocalTXGen) EventsOut() <-chan *events.EventList {
-	return gen.eventsOut
+func (gen *LocalTXGen) TrackStats(tracker stats.StatsTracker) {
+	gen.statsTrackers = append(gen.statsTrackers, tracker)
 }
 
 // Start starts generating transactions at the defined rate.
@@ -116,24 +107,35 @@ func (gen *LocalTXGen) Start() {
 				}
 				gen.wmCond.L.Unlock()
 
-				// Create new transaction event.
-				tx := trantorpbtypes.Transaction{
-					ClientId: gen.params.ClientID,
-					TxNo:     gen.nextTXNo,
-					Type:     0,
-					Data:     []byte{0},
-				}
+				// Create a new transaction.
+				tx := newTX(gen.params.ClientID, gen.nextTXNo, gen.params.PayloadSize)
 				evts := events.ListOf(
-					mempoolpbevents.NewTransactions(gen.modules.Mempool, []*trantorpbtypes.Transaction{&tx}).Pb(),
+					mempoolpbevents.NewTransactions(gen.modules.Mempool, []*trantorpbtypes.Transaction{tx}).Pb(),
 				)
-				gen.nextTXNo++
 
+				// Track the submission of the new transaction for statistics.
+				for _, statsTracker := range gen.statsTrackers {
+					statsTracker.Submit(tx)
+				}
+
+				// Submit the transaction to Trantor.
 				select {
 				case gen.eventsOut <- evts:
 					cnt.Inc()
 				case <-gen.stopChan:
 					return
 				}
+
+				// Increment the next transaction number.
+				// ATTENTION: This has to happen after the transaction has been pushed to Mir,
+				//   since we are using this value for checking if all transactions have been delivered.
+				//   If we increment it before the transaction is pushed to Mir and the TX generation
+				//   is stopped, the transaction will never be delivered and the Wait function will get stuck
+				//   waiting for it forever.
+				//   If we reach this line, however, we are sure to have submitted the transaction
+				//   and Trantor guarantees its eventual delivery.
+				gen.nextTXNo++
+
 			case <-gen.stopChan:
 				return
 			}
@@ -161,6 +163,54 @@ func (gen *LocalTXGen) Stop() {
 	<-gen.doneChan
 }
 
+// Wait blocks until all submitted transactions have been delivered or ctx is canceled.
+func (gen *LocalTXGen) Wait(ctx context.Context) error {
+	gen.wmCond.L.Lock()
+	defer gen.wmCond.L.Unlock()
+
+	// Abort the waiting after context is done.
+	abort := atomic.NewBool(false)
+	go func() {
+		<-ctx.Done()
+		abort.Store(true)
+		gen.wmCond.Broadcast()
+	}()
+
+	// Wait until all transactions have been delivered or waiting is aborted.
+	// TODO: Dirty hack with .Pb(). Make LowWm accessible directly from DeliveredTXs.
+	for tt.TxNo(gen.delivered.Pb().LowWm) < gen.nextTXNo && !abort.Load() {
+		gen.wmCond.Wait()
+	}
+
+	// If the waiting was aborted, return an error.
+	if abort.Load() {
+		return es.Errorf(fmt.Sprintf("context canceled with nextTxNo=%d, lowWM=%d, and delivered=%v",
+			gen.nextTXNo, gen.delivered.Pb().LowWm, gen.delivered.Pb().Delivered))
+	}
+	return nil
+}
+
+// ====================================================================================================
+// Active module interface
+// ====================================================================================================
+
+func (gen *LocalTXGen) ImplementsModule() {}
+
+// ApplyEvents returns an error on any event it receives, except fot the Init event, which it silently ignores.
+func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *events.EventList) error {
+	for _, evt := range evts.Slice() {
+		if _, ok := evt.Type.(*eventpb.Event_Init); !ok {
+			return fmt.Errorf("local request generator cannot apply events other than Init")
+		}
+	}
+	return nil
+}
+
+// EventsOut returns the channel to which LocalTXGen writes all output events (in this case just NewRequests events).
+func (gen *LocalTXGen) EventsOut() <-chan *events.EventList {
+	return gen.eventsOut
+}
+
 // ====================================================================================================
 // Trantor static app interface
 // ====================================================================================================
@@ -169,6 +219,11 @@ func (gen *LocalTXGen) ApplyTXs(txs []*trantorpbtypes.Transaction) error {
 	gen.wmCond.L.Lock()
 	for _, tx := range txs {
 		gen.delivered.Add(tx.TxNo)
+		if tx.ClientId == gen.params.ClientID {
+			for _, statsTracker := range gen.statsTrackers {
+				statsTracker.Deliver(tx)
+			}
+		}
 	}
 	gen.delivered.GarbageCollect()
 	gen.wmCond.Broadcast()
@@ -186,4 +241,22 @@ func (gen *LocalTXGen) RestoreState(_ *checkpoint.StableCheckpoint) error {
 
 func (gen *LocalTXGen) Checkpoint(_ *checkpoint.StableCheckpoint) error {
 	return nil
+}
+
+// ====================================================================================================
+// Auxiliary functions
+// ====================================================================================================
+
+func newTX(clID tt.ClientID, txNo tt.TxNo, payloadSize int) *trantorpbtypes.Transaction {
+	// Generate random transaction payload.
+	data := make([]byte, payloadSize)
+	rand.Read(data)
+
+	// Create new transaction event.
+	return &trantorpbtypes.Transaction{
+		ClientId: clID,
+		TxNo:     txNo,
+		Type:     0,
+		Data:     data,
+	}
 }
