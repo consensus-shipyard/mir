@@ -70,6 +70,8 @@ def plotLine(ax, line, label):
     for val in d:
         ax.annotate(val["experiment-id"], (val["x"], val["y"]))
     ax.legend(loc='upper left', fontsize="x-small")
+    ax.set_xlabel(xField)
+    ax.set_ylabel(yField)
 
 
 csvFile = sys.argv[1]
