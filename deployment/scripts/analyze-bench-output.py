@@ -141,15 +141,14 @@ latency_hist = {int(lat) / TIME_FACTOR * 1000: stats.latency_hist[lat] for lat i
 delivered_txs = {t / TIME_FACTOR * 1000: stats.delivered_txs[t] for t in stats.delivered_txs.keys()}
 
 num_nodes = len(config["Trantor"]["Iss"]["InitialMembership"]["Nodes"])
-total_load = num_nodes * int(config["TxGen"]["Tps"])
 
 with open(output_file, 'w') as file:
     json.dump({
         "experiment-id": exp_id,
         "params": {
             "num-nodes": num_nodes,
-            "load-per-node": config["TxGen"]["Tps"],
-            "total-load": total_load,
+            "clients-node": int(config["TxGen"]["NumClients"]),
+            "clients-total": int(config["TxGen"]["NumClients"])*num_nodes,
             "max-batch-tx": config["Trantor"]["Mempool"]["MaxTransactionsInBatch"],
             "max-batch-bytes": int(config["Trantor"]["Mempool"]["MaxPayloadInBatch"]),
             "batch-timeout": int(config["Trantor"]["Mempool"]["BatchTimeout"])/TIME_FACTOR,
