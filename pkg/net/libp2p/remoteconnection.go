@@ -315,19 +315,24 @@ func (conn *remoteConnection) writeDataToStream(data []byte, statsLabel string) 
 			return es.Errorf("could not set stream write deadline")
 		}
 
-		// Try writing data to the underlying network stream.
-		bytesWritten, err := conn.stream.Write(data)
+		// Try writing a chunk of data to the underlying network stream.
+		var bytesWritten int
+		var err error
+		if len(data) > conn.params.MaxDataPerWrite {
+			bytesWritten, err = conn.stream.Write(data[:conn.params.MaxDataPerWrite])
+		} else {
+			bytesWritten, err = conn.stream.Write(data)
+		}
+		data = data[bytesWritten:]
 
 		// Gather statistics if applicable.
 		if bytesWritten > 0 && conn.stats != nil {
 			conn.stats.Sent(bytesWritten, statsLabel)
 		}
 
-		if err == nil {
+		if err == nil && len(data) == 0 {
 			// If all data was successfully written, return.
-
 			return nil
-
 		} else if errors.Is(err, yamux.ErrTimeout) {
 			// If a timeout occurred, check if the connection has not been closed in the meantime.
 			// If the connection is still open, retry sending the rest of the data in the next iteration.
@@ -336,14 +341,11 @@ func (conn *remoteConnection) writeDataToStream(data []byte, statsLabel string) 
 			case <-conn.stop:
 				return es.Errorf("connection closing")
 			default:
-				data = data[bytesWritten:]
 			}
 
-		} else {
+		} else if err != nil {
 			// If any other error occurred, just return it.
-
 			return es.Errorf("failed sending data: %w", err)
-
 		}
 	}
 }
