@@ -72,12 +72,12 @@ func (cs *ClientStats) Submit(tx *trantorpbtypes.Transaction) {
 }
 
 func (cs *ClientStats) Deliver(tx *trantorpbtypes.Transaction) {
+	cs.timestampsLock.Lock()
+	defer cs.timestampsLock.Unlock()
 
 	// Get delivery time and latency.
 	t := time.Since(cs.startTime)
-	cs.timestampsLock.Lock()
 	lRaw := time.Since(cs.txTimestamps[tx.TxNo])
-	cs.timestampsLock.Unlock()
 
 	// Round values to the next lower step
 	t = (t / cs.SamplingPeriod) * cs.SamplingPeriod

@@ -232,13 +232,6 @@ func runNode() error {
 
 		stopLiveStats()
 		txGen.Stop()
-		txGenCtx, stopTxGen := context.WithTimeout(ctx, syncLimit)
-		if err := txGen.Wait(txGenCtx); err != nil {
-			logger.Log(logging.LevelError, "Not all submitted transactions delivered.", "error", err)
-		} else {
-			logger.Log(logging.LevelInfo, "Successfully delivered all submitted transactions.", "error", err)
-		}
-		stopTxGen()
 
 		// Wait for other nodes to deliver their transactions.
 		if deliverSyncFileName != "" {
