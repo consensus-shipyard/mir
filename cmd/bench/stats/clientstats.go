@@ -8,14 +8,13 @@ import (
 	"time"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 type ClientStats struct {
 
 	// Times of submission for in-flight transactions and the lock that guards the map.
-	txTimestamps   map[tt.TxNo]time.Time
+	txTimestamps   map[string]time.Time
 	timestampsLock sync.Mutex
 
 	// Latency histogram. Latencies are truncated (down) to the nearest step.
@@ -47,7 +46,7 @@ func NewClientStats(
 	samplingPeriod time.Duration,
 ) *ClientStats {
 	return &ClientStats{
-		txTimestamps:   make(map[tt.TxNo]time.Time),
+		txTimestamps:   make(map[string]time.Time),
 		LatencyHist:    map[time.Duration]int{0: 0}, // The rest of the code can assume this map is never empty.
 		DeliveredTxs:   make(map[time.Duration]int),
 		latencyStep:    latencyStep,
@@ -66,8 +65,9 @@ func (cs *ClientStats) Start() {
 }
 
 func (cs *ClientStats) Submit(tx *trantorpbtypes.Transaction) {
+	txID := fmt.Sprintf("%s:%d", tx.ClientId, tx.TxNo)
 	cs.timestampsLock.Lock()
-	cs.txTimestamps[tx.TxNo] = time.Now()
+	cs.txTimestamps[txID] = time.Now()
 	cs.timestampsLock.Unlock()
 }
 
@@ -77,7 +77,8 @@ func (cs *ClientStats) Deliver(tx *trantorpbtypes.Transaction) {
 
 	// Get delivery time and latency.
 	t := time.Since(cs.startTime)
-	lRaw := time.Since(cs.txTimestamps[tx.TxNo])
+	txID := fmt.Sprintf("%s:%d", tx.ClientId, tx.TxNo)
+	lRaw := time.Since(cs.txTimestamps[txID])
 
 	// Round values to the next lower step
 	t = (t / cs.SamplingPeriod) * cs.SamplingPeriod
