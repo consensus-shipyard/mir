@@ -162,8 +162,8 @@ with open(output_file, 'w') as file:
             "latency-median": stats.latency_pctile(0.5),
             "latency-95p": stats.latency_pctile(0.95),
             "latency-max": stats.latency_pctile(1),
-            "net-down-avg": stats.avg_upload_rate(),
-            "net-up-avg": stats.avg_download_rate(),
+            "net-down-avg": stats.avg_download_rate(),
+            "net-up-avg": stats.avg_upload_rate(),
             "net-loss-avg": stats.avg_loss_rate(),
         },
         "plots": {
