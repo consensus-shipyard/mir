@@ -15,6 +15,8 @@ import (
 	"io"
 	"math/big"
 
+	detKeygen "filippo.io/keygen"
+
 	es "github.com/go-errors/errors"
 )
 
@@ -80,9 +82,15 @@ func generateEcdsaKeyPair(randomness io.Reader) (*ecdsa.PrivateKey, *ecdsa.Publi
 		randomness = rand.Reader
 	}
 
+	keyMaterial := make([]byte, 16)
+	if _, err := io.ReadFull(randomness, keyMaterial); err != nil {
+		return nil, nil, err
+	}
+
 	// TODO: No clue which curve to use, picked P256 because it was in the documentation example.
 	//       Check whether this is OK.
-	privKey, err := ecdsa.GenerateKey(elliptic.P256(), randomness)
+	// Using an external package for key generation to ensure keys are deterministic
+	privKey, err := detKeygen.ECDSA(elliptic.P256(), keyMaterial)
 	if err != nil {
 		return nil, nil, err
 	}
