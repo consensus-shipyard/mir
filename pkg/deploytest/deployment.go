@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"net"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -183,8 +184,16 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 
 	// Start the Mir nodes.
 	nodeWg.Add(len(d.TestReplicas))
+	trAddrs := make(map[t.NodeID]string, len(d.TestReplicas))
 	for i, testReplica := range d.TestReplicas {
 		i, testReplica := i, testReplica
+
+		trListener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			nodeErrors[i] = err
+			return nodeErrors, 0, 0
+		}
+		trAddrs[testReplica.ID] = fmt.Sprintf("127.0.0.1:%v", trListener.Addr().(*net.TCPAddr).Port)
 
 		// Start the replica in a separate goroutine.
 		start := make(chan struct{})
@@ -193,7 +202,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 
 			<-start
 			testReplica.Config.Logger.Log(logging.LevelDebug, "running")
-			nodeErrors[i] = testReplica.Run(ctx2)
+			nodeErrors[i] = testReplica.Run(ctx2, trListener)
 			if err := nodeErrors[i]; err != nil {
 				testReplica.Config.Logger.Log(logging.LevelError, "exit with error", "err", errstack.ToString(err))
 			} else {
@@ -220,7 +229,7 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 		go func(c *dummyclient.DummyClient) {
 			defer clientWg.Done()
 
-			c.Connect(ctx2, d.localTransactionreceiverAddrs())
+			c.Connect(ctx2, trAddrs)
 			submitDummyTransactions(ctx2, c, d.TestConfig.NumNetTXs)
 			c.Disconnect()
 		}(client)
@@ -256,20 +265,6 @@ func (d *Deployment) EventLogFiles() map[t.NodeID]string {
 		logFiles[r.ID] = r.EventLogFile()
 	}
 	return logFiles
-}
-
-// localTransactionreceiverAddrs computes network addresses and ports for the Transactionreceivers at all replicas and returns
-// an address map.
-// It is assumed that node ID strings must be parseable to decimal numbers.
-// Each test replica is on the local machine - 127.0.0.1
-func (d *Deployment) localTransactionreceiverAddrs() map[t.NodeID]string {
-
-	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
-	for i, tr := range d.TestReplicas {
-		addrs[tr.ID] = fmt.Sprintf("127.0.0.1:%d", TXListenPort+i)
-	}
-
-	return addrs
 }
 
 // submitDummyTransactions submits n dummy transactions using client.

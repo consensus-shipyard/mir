@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"net"
+	gonet "net"
 	"os"
 	"strconv"
 	"time"
@@ -172,10 +172,13 @@ func runNode() error {
 		return es.Errorf("could not create node: %w", err)
 	}
 
-	txReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
-	if err := txReceiver.Start(TxReceiverBasePort + ownNumericID); err != nil {
-		return es.Errorf("could not start transaction receiver: %w", err)
+	txReceiverListener, err := gonet.Listen("tcp", fmt.Sprintf(":%v", TxReceiverBasePort+ownNumericID))
+	if err != nil {
+		return fmt.Errorf("could not create transaction receiver listener: %w", err)
 	}
+
+	txReceiver := transactionreceiver.NewTransactionReceiver(node, "mempool", logger)
+	txReceiver.Start(txReceiverListener)
 	defer txReceiver.Stop()
 
 	if err := benchApp.Start(); err != nil {
@@ -230,7 +233,7 @@ func getPortStr(addressStr string) (string, error) {
 		return "", err
 	}
 
-	_, portStr, err := net.SplitHostPort(addrStr)
+	_, portStr, err := gonet.SplitHostPort(addrStr)
 	if err != nil {
 		return "", err
 	}
