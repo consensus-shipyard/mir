@@ -25,8 +25,8 @@ require github.com/golang/mock v1.6.0
 require (
 	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
 	github.com/dave/jennifer v1.5.1
-	github.com/drand/kyber v1.1.15
-	github.com/drand/kyber-bls12381 v0.2.3
+	github.com/drand/kyber v1.2.0
+	github.com/drand/kyber-bls12381 v0.3.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-errors/errors v1.4.2
 	github.com/ipfs/go-cid v0.4.1
@@ -38,7 +38,6 @@ require (
 	github.com/tidwall/gjson v1.14.2
 	github.com/tidwall/sjson v1.2.5
 	github.com/whyrusleeping/cbor-gen v0.0.0-20220514204315-f29c37e9c44c
-	go.uber.org/atomic v1.11.0
 	go.uber.org/goleak v1.1.12
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f
@@ -126,6 +125,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/dig v1.17.0 // indirect
 	go.uber.org/fx v1.19.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
