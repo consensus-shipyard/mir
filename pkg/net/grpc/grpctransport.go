@@ -22,8 +22,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mirnet "github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
@@ -118,10 +117,10 @@ func (gt *Transport) ApplyEvents(
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			// no actions on init
-		case *eventpb.Event_Transport:
-			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+		case *eventpbtypes.Event_Transport:
+			switch e := e.Transport.Type.(type) {
 			case *transportpbtypes.Event_SendMessage:
 				for _, destID := range e.SendMessage.Destinations {
 					if destID == gt.ownID {
@@ -135,13 +134,13 @@ func (gt *Transport) ApplyEvents(
 						)
 						go func() {
 							select {
-							case gt.incomingMessages <- events.ListOf(receivedEvent.Pb()):
+							case gt.incomingMessages <- events.ListOf(receivedEvent):
 							case <-ctx.Done():
 							}
 						}()
 					} else {
 						// Send message to another node.
-						if err := gt.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+						if err := gt.Send(destID, e.SendMessage.Msg); err != nil {
 							// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
 							gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 						}
@@ -160,8 +159,8 @@ func (gt *Transport) ApplyEvents(
 
 // Send sends msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
-	return gt.clients[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
+func (gt *Transport) Send(dest t.NodeID, msg *messagepbtypes.Message) error {
+	return gt.clients[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg.Pb()})
 }
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
@@ -191,7 +190,7 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 				t.ModuleID(grpcMsg.Msg.DestModule),
 				t.NodeID(grpcMsg.Sender),
 				messagepbtypes.MessageFromPb(grpcMsg.Msg),
-			).Pb(),
+			),
 		):
 			// Write the message to the channel. This channel will be read by the user of the module.
 

@@ -15,7 +15,7 @@ import (
 // Module-specific dsl functions for processing events.
 
 func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func(ev *Ev) error) {
-	dsl.UponMirEvent[*types1.Event_Iss](m, func(ev *types.Event) error {
+	dsl.UponEvent[*types1.Event_Iss](m, func(ev *types.Event) error {
 		w, ok := ev.Type.(W)
 		if !ok {
 			return nil

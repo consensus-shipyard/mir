@@ -25,9 +25,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
-	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	batchfetcherpbtypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	mempoolpbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -141,16 +141,16 @@ func runNode() error {
 		ownID,
 		"bench-output",
 		logging.Decorate(logger, "EVTLOG: "),
-		eventlog.EventFilterOpt(func(e *eventpb.Event) bool {
+		eventlog.EventFilterOpt(func(e *eventpbtypes.Event) bool {
 			switch e := e.Type.(type) {
-			case *eventpb.Event_Mempool:
+			case *eventpbtypes.Event_Mempool:
 				switch e.Mempool.Type.(type) {
-				case *mempoolpb.Event_NewTransactions:
+				case *mempoolpbtypes.Event_NewTransactions:
 					return true
 				}
-			case *eventpb.Event_BatchFetcher:
+			case *eventpbtypes.Event_BatchFetcher:
 				switch e.BatchFetcher.Type.(type) {
-				case *batchfetcherpb.Event_NewOrderedBatch:
+				case *batchfetcherpbtypes.Event_NewOrderedBatch:
 					return true
 				}
 			}

@@ -9,7 +9,6 @@ package events
 import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -17,7 +16,7 @@ import (
 // Strip returns a new identical (shallow copy of the) event,
 // but with all follow-up events (stored under event.Next) removed.
 // The removed events are stored in a new EventList that Strip returns a pointer to as the second return value.
-func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
+func Strip(event *eventpbtypes.Event) (*eventpbtypes.Event, *EventList) {
 
 	// Create new EventList.
 	nextList := &EventList{}
@@ -28,14 +27,14 @@ func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
 	}
 
 	// Create a new event with follow-ups removed.
-	newEvent := eventpb.Event{
+	newEvent := &eventpbtypes.Event{
 		Type:       event.Type,
 		DestModule: event.DestModule,
 		Next:       nil,
 	}
 
 	// Return new EventList.
-	return &newEvent, nextList
+	return newEvent, nextList
 }
 
 func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.Event {
@@ -50,19 +49,19 @@ func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.E
 // Event Constructors
 // ============================================================
 
-func TestingString(dest t.ModuleID, s string) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: dest.Pb(),
-		Type: &eventpb.Event_TestingString{
+func TestingString(dest t.ModuleID, s string) *eventpbtypes.Event {
+	return &eventpbtypes.Event{
+		DestModule: dest,
+		Type: &eventpbtypes.Event_TestingString{
 			TestingString: wrapperspb.String(s),
 		},
 	}
 }
 
-func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
-	return &eventpb.Event{
-		DestModule: dest.Pb(),
-		Type: &eventpb.Event_TestingUint{
+func TestingUint(dest t.ModuleID, u uint64) *eventpbtypes.Event {
+	return &eventpbtypes.Event{
+		DestModule: dest,
+		Type: &eventpbtypes.Event_TestingUint{
 			TestingUint: wrapperspb.UInt64(u),
 		},
 	}
@@ -70,6 +69,6 @@ func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
 
 // Init returns an event instructing a module to initialize.
 // This event is the first to be applied to a module.
-func Init(destModule t.ModuleID) *eventpb.Event {
-	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
+func Init(destModule t.ModuleID) *eventpbtypes.Event {
+	return &eventpbtypes.Event{DestModule: destModule, Type: &eventpbtypes.Event_Init{Init: &eventpbtypes.Init{}}}
 }

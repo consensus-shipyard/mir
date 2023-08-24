@@ -6,9 +6,9 @@ package stats
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"
-	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	batchfetcherpbtypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	mempoolpbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -39,22 +39,22 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 	for evt := it.Next(); evt != nil; evt = it.Next() {
 
 		switch e := evt.Type.(type) {
-		case *eventpb.Event_Mempool:
+		case *eventpbtypes.Event_Mempool:
 			switch e := e.Mempool.Type.(type) {
-			case *mempoolpb.Event_NewTransactions:
+			case *mempoolpbtypes.Event_NewTransactions:
 				for _, tx := range e.NewTransactions.Transactions {
 					i.Stats.NewTX(tx)
 				}
 			}
-		case *eventpb.Event_BatchFetcher:
+		case *eventpbtypes.Event_BatchFetcher:
 
 			// Skip events destined to other modules than the one consuming the transactions.
-			if t.ModuleID(evt.DestModule) != i.txConsumerModule {
+			if evt.DestModule != i.txConsumerModule {
 				continue
 			}
 
 			switch e := e.BatchFetcher.Type.(type) {
-			case *bfpb.Event_NewOrderedBatch:
+			case *batchfetcherpbtypes.Event_NewOrderedBatch:
 				for _, tx := range e.NewOrderedBatch.Txs {
 					i.Stats.Delivered(tx)
 				}

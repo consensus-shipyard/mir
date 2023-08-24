@@ -13,7 +13,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -25,7 +25,7 @@ type Simulation struct {
 }
 
 // EventDelayFn defines a function to provide event processing delay.
-type EventDelayFn func(e *eventpb.Event) time.Duration
+type EventDelayFn func(e *eventpbtypes.Event) time.Duration
 
 func NewSimulation(rnd *rand.Rand, nodeIDs []t.NodeID, delayFn EventDelayFn) *Simulation {
 	s := &Simulation{
@@ -70,7 +70,7 @@ func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList)
 
 	it := eventList.Iterator()
 	for e := it.Next(); e != nil; e = it.Next() {
-		m := t.ModuleID(e.DestModule).Top()
+		m := e.DestModule.Top()
 		if eventsMap[m] == nil {
 			eventsMap[m] = events.EmptyList()
 			moduleIDs = append(moduleIDs, m)

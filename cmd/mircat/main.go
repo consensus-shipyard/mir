@@ -10,6 +10,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 // mircat is a tool for reviewing Mir state machine recordings.
@@ -38,7 +39,7 @@ type arguments struct {
 	selectedIssEventNames map[string]struct{}
 
 	// Events with specific destination modules selected by the user for displaying
-	selectedEventDests map[string]struct{}
+	selectedEventDests map[t.ModuleID]struct{}
 
 	// If set to true, start a Node in debug mode with the given event log.
 	debug bool
@@ -99,8 +100,12 @@ func main() {
 	// // have the user interactively select the event destinations' to include in the output.
 	if len(args.selectedEventDests) == 0 {
 
+		allDestsStr := maputil.Transform(allDests, func(k t.ModuleID, v struct{}) (string, struct{}) { return string(k), v })
 		// Select top-level events
-		args.selectedEventDests = checkboxes("Please select the event destinations", allDests)
+		args.selectedEventDests = maputil.Transform(
+			checkboxes("Please select the event destinations", allDestsStr),
+			func(k string, v struct{}) (t.ModuleID, struct{}) { return t.ModuleID(k), v },
+		)
 
 	}
 
@@ -161,7 +166,10 @@ func parseArgs(args []string) (*arguments, error) {
 		limit:                 *limit,
 		selectedEventNames:    toSet(*events),
 		selectedIssEventNames: toSet(*issEvents),
-		selectedEventDests:    toSet(*eventDests),
+		selectedEventDests: maputil.Transform(
+			toSet(*eventDests),
+			func(k string, v struct{}) (t.ModuleID, struct{}) { return t.ModuleID(k), v },
+		),
 	}, nil
 }
 
@@ -173,7 +181,7 @@ func checkboxes(label string, opts map[string]struct{}) map[string]struct{} {
 	selected := make([]string, 0)
 	prompt := &survey.MultiSelect{
 		Message: label,
-		Options: toList(opts),
+		Options: maputil.GetSortedKeys(opts),
 	}
 	if err := survey.AskOne(prompt, &selected); err != nil {
 		fmt.Printf("Error selecting event types: %v", err)
@@ -182,19 +190,19 @@ func checkboxes(label string, opts map[string]struct{}) map[string]struct{} {
 	return toSet(selected)
 }
 
-func selectionArgs(events map[string]struct{}, issEvents map[string]struct{}, dests map[string]struct{}) string {
+func selectionArgs(events map[string]struct{}, issEvents map[string]struct{}, dests map[t.ModuleID]struct{}) string {
 	argStr := ""
 
-	for _, eventName := range toList(events) {
+	for _, eventName := range maputil.GetSortedKeys(events) {
 		argStr += " --event " + eventName
 	}
 
-	for _, issEventName := range toList(issEvents) {
+	for _, issEventName := range maputil.GetSortedKeys(issEvents) {
 		argStr += " --iss-event " + issEventName
 	}
 
-	for _, dest := range toList(dests) {
-		argStr += " --event-dest " + dest
+	for _, dest := range maputil.GetSortedKeys(dests) {
+		argStr += " --event-dest " + string(dest)
 	}
 
 	return argStr

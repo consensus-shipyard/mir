@@ -11,9 +11,9 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func BroadcastRequest(m dsl.Module, destModule types.ModuleID, data []uint8) {
-	dsl.EmitMirEvent(m, events.BroadcastRequest(destModule, data))
+	dsl.EmitEvent(m, events.BroadcastRequest(destModule, data))
 }
 
 func Deliver(m dsl.Module, destModule types.ModuleID, data []uint8) {
-	dsl.EmitMirEvent(m, events.Deliver(destModule, data))
+	dsl.EmitEvent(m, events.Deliver(destModule, data))
 }

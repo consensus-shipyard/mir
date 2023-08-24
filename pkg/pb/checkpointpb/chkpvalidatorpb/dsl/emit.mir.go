@@ -22,9 +22,9 @@ func ValidateCheckpoint[C any](m dsl.Module, destModule types.ModuleID, checkpoi
 		Type:   &types4.ValidateChkpOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.ValidateCheckpoint(destModule, checkpoint, epochNr, memberships, origin))
+	dsl.EmitEvent(m, events.ValidateCheckpoint(destModule, checkpoint, epochNr, memberships, origin))
 }
 
 func CheckpointValidated(m dsl.Module, destModule types.ModuleID, error error, origin *types4.ValidateChkpOrigin) {
-	dsl.EmitMirEvent(m, events.CheckpointValidated(destModule, error, origin))
+	dsl.EmitEvent(m, events.CheckpointValidated(destModule, error, origin))
 }

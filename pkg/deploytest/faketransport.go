@@ -21,8 +21,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
@@ -46,10 +45,10 @@ func (fl *FakeLink) ApplyEvents(
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		switch e := event.Type.(type) {
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			// no actions on init
-		case *eventpb.Event_Transport:
-			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+		case *eventpbtypes.Event_Transport:
+			switch e := e.Transport.Type.(type) {
 			case *transportpbtypes.Event_SendMessage:
 				for _, destID := range e.SendMessage.Destinations {
 					if destID == fl.Source {
@@ -63,13 +62,13 @@ func (fl *FakeLink) ApplyEvents(
 						eventsOut := fl.FakeTransport.NodeSinks[fl.Source]
 						go func() {
 							select {
-							case eventsOut <- events.ListOf(receivedEvent.Pb()):
+							case eventsOut <- events.ListOf(receivedEvent):
 							case <-ctx.Done():
 							}
 						}()
 					} else {
 						// Send message to another node.
-						if err := fl.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
+						if err := fl.Send(destID, e.SendMessage.Msg); err != nil {
 							fl.FakeTransport.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 						}
 					}
@@ -88,7 +87,7 @@ func (fl *FakeLink) ApplyEvents(
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fl *FakeLink) ImplementsModule() {}
 
-func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (fl *FakeLink) Send(dest t.NodeID, msg *messagepbtypes.Message) error {
 	fl.FakeTransport.Send(fl.Source, dest, msg)
 	return nil
 }
@@ -129,10 +128,13 @@ func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTranspor
 	}
 }
 
-func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
+func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepbtypes.Message) {
+	// ensure (de)serialization causes no problem
+	msg = messagepbtypes.MessageFromPb(msg.Pb())
+
 	select {
 	case ft.Buffers[source][dest] <- events.ListOf(
-		transportpbevents.MessageReceived(t.ModuleID(msg.DestModule), source, messagepbtypes.MessageFromPb(msg)).Pb(),
+		transportpbevents.MessageReceived(msg.DestModule, source, msg),
 	):
 	default:
 		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)

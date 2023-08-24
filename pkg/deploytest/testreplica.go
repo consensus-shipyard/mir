@@ -186,7 +186,7 @@ func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Nod
 					TxNo:     tt.TxNo(i),
 					Data:     []byte(fmt.Sprintf("Transaction %d", i)),
 				}},
-			).Pb())
+			))
 
 			if err := node.InjectEvents(ctx, eventList); err != nil {
 				tr.Config.Logger.Log(logging.LevelError, "failed to inject events", "err", err)

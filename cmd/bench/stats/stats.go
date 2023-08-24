@@ -11,7 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+
+	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 type Stats struct {
@@ -23,8 +25,8 @@ type Stats struct {
 }
 
 type txKey struct {
-	ClientID string
-	TxNo     uint64
+	ClientID tt.ClientID
+	TxNo     tt.TxNo
 }
 
 func NewStats() *Stats {
@@ -33,14 +35,14 @@ func NewStats() *Stats {
 	}
 }
 
-func (s *Stats) NewTX(tx *trantorpb.Transaction) {
+func (s *Stats) NewTX(tx *trantorpbtypes.Transaction) {
 	s.lock.Lock()
 	k := txKey{tx.ClientId, tx.TxNo}
 	s.txTimestamps[k] = time.Now()
 	s.lock.Unlock()
 }
 
-func (s *Stats) Delivered(tx *trantorpb.Transaction) {
+func (s *Stats) Delivered(tx *trantorpbtypes.Transaction) {
 	s.lock.Lock()
 	s.deliveredTransactions++
 	k := txKey{tx.ClientId, tx.TxNo}

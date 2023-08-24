@@ -12,7 +12,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -40,30 +40,26 @@ func (m *simTimerModule) EventsOut() <-chan *events.EventList {
 }
 
 func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpb.Event) (*events.EventList, error) {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpbtypes.Event) (*events.EventList, error) {
 		return events.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error {
+func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpbtypes.Event) error {
 	switch e := e.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		// no actions on init
-	case *eventpb.Event_Timer:
+	case *eventpbtypes.Event_Timer:
 		switch e := e.Timer.Type.(type) {
-		case *eventpb.TimerEvent_Delay:
+		case *eventpbtypes.TimerEvent_Delay:
 			evtsOut := events.ListOf(e.Delay.EventsToDelay...)
-			d := types.Duration(e.Delay.Delay)
-			m.delay(ctx, evtsOut, d)
-		case *eventpb.TimerEvent_Repeat:
+			m.delay(ctx, evtsOut, e.Delay.Delay)
+		case *eventpbtypes.TimerEvent_Repeat:
 			evtsOut := events.ListOf(e.Repeat.EventsToRepeat...)
-			d := types.Duration(e.Repeat.Delay)
-			retIdx := tt.RetentionIndex(e.Repeat.RetentionIndex)
-			m.repeat(ctx, evtsOut, d, retIdx)
-		case *eventpb.TimerEvent_GarbageCollect:
-			retIdx := tt.RetentionIndex(e.GarbageCollect.RetentionIndex)
-			m.garbageCollect(retIdx)
+			m.repeat(ctx, evtsOut, e.Repeat.Delay, e.Repeat.RetentionIndex)
+		case *eventpbtypes.TimerEvent_GarbageCollect:
+			m.garbageCollect(e.GarbageCollect.RetentionIndex)
 		default:
 			return es.Errorf("unexpected type of Timer sub-event: %T", e)
 		}

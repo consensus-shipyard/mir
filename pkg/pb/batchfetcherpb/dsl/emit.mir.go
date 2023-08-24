@@ -12,5 +12,5 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func NewOrderedBatch(m dsl.Module, destModule types.ModuleID, txs []*types1.Transaction) {
-	dsl.EmitMirEvent(m, events.NewOrderedBatch(destModule, txs))
+	dsl.EmitEvent(m, events.NewOrderedBatch(destModule, txs))
 }

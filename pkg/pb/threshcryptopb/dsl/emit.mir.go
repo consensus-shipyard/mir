@@ -19,11 +19,11 @@ func SignShare[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, c
 		Type:   &types1.SignShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.SignShare(destModule, data, origin))
+	dsl.EmitEvent(m, events.SignShare(destModule, data, origin))
 }
 
 func SignShareResult(m dsl.Module, destModule types.ModuleID, signatureShare []uint8, origin *types1.SignShareOrigin) {
-	dsl.EmitMirEvent(m, events.SignShareResult(destModule, signatureShare, origin))
+	dsl.EmitEvent(m, events.SignShareResult(destModule, signatureShare, origin))
 }
 
 func VerifyShare[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, signatureShare []uint8, nodeId types.NodeID, context *C) {
@@ -34,11 +34,11 @@ func VerifyShare[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8,
 		Type:   &types1.VerifyShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.VerifyShare(destModule, data, signatureShare, nodeId, origin))
+	dsl.EmitEvent(m, events.VerifyShare(destModule, data, signatureShare, nodeId, origin))
 }
 
 func VerifyShareResult(m dsl.Module, destModule types.ModuleID, ok bool, error string, origin *types1.VerifyShareOrigin) {
-	dsl.EmitMirEvent(m, events.VerifyShareResult(destModule, ok, error, origin))
+	dsl.EmitEvent(m, events.VerifyShareResult(destModule, ok, error, origin))
 }
 
 func VerifyFull[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, fullSignature []uint8, context *C) {
@@ -49,11 +49,11 @@ func VerifyFull[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, 
 		Type:   &types1.VerifyFullOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.VerifyFull(destModule, data, fullSignature, origin))
+	dsl.EmitEvent(m, events.VerifyFull(destModule, data, fullSignature, origin))
 }
 
 func VerifyFullResult(m dsl.Module, destModule types.ModuleID, ok bool, error string, origin *types1.VerifyFullOrigin) {
-	dsl.EmitMirEvent(m, events.VerifyFullResult(destModule, ok, error, origin))
+	dsl.EmitEvent(m, events.VerifyFullResult(destModule, ok, error, origin))
 }
 
 func Recover[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, signatureShares [][]uint8, context *C) {
@@ -64,9 +64,9 @@ func Recover[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, sig
 		Type:   &types1.RecoverOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.Recover(destModule, data, signatureShares, origin))
+	dsl.EmitEvent(m, events.Recover(destModule, data, signatureShares, origin))
 }
 
 func RecoverResult(m dsl.Module, destModule types.ModuleID, fullSignature []uint8, ok bool, error string, origin *types1.RecoverOrigin) {
-	dsl.EmitMirEvent(m, events.RecoverResult(destModule, fullSignature, ok, error, origin))
+	dsl.EmitEvent(m, events.RecoverResult(destModule, fullSignature, ok, error, origin))
 }

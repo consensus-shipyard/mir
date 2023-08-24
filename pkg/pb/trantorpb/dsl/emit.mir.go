@@ -13,9 +13,9 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func ClientProgress(m dsl.Module, destModule types.ModuleID, progress map[types1.ClientID]*types2.DeliveredTXs) {
-	dsl.EmitMirEvent(m, events.ClientProgress(destModule, progress))
+	dsl.EmitEvent(m, events.ClientProgress(destModule, progress))
 }
 
 func EpochConfig(m dsl.Module, destModule types.ModuleID, epochNr types1.EpochNr, firstSn types1.SeqNr, length uint64, memberships []*types2.Membership) {
-	dsl.EmitMirEvent(m, events.EpochConfig(destModule, epochNr, firstSn, length, memberships))
+	dsl.EmitEvent(m, events.EpochConfig(destModule, epochNr, firstSn, length, memberships))
 }

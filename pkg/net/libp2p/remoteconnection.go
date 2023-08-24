@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -26,7 +26,7 @@ type remoteConnection struct {
 	logger        logging.Logger
 	host          host.Host
 	stream        network.Stream
-	msgBuffer     chan *messagepb.Message
+	msgBuffer     chan *messagepbtypes.Message
 	stop          chan struct{}
 	done          chan struct{}
 	connectedCond *sync.Cond
@@ -50,7 +50,7 @@ func newRemoteConnection(
 		logger:        logger,
 		host:          h,
 		stream:        nil,
-		msgBuffer:     make(chan *messagepb.Message, params.ConnectionBufferSize),
+		msgBuffer:     make(chan *messagepbtypes.Message, params.ConnectionBufferSize),
 		stop:          make(chan struct{}),
 		done:          make(chan struct{}),
 		connectedCond: sync.NewCond(&sync.Mutex{}),
@@ -67,7 +67,7 @@ func (conn *remoteConnection) PeerID() peer.ID {
 // Send makes a non-blocking attempt to send a message to this connection.
 // Send might use internal buffering. Thus, even if it returns nil,
 // the message might not have yet been sent to the network.
-func (conn *remoteConnection) Send(msg *messagepb.Message) error {
+func (conn *remoteConnection) Send(msg *messagepbtypes.Message) error {
 
 	select {
 	case conn.msgBuffer <- msg:
@@ -340,8 +340,8 @@ func (conn *remoteConnection) closeStream() {
 	}
 }
 
-func encodeMessage(msg *messagepb.Message, nodeID t.NodeID) ([]byte, error) {
-	p, err := proto.Marshal(msg)
+func encodeMessage(msg *messagepbtypes.Message, nodeID t.NodeID) ([]byte, error) {
+	p, err := proto.Marshal(msg.Pb())
 	if err != nil {
 		return nil, es.Errorf("failed to marshal message: %w", err)
 	}

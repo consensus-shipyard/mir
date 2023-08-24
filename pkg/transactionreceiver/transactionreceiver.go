@@ -93,7 +93,7 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewTransactions(
 			rr.moduleID,
 			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(tx)},
-		).Pb())); srErr != nil {
+		))); srErr != nil {
 
 			// If submitting fails, stop receiving further transaction (and close connection).
 			rr.logger.Log(logging.LevelError, fmt.Sprintf("Could not submit transaction (%v-%d): %v. Closing connection.",

@@ -6,7 +6,7 @@ import (
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.
@@ -15,7 +15,7 @@ import (
 // and returned by ApplyEventsSequentially.
 func ApplyEventsSequentially(
 	eventsIn *events.EventList,
-	applyEvent func(*eventpb.Event) (*events.EventList, error),
+	applyEvent func(*eventpbtypes.Event) (*events.EventList, error),
 ) (*events.EventList, error) {
 
 	eventsOut := events.EmptyList()
@@ -43,7 +43,7 @@ func ApplyEventsSequentially(
 // along with an empty EventList.
 func ApplyEventsConcurrently(
 	eventsIn *events.EventList,
-	applyEvent func(*eventpb.Event) (*events.EventList, error),
+	applyEvent func(*eventpbtypes.Event) (*events.EventList, error),
 ) (*events.EventList, error) {
 
 	// Initialize channels into which the results of each invocation of applyEvent will be written.
@@ -60,7 +60,7 @@ func ApplyEventsConcurrently(
 	i := 0
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		go func(e *eventpb.Event, j int) {
+		go func(e *eventpbtypes.Event, j int) {
 
 			// Apply the input event, catching potential panics.
 			res, err := applySafely(e, applyEvent)
@@ -109,8 +109,8 @@ func ApplyEventsConcurrently(
 
 // applySafely is a wrapper around an event processing function that catches its panic and returns it as an error.
 func applySafely(
-	event *eventpb.Event,
-	processingFunc func(*eventpb.Event) (*events.EventList, error),
+	event *eventpbtypes.Event,
+	processingFunc func(*eventpbtypes.Event) (*events.EventList, error),
 ) (result *events.EventList, err error) {
 	defer func() {
 		if r := recover(); r != nil {

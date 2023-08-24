@@ -10,7 +10,8 @@ import (
 
 	es "github.com/go-errors/errors"
 
-	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 type controlModule struct {
@@ -41,7 +41,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		switch event := event.Type.(type) {
 
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			go func() {
 				err := m.readConsole()
 				if err != nil {
@@ -49,11 +49,11 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 				}
 			}()
 
-		case *eventpb.Event_Availability:
+		case *eventpbtypes.Event_Availability:
 			switch event := event.Availability.Type.(type) {
 
-			case *availabilitypb.Event_NewCert:
-				certBytes, err := proto.Marshal(event.NewCert.Cert)
+			case *availabilitypbtypes.Event_NewCert:
+				certBytes, err := proto.Marshal(event.NewCert.Cert.Pb())
 				if err != nil {
 					return es.Errorf("error marshalling certificate: %w", err)
 				}
@@ -61,7 +61,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 				fmt.Println(base64.StdEncoding.EncodeToString(certBytes))
 				close(m.readyForNextCommand)
 
-			case *availabilitypb.Event_ProvideTransactions:
+			case *availabilitypbtypes.Event_ProvideTransactions:
 				for _, tx := range event.ProvideTransactions.Txs {
 					fmt.Println(string(tx.Data))
 				}
@@ -132,13 +132,13 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 		}
 
 		tx := &trantorpbtypes.Transaction{Data: []byte(text)}
-		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}).Pb())
+		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}))
 	}
 
-	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{
+	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &availabilitypbtypes.RequestCertOrigin{
 		Module: "control",
-		Type:   &apbtypes.RequestCertOrigin_ContextStore{},
-	}).Pb())
+		Type:   &availabilitypbtypes.RequestCertOrigin_ContextStore{},
+	}))
 
 	return nil
 }
@@ -162,13 +162,13 @@ func (m *controlModule) readBatch(scanner *bufio.Scanner) error {
 	if err != nil {
 		return es.Errorf("error unmarshalling certificate: %w", err)
 	}
-	cert := apbtypes.CertFromPb(_cert)
+	cert := availabilitypbtypes.CertFromPb(_cert)
 
 	m.eventsOut <- events.ListOf(apbevents.RequestTransactions("availability", cert,
-		&apbtypes.RequestTransactionsOrigin{
+		&availabilitypbtypes.RequestTransactionsOrigin{
 			Module: "control",
-			Type:   &apbtypes.RequestTransactionsOrigin_ContextStore{},
-		}).Pb())
+			Type:   &availabilitypbtypes.RequestTransactionsOrigin_ContextStore{},
+		}))
 
 	return nil
 }

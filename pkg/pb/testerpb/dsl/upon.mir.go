@@ -11,7 +11,7 @@ import (
 // Module-specific dsl functions for processing events.
 
 func UponTester(m dsl.Module, handler func() error) {
-	dsl.UponMirEvent[*types.Event_Tester](m, func(ev *types1.Tester) error {
+	dsl.UponEvent[*types.Event_Tester](m, func(ev *types1.Tester) error {
 		return handler()
 	})
 }

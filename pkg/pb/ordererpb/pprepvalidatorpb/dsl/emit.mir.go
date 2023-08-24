@@ -20,9 +20,9 @@ func ValidatePreprepare[C any](m dsl.Module, destModule types.ModuleID, preprepa
 		Type:   &types2.ValidatePreprepareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.ValidatePreprepare(destModule, preprepare, origin))
+	dsl.EmitEvent(m, events.ValidatePreprepare(destModule, preprepare, origin))
 }
 
 func PreprepareValidated(m dsl.Module, destModule types.ModuleID, error error, origin *types2.ValidatePreprepareOrigin) {
-	dsl.EmitMirEvent(m, events.PreprepareValidated(destModule, error, origin))
+	dsl.EmitEvent(m, events.PreprepareValidated(destModule, error, origin))
 }

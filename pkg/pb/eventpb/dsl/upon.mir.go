@@ -12,13 +12,13 @@ import (
 // Module-specific dsl functions for processing events.
 
 func UponInit(m dsl.Module, handler func() error) {
-	dsl.UponMirEvent[*types.Event_Init](m, func(ev *types.Init) error {
+	dsl.UponEvent[*types.Event_Init](m, func(ev *types.Init) error {
 		return handler()
 	})
 }
 
 func UponTimerEvent[W types.TimerEvent_TypeWrapper[Ev], Ev any](m dsl.Module, handler func(ev *Ev) error) {
-	dsl.UponMirEvent[*types.Event_Timer](m, func(ev *types.TimerEvent) error {
+	dsl.UponEvent[*types.Event_Timer](m, func(ev *types.TimerEvent) error {
 		w, ok := ev.Type.(W)
 		if !ok {
 			return nil

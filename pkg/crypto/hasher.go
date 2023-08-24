@@ -7,11 +7,9 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type HashImpl interface {
@@ -35,27 +33,27 @@ func (hasher *Hasher) ApplyEvents(eventsIn *events.EventList) (*events.EventList
 	return modules.ApplyEventsConcurrently(eventsIn, hasher.ApplyEvent)
 }
 
-func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (hasher *Hasher) ApplyEvent(event *eventpbtypes.Event) (*events.EventList, error) {
 	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
+	case *eventpbtypes.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
-	case *eventpb.Event_Hasher:
+	case *eventpbtypes.Event_Hasher:
 		switch e := e.Hasher.Type.(type) {
-		case *hasherpb.Event_Request:
+		case *hasherpbtypes.Event_Request:
 			// Return all computed digests in one common event.
 			return events.ListOf(hasherpbevents.Result(
-				t.ModuleID(e.Request.Origin.Module),
+				e.Request.Origin.Module,
 				hasher.computeDigests(e.Request.Data),
-				hasherpbtypes.HashOriginFromPb(e.Request.Origin),
-			).Pb()), nil
-		case *hasherpb.Event_RequestOne:
+				e.Request.Origin,
+			)), nil
+		case *hasherpbtypes.Event_RequestOne:
 			// Return a single computed digests.
 			return events.ListOf(hasherpbevents.ResultOne(
-				t.ModuleID(e.RequestOne.Origin.Module),
-				hasher.computeDigests([]*hasherpb.HashData{e.RequestOne.Data})[0],
-				hasherpbtypes.HashOriginFromPb(e.RequestOne.Origin),
-			).Pb()), nil
+				e.RequestOne.Origin.Module,
+				hasher.computeDigests([]*hasherpbtypes.HashData{e.RequestOne.Data})[0],
+				e.RequestOne.Origin,
+			)), nil
 		default:
 			return nil, es.Errorf("unexpected hasher event type: %T", e)
 		}
@@ -65,7 +63,7 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 	}
 }
 
-func (hasher *Hasher) computeDigests(allData []*hasherpb.HashData) [][]byte {
+func (hasher *Hasher) computeDigests(allData []*hasherpbtypes.HashData) [][]byte {
 	// Create a slice for the resulting digests containing one element for each data item to be hashed.
 	digests := make([][]byte, len(allData))
 

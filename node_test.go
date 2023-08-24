@@ -17,7 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -270,7 +270,7 @@ func (c *consumer) ImplementsModule() {}
 // ApplyEvents increments a counter and sleeps for a given duration (set at module instantiation)
 // for each event in the given list.
 func (c *consumer) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
-	evtsOut, err := modules.ApplyEventsSequentially(evts, func(event *eventpb.Event) (*events.EventList, error) {
+	evtsOut, err := modules.ApplyEventsSequentially(evts, func(event *eventpbtypes.Event) (*events.EventList, error) {
 		atomic.AddUint64(&c.numProcessed, 1)
 		time.Sleep(c.delay)
 		return events.EmptyList(), nil

@@ -12,13 +12,13 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func ProposeTimeout(m dsl.Module, destModule types.ModuleID, proposeTimeout uint64) {
-	dsl.EmitMirEvent(m, events.ProposeTimeout(destModule, proposeTimeout))
+	dsl.EmitEvent(m, events.ProposeTimeout(destModule, proposeTimeout))
 }
 
 func ViewChangeSNTimeout(m dsl.Module, destModule types.ModuleID, view types1.ViewNr, numCommitted uint64) {
-	dsl.EmitMirEvent(m, events.ViewChangeSNTimeout(destModule, view, numCommitted))
+	dsl.EmitEvent(m, events.ViewChangeSNTimeout(destModule, view, numCommitted))
 }
 
 func ViewChangeSegTimeout(m dsl.Module, destModule types.ModuleID, viewChangeSegTimeout uint64) {
-	dsl.EmitMirEvent(m, events.ViewChangeSegTimeout(destModule, viewChangeSegTimeout))
+	dsl.EmitEvent(m, events.ViewChangeSegTimeout(destModule, viewChangeSegTimeout))
 }

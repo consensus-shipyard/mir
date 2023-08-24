@@ -47,7 +47,7 @@ func (w sqliteWriter) Write(record EventRecord) error {
 	// For each incoming event
 	iter := record.Events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		jsonData, err := protojson.Marshal(event)
+		jsonData, err := protojson.Marshal(event.Pb())
 		if err != nil {
 			return err
 		}

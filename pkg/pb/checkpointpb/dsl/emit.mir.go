@@ -13,9 +13,9 @@ import (
 // Module-specific dsl functions for emitting events.
 
 func StableCheckpoint(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, snapshot *types2.StateSnapshot, cert map[types.NodeID][]uint8) {
-	dsl.EmitMirEvent(m, events.StableCheckpoint(destModule, sn, snapshot, cert))
+	dsl.EmitEvent(m, events.StableCheckpoint(destModule, sn, snapshot, cert))
 }
 
 func EpochProgress(m dsl.Module, destModule types.ModuleID, nodeId types.NodeID, epoch types1.EpochNr) {
-	dsl.EmitMirEvent(m, events.EpochProgress(destModule, nodeId, epoch))
+	dsl.EmitEvent(m, events.EpochProgress(destModule, nodeId, epoch))
 }

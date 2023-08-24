@@ -9,7 +9,7 @@ package events
 import (
 	"container/list"
 
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 // EventList represents a list of Events, e.g. as produced by a module.
@@ -27,7 +27,7 @@ func EmptyList() *EventList {
 }
 
 // ListOf returns EventList containing the given elements.
-func ListOf(events ...*eventpb.Event) *EventList {
+func ListOf(events ...*eventpbtypes.Event) *EventList {
 	res := &EventList{}
 	for _, ev := range events {
 		res.PushBack(ev)
@@ -45,7 +45,7 @@ func (el *EventList) Len() int {
 
 // PushBack appends an event to the end of the list.
 // Returns the EventList itself, for the convenience of chaining multiple calls to PushBack.
-func (el *EventList) PushBack(event *eventpb.Event) *EventList {
+func (el *EventList) PushBack(event *eventpbtypes.Event) *EventList {
 	if el.list == nil {
 		el.list = list.New()
 	}
@@ -55,7 +55,7 @@ func (el *EventList) PushBack(event *eventpb.Event) *EventList {
 }
 
 // PushBackSlice appends all events in newEvents to the end of the current EventList.
-func (el *EventList) PushBackSlice(events []*eventpb.Event) *EventList {
+func (el *EventList) PushBackSlice(events []*eventpbtypes.Event) *EventList {
 	if el.list == nil {
 		el.list = list.New()
 	}
@@ -123,13 +123,13 @@ func (el *EventList) RemoveFront(n int) int {
 // Slice returns a slice representation of the current state of the list.
 // The returned slice only contains pointers to the events in this list, no deep copying is performed.
 // Any modifications performed on the events will affect the contents of both the EventList and the returned slice.
-func (el *EventList) Slice() []*eventpb.Event {
+func (el *EventList) Slice() []*eventpbtypes.Event {
 	if el.list == nil {
 		return nil
 	}
 
 	// Create empty result slice.
-	events := make([]*eventpb.Event, 0, el.Len())
+	events := make([]*eventpbtypes.Event, 0, el.Len())
 
 	// Populate result slice by appending events one by one.
 	iter := el.Iterator()
@@ -184,7 +184,7 @@ type EventListIterator struct {
 
 // Next will return the next Event until the end of the associated EventList is encountered.
 // Thereafter, it will return nil.
-func (eli *EventListIterator) Next() *eventpb.Event {
+func (eli *EventListIterator) Next() *eventpbtypes.Event {
 
 	// Return nil if list has been exhausted.
 	if eli.currentElement == nil {
@@ -192,7 +192,7 @@ func (eli *EventListIterator) Next() *eventpb.Event {
 	}
 
 	// Obtain current element and move on to the next one.
-	result := eli.currentElement.Value.(*eventpb.Event)
+	result := eli.currentElement.Value.(*eventpbtypes.Event)
 	eli.currentElement = eli.currentElement.Next()
 
 	// Return current element.

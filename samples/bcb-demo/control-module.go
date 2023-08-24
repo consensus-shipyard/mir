@@ -10,8 +10,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/bcbpb"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	bcbpbtypes "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 type controlModule struct {
@@ -33,7 +33,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		switch event.Type.(type) {
 
-		case *eventpb.Event_Init:
+		case *eventpbtypes.Event_Init:
 			if m.isLeader {
 				go func() {
 					err := m.readMessageFromConsole()
@@ -45,12 +45,12 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 				fmt.Println("Waiting for the message...")
 			}
 
-		case *eventpb.Event_Bcb:
-			bcbEvent := event.Type.(*eventpb.Event_Bcb).Bcb
+		case *eventpbtypes.Event_Bcb:
+			bcbEvent := event.Type.(*eventpbtypes.Event_Bcb).Bcb
 			switch bcbEvent.Type.(type) {
 
-			case *bcbpb.Event_Deliver:
-				deliverEvent := bcbEvent.Type.(*bcbpb.Event_Deliver).Deliver
+			case *bcbpbtypes.Event_Deliver:
+				deliverEvent := bcbEvent.Type.(*bcbpbtypes.Event_Deliver).Deliver
 				fmt.Println("Leader says: ", string(deliverEvent.Data))
 
 			default:
@@ -79,12 +79,12 @@ func (m *controlModule) readMessageFromConsole() error {
 		return es.Errorf("error reading from console: %w", scanner.Err())
 	}
 
-	m.eventsOut <- events.ListOf(&eventpb.Event{
+	m.eventsOut <- events.ListOf(&eventpbtypes.Event{
 		DestModule: "bcb",
-		Type: &eventpb.Event_Bcb{
-			Bcb: &bcbpb.Event{
-				Type: &bcbpb.Event_Request{
-					Request: &bcbpb.BroadcastRequest{
+		Type: &eventpbtypes.Event_Bcb{
+			Bcb: &bcbpbtypes.Event{
+				Type: &bcbpbtypes.Event_Request{
+					Request: &bcbpbtypes.BroadcastRequest{
 						Data: []byte(scanner.Text()),
 					},
 				},

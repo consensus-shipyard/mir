@@ -2,12 +2,12 @@ package batchfetcher
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
 type outputItem struct {
-	event *eventpb.Event
-	f     func(e *eventpb.Event)
+	event *eventpbtypes.Event
+	f     func(e *eventpbtypes.Event)
 }
 
 type outputQueue struct {

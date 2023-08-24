@@ -111,7 +111,7 @@ func generateDslFunctionForEmittingRequestWithOrigin(eventNode *events.EventNode
 			}),
 		}),
 		jen.Line(), // empty line
-		jen.Add(dslEmitMirEvent).Call(
+		jen.Add(dslEmitEvent).Call(
 			jen.Id("m"),
 			eventNode.Constructor().Call(eventNode.AllConstructorParameters().IDs()...),
 		),
@@ -125,7 +125,7 @@ func generateDslFunctionForEmittingSimpleEvent(eventNode *events.EventNode, jenF
 	funcParams = append(funcParams, eventNode.AllConstructorParameters().MirCode()...)
 
 	jenFile.Func().Id(eventNode.Name()).Params(funcParams...).Block(
-		jen.Add(dslEmitMirEvent).Call(
+		jen.Add(dslEmitEvent).Call(
 			jen.Id("m"),
 			eventNode.Constructor().Call(eventNode.AllConstructorParameters().IDs()...),
 		),
@@ -138,7 +138,7 @@ func generateDslFunctionForHandlingEvents(eventRoot *events.EventNode) error {
 	for _, child := range eventRoot.Children() {
 		err := generateRecursivelyDslFunctionsForHandlingEvents(
 			/*eventNode*/ child,
-			/*uponEvent*/ dslUponMirEvent,
+			/*uponEvent*/ dslUponEvent,
 			jenFileBySourcePackagePath,
 		)
 

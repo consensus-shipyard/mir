@@ -5,8 +5,8 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -44,16 +44,16 @@ func (eb *eventBuffer) Add(events *events.EventList) error {
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		// Look up the corresponding module's buffer and add the event to it.
-		if buffer, ok := eb.buffers[t.ModuleID(event.DestModule).Top()]; ok {
+		if buffer, ok := eb.buffers[event.DestModule.Top()]; ok {
 			buffer.PushBack(event)
 			eb.totalEvents++
 		} else {
 
 			// If there is no buffer for the event, check if it is a MessgeReceived event.
 			isMessageReceivedEvent := false
-			e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+			e, isTransportEvent := event.Type.(*eventpbtypes.Event_Transport)
 			if isTransportEvent {
-				_, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
+				_, isMessageReceivedEvent = e.Transport.Type.(*transportpbtypes.Event_MessageReceived)
 			}
 
 			// If there is no buffer but the event is a MessageReceived event,
