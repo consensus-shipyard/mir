@@ -3,6 +3,7 @@ package clientprogress
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -23,18 +24,31 @@ type DeliveredTXs struct {
 
 // EmptyDeliveredTXs allocates and returns a new DeliveredTXs.
 func EmptyDeliveredTXs(logger logging.Logger) *DeliveredTXs {
+	return newDeliveredTXs(logger, 0)
+}
+
+func newDeliveredTXs(logger logging.Logger, capacity int) *DeliveredTXs {
 	return &DeliveredTXs{
 		lowWM:     0,
-		delivered: make(map[tt.TxNo]struct{}),
+		delivered: make(map[tt.TxNo]struct{}, capacity),
 		logger:    logger,
 	}
 }
 
 func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs, logger logging.Logger) *DeliveredTXs {
-	dr := EmptyDeliveredTXs(logger)
+	dr := newDeliveredTXs(logger, len(pb.Delivered))
 	dr.lowWM = tt.TxNo(pb.LowWm)
 	for _, txNo := range pb.Delivered {
 		dr.delivered[tt.TxNo(txNo)] = struct{}{}
+	}
+	return dr
+}
+
+func DeliveredTXsFromDslStruct(dslStruct *trantorpbtypes.DeliveredTXs, logger logging.Logger) *DeliveredTXs {
+	dr := newDeliveredTXs(logger, len(dslStruct.Delivered))
+	dr.lowWM = dslStruct.LowWm
+	for _, txNo := range dslStruct.Delivered {
+		dr.delivered[txNo] = struct{}{}
 	}
 	return dr
 }
@@ -88,6 +102,18 @@ func (dt *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
 
 	return &trantorpb.DeliveredTXs{
 		LowWm:     dt.lowWM.Pb(),
+		Delivered: delivered,
+	}
+}
+
+func (dt *DeliveredTXs) DslStruct() *trantorpbtypes.DeliveredTXs {
+	delivered := make([]tt.TxNo, len(dt.delivered))
+	for i, txNo := range maputil.GetSortedKeys(dt.delivered) {
+		delivered[i] = txNo
+	}
+
+	return &trantorpbtypes.DeliveredTXs{
+		LowWm:     dt.lowWM,
 		Delivered: delivered,
 	}
 }

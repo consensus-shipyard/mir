@@ -274,8 +274,8 @@ func (*ClientProgress) MirReflect() mirreflect.Type {
 }
 
 type DeliveredTXs struct {
-	LowWm     uint64
-	Delivered []uint64
+	LowWm     types.TxNo
+	Delivered []types.TxNo
 }
 
 func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs) *DeliveredTXs {
@@ -283,8 +283,10 @@ func DeliveredTXsFromPb(pb *trantorpb.DeliveredTXs) *DeliveredTXs {
 		return nil
 	}
 	return &DeliveredTXs{
-		LowWm:     pb.LowWm,
-		Delivered: pb.Delivered,
+		LowWm: (types.TxNo)(pb.LowWm),
+		Delivered: types1.ConvertSlice(pb.Delivered, func(t uint64) types.TxNo {
+			return (types.TxNo)(t)
+		}),
 	}
 }
 
@@ -294,8 +296,10 @@ func (m *DeliveredTXs) Pb() *trantorpb.DeliveredTXs {
 	}
 	pbMessage := &trantorpb.DeliveredTXs{}
 	{
-		pbMessage.LowWm = m.LowWm
-		pbMessage.Delivered = m.Delivered
+		pbMessage.LowWm = (uint64)(m.LowWm)
+		pbMessage.Delivered = types1.ConvertSlice(m.Delivered, func(t types.TxNo) uint64 {
+			return (uint64)(t)
+		})
 	}
 
 	return pbMessage

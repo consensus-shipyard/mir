@@ -76,6 +76,6 @@ message ClientProgress {
 message DeliveredTXs {
   option (mir.struct) = true;
 
-  uint64          low_wm    = 1;
-  repeated uint64 delivered = 2;
+  uint64          low_wm    = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxNo"];
+  repeated uint64 delivered = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.TxNo"];
 }

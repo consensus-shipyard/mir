@@ -73,7 +73,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule),
 			f: func(_ *eventpbtypes.Event) {
 				clientProgress.GarbageCollect()
-				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()))
+				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, clientProgress.DslStruct())
 			},
 		})
 		output.Flush(m)
@@ -138,7 +138,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 				clientProgress.GarbageCollect()
 				trantorpbdsl.ClientProgress(m,
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
-					trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()).Progress,
+					clientProgress.DslStruct().Progress,
 				)
 			},
 		})

@@ -134,7 +134,7 @@ func (sc *StableCheckpoint) StateSnapshot() *trantorpbtypes.StateSnapshot {
 }
 
 func (sc *StableCheckpoint) ClientProgress(logger logging.Logger) *clientprogress.ClientProgress {
-	return clientprogress.FromPb(sc.Snapshot.EpochData.ClientProgress.Pb(), logger)
+	return clientprogress.FromDslStruct(sc.Snapshot.EpochData.ClientProgress, logger)
 }
 
 func (sc *StableCheckpoint) Certificate() Certificate {
