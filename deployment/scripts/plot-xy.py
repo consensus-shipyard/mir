@@ -13,7 +13,7 @@ valFields = {'experiment-id', 'load-per-node', 'duration-actual', 'latency-95p',
 
 # DEBUG: temporarily don't consider some fields as a parameters
 # valFields.add("epoch")
-# valFields.add("clients")
+valFields.add("clients-total")
 
 
 def filterData(data, f):
@@ -70,8 +70,6 @@ def plotLine(ax, line, label):
     for val in d:
         ax.annotate(val["experiment-id"], (val["x"], val["y"]))
     ax.legend(loc='upper left', fontsize="x-small")
-    ax.set_xlabel(xField)
-    ax.set_ylabel(yField)
 
 
 csvFile = sys.argv[1]
@@ -107,8 +105,17 @@ fig, ax = plt.subplots()
 # ax.spines['bottom'].set_position('zero')
 # ax.spines['left'].set_position('zero')
 ax.grid(which='both')
+ax.set_xlabel(xField)
+ax.set_ylabel(yField)
+# ax.set_title("Plot title goes here when uncommented")
 
 for f, line in splitLine(data):
     plotLine(ax, line, f)
+
+# Set the axes origin to zero
+_, y_max = ax.get_ylim()
+ax.set_ylim(ymin=0, ymax=y_max)
+_, x_max = ax.get_xlim()
+ax.set_xlim(xmin=0, xmax=x_max)
 
 fig.savefig(outFileName, dpi=400)
