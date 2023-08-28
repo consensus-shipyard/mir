@@ -5,7 +5,7 @@ ansible_ssh_private_key_file: ~/.ssh/matej-pl-aws-key.cer # Meaningless example 
 git_repo: https://github.com/matejpavlovic/mir.git
 
 # Version of the code to check out from the Mir repository at setup. This can be a branch name, a commit hash, etc...
-git_version: bench-new # Meaningless example value. Set to desired code version to check out from Git.
+git_version: main # Meaningless example value. Set to desired code version to check out from Git.
 
 # Username to use when logging in the remote machines.
 ansible_user: ubuntu # Example value (default on EC2 Ubuntu virtual machines)
