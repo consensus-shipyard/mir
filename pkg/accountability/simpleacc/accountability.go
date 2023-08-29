@@ -46,7 +46,6 @@ type ModuleParams = common.ModuleParams
 // (signed predecisions or certificates) after termination, until
 // it is garbage collected.
 //
-
 // Intuition of correctness: a process only terminates if it receives a
 // strong quorum of signed predecisions from distinct processes, forming
 // a certificate.  Once this process forms a certificate, it shares it
@@ -67,7 +66,6 @@ type ModuleParams = common.ModuleParams
 // Except that it does not implement the optimization using threshold
 // signatures (as we have members with associated weight)
 //
-
 // The optimistic variant of this module is a parametrizable optimization
 // in which certificates are optimistically believed to be correct. This way,
 // in the good case a correct process broadcasts a light certificate of O(1) bits

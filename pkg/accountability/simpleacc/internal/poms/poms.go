@@ -29,7 +29,8 @@ func IncludePoMs(
 
 		for _, pom := range poms {
 			if reflect.DeepEqual(pom.ConflictingMsg_1.Predecision, pom.ConflictingMsg_2.Predecision) ||
-				reflect.DeepEqual(pom.ConflictingMsg_1.Signature, pom.ConflictingMsg_2.Signature) { // no PoM possible here
+				reflect.DeepEqual(pom.ConflictingMsg_1.Signature, pom.ConflictingMsg_2.Signature) {
+				// no PoM possible here
 				continue
 			}
 
