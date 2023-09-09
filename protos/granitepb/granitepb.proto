@@ -43,10 +43,10 @@ message ConsensusMsg {
 //  bytes  signature    = 4;
 //}
 //
-//message Ticket {
-//  option (mir.struct) = true;
-//  bytes  data         = 1; // TODO include actual ticket based on VRF proofs
-//}
+message Ticket {
+  option (mir.struct) = true;
+  bytes  data         = 1; // TODO include actual ticket based on VRF proofs
+}
 //
 //message Propose {
 //  option (net.message) = true;

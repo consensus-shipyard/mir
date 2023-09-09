@@ -2,10 +2,15 @@ package granite
 
 import (
 	granitepbtypes "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
+	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type RoundNr uint64
+
+func (r RoundNr) Bytes() []byte {
+	return serializing.Uint64ToBytes(uint64(r))
+}
 
 // InstanceUID is used to uniquely identify an instance of Granite.
 // It is used to prevent cross-instance signature replay attack and should be unique across all executions.
@@ -64,7 +69,7 @@ func (mst *MsgStore) StoreMessage(msgType MsgType, round RoundNr, nodeID t.NodeI
 	mst.Msgs[msgType].StoreMessage(round, nodeID, message)
 }
 
-func (mst *MsgStore) RemoveMessage(msgType MsgType, round RoundNr, nodeID t.NodeID, key string) {
+func (mst *MsgStore) RemoveMessage(msgType MsgType, round RoundNr, nodeID t.NodeID) {
 	delete(mst.Msgs[msgType][round], nodeID)
 }
 
