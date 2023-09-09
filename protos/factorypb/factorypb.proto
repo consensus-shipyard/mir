@@ -8,7 +8,7 @@ import "availabilitypb/mscpb/mscpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
 import "ordererpb/pprepvalidatorpb/pprepvalidatorpb.proto";
-
+import "granitepb/granitepb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -52,6 +52,7 @@ message GeneratorParams {
     EchoModuleParams                           echo_test_module   = 3;
     ordererpb.PBFTModule                       pbft_module        = 4;
     pprepvalidatorpb.PPrepValidatorChkp        ppv_module         = 5;
+    granitepb.InstanceParams                   granite            = 6;
   }
 }
 
