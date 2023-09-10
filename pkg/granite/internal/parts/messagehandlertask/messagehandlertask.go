@@ -21,12 +21,6 @@ func IncludeMessageHandlerTask(
 ) {
 
 	granitepbdsl.UponConsensusMsgReceived(m, func(from types.NodeID, msgType granite.MsgType, round granite.RoundNr, data []uint8, ticket *granitepbtypes.Ticket, signature []uint8) error {
-		if _, ok := state.UnvalidatedMsgs.Get(msgType, round, from); ok {
-			return nil // message already received or duplicate, discarding
-		} else if _, ok := state.ValidatedMsgs.Get(msgType, round, from); ok {
-			return nil // message already received or duplicate, discarding
-		}
-
 		//Verify signature
 		toVerify := [][]byte{data, params.InstanceUID, round.Bytes()}
 		if msgType == granite.CONVERGE {
@@ -52,9 +46,17 @@ func IncludeMessageHandlerTask(
 			Signature: signature,
 		}
 
+		// TODO If libp2p does not already implement it, relay messages here to a constant number of processes (e.g. 30) at random (epidemic dissemination)
+
+		if _, ok := state.UnvalidatedMsgs.Get(msgType, round, from); ok {
+			return nil // message already received or duplicate, discarding
+		} else if _, ok := state.ValidatedMsgs.Get(msgType, round, from); ok {
+			return nil // message already received or duplicate, discarding
+		}
+
 		state.UnvalidatedMsgs.StoreMessage(msgType, round, from, msg)
 
-		for msg, source, ok := state.FindNewValid(); ok; msg, source, ok = state.FindNewValid() {
+		for msg, source, ok := state.FindNewValid(params); ok; msg, source, ok = state.FindNewValid(params) {
 			state.UnvalidatedMsgs.RemoveMessage(msgType, round, from)
 			state.ValidatedMsgs.StoreMessage(msgType, round, from, msg)
 

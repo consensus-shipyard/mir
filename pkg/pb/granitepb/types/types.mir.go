@@ -287,6 +287,7 @@ func (*ConvergeTimeout) MirReflect() mirreflect.Type {
 }
 
 type Decision struct {
+	Round     types.RoundNr
 	Data      []uint8
 	Signature []uint8
 }
@@ -296,6 +297,7 @@ func DecisionFromPb(pb *granitepb.Decision) *Decision {
 		return nil
 	}
 	return &Decision{
+		Round:     (types.RoundNr)(pb.Round),
 		Data:      pb.Data,
 		Signature: pb.Signature,
 	}
@@ -307,6 +309,7 @@ func (m *Decision) Pb() *granitepb.Decision {
 	}
 	pbMessage := &granitepb.Decision{}
 	{
+		pbMessage.Round = (uint64)(m.Round)
 		pbMessage.Data = m.Data
 		pbMessage.Signature = m.Signature
 	}

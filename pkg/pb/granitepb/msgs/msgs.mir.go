@@ -3,19 +3,20 @@
 package granitepbmsgs
 
 import (
-	types3 "github.com/filecoin-project/mir/pkg/granite/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/granite/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Decision(destModule types.ModuleID, data []uint8, signature []uint8) *types1.Message {
-	return &types1.Message{
+func Decision(destModule types.ModuleID, round types1.RoundNr, data []uint8, signature []uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_Decision{
-					Decision: &types2.Decision{
+		Type: &types2.Message_Granite{
+			Granite: &types3.Message{
+				Type: &types3.Message_Decision{
+					Decision: &types3.Decision{
+						Round:     round,
 						Data:      data,
 						Signature: signature,
 					},
@@ -25,13 +26,13 @@ func Decision(destModule types.ModuleID, data []uint8, signature []uint8) *types
 	}
 }
 
-func ConsensusMsg(destModule types.ModuleID, msgType types3.MsgType, round types3.RoundNr, data []uint8, ticket *types2.Ticket, signature []uint8) *types1.Message {
-	return &types1.Message{
+func ConsensusMsg(destModule types.ModuleID, msgType types1.MsgType, round types1.RoundNr, data []uint8, ticket *types3.Ticket, signature []uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_ConsensusMsg{
-					ConsensusMsg: &types2.ConsensusMsg{
+		Type: &types2.Message_Granite{
+			Granite: &types3.Message{
+				Type: &types3.Message_ConsensusMsg{
+					ConsensusMsg: &types3.ConsensusMsg{
 						MsgType:   msgType,
 						Round:     round,
 						Data:      data,

@@ -24,9 +24,9 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponDecisionReceived(m dsl.Module, handler func(from types1.NodeID, data []uint8, signature []uint8) error) {
+func UponDecisionReceived(m dsl.Module, handler func(from types1.NodeID, round types3.RoundNr, data []uint8, signature []uint8) error) {
 	UponMessageReceived[*types.Message_Decision](m, func(from types1.NodeID, msg *types.Decision) error {
-		return handler(from, msg.Data, msg.Signature)
+		return handler(from, msg.Round, msg.Data, msg.Signature)
 	})
 }
 

@@ -37,7 +37,7 @@ func IncludeConsensusTask(
 		state.Value = state.Proposal
 
 		var signature []byte
-		signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes()})
+		signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes(), []byte(int32(granite.PROPOSE))})
 
 		if err != nil {
 			return err
@@ -60,14 +60,13 @@ func IncludeConsensusTask(
 	})
 }
 
-// TODO Actually implement this function with the core logic of Granite
 func MsgValidated(m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
 	mc *common.ModuleConfig,
 	from types.NodeID,
 	msg *granitepbtypes.ConsensusMsg) {
-	//TODO implement discarding messages for old rounds and buffering msgs for new rounds
+	//TODO implement discarding messages for old rounds and buffering msgs for new rounds? (perhaps just the fact that we call check[NextStep] at the end of a step when it finishes will suffice
 
 	switch msg.MsgType {
 	case granite.CONVERGE:
@@ -128,12 +127,18 @@ func checkConverge(
 	mc *common.ModuleConfig,
 ) error {
 	state.Value = getValueMinimumTicket(params.Membership, state.ValidatedMsgs.Msgs[granite.CONVERGE][state.Round])
+
+	var signature []byte
+	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes(), []byte(int32(granite.PROPOSE))})
+	if err != nil {
+		return err
+	}
 	transportpbdsl.SendMessage(m, mc.Net, granitepbmsgs.ConsensusMsg(mc.Self, granite.PROPOSE, state.Round, state.Proposal, nil, signature), maputil.GetKeys(params.Membership.Nodes))
 
 	state.Step = granite.PROPOSE
 
 	//It could be that we have already received enough PREPARE messages to move to the next step
-	checkPropose(
+	return checkPropose(
 		m,
 		state,
 		params,
@@ -173,14 +178,14 @@ func checkPropose(
 
 	mode := findMode(
 		sliceutil.Transform(
-			maputil.GetValues(state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round]), func(msg *granitepbtypes.ConsensusMsg) string {
+			maputil.GetValues(state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round]), func(i int, msg *granitepbtypes.ConsensusMsg) string {
 				return string(msg.Data)
 			}),
 	)
 	state.Value = []byte(mode)
 
 	var signature []byte
-	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes()})
+	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes(), []byte(int32(granite.PREPARE))})
 	if err != nil {
 		return err
 	}
@@ -235,14 +240,14 @@ func checkPrepare(
 		return nil
 	}
 
-	updatedValue := getValueWithQuorum(params.Membership, state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round])
+	updatedValue, ok := GetValueWithStrongQuorum(params.Membership, state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round])
 	state.Value = nil
-	if updatedValue != nil {
+	if ok {
 		state.Value = updatedValue
 	}
 
 	var signature []byte
-	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes()})
+	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes(), []byte(int32(granite.PREPARE))})
 	if err != nil {
 		return err
 	}
@@ -268,6 +273,17 @@ func CommitValidated(m dsl.Module,
 	mc *common.ModuleConfig,
 	round granite.RoundNr,
 ) error {
+
+	if value, ok := GetValueWithStrongQuorum(params.Membership, state.ValidatedMsgs.Msgs[granite.COMMIT][round]); ok {
+		decide(
+			m,
+			state,
+			mc,
+			params,
+			value,
+		)
+	}
+
 	if round != state.Round {
 		return nil
 	}
@@ -297,10 +313,16 @@ func checkCommit(
 		return nil
 	}
 
-	state.Value = getValueWithQuorum(params.Membership, state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round])
-	if state.Value != nil {
+	updatedValue, ok := GetValueWithStrongQuorum(params.Membership, state.ValidatedMsgs.Msgs[granite.PROPOSE][state.Round])
+	state.Value = updatedValue
+	if ok {
 		//FINISHED
-		decide(...)
+		decide(m,
+			state,
+			mc,
+			params,
+			state.Value,
+		)
 		return nil
 	}
 
@@ -309,7 +331,7 @@ func checkCommit(
 	state.Step = granite.CONVERGE
 
 	var signature []byte
-	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes()})
+	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, state.Round.Bytes(), []byte(int32(granite.CONVERGE))})
 	if err != nil {
 		return err
 	}
@@ -325,6 +347,26 @@ func checkCommit(
 		[]*eventpbtypes.Event{timeoutEvent},
 		timertypes.Duration(params.ConvergeDelay),
 	)
+	return nil
+}
+
+func decide(m dsl.Module,
+	state *common.State,
+	mc *common.ModuleConfig,
+	params *common.ModuleParams,
+	value []byte,
+) error {
+	state.Value = value
+	state.Finished = true //TODO use this value where relevant (for correctness? and as an optimization perhaps too)
+	var signature []byte
+	signature, err := params.Crypto.Sign([][]byte{state.Value, params.InstanceUID, []byte("DECISION")})
+	if err != nil {
+		return err
+	}
+
+	//TODO Send to clients, not just Membership
+	// This code does not even use decide messages received to decide anything, but COMMITs received
+	transportpbdsl.SendMessage(m, mc.Net, granitepbmsgs.Decision(mc.Self, state.Proposal, nil, signature), maputil.GetKeys(params.Membership.Nodes))
 	return nil
 }
 
@@ -352,9 +394,13 @@ func findMode[T comparable](dataList []T) T {
 	return modeData
 }
 
-// getValueWithQuorum returns a value if it gathers at least a strong quorum.
-// If no value has a strong quorum, it returns the default value.
-func getValueWithQuorum(membership *trantorpbtypes.Membership, messages map[types.NodeID]*granitepbtypes.ConsensusMsg) []byte {
+// GetValueWithStrongQuorum returns a value if it gathers at least a strong quorum.
+// If no value has a strong quorum, it returns the default value and false.
+func GetValueWithStrongQuorum(membership *trantorpbtypes.Membership, messages map[types.NodeID]*granitepbtypes.ConsensusMsg) ([]byte, bool) {
+	return getValueWithQuorum(membership, messages, membutil.HaveStrongQuorum)
+}
+
+func getValueWithQuorum(membership *trantorpbtypes.Membership, messages map[types.NodeID]*granitepbtypes.ConsensusMsg, quorumFunc func(*trantorpbtypes.Membership, []types.NodeID) bool) ([]byte, bool) {
 
 	// Store the occurrence counts of each string value and the nodes that vouched for it
 	valueNodes := make(map[string][]types.NodeID)
@@ -370,13 +416,13 @@ func getValueWithQuorum(membership *trantorpbtypes.Membership, messages map[type
 
 	// Check each string value to see if it meets the strong quorum requirement
 	for data, _ := range valueNodes {
-		if membutil.HaveStrongQuorum(membership, valueNodes[data]) {
-			return []byte(data)
+		if quorumFunc(membership, valueNodes[data]) {
+			return []byte(data), true
 		}
 	}
 
 	// If no value met the requirement, return the default value
-	return nil
+	return nil, false
 }
 
 // getValue returns one of the non-empty values at random.

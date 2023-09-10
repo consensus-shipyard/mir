@@ -25,7 +25,7 @@ func NewModule(mc *ModuleConfig, params *ModuleParams, logger logging.Logger) (m
 	m := dsl.NewModule(mc.Self)
 
 	state := &common.State{
-		Round:            0,
+		Round:            1,
 		Step:             PROPOSE, // First round skip CONVERGE step
 		ValidatedMsgs:    NewMsgStore(),
 		UnvalidatedMsgs:  NewMsgStore(),
