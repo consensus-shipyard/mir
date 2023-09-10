@@ -14,7 +14,7 @@ import (
 // IncludeMessageHandlerTask registers event handlers for the buffering and validation of Granite messages before delivering them to the core logic.
 func IncludeMessageHandlerTask(
 	m dsl.Module,
-	mc common.ModuleConfig,
+	mc *common.ModuleConfig,
 	params *common.ModuleParams,
 	state *common.State,
 	logger logging.Logger,
@@ -60,6 +60,8 @@ func IncludeMessageHandlerTask(
 
 			consensustask.MsgValidated(m,
 				state,
+				params,
+				mc,
 				source,
 				msg,
 			)

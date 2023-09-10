@@ -24,30 +24,6 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponConvergeReceived(m dsl.Module, handler func(from types1.NodeID, round types3.RoundNr, data []uint8, ticket *types.Ticket, signature []uint8) error) {
-	UponMessageReceived[*types.Message_Converge](m, func(from types1.NodeID, msg *types.Converge) error {
-		return handler(from, msg.Round, msg.Data, msg.Ticket, msg.Signature)
-	})
-}
-
-func UponProposeReceived(m dsl.Module, handler func(from types1.NodeID, round types3.RoundNr, data []uint8, signature []uint8) error) {
-	UponMessageReceived[*types.Message_Propose](m, func(from types1.NodeID, msg *types.Propose) error {
-		return handler(from, msg.Round, msg.Data, msg.Signature)
-	})
-}
-
-func UponPrepareReceived(m dsl.Module, handler func(from types1.NodeID, round types3.RoundNr, data []uint8, signature []uint8) error) {
-	UponMessageReceived[*types.Message_Prepare](m, func(from types1.NodeID, msg *types.Prepare) error {
-		return handler(from, msg.Round, msg.Data, msg.Signature)
-	})
-}
-
-func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, round types3.RoundNr, data []uint8, signature []uint8) error) {
-	UponMessageReceived[*types.Message_Commit](m, func(from types1.NodeID, msg *types.Commit) error {
-		return handler(from, msg.Round, msg.Data, msg.Signature)
-	})
-}
-
 func UponDecisionReceived(m dsl.Module, handler func(from types1.NodeID, data []uint8, signature []uint8) error) {
 	UponMessageReceived[*types.Message_Decision](m, func(from types1.NodeID, msg *types.Decision) error {
 		return handler(from, msg.Data, msg.Signature)

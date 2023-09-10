@@ -24,6 +24,9 @@ import "cryptopb/cryptopb.proto";
 import "transportpb/transportpb.proto";
 import "testerpb/testerpb.proto";
 
+import "granitepb/granitepb.proto";
+
+
 import "mir/codegen_extensions.proto";
 
 // Event represents a state event to be injected into the state machine
@@ -58,6 +61,8 @@ message Event {
          transportpb.Event transport       = 23;
      chkpvalidatorpb.Event chkp_validator  = 24;
     pprepvalidatorpb.Event pprep_valiadtor = 25;
+           granitepb.Event granite         = 26;
+
 
 
     // Events for code samples

@@ -8,11 +8,13 @@ import (
 
 func (*Message) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Message_Converge)(nil)),
-		reflect.TypeOf((*Message_Propose)(nil)),
-		reflect.TypeOf((*Message_Prepare)(nil)),
-		reflect.TypeOf((*Message_Commit)(nil)),
 		reflect.TypeOf((*Message_Decision)(nil)),
 		reflect.TypeOf((*Message_ConsensusMsg)(nil)),
+	}
+}
+
+func (*Event) ReflectTypeOptions() []reflect.Type {
+	return []reflect.Type{
+		reflect.TypeOf((*Event_ConvergeTimeout)(nil)),
 	}
 }

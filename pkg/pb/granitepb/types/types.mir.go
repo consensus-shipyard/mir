@@ -30,116 +30,12 @@ func Message_TypeFromPb(pb granitepb.Message_Type) Message_Type {
 		return nil
 	}
 	switch pb := pb.(type) {
-	case *granitepb.Message_Converge:
-		return &Message_Converge{Converge: ConvergeFromPb(pb.Converge)}
-	case *granitepb.Message_Propose:
-		return &Message_Propose{Propose: ProposeFromPb(pb.Propose)}
-	case *granitepb.Message_Prepare:
-		return &Message_Prepare{Prepare: PrepareFromPb(pb.Prepare)}
-	case *granitepb.Message_Commit:
-		return &Message_Commit{Commit: CommitFromPb(pb.Commit)}
 	case *granitepb.Message_Decision:
 		return &Message_Decision{Decision: DecisionFromPb(pb.Decision)}
 	case *granitepb.Message_ConsensusMsg:
 		return &Message_ConsensusMsg{ConsensusMsg: ConsensusMsgFromPb(pb.ConsensusMsg)}
 	}
 	return nil
-}
-
-type Message_Converge struct {
-	Converge *Converge
-}
-
-func (*Message_Converge) isMessage_Type() {}
-
-func (w *Message_Converge) Unwrap() *Converge {
-	return w.Converge
-}
-
-func (w *Message_Converge) Pb() granitepb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Converge == nil {
-		return &granitepb.Message_Converge{}
-	}
-	return &granitepb.Message_Converge{Converge: (w.Converge).Pb()}
-}
-
-func (*Message_Converge) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Message_Converge]()}
-}
-
-type Message_Propose struct {
-	Propose *Propose
-}
-
-func (*Message_Propose) isMessage_Type() {}
-
-func (w *Message_Propose) Unwrap() *Propose {
-	return w.Propose
-}
-
-func (w *Message_Propose) Pb() granitepb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Propose == nil {
-		return &granitepb.Message_Propose{}
-	}
-	return &granitepb.Message_Propose{Propose: (w.Propose).Pb()}
-}
-
-func (*Message_Propose) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Message_Propose]()}
-}
-
-type Message_Prepare struct {
-	Prepare *Prepare
-}
-
-func (*Message_Prepare) isMessage_Type() {}
-
-func (w *Message_Prepare) Unwrap() *Prepare {
-	return w.Prepare
-}
-
-func (w *Message_Prepare) Pb() granitepb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Prepare == nil {
-		return &granitepb.Message_Prepare{}
-	}
-	return &granitepb.Message_Prepare{Prepare: (w.Prepare).Pb()}
-}
-
-func (*Message_Prepare) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Message_Prepare]()}
-}
-
-type Message_Commit struct {
-	Commit *Commit
-}
-
-func (*Message_Commit) isMessage_Type() {}
-
-func (w *Message_Commit) Unwrap() *Commit {
-	return w.Commit
-}
-
-func (w *Message_Commit) Pb() granitepb.Message_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Commit == nil {
-		return &granitepb.Message_Commit{}
-	}
-	return &granitepb.Message_Commit{Commit: (w.Commit).Pb()}
-}
-
-func (*Message_Commit) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Message_Commit]()}
 }
 
 type Message_Decision struct {
@@ -217,6 +113,83 @@ func (*Message) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Message]()}
 }
 
+type Event struct {
+	Type Event_Type
+}
+
+type Event_Type interface {
+	mirreflect.GeneratedType
+	isEvent_Type()
+	Pb() granitepb.Event_Type
+}
+
+type Event_TypeWrapper[T any] interface {
+	Event_Type
+	Unwrap() *T
+}
+
+func Event_TypeFromPb(pb granitepb.Event_Type) Event_Type {
+	if pb == nil {
+		return nil
+	}
+	switch pb := pb.(type) {
+	case *granitepb.Event_ConvergeTimeout:
+		return &Event_ConvergeTimeout{ConvergeTimeout: ConvergeTimeoutFromPb(pb.ConvergeTimeout)}
+	}
+	return nil
+}
+
+type Event_ConvergeTimeout struct {
+	ConvergeTimeout *ConvergeTimeout
+}
+
+func (*Event_ConvergeTimeout) isEvent_Type() {}
+
+func (w *Event_ConvergeTimeout) Unwrap() *ConvergeTimeout {
+	return w.ConvergeTimeout
+}
+
+func (w *Event_ConvergeTimeout) Pb() granitepb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.ConvergeTimeout == nil {
+		return &granitepb.Event_ConvergeTimeout{}
+	}
+	return &granitepb.Event_ConvergeTimeout{ConvergeTimeout: (w.ConvergeTimeout).Pb()}
+}
+
+func (*Event_ConvergeTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Event_ConvergeTimeout]()}
+}
+
+func EventFromPb(pb *granitepb.Event) *Event {
+	if pb == nil {
+		return nil
+	}
+	return &Event{
+		Type: Event_TypeFromPb(pb.Type),
+	}
+}
+
+func (m *Event) Pb() *granitepb.Event {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &granitepb.Event{}
+	{
+		if m.Type != nil {
+			pbMessage.Type = (m.Type).Pb()
+		}
+	}
+
+	return pbMessage
+}
+
+func (*Event) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Event]()}
+}
+
 type ConsensusMsg struct {
 	MsgType   types.MsgType
 	Round     types.RoundNr
@@ -260,46 +233,6 @@ func (*ConsensusMsg) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.ConsensusMsg]()}
 }
 
-type Converge struct {
-	Round     types.RoundNr
-	Data      []uint8
-	Ticket    *Ticket
-	Signature []uint8
-}
-
-func ConvergeFromPb(pb *granitepb.Converge) *Converge {
-	if pb == nil {
-		return nil
-	}
-	return &Converge{
-		Round:     (types.RoundNr)(pb.Round),
-		Data:      pb.Data,
-		Ticket:    TicketFromPb(pb.Ticket),
-		Signature: pb.Signature,
-	}
-}
-
-func (m *Converge) Pb() *granitepb.Converge {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &granitepb.Converge{}
-	{
-		pbMessage.Round = (uint64)(m.Round)
-		pbMessage.Data = m.Data
-		if m.Ticket != nil {
-			pbMessage.Ticket = (m.Ticket).Pb()
-		}
-		pbMessage.Signature = m.Signature
-	}
-
-	return pbMessage
-}
-
-func (*Converge) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Converge]()}
-}
-
 type Ticket struct {
 	Data []uint8
 }
@@ -329,109 +262,28 @@ func (*Ticket) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Ticket]()}
 }
 
-type Propose struct {
-	Round     types.RoundNr
-	Data      []uint8
-	Signature []uint8
-}
+type ConvergeTimeout struct{}
 
-func ProposeFromPb(pb *granitepb.Propose) *Propose {
+func ConvergeTimeoutFromPb(pb *granitepb.ConvergeTimeout) *ConvergeTimeout {
 	if pb == nil {
 		return nil
 	}
-	return &Propose{
-		Round:     (types.RoundNr)(pb.Round),
-		Data:      pb.Data,
-		Signature: pb.Signature,
-	}
+	return &ConvergeTimeout{}
 }
 
-func (m *Propose) Pb() *granitepb.Propose {
+func (m *ConvergeTimeout) Pb() *granitepb.ConvergeTimeout {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &granitepb.Propose{}
+	pbMessage := &granitepb.ConvergeTimeout{}
 	{
-		pbMessage.Round = (uint64)(m.Round)
-		pbMessage.Data = m.Data
-		pbMessage.Signature = m.Signature
 	}
 
 	return pbMessage
 }
 
-func (*Propose) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Propose]()}
-}
-
-type Prepare struct {
-	Round     types.RoundNr
-	Data      []uint8
-	Signature []uint8
-}
-
-func PrepareFromPb(pb *granitepb.Prepare) *Prepare {
-	if pb == nil {
-		return nil
-	}
-	return &Prepare{
-		Round:     (types.RoundNr)(pb.Round),
-		Data:      pb.Data,
-		Signature: pb.Signature,
-	}
-}
-
-func (m *Prepare) Pb() *granitepb.Prepare {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &granitepb.Prepare{}
-	{
-		pbMessage.Round = (uint64)(m.Round)
-		pbMessage.Data = m.Data
-		pbMessage.Signature = m.Signature
-	}
-
-	return pbMessage
-}
-
-func (*Prepare) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Prepare]()}
-}
-
-type Commit struct {
-	Round     types.RoundNr
-	Data      []uint8
-	Signature []uint8
-}
-
-func CommitFromPb(pb *granitepb.Commit) *Commit {
-	if pb == nil {
-		return nil
-	}
-	return &Commit{
-		Round:     (types.RoundNr)(pb.Round),
-		Data:      pb.Data,
-		Signature: pb.Signature,
-	}
-}
-
-func (m *Commit) Pb() *granitepb.Commit {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &granitepb.Commit{}
-	{
-		pbMessage.Round = (uint64)(m.Round)
-		pbMessage.Data = m.Data
-		pbMessage.Signature = m.Signature
-	}
-
-	return pbMessage
-}
-
-func (*Commit) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.Commit]()}
+func (*ConvergeTimeout) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*granitepb.ConvergeTimeout]()}
 }
 
 type Decision struct {

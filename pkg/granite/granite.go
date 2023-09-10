@@ -21,7 +21,7 @@ type ModuleConfig = common.ModuleConfig
 type ModuleParams = common.ModuleParams
 
 // NewModule creates a new instance of the Granite consensus protocol
-func NewModule(mc ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
+func NewModule(mc *ModuleConfig, params *ModuleParams, logger logging.Logger) (modules.PassiveModule, error) {
 	m := dsl.NewModule(mc.Self)
 
 	state := &common.State{
@@ -68,7 +68,7 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 
 				// Create a new instance of granite.
 				granite, err := NewModule(
-					submc,
+					&submc,
 					&moduleParams,
 					logger,
 				)

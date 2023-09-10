@@ -9,26 +9,21 @@ type Message_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Message_Converge) Unwrap() *Converge {
-	return w.Converge
-}
-
-func (w *Message_Propose) Unwrap() *Propose {
-	return w.Propose
-}
-
-func (w *Message_Prepare) Unwrap() *Prepare {
-	return w.Prepare
-}
-
-func (w *Message_Commit) Unwrap() *Commit {
-	return w.Commit
-}
-
 func (w *Message_Decision) Unwrap() *Decision {
 	return w.Decision
 }
 
 func (w *Message_ConsensusMsg) Unwrap() *ConsensusMsg {
 	return w.ConsensusMsg
+}
+
+type Event_Type = isEvent_Type
+
+type Event_TypeWrapper[T any] interface {
+	Event_Type
+	Unwrap() *T
+}
+
+func (w *Event_ConvergeTimeout) Unwrap() *ConvergeTimeout {
+	return w.ConvergeTimeout
 }

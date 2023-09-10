@@ -3,85 +3,16 @@
 package granitepbmsgs
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/granite/types"
+	types3 "github.com/filecoin-project/mir/pkg/granite/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func Converge(destModule types.ModuleID, round types1.RoundNr, data []uint8, ticket *types2.Ticket, signature []uint8) *types3.Message {
-	return &types3.Message{
+func Decision(destModule types.ModuleID, data []uint8, signature []uint8) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_Converge{
-					Converge: &types2.Converge{
-						Round:     round,
-						Data:      data,
-						Ticket:    ticket,
-						Signature: signature,
-					},
-				},
-			},
-		},
-	}
-}
-
-func Propose(destModule types.ModuleID, round types1.RoundNr, data []uint8, signature []uint8) *types3.Message {
-	return &types3.Message{
-		DestModule: destModule,
-		Type: &types3.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_Propose{
-					Propose: &types2.Propose{
-						Round:     round,
-						Data:      data,
-						Signature: signature,
-					},
-				},
-			},
-		},
-	}
-}
-
-func Prepare(destModule types.ModuleID, round types1.RoundNr, data []uint8, signature []uint8) *types3.Message {
-	return &types3.Message{
-		DestModule: destModule,
-		Type: &types3.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_Prepare{
-					Prepare: &types2.Prepare{
-						Round:     round,
-						Data:      data,
-						Signature: signature,
-					},
-				},
-			},
-		},
-	}
-}
-
-func Commit(destModule types.ModuleID, round types1.RoundNr, data []uint8, signature []uint8) *types3.Message {
-	return &types3.Message{
-		DestModule: destModule,
-		Type: &types3.Message_Granite{
-			Granite: &types2.Message{
-				Type: &types2.Message_Commit{
-					Commit: &types2.Commit{
-						Round:     round,
-						Data:      data,
-						Signature: signature,
-					},
-				},
-			},
-		},
-	}
-}
-
-func Decision(destModule types.ModuleID, data []uint8, signature []uint8) *types3.Message {
-	return &types3.Message{
-		DestModule: destModule,
-		Type: &types3.Message_Granite{
+		Type: &types1.Message_Granite{
 			Granite: &types2.Message{
 				Type: &types2.Message_Decision{
 					Decision: &types2.Decision{
@@ -94,10 +25,10 @@ func Decision(destModule types.ModuleID, data []uint8, signature []uint8) *types
 	}
 }
 
-func ConsensusMsg(destModule types.ModuleID, msgType types1.MsgType, round types1.RoundNr, data []uint8, ticket *types2.Ticket, signature []uint8) *types3.Message {
-	return &types3.Message{
+func ConsensusMsg(destModule types.ModuleID, msgType types3.MsgType, round types3.RoundNr, data []uint8, ticket *types2.Ticket, signature []uint8) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Granite{
+		Type: &types1.Message_Granite{
 			Granite: &types2.Message{
 				Type: &types2.Message_ConsensusMsg{
 					ConsensusMsg: &types2.ConsensusMsg{

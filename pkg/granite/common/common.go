@@ -6,6 +6,7 @@ import (
 	granitepbtypes "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"time"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -32,6 +33,8 @@ type ModuleParams struct {
 	Membership *trantorpbtypes.Membership `json:"-"`
 
 	Crypto crypto.Crypto
+
+	ConvergeDelay time.Duration
 }
 
 type Step = granite.MsgType
@@ -44,6 +47,9 @@ type State struct {
 
 	//Decision messages do not need to be stored per round
 	DecisionMessages map[t.NodeID]map[string]*granitepbtypes.Decision
+
+	Proposal []byte
+	Value    []byte
 }
 
 func (st *State) IsValid(msg *granitepbtypes.ConsensusMsg) bool {

@@ -12,6 +12,7 @@ import (
 	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
+	granitepb "github.com/filecoin-project/mir/pkg/pb/granitepb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
@@ -101,6 +102,10 @@ func (w *Event_ChkpValidator) Unwrap() *chkpvalidatorpb.Event {
 
 func (w *Event_PprepValiadtor) Unwrap() *pprepvalidatorpb.Event {
 	return w.PprepValiadtor
+}
+
+func (w *Event_Granite) Unwrap() *granitepb.Event {
+	return w.Granite
 }
 
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
