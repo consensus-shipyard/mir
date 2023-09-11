@@ -7,6 +7,7 @@ import (
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types7 "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
 	types6 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
@@ -48,6 +49,8 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 		return &Message_Checkpoint{Checkpoint: types5.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_Orderer:
 		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
+	case *messagepb.Message_Granite:
+		return &Message_Granite{Granite: types7.MessageFromPb(pb.Granite)}
 	}
 	return nil
 }
@@ -194,6 +197,30 @@ func (w *Message_Orderer) Pb() messagepb.Message_Type {
 
 func (*Message_Orderer) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Orderer]()}
+}
+
+type Message_Granite struct {
+	Granite *types7.Message
+}
+
+func (*Message_Granite) isMessage_Type() {}
+
+func (w *Message_Granite) Unwrap() *types7.Message {
+	return w.Granite
+}
+
+func (w *Message_Granite) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Granite == nil {
+		return &messagepb.Message_Granite{}
+	}
+	return &messagepb.Message_Granite{Granite: (w.Granite).Pb()}
+}
+
+func (*Message_Granite) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Granite]()}
 }
 
 func MessageFromPb(pb *messagepb.Message) *Message {

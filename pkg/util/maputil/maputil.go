@@ -164,3 +164,49 @@ func RemoveAll[K comparable, V any](m map[K]V, f func(key K, value V) bool) map[
 	}
 	return removed
 }
+
+// FindAny checks if there exists any value in the provided map that satisfies
+// the given predicate function.
+func FindAny[K comparable, V any](m map[K]V, predicate func(V) bool) bool {
+	for _, value := range m {
+		if predicate(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// FindKeysWithFunc searches the map for keys whose associated value evals to true with the given evalFunc.
+// It then returns the list of keys to the evalFunc.
+func FindKeysWithFunc[K comparable, V any](m map[K]V, evalFunc func(V) bool) []K {
+	var matchingKeys []K
+
+	for key, value := range m {
+		if evalFunc(value) {
+			matchingKeys = append(matchingKeys, key)
+		}
+	}
+
+	return matchingKeys
+}
+
+// HasTwoDistinctValues checks if a map has at least two distinct values, based on a given comparison function.
+func HasTwoDistinctValues[K comparable, V any](m map[K]V, isEqual func(V, V) bool) bool {
+	if len(m) < 2 {
+		return false
+	}
+
+	var firstValue V
+	var hasFirstValueBeenSet bool = false
+
+	for _, value := range m {
+		if !hasFirstValueBeenSet {
+			firstValue = value
+			hasFirstValueBeenSet = true
+		} else if !isEqual(firstValue, value) {
+			return true
+		}
+	}
+
+	return false
+}

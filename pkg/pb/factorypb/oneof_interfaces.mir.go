@@ -5,6 +5,7 @@ package factorypb
 import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	granitepb "github.com/filecoin-project/mir/pkg/pb/granitepb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pprepvalidatorpb "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 )
@@ -49,4 +50,8 @@ func (w *GeneratorParams_PbftModule) Unwrap() *ordererpb.PBFTModule {
 
 func (w *GeneratorParams_PpvModule) Unwrap() *pprepvalidatorpb.PPrepValidatorChkp {
 	return w.PpvModule
+}
+
+func (w *GeneratorParams_Granite) Unwrap() *granitepb.InstanceParams {
+	return w.Granite
 }

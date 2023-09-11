@@ -7,6 +7,7 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
+	types6 "github.com/filecoin-project/mir/pkg/pb/granitepb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -213,6 +214,8 @@ func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorPara
 		return &GeneratorParams_PbftModule{PbftModule: types4.PBFTModuleFromPb(pb.PbftModule)}
 	case *factorypb.GeneratorParams_PpvModule:
 		return &GeneratorParams_PpvModule{PpvModule: types5.PPrepValidatorChkpFromPb(pb.PpvModule)}
+	case *factorypb.GeneratorParams_Granite:
+		return &GeneratorParams_Granite{Granite: types6.InstanceParamsFromPb(pb.Granite)}
 	}
 	return nil
 }
@@ -335,6 +338,30 @@ func (w *GeneratorParams_PpvModule) Pb() factorypb.GeneratorParams_Type {
 
 func (*GeneratorParams_PpvModule) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*factorypb.GeneratorParams_PpvModule]()}
+}
+
+type GeneratorParams_Granite struct {
+	Granite *types6.InstanceParams
+}
+
+func (*GeneratorParams_Granite) isGeneratorParams_Type() {}
+
+func (w *GeneratorParams_Granite) Unwrap() *types6.InstanceParams {
+	return w.Granite
+}
+
+func (w *GeneratorParams_Granite) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Granite == nil {
+		return &factorypb.GeneratorParams_Granite{}
+	}
+	return &factorypb.GeneratorParams_Granite{Granite: (w.Granite).Pb()}
+}
+
+func (*GeneratorParams_Granite) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*factorypb.GeneratorParams_Granite]()}
 }
 
 func GeneratorParamsFromPb(pb *factorypb.GeneratorParams) *GeneratorParams {

@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package granitepb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/granitepb";
+
+import "trantorpb/trantorpb.proto";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+//    Converge      converge           = 1;
+//    Propose       propose            = 2;
+//    Prepare       prepare            = 3;
+//    Commit        commit             = 4;
+    Decision      decision           = 5;
+    ConsensusMsg  consensus_msg      = 6;
+  }
+}
+
+message Event{
+  option (mir.event_class) = true;
+  oneof type{
+    option (mir.event_type) = true;
+    ConvergeTimeout converge_timeout = 1;
+  }
+}
+
+message ConsensusMsg {
+  option (net.message) = true;
+  int32  msg_type     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.MsgType"];
+  uint64 round        = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.RoundNr"];
+  bytes  data         = 3;
+  Ticket ticket       = 4;
+  bytes  signature    = 5;
+}
+// ATT: HERE BELOW THERE ARE SEPARATED DESCRIPTIONS OF EACH MESSAGE, BUT IN ORDER TO MINIMIZE MIR-DEPENDANT CODE I HAVE PUT THEM ALL IN ONE MESSAGE ABOVE.
+//
+//message Converge{
+//  option (net.message) = true;
+//
+//  uint64 round        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.RoundNr"];
+//  bytes  data         = 2;
+//  Ticket ticket       = 3;
+//  bytes  signature    = 4;
+//}
+//
+message Ticket {
+  option (mir.struct) = true;
+  bytes  data         = 1; // TODO include actual ticket based on VRF proofs
+}
+
+message ConvergeTimeout{
+  option (mir.event) = true;
+}
+
+//
+//message Propose {
+//  option (net.message) = true;
+//
+//  uint64 round        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.RoundNr"];
+//  bytes  data         = 2;
+//  bytes  signature    = 3;
+//}
+//
+//message Prepare {
+//  option (net.message) = true;
+//
+//  uint64 round        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.RoundNr"];
+//  bytes  data         = 2;
+//  bytes  signature    = 3;
+//}
+//
+//message Commit {
+//  option (net.message) = true;
+//
+//  uint64 round        = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/granite/types.RoundNr"];
+//  bytes  data         = 2;
+//  bytes  signature    = 3;
+//}
+
+message Decision {
+  option (net.message) = true;
+
+  bytes  data         = 1;
+  bytes  signature    = 2;
+}
+
+message InstanceParams {
+  option (mir.struct) = true;
+
+  uint64               instance_uid = 1;
+  trantorpb.Membership membership   = 2;
+}

@@ -6,6 +6,7 @@ import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
+	granitepb "github.com/filecoin-project/mir/pkg/pb/granitepb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	pingpongpb "github.com/filecoin-project/mir/pkg/pb/pingpongpb"
@@ -40,4 +41,8 @@ func (w *Message_Checkpoint) Unwrap() *checkpointpb.Message {
 
 func (w *Message_Orderer) Unwrap() *ordererpb.Message {
 	return w.Orderer
+}
+
+func (w *Message_Granite) Unwrap() *granitepb.Message {
+	return w.Granite
 }
