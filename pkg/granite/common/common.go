@@ -83,10 +83,9 @@ func (st *State) IsValid(msg *granitepbtypes.ConsensusMsg, params *ModuleParams)
 		}
 
 	case granite.PREPARE:
-		keysWithVal := maputil.FindKeysWithFunc(st.ValidatedMsgs.Msgs[granite.PROPOSE][msg.Round], func(_msg *granitepbtypes.ConsensusMsg) bool {
-			return reflect.DeepEqual(_msg.Data, msg.Data)
-		})
-		return membutil.HaveWeakQuorum(params.Membership, keysWithVal)
+		//TODO COMPUTE whether the value is a mode for some subset efficiently (subsets with key's weights from membership)
+		// What is the most efficient way?
+		return true
 
 	case granite.COMMIT:
 		if msg.Data != nil {
