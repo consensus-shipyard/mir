@@ -55,14 +55,10 @@ func IncludeGoodCase(
 			return err
 		}
 
-		eventpbdsl.TimerDelay(
-			m,
-			moduleConfig.Timer,
-			[]*eventpbtypes.Event{pbftpbevents.ProposeTimeout(moduleConfig.Self, 1)},
-			types.Duration(params.Config.MaxProposeDelay),
-		)
-
 		// Set up timer for the first proposal.
+		// TODO: change names, timeout is handled by the mempool
+		pbftpbdsl.ProposeTimeout(m, moduleConfig.Self, 1)
+
 		return nil
 	})
 
@@ -117,8 +113,7 @@ func IncludeGoodCase(
 		// Advance the state of the PbftSlot even more if necessary
 		// (potentially sending a Commit message or even delivering).
 		// This is required for the case when the Preprepare message arrives late.
-		advanceSlotState(m, state, params, moduleConfig, slot, context.Sn, logger)
-		return nil
+		return advanceSlotState(m, state, params, moduleConfig, slot, context.Sn, logger)
 	})
 
 	pbftpbdsl.UponProposeTimeout(m, func(proposeTimeout uint64) error {
@@ -136,8 +131,8 @@ func IncludeGoodCase(
 			Data:    data,
 			Aborted: aborted,
 		}
-		ApplyMsgPreprepare(m, moduleConfig, preprepare, from)
-		return nil
+
+		return ApplyMsgPreprepare(m, moduleConfig, preprepare, from)
 	})
 
 	ppvpbdsl.UponPreprepareValidated(m, func(err error, c *validatePreprepareContext) error {
@@ -156,8 +151,7 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		applyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
-		return nil
+		return applyMsgPrepare(m, state, params, moduleConfig, prepare, from, logger)
 	})
 
 	pbftpbdsl.UponCommitReceived(m, func(from t.NodeID, sn tt.SeqNr, view ot.ViewNr, digest []byte) error {
@@ -170,8 +164,8 @@ func IncludeGoodCase(
 			View:   view,
 			Digest: digest,
 		}
-		applyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
-		return nil
+
+		return applyMsgCommit(m, state, params, moduleConfig, commit, from, logger)
 	})
 
 }
@@ -276,11 +270,13 @@ func ApplyMsgPreprepare(
 	moduleConfig common2.ModuleConfig,
 	preprepare *pbftpbtypes.Preprepare,
 	from t.NodeID,
-) {
+) error {
 	ppvpbdsl.ValidatePreprepare(m,
 		moduleConfig.PPrepValidator,
 		preprepare,
 		&validatePreprepareContext{preprepare, from})
+
+	return nil
 }
 
 func ApplyMsgPreprepareValidated(
@@ -350,11 +346,11 @@ func applyMsgPrepare(
 	prepare *pbftpbtypes.Prepare,
 	from t.NodeID,
 	logger logging.Logger,
-) {
+) error {
 
 	if prepare.Digest == nil {
 		logger.Log(logging.LevelWarn, "Ignoring Prepare message with nil digest.")
-		return
+		return nil
 	}
 
 	// Convenience variable
@@ -364,20 +360,20 @@ func applyMsgPrepare(
 	slot := preprocessMessage(state, sn, prepare.View, prepare.Pb(), from, logger)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return
+		return nil
 	}
 
 	// Check if a Prepare message has already been received from this node in the current view.
 	if _, ok := slot.PrepareDigests[from]; ok {
 		logger.Log(logging.LevelDebug, "Ignoring Prepare message. Already received in this view.",
 			"sn", sn, "from", from, "view", state.View)
-		return
+		return nil
 	}
 
 	// Save the received Prepare message and advance the slot state
 	// (potentially sending a Commit message or even delivering).
 	slot.PrepareDigests[from] = prepare.Digest
-	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
+	return advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
 }
 
 // applyMsgCommit applies a received commit message.
@@ -391,11 +387,11 @@ func applyMsgCommit(
 	commit *pbftpbtypes.Commit,
 	from t.NodeID,
 	logger logging.Logger,
-) {
+) error {
 
 	if commit.Digest == nil {
 		logger.Log(logging.LevelWarn, "Ignoring Commit message with nil digest.")
-		return
+		return nil
 	}
 
 	// Convenience variable
@@ -405,20 +401,20 @@ func applyMsgCommit(
 	slot := preprocessMessage(state, sn, commit.View, commit.Pb(), from, logger)
 	if slot == nil {
 		// If preprocessing does not return a pbftSlot, the message cannot be processed right now.
-		return
+		return nil
 	}
 
 	// Check if a Commit message has already been received from this node in the current view.
 	if _, ok := slot.CommitDigests[from]; ok {
 		logger.Log(logging.LevelDebug, "Ignoring Commit message. Already received in this view.",
 			"sn", sn, "from", from, "view", state.View)
-		return
+		return nil
 	}
 
 	// Save the received Commit message and advance the slot state
 	// (potentially delivering the corresponding certificate and its successors).
 	slot.CommitDigests[from] = commit.Digest
-	advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
+	return advanceSlotState(m, state, params, moduleConfig, slot, sn, logger)
 }
 
 func ApplyBufferedMsg(
@@ -429,14 +425,16 @@ func ApplyBufferedMsg(
 	msgPb proto.Message,
 	from t.NodeID,
 	logger logging.Logger,
-) {
+) error {
 	switch msg := msgPb.(type) {
 	case *pbftpb.Preprepare:
-		ApplyMsgPreprepare(m, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from)
+		return ApplyMsgPreprepare(m, moduleConfig, pbftpbtypes.PreprepareFromPb(msg), from)
 	case *pbftpb.Prepare:
-		applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
+		return applyMsgPrepare(m, state, params, moduleConfig, pbftpbtypes.PrepareFromPb(msg), from, logger)
 	case *pbftpb.Commit:
-		applyMsgCommit(m, state, params, moduleConfig, pbftpbtypes.CommitFromPb(msg), from, logger)
+		return applyMsgCommit(m, state, params, moduleConfig, pbftpbtypes.CommitFromPb(msg), from, logger)
+	default:
+		return nil
 	}
 }
 
@@ -516,7 +514,7 @@ func advanceSlotState(
 	slot *common.PbftSlot,
 	sn tt.SeqNr,
 	logger logging.Logger,
-) {
+) error {
 	// If the slot just became prepared, send the Commit message.
 	if !slot.Prepared && slot.CheckPrepared() {
 		slot.Prepared = true
@@ -570,7 +568,12 @@ func advanceSlotState(
 			state.Segment.Leader,
 			moduleConfig.Self,
 		)
+
+		// start the next sn immediately
+		return applyProposeTimeout(m, state, params, moduleConfig, int(sn)+1, logger)
 	}
+
+	return nil
 }
 
 type validatePreprepareContext struct {

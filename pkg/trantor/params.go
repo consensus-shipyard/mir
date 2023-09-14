@@ -28,5 +28,6 @@ func DefaultParams(initialMembership *trantorpbtypes.Membership) Params {
 
 func (p *Params) AdjustSpeed(maxProposeDelay time.Duration) *Params {
 	p.Iss.AdjustSpeed(maxProposeDelay)
+	p.Mempool.BatchTimeout = maxProposeDelay // TODO: account for processing time
 	return p
 }

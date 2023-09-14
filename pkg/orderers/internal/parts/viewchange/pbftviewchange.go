@@ -36,7 +36,7 @@ import (
 // OrdererEvent handling
 // ============================================================
 
-func IncludeViewChange( //nolint:gocognit
+func IncludeViewChange( //nolint:gocognit,gocyclo
 	m dsl.Module,
 	state *common.State,
 	params *common.ModuleParams,
@@ -251,10 +251,13 @@ func IncludeViewChange( //nolint:gocognit
 		// in case a malicious node has sent conflicting ones before.
 		primary := state.Segment.PrimaryNode(context.View)
 		for _, preprepare := range context.Preprepares {
-			goodcase.ApplyMsgPreprepare(m, moduleConfig, preprepare, primary)
+			if err := goodcase.ApplyMsgPreprepare(m, moduleConfig, preprepare, primary); err != nil {
+				return err
+			}
 		}
 
 		// Apply all messages buffered for this view.
+		var applyErr error
 		for from, msgBuf := range state.MessageBuffers {
 			msgBuf.Iterate(func(msgPb proto.Message) messagebuffer.Applicable {
 				msgView, err := getMsgView(msgPb)
@@ -268,11 +271,17 @@ func IncludeViewChange( //nolint:gocognit
 					return messagebuffer.Future
 				}
 			}, func(msgPb proto.Message) {
-				goodcase.ApplyBufferedMsg(m, state, params, moduleConfig, msgPb, from, logger)
+				// Only apply buffered (current) messages until we reach an error, and record that first error.
+				// Note: this method will keep being called for all current messages after an error in ApplyBufferedMsg
+				//       but later calls will be a no-op.
+				if applyErr == nil {
+					applyErr = goodcase.ApplyBufferedMsg(m, state, params, moduleConfig, msgPb, from, logger)
+				}
 			})
 		}
 
-		return nil
+		// Return first error applying buffered messages, or nil if successful.
+		return applyErr
 	})
 
 	pbftpbdsl.UponViewChangeSegTimeout(m, func(viewChangeSegTimeout uint64) error {

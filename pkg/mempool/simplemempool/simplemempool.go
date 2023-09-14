@@ -27,7 +27,7 @@ func DefaultModuleParams() *ModuleParams {
 	return &ModuleParams{
 		MaxTransactionsInBatch: 1024,
 		MaxPayloadInBatch:      1024 * 1024, // 1 MiB
-		BatchTimeout:           100 * time.Millisecond,
+		BatchTimeout:           1 * time.Second,
 		TxFetcher:              nil,
 	}
 }
