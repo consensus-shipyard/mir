@@ -30,6 +30,8 @@ type remoteConnection struct {
 	stop          chan struct{}
 	done          chan struct{}
 	connectedCond *sync.Cond
+
+	stats Stats
 }
 
 func newRemoteConnection(
@@ -38,6 +40,7 @@ func newRemoteConnection(
 	addr t.NodeAddress,
 	h host.Host,
 	logger logging.Logger,
+	stats Stats,
 ) (*remoteConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
@@ -48,6 +51,7 @@ func newRemoteConnection(
 		ownID:         ownID,
 		addrInfo:      addrInfo,
 		logger:        logger,
+		stats:         stats,
 		host:          h,
 		stream:        nil,
 		msgBuffer:     make(chan *messagepb.Message, params.ConnectionBufferSize),
@@ -73,7 +77,7 @@ func (conn *remoteConnection) Send(msg *messagepb.Message) error {
 	case conn.msgBuffer <- msg:
 		return nil
 	default:
-		return es.Errorf("send buffer full")
+		return es.Errorf("send buffer full (" + conn.addrInfo.String() + ")")
 	}
 }
 
@@ -219,6 +223,15 @@ func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
 // It keeps reading the input data buffer and writes its contents to the network.
 // It automatically creates the underlying network stream and re-establishes it as needed, in case it is dropped.
 func (conn *remoteConnection) process() {
+	// In case there is a panic in the main processing loop, log an error message.
+	// (Otherwise, since this function is run as a goroutine, panicking would be completely silent.)
+	defer func() {
+		if r := recover(); r != nil {
+			err := es.New(r)
+			conn.logger.Log(logging.LevelError, "Remote connection panicked.", "cause", r, "stack", err.ErrorStack())
+		}
+	}()
+
 	// When processing finishes, close the underlying stream and signal to the Stop method that it can return.
 	// Note that the defer order is thus inverted.
 	defer close(conn.done)
@@ -227,6 +240,9 @@ func (conn *remoteConnection) process() {
 	// Data to be sent to the connection.
 	// If nil, a new message from conn.msgBuffer will be read, encoded, and stored here.
 	var msgData []byte
+
+	// Label to associate the data with. Only relevant for recording statistics.
+	var statsLabel string
 
 	for {
 		// The processing loop runs indefinitely (until interrupted by explicitly returning).
@@ -264,11 +280,12 @@ func (conn *remoteConnection) process() {
 					conn.logger.Log(logging.LevelError, "Could not encode message. Disconnecting.", "err", err)
 					return
 				}
+				statsLabel = string(t.ModuleID(msg.DestModule).Top())
 			}
 		}
 
 		// Write the encoded data to the network stream.
-		if err := conn.writeDataToStream(msgData); err != nil {
+		if err := conn.writeDataToStream(msgData, statsLabel); err != nil {
 			// If writing fails, close the stream, such that a new one will be re-established in the next iteration.
 			conn.logger.Log(logging.LevelWarn, "Failed sending data.", "err", err)
 			conn.closeStream()
@@ -283,7 +300,8 @@ func (conn *remoteConnection) process() {
 // writeDataToStream writes data to the underlying network stream.
 // It blocks until all data is written, the connection closes, or an error occurs.
 // In the first case, writeDataToStream returns nil. Otherwise, it returns the corresponding error.
-func (conn *remoteConnection) writeDataToStream(data []byte) error {
+// The statsLabel denotes the label under which to record this write in the statistics, if applicable.
+func (conn *remoteConnection) writeDataToStream(data []byte, statsLabel string) error {
 
 	// Retry sending data until:
 	// - all data is sent, or
@@ -297,14 +315,24 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 			return es.Errorf("could not set stream write deadline")
 		}
 
-		// Try writing data to the underlying network stream.
-		bytesWritten, err := conn.stream.Write(data)
+		// Try writing a chunk of data to the underlying network stream.
+		var bytesWritten int
+		var err error
+		if len(data) > conn.params.MaxDataPerWrite {
+			bytesWritten, err = conn.stream.Write(data[:conn.params.MaxDataPerWrite])
+		} else {
+			bytesWritten, err = conn.stream.Write(data)
+		}
+		data = data[bytesWritten:]
 
-		if err == nil {
+		// Gather statistics if applicable.
+		if bytesWritten > 0 && conn.stats != nil {
+			conn.stats.Sent(bytesWritten, statsLabel)
+		}
+
+		if err == nil && len(data) == 0 {
 			// If all data was successfully written, return.
-
 			return nil
-
 		} else if errors.Is(err, yamux.ErrTimeout) {
 			// If a timeout occurred, check if the connection has not been closed in the meantime.
 			// If the connection is still open, retry sending the rest of the data in the next iteration.
@@ -313,14 +341,11 @@ func (conn *remoteConnection) writeDataToStream(data []byte) error {
 			case <-conn.stop:
 				return es.Errorf("connection closing")
 			default:
-				data = data[bytesWritten:]
 			}
 
-		} else {
+		} else if err != nil {
 			// If any other error occurred, just return it.
-
 			return es.Errorf("failed sending data: %w", err)
-
 		}
 	}
 }

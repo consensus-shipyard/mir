@@ -1,11 +1,47 @@
 # SSH key for ansible to use when logging in the remote machines.
 ansible_ssh_private_key_file: ~/.ssh/matej-pl-aws-key.cer # Meaningless example value. Set to your own ssh key location.
 
+# Git repository from which to download the Mir code.
+git_repo: https://github.com/matejpavlovic/mir.git
+
 # Version of the code to check out from the Mir repository at setup. This can be a branch name, a commit hash, etc...
-git_version: "main" # Meaningless example value. Set to desired code version to check out from Git.
+git_version: main # Meaningless example value. Set to desired code version to check out from Git.
 
 # Username to use when logging in the remote machines.
 ansible_user: ubuntu # Example value (default on EC2 Ubuntu virtual machines)
+
+# File with all the benchmark configuration parameters.
+# This file will be used to configure the benchmark process on each node.
+node_config_file: node-config.json
+
+# Name of the file used to synchronize the start of benchmarks.
+# When a node is connected to all other nodes, it creates this file.
+# Ansible waits until all nodes have created the file and then deletes all of them,
+# Which serves as a signal to all the nodes to start benchmarking.
+ready_sync_file: bench-ready.tmp
+
+# Similar to ready_sync_file, but used at the end of the experiment for nodes to wait for each other
+# to deliver all submitted transactions.
+deliver_sync_file: bench-delivered.tmp
+
+# Maximal time to wait for the appearance of a sync file on a remote machine
+# This needs to be at least the duration of a single experiment.
+sync_wait_timeout: 300 # 5 minutes
+
+# Name of the directory in which to store the raw output of the benchmark.
+# These the content of this directory will then be aggregated and written to {{ bench_result_file }}
+output_dir: bench-output
+
+# Name of the file to which the node's logging output will be written.
+# by redirecting the node's stdout and stderr outputs to this file.
+node_log_file: node-output.log
+
+# JSON file to which the banchmark is expected to write its output.
+# This file will be downloaded to the local machine once the benchmark is finished.
+bench_output_file: bench-output.json
+
+# Name of the file to which to write the aggregate result of the benchmark.
+bench_result_file: bench-result.json
 
 # Other variables Ansible might use, probably no need to touch those...
 ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

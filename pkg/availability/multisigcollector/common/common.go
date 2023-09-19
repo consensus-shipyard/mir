@@ -32,23 +32,23 @@ type ModuleConfig struct {
 type ModuleParams struct {
 
 	// InstanceUID is a unique identifier for this instance used to prevent replay attacks.
-	InstanceUID []byte
+	InstanceUID []byte `json:"-"`
 
 	// Membership defines the set of nodes participating in a particular instance of the multisig collector.
-	Membership *trantorpbtypes.Membership
+	Membership *trantorpbtypes.Membership `json:"-"`
 
 	// Limit is the maximum number of certificates to generate before a request is completed.
-	Limit int
+	Limit int `json:",string"`
 
 	// MaxRequests is the maximum number of certificate requests to be handled by this module.
 	// It prevents the multisig collector from continuing operation (transaction dissemination)
 	// after no more certificate requests are going to arrive.
-	MaxRequests int
+	MaxRequests int `json:",string"`
 
 	// EpochNr is the epoch in which the instance of MultisigCollector operates.
 	// It is used as the RetentionIndex to associate with all newly stored batches.
 	// and batches requested from the mempool.
-	EpochNr tt.EpochNr
+	EpochNr tt.EpochNr `json:"-"`
 }
 
 // SigData is the binary data that should be signed for forming a certificate.

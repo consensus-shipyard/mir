@@ -9,11 +9,12 @@ import (
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type StatInterceptor struct {
-	*Stats
+	*LiveStats
 
 	// ID of the module that is consuming the transactions.
 	// Statistics will only be performed on transactions destined to this module
@@ -21,7 +22,7 @@ type StatInterceptor struct {
 	txConsumerModule t.ModuleID
 }
 
-func NewStatInterceptor(s *Stats, txConsumer t.ModuleID) *StatInterceptor {
+func NewStatInterceptor(s *LiveStats, txConsumer t.ModuleID) *StatInterceptor {
 	return &StatInterceptor{s, txConsumer}
 }
 
@@ -43,7 +44,7 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 			switch e := e.Mempool.Type.(type) {
 			case *mempoolpb.Event_NewTransactions:
 				for _, tx := range e.NewTransactions.Transactions {
-					i.Stats.NewTX(tx)
+					i.LiveStats.Submit(trantorpbtypes.TransactionFromPb(tx))
 				}
 			}
 		case *eventpb.Event_BatchFetcher:
@@ -56,7 +57,7 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 			switch e := e.BatchFetcher.Type.(type) {
 			case *bfpb.Event_NewOrderedBatch:
 				for _, tx := range e.NewOrderedBatch.Txs {
-					i.Stats.Delivered(tx)
+					i.LiveStats.Deliver(trantorpbtypes.TransactionFromPb(tx))
 				}
 			}
 		}

@@ -230,9 +230,9 @@ func (n *Node) process(ctx context.Context) error { //nolint:gocyclo
 	defer n.resumeInput()
 
 	// Periodically log statistics about dispatched events and the state of the event buffers.
-	if n.Config.StatsLogInterval > 0 {
+	if n.Config.Stats.Period > 0 {
 		wg.Add(1)
-		go n.monitorStats(n.Config.StatsLogInterval, &wg)
+		go n.monitorStats(n.Config.Stats.Period, &wg)
 	}
 
 	// Start processing module events.

@@ -157,7 +157,7 @@ func run() error {
 	}
 
 	// Initialize the libp2p transport subsystem.
-	transport := libp2p2.NewTransport(trantorParams.Net, args.OwnID, h, logger)
+	transport := libp2p2.NewTransport(trantorParams.Net, args.OwnID, h, logger, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to create libp2p transport")
 	}

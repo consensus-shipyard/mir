@@ -256,7 +256,7 @@ func IncludeViewChange( //nolint:gocognit
 
 		// Apply all messages buffered for this view.
 		for from, msgBuf := range state.MessageBuffers {
-			msgBuf.Iterate(func(source t.NodeID, msgPb proto.Message) messagebuffer.Applicable {
+			msgBuf.Iterate(func(msgPb proto.Message) messagebuffer.Applicable {
 				msgView, err := getMsgView(msgPb)
 				if err != nil {
 					return messagebuffer.Invalid
@@ -267,7 +267,7 @@ func IncludeViewChange( //nolint:gocognit
 				} else {
 					return messagebuffer.Future
 				}
-			}, func(source t.NodeID, msgPb proto.Message) {
+			}, func(msgPb proto.Message) {
 				goodcase.ApplyBufferedMsg(m, state, params, moduleConfig, msgPb, from, logger)
 			})
 		}

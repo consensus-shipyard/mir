@@ -22,6 +22,10 @@ type AppLogic interface {
 	NewEpoch(nr tt.EpochNr) (*trantorpbtypes.Membership, error)
 
 	// Snapshot returns a snapshot of the application state.
+	// The returned data must not be nil and must not be an empty slice either.
+	// TODO: Remove the limitation of non-empty data.
+	//   Watch out for implications on the snapshotReady() implementation in the checkpoint protocol
+	//   and on the Protobuf serialization and deserialization, which converts all empty slices to nil values.
 	Snapshot() ([]byte, error)
 
 	// RestoreState restores the application state from stable checkpoint.

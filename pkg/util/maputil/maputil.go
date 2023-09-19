@@ -73,6 +73,29 @@ func IterateSorted[K constraints.Ordered, V any](m map[K]V, f func(key K, value 
 	}
 }
 
+func IterateSortedCustom[K comparable, V any](m map[K]V, f func(K, V) bool, less func(K, K) bool) {
+	sl := make([]struct {
+		k K
+		v V
+	}, 0)
+	for k, v := range m {
+		sl = append(sl, struct {
+			k K
+			v V
+		}{k: k, v: v})
+	}
+
+	sort.Slice(sl, func(i, j int) bool {
+		return less(sl[i].k, sl[j].k)
+	})
+
+	for _, item := range sl {
+		if !f(item.k, item.v) {
+			break
+		}
+	}
+}
+
 func Copy[K comparable, V any](m map[K]V) map[K]V {
 	newMap := make(map[K]V, len(m))
 	for k, v := range m {

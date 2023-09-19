@@ -61,7 +61,7 @@ func newMockLibp2pCommunication(
 			nil,
 			"1",
 		}
-		lt.transports[id] = NewTransport(params, id, lt.hosts[id], logger)
+		lt.transports[id] = NewTransport(params, id, lt.hosts[id], logger, nil)
 	}
 
 	return lt
@@ -330,7 +330,7 @@ func TestMain(m *testing.M) {
 func TestNewTransport(t *testing.T) {
 	addr := libp2putil.NewFreeHostAddr()
 	h := libp2putil.NewDummyHostNoListen(1, addr)
-	_ = NewTransport(DefaultParams(), types.NodeID("a"), h, logging.ConsoleDebugLogger)
+	_ = NewTransport(DefaultParams(), "a", h, logging.ConsoleDebugLogger, nil)
 	err := h.Close()
 	require.NoError(t, err)
 }
@@ -339,7 +339,7 @@ func TestNewTransport(t *testing.T) {
 func TestTransportStartStop(t *testing.T) {
 	addr := libp2putil.NewFreeHostAddr()
 	h := libp2putil.NewDummyHostNoListen(1, addr)
-	tr := NewTransport(DefaultParams(), types.NodeID("a"), h, logging.ConsoleDebugLogger)
+	tr := NewTransport(DefaultParams(), "a", h, logging.ConsoleDebugLogger, nil)
 
 	err := tr.Start()
 	require.NoError(t, err)
@@ -862,12 +862,12 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	hostAddrA := libp2putil.NewFreeHostAddr()
 	hostA := libp2putil.NewDummyHost(0, hostAddrA)
 	addrA := types.NodeAddress(libp2putil.NewDummyMultiaddr(0, hostAddrA))
-	a := NewTransport(DefaultParams(), nodeA, hostA, logger)
+	a := NewTransport(DefaultParams(), nodeA, hostA, logger, nil)
 
 	hostAddrB := libp2putil.NewFreeHostAddr()
 	hostB := libp2putil.NewDummyHostNoListen(1, hostAddrB)
 	addrB := types.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
-	b := NewTransport(DefaultParams(), nodeB, hostB, logger)
+	b := NewTransport(DefaultParams(), nodeB, hostB, logger, nil)
 
 	membershipA := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)} // nolint:govet
 	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, "1"}          // nolint:govet
@@ -904,7 +904,7 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 
 	t.Log(">>> connecting to the restarted node")
 	hostB = libp2putil.NewDummyHost(1, hostAddrB)
-	b = NewTransport(DefaultParams(), nodeB, hostB, logger)
+	b = NewTransport(DefaultParams(), nodeB, hostB, logger, nil)
 	m.transports[nodeB] = b
 	err = b.Start()
 	require.NoError(t, err)

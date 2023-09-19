@@ -14,6 +14,19 @@ import (
 // Event dispatching statistics
 // ==============================================================================================================
 
+// StatsConfig configures the generation of event processing statistics.
+type StatsConfig struct {
+
+	// Logger to send event processing statistics to.
+	Logger logging.Logger
+
+	// Level with which to log event processing statistics.
+	LogLevel logging.LogLevel
+
+	// If not zero, the Node will emit a log entry every period containing statistics about event processing.
+	Period time.Duration
+}
+
 // eventDispatchStats saves statistical information about the dispatching of events between modules,
 // such as the numbers of events dispatched for each module.
 type eventDispatchStats struct {
@@ -54,21 +67,40 @@ func (ds *eventDispatchStats) AddDispatch(mID t.ModuleID, numEvents int) {
 func (ds *eventDispatchStats) CombinedStats(
 	bufferStats map[t.ModuleID]int,
 	processingTimes map[t.ModuleID]time.Duration,
+	period time.Duration,
 ) []interface{} {
+
+	// Calculate the column width for the module IDs.
+	maxModuleIDLength := 0
+	for mID := range ds.eventCounts {
+		if len(string(mID)) > maxModuleIDLength {
+			maxModuleIDLength = len(string(mID))
+		}
+	}
+
+	//
 	logVals := make([]interface{}, 0, len(ds.eventCounts)+2)
 	totalEventsDispatched := 0
 	totalEventsBuffered := 0
-	maputil.IterateSorted(ds.dispatchCounts, func(mID t.ModuleID, cnt int) (cont bool) {
-		logVals = append(logVals, fmt.Sprint(mID), fmt.Sprintf("d(%d)-e(%d)-b(%d)-t(%s)",
-			cnt, ds.eventCounts[mID], bufferStats[mID], processingTimes[mID]),
+	maputil.IterateSortedCustom(ds.dispatchCounts, func(mID t.ModuleID, cnt int) (cont bool) {
+		// TODO: Pass these as separate values somehow ahd have the logger figure out what to do with them.
+		logVals = append(logVals, fmt.Sprintf("%"+fmt.Sprint(maxModuleIDLength)+"s", mID),
+			fmt.Sprintf("d(%10d)-e(%10d)-b(%10d)-t(%6.2f%%)\n",
+				cnt*int(time.Second)/int(period),
+				ds.eventCounts[mID]*int(time.Second)/int(period),
+				bufferStats[mID],
+				100*float32(processingTimes[mID])/float32(period)),
 		)
 		totalEventsDispatched += ds.eventCounts[mID]
 		totalEventsBuffered += bufferStats[mID]
 		return true
+	}, func(mID1 t.ModuleID, mID2 t.ModuleID) bool {
+		// For now, sort by processing time.
+		return processingTimes[mID1] >= processingTimes[mID2]
 	})
 	logVals = append(logVals,
-		"numDispatches", ds.numDispatches,
-		"totalEventsDispatched", totalEventsDispatched,
+		"numDispatches/s", ds.numDispatches*int(time.Second)/int(period),
+		"totalEventsDispatched/s", totalEventsDispatched*int(time.Second)/int(period),
 		"totalEventsBuffered", totalEventsBuffered,
 	)
 	return logVals
@@ -102,12 +134,12 @@ func (n *Node) flushStats() {
 	defer n.statsLock.Unlock()
 
 	eventBufferStats := n.pendingEvents.Stats()
-	stats := n.dispatchStats.CombinedStats(eventBufferStats, n.resetStopwatches())
+	stats := n.dispatchStats.CombinedStats(eventBufferStats, n.resetStopwatches(), n.Config.Stats.Period)
 
 	if n.inputIsPaused() {
-		n.Config.Logger.Log(logging.LevelDebug, "External event processing paused.", stats...)
+		n.Config.Stats.Logger.Log(n.Config.Stats.LogLevel, "External event processing paused.\n", stats...)
 	} else {
-		n.Config.Logger.Log(logging.LevelDebug, "External event processing running.", stats...)
+		n.Config.Stats.Logger.Log(n.Config.Stats.LogLevel, "External event processing running.\n", stats...)
 	}
 
 	n.dispatchStats = newDispatchStats(maputil.GetSortedKeys(n.modules))

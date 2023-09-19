@@ -7,16 +7,15 @@ import (
 	es "github.com/go-errors/errors"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/serializing"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-type LeaderPolicyType uint64
+type LeaderPolicyType string
 
 const (
-	Simple LeaderPolicyType = iota
-	Blacklist
+	Simple    LeaderPolicyType = "simple"
+	Blacklist LeaderPolicyType = "blacklist"
 )
 
 var encMode cbor.EncMode
@@ -51,15 +50,23 @@ type LeaderSelectionPolicy interface {
 }
 
 func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
-	leaderPolicyType := serializing.Uint64FromBytes(bytes[0:8])
-
-	switch LeaderPolicyType(leaderPolicyType) {
-	case Simple:
-		return SimpleLeaderPolicyFromBytes(bytes[8:])
-	case Blacklist:
-		return BlacklistLeaderPolicyFromBytes(bytes[8:])
-	default:
-		return nil, es.Errorf("invalid LeaderSelectionPolicy type: %v", leaderPolicyType)
+	if ok, policyData := stripType(bytes, Simple); ok {
+		return SimpleLeaderPolicyFromBytes(policyData)
+	} else if ok, policyData = stripType(bytes, Blacklist); ok {
+		return BlacklistLeaderPolicyFromBytes(policyData)
+	} else {
+		return nil, es.Errorf("invalid LeaderSelectionPolicy type")
 	}
+}
 
+// stripType checks whether the first bytes of data contain the identifier of the given leader selection policy
+// and, if so, returns the rest of the data.
+func stripType(data []byte, policyType LeaderPolicyType) (bool, []byte) {
+	if len(string(data)) < len(policyType) {
+		return false, nil
+	}
+	if LeaderPolicyType(string(data)[0:len(policyType)]) != policyType {
+		return false, nil
+	}
+	return true, data[len(policyType):]
 }
