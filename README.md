@@ -20,7 +20,7 @@ The first intended use of Mir is as a scalable and efficient
 and, potentially, as a Byzantine fault-tolerant ordering service in Hyperledger Fabric.
 However, Mir hopes to be a building block of a next generation of distributed systems, being used by many applications.
 
-Currently Mir includes an implementation of the [ISS](/pkg/iss) protocol (specifically ISS-PBFT), but work is under way to bring other protocols into Mir such as [Granite](https://github.com/filecoin-project/mir/pull/515) and [Alea-BFT](https://github.com/abread/mir/tree/alea/pkg/alea).
+Currently Mir includes an implementation of the [ISS](/pkg/iss) protocol (specifically ISS-PBFT), but work is under way to bring other protocols into Mir such as [Granite](#515) and [Alea-BFT](https://github.com/abread/mir/tree/alea/pkg/alea).
 
 ## Nodes, Modules, and Events
 
