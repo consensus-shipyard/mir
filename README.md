@@ -20,6 +20,11 @@ The first intended use of Mir is as a scalable and efficient
 and, potentially, as a Byzantine fault-tolerant ordering service in Hyperledger Fabric.
 However, Mir hopes to be a building block of a next generation of distributed systems, being used by many applications.
 
+Currently Mir includes an implementation of the [Trantor](/pkg/trantor) modular state machine replication system,
+but work is under way to bring other protocols into Mir such as
+[Granite](#515) and
+[Alea-BFT](https://github.com/abread/mir/tree/alea/pkg/alea).
+
 ## Nodes, Modules, and Events
 
 Mir is a framework for implementing distributed protocols (also referred to as distributed algorithms)
@@ -152,7 +157,7 @@ To get started using (and contributing to) Mir, in addition to this README, we r
    (concretely the `multisigcollector`).
 
 To learn about the first complex system being built on Mir,
-have a look at [Trantor](https://hackmd.io/P59lk4hnSBKN5ki5OblSFg?view), a complex SMR syste being implemented using Mir.
+have a look at [Trantor](/pkg/trantor), a complex SMR system being implemented using Mir.
 
 ## Contributing
 
