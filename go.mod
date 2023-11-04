@@ -23,6 +23,7 @@ require (
 require github.com/golang/mock v1.6.0
 
 require (
+	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
 	github.com/dave/jennifer v1.5.1
 	github.com/drand/kyber v1.1.15
 	github.com/drand/kyber-bls12381 v0.2.3
@@ -45,6 +46,7 @@ require (
 )
 
 require (
+	filippo.io/bigmod v0.0.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.0 // indirect
