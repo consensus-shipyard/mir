@@ -17,7 +17,6 @@ import (
 func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.Event {
 	return &eventpbtypes.Event{
 		Type:       event.Type,
-		Next:       event.Next,
 		DestModule: destination,
 	}
 }
