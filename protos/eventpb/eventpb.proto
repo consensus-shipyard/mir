@@ -68,15 +68,6 @@ message Event {
     google.protobuf.UInt64Value testingUint   = 302;
     testerpb.Tester tester = 303;
   }
-
-  // A list of follow-up events to process after this event has been processed.
-  // This field is used if events need to be processed in a particular order.
-  // For example, a message sending event must only be processed
-  // after the corresponding entry has been persisted in the write-ahead log (WAL).
-  // In this case, the WAL append event would be this event
-  // and the next field would contain the message sending event.
-  // (This is a hypothetical example, the WAL functionality is not implemented at a moment.)
-  repeated Event next = 400 [(mir.omit_in_event_constructors) = true];
 }
 
 message Init {
