@@ -50,7 +50,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 	// Check if this is the root of the hierarchy.
 	if hierarchyNode.IsRoot() {
 
-		jenFile.Func().Id("Upon"+hierarchyNode.Name()+"Received").Types(
+		jenFile.Func().Id(uponPrefix+hierarchyNode.Name()+receivedSuffix).Types(
 			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("M")),
 			jen.Id("M").Any(),
 		).Params(
@@ -75,7 +75,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 		).Line()
 
 		uponChildMessageReceived := jen.Qual(
-			DslPackagePath(hierarchyNode.Message().PbPkgPath()), "Upon"+hierarchyNode.Name()+"Received")
+			DslPackagePath(hierarchyNode.Message().PbPkgPath()), uponPrefix+hierarchyNode.Name()+receivedSuffix)
 
 		// Recursively invoke the function for the children in the hierarchy.
 		for _, child := range hierarchyNode.Children() {
@@ -93,7 +93,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 	if hierarchyNode.IsMsgClass() {
 
 		// Generate function for handling the message class.
-		jenFile.Func().Id("Upon"+hierarchyNode.Name()+"Received").Types(
+		jenFile.Func().Id(uponPrefix+hierarchyNode.Name()+receivedSuffix).Types(
 			jen.Id("W").Add(hierarchyNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("M")),
 			jen.Id("M").Any(),
 		).Params(
@@ -119,7 +119,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 		).Line()
 
 		uponChildMessageReceived := jen.Qual(
-			DslPackagePath(hierarchyNode.Message().PbPkgPath()), "Upon"+hierarchyNode.Name()+"Received")
+			DslPackagePath(hierarchyNode.Message().PbPkgPath()), uponPrefix+hierarchyNode.Name()+receivedSuffix)
 
 		// Recursively invoke the function for the children in the hierarchy.
 		for _, child := range hierarchyNode.Children() {
@@ -144,7 +144,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 	constructorHandlerParams := hierarchyNode.ThisNodeConstructorParameters().Adapt(nonConstructorHandlerParams)
 	allHandlerParameters := nonConstructorHandlerParams.AppendAll(constructorHandlerParams.FunctionParamList())
 
-	jenFile.Func().Id("Upon"+hierarchyNode.Name()+"Received").Params(
+	jenFile.Func().Id(uponPrefix+hierarchyNode.Name()+receivedSuffix).Params(
 		jen.Id("m").Add(dslModule),
 		jen.Id("handler").Func().Params(allHandlerParameters.MirCode()...).Id("error"),
 	).Block(

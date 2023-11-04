@@ -359,9 +359,8 @@ func (pSet ViewChangePSet) PbType() []*pbftpbtypes.PSetEntry {
 			return list[i].Sn < list[j].Sn
 		} else if list[i].View != list[j].View {
 			return list[i].View < list[j].View
-		} else {
-			return bytes.Compare(list[i].Digest, list[j].Digest) < 0
 		}
+		return bytes.Compare(list[i].Digest, list[j].Digest) < 0
 	})
 
 	return list
@@ -387,11 +386,13 @@ func (qSet ViewChangeQSet) PbType() []*pbftpbtypes.QSetEntry {
 	sort.Slice(list, func(i int, j int) bool {
 		if list[i].Sn != list[j].Sn {
 			return list[i].Sn < list[j].Sn
-		} else if list[i].View != list[j].View {
-			return list[i].View < list[j].View
-		} else {
-			return bytes.Compare(list[i].Digest, list[j].Digest) < 0
 		}
+
+		if list[i].View != list[j].View {
+			return list[i].View < list[j].View
+		}
+
+		return bytes.Compare(list[i].Digest, list[j].Digest) < 0
 	})
 
 	return list
