@@ -54,9 +54,9 @@ func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
 		return SimpleLeaderPolicyFromBytes(policyData)
 	} else if ok, policyData = stripType(bytes, Blacklist); ok {
 		return BlacklistLeaderPolicyFromBytes(policyData)
-	} else {
-		return nil, es.Errorf("invalid LeaderSelectionPolicy type")
 	}
+
+	return nil, es.Errorf("invalid LeaderSelectionPolicy type")
 }
 
 // stripType checks whether the first bytes of data contain the identifier of the given leader selection policy

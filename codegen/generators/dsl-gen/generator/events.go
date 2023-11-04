@@ -174,7 +174,7 @@ func generateRecursivelyDslFunctionsForHandlingEvents(
 		generateDslFunctionForHandlingEventClass(eventNode, uponEvent, jenFile)
 
 		// Recursively invoke the generation function for the children in the hierarchy.
-		uponChildEvent := jen.Qual(DslPackagePath(eventNode.Message().PbPkgPath()), "Upon"+eventNode.Name())
+		uponChildEvent := jen.Qual(DslPackagePath(eventNode.Message().PbPkgPath()), uponPrefix+eventNode.Name())
 		for _, child := range eventNode.Children() {
 			err := generateRecursivelyDslFunctionsForHandlingEvents(
 				/*eventNode*/ child,
@@ -198,7 +198,7 @@ func generateRecursivelyDslFunctionsForHandlingEvents(
 }
 
 func generateDslFunctionForHandlingEventClass(eventNode *events.EventNode, uponEvent jen.Code, jenFile *jen.File) {
-	jenFile.Func().Id("Upon"+eventNode.Name()).Types(
+	jenFile.Func().Id(uponPrefix+eventNode.Name()).Types(
 		jen.Id("W").Add(eventNode.TypeOneof().MirWrapperInterface()).Types(jen.Id("Ev")),
 		jen.Id("Ev").Any(),
 	).Params(
@@ -259,7 +259,7 @@ func generateDslFunctionForHandlingResponseWithOrigin(
 
 	handlerParams := append(constructorParamsWithoutOrigin.MirCode(), jen.Id("context").Op("*").Id("C"))
 
-	jenFile.Func().Id("Upon"+eventNode.Name()).Types(jen.Id("C").Any()).Params(
+	jenFile.Func().Id(uponPrefix+eventNode.Name()).Types(jen.Id("C").Any()).Params(
 		jen.Id("m").Add(dslModule),
 		jen.Id("handler").Func().Params(handlerParams...).Id("error"),
 	).Block(
@@ -298,7 +298,7 @@ func generateDslFunctionForHandlingSimpleEvent(eventNode *events.EventNode, upon
 	// TODO: consider if we need to propagate some parameters from the parent.
 	handlerParameters := eventNode.ThisNodeConstructorParameters()
 
-	jenFile.Func().Id("Upon"+eventNode.Name()).Params(
+	jenFile.Func().Id(uponPrefix+eventNode.Name()).Params(
 		jen.Id("m").Add(dslModule),
 		jen.Id("handler").Func().Params(handlerParameters.MirCode()...).Id("error"),
 	).Block(

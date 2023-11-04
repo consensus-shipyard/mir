@@ -14,6 +14,11 @@ import (
 	"github.com/filecoin-project/mir/codegen/model/messages"
 )
 
+const (
+	uponPrefix     = "Upon"
+	receivedSuffix = "Received"
+)
+
 type DslGenerator struct{}
 
 func (DslGenerator) Run(pbGoStructTypes []reflect.Type) error {

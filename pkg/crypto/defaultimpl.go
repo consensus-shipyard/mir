@@ -309,9 +309,11 @@ func PrivKeyFromFile(file string) ([]byte, error) {
 func privKeyFromPEMBlock(block *pem.Block) (interface{}, error) {
 	if block == nil {
 		return nil, es.Errorf("PEM block is nil")
-	} else if !strings.Contains(block.Type, "PRIVATE KEY") {
-		return nil, es.Errorf("wrong PEM block type: %s", block.Type)
-	} else {
-		return privKeyFromBytes(block.Bytes)
 	}
+
+	if !strings.Contains(block.Type, "PRIVATE KEY") {
+		return nil, es.Errorf("wrong PEM block type: %s", block.Type)
+	}
+
+	return privKeyFromBytes(block.Bytes)
 }
