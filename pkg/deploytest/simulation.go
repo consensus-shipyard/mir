@@ -217,11 +217,38 @@ func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 		out.eventList, out.err = applyFn(in.ctx, in.eventList)
 
 		if out.err == nil {
+			it := origEvents.Iterator()
+
+			// TODO: Keeping this code that used to handle follow-up events.
+			//       Only the line reading the follow-up event is commented out
+			//       while still calling the iterator's Next() function.
+			//       Remove all the unnecessary code from here.
+
+			// First, collect from the original event list
+			// follow-ups for each event in the event list
+			// passed by the Mir node to ApplyEvents
+			followUps := events.EmptyList()
+			for i := 0; i < in.eventList.Len(); i++ {
+				it.Next()
+				//followUps.PushBackSlice(it.Next().Next)
+			}
+
+			// Then keep only the rest of the events in
+			// the original event list
+			origEvents = events.EmptyList()
+			for e := it.Next(); e != nil; e = it.Next() {
+				origEvents.PushBack(e)
+			}
+
+			// After that, append the event list returned
+			// by ApplyEvents to the follow-up event list
+			followUps.PushBackList(out.eventList)
+
 			// Send the events in a new concurrent process
 			// because some of them may target this module
 			go func(proc *testsim.Process) {
 				m.outChan <- out
-				m.SimNode.SendEvents(proc, origEvents)
+				m.SimNode.SendEvents(proc, followUps)
 				proc.Exit()
 			}(proc.Fork())
 
