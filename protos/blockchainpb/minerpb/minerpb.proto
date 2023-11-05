@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package minerpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb";
+
+import "mir/codegen_extensions.proto";
+import "blockchainpb/blockchainpb.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    BlockRequest block_request  = 1;
+  }
+}
+
+message BlockRequest {
+  option (mir.event) = true;
+  
+  uint64                  head_id = 1;
+  blockchainpb.Payload    payload = 2;
+}

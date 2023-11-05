@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package communicationpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb";
+
+import "blockchainpb/blockchainpb.proto";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    NewBlock new_block = 1;
+  }
+}
+
+message NewBlock {
+  option (mir.event) = true;
+  
+  blockchainpb.Block block = 1;
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    NewBlockMessage new_block = 1;
+  }
+}
+
+message NewBlockMessage {
+  option (net.message) = true;
+  
+  blockchainpb.Block block = 1;
+}

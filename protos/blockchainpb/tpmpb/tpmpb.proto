@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package tpmpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb";
+
+import "mir/codegen_extensions.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    NewHead new_head  = 1;
+  }
+}
+
+message NewHead {
+  option (mir.event) = true;
+  
+  //blockchainpb.Blockchain chain = 1;
+  uint64 head_id = 1;
+}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package blockchainpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb";
+
+message Blocktree {
+  repeated Block    blocks  = 1;
+  repeated uint64   leaves  = 2;
+}
+
+message Blockchain {
+  repeated Block blocks = 1; // ordered, no forks -> the 'current' chain
+}
+
+message Block {
+  uint64 block_id           = 1;
+  uint64 previous_block_id  = 2;
+  Payload payload           = 3;
+  
+  int64 timestamp          = 4;
+}
+
+message Payload {
+  string text = 1;
+}

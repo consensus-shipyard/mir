@@ -16,6 +16,7 @@ import "availabilitypb/mscpb/mscpb.proto";
 import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
+import "blockchainpb/communicationpb/communicationpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
@@ -34,5 +35,9 @@ message Message {
     pingpongpb.Message           pingpong           = 5;
     checkpointpb.Message         checkpoint         = 6;
     ordererpb.Message            orderer            = 7;
+
+    // Messages for blockchain
+    communicationpb.Message     communicationpb     = 8;
+
   }
 }
