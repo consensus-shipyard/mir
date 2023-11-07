@@ -14,34 +14,9 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Strip returns a new identical (shallow copy of the) event,
-// but with all follow-up events (stored under event.Next) removed.
-// The removed events are stored in a new EventList that Strip returns a pointer to as the second return value.
-func Strip(event *eventpb.Event) (*eventpb.Event, *EventList) {
-
-	// Create new EventList.
-	nextList := &EventList{}
-
-	// Add all follow-up events to the new EventList.
-	for _, e := range event.Next {
-		nextList.PushBack(e)
-	}
-
-	// Create a new event with follow-ups removed.
-	newEvent := eventpb.Event{
-		Type:       event.Type,
-		DestModule: event.DestModule,
-		Next:       nil,
-	}
-
-	// Return new EventList.
-	return &newEvent, nextList
-}
-
 func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.Event {
 	return &eventpbtypes.Event{
 		Type:       event.Type,
-		Next:       event.Next,
 		DestModule: destination,
 	}
 }
