@@ -81,3 +81,5 @@ package protos
 //go:generate protoc --go_out=../pkg/ --go_opt=paths=source_relative --go-grpc_out=../pkg/ --go-grpc_opt=paths=source_relative net/grpc/grpctransport.proto
 //xgo:generate protoc --proto_path=. --go_out=plugins=grpc:../pkg/ --go_opt=paths=source_relative grpctransport/grpctransport.proto
 //xgo:generate protoc --proto_path=. --go_out=plugins=grpc:../pkg/ --go_opt=paths=source_relative transactionreceiver/transactionreceiver.proto
+
+//go:generate cp eventinterface.go.template ../pkg/pb/eventpb/eventinterface.go

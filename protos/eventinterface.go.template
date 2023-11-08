@@ -1,0 +1,38 @@
+// This file extends the protobuf generated Event type by additional methods
+// so it can be used as a mir.Event.
+// After generating Go code from .proto files, the content of this file is copied (by code in generate.go)
+// to eventinterface.go in the folder where the generated Event code is (pkg/pb/eventpb/).
+// To modify this file, modify its template in in the protos directory.
+
+package eventpb
+
+import (
+	t "github.com/filecoin-project/mir/pkg/types"
+	"google.golang.org/protobuf/proto"
+)
+
+// Src returns the module that emitted the event.
+// While this information is not always necessary for the system operation,
+// it is useful for analyzing event traces and debugging.
+func (event *Event) Src() t.ModuleID {
+	return ""
+}
+
+// Dest returns the destination module of the event.
+func (event *Event) Dest() t.ModuleID {
+	return t.ModuleID(event.DestModule)
+}
+
+// Bytes returns a serialized representation of the event
+// as a slice of bytes from which the event can be reconstructed.
+// Note that Bytes does not necessarily guarantee the output to be deterministic.
+// Even multiple subsequent calls to Bytes on the same event object might return different byte slices.
+func (event *Event) Bytes() ([]byte, error) {
+	data, err := proto.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// The String method is implemented directly by the Protobuf compiler.
