@@ -25,8 +25,15 @@ func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, 
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
+func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return nil, es.Errorf("The threshold crypto module only supports proto events, received %T", event)
+	}
+
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
@@ -34,7 +41,7 @@ func (c *MirModule) ApplyEvent(event *eventpb.Event) (*events.EventList, error) 
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:
 		// Complain about all other incoming event types.
-		return nil, es.Errorf("unexpected type of event in threshcrypto MirModule: %T", event.Type)
+		return nil, es.Errorf("unexpected type of event in threshcrypto MirModule: %T", pbevent.Type)
 	}
 }
 

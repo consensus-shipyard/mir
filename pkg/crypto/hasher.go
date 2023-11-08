@@ -35,8 +35,15 @@ func (hasher *Hasher) ApplyEvents(eventsIn *events.EventList) (*events.EventList
 	return modules.ApplyEventsConcurrently(eventsIn, hasher.ApplyEvent)
 }
 
-func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
+func (hasher *Hasher) ApplyEvent(event events.Event) (*events.EventList, error) {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return nil, es.Errorf("The hasher module only supports proto events, received %T", event)
+	}
+
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
 		return events.EmptyList(), nil
@@ -61,7 +68,7 @@ func (hasher *Hasher) ApplyEvent(event *eventpb.Event) (*events.EventList, error
 		}
 	default:
 		// Complain about all other incoming event types.
-		return nil, es.Errorf("unexpected type of Hash event: %T", event.Type)
+		return nil, es.Errorf("unexpected type of Hash event: %T", pbevent.Type)
 	}
 }
 

@@ -39,7 +39,13 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 	it := events.Iterator()
 	for evt := it.Next(); evt != nil; evt = it.Next() {
 
-		switch e := evt.Type.(type) {
+		// Skip events of unknown types.
+		pbevt, ok := evt.(*eventpb.Event)
+		if !ok {
+			continue
+		}
+
+		switch e := pbevt.Type.(type) {
 		case *eventpb.Event_Mempool:
 			switch e := e.Mempool.Type.(type) {
 			case *mempoolpb.Event_NewTransactions:
@@ -50,7 +56,7 @@ func (i *StatInterceptor) Intercept(events *events.EventList) error {
 		case *eventpb.Event_BatchFetcher:
 
 			// Skip events destined to other modules than the one consuming the transactions.
-			if t.ModuleID(evt.DestModule) != i.txConsumerModule {
+			if evt.Dest() != i.txConsumerModule {
 				continue
 			}
 

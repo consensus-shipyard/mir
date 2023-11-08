@@ -21,7 +21,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -30,7 +29,7 @@ type EventRecord struct {
 	Time   int64
 }
 
-func (record *EventRecord) Filter(predicate func(event *eventpb.Event) bool) EventRecord {
+func (record *EventRecord) Filter(predicate func(event events.Event) bool) EventRecord {
 	filtered := &events.EventList{}
 
 	iter := record.Events.Iterator()
@@ -55,7 +54,7 @@ type Recorder struct {
 	timeSource     func() int64
 	newDests       func(EventRecord) []EventRecord
 	path           string
-	filter         func(event *eventpb.Event) bool
+	filter         func(event events.Event) bool
 	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
 	syncWrite      bool
 
@@ -93,7 +92,7 @@ func NewRecorder(
 		fileCount: 1,
 		newDests:  OneFileLogger(),
 		path:      path,
-		filter: func(event *eventpb.Event) bool {
+		filter: func(event events.Event) bool {
 			// Record all events by default.
 			return true
 		},
@@ -113,7 +112,7 @@ func NewRecorder(
 		case eventFilterOpt:
 			// Apply the given filter on top of the existing one.
 			oldFilter := i.filter
-			i.filter = func(e *eventpb.Event) bool {
+			i.filter = func(e events.Event) bool {
 				return oldFilter(e) && v(e)
 			}
 		case eventWriterOpt:

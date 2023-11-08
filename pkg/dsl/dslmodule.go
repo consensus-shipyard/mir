@@ -178,11 +178,18 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	// Run event handlers.
 	iter := evs.Iterator()
 	for ev := iter.Next(); ev != nil; ev = iter.Next() {
-		handlers, ok := m.eventHandlers[reflect.TypeOf(ev.Type)]
+
+		// We only support proto events.
+		pbev, ok := ev.(*eventpb.Event)
+		if !ok {
+			return nil, es.Errorf("The DSL module only supports proto events, received %T", ev)
+		}
+
+		handlers, ok := m.eventHandlers[reflect.TypeOf(pbev.Type)]
 
 		// If no specific handler was defined for this event type, execute the default handler.
 		if !ok {
-			err := m.defaultEventHandler(ev)
+			err := m.defaultEventHandler(pbev)
 			if err != nil {
 				return nil, err
 			}
@@ -190,7 +197,7 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 
 		// Execute all handlers registered for the event type.
 		for _, h := range handlers {
-			err := h(ev)
+			err := h(pbev)
 			if err != nil {
 				return nil, err
 			}

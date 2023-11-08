@@ -121,14 +121,21 @@ func (m *simTransportModule) WaitFor(_ int) error {
 }
 
 func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpb.Event) (*events.EventList, error) {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e events.Event) (*events.EventList, error) {
 		return events.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTransportModule) applyEvent(ctx context.Context, e *eventpb.Event) error {
-	switch e := e.Type.(type) {
+func (m *simTransportModule) applyEvent(ctx context.Context, event events.Event) error {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return es.Errorf("The simulation timer module only supports proto events, received %T", event)
+	}
+
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// do nothing
 	case *eventpb.Event_Transport:

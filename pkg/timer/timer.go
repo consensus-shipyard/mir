@@ -38,11 +38,18 @@ func (tm *Timer) EventsOut() <-chan *events.EventList {
 func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
+
+		// We only support proto events.
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("Timer only supports proto events, received %T", event)
+		}
+
 		// Based on event type, invoke the appropriate Timer function.
 		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
 		// when they are later stripped off their follow-ups, as this happens potentially concurrently
 		// with the original event being processed by the interceptor.
-		switch e := event.Type.(type) {
+		switch e := pbevent.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
 		case *eventpb.Event_Timer:
@@ -50,13 +57,13 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 			case *eventpb.TimerEvent_Delay:
 				tm.Delay(
 					ctx,
-					events.ListOf(e.Delay.EventsToDelay...),
+					events.ListOfPb(e.Delay.EventsToDelay...),
 					types.Duration(e.Delay.Delay),
 				)
 			case *eventpb.TimerEvent_Repeat:
 				tm.Repeat(
 					ctx,
-					events.ListOf(e.Repeat.EventsToRepeat...),
+					events.ListOfPb(e.Repeat.EventsToRepeat...),
 					types.Duration(e.Repeat.Delay),
 					tt.RetentionIndex(e.Repeat.RetentionIndex),
 				)
@@ -64,7 +71,7 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
 			}
 		default:
-			return es.Errorf("unexpected type of Timer event: %T", event.Type)
+			return es.Errorf("unexpected type of Timer event: %T", pbevent.Type)
 		}
 	}
 

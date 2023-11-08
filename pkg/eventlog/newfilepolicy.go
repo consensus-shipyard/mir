@@ -10,21 +10,26 @@ import (
 // Returns a file that splits an record slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
 func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []EventRecord {
-	eventNewLogFileLogger := func(event *eventpb.Event) bool {
-		appEvent, ok := event.Type.(*eventpb.Event_App)
+	eventNewLogFileLogger := func(event events.Event) bool {
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return false
+		}
+
+		appEvent, ok := pbevent.Type.(*eventpb.Event_App)
 		if !ok {
 			return false
 		}
 
 		_, ok = appEvent.App.Type.(*apppb.Event_NewEpoch)
-		return ok && t.ModuleID(event.DestModule) == appModuleID
+		return ok && event.Dest() == appModuleID
 	}
 	return EventTrackerLogger(eventNewLogFileLogger)
 }
 
 // eventTrackerLogger returns a function that tracks every single event of EventRecord and
 // creates a new file for every event such that newFile(event) = True
-func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time EventRecord) []EventRecord {
+func EventTrackerLogger(newFile func(event events.Event) bool) func(time EventRecord) []EventRecord {
 	return func(record EventRecord) []EventRecord {
 		var result []EventRecord
 		// Create a variable to hold the current chunk

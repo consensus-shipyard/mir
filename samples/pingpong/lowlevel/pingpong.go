@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -38,8 +39,15 @@ func (p *Pingpong) ApplyEvents(evts *events.EventList) (*events.EventList, error
 	return modules.ApplyEventsSequentially(evts, p.applyEvent)
 }
 
-func (p *Pingpong) applyEvent(event *eventpb.Event) (*events.EventList, error) {
-	switch e := event.Type.(type) {
+func (p *Pingpong) applyEvent(event events.Event) (*events.EventList, error) {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return nil, es.Errorf("The pingpong module only supports proto events, received %T", event)
+	}
+
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		return p.applyInit()
 	case *eventpb.Event_Transport:
@@ -57,7 +65,7 @@ func (p *Pingpong) applyEvent(event *eventpb.Event) (*events.EventList, error) {
 			return nil, errors.Errorf("unknown pingpong event type: %T", e)
 		}
 	default:
-		return nil, errors.Errorf("unknown event type: %T", event.Type)
+		return nil, errors.Errorf("unknown event type: %T", pbevent.Type)
 	}
 }
 

@@ -1,8 +1,8 @@
 package eventlog
 
 import (
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -42,9 +42,9 @@ func FileSplitterOpt(splitter func(EventRecord) []EventRecord) RecorderOpt {
 	return fileSplitterOpt(splitter)
 }
 
-type eventFilterOpt func(*eventpb.Event) bool
+type eventFilterOpt func(events.Event) bool
 
-func EventFilterOpt(filter func(event *eventpb.Event) bool) RecorderOpt {
+func EventFilterOpt(filter func(event events.Event) bool) RecorderOpt {
 	return eventFilterOpt(filter)
 }
 

@@ -10,7 +10,9 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -46,10 +48,15 @@ func (w *gzipWriter) Write(record EventRecord) error {
 		}
 	}()
 
+	pbEvents, err := pbEventSlice(record.Events)
+	if err != nil {
+		return err
+	}
+
 	return writeRecordedEvent(gzWriter, &recordingpb.Entry{
 		NodeId: w.nodeID.Pb(),
 		Time:   record.Time,
-		Events: record.Events.Slice(),
+		Events: pbEvents,
 	})
 }
 
@@ -82,4 +89,21 @@ func writeSizePrefixedProto(dest io.Writer, msg proto.Message) error {
 	}
 
 	return nil
+}
+
+func pbEventSlice(list *events.EventList) ([]*eventpb.Event, error) {
+	// Create empty result slice.
+	result := make([]*eventpb.Event, 0, list.Len())
+
+	// Populate result slice by appending events one by one.
+	iter := list.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return nil, es.Errorf("Gzip event writer only supports proto events, received %T", event)
+		}
+		result = append(result, pbevent)
+	}
+
+	return result, nil
 }

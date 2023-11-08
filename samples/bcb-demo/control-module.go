@@ -31,7 +31,14 @@ func (m *controlModule) ImplementsModule() {}
 func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		switch event.Type.(type) {
+
+		// We only support proto events.
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("The bcb control module only supports proto events, received %T", event)
+		}
+
+		switch pbevent.Type.(type) {
 
 		case *eventpb.Event_Init:
 			if m.isLeader {
@@ -46,7 +53,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 			}
 
 		case *eventpb.Event_Bcb:
-			bcbEvent := event.Type.(*eventpb.Event_Bcb).Bcb
+			bcbEvent := pbevent.Type.(*eventpb.Event_Bcb).Bcb
 			switch bcbEvent.Type.(type) {
 
 			case *bcbpb.Event_Deliver:
@@ -58,7 +65,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 			}
 
 		default:
-			return es.Errorf("unknown event type: %T", event.Type)
+			return es.Errorf("unknown event type: %T", pbevent.Type)
 		}
 	}
 
