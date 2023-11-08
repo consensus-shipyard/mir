@@ -81,9 +81,16 @@ func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList,
 	return eventsOut.PushBackList(submoduleEventsOut), nil
 }
 
-func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, error) {
-	if t.ModuleID(event.DestModule) == fm.ownID {
-		switch e := event.Type.(type) {
+func (fm *FactoryModule) applyEvent(event events.Event) (*events.EventList, error) {
+	if event.Dest() == fm.ownID {
+
+		// We only support proto events.
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return nil, es.Errorf("The factory module only supports proto events, received %T", event)
+		}
+
+		switch e := pbevent.Type.(type) {
 		case *eventpb.Event_Init:
 			return events.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
@@ -125,8 +132,8 @@ func (fm *FactoryModule) applyEvent(event *eventpb.Event) (*events.EventList, er
 }
 
 // bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are lists of events.
-func (fm *FactoryModule) bufferSubmoduleEvent(event *eventpb.Event) {
-	smID := t.ModuleID(event.DestModule)
+func (fm *FactoryModule) bufferSubmoduleEvent(event events.Event) {
+	smID := event.Dest()
 	if _, ok := fm.eventBuffer[smID]; !ok {
 		fm.eventBuffer[smID] = events.EmptyList()
 	}
@@ -181,12 +188,21 @@ func (fm *FactoryModule) bufferEarlyMsgs(eventList *events.EventList) {
 	}
 }
 
-func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
+func (fm *FactoryModule) tryBuffering(event events.Event) {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		fm.logger.Log(logging.LevelWarn,
+			fmt.Sprintf("Not buffering submodule event (type %T). Only proto events supported", event),
+			"moduleID", event.Dest(), "src", event.Src())
+		return
+	}
 
 	// Check if this is a MessageReceived event.
 	isMessageReceivedEvent := false
 	var msg *transportpb.Event_MessageReceived
-	e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+	e, isTransportEvent := pbevent.Type.(*eventpb.Event_Transport)
 	if isTransportEvent {
 		msg, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
 	}
@@ -194,17 +210,17 @@ func (fm *FactoryModule) tryBuffering(event *eventpb.Event) {
 	if !isMessageReceivedEvent {
 		// Events other than MessageReceived are ignored.
 		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
-			"moduleID", t.ModuleID(event.DestModule),
-			"eventType", fmt.Sprintf("%T", event.Type),
-			"eventValue", fmt.Sprintf("%v", event.Type))
+			"moduleID", t.ModuleID(pbevent.DestModule),
+			"eventType", fmt.Sprintf("%T", pbevent.Type),
+			"eventValue", fmt.Sprintf("%v", pbevent.Type))
 		// TODO: Get rid of Sprintf of the value and just use the value directly. Using Sprintf is just a work-around
 		//       for a sloppy implementation of the testing log used in tests that cannot handle pointers yet.
 		return
 	}
 
-	if !fm.messageBuffer.Store(event) {
+	if !fm.messageBuffer.Store(pbevent) {
 		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
-			"moduleID", t.ModuleID(event.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
+			"moduleID", t.ModuleID(pbevent.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
 			"from", msg.MessageReceived.From)
 	}
 }

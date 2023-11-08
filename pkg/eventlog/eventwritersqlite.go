@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	es "github.com/go-errors/errors"
 	_ "github.com/mattn/go-sqlite3" // Driver for the sql database
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -47,7 +49,13 @@ func (w sqliteWriter) Write(record EventRecord) error {
 	// For each incoming event
 	iter := record.Events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		jsonData, err := protojson.Marshal(event)
+
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("SQLite event writer only supports proto events, received %T", event)
+		}
+
+		jsonData, err := protojson.Marshal(pbevent)
 		if err != nil {
 			return err
 		}
@@ -56,7 +64,7 @@ func (w sqliteWriter) Write(record EventRecord) error {
 			insert,
 			record.Time,
 			w.nodeID,
-			fmt.Sprintf("%T", event.Type)[len("*eventpb.Event_"):],
+			fmt.Sprintf("%T", pbevent.Type)[len("*eventpb.Event_"):],
 			jsonData,
 		)
 		if err != nil {

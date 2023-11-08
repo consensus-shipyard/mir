@@ -222,7 +222,7 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeI
 }
 
 func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
-	tEvent, valid := events.Iterator().Next().Type.(*eventpb.Event_Transport)
+	tEvent, valid := events.Iterator().Next().(*eventpb.Event).Type.(*eventpb.Event_Transport)
 	require.True(m.t, valid)
 	msg, valid := tEvent.Transport.Type.(*transportpb.Event_MessageReceived)
 	require.True(m.t, valid)
@@ -988,7 +988,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 				if !ok {
 					return
 				}
-				_, valid := e.Iterator().Next().Type.(*eventpb.Event_Transport).Transport.Type.(*transportpb.Event_MessageReceived)
+				_, valid := e.Iterator().Next().(*eventpb.Event).Type.(*eventpb.Event_Transport).Transport.Type.(*transportpb.Event_MessageReceived)
 				require.Equal(m.t, true, valid)
 				atomic.AddInt64(&received, 1)
 			}

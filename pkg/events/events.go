@@ -24,8 +24,9 @@ func Redirect(event *eventpbtypes.Event, destination t.ModuleID) *eventpbtypes.E
 // ============================================================
 // Event Constructors
 // ============================================================
+// TODO: When proto events are separated in a separate package, move these functions there too.
 
-func TestingString(dest t.ModuleID, s string) Event {
+func TestingString(dest t.ModuleID, s string) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: dest.Pb(),
 		Type: &eventpb.Event_TestingString{
@@ -34,7 +35,7 @@ func TestingString(dest t.ModuleID, s string) Event {
 	}
 }
 
-func TestingUint(dest t.ModuleID, u uint64) Event {
+func TestingUint(dest t.ModuleID, u uint64) *eventpb.Event {
 	return &eventpb.Event{
 		DestModule: dest.Pb(),
 		Type: &eventpb.Event_TestingUint{
@@ -45,6 +46,6 @@ func TestingUint(dest t.ModuleID, u uint64) Event {
 
 // Init returns an event instructing a module to initialize.
 // This event is the first to be applied to a module.
-func Init(destModule t.ModuleID) Event {
+func Init(destModule t.ModuleID) *eventpb.Event {
 	return &eventpb.Event{DestModule: destModule.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}
 }

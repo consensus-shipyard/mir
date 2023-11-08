@@ -8,6 +8,8 @@ package events
 
 import (
 	"container/list"
+
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 // EventList represents a list of Events, e.g. as produced by a module.
@@ -26,6 +28,17 @@ func EmptyList() *EventList {
 
 // ListOf returns EventList containing the given elements.
 func ListOf(events ...Event) *EventList {
+	res := &EventList{}
+	for _, ev := range events {
+		res.PushBack(ev)
+	}
+	return res
+}
+
+// ListOfPb returns EventList containing the given elements.
+// The only difference to ListOf is that ListOfPb specifically takes proto events as arguments.
+// TODO: When separating the protobuf event implementation in a separate package, move this function there.
+func ListOfPb(events ...*eventpb.Event) *EventList {
 	res := &EventList{}
 	for _, ev := range events {
 		res.PushBack(ev)

@@ -40,24 +40,31 @@ func (m *simTimerModule) EventsOut() <-chan *events.EventList {
 }
 
 func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e *eventpb.Event) (*events.EventList, error) {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e events.Event) (*events.EventList, error) {
 		return events.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTimerModule) applyEvent(ctx context.Context, e *eventpb.Event) error {
-	switch e := e.Type.(type) {
+func (m *simTimerModule) applyEvent(ctx context.Context, event events.Event) error {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return es.Errorf("The simulation timer module only supports proto events, received %T", event)
+	}
+
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
 	case *eventpb.Event_Timer:
 		switch e := e.Timer.Type.(type) {
 		case *eventpb.TimerEvent_Delay:
-			evtsOut := events.ListOf(e.Delay.EventsToDelay...)
+			evtsOut := events.ListOfPb(e.Delay.EventsToDelay...)
 			d := types.Duration(e.Delay.Delay)
 			m.delay(ctx, evtsOut, d)
 		case *eventpb.TimerEvent_Repeat:
-			evtsOut := events.ListOf(e.Repeat.EventsToRepeat...)
+			evtsOut := events.ListOfPb(e.Repeat.EventsToRepeat...)
 			d := types.Duration(e.Repeat.Delay)
 			retIdx := tt.RetentionIndex(e.Repeat.RetentionIndex)
 			m.repeat(ctx, evtsOut, d, retIdx)

@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	events "github.com/filecoin-project/mir/pkg/events"
-	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -36,7 +35,7 @@ func (m *MockModuleImpl) EXPECT() *MockModuleImplMockRecorder {
 }
 
 // Event mocks base method.
-func (m *MockModuleImpl) Event(ev *eventpb.Event) (*events.EventList, error) {
+func (m *MockModuleImpl) Event(ev events.Event) (*events.EventList, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Event", ev)
 	ret0, _ := ret[0].(*events.EventList)

@@ -73,7 +73,7 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 
 				_, validEvent := args.selectedEventNames[eventName(event)]
 				_, validDest := args.selectedEventDests[event.DestModule]
-				event = customTransform(event) // Apply custom transformation to event.
+				event = customTransform(event).(*eventpb.Event) // Apply custom transformation to event.
 
 				if validEvent && validDest && event != nil && index >= args.offset && (args.limit == 0 || index < args.offset+args.limit) {
 					// If event type has been selected for displaying

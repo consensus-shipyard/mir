@@ -233,7 +233,7 @@ func printNodeOutput(eventChan chan *events.EventList) {
 		fmt.Printf("========================================\n")
 		fmt.Printf("Node produced the following events:\n\n")
 		for _, event := range receivedEvents.Slice() {
-			fmt.Println(protojson.Format(event))
+			fmt.Println(protojson.Format(event.(*eventpb.Event)))
 		}
 	}
 }

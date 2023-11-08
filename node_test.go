@@ -222,7 +222,7 @@ func (b *blabber) Go() {
 				return
 			default:
 			}
-			evts := events.ListOf(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
+			evts := events.ListOfPb(sliceutil.Repeat(events.TestingUint("consumer", 0), int(b.batchSize))...)
 			select {
 			case <-b.stop:
 				return

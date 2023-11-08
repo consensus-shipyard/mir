@@ -45,7 +45,13 @@ func (fl *FakeLink) ApplyEvents(
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		switch e := event.Type.(type) {
+		// We only support proto events.
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("Fake transport only supports proto events, received %T", event)
+		}
+
+		switch e := pbevent.Type.(type) {
 		case *eventpb.Event_Init:
 			// no actions on init
 		case *eventpb.Event_Transport:
@@ -78,7 +84,7 @@ func (fl *FakeLink) ApplyEvents(
 				return es.Errorf("unexpected transport event type: %T", e)
 			}
 		default:
-			return es.Errorf("unexpected type of Net event: %T", event.Type)
+			return es.Errorf("unexpected type of Net event: %T", pbevent.Type)
 		}
 	}
 

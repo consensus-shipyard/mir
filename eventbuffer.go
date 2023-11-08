@@ -1,12 +1,8 @@
 package mir
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -44,26 +40,36 @@ func (eb *eventBuffer) Add(events *events.EventList) error {
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		// Look up the corresponding module's buffer and add the event to it.
-		if buffer, ok := eb.buffers[t.ModuleID(event.DestModule).Top()]; ok {
+		if buffer, ok := eb.buffers[event.Dest().Top()]; ok {
 			buffer.PushBack(event)
 			eb.totalEvents++
-		} else {
+		} else { //nolint:revive,staticcheck
 
-			// If there is no buffer for the event, check if it is a MessgeReceived event.
-			isMessageReceivedEvent := false
-			e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
-			if isTransportEvent {
-				_, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
-			}
+			// Silently drop events for which the destination module does not exist.
+			// WARNING: While this is the desired behavior when it comes to untrusted events (MessageReceived events)
+			// from potentially Faulty nodes, in general this is very dangerous. If a locally generated event has a
+			// wrong destination by accident, this error will be harder to spot.
+			// TODO: Instead, introduce a concept of a default module (at Mir level) that will receive all such events.
+			//   That module (supplied by the Mir user, with a reasonable default implementation) can then figure out
+			//   what to do with those events and execute code similar to the one commented out below.
+			//   Below is the old code checking for network messages and only silently ignoring those,
+			//   otherwise raising an error.
 
-			// If there is no buffer but the event is a MessageReceived event,
-			// we don't need to return an error,
-			// because the message may have been sent by a faulty node.
-			// MessageReceived events with non-existent module destinations are thus dropped,
-			// without it being considered an error at the local node.
-			if !isMessageReceivedEvent {
-				return errors.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
-			}
+			//// If there is no buffer for the event, check if it is a MessgeReceived event.
+			//isMessageReceivedEvent := false
+			//e, isTransportEvent := event.Type.(*eventpb.Event_Transport)
+			//if isTransportEvent {
+			//	_, isMessageReceivedEvent = e.Transport.Type.(*transportpb.Event_MessageReceived)
+			//}
+			//
+			//// If there is no buffer but the event is a MessageReceived event,
+			//// we don't need to return an error,
+			//// because the message may have been sent by a faulty node.
+			//// MessageReceived events with non-existent module destinations are thus dropped,
+			//// without it being considered an error at the local node.
+			//if !isMessageReceivedEvent {
+			//	return errors.Errorf("no buffer for module %v (adding event of type %T)", event.DestModule, event.Type)
+			//}
 		}
 	}
 	return nil

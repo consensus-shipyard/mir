@@ -318,7 +318,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			signOrigin := iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin
+			signOrigin := iter.Next().(*eventpb.Event).Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin
 
 			eventsOut, err = m.ApplyEvents(events.ListOf(cryptopbevents.SignResult(
 				mc.Self,
@@ -326,7 +326,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 				cryptopbtypes.SignOriginFromPb(signOrigin),
 			).Pb()))
 			assert.Nil(t, err)
-			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
+			assert.Equal(t, []events.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
 		},
 
 		"response without request": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
@@ -343,13 +343,13 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			signOrigin := cryptopbtypes.SignOriginFromPb(iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin)
+			signOrigin := cryptopbtypes.SignOriginFromPb(iter.Next().(*eventpb.Event).Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin)
 
 			eventsOut, err = m.ApplyEvents(events.ListOf(
 				cryptopbevents.SignResult(mc.Self, []byte("world"), signOrigin).Pb(),
 			))
 			assert.Nil(t, err)
-			assert.Equal(t, []*eventpb.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
+			assert.Equal(t, []events.Event{events.TestingString(mc.Signed, "hello: world")}, eventsOut.Slice())
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
@@ -366,7 +366,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
-			sigVerEvent := iter.Next().Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_VerifySigs).VerifySigs
+			sigVerEvent := iter.Next().(*eventpb.Event).Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_VerifySigs).VerifySigs
 			sigVerNodes := sigVerEvent.NodeIds
 			assert.Equal(t, 8, len(sigVerNodes))
 			sigVerOrigin := cryptopbtypes.SigVerOriginFromPb(sigVerEvent.Origin)
@@ -392,7 +392,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			eventsOut, err = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
 			assert.Nil(t, err)
 
-			var expectedResponse []*eventpb.Event
+			var expectedResponse []events.Event
 			for i := 0; i < 8; i++ {
 				expectedResponse = append(expectedResponse, events.TestingString(mc.Verified, fmt.Sprintf("8: %v verified", i)))
 			}

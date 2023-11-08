@@ -39,7 +39,14 @@ func (m *controlModule) ImplementsModule() {}
 func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		switch event := event.Type.(type) {
+
+		// We only support proto events.
+		pbevent, ok := event.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("Availability demo control module only supports proto events, received %T", event)
+		}
+
+		switch event := pbevent.Type.(type) {
 
 		case *eventpb.Event_Init:
 			go func() {

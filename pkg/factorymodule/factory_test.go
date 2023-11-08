@@ -37,13 +37,19 @@ func (em *echoModule) ApplyEvents(evts *events.EventList) (*events.EventList, er
 	return modules.ApplyEventsSequentially(evts, em.applyEvent)
 }
 
-func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error) {
+func (em *echoModule) applyEvent(event events.Event) (*events.EventList, error) {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return nil, es.Errorf("The echo module only supports proto events, received %T", event)
+	}
 
 	// Convenience variable
-	destModuleID := tp.ModuleID(event.DestModule)
+	destModuleID := event.Dest()
 
 	assert.Equal(em.t, em.id, destModuleID)
-	switch e := event.Type.(type) {
+	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		return events.ListOf(events.TestingString(destModuleID.Top(), string(em.id)+" Init")), nil //nolint:goconst
 	case *eventpb.Event_TestingString:
@@ -84,10 +90,10 @@ func TestFactoryModule(t *testing.T) {
 			).Pb()))
 			assert.NoError(t, err)
 			assert.Equal(t, 1, evOut.Len())
-			assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
+			assert.Equal(t, echoFactoryID, evOut.Slice()[0].Dest())
 			assert.Equal(t,
 				string(echoFactoryID.Then("inst0"))+" Init", //nolint:goconst
-				evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+				evOut.Slice()[0].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 			)
 		},
 
@@ -100,7 +106,7 @@ func TestFactoryModule(t *testing.T) {
 			assert.Equal(t, 1, evOut.Len())
 			assert.Equal(t,
 				"Inst 0: Hi!",
-				evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+				evOut.Slice()[0].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 			)
 		},
 
@@ -114,10 +120,10 @@ func TestFactoryModule(t *testing.T) {
 				).Pb()))
 				assert.NoError(t, err)
 				assert.Equal(t, 1, evOut.Len())
-				assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
+				assert.Equal(t, echoFactoryID, evOut.Slice()[0].Dest())
 				assert.Equal(t,
 					string(echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))+" Init", //nolint:goconst
-					evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					evOut.Slice()[0].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 		},
@@ -137,15 +143,15 @@ func TestFactoryModule(t *testing.T) {
 			sortedOutput := evOut.Slice()
 
 			sort.Slice(sortedOutput, func(i, j int) bool {
-				return sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
-					sortedOutput[j].Type.(*eventpb.Event_TestingString).TestingString.GetValue()
+				return sortedOutput[i].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
+					sortedOutput[j].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue()
 			})
 
 			for i := 0; i <= 5; i++ {
-				assert.Equal(t, echoFactoryID.Pb(), sortedOutput[0].DestModule)
+				assert.Equal(t, echoFactoryID, sortedOutput[0].Dest())
 				assert.Equal(t,
 					fmt.Sprintf("Inst %d: Hi!", i),
-					sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					sortedOutput[i].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 		},
@@ -196,23 +202,23 @@ func TestFactoryModule(t *testing.T) {
 			sortedOutput := evOut.Slice()
 
 			sort.Slice(sortedOutput, func(i, j int) bool {
-				return sortedOutput[i].Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
-					sortedOutput[j].Type.(*eventpb.Event_TestingString).TestingString.GetValue()
+				return sortedOutput[i].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue() <
+					sortedOutput[j].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue()
 			})
 
 			for i := 0; i < 3; i++ {
 				logger.CheckAnyEntry(t, logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
 					"moduleID", echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
-					"eventType", fmt.Sprintf("%T", evSlice[i].Type),
-					"eventValue", fmt.Sprintf("%v", evSlice[i].Type),
+					"eventType", fmt.Sprintf("%T", evSlice[i].(*eventpb.Event).Type),
+					"eventValue", fmt.Sprintf("%v", evSlice[i].(*eventpb.Event).Type),
 				)
 			}
 
 			for i := 3; i <= 5; i++ {
-				assert.Equal(t, echoFactoryID.Pb(), sortedOutput[i-3].DestModule)
+				assert.Equal(t, echoFactoryID, sortedOutput[i-3].Dest())
 				assert.Equal(t,
 					fmt.Sprintf("Inst %d: Hi!", i),
-					sortedOutput[i-3].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
+					sortedOutput[i-3].(*eventpb.Event).Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 				)
 			}
 
