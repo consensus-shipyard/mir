@@ -49,6 +49,7 @@ package protos
 //go:generate protoc-events blockchainpb/minerpb/minerpb.proto
 //go:generate protoc-events blockchainpb/tpmpb/tpmpb.proto
 //go:generate protoc-events blockchainpb/communicationpb/communicationpb.proto
+//go:generate protoc-events blockchainpb/synchronizerpb/synchronizerpb.proto
 
 // Build the custom code generators.
 //go:generate go build -o ../codegen/generators/mir-std-gen/mir-std-gen.bin ../codegen/generators/mir-std-gen
@@ -85,6 +86,7 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
+//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
 
 // Generate other things.
 //go:generate protoc --go_out=../pkg/ --go_opt=paths=source_relative --go-grpc_out=../pkg/ --go-grpc_opt=paths=source_relative transactionreceiver/transactionreceiver.proto

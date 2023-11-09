@@ -11,6 +11,7 @@ import (
 	bcmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb"
 	communicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
+	synchronizerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
 	tpmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
@@ -125,6 +126,10 @@ func (w *Event_Tpm) Unwrap() *tpmpb.Event {
 
 func (w *Event_Communication) Unwrap() *communicationpb.Event {
 	return w.Communication
+}
+
+func (w *Event_Synchronizer) Unwrap() *synchronizerpb.Event {
+	return w.Synchronizer
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package synchronizerpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb";
+
+import "blockchainpb/blockchainpb.proto";
+
+import "mir/codegen_extensions.proto";
+import "net/codegen_extensions.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    SyncRequest sync_request = 1;
+  }
+}
+
+message SyncRequest {
+  option (mir.event) = true;
+  
+  uint64 orphan_block_id = 1;
+  uint64 leave_ids = 2;
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    BlockRequest  block_request   = 1;
+    BlockResponse block_response  = 2;
+  }
+}
+
+message BlockRequest {
+  option (net.message) = true;
+  
+  uint64 request_id = 1;
+  uint64 block_id = 2;
+}
+
+message BlockResponse {
+  option (net.message) = true;
+  
+  uint64 request_id = 1;
+  bool found = 2;
+  blockchainpb.Block block = 3; // possibly undefined (proto3 spec no-longer supports optional/required...)
+  
+}

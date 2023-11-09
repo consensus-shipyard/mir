@@ -7,6 +7,7 @@ import (
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -25,5 +26,23 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 func UponNewBlock(m dsl.Module, handler func(block *blockchainpb.Block) error) {
 	UponEvent[*types.Event_NewBlock](m, func(ev *types.NewBlock) error {
 		return handler(ev.Block)
+	})
+}
+
+func UponNewChain(m dsl.Module, handler func(blocks []*blockchainpb.Block) error) {
+	UponEvent[*types.Event_NewChain](m, func(ev *types.NewChain) error {
+		return handler(ev.Blocks)
+	})
+}
+
+func UponGetBlockRequest(m dsl.Module, handler func(requestId uint64, sourceModule types2.ModuleID, blockId uint64) error) {
+	UponEvent[*types.Event_GetBlockRequest](m, func(ev *types.GetBlockRequest) error {
+		return handler(ev.RequestId, ev.SourceModule, ev.BlockId)
+	})
+}
+
+func UponGetBlockResponse(m dsl.Module, handler func(requestId uint64, found bool, block *blockchainpb.Block) error) {
+	UponEvent[*types.Event_GetBlockResponse](m, func(ev *types.GetBlockResponse) error {
+		return handler(ev.RequestId, ev.Found, ev.Block)
 	})
 }

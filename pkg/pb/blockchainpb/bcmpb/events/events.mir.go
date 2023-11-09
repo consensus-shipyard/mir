@@ -23,3 +23,52 @@ func NewBlock(destModule types.ModuleID, block *blockchainpb.Block) *types1.Even
 		},
 	}
 }
+
+func NewChain(destModule types.ModuleID, blocks []*blockchainpb.Block) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_NewChain{
+					NewChain: &types2.NewChain{
+						Blocks: blocks,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GetBlockRequest(destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, blockId uint64) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_GetBlockRequest{
+					GetBlockRequest: &types2.GetBlockRequest{
+						RequestId:    requestId,
+						SourceModule: sourceModule,
+						BlockId:      blockId,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GetBlockResponse(destModule types.ModuleID, requestId uint64, found bool, block *blockchainpb.Block) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_GetBlockResponse{
+					GetBlockResponse: &types2.GetBlockResponse{
+						RequestId: requestId,
+						Found:     found,
+						Block:     block,
+					},
+				},
+			},
+		},
+	}
+}

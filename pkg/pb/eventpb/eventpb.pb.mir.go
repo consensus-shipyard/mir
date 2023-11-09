@@ -31,6 +31,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Miner)(nil)),
 		reflect.TypeOf((*Event_Tpm)(nil)),
 		reflect.TypeOf((*Event_Communication)(nil)),
+		reflect.TypeOf((*Event_Synchronizer)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 		reflect.TypeOf((*Event_Tester)(nil)),

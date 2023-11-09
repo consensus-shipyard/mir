@@ -7,6 +7,7 @@ import (
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	types7 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types8 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -51,6 +52,8 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
 	case *messagepb.Message_Communicationpb:
 		return &Message_Communicationpb{Communicationpb: types7.MessageFromPb(pb.Communicationpb)}
+	case *messagepb.Message_Synchronizer:
+		return &Message_Synchronizer{Synchronizer: types8.MessageFromPb(pb.Synchronizer)}
 	}
 	return nil
 }
@@ -221,6 +224,30 @@ func (w *Message_Communicationpb) Pb() messagepb.Message_Type {
 
 func (*Message_Communicationpb) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Communicationpb]()}
+}
+
+type Message_Synchronizer struct {
+	Synchronizer *types8.Message
+}
+
+func (*Message_Synchronizer) isMessage_Type() {}
+
+func (w *Message_Synchronizer) Unwrap() *types8.Message {
+	return w.Synchronizer
+}
+
+func (w *Message_Synchronizer) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Synchronizer == nil {
+		return &messagepb.Message_Synchronizer{}
+	}
+	return &messagepb.Message_Synchronizer{Synchronizer: (w.Synchronizer).Pb()}
+}
+
+func (*Message_Synchronizer) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Synchronizer]()}
 }
 
 func MessageFromPb(pb *messagepb.Message) *Message {

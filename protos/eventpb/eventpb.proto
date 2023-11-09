@@ -27,6 +27,7 @@ import "blockchainpb/bcmpb/bcmpb.proto";
 import "blockchainpb/minerpb/minerpb.proto";
 import "blockchainpb/tpmpb/tpmpb.proto";
 import "blockchainpb/communicationpb/communicationpb.proto";
+import "blockchainpb/synchronizerpb/synchronizerpb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -72,6 +73,7 @@ message Event {
     minerpb.Event         miner         = 202;
     tpmpb.Event           tpm           = 203;
     communicationpb.Event communication = 204;
+    synchronizerpb.Event  synchronizer  = 205;
 
     // for unit-tests
     google.protobuf.StringValue testingString = 301;

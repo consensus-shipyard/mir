@@ -17,6 +17,7 @@ import "pingpongpb/pingpongpb.proto";
 import "checkpointpb/checkpointpb.proto";
 import "ordererpb/ordererpb.proto";
 import "blockchainpb/communicationpb/communicationpb.proto";
+import "blockchainpb/synchronizerpb/synchronizerpb.proto";
 
 import "mir/codegen_extensions.proto";
 import "net/codegen_extensions.proto";
@@ -38,6 +39,7 @@ message Message {
 
     // Messages for blockchain
     communicationpb.Message     communicationpb     = 8;
+    synchronizerpb.Message      synchronizer        = 9;
 
   }
 }

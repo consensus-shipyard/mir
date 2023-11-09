@@ -4,7 +4,7 @@ package eventpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types23 "github.com/filecoin-project/mir/codegen/model/types"
+	types24 "github.com/filecoin-project/mir/codegen/model/types"
 	types13 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -13,6 +13,7 @@ import (
 	types18 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
 	types21 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
 	types19 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
+	types22 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
 	types20 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb/types"
 	types15 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
 	types8 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
@@ -25,11 +26,11 @@ import (
 	types16 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
 	types11 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	types17 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
-	types22 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
+	types23 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
 	types7 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types14 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
-	types24 "github.com/filecoin-project/mir/pkg/timer/types"
-	types25 "github.com/filecoin-project/mir/pkg/trantor/types"
+	types25 "github.com/filecoin-project/mir/pkg/timer/types"
+	types26 "github.com/filecoin-project/mir/pkg/trantor/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -103,12 +104,14 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Tpm{Tpm: types20.EventFromPb(pb.Tpm)}
 	case *eventpb.Event_Communication:
 		return &Event_Communication{Communication: types21.EventFromPb(pb.Communication)}
+	case *eventpb.Event_Synchronizer:
+		return &Event_Synchronizer{Synchronizer: types22.EventFromPb(pb.Synchronizer)}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
 		return &Event_TestingUint{TestingUint: pb.TestingUint}
 	case *eventpb.Event_Tester:
-		return &Event_Tester{Tester: types22.TesterFromPb(pb.Tester)}
+		return &Event_Tester{Tester: types23.TesterFromPb(pb.Tester)}
 	}
 	return nil
 }
@@ -665,6 +668,30 @@ func (*Event_Communication) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Communication]()}
 }
 
+type Event_Synchronizer struct {
+	Synchronizer *types22.Event
+}
+
+func (*Event_Synchronizer) isEvent_Type() {}
+
+func (w *Event_Synchronizer) Unwrap() *types22.Event {
+	return w.Synchronizer
+}
+
+func (w *Event_Synchronizer) Pb() eventpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Synchronizer == nil {
+		return &eventpb.Event_Synchronizer{}
+	}
+	return &eventpb.Event_Synchronizer{Synchronizer: (w.Synchronizer).Pb()}
+}
+
+func (*Event_Synchronizer) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Synchronizer]()}
+}
+
 type Event_TestingString struct {
 	TestingString *wrapperspb.StringValue
 }
@@ -714,12 +741,12 @@ func (*Event_TestingUint) MirReflect() mirreflect.Type {
 }
 
 type Event_Tester struct {
-	Tester *types22.Tester
+	Tester *types23.Tester
 }
 
 func (*Event_Tester) isEvent_Type() {}
 
-func (w *Event_Tester) Unwrap() *types22.Tester {
+func (w *Event_Tester) Unwrap() *types23.Tester {
 	return w.Tester
 }
 
@@ -744,7 +771,7 @@ func EventFromPb(pb *eventpb.Event) *Event {
 	return &Event{
 		DestModule: (types.ModuleID)(pb.DestModule),
 		Type:       Event_TypeFromPb(pb.Type),
-		Next: types23.ConvertSlice(pb.Next, func(t *eventpb.Event) *Event {
+		Next: types24.ConvertSlice(pb.Next, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
 	}
@@ -760,7 +787,7 @@ func (m *Event) Pb() *eventpb.Event {
 		if m.Type != nil {
 			pbMessage.Type = (m.Type).Pb()
 		}
-		pbMessage.Next = types23.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
+		pbMessage.Next = types24.ConvertSlice(m.Next, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		})
 	}
@@ -927,7 +954,7 @@ func (*TimerEvent) MirReflect() mirreflect.Type {
 
 type TimerDelay struct {
 	EventsToDelay []*Event
-	Delay         types24.Duration
+	Delay         types25.Duration
 }
 
 func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
@@ -935,10 +962,10 @@ func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
 		return nil
 	}
 	return &TimerDelay{
-		EventsToDelay: types23.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
+		EventsToDelay: types24.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay: (types24.Duration)(pb.Delay),
+		Delay: (types25.Duration)(pb.Delay),
 	}
 }
 
@@ -948,7 +975,7 @@ func (m *TimerDelay) Pb() *eventpb.TimerDelay {
 	}
 	pbMessage := &eventpb.TimerDelay{}
 	{
-		pbMessage.EventsToDelay = types23.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
+		pbMessage.EventsToDelay = types24.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		})
 		pbMessage.Delay = (uint64)(m.Delay)
@@ -963,8 +990,8 @@ func (*TimerDelay) MirReflect() mirreflect.Type {
 
 type TimerRepeat struct {
 	EventsToRepeat []*Event
-	Delay          types24.Duration
-	RetentionIndex types25.RetentionIndex
+	Delay          types25.Duration
+	RetentionIndex types26.RetentionIndex
 }
 
 func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
@@ -972,11 +999,11 @@ func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
 		return nil
 	}
 	return &TimerRepeat{
-		EventsToRepeat: types23.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
+		EventsToRepeat: types24.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
 			return EventFromPb(t)
 		}),
-		Delay:          (types24.Duration)(pb.Delay),
-		RetentionIndex: (types25.RetentionIndex)(pb.RetentionIndex),
+		Delay:          (types25.Duration)(pb.Delay),
+		RetentionIndex: (types26.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -986,7 +1013,7 @@ func (m *TimerRepeat) Pb() *eventpb.TimerRepeat {
 	}
 	pbMessage := &eventpb.TimerRepeat{}
 	{
-		pbMessage.EventsToRepeat = types23.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
+		pbMessage.EventsToRepeat = types24.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
 			return (t).Pb()
 		})
 		pbMessage.Delay = (uint64)(m.Delay)
@@ -1001,7 +1028,7 @@ func (*TimerRepeat) MirReflect() mirreflect.Type {
 }
 
 type TimerGarbageCollect struct {
-	RetentionIndex types25.RetentionIndex
+	RetentionIndex types26.RetentionIndex
 }
 
 func TimerGarbageCollectFromPb(pb *eventpb.TimerGarbageCollect) *TimerGarbageCollect {
@@ -1009,7 +1036,7 @@ func TimerGarbageCollectFromPb(pb *eventpb.TimerGarbageCollect) *TimerGarbageCol
 		return nil
 	}
 	return &TimerGarbageCollect{
-		RetentionIndex: (types25.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (types26.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 

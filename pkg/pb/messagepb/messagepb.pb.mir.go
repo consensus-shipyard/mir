@@ -15,5 +15,6 @@ func (*Message) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Message_Checkpoint)(nil)),
 		reflect.TypeOf((*Message_Orderer)(nil)),
 		reflect.TypeOf((*Message_Communicationpb)(nil)),
+		reflect.TypeOf((*Message_Synchronizer)(nil)),
 	}
 }

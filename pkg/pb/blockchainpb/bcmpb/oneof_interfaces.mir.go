@@ -12,3 +12,15 @@ type Event_TypeWrapper[T any] interface {
 func (w *Event_NewBlock) Unwrap() *NewBlock {
 	return w.NewBlock
 }
+
+func (w *Event_NewChain) Unwrap() *NewChain {
+	return w.NewChain
+}
+
+func (w *Event_GetBlockRequest) Unwrap() *GetBlockRequest {
+	return w.GetBlockRequest
+}
+
+func (w *Event_GetBlockResponse) Unwrap() *GetBlockResponse {
+	return w.GetBlockResponse
+}
