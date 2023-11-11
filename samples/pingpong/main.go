@@ -13,7 +13,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/pingpong/lowlevel"
+	"github.com/filecoin-project/mir/samples/pingpong/customevents"
 )
 
 func main() {
@@ -45,7 +45,8 @@ func main() {
 		map[t.ModuleID]modules.Module{
 			"transport": transport,
 			//"pingpong":  NewPingPong(ownID),
-			"pingpong": lowlevel.NewPingPong(ownID),
+			//"pingpong": lowlevel.NewPingPong(ownID),
+			"pingpong": customevents.NewPingPong(ownID),
 			"timer":    timer.New(),
 		},
 		nil,
