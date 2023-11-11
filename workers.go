@@ -79,7 +79,7 @@ func (n *Node) processModuleEvents(
 		iter := eventsIn.Iterator()
 		for event := iter.Next(); event != nil; event = iter.Next() {
 			n.Config.Logger.Log(logging.LevelTrace,
-				fmt.Sprintf("Event for module %v: %v", event.Dest(), event.String()))
+				fmt.Sprintf("Event for module %v: %v", event.Dest(), event.ToString()))
 		}
 	}
 

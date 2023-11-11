@@ -18,7 +18,15 @@ service GrpcTransport {
 
 message GrpcMessage {
 	string            sender = 1;
-	messagepb.Message msg    = 2;
+	oneof type {
+		messagepb.Message pb_msg  = 2;
+		RawMessage        raw_msg = 3;
+	}
+}
+
+message RawMessage {
+	string dest_module = 1;
+	bytes  data        = 2;
 }
 
 message ByeBye {

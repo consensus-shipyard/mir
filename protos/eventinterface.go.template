@@ -23,11 +23,11 @@ func (event *Event) Dest() t.ModuleID {
 	return t.ModuleID(event.DestModule)
 }
 
-// Bytes returns a serialized representation of the event
+// ToBytes returns a serialized representation of the event
 // as a slice of bytes from which the event can be reconstructed.
-// Note that Bytes does not necessarily guarantee the output to be deterministic.
-// Even multiple subsequent calls to Bytes on the same event object might return different byte slices.
-func (event *Event) Bytes() ([]byte, error) {
+// Note that ToBytes does not necessarily guarantee the output to be deterministic.
+// Even multiple subsequent calls to ToBytes on the same event object might return different byte slices.
+func (event *Event) ToBytes() ([]byte, error) {
 	data, err := proto.Marshal(event)
 	if err != nil {
 		return nil, err
@@ -35,4 +35,6 @@ func (event *Event) Bytes() ([]byte, error) {
 	return data, nil
 }
 
-// The String method is implemented directly by the Protobuf compiler.
+func (event *Event) ToString() string {
+	return event.String()
+}

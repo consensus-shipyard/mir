@@ -117,57 +117,105 @@ func (gt *Transport) ApplyEvents(
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		// We only support proto events.
-		pbevent, ok := event.(*eventpb.Event)
-		if !ok {
-			return es.Errorf("GRPC transport only supports proto events, received %T", event)
-		}
+		switch evt := event.(type) {
+		case *OutgoingMessage:
+			for _, destID := range evt.DestNodes {
+				msgData, err := evt.Data.ToBytes()
+				if err != nil {
+					return es.Errorf("failed serializing message data: %w", err)
+				}
 
-		switch e := pbevent.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
-		case *eventpb.Event_Transport:
-			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
-			case *transportpbtypes.Event_SendMessage:
-				for _, destID := range e.SendMessage.Destinations {
-					if destID == gt.ownID {
-						// Send message to myself bypassing the network.
-						// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
-						// (Processing of input events must be non-blocking.)
-						receivedEvent := transportpbevents.MessageReceived(
-							e.SendMessage.Msg.DestModule,
-							gt.ownID,
-							e.SendMessage.Msg,
-						)
-						go func() {
-							select {
-							case gt.incomingMessages <- events.ListOf(receivedEvent.Pb()):
-							case <-ctx.Done():
-							}
-						}()
-					} else {
-						// Send message to another node.
-						if err := gt.Send(destID, e.SendMessage.Msg.Pb()); err != nil {
-							// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
-							gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
+				if destID == gt.ownID {
+					// Send message to myself bypassing the network.
+					// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
+					// (Processing of input events must be non-blocking.)
+					receivedEvent := MessageReceived{
+						srcNode:   gt.ownID,
+						dstModule: evt.RemoteDestModule,
+						msgData:   msgData,
+					}
+					go func() {
+						select {
+						case gt.incomingMessages <- events.ListOf(&receivedEvent):
+						case <-ctx.Done():
 						}
+					}()
+				} else {
+					// Send message to another node.
+					if err := gt.SendRawMessage(destID, evt.RemoteDestModule, msgData); err != nil {
+						// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
+						gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
 					}
 				}
+			}
+		case *eventpb.Event:
+			switch e := evt.Type.(type) {
+			case *eventpb.Event_Init:
+				// no actions on init
+			case *eventpb.Event_Transport:
+				switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
+				case *transportpbtypes.Event_SendMessage:
+					for _, destID := range e.SendMessage.Destinations {
+						if destID == gt.ownID {
+							// Send message to myself bypassing the network.
+							// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
+							// (Processing of input events must be non-blocking.)
+							receivedEvent := transportpbevents.MessageReceived(
+								e.SendMessage.Msg.DestModule,
+								gt.ownID,
+								e.SendMessage.Msg,
+							)
+							go func() {
+								select {
+								case gt.incomingMessages <- events.ListOf(receivedEvent.Pb()):
+								case <-ctx.Done():
+								}
+							}()
+						} else {
+							// Send message to another node.
+							if err := gt.SendPbMessage(destID, e.SendMessage.Msg.Pb()); err != nil {
+								// TODO: This violates the non-blocking operation of ApplyEvents method. Fix it.
+								gt.logger.Log(logging.LevelWarn, "failed to send a message", "err", err)
+							}
+						}
+					}
+				default:
+					return es.Errorf("unexpected type of transport event: %T", e)
+				}
 			default:
-				return es.Errorf("unexpected type of transport event: %T", e)
+				return es.Errorf("unexpected type of Net event: %T", evt.Type)
 			}
 		default:
-			return es.Errorf("unexpected type of Net event: %T", pbevent.Type)
+			return es.Errorf("GRPC transport only supports proto events and OutgoingMessage, received %T", event)
 		}
 	}
 
 	return nil
 }
 
-// Send sends msg to the node with ID dest.
+// SendPbMessage sends a protobuf type message msg to the node with ID dest.
+// Concurrent calls to Send are not (yet? TODO) supported.
+func (gt *Transport) SendPbMessage(dest t.NodeID, msg *messagepb.Message) error {
+	return gt.clients[dest].Send(&GrpcMessage{
+		Sender: gt.ownID.Pb(),
+		Type:   &GrpcMessage_PbMsg{PbMsg: msg},
+	})
+}
+
+// Send sends a protobuf type message msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
 func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
-	return gt.clients[dest].Send(&GrpcMessage{Sender: gt.ownID.Pb(), Msg: msg})
+	return gt.SendPbMessage(dest, msg)
+}
+
+func (gt *Transport) SendRawMessage(destNode t.NodeID, destModule t.ModuleID, serializedMsgData []byte) error {
+	return gt.clients[destNode].Send(&GrpcMessage{
+		Sender: gt.ownID.Pb(),
+		Type: &GrpcMessage_RawMsg{RawMsg: &RawMessage{
+			DestModule: destModule.Pb(),
+			Data:       serializedMsgData,
+		}},
+	})
 }
 
 // Listen implements the gRPC Listen service (multi-request-single-response).
@@ -191,14 +239,25 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 
 	// For each message received
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
-		select {
-		case gt.incomingMessages <- events.ListOf(
-			transportpbevents.MessageReceived(
-				t.ModuleID(grpcMsg.Msg.DestModule),
+
+		var rcvEvent events.Event
+		switch msg := grpcMsg.Type.(type) {
+		case *GrpcMessage_PbMsg:
+			rcvEvent = transportpbevents.MessageReceived(
+				t.ModuleID(msg.PbMsg.DestModule),
 				t.NodeID(grpcMsg.Sender),
-				messagepbtypes.MessageFromPb(grpcMsg.Msg),
-			).Pb(),
-		):
+				messagepbtypes.MessageFromPb(msg.PbMsg),
+			).Pb()
+		case *GrpcMessage_RawMsg:
+			rcvEvent = &MessageReceived{
+				srcNode:   t.NodeID(grpcMsg.Sender),
+				dstModule: t.ModuleID(msg.RawMsg.DestModule),
+				msgData:   msg.RawMsg.Data,
+			}
+		}
+
+		select {
+		case gt.incomingMessages <- events.ListOf(rcvEvent):
 			// Write the message to the channel. This channel will be read by the user of the module.
 
 		case <-srv.Context().Done():
