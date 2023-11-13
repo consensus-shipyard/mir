@@ -26,6 +26,10 @@ func NewStatInterceptor(s *LiveStats, txConsumer t.ModuleID) *StatInterceptor {
 	return &StatInterceptor{s, txConsumer}
 }
 
+func (i *StatInterceptor) InterceptWithReturn(events *events.EventList) (*events.EventList, error) {
+	panic("implement me")
+}
+
 func (i *StatInterceptor) Intercept(events *events.EventList) error {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.

@@ -43,13 +43,13 @@ func NewSqliteWriter(filename string, nodeID t.NodeID, logger logging.Logger) (E
 	}, nil
 }
 
-func (w sqliteWriter) Write(record EventRecord) error {
+func (w sqliteWriter) Write(record EventRecord) (EventRecord, error) {
 	// For each incoming event
 	iter := record.Events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		jsonData, err := protojson.Marshal(event)
 		if err != nil {
-			return err
+			return record, err
 		}
 
 		_, err = w.db.Exec(
@@ -60,10 +60,10 @@ func (w sqliteWriter) Write(record EventRecord) error {
 			jsonData,
 		)
 		if err != nil {
-			return err
+			return record, err
 		}
 	}
-	return nil
+	return record, nil
 }
 
 func (w sqliteWriter) Flush() error {

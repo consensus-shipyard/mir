@@ -171,8 +171,9 @@ func (i *Recorder) Intercept(events *events.EventList) error {
 	if i.syncWrite {
 		i.writerLock.Lock()
 		defer i.writerLock.Unlock()
-
-		if err := i.writeEvents(record); err != nil {
+		var err error
+		record, err = i.writeEvents(record)
+		if err != nil {
 			return es.Errorf("error writing events: %w", err)
 		}
 		if err := i.dest.Flush(); err != nil {
@@ -189,6 +190,47 @@ func (i *Recorder) Intercept(events *events.EventList) error {
 		i.exitErrMutex.Lock()
 		defer i.exitErrMutex.Unlock()
 		return i.exitErr
+	}
+}
+
+func (i *Recorder) InterceptWithReturn(events *events.EventList) (*events.EventList, error) {
+
+	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
+	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
+	// Mir would treat that variable as non-nil, thinking there is an interceptor, and call Intercept() on it.
+	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
+	if i == nil {
+		return events, nil
+	}
+
+	record := EventRecord{
+		Events: events,
+		Time:   i.timeSource(),
+	}
+
+	// If synchronous writing is enabled, write data and return immediately, without using any channels.
+	if i.syncWrite {
+		i.writerLock.Lock()
+		defer i.writerLock.Unlock()
+		var err error
+		record, err = i.writeEvents(record)
+		if err != nil {
+			return events, es.Errorf("error writing events: %w", err)
+		}
+		if err := i.dest.Flush(); err != nil {
+			return events, es.Errorf("error flushing written events: %w", err)
+		}
+		return events, nil
+	}
+
+	// If writing is asynchronous, pass the record to the background writing goroutine.
+	select {
+	case i.eventC <- record:
+		return events, nil
+	case <-i.exitC:
+		i.exitErrMutex.Lock()
+		defer i.exitErrMutex.Unlock()
+		return events, i.exitErr
 	}
 }
 
@@ -242,8 +284,9 @@ func (i *Recorder) run() (exitErr error) {
 			for {
 				select {
 				case record := <-i.eventC:
-
-					if err := i.writeEvents(record); err != nil {
+					var err error
+					_, err = i.writeEvents(record)
+					if err != nil {
 						return es.Errorf("error serializing to stream: %w", err)
 					}
 				default:
@@ -251,7 +294,9 @@ func (i *Recorder) run() (exitErr error) {
 				}
 			}
 		case record := <-i.eventC:
-			if err := i.writeEvents(record); err != nil {
+			var err error
+			_, err = i.writeEvents(record)
+			if err != nil {
 				return es.Errorf("error serializing to stream: %w", err)
 			}
 			cnt++
@@ -259,7 +304,7 @@ func (i *Recorder) run() (exitErr error) {
 	}
 }
 
-func (i *Recorder) writeEvents(record EventRecord) error {
+func (i *Recorder) writeEvents(record EventRecord) (EventRecord, error) {
 	eventByDests := i.newDests(record)
 	count := 0
 	for _, rec := range eventByDests {
@@ -271,22 +316,24 @@ func (i *Recorder) writeEvents(record EventRecord) error {
 				i.logger,
 			)
 			if err != nil {
-				return err
+				return record, err
 			}
 			err = i.dest.Close()
 			if err != nil {
-				return err
+				return record, err
 			}
 			i.dest = dest
 			i.fileCount++
 		}
 
 		if rec.Events.Len() != 0 {
-			if err := i.dest.Write(rec.Filter(i.filter)); err != nil {
-				return err
+			var err error
+			record, err = i.dest.Write(rec.Filter(i.filter))
+			if err != nil {
+				return record, err
 			}
 		}
 		count++
 	}
-	return nil
+	return record, nil
 }

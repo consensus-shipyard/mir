@@ -8,7 +8,7 @@ import (
 )
 
 type EventWriter interface {
-	Write(record EventRecord) error
+	Write(record EventRecord) (EventRecord, error)
 	Flush() error
 	Close() error
 }
