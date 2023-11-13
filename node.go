@@ -464,18 +464,21 @@ func (n *Node) importEvents(
 // Note: The passed Events should be free of any follow-up Events,
 // as those will be intercepted separately when processed.
 // Make sure to call the Strip method of the EventList before passing it to interceptEvents.
-func (n *Node) interceptEvents(events *events.EventList) {
+func (n *Node) interceptEvents(events *events.EventList) *events.EventList {
 
 	// ATTENTION: n.interceptor is an interface type. If it is assigned the nil value of a concrete type,
 	// this condition will evaluate to true, and Intercept(events) will be called on nil.
 	// The implementation of the concrete type must make sure that calling Intercept even on the nil value
 	// does not cause any problems.
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
+	var err error
 	if n.interceptor != nil {
-		if err := n.interceptor.Intercept(events); err != nil {
+		events, err = n.interceptor.InterceptWithReturn(events)
+		if err != nil {
 			n.workErrNotifier.Fail(err)
 		}
 	}
+	return events
 }
 
 func (n *Node) pauseInput() {
