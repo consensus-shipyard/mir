@@ -8,6 +8,10 @@ type repeater struct {
 	interceptors []Interceptor
 }
 
+func (r *repeater) InterceptWithReturn(events *events.EventList) (*events.EventList, error) {
+	panic("implement me")
+}
+
 func (r *repeater) Intercept(events *events.EventList) error {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
