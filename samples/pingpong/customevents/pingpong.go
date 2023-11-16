@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/net/grpc"
-	"github.com/filecoin-project/mir/samples/pingpong/customevents/pingpongevents"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/samples/pingpong/customevents/pingpongevents"
 )
 
 type Pingpong struct {

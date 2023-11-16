@@ -18,7 +18,6 @@ import (
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
@@ -78,7 +77,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
-			f: func(_ *eventpb.Event) {
+			f: func(_ events.Event) {
 				clientProgress.GarbageCollect()
 				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()))
 			},
@@ -102,10 +101,10 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			// NOT on reception of the transaction payloads.
 			// (Otherwise, delivering the transaction payloads from the availability module
 			// in different order at different nodes would lead to inconsistencies).
-			f: func(e *eventpb.Event) {
+			f: func(e events.Event) {
 				// Casting event to the NewOrderedBatch type is safe,
 				// because no other event type is ever saved in an output item created at certificate delivery.
-				filterDuplicates(e.
+				filterDuplicates(e.(*eventpb.Event).
 					Type.(*eventpb.Event_BatchFetcher).BatchFetcher.
 					Type.(*batchfetcherpb.Event_NewOrderedBatch).NewOrderedBatch)
 			},
@@ -141,7 +140,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			event: apppbevents.SnapshotRequest(mc.Destination, replyTo).Pb(),
 
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
-			f: func(_ *eventpb.Event) {
+			f: func(_ events.Event) {
 				clientProgress.GarbageCollect()
 				trantorpbdsl.ClientProgress(m,
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
@@ -199,9 +198,9 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 	})
 
 	// All other events simply pass through the batch fetcher unchanged (except their destination module).
-	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
+	dsl.UponOtherEvent(m, func(ev events.Event) error {
 		output.Enqueue(&outputItem{
-			event: events.Redirect(eventpbtypes.EventFromPb(ev), mc.Destination).Pb(),
+			event: ev.NewDest(mc.Destination),
 		})
 		output.Flush(m)
 		return nil

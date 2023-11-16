@@ -90,7 +90,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 	m := dsl.NewModule(mc.Self)
 
 	// Register only a single handler for all events, dropping and / or delaying them as configured.
-	dsl.UponOtherEvent(m, func(ev *eventpb.Event) error {
+	dsl.UponOtherEvent(m, func(ev events.Event) error {
 
 		// Drop event completely with probability params.DropRate
 		if r.Float32() < params.DropRate {
@@ -108,16 +108,23 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 				time.Duration(r.Int63n((params.MaxDelay-params.MinDelay).Nanoseconds()))*time.Nanosecond
 		}
 
+		pbev, ok := ev.(*eventpb.Event)
+		if !ok {
+			return es.Errorf("Event mangler only supports proto events so far.")
+		}
+		// TODO: Make custom Timer events that can deal with arbitrary other events
+		//  and remove this restriction (and the whole Redirect function).
+
 		// Delay the event by the computed random time.
 		if delay > 0 {
 			eventpbdsl.TimerDelay(
 				m,
 				mc.Timer,
-				[]*eventpbtypes.Event{events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest)},
+				[]*eventpbtypes.Event{eventpbtypes.EventFromPb(pbev.NewDest(mc.Dest).(*eventpb.Event))},
 				types.Duration(delay),
 			)
 		} else {
-			dsl.EmitEvent(m, events.Redirect(eventpbtypes.EventFromPb(ev), mc.Dest).Pb())
+			dsl.EmitEvent(m, pbev.NewDest(mc.Dest).(*eventpb.Event))
 		}
 
 		return nil

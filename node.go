@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -508,7 +509,10 @@ func (n *Node) inputIsPaused() bool {
 func createInitEvents(m modules.Modules) *events.EventList {
 	initEvents := events.EmptyList()
 	for moduleID := range m {
-		initEvents.PushBack(events.Init(moduleID))
+		initEvents.PushBack(&eventpb.Event{
+			DestModule: moduleID.Pb(),
+			Type:       &eventpb.Event_Init{Init: &eventpb.Init{}},
+		})
 	}
 	return initEvents
 }

@@ -60,11 +60,11 @@ func (m *simTimerModule) applyEvent(ctx context.Context, event events.Event) err
 	case *eventpb.Event_Timer:
 		switch e := e.Timer.Type.(type) {
 		case *eventpb.TimerEvent_Delay:
-			evtsOut := events.ListOfPb(e.Delay.EventsToDelay...)
+			evtsOut := eventpb.List(e.Delay.EventsToDelay...)
 			d := types.Duration(e.Delay.Delay)
 			m.delay(ctx, evtsOut, d)
 		case *eventpb.TimerEvent_Repeat:
-			evtsOut := events.ListOfPb(e.Repeat.EventsToRepeat...)
+			evtsOut := eventpb.List(e.Repeat.EventsToRepeat...)
 			d := types.Duration(e.Repeat.Delay)
 			retIdx := tt.RetentionIndex(e.Repeat.RetentionIndex)
 			m.repeat(ctx, evtsOut, d, retIdx)

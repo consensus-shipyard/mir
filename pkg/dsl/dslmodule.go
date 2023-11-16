@@ -16,8 +16,9 @@ import (
 
 type dslModuleImpl struct {
 	moduleID                 t.ModuleID
-	defaultEventHandler      func(ev *eventpb.Event) error
-	eventHandlers            map[reflect.Type][]func(ev *eventpb.Event) error
+	defaultEventHandler      func(ev events.Event) error
+	eventHandlers            map[reflect.Type][]func(ev events.Event) error
+	pbEventHandlers          map[reflect.Type][]func(ev events.Event) error
 	stateUpdateHandlers      []func() error
 	stateUpdateBatchHandlers []func() error
 	outputEvents             *events.EventList
@@ -52,7 +53,8 @@ func NewModule(moduleID t.ModuleID) Module {
 	return &dslModuleImpl{
 		moduleID:               moduleID,
 		defaultEventHandler:    failExceptForInitAndTransport,
-		eventHandlers:          make(map[reflect.Type][]func(ev *eventpb.Event) error),
+		eventHandlers:          make(map[reflect.Type][]func(ev events.Event) error),
+		pbEventHandlers:        make(map[reflect.Type][]func(ev events.Event) error),
 		outputEvents:           &events.EventList{},
 		contextStore:           cs.NewSequentialContextStore[any](),
 		eventCleanupContextIDs: make(map[ContextID]struct{}),
@@ -73,30 +75,32 @@ func (m *dslModuleImpl) ModuleID() t.ModuleID {
 // This event handler will be called every time an event of type EvWrapper is received.
 // NB: This function works with the (legacy) protoc-generated types and is likely to be
 // removed in the future, with UponMirEvent taking its place.
-func UponEvent[EvWrapper eventpb.Event_TypeWrapper[Ev], Ev any](m Module, handler func(ev *Ev) error) {
-	evWrapperType := reflectutil.TypeOf[EvWrapper]()
+func UponEvent[T events.Event](m Module, handler func(ev T) error) {
+	reflectType := reflectutil.TypeOf[T]()
 
-	m.DslHandle().impl.eventHandlers[evWrapperType] = append(m.DslHandle().impl.eventHandlers[evWrapperType],
-		func(ev *eventpb.Event) error {
-			return handler(ev.Type.(EvWrapper).Unwrap())
+	m.DslHandle().impl.eventHandlers[reflectType] = append(m.DslHandle().impl.eventHandlers[reflectType],
+		func(ev events.Event) error {
+			return handler(ev.(T))
 		})
 }
 
 // UponMirEvent registers an event handler for module m.
 // This event handler will be called every time an event of type EvWrapper is received.
 // NB: this function works with the Mir-generated types.
-// For the (legacy) protoc-generated types, UponEvent can be used.
+// For all other types, use the general UponEvent.
+// We treat Mir-generated events specially, since all are grouped under a single common *eventpb.Event type
+// and we need to make a distinction of different sub-types.
 func UponMirEvent[EvWrapper eventpbtypes.Event_TypeWrapper[Ev], Ev any](m Module, handler func(ev *Ev) error) {
 	var zeroW EvWrapper
 	evWrapperType := zeroW.MirReflect().PbType()
 
-	m.DslHandle().impl.eventHandlers[evWrapperType] = append(m.DslHandle().impl.eventHandlers[evWrapperType],
-		func(ev *eventpb.Event) error {
-			return handler(eventpbtypes.EventFromPb(ev).Type.(EvWrapper).Unwrap())
+	m.DslHandle().impl.pbEventHandlers[evWrapperType] = append(m.DslHandle().impl.pbEventHandlers[evWrapperType],
+		func(ev events.Event) error {
+			return handler(eventpbtypes.EventFromPb(ev.(*eventpb.Event)).Type.(EvWrapper).Unwrap())
 		})
 }
 
-func UponOtherEvent(m Module, handler func(ev *eventpb.Event) error) {
+func UponOtherEvent(m Module, handler func(ev events.Event) error) {
 	m.DslHandle().impl.defaultEventHandler = handler
 }
 
@@ -161,7 +165,7 @@ func (m *dslModuleImpl) ImplementsModule() {}
 // EmitEvent adds the event to the queue of output events
 // NB: This function works with the (legacy) protoc-generated types and is likely to be
 // removed in the future, with EmitMirEvent taking its place.
-func EmitEvent(m Module, ev *eventpb.Event) {
+func EmitEvent(m Module, ev events.Event) {
 	m.DslHandle().impl.outputEvents.PushBack(ev)
 }
 
@@ -179,17 +183,21 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	iter := evs.Iterator()
 	for ev := iter.Next(); ev != nil; ev = iter.Next() {
 
-		// We only support proto events.
-		pbev, ok := ev.(*eventpb.Event)
-		if !ok {
-			return nil, es.Errorf("The DSL module only supports proto events, received %T", ev)
+		var handlers []func(event events.Event) error
+		var ok bool
+		switch e := ev.(type) {
+		case *eventpb.Event:
+			// TODO: This special treatment of PB events is ugly.
+			// It stems from the DSL module's support for generated code.
+			// Adapt the generated (and the DSL module) code so this special treatment is not necessary any more.
+			handlers, ok = m.pbEventHandlers[reflect.TypeOf(e.Type)]
+		default:
+			handlers, ok = m.eventHandlers[reflect.TypeOf(ev)]
 		}
-
-		handlers, ok := m.eventHandlers[reflect.TypeOf(pbev.Type)]
 
 		// If no specific handler was defined for this event type, execute the default handler.
 		if !ok {
-			err := m.defaultEventHandler(pbev)
+			err := m.defaultEventHandler(ev)
 			if err != nil {
 				return nil, err
 			}
@@ -197,7 +205,7 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 
 		// Execute all handlers registered for the event type.
 		for _, h := range handlers {
-			err := h(pbev)
+			err := h(ev)
 			if err != nil {
 				return nil, err
 			}
@@ -237,19 +245,29 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 // The failExceptForInit returns an error for every received event type except for Init.
 // For convenience, if this is used as the default event handler,
 // it is not considered an error to not have handlers for the Init event.
-func failExceptForInit(ev *eventpb.Event) error { //nolint
-	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
+func failExceptForInit(ev events.Event) error { //nolint
+	pbev, ok := ev.(*eventpb.Event)
+	if !ok {
+		return es.Errorf("unknown event type '%T'", ev)
+	}
+
+	if reflect.TypeOf(pbev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
 		return nil
 	}
-	return es.Errorf("unknown event type '%T'", ev.Type)
+	return es.Errorf("unknown event type '%T'", pbev.Type)
 }
 
 // The failExceptForInitAndTransport is just like failExceptForInit except
 // that if the module does not tolerate a transport event, it gracefully
 // ignores it. This prevents external nodes from crashing the node by sending
 // transport events to modules that do not tolerate it.
-func failExceptForInitAndTransport(ev *eventpb.Event) error {
-	if reflect.TypeOf(ev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
+func failExceptForInitAndTransport(ev events.Event) error {
+	pbev, ok := ev.(*eventpb.Event)
+	if !ok {
+		return es.Errorf("unknown event type '%T'", ev)
+	}
+
+	if reflect.TypeOf(pbev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
 		return nil
 	}
 
