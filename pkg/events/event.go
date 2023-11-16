@@ -9,8 +9,16 @@ type Event interface {
 	// it is useful for analyzing event traces and debugging.
 	Src() t.ModuleID
 
+	// NewSrc returns a new Event that has the given source module
+	// and is otherwise identical to the original event.
+	NewSrc(newSrc t.ModuleID) Event
+
 	// Dest returns the destination module of the event.
 	Dest() t.ModuleID
+
+	// NewDest returns a new Event that has the given destination module
+	// and is otherwise identical to the original event.
+	NewDest(newDest t.ModuleID) Event
 
 	// ToBytes returns a serialized representation of the event
 	// as a slice of bytes from which the event can be reconstructed.

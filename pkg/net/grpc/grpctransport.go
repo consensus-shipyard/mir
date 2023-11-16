@@ -110,7 +110,7 @@ func (gt *Transport) EventsOut() <-chan *events.EventList {
 	return gt.incomingMessages
 }
 
-func (gt *Transport) ApplyEvents(
+func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this function.
 	ctx context.Context,
 	eventList *events.EventList,
 ) error {
@@ -130,9 +130,9 @@ func (gt *Transport) ApplyEvents(
 					// The sending must be done in its own goroutine in case writing to gt.incomingMessages blocks.
 					// (Processing of input events must be non-blocking.)
 					receivedEvent := MessageReceived{
-						srcNode:   gt.ownID,
-						dstModule: evt.RemoteDestModule,
-						msgData:   msgData,
+						SourceNode: gt.ownID,
+						DstModule:  evt.RemoteDestModule,
+						MsgData:    msgData,
 					}
 					go func() {
 						select {
@@ -250,9 +250,9 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 			).Pb()
 		case *GrpcMessage_RawMsg:
 			rcvEvent = &MessageReceived{
-				srcNode:   t.NodeID(grpcMsg.Sender),
-				dstModule: t.ModuleID(msg.RawMsg.DestModule),
-				msgData:   msg.RawMsg.Data,
+				SourceNode: t.NodeID(grpcMsg.Sender),
+				DstModule:  t.ModuleID(msg.RawMsg.DestModule),
+				MsgData:    msg.RawMsg.Data,
 			}
 		}
 

@@ -254,7 +254,9 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 	fm.moduleRetention[retIdx] = append(fm.moduleRetention[retIdx], id)
 
 	// Initialize new submodule.
-	eventsOut, err := fm.submodules[id].ApplyEvents(events.ListOf(events.Init(id)))
+	eventsOut, err := fm.submodules[id].ApplyEvents(events.ListOf(
+		&eventpb.Event{DestModule: id.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}},
+	))
 	if err != nil {
 		return nil, err
 	}

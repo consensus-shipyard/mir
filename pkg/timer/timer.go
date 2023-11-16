@@ -57,13 +57,13 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 			case *eventpb.TimerEvent_Delay:
 				tm.Delay(
 					ctx,
-					events.ListOfPb(e.Delay.EventsToDelay...),
+					eventpb.List(e.Delay.EventsToDelay...),
 					types.Duration(e.Delay.Delay),
 				)
 			case *eventpb.TimerEvent_Repeat:
 				tm.Repeat(
 					ctx,
-					events.ListOfPb(e.Repeat.EventsToRepeat...),
+					eventpb.List(e.Repeat.EventsToRepeat...),
 					types.Duration(e.Repeat.Delay),
 					tt.RetentionIndex(e.Repeat.RetentionIndex),
 				)

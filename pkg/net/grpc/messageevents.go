@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -34,8 +35,20 @@ func (om *OutgoingMessage) Src() t.ModuleID {
 	return om.SrcModule
 }
 
+func (om *OutgoingMessage) NewSrc(newSrc t.ModuleID) events.Event {
+	newOM := *om
+	newOM.SrcModule = newSrc
+	return &newOM
+}
+
 func (om *OutgoingMessage) Dest() t.ModuleID {
 	return om.LocalDestModule
+}
+
+func (om *OutgoingMessage) NewDest(dest t.ModuleID) events.Event {
+	newOM := *om
+	newOM.LocalDestModule = dest
+	return &newOM
 }
 
 func (om *OutgoingMessage) ToBytes() ([]byte, error) {
@@ -52,26 +65,38 @@ func (om *OutgoingMessage) ToString() string {
 }
 
 type MessageReceived struct {
-	srcModule t.ModuleID
-	dstModule t.ModuleID
-	srcNode   t.NodeID
-	msgData   []byte
+	SrcModule  t.ModuleID
+	DstModule  t.ModuleID
+	SourceNode t.NodeID
+	MsgData    []byte
 }
 
 func (m *MessageReceived) Src() t.ModuleID {
-	return m.srcModule
+	return m.SrcModule
+}
+
+func (m *MessageReceived) NewSrc(newSrc t.ModuleID) events.Event {
+	newEvent := *m
+	newEvent.SrcModule = newSrc
+	return &newEvent
 }
 
 func (m *MessageReceived) Dest() t.ModuleID {
-	return m.dstModule
+	return m.DstModule
+}
+
+func (m *MessageReceived) NewDest(newDest t.ModuleID) events.Event {
+	newEvent := *m
+	newEvent.DstModule = newDest
+	return &newEvent
 }
 
 func (m *MessageReceived) SrcNode() t.NodeID {
-	return m.srcNode
+	return m.SourceNode
 }
 
 func (m *MessageReceived) DestModule() t.ModuleID {
-	return m.dstModule
+	return m.DstModule
 }
 
 func (m *MessageReceived) ToBytes() ([]byte, error) {
@@ -89,5 +114,5 @@ func (m *MessageReceived) ToString() string {
 }
 
 func (m *MessageReceived) Data() []byte {
-	return m.msgData
+	return m.MsgData
 }

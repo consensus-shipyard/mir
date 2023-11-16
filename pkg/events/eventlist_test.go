@@ -14,14 +14,14 @@ func TestEventList_Constructors(t *testing.T) {
 		"EmptyList":    {EmptyList(), nil},
 		"empty ListOf": {ListOf(), nil},
 		"one item": {
-			list:     ListOf(TestingString("testmodule", "hello")),
-			expected: []Event{TestingString("testmodule", "hello")},
+			list:     ListOf(NewTestString("testmodule", "hello")),
+			expected: []Event{NewTestString("testmodule", "hello")},
 		},
 		"three items": {
-			list: ListOf(TestingString("testmodule", "hello"), TestingString("testmodule", "world"),
-				TestingUint("testmodule", 42)),
-			expected: []Event{TestingString("testmodule", "hello"), TestingString("testmodule", "world"),
-				TestingUint("testmodule", 42)},
+			list: ListOf(NewTestString("testmodule", "hello"), NewTestString("testmodule", "world"),
+				NewTestUint("testmodule", 42)),
+			expected: []Event{NewTestString("testmodule", "hello"), NewTestString("testmodule", "world"),
+				NewTestUint("testmodule", 42)},
 		},
 	}
 
