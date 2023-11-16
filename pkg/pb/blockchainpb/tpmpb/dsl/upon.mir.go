@@ -21,8 +21,8 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
-	UponEvent[*types.Event_NewHead](m, func(ev *types.NewHead) error {
+func UponNewBlockRequest(m dsl.Module, handler func(headId uint64) error) {
+	UponEvent[*types.Event_NewBlockRequest](m, func(ev *types.NewBlockRequest) error {
 		return handler(ev.HeadId)
 	})
 }

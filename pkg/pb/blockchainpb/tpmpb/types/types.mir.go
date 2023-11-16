@@ -28,34 +28,34 @@ func Event_TypeFromPb(pb tpmpb.Event_Type) Event_Type {
 		return nil
 	}
 	switch pb := pb.(type) {
-	case *tpmpb.Event_NewHead:
-		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
+	case *tpmpb.Event_NewBlockRequest:
+		return &Event_NewBlockRequest{NewBlockRequest: NewBlockRequestFromPb(pb.NewBlockRequest)}
 	}
 	return nil
 }
 
-type Event_NewHead struct {
-	NewHead *NewHead
+type Event_NewBlockRequest struct {
+	NewBlockRequest *NewBlockRequest
 }
 
-func (*Event_NewHead) isEvent_Type() {}
+func (*Event_NewBlockRequest) isEvent_Type() {}
 
-func (w *Event_NewHead) Unwrap() *NewHead {
-	return w.NewHead
+func (w *Event_NewBlockRequest) Unwrap() *NewBlockRequest {
+	return w.NewBlockRequest
 }
 
-func (w *Event_NewHead) Pb() tpmpb.Event_Type {
+func (w *Event_NewBlockRequest) Pb() tpmpb.Event_Type {
 	if w == nil {
 		return nil
 	}
-	if w.NewHead == nil {
-		return &tpmpb.Event_NewHead{}
+	if w.NewBlockRequest == nil {
+		return &tpmpb.Event_NewBlockRequest{}
 	}
-	return &tpmpb.Event_NewHead{NewHead: (w.NewHead).Pb()}
+	return &tpmpb.Event_NewBlockRequest{NewBlockRequest: (w.NewBlockRequest).Pb()}
 }
 
-func (*Event_NewHead) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*tpmpb.Event_NewHead]()}
+func (*Event_NewBlockRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*tpmpb.Event_NewBlockRequest]()}
 }
 
 func EventFromPb(pb *tpmpb.Event) *Event {
@@ -85,24 +85,24 @@ func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*tpmpb.Event]()}
 }
 
-type NewHead struct {
+type NewBlockRequest struct {
 	HeadId uint64
 }
 
-func NewHeadFromPb(pb *tpmpb.NewHead) *NewHead {
+func NewBlockRequestFromPb(pb *tpmpb.NewBlockRequest) *NewBlockRequest {
 	if pb == nil {
 		return nil
 	}
-	return &NewHead{
+	return &NewBlockRequest{
 		HeadId: pb.HeadId,
 	}
 }
 
-func (m *NewHead) Pb() *tpmpb.NewHead {
+func (m *NewBlockRequest) Pb() *tpmpb.NewBlockRequest {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &tpmpb.NewHead{}
+	pbMessage := &tpmpb.NewBlockRequest{}
 	{
 		pbMessage.HeadId = m.HeadId
 	}
@@ -110,6 +110,6 @@ func (m *NewHead) Pb() *tpmpb.NewHead {
 	return pbMessage
 }
 
-func (*NewHead) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*tpmpb.NewHead]()}
+func (*NewBlockRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*tpmpb.NewBlockRequest]()}
 }

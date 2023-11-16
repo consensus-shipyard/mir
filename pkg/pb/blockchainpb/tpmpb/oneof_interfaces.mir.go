@@ -9,6 +9,6 @@ type Event_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Event_NewHead) Unwrap() *NewHead {
-	return w.NewHead
+func (w *Event_NewBlockRequest) Unwrap() *NewBlockRequest {
+	return w.NewBlockRequest
 }

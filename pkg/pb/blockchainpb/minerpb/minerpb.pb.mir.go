@@ -9,5 +9,6 @@ import (
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_BlockRequest)(nil)),
+		reflect.TypeOf((*Event_NewHead)(nil)),
 	}
 }

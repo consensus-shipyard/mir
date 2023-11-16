@@ -13,7 +13,8 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    BlockRequest block_request  = 1;
+    BlockRequest  block_request = 1;
+    NewHead       new_head      = 2;
   }
 }
 
@@ -22,4 +23,10 @@ message BlockRequest {
   
   uint64                  head_id = 1;
   blockchainpb.Payload    payload = 2;
+}
+
+message NewHead {
+  option (mir.event) = true;
+  
+  uint64                  head_id = 1;
 }

@@ -24,3 +24,18 @@ func BlockRequest(destModule types.ModuleID, headId uint64, payload *blockchainp
 		},
 	}
 }
+
+func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Miner{
+			Miner: &types2.Event{
+				Type: &types2.Event_NewHead{
+					NewHead: &types2.NewHead{
+						HeadId: headId,
+					},
+				},
+			},
+		},
+	}
+}

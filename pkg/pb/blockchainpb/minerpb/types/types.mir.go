@@ -31,6 +31,8 @@ func Event_TypeFromPb(pb minerpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *minerpb.Event_BlockRequest:
 		return &Event_BlockRequest{BlockRequest: BlockRequestFromPb(pb.BlockRequest)}
+	case *minerpb.Event_NewHead:
+		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
 	}
 	return nil
 }
@@ -57,6 +59,30 @@ func (w *Event_BlockRequest) Pb() minerpb.Event_Type {
 
 func (*Event_BlockRequest) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*minerpb.Event_BlockRequest]()}
+}
+
+type Event_NewHead struct {
+	NewHead *NewHead
+}
+
+func (*Event_NewHead) isEvent_Type() {}
+
+func (w *Event_NewHead) Unwrap() *NewHead {
+	return w.NewHead
+}
+
+func (w *Event_NewHead) Pb() minerpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.NewHead == nil {
+		return &minerpb.Event_NewHead{}
+	}
+	return &minerpb.Event_NewHead{NewHead: (w.NewHead).Pb()}
+}
+
+func (*Event_NewHead) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*minerpb.Event_NewHead]()}
 }
 
 func EventFromPb(pb *minerpb.Event) *Event {
@@ -118,4 +144,33 @@ func (m *BlockRequest) Pb() *minerpb.BlockRequest {
 
 func (*BlockRequest) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*minerpb.BlockRequest]()}
+}
+
+type NewHead struct {
+	HeadId uint64
+}
+
+func NewHeadFromPb(pb *minerpb.NewHead) *NewHead {
+	if pb == nil {
+		return nil
+	}
+	return &NewHead{
+		HeadId: pb.HeadId,
+	}
+}
+
+func (m *NewHead) Pb() *minerpb.NewHead {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &minerpb.NewHead{}
+	{
+		pbMessage.HeadId = m.HeadId
+	}
+
+	return pbMessage
+}
+
+func (*NewHead) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*minerpb.NewHead]()}
 }

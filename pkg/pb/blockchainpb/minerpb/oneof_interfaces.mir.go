@@ -12,3 +12,7 @@ type Event_TypeWrapper[T any] interface {
 func (w *Event_BlockRequest) Unwrap() *BlockRequest {
 	return w.BlockRequest
 }
+
+func (w *Event_NewHead) Unwrap() *NewHead {
+	return w.NewHead
+}

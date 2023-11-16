@@ -34,8 +34,9 @@ type synchronizerModule struct {
 	m            *dsl.Module
 	syncRequests map[uint64]*syncRequest
 	getRequests  map[uint64]*getRequest
-	otherNodes   []*t.NodeID // we remove nodes that we presume have crashed (see strikeList) // TODO: add a timeout to 're-add' them? exponential backoff?
+	otherNodes   []t.NodeID // we remove nodes that we presume have crashed (see strikeList) // TODO: add a timeout to 're-add' them? exponential backoff?
 	// stikeList    map[t.NodeID]int // a node gets a strike whenever it failed to handle a request, after STRIKE_THRESHOLD strikes it is removed from the otherNodes. Set to 0 if it handles a request successfully
+	mangle bool
 }
 
 /*************************
@@ -50,15 +51,14 @@ type syncRequest struct {
 	chain          []*blockchainpb.Block
 }
 
-func (sm *synchronizerModule) registerSyncRequest(blockID uint64) (uint64, error) {
-	requestId := blockID
-
+func (sm *synchronizerModule) registerSyncRequest(block *blockchainpb.Block, leaves []uint64) (uint64, error) {
+	requestId := block.BlockId
 	// check if request already exists
 	if _, ok := sm.syncRequests[requestId]; ok {
 		return 0, ErrRequestAlreadyExists
 	}
 
-	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: blockID, nodesContacted: []int{}}
+	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: block.BlockId, leaveIDs: leaves, nodesContacted: []int{}, chain: []*blockchainpb.Block{block}}
 
 	return requestId, nil
 }
@@ -80,19 +80,38 @@ func (sm *synchronizerModule) contactNextNode(requestID uint64) error {
 	} else {
 		// get next node
 		// NOTE: stupid to keep an array of indices but it's more flexible in case I want to change the way I pick the next node
-		nextNodeIndex = (request.nodesContacted[len(request.nodesContacted)] + 1) % len(sm.otherNodes)
+		nextNodeIndex = (request.nodesContacted[len(request.nodesContacted)-1] + 1) % len(sm.otherNodes)
 	}
 
 	request.nodesContacted = append(request.nodesContacted, nextNodeIndex)
-	nextNode := *sm.otherNodes[nextNodeIndex]
+	nextNode := sm.otherNodes[nextNodeIndex]
 
+	println("asking node", nextNode, "for block", request.blockID)
 	// send request
-	transportpbdsl.SendMessage(*sm.m, "synchronizer", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
+	if sm.mangle {
+		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
+	} else {
+		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
+	}
 
 	return nil
 }
 
-func (sm *synchronizerModule) handleSyncRequest(orphanBlockId uint64, leaveIds uint64) error {
+func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpb.Block, leaveIds []uint64) error {
+
+	// register request
+	requestId, err := sm.registerSyncRequest(orphanBlock, leaveIds)
+	if err != nil {
+		println("sync registration failed", err.Error())
+		return err
+	}
+
+	if err := sm.contactNextNode(requestId); err != nil {
+		// could check for 'ErrNoMoreNodes' here but there should always be at least one node
+		println("contacting next node failed", err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -107,13 +126,20 @@ func (sm *synchronizerModule) handleBlockResponseReceived(from t.NodeID, request
 	if !found {
 		// check whether the response came fromt he last node we contacted
 		// NOTE: this is getting messy
-		if *sm.otherNodes[request.nodesContacted[len(request.nodesContacted)-1]] != from {
+		if sm.otherNodes[request.nodesContacted[len(request.nodesContacted)-1]] != from {
 			// there is still a request out in the ether - don't send another one
 			return nil
 
 		}
 		// send request to the next node
-		sm.contactNextNode(requestID)
+		if err := sm.contactNextNode(requestID); err == ErrNoMoreNodes {
+			println("No more nodes to contact... Let's forget about this request", request.blockID)
+			panic(err) // NOTE: this should never happen as long as we don't start mangling
+		} else if err != nil {
+			println("contacting next node failed", err.Error())
+			return err
+		}
+
 		return nil
 	}
 
@@ -170,7 +196,11 @@ func (sm *synchronizerModule) handleGetBlockResponse(requestID uint64, found boo
 	}
 
 	// respond to sync request
-	transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.BlockResponse("synchronizer", requestID, found, block), []t.NodeID{request.from})
+	if sm.mangle {
+		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.BlockResponse("synchronizer", requestID, found, block), []t.NodeID{request.from})
+	} else {
+		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.BlockResponse("synchronizer", requestID, found, block), []t.NodeID{request.from})
+	}
 
 	// delete request
 	delete(sm.getRequests, requestID)
@@ -178,9 +208,15 @@ func (sm *synchronizerModule) handleGetBlockResponse(requestID uint64, found boo
 	return nil
 }
 
-func NewSynchronizer(otherNodes []*t.NodeID) modules.PassiveModule {
+func NewSynchronizer(otherNodes []t.NodeID, mangle bool) modules.PassiveModule {
 	m := dsl.NewModule("synchronizer")
-	var sm synchronizerModule
+	var sm = synchronizerModule{
+		m:            &m,
+		getRequests:  make(map[uint64]*getRequest),
+		syncRequests: make(map[uint64]*syncRequest),
+		otherNodes:   otherNodes,
+		mangle:       mangle,
+	}
 
 	dsl.UponInit(m, func() error {
 		return nil

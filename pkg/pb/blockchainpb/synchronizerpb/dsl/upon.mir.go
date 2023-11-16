@@ -4,6 +4,7 @@ package synchronizerpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
@@ -21,8 +22,8 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponSyncRequest(m dsl.Module, handler func(orphanBlockId uint64, leaveIds uint64) error) {
+func UponSyncRequest(m dsl.Module, handler func(orphanBlock *blockchainpb.Block, leaveIds []uint64) error) {
 	UponEvent[*types.Event_SyncRequest](m, func(ev *types.SyncRequest) error {
-		return handler(ev.OrphanBlockId, ev.LeaveIds)
+		return handler(ev.OrphanBlock, ev.LeaveIds)
 	})
 }

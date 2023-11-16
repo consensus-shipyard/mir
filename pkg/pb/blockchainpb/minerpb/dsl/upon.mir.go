@@ -27,3 +27,9 @@ func UponBlockRequest(m dsl.Module, handler func(headId uint64, payload *blockch
 		return handler(ev.HeadId, ev.Payload)
 	})
 }
+
+func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
+	UponEvent[*types.Event_NewHead](m, func(ev *types.NewHead) error {
+		return handler(ev.HeadId)
+	})
+}

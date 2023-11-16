@@ -23,7 +23,7 @@ func NewTPM() modules.PassiveModule {
 		return nil
 	})
 
-	tpmpb.UponNewHead(m, func(headId uint64) error {
+	tpmpb.UponNewBlockRequest(m, func(headId uint64) error {
 		// just generating random payloads for now
 		// generate random string
 		println("Generating random payload...")

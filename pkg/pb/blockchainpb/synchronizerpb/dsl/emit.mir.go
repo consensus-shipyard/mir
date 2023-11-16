@@ -4,12 +4,13 @@ package synchronizerpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/events"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func SyncRequest(m dsl.Module, destModule types.ModuleID, orphanBlockId uint64, leaveIds uint64) {
-	dsl.EmitMirEvent(m, events.SyncRequest(destModule, orphanBlockId, leaveIds))
+func SyncRequest(m dsl.Module, destModule types.ModuleID, orphanBlock *blockchainpb.Block, leaveIds []uint64) {
+	dsl.EmitMirEvent(m, events.SyncRequest(destModule, orphanBlock, leaveIds))
 }

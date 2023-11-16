@@ -87,8 +87,8 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type SyncRequest struct {
-	OrphanBlockId uint64
-	LeaveIds      uint64
+	OrphanBlock *blockchainpb.Block
+	LeaveIds    []uint64
 }
 
 func SyncRequestFromPb(pb *synchronizerpb.SyncRequest) *SyncRequest {
@@ -96,8 +96,8 @@ func SyncRequestFromPb(pb *synchronizerpb.SyncRequest) *SyncRequest {
 		return nil
 	}
 	return &SyncRequest{
-		OrphanBlockId: pb.OrphanBlockId,
-		LeaveIds:      pb.LeaveIds,
+		OrphanBlock: pb.OrphanBlock,
+		LeaveIds:    pb.LeaveIds,
 	}
 }
 
@@ -107,7 +107,9 @@ func (m *SyncRequest) Pb() *synchronizerpb.SyncRequest {
 	}
 	pbMessage := &synchronizerpb.SyncRequest{}
 	{
-		pbMessage.OrphanBlockId = m.OrphanBlockId
+		if m.OrphanBlock != nil {
+			pbMessage.OrphanBlock = m.OrphanBlock
+		}
 		pbMessage.LeaveIds = m.LeaveIds
 	}
 

@@ -10,6 +10,6 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
-	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
+func NewBlockRequest(m dsl.Module, destModule types.ModuleID, headId uint64) {
+	dsl.EmitMirEvent(m, events.NewBlockRequest(destModule, headId))
 }

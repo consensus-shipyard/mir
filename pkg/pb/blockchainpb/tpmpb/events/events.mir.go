@@ -8,13 +8,13 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
+func NewBlockRequest(destModule types.ModuleID, headId uint64) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Tpm{
 			Tpm: &types2.Event{
-				Type: &types2.Event_NewHead{
-					NewHead: &types2.NewHead{
+				Type: &types2.Event_NewBlockRequest{
+					NewBlockRequest: &types2.NewBlockRequest{
 						HeadId: headId,
 					},
 				},

@@ -11,9 +11,14 @@ import (
 	bcmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
 	communicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
+	tpmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/go-errors/errors"
 	"github.com/mitchellh/hashstructure"
+)
+
+const (
+	EXPONENTIAL_MINUTE_FACTOR = 0.3
 )
 
 type blockRequest struct {
@@ -39,16 +44,18 @@ func (m *minerModule) EventsOut() <-chan *events.EventList {
 	return m.eventsOut
 }
 
-func (m *minerModule) ApplyEvents(context context.Context, events *events.EventList) error {
-	for _, event := range events.Slice() {
+func (m *minerModule) ApplyEvents(context context.Context, eventList *events.EventList) error {
+	for _, event := range eventList.Slice() {
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			go m.mineWorkerManager()
 		case *eventpb.Event_Miner:
 			switch e := e.Miner.Type.(type) {
 			case *minerpb.Event_BlockRequest:
-				m.blockRequests <- blockRequest{e.BlockRequest.HeadId, e.BlockRequest.Payload}
+				m.blockRequests <- blockRequest{e.BlockRequest.GetHeadId(), e.BlockRequest.GetPayload()}
 				return nil
+			case *minerpb.Event_NewHead:
+				m.eventsOut <- events.ListOf(tpmpbevents.NewBlockRequest("tpm", e.NewHead.GetHeadId()).Pb())
 			default:
 				return errors.Errorf("unknown miner event: %T", e)
 			}
@@ -69,7 +76,7 @@ func (m *minerModule) mineWorkerManager() {
 		ctx, cancel = context.WithCancel(context.Background()) // new context for new mining
 		println("Mining block on top of", blockRequest.HeadId)
 		go func() {
-			delay := time.Duration(rand.ExpFloat64() * float64(time.Minute))
+			delay := time.Duration(rand.ExpFloat64() * float64(time.Minute) * EXPONENTIAL_MINUTE_FACTOR)
 			select {
 			case <-ctx.Done():
 				println("##### Mining aborted #####")

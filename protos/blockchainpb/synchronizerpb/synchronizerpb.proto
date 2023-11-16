@@ -22,8 +22,8 @@ message Event {
 message SyncRequest {
   option (mir.event) = true;
   
-  uint64 orphan_block_id = 1;
-  uint64 leave_ids = 2;
+  blockchainpb.Block  orphan_block  = 1;
+  repeated uint64     leave_ids     = 2;
 }
 
 message Message {

@@ -14,3 +14,7 @@ import (
 func BlockRequest(m dsl.Module, destModule types.ModuleID, headId uint64, payload *blockchainpb.Payload) {
 	dsl.EmitMirEvent(m, events.BlockRequest(destModule, headId, payload))
 }
+
+func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
+	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
+}

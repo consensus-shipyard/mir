@@ -12,11 +12,11 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    NewHead new_head  = 1;
+    NewBlockRequest new_block_request  = 1;
   }
 }
 
-message NewHead {
+message NewBlockRequest {
   option (mir.event) = true;
   
   //blockchainpb.Blockchain chain = 1;

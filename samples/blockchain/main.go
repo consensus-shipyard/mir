@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/eventmangler"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -28,11 +31,9 @@ func main() {
 	}
 	ownNodeID := t.NodeID(idInput)
 
-	msgLossProb := 0.0
-	if len(os.Args) <= 3 {
-		fmt.Printf("No message loss probability provided, defaulting to 0.0\n")
-	} else {
-		msgLossProb, err = strconv.ParseFloat(os.Args[3], 32)
+	mangle := false
+	if len(os.Args) >= 4 {
+		mangle, err = strconv.ParseBool(os.Args[3])
 		if err != nil {
 			panic(err)
 		}
@@ -64,6 +65,16 @@ func main() {
 	}
 	transport.Connect(membership)
 
+	timer := timer.New()
+
+	mangler, err := eventmangler.NewModule(
+		eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
+		&eventmangler.ModuleParams{MinDelay: time.Second / 100, MaxDelay: 2 * time.Second, DropRate: 0.1},
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	// Instantiate Mir node.
 	node, err := mir.NewNode(
 		ownNodeID,
@@ -72,8 +83,11 @@ func main() {
 			"transport":     transport,
 			"bcm":           NewBCM(8080 + ownID),
 			"miner":         NewMiner(),
-			"communication": NewCommunication(otherNodes, float32(msgLossProb)),
+			"communication": NewCommunication(otherNodes, mangle),
 			"tpm":           NewTPM(),
+			"synchronizer":  NewSynchronizer(otherNodes, false),
+			"timer":         timer,
+			"mangler":       mangler,
 		},
 		nil,
 	)

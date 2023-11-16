@@ -8,6 +8,6 @@ import (
 
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Event_NewHead)(nil)),
+		reflect.TypeOf((*Event_NewBlockRequest)(nil)),
 	}
 }
