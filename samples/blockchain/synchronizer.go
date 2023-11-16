@@ -7,6 +7,7 @@ import (
 	"math/rand"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
@@ -36,7 +37,9 @@ type synchronizerModule struct {
 	getRequests  map[uint64]*getRequest
 	otherNodes   []t.NodeID // we remove nodes that we presume have crashed (see strikeList) // TODO: add a timeout to 're-add' them? exponential backoff?
 	// stikeList    map[t.NodeID]int // a node gets a strike whenever it failed to handle a request, after STRIKE_THRESHOLD strikes it is removed from the otherNodes. Set to 0 if it handles a request successfully
-	mangle bool
+	mangle         bool
+	internalLogger logging.Logger
+	externaLogger  logging.Logger
 }
 
 /*************************
@@ -86,7 +89,7 @@ func (sm *synchronizerModule) contactNextNode(requestID uint64) error {
 	request.nodesContacted = append(request.nodesContacted, nextNodeIndex)
 	nextNode := sm.otherNodes[nextNodeIndex]
 
-	println("asking node", nextNode, "for block", request.blockID)
+	sm.internalLogger.Log(logging.LevelDebug, "asking node for block", "block", formatBlockId(request.blockID), "node", nextNode, "mangle", sm.mangle)
 	// send request
 	if sm.mangle {
 		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
@@ -102,13 +105,13 @@ func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpb.Block,
 	// register request
 	requestId, err := sm.registerSyncRequest(orphanBlock, leaveIds)
 	if err != nil {
-		println("sync registration failed", err.Error())
+		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", formatBlockId(orphanBlock.BlockId), "leaveIds", formatBlockIdSlice(leaveIds))
 		return err
 	}
 
 	if err := sm.contactNextNode(requestId); err != nil {
 		// could check for 'ErrNoMoreNodes' here but there should always be at least one node
-		println("contacting next node failed", err.Error())
+		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", formatBlockId(orphanBlock.BlockId), "leaveIds", formatBlockIdSlice(leaveIds))
 		return err
 	}
 
@@ -133,11 +136,14 @@ func (sm *synchronizerModule) handleBlockResponseReceived(from t.NodeID, request
 		}
 		// send request to the next node
 		if err := sm.contactNextNode(requestID); err == ErrNoMoreNodes {
-			println("No more nodes to contact... Let's forget about this request", request.blockID)
-			panic(err) // NOTE: this should never happen as long as we don't start mangling
+			sm.internalLogger.Log(logging.LevelError, "no more nodes to contact - forgetting request - shouldn't happen if not mangling", "error", err.Error(), "requestId", formatBlockId(requestID), "mangle", sm.mangle)
+			delete(sm.syncRequests, requestID)
+			if sm.mangle {
+				panic(err) // NOTE: this should never happen as long as we don't start mangling
+			}
 		} else if err != nil {
-			println("contacting next node failed", err.Error())
-			return err
+			sm.internalLogger.Log(logging.LevelError, "Unexpected error contacting next node", "error", err.Error(), "requestId", formatBlockId(requestID), "mangle", sm.mangle)
+			panic(err)
 		}
 
 		return nil
@@ -192,8 +198,11 @@ func (sm *synchronizerModule) handleBlockRequestReceived(from t.NodeID, requestI
 func (sm *synchronizerModule) handleGetBlockResponse(requestID uint64, found bool, block *blockchainpb.Block) error {
 	request, ok := sm.getRequests[requestID]
 	if !ok {
+		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", formatBlockId(requestID), "mangle", sm.mangle)
 		return ErrUnkownGetBlockRequest
 	}
+
+	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", formatBlockId(requestID), "found", found, "mangle", sm.mangle)
 
 	// respond to sync request
 	if sm.mangle {
@@ -208,14 +217,16 @@ func (sm *synchronizerModule) handleGetBlockResponse(requestID uint64, found boo
 	return nil
 }
 
-func NewSynchronizer(otherNodes []t.NodeID, mangle bool) modules.PassiveModule {
+func NewSynchronizer(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
 	m := dsl.NewModule("synchronizer")
 	var sm = synchronizerModule{
-		m:            &m,
-		getRequests:  make(map[uint64]*getRequest),
-		syncRequests: make(map[uint64]*syncRequest),
-		otherNodes:   otherNodes,
-		mangle:       mangle,
+		m:              &m,
+		getRequests:    make(map[uint64]*getRequest),
+		syncRequests:   make(map[uint64]*syncRequest),
+		otherNodes:     otherNodes,
+		mangle:         mangle,
+		internalLogger: logging.Decorate(logger, "Intern - "),
+		externaLogger:  logging.Decorate(logger, "External - "),
 	}
 
 	dsl.UponInit(m, func() error {

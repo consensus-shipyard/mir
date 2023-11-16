@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
@@ -13,7 +14,7 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewCommunication(otherNodes []t.NodeID, mangle bool) modules.PassiveModule {
+func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
 	m := dsl.NewModule("communication")
 
 	dsl.UponInit(m, func() error {
@@ -22,6 +23,8 @@ func NewCommunication(otherNodes []t.NodeID, mangle bool) modules.PassiveModule 
 
 	communicationpbdsl.UponNewBlock(m, func(block *blockchainpb.Block) error {
 		// take the block and send it to all other nodes
+
+		logger.Log(logging.LevelDebug, "broadcasting block", "blockId", formatBlockId(block.BlockId), "manlge", mangle)
 
 		if mangle {
 			// send via mangles
@@ -36,8 +39,7 @@ func NewCommunication(otherNodes []t.NodeID, mangle bool) modules.PassiveModule 
 	})
 
 	communicationpbdsl.UponNewBlockMessageReceived(m, func(from t.NodeID, block *blockchainpb.Block) error {
-		// take the block and add it to the blockchain
-		// could add some randomization here - delay/drop (drop implemented in send)
+		logger.Log(logging.LevelDebug, "new block received", "blockId", formatBlockId(block.BlockId))
 
 		bcmpbdsl.NewBlock(m, "bcm", block)
 		return nil

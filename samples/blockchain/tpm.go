@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	minerdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/dsl"
@@ -15,7 +16,7 @@ import (
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func NewTPM() modules.PassiveModule {
+func NewTPM(logger logging.Logger) modules.PassiveModule {
 
 	m := dsl.NewModule("tpm")
 
@@ -26,7 +27,7 @@ func NewTPM() modules.PassiveModule {
 	tpmpb.UponNewBlockRequest(m, func(headId uint64) error {
 		// just generating random payloads for now
 		// generate random string
-		println("Generating random payload...")
+		logger.Log(logging.LevelInfo, "Processing block request", "headId", formatBlockId(headId))
 		var seed *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 		length := seed.Intn(15)
 		b := make([]byte, length)

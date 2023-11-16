@@ -20,6 +20,8 @@ import (
 func main() {
 	fmt.Println("Starting blockchain")
 
+	logger := logging.ConsoleDebugLogger
+
 	numberOfNodes, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -56,7 +58,7 @@ func main() {
 	membership := &trantorpbtypes.Membership{Nodes: nodes}
 
 	// Instantiate network trnasport module and establish connections.
-	transport, err := grpc.NewTransport(ownNodeID, membership.Nodes[ownNodeID].Addr, logging.ConsoleWarnLogger)
+	transport, err := grpc.NewTransport(ownNodeID, membership.Nodes[ownNodeID].Addr, logger)
 	if err != nil {
 		panic(err)
 	}
@@ -81,11 +83,11 @@ func main() {
 		mir.DefaultNodeConfig(),
 		map[t.ModuleID]modules.Module{
 			"transport":     transport,
-			"bcm":           NewBCM(8080 + ownID),
-			"miner":         NewMiner(),
-			"communication": NewCommunication(otherNodes, mangle),
-			"tpm":           NewTPM(),
-			"synchronizer":  NewSynchronizer(otherNodes, false),
+			"bcm":           NewBCM(8080+ownID, logging.Decorate(logger, "BCM:\t")),
+			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
+			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
+			"tpm":           NewTPM(logging.Decorate(logger, "TPM:\t")),
+			"synchronizer":  NewSynchronizer(otherNodes, false, logging.Decorate(logger, "Sync:\t")),
 			"timer":         timer,
 			"mangler":       mangler,
 		},
