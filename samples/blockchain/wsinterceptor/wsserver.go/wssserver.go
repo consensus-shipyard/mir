@@ -1,4 +1,4 @@
-package ws
+package wsserver
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -17,18 +18,17 @@ type WsMessage struct {
 
 type connection struct {
 	id       string
-	server   *wsServer
+	server   *WsServer
 	ws       *websocket.Conn
 	sendChan chan WsMessage
-	recvChan chan WsMessage
 }
 
-type wsServer struct {
+type WsServer struct {
+	SendChan        chan WsMessage
 	port            int
 	connections     map[string]connection
-	sendChan        chan WsMessage
-	recvChan        chan WsMessage
 	connectionsLock sync.Mutex
+	logger          logging.Logger
 }
 
 var upgrader = websocket.Upgrader{
@@ -36,7 +36,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (wss *wsServer) handleHome(w http.ResponseWriter, r *http.Request) {
+func (wss *WsServer) handleHome(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
@@ -71,18 +71,14 @@ func (wsc *connection) wsConnection() {
 		}
 	}()
 
-	// receiving msgs
+	// "receiving" msgs
 	for {
-		messageType, p, err := wsc.ws.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		wsc.recvChan <- WsMessage{messageType, p}
+		wsc.ws.ReadMessage()
+		wsc.server.logger.Log(logging.LevelWarn, "Received WS message - ignored")
 	}
 }
 
-func (wss *wsServer) handleWs(w http.ResponseWriter, r *http.Request) {
+func (wss *WsServer) handleWs(w http.ResponseWriter, r *http.Request) {
 	// cors *
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -98,40 +94,40 @@ func (wss *wsServer) handleWs(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	conn := connection{id, wss, ws, make(chan WsMessage), wss.recvChan}
+	conn := connection{id, wss, ws, make(chan WsMessage)}
 	wss.connections[id] = conn
 	wss.connectionsLock.Unlock()
 	go conn.wsConnection()
 }
 
-func (wss *wsServer) setupHttpRoutes() {
+func (wss *WsServer) setupHttpRoutes() {
 	http.HandleFunc("/", wss.handleHome)
 	http.HandleFunc("/ws", wss.handleWs)
 }
 
-func (wss *wsServer) sendHandler() {
+func (wss *WsServer) sendHandler() {
 	for {
-		message := <-wss.sendChan
+		message := <-wss.SendChan
 		for _, conn := range wss.connections {
 			conn.sendChan <- message
 		}
 	}
 }
 
-func (wss *wsServer) StartServers() {
+func (wss *WsServer) StartServers() {
 	log.Println("Starting servers...")
 	wss.setupHttpRoutes()
 	go wss.sendHandler()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", wss.port), nil))
 }
 
-func NewWsServer(port int) (*wsServer, chan WsMessage, chan WsMessage) {
-	wss := &wsServer{
+func NewWsServer(port int, logger logging.Logger) *WsServer {
+	wss := &WsServer{
 		port:        port,
 		connections: make(map[string]connection),
-		sendChan:    make(chan WsMessage),
-		recvChan:    make(chan WsMessage),
+		SendChan:    make(chan WsMessage),
+		logger:      logger,
 	}
 
-	return wss, wss.sendChan, wss.recvChan
+	return wss
 }

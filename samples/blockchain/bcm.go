@@ -4,19 +4,17 @@ package main
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
+	interceptorpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/dsl"
 	minerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/dsl"
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/ws/ws"
 	"golang.org/x/exp/maps"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -38,7 +36,6 @@ type bcmModule struct {
 	head       *bcmBlock
 	genesis    *bcmBlock
 	blockCount uint64
-	updateChan chan string
 	logger     logging.Logger
 }
 
@@ -154,14 +151,15 @@ func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
 
 	}
 
-	bcm.updateChan <- strconv.FormatUint(block.BlockId, 10)
-
 	// if head changed, trigger get tpm to prep new block
 	if newHead := bcm.getHead(); newHead != currentHead {
 		// new head
 		bcm.logger.Log(logging.LevelInfo, "Head changed", "head", formatBlockId(newHead.BlockId))
 		minerpbdsl.NewHead(*bcm.m, "miner", newHead.BlockId)
 	}
+
+	// send to chainviewer
+	bcm.sendTreeUpdate()
 }
 
 func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
@@ -174,9 +172,6 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
 		}
 	}
 
-	// get last block
-	bcm.updateChan <- strconv.FormatUint(blocks[len(blocks)-1].BlockId, 10)
-
 	// if head changed, trigger get tpm to prep new block
 	if newHead := bcm.getHead(); newHead != currentHead {
 		// new head
@@ -184,9 +179,33 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
 		bcm.logger.Log(logging.LevelInfo, "Head changed", "head", formatBlockId(newHead.BlockId))
 		minerpbdsl.NewHead(*bcm.m, "miner", newHead.BlockId)
 	}
+
+	// send to chainviewer
+	bcm.sendTreeUpdate()
 }
 
-func NewBCM(chainServerPort int, logger logging.Logger) modules.PassiveModule {
+func (bcm *bcmModule) sendTreeUpdate() {
+	blocks := func() []*blockchainpb.Block {
+		blocks := make([]*blockchainpb.Block, 0, len(bcm.blocks))
+		for _, v := range bcm.blocks {
+			blocks = append(blocks, v.block)
+		}
+		return blocks
+	}()
+	leaves := func() []uint64 {
+		leaves := make([]uint64, 0, len(bcm.leaves))
+		for _, v := range bcm.leaves {
+			leaves = append(leaves, v.block.BlockId)
+		}
+		return leaves
+	}()
+
+	blockTree := blockchainpb.Blocktree{Blocks: blocks, Leaves: leaves}
+
+	interceptorpbdsl.TreeUpdate(*bcm.m, "devnull", &blockTree, bcm.head.block.BlockId)
+}
+
+func NewBCM(logger logging.Logger) modules.PassiveModule {
 	m := dsl.NewModule("bcm")
 
 	// making up a genisis block
@@ -214,12 +233,6 @@ func NewBCM(chainServerPort int, logger logging.Logger) modules.PassiveModule {
 
 	// add genesis to leaves
 	bcm.leaves[hash] = bcm.head
-
-	// setup update channel
-	bcm.updateChan = make(chan string)
-
-	// start chain server (for visualization)
-	go bcm.chainServer(chainServerPort)
 
 	dsl.UponInit(m, func() error {
 
@@ -267,40 +280,4 @@ func NewBCM(chainServerPort int, logger logging.Logger) modules.PassiveModule {
 	})
 
 	return m
-}
-
-func (bcm *bcmModule) chainServer(port int) error {
-	bcm.logger.Log(logging.LevelInfo, "Starting chain server")
-
-	websocket, send, _ := ws.NewWsServer(port)
-	go websocket.StartServers()
-
-	for {
-		<-bcm.updateChan
-
-		blocks := func() []*blockchainpb.Block {
-			blocks := make([]*blockchainpb.Block, 0, len(bcm.blocks))
-			for _, v := range bcm.blocks {
-				blocks = append(blocks, v.block)
-			}
-			return blocks
-		}()
-		leaves := func() []uint64 {
-			leaves := make([]uint64, 0, len(bcm.leaves))
-			for _, v := range bcm.leaves {
-				leaves = append(leaves, v.block.BlockId)
-			}
-			return leaves
-		}()
-
-		blockTreeMessage := blockchainpb.Blocktree{Blocks: blocks, Leaves: leaves}
-		payload, err := proto.Marshal(&blockTreeMessage)
-		if err != nil {
-			panic(err)
-		}
-
-		send <- ws.WsMessage{MessageType: 2, Payload: payload}
-	}
-
-	return nil
 }

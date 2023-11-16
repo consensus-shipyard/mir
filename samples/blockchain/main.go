@@ -12,9 +12,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
+	wsinterceptor "github.com/filecoin-project/mir/samples/blockchain/wsInterceptor"
 )
 
 func main() {
@@ -58,7 +60,7 @@ func main() {
 	membership := &trantorpbtypes.Membership{Nodes: nodes}
 
 	// Instantiate network trnasport module and establish connections.
-	transport, err := grpc.NewTransport(ownNodeID, membership.Nodes[ownNodeID].Addr, logger)
+	transport, err := grpc.NewTransport(ownNodeID, membership.Nodes[ownNodeID].Addr, logging.ConsoleInfoLogger)
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +73,7 @@ func main() {
 
 	mangler, err := eventmangler.NewModule(
 		eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
-		&eventmangler.ModuleParams{MinDelay: time.Second / 100, MaxDelay: 2 * time.Second, DropRate: 0.1},
+		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 2 * time.Second, DropRate: 0.05},
 	)
 	if err != nil {
 		panic(err)
@@ -83,16 +85,27 @@ func main() {
 		mir.DefaultNodeConfig(),
 		map[t.ModuleID]modules.Module{
 			"transport":     transport,
-			"bcm":           NewBCM(8080+ownID, logging.Decorate(logger, "BCM:\t")),
+			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
 			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
 			"tpm":           NewTPM(logging.Decorate(logger, "TPM:\t")),
 			"synchronizer":  NewSynchronizer(otherNodes, false, logging.Decorate(logger, "Sync:\t")),
 			"timer":         timer,
 			"mangler":       mangler,
+			"devnull":       modules.NullPassive{}, // for messages that are actually destined for the interceptor
 		},
-		nil,
-	)
+		wsinterceptor.NewWsInterceptor(
+			func(e *eventpb.Event) bool {
+				switch e.Type.(type) {
+				case *eventpb.Event_Bcinterceptor:
+					return true
+				default:
+					return false
+				}
+			},
+			8080+ownID,
+			logging.Decorate(logger, "WSInter:\t"),
+		))
 	if err != nil {
 		panic(err)
 	}
@@ -107,10 +120,9 @@ func main() {
 	// block until nodeError receives an error
 	// fmt.Printf("timer started\n")
 
-	switch <-nodeError {
-	default:
-		fmt.Printf("Mir node stopped: %v\n", <-nodeError)
-	}
+	fmt.Printf("Mir node stopped: %v\n", <-nodeError)
+
+	// Dead code below
 
 	// time.Sleep(5 * time.Second)
 	// fmt.Printf("timer up")
@@ -118,5 +130,5 @@ func main() {
 	// Stop the node.
 	node.Stop()
 	transport.Stop()
-	fmt.Printf("Mir node stopped: %v\n", <-nodeError)
+	fmt.Printf("Mir node stopped")
 }

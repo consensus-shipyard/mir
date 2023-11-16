@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	EXPONENTIAL_MINUTE_FACTOR = 0.3
+	EXPONENTIAL_MINUTE_FACTOR = 0.2
 )
 
 type blockRequest struct {

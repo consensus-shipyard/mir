@@ -10,6 +10,7 @@ import (
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	bcmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb"
 	communicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
+	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
 	synchronizerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
 	tpmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb"
@@ -130,6 +131,10 @@ func (w *Event_Communication) Unwrap() *communicationpb.Event {
 
 func (w *Event_Synchronizer) Unwrap() *synchronizerpb.Event {
 	return w.Synchronizer
+}
+
+func (w *Event_Bcinterceptor) Unwrap() *interceptorpb.Event {
+	return w.Bcinterceptor
 }
 
 func (w *Event_TestingString) Unwrap() *wrapperspb.StringValue {
