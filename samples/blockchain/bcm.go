@@ -4,9 +4,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -40,7 +38,6 @@ type bcmModule struct {
 	head       *bcmBlock
 	genesis    *bcmBlock
 	blockCount uint64
-	writeMutex *sync.Mutex // can be smarted about locking but just locking everything for now
 	updateChan chan string
 	logger     logging.Logger
 }
@@ -81,7 +78,6 @@ func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock)
 }
 
 // TODO: might need to add some "cleanup" to handle very old leaves in case this grows too much
-// function assumes lock is held (is this even necessary? can a mir module process multiple events at once?)
 func (bcm *bcmModule) addBlock(block *blockchainpb.Block) error {
 	bcm.logger.Log(logging.LevelInfo, "Adding block...", "blockId", formatBlockId(block.BlockId))
 
@@ -143,9 +139,6 @@ func (bcm *bcmModule) getHead() *blockchainpb.Block {
 }
 
 func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
-	bcm.writeMutex.Lock()
-	defer bcm.writeMutex.Unlock()
-
 	currentHead := bcm.getHead()
 	// insert block
 	if err := bcm.addBlock(block); err != nil {
@@ -172,8 +165,6 @@ func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
 }
 
 func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
-	bcm.writeMutex.Lock()
-	defer bcm.writeMutex.Unlock()
 
 	currentHead := bcm.getHead()
 	// insert block
@@ -223,9 +214,6 @@ func NewBCM(chainServerPort int, logger logging.Logger) modules.PassiveModule {
 
 	// add genesis to leaves
 	bcm.leaves[hash] = bcm.head
-
-	// init mutex
-	bcm.writeMutex = &sync.Mutex{}
 
 	// setup update channel
 	bcm.updateChan = make(chan string)
@@ -290,7 +278,6 @@ func (bcm *bcmModule) chainServer(port int) error {
 	for {
 		<-bcm.updateChan
 
-		bcm.writeMutex.Lock()
 		blocks := func() []*blockchainpb.Block {
 			blocks := make([]*blockchainpb.Block, 0, len(bcm.blocks))
 			for _, v := range bcm.blocks {
@@ -306,8 +293,6 @@ func (bcm *bcmModule) chainServer(port int) error {
 			return leaves
 		}()
 
-		bcm.writeMutex.Unlock()
-
 		blockTreeMessage := blockchainpb.Blocktree{Blocks: blocks, Leaves: leaves}
 		payload, err := proto.Marshal(&blockTreeMessage)
 		if err != nil {
@@ -316,29 +301,6 @@ func (bcm *bcmModule) chainServer(port int) error {
 
 		send <- ws.WsMessage{MessageType: 2, Payload: payload}
 	}
-
-	// for {
-	// 	_ = <-bcm.updateChan
-	// 	bcm.writeMutex.Lock()
-	// 	fmt.Println("new print")
-	// 	queue := make([]bcmBlock, 0)
-	// 	for _, v := range bcm.leaves {
-	// 		queue = append(queue, v)
-	// 	}
-	// 	for len(queue) > 0 {
-	// 		// pop from queue
-	// 		curr := queue[0]
-	// 		queue = queue[1:]
-
-	// 		fmt.Println(curr.block.BlockId)
-
-	// 		if curr.parent != nil {
-	// 			queue = append(queue, *curr.parent)
-	// 		}
-	// 	}
-	// 	bcm.writeMutex.Unlock()
-	// }
-	fmt.Println("Chain server stopped")
 
 	return nil
 }
