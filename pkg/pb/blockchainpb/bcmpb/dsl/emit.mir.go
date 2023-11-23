@@ -26,3 +26,11 @@ func GetBlockRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, 
 func GetBlockResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, found bool, block *blockchainpb.Block) {
 	dsl.EmitMirEvent(m, events.GetBlockResponse(destModule, requestId, found, block))
 }
+
+func GetChainRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) {
+	dsl.EmitMirEvent(m, events.GetChainRequest(destModule, requestId, sourceModule, endBlockId, sourceBlockIds))
+}
+
+func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, success bool, chain []*blockchainpb.Block) {
+	dsl.EmitMirEvent(m, events.GetChainResponse(destModule, requestId, success, chain))
+}

@@ -39,3 +39,18 @@ func NewOrphan(destModule types.ModuleID, orphan *blockchainpb.Block) *types1.Ev
 		},
 	}
 }
+
+func AppUpdate(destModule types.ModuleID, state int64) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcinterceptor{
+			Bcinterceptor: &types2.Event{
+				Type: &types2.Event_AppUpdate{
+					AppUpdate: &types2.AppUpdate{
+						State: state,
+					},
+				},
+			},
+		},
+	}
+}

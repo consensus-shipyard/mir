@@ -24,14 +24,14 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponBlockRequestReceived(m dsl.Module, handler func(from types1.NodeID, requestId uint64, blockId uint64) error) {
-	UponMessageReceived[*types.Message_BlockRequest](m, func(from types1.NodeID, msg *types.BlockRequest) error {
-		return handler(from, msg.RequestId, msg.BlockId)
+func UponChainRequestReceived(m dsl.Module, handler func(from types1.NodeID, requestId uint64, blockId uint64, leaveIds []uint64) error) {
+	UponMessageReceived[*types.Message_ChainRequest](m, func(from types1.NodeID, msg *types.ChainRequest) error {
+		return handler(from, msg.RequestId, msg.BlockId, msg.LeaveIds)
 	})
 }
 
-func UponBlockResponseReceived(m dsl.Module, handler func(from types1.NodeID, requestId uint64, found bool, block *blockchainpb.Block) error) {
-	UponMessageReceived[*types.Message_BlockResponse](m, func(from types1.NodeID, msg *types.BlockResponse) error {
-		return handler(from, msg.RequestId, msg.Found, msg.Block)
+func UponChainResponseReceived(m dsl.Module, handler func(from types1.NodeID, requestId uint64, found bool, chain []*blockchainpb.Block) error) {
+	UponMessageReceived[*types.Message_ChainResponse](m, func(from types1.NodeID, msg *types.ChainResponse) error {
+		return handler(from, msg.RequestId, msg.Found, msg.Chain)
 	})
 }

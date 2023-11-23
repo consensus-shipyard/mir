@@ -20,10 +20,10 @@ type Message_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Message_BlockRequest) Unwrap() *BlockRequest {
-	return w.BlockRequest
+func (w *Message_ChainRequest) Unwrap() *ChainRequest {
+	return w.ChainRequest
 }
 
-func (w *Message_BlockResponse) Unwrap() *BlockResponse {
-	return w.BlockResponse
+func (w *Message_ChainResponse) Unwrap() *ChainResponse {
+	return w.ChainResponse
 }

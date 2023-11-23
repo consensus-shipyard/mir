@@ -24,3 +24,11 @@ func (w *Event_GetBlockRequest) Unwrap() *GetBlockRequest {
 func (w *Event_GetBlockResponse) Unwrap() *GetBlockResponse {
 	return w.GetBlockResponse
 }
+
+func (w *Event_GetChainRequest) Unwrap() *GetChainRequest {
+	return w.GetChainRequest
+}
+
+func (w *Event_GetChainResponse) Unwrap() *GetChainResponse {
+	return w.GetChainResponse
+}

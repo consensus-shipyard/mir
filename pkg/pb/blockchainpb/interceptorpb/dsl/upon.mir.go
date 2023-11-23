@@ -33,3 +33,9 @@ func UponNewOrphan(m dsl.Module, handler func(orphan *blockchainpb.Block) error)
 		return handler(ev.Orphan)
 	})
 }
+
+func UponAppUpdate(m dsl.Module, handler func(state int64) error) {
+	UponEvent[*types.Event_AppUpdate](m, func(ev *types.AppUpdate) error {
+		return handler(ev.State)
+	})
+}

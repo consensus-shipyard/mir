@@ -15,6 +15,7 @@ import (
 	synchronizerpbmsgs "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
 const (
@@ -51,7 +52,6 @@ type syncRequest struct {
 	blockID        uint64
 	leaveIDs       []uint64
 	nodesContacted []int // index of node in otherNodes
-	chain          []*blockchainpb.Block
 }
 
 func (sm *synchronizerModule) registerSyncRequest(block *blockchainpb.Block, leaves []uint64) (uint64, error) {
@@ -61,7 +61,7 @@ func (sm *synchronizerModule) registerSyncRequest(block *blockchainpb.Block, lea
 		return 0, ErrRequestAlreadyExists
 	}
 
-	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: block.BlockId, leaveIDs: leaves, nodesContacted: []int{}, chain: []*blockchainpb.Block{block}}
+	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: block.BlockId, leaveIDs: leaves, nodesContacted: []int{}}
 
 	return requestId, nil
 }
@@ -89,12 +89,12 @@ func (sm *synchronizerModule) contactNextNode(requestID uint64) error {
 	request.nodesContacted = append(request.nodesContacted, nextNodeIndex)
 	nextNode := sm.otherNodes[nextNodeIndex]
 
-	sm.internalLogger.Log(logging.LevelDebug, "asking node for block", "block", formatBlockId(request.blockID), "node", nextNode, "mangle", sm.mangle)
+	sm.internalLogger.Log(logging.LevelDebug, "asking node for block", "block", utils.FormatBlockId(request.blockID), "node", nextNode, "mangle", sm.mangle)
 	// send request
 	if sm.mangle {
-		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
+		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.ChainRequest("synchronizer", requestID, request.blockID, request.leaveIDs), []t.NodeID{nextNode})
 	} else {
-		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.BlockRequest("synchronizer", requestID, request.blockID), []t.NodeID{nextNode})
+		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainRequest("synchronizer", requestID, request.blockID, request.leaveIDs), []t.NodeID{nextNode})
 	}
 
 	return nil
@@ -105,20 +105,20 @@ func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpb.Block,
 	// register request
 	requestId, err := sm.registerSyncRequest(orphanBlock, leaveIds)
 	if err != nil {
-		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", formatBlockId(orphanBlock.BlockId), "leaveIds", formatBlockIdSlice(leaveIds))
+		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "leaveIds", utils.FormatBlockIdSlice(leaveIds))
 		return err
 	}
 
 	if err := sm.contactNextNode(requestId); err != nil {
 		// could check for 'ErrNoMoreNodes' here but there should always be at least one node
-		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", formatBlockId(orphanBlock.BlockId), "leaveIds", formatBlockIdSlice(leaveIds))
+		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "leaveIds", utils.FormatBlockIdSlice(leaveIds))
 		return err
 	}
 
 	return nil
 }
 
-func (sm *synchronizerModule) handleBlockResponseReceived(from t.NodeID, requestID uint64, found bool, block *blockchainpb.Block) error {
+func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, requestID uint64, found bool, chain []*blockchainpb.Block) error {
 	// check if request exists
 	request, ok := sm.syncRequests[requestID]
 	if !ok {
@@ -136,38 +136,23 @@ func (sm *synchronizerModule) handleBlockResponseReceived(from t.NodeID, request
 		}
 		// send request to the next node
 		if err := sm.contactNextNode(requestID); err == ErrNoMoreNodes {
-			sm.internalLogger.Log(logging.LevelError, "no more nodes to contact - forgetting request - shouldn't happen if not mangling", "error", err.Error(), "requestId", formatBlockId(requestID), "mangle", sm.mangle)
+			sm.internalLogger.Log(logging.LevelError, "no more nodes to contact - forgetting request - shouldn't happen if not mangling", "error", err.Error(), "requestId", utils.FormatBlockId(requestID), "mangle", sm.mangle)
 			delete(sm.syncRequests, requestID)
 			if sm.mangle {
 				panic(err) // NOTE: this should never happen as long as we don't start mangling
 			}
 		} else if err != nil {
-			sm.internalLogger.Log(logging.LevelError, "Unexpected error contacting next node", "error", err.Error(), "requestId", formatBlockId(requestID), "mangle", sm.mangle)
+			sm.internalLogger.Log(logging.LevelError, "Unexpected error contacting next node", "error", err.Error(), "requestId", utils.FormatBlockId(requestID), "mangle", sm.mangle)
 			panic(err)
 		}
 
 		return nil
 	}
 
-	// we got a block
-	request.chain = append(request.chain, block)
-	// check if block.parentId is in leaveIDs
-	for _, leaveID := range request.leaveIDs {
-		if block.PreviousBlockId == leaveID {
-			// we are done, send the chain to the blockchain manager, delete the request
-			for i, j := 0, len(request.chain)-1; i < j; i, j = i+1, j-1 {
-				request.chain[i], request.chain[j] = request.chain[j], request.chain[i]
-			}
-			bcmpbdsl.NewChain(*sm.m, "bcm", request.chain)
-			delete(sm.syncRequests, requestID)
-			return nil
-		}
-	}
+	delete(sm.syncRequests, requestID)
+	bcmpbdsl.NewChain(*sm.m, "bcm", chain)
 
-	// update request
-	request.blockID = block.PreviousBlockId
-	request.nodesContacted = []int{}
-	sm.contactNextNode(requestID)
+	// we got a block
 	return nil
 }
 
@@ -179,7 +164,7 @@ type getRequest struct {
 	from      t.NodeID
 }
 
-func (sm *synchronizerModule) handleBlockRequestReceived(from t.NodeID, requestID uint64, blockID uint64) error {
+func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestID uint64, blockID uint64, leaveIds []uint64) error {
 	// check if request is already being processed
 	if _, ok := sm.getRequests[requestID]; ok {
 		return ErrRequestAlreadyExists
@@ -189,26 +174,26 @@ func (sm *synchronizerModule) handleBlockRequestReceived(from t.NodeID, requestI
 	sm.getRequests[requestID] = &getRequest{requestID: requestID, from: from}
 
 	// send get request to blockchain manager
-	bcmpbdsl.GetBlockRequest(*sm.m, "bcm", requestID, "synchronizer", blockID)
+	bcmpbdsl.GetChainRequest(*sm.m, "bcm", requestID, "synchronizer", blockID, leaveIds)
 
 	return nil
 
 }
 
-func (sm *synchronizerModule) handleGetBlockResponse(requestID uint64, found bool, block *blockchainpb.Block) error {
+func (sm *synchronizerModule) handleGetChainResponse(requestID uint64, found bool, chain []*blockchainpb.Block) error {
 	request, ok := sm.getRequests[requestID]
 	if !ok {
-		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", formatBlockId(requestID), "mangle", sm.mangle)
+		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", utils.FormatBlockId(requestID), "mangle", sm.mangle)
 		return ErrUnkownGetBlockRequest
 	}
 
-	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", formatBlockId(requestID), "found", found, "mangle", sm.mangle)
+	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", utils.FormatBlockId(requestID), "found", found, "mangle", sm.mangle)
 
 	// respond to sync request
 	if sm.mangle {
-		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.BlockResponse("synchronizer", requestID, found, block), []t.NodeID{request.from})
+		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})
 	} else {
-		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.BlockResponse("synchronizer", requestID, found, block), []t.NodeID{request.from})
+		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})
 	}
 
 	// delete request
@@ -235,11 +220,11 @@ func NewSynchronizer(otherNodes []t.NodeID, mangle bool, logger logging.Logger) 
 
 	// outgoing sync requests
 	synchronizerpbdsl.UponSyncRequest(m, sm.handleSyncRequest)
-	synchronizerpbdsl.UponBlockResponseReceived(m, sm.handleBlockResponseReceived)
+	synchronizerpbdsl.UponChainResponseReceived(m, sm.handleChainResponseReceived)
 
 	// for incoming sync requests
-	synchronizerpbdsl.UponBlockRequestReceived(m, sm.handleBlockRequestReceived)
-	bcmpbdsl.UponGetBlockResponse(m, sm.handleGetBlockResponse)
+	synchronizerpbdsl.UponChainRequestReceived(m, sm.handleChainRequestReceived)
+	bcmpbdsl.UponGetChainResponse(m, sm.handleGetChainResponse)
 
 	return m
 }

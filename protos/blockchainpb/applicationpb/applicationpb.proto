@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package applicationpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb";
+
+import "mir/codegen_extensions.proto";
+import "blockchainpb/blockchainpb.proto";
+import "blockchainpb/payloadpb/payloadpb.proto";
+
+message Event {
+  option (mir.event_class) = true;
+
+  oneof type {
+    option (mir.event_type) = true;
+
+    NewHead           new_head          = 1;
+    RegisterBlock     register_block    = 2;
+    PayloadRequest    payload_request   = 3;
+    PayloadResponse   payload_response  = 4;
+
+  }
+}
+
+message NewHead {
+  option (mir.event) = true;
+  
+  uint64 head_id = 1;
+}
+
+message RegisterBlock {
+  option (mir.event) = true;
+  
+  blockchainpb.Block  block_id = 1;
+}
+
+message PayloadRequest {
+  option (mir.event) = true;
+
+  uint64  head_id = 1;
+}
+
+message PayloadResponse {
+  option (mir.event) = true;
+  
+  uint64            head_id = 1;
+  payloadpb.Payload payload = 2;
+}

@@ -4,6 +4,8 @@ package blockchainpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb";
 
+import "blockchainpb/payloadpb/payloadpb.proto";
+
 message Blocktree {
   repeated Block    blocks  = 1;
   repeated uint64   leaves  = 2;
@@ -14,13 +16,9 @@ message Blockchain {
 }
 
 message Block {
-  uint64 block_id           = 1;
-  uint64 previous_block_id  = 2;
-  Payload payload           = 3;
+  uint64        block_id            = 1;
+  uint64        previous_block_id   = 2;
+  payloadpb.Payload payload             = 3;
   
-  int64 timestamp          = 4;
-}
-
-message Payload {
-  string text = 1;
+  int64 timestamp                   = 4;
 }

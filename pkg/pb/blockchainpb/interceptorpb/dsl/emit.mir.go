@@ -18,3 +18,7 @@ func TreeUpdate(m dsl.Module, destModule types.ModuleID, tree *blockchainpb.Bloc
 func NewOrphan(m dsl.Module, destModule types.ModuleID, orphan *blockchainpb.Block) {
 	dsl.EmitMirEvent(m, events.NewOrphan(destModule, orphan))
 }
+
+func AppUpdate(m dsl.Module, destModule types.ModuleID, state int64) {
+	dsl.EmitMirEvent(m, events.AppUpdate(destModule, state))
+}

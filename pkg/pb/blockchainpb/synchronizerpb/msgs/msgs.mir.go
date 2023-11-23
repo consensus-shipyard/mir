@@ -9,15 +9,16 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func BlockRequest(destModule types.ModuleID, requestId uint64, blockId uint64) *types1.Message {
+func ChainRequest(destModule types.ModuleID, requestId uint64, blockId uint64, leaveIds []uint64) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{
 			Synchronizer: &types2.Message{
-				Type: &types2.Message_BlockRequest{
-					BlockRequest: &types2.BlockRequest{
+				Type: &types2.Message_ChainRequest{
+					ChainRequest: &types2.ChainRequest{
 						RequestId: requestId,
 						BlockId:   blockId,
+						LeaveIds:  leaveIds,
 					},
 				},
 			},
@@ -25,16 +26,16 @@ func BlockRequest(destModule types.ModuleID, requestId uint64, blockId uint64) *
 	}
 }
 
-func BlockResponse(destModule types.ModuleID, requestId uint64, found bool, block *blockchainpb.Block) *types1.Message {
+func ChainResponse(destModule types.ModuleID, requestId uint64, found bool, chain []*blockchainpb.Block) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{
 			Synchronizer: &types2.Message{
-				Type: &types2.Message_BlockResponse{
-					BlockResponse: &types2.BlockResponse{
+				Type: &types2.Message_ChainResponse{
+					ChainResponse: &types2.ChainResponse{
 						RequestId: requestId,
 						Found:     found,
-						Block:     block,
+						Chain:     chain,
 					},
 				},
 			},

@@ -12,6 +12,7 @@ import (
 	communicationpbmsgs "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
 func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
@@ -24,7 +25,7 @@ func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger)
 	communicationpbdsl.UponNewBlock(m, func(block *blockchainpb.Block) error {
 		// take the block and send it to all other nodes
 
-		logger.Log(logging.LevelDebug, "broadcasting block", "blockId", formatBlockId(block.BlockId), "manlge", mangle)
+		logger.Log(logging.LevelDebug, "broadcasting block", "blockId", utils.FormatBlockId(block.BlockId), "manlge", mangle)
 
 		if mangle {
 			// send via mangles
@@ -39,7 +40,7 @@ func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger)
 	})
 
 	communicationpbdsl.UponNewBlockMessageReceived(m, func(from t.NodeID, block *blockchainpb.Block) error {
-		logger.Log(logging.LevelDebug, "new block received", "blockId", formatBlockId(block.BlockId))
+		logger.Log(logging.LevelDebug, "new block received", "blockId", utils.FormatBlockId(block.BlockId))
 
 		bcmpbdsl.NewBlock(m, "bcm", block)
 		return nil

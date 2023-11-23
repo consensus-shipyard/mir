@@ -46,3 +46,15 @@ func UponGetBlockResponse(m dsl.Module, handler func(requestId uint64, found boo
 		return handler(ev.RequestId, ev.Found, ev.Block)
 	})
 }
+
+func UponGetChainRequest(m dsl.Module, handler func(requestId uint64, sourceModule types2.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
+	UponEvent[*types.Event_GetChainRequest](m, func(ev *types.GetChainRequest) error {
+		return handler(ev.RequestId, ev.SourceModule, ev.EndBlockId, ev.SourceBlockIds)
+	})
+}
+
+func UponGetChainResponse(m dsl.Module, handler func(requestId uint64, success bool, chain []*blockchainpb.Block) error) {
+	UponEvent[*types.Event_GetChainResponse](m, func(ev *types.GetChainResponse) error {
+		return handler(ev.RequestId, ev.Success, ev.Chain)
+	})
+}

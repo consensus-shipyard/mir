@@ -9,11 +9,14 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
+	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
+	applicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	bcmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
 	communicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
-	tpmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb/events"
+	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"github.com/go-errors/errors"
 	"github.com/mitchellh/hashstructure"
 )
@@ -24,7 +27,7 @@ const (
 
 type blockRequest struct {
 	HeadId  uint64
-	Payload *blockchainpb.Payload
+	Payload *payloadpb.Payload
 }
 
 type minerModule struct {
@@ -52,13 +55,18 @@ func (m *minerModule) ApplyEvents(context context.Context, eventList *events.Eve
 		switch e := event.Type.(type) {
 		case *eventpb.Event_Init:
 			go m.mineWorkerManager()
+		case *eventpb.Event_Application:
+			switch e := e.Application.Type.(type) {
+			case *applicationpb.Event_PayloadResponse:
+				m.blockRequests <- blockRequest{e.PayloadResponse.GetHeadId(), e.PayloadResponse.GetPayload()}
+				return nil
+			default:
+				return errors.Errorf("unknown event: %T", e)
+			}
 		case *eventpb.Event_Miner:
 			switch e := e.Miner.Type.(type) {
-			case *minerpb.Event_BlockRequest:
-				m.blockRequests <- blockRequest{e.BlockRequest.GetHeadId(), e.BlockRequest.GetPayload()}
-				return nil
 			case *minerpb.Event_NewHead:
-				m.eventsOut <- events.ListOf(tpmpbevents.NewBlockRequest("tpm", e.NewHead.GetHeadId()).Pb())
+				m.eventsOut <- events.ListOf(applicationpbevents.PayloadRequest("application", e.NewHead.GetHeadId()).Pb())
 			default:
 				return errors.Errorf("unknown miner event: %T", e)
 			}
@@ -77,12 +85,12 @@ func (m *minerModule) mineWorkerManager() {
 		blockRequest := <-m.blockRequests
 		cancel()                                               // abort ongoing mining
 		ctx, cancel = context.WithCancel(context.Background()) // new context for new mining
-		m.logger.Log(logging.LevelInfo, "New mining operation", "headId", formatBlockId(blockRequest.HeadId))
+		m.logger.Log(logging.LevelInfo, "New mining operation", "headId", utils.FormatBlockId(blockRequest.HeadId))
 		go func() {
 			delay := time.Duration(rand.ExpFloat64() * float64(time.Minute) * EXPONENTIAL_MINUTE_FACTOR)
 			select {
 			case <-ctx.Done():
-				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", formatBlockId(blockRequest.HeadId))
+				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
 				return
 			case <-time.After(delay):
 				block := &blockchainpb.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: time.Now().Unix()}
@@ -93,7 +101,7 @@ func (m *minerModule) mineWorkerManager() {
 				}
 				block.BlockId = hash
 				// Block mined! Broadcast to blockchain and send event to bcm.
-				m.logger.Log(logging.LevelInfo, "Block mined", "headId", formatBlockId(hash), "parentId", formatBlockId(blockRequest.HeadId))
+				m.logger.Log(logging.LevelInfo, "Block mined", "headId", utils.FormatBlockId(hash), "parentId", utils.FormatBlockId(blockRequest.HeadId))
 				m.eventsOut <- events.ListOf(bcmpbevents.NewBlock("bcm", block).Pb(), communicationpbevents.NewBlock("communication", block).Pb())
 				return
 			}

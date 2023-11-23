@@ -14,7 +14,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 
 func (*Message) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Message_BlockRequest)(nil)),
-		reflect.TypeOf((*Message_BlockResponse)(nil)),
+		reflect.TypeOf((*Message_ChainRequest)(nil)),
+		reflect.TypeOf((*Message_ChainResponse)(nil)),
 	}
 }

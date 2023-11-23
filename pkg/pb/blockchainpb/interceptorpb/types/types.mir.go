@@ -33,6 +33,8 @@ func Event_TypeFromPb(pb interceptorpb.Event_Type) Event_Type {
 		return &Event_TreeUpdate{TreeUpdate: TreeUpdateFromPb(pb.TreeUpdate)}
 	case *interceptorpb.Event_NewOrphan:
 		return &Event_NewOrphan{NewOrphan: NewOrphanFromPb(pb.NewOrphan)}
+	case *interceptorpb.Event_AppUpdate:
+		return &Event_AppUpdate{AppUpdate: AppUpdateFromPb(pb.AppUpdate)}
 	}
 	return nil
 }
@@ -83,6 +85,30 @@ func (w *Event_NewOrphan) Pb() interceptorpb.Event_Type {
 
 func (*Event_NewOrphan) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_NewOrphan]()}
+}
+
+type Event_AppUpdate struct {
+	AppUpdate *AppUpdate
+}
+
+func (*Event_AppUpdate) isEvent_Type() {}
+
+func (w *Event_AppUpdate) Unwrap() *AppUpdate {
+	return w.AppUpdate
+}
+
+func (w *Event_AppUpdate) Pb() interceptorpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.AppUpdate == nil {
+		return &interceptorpb.Event_AppUpdate{}
+	}
+	return &interceptorpb.Event_AppUpdate{AppUpdate: (w.AppUpdate).Pb()}
+}
+
+func (*Event_AppUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_AppUpdate]()}
 }
 
 func EventFromPb(pb *interceptorpb.Event) *Event {
@@ -175,4 +201,33 @@ func (m *NewOrphan) Pb() *interceptorpb.NewOrphan {
 
 func (*NewOrphan) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.NewOrphan]()}
+}
+
+type AppUpdate struct {
+	State int64
+}
+
+func AppUpdateFromPb(pb *interceptorpb.AppUpdate) *AppUpdate {
+	if pb == nil {
+		return nil
+	}
+	return &AppUpdate{
+		State: pb.State,
+	}
+}
+
+func (m *AppUpdate) Pb() *interceptorpb.AppUpdate {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &interceptorpb.AppUpdate{}
+	{
+		pbMessage.State = m.State
+	}
+
+	return pbMessage
+}
+
+func (*AppUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.AppUpdate]()}
 }

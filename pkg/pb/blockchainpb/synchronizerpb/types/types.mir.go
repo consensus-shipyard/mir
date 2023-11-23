@@ -140,60 +140,60 @@ func Message_TypeFromPb(pb synchronizerpb.Message_Type) Message_Type {
 		return nil
 	}
 	switch pb := pb.(type) {
-	case *synchronizerpb.Message_BlockRequest:
-		return &Message_BlockRequest{BlockRequest: BlockRequestFromPb(pb.BlockRequest)}
-	case *synchronizerpb.Message_BlockResponse:
-		return &Message_BlockResponse{BlockResponse: BlockResponseFromPb(pb.BlockResponse)}
+	case *synchronizerpb.Message_ChainRequest:
+		return &Message_ChainRequest{ChainRequest: ChainRequestFromPb(pb.ChainRequest)}
+	case *synchronizerpb.Message_ChainResponse:
+		return &Message_ChainResponse{ChainResponse: ChainResponseFromPb(pb.ChainResponse)}
 	}
 	return nil
 }
 
-type Message_BlockRequest struct {
-	BlockRequest *BlockRequest
+type Message_ChainRequest struct {
+	ChainRequest *ChainRequest
 }
 
-func (*Message_BlockRequest) isMessage_Type() {}
+func (*Message_ChainRequest) isMessage_Type() {}
 
-func (w *Message_BlockRequest) Unwrap() *BlockRequest {
-	return w.BlockRequest
+func (w *Message_ChainRequest) Unwrap() *ChainRequest {
+	return w.ChainRequest
 }
 
-func (w *Message_BlockRequest) Pb() synchronizerpb.Message_Type {
+func (w *Message_ChainRequest) Pb() synchronizerpb.Message_Type {
 	if w == nil {
 		return nil
 	}
-	if w.BlockRequest == nil {
-		return &synchronizerpb.Message_BlockRequest{}
+	if w.ChainRequest == nil {
+		return &synchronizerpb.Message_ChainRequest{}
 	}
-	return &synchronizerpb.Message_BlockRequest{BlockRequest: (w.BlockRequest).Pb()}
+	return &synchronizerpb.Message_ChainRequest{ChainRequest: (w.ChainRequest).Pb()}
 }
 
-func (*Message_BlockRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.Message_BlockRequest]()}
+func (*Message_ChainRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.Message_ChainRequest]()}
 }
 
-type Message_BlockResponse struct {
-	BlockResponse *BlockResponse
+type Message_ChainResponse struct {
+	ChainResponse *ChainResponse
 }
 
-func (*Message_BlockResponse) isMessage_Type() {}
+func (*Message_ChainResponse) isMessage_Type() {}
 
-func (w *Message_BlockResponse) Unwrap() *BlockResponse {
-	return w.BlockResponse
+func (w *Message_ChainResponse) Unwrap() *ChainResponse {
+	return w.ChainResponse
 }
 
-func (w *Message_BlockResponse) Pb() synchronizerpb.Message_Type {
+func (w *Message_ChainResponse) Pb() synchronizerpb.Message_Type {
 	if w == nil {
 		return nil
 	}
-	if w.BlockResponse == nil {
-		return &synchronizerpb.Message_BlockResponse{}
+	if w.ChainResponse == nil {
+		return &synchronizerpb.Message_ChainResponse{}
 	}
-	return &synchronizerpb.Message_BlockResponse{BlockResponse: (w.BlockResponse).Pb()}
+	return &synchronizerpb.Message_ChainResponse{ChainResponse: (w.ChainResponse).Pb()}
 }
 
-func (*Message_BlockResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.Message_BlockResponse]()}
+func (*Message_ChainResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.Message_ChainResponse]()}
 }
 
 func MessageFromPb(pb *synchronizerpb.Message) *Message {
@@ -223,71 +223,72 @@ func (*Message) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.Message]()}
 }
 
-type BlockRequest struct {
+type ChainRequest struct {
 	RequestId uint64
 	BlockId   uint64
+	LeaveIds  []uint64
 }
 
-func BlockRequestFromPb(pb *synchronizerpb.BlockRequest) *BlockRequest {
+func ChainRequestFromPb(pb *synchronizerpb.ChainRequest) *ChainRequest {
 	if pb == nil {
 		return nil
 	}
-	return &BlockRequest{
+	return &ChainRequest{
 		RequestId: pb.RequestId,
 		BlockId:   pb.BlockId,
+		LeaveIds:  pb.LeaveIds,
 	}
 }
 
-func (m *BlockRequest) Pb() *synchronizerpb.BlockRequest {
+func (m *ChainRequest) Pb() *synchronizerpb.ChainRequest {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &synchronizerpb.BlockRequest{}
+	pbMessage := &synchronizerpb.ChainRequest{}
 	{
 		pbMessage.RequestId = m.RequestId
 		pbMessage.BlockId = m.BlockId
+		pbMessage.LeaveIds = m.LeaveIds
 	}
 
 	return pbMessage
 }
 
-func (*BlockRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.BlockRequest]()}
+func (*ChainRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.ChainRequest]()}
 }
 
-type BlockResponse struct {
+type ChainResponse struct {
 	RequestId uint64
 	Found     bool
-	Block     *blockchainpb.Block
+	Chain     []*blockchainpb.Block
 }
 
-func BlockResponseFromPb(pb *synchronizerpb.BlockResponse) *BlockResponse {
+func ChainResponseFromPb(pb *synchronizerpb.ChainResponse) *ChainResponse {
 	if pb == nil {
 		return nil
 	}
-	return &BlockResponse{
+	return &ChainResponse{
 		RequestId: pb.RequestId,
 		Found:     pb.Found,
-		Block:     pb.Block,
+		Chain:     pb.Chain,
 	}
 }
 
-func (m *BlockResponse) Pb() *synchronizerpb.BlockResponse {
+func (m *ChainResponse) Pb() *synchronizerpb.ChainResponse {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &synchronizerpb.BlockResponse{}
+	pbMessage := &synchronizerpb.ChainResponse{}
 	{
 		pbMessage.RequestId = m.RequestId
 		pbMessage.Found = m.Found
-		if m.Block != nil {
-			pbMessage.Block = m.Block
-		}
+		pbMessage.Chain = m.Chain
 	}
 
 	return pbMessage
 }
 
-func (*BlockResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.BlockResponse]()}
+func (*ChainResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*synchronizerpb.ChainResponse]()}
 }

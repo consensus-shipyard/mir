@@ -19,6 +19,8 @@ message Event {
 
     GetBlockRequest   get_block_request   = 3;
     GetBlockResponse  get_block_response  = 4;
+    GetChainRequest   get_chain_request   = 5;
+    GetChainResponse  get_chain_response  = 6;
   }
 }
 
@@ -50,4 +52,22 @@ message GetBlockResponse {
   uint64              request_id  = 1;
   bool                found       = 2;
   blockchainpb.Block  block       = 3;
+}
+
+message GetChainRequest {
+  option (mir.event) = true;
+
+  uint64          request_id        = 1;
+  string          source_module     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  
+  uint64          end_block_id      = 3;
+  repeated uint64 source_block_ids  = 4;
+}
+
+message GetChainResponse {
+  option (mir.event) = true;
+
+  uint64                        request_id  = 1;
+  bool                          success     = 2;
+  repeated blockchainpb.Block   chain       = 3; // sorted from oldest to youngest
 }

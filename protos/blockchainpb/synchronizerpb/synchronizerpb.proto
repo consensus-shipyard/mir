@@ -32,23 +32,24 @@ message Message {
   oneof type {
     option (net.message_type) = true;
 
-    BlockRequest  block_request   = 1;
-    BlockResponse block_response  = 2;
+    ChainRequest  chain_request   = 1;
+    ChainResponse chain_response  = 2;
   }
 }
 
-message BlockRequest {
+message ChainRequest {
   option (net.message) = true;
   
-  uint64 request_id = 1;
-  uint64 block_id = 2;
+  uint64          request_id  = 1;
+  uint64          block_id    = 2;
+  repeated uint64 leave_ids   = 3;
 }
 
-message BlockResponse {
+message ChainResponse {
   option (net.message) = true;
   
-  uint64 request_id = 1;
-  bool found = 2;
-  blockchainpb.Block block = 3; // possibly undefined (proto3 spec no-longer supports optional/required...)
+  uint64                      request_id  = 1;
+  bool                        found       = 2;
+  repeated blockchainpb.Block chain       = 3; // possibly undefined (proto3 spec no-longer supports optional/required...)
   
 }

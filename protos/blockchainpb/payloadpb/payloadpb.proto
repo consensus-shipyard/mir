@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package payloadpb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb";
+
+message Payload {
+  // application specific payload
+  int64 add_minus  = 1;
+}

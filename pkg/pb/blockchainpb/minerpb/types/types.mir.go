@@ -4,8 +4,8 @@ package minerpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
+	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -114,7 +114,7 @@ func (*Event) MirReflect() mirreflect.Type {
 
 type BlockRequest struct {
 	HeadId  uint64
-	Payload *blockchainpb.Payload
+	Payload *payloadpb.Payload
 }
 
 func BlockRequestFromPb(pb *minerpb.BlockRequest) *BlockRequest {

@@ -12,5 +12,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_NewChain)(nil)),
 		reflect.TypeOf((*Event_GetBlockRequest)(nil)),
 		reflect.TypeOf((*Event_GetBlockResponse)(nil)),
+		reflect.TypeOf((*Event_GetChainRequest)(nil)),
+		reflect.TypeOf((*Event_GetChainResponse)(nil)),
 	}
 }

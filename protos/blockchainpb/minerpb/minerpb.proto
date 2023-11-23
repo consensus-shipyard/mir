@@ -5,7 +5,7 @@ package minerpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb";
 
 import "mir/codegen_extensions.proto";
-import "blockchainpb/blockchainpb.proto";
+import "blockchainpb/payloadpb/payloadpb.proto";
 
 message Event {
   option (mir.event_class) = true;
@@ -22,7 +22,7 @@ message BlockRequest {
   option (mir.event) = true;
   
   uint64                  head_id = 1;
-  blockchainpb.Payload    payload = 2;
+  payloadpb.Payload    payload = 2;
 }
 
 message NewHead {

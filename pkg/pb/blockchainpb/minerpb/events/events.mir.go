@@ -3,13 +3,13 @@
 package minerpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
+	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func BlockRequest(destModule types.ModuleID, headId uint64, payload *blockchainpb.Payload) *types1.Event {
+func BlockRequest(destModule types.ModuleID, headId uint64, payload *payloadpb.Payload) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Miner{

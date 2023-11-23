@@ -4,8 +4,8 @@ package minerpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
+	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -22,7 +22,7 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponBlockRequest(m dsl.Module, handler func(headId uint64, payload *blockchainpb.Payload) error) {
+func UponBlockRequest(m dsl.Module, handler func(headId uint64, payload *payloadpb.Payload) error) {
 	UponEvent[*types.Event_BlockRequest](m, func(ev *types.BlockRequest) error {
 		return handler(ev.HeadId, ev.Payload)
 	})

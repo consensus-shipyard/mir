@@ -8,6 +8,7 @@ import (
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
 	batchfetcherpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
+	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	bcmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb"
 	communicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
@@ -131,6 +132,10 @@ func (w *Event_Communication) Unwrap() *communicationpb.Event {
 
 func (w *Event_Synchronizer) Unwrap() *synchronizerpb.Event {
 	return w.Synchronizer
+}
+
+func (w *Event_Application) Unwrap() *applicationpb.Event {
+	return w.Application
 }
 
 func (w *Event_Bcinterceptor) Unwrap() *interceptorpb.Event {

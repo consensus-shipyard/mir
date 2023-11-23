@@ -15,6 +15,7 @@ message Event {
 
     TreeUpdate      tree_update     = 1;
     NewOrphan       new_orphan      = 2;
+    AppUpdate       app_update      = 3;
   }
 }
 
@@ -29,4 +30,10 @@ message NewOrphan {
     option (mir.event) = true;
     
     blockchainpb.Block orphan = 1;
+}
+
+message AppUpdate {
+    option (mir.event) = true;
+
+    int64   state     = 1;
 }
