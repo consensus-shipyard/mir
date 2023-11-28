@@ -141,6 +141,20 @@ func (el *EventList) Slice() []*eventpb.Event {
 	return events
 }
 
+// Filter returns a new event list containing only those items for which predicate returns true.
+func (el *EventList) Filter(predicate func(event *eventpb.Event) bool) *EventList {
+	filtered := &EventList{}
+
+	iter := el.Iterator()
+	for event := iter.Next(); event != nil; event = iter.Next() {
+		if predicate(event) {
+			filtered.PushBack(event)
+		}
+	}
+
+	return filtered
+}
+
 // Iterator returns a pointer to an EventListIterator object used to iterate over the events in this list,
 // starting from the beginning of the list.
 func (el *EventList) Iterator() *EventListIterator {
