@@ -7,9 +7,9 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-// Returns a file that splits an record slice into multiple slices
-// every time a an event eventpb.Event_NewLogFile is found
-func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []EventRecord {
+// EventNewEpochLogger returns a file that splits an event list into multiple lists
+// every time an event eventpb.Event_NewLogFile is found
+func EventNewEpochLogger(appModuleID t.ModuleID) func(*events.EventList) []*events.EventList {
 	eventNewLogFileLogger := func(event *eventpb.Event) bool {
 		appEvent, ok := event.Type.(*eventpb.Event_App)
 		if !ok {
@@ -22,32 +22,25 @@ func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []Even
 	return EventTrackerLogger(eventNewLogFileLogger)
 }
 
-// eventTrackerLogger returns a function that tracks every single event of EventRecord and
+// EventTrackerLogger returns a function that tracks every single event of EventList and
 // creates a new file for every event such that newFile(event) = True
-func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time EventRecord) []EventRecord {
-	return func(record EventRecord) []EventRecord {
-		var result []EventRecord
-		// Create a variable to hold the current chunk
-		currentChunk := &EventRecord{
-			Time:   record.Time,
-			Events: events.EmptyList(),
-		}
+func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(*events.EventList) []*events.EventList {
+	return func(evts *events.EventList) []*events.EventList {
+		var result []*events.EventList
+		currentChunk := events.EmptyList()
 
-		for _, event := range record.Events.Slice() {
+		for _, event := range evts.Slice() {
 			if newFile(event) {
-				result = append(result, *currentChunk)
-				currentChunk = &EventRecord{
-					Time:   record.Time,
-					Events: events.EmptyList().PushBack(event),
-				}
+				result = append(result, currentChunk)
+				currentChunk = events.ListOf(event)
 			} else {
-				currentChunk.Events.PushBack(event)
+				currentChunk.PushBack(event)
 			}
 		}
 
 		// If there is a remaining chunk with fewer than the desired number of events, append it to the result
-		if currentChunk.Events.Len() > 0 {
-			result = append(result, *currentChunk)
+		if currentChunk.Len() > 0 {
+			result = append(result, currentChunk)
 		}
 
 		return result
@@ -56,34 +49,26 @@ func EventTrackerLogger(newFile func(event *eventpb.Event) bool) func(time Event
 
 // EventLimitLogger returns a function for the interceptor that splits the logging file
 // every eventLimit number of events
-func EventLimitLogger(eventLimit int64) func(EventRecord) []EventRecord {
+func EventLimitLogger(eventLimit int64) func(*events.EventList) []*events.EventList {
 	var eventCount int64
-	return func(record EventRecord) []EventRecord {
-		// Create a slice to hold the slices of record elements
-		var result []EventRecord
-		// Create a variable to hold the current chunk
-		currentChunk := EventRecord{
-			Time:   record.Time,
-			Events: events.EmptyList(),
-		}
+	return func(evts *events.EventList) []*events.EventList {
+		var result []*events.EventList
+		currentChunk := events.EmptyList()
 
 		// Iterate over the events in the input slice
-		for _, event := range record.Events.Slice() {
+		for _, event := range evts.Slice() {
 			// Add the current element to the current chunk
-			currentChunk.Events.PushBack(event)
+			currentChunk.PushBack(event)
 			eventCount++
 			// If the current chunk has the desired number of events, append it to the result and start a new chunk
 			if eventCount%eventLimit == 0 {
 				result = append(result, currentChunk)
-				currentChunk = EventRecord{
-					Time:   record.Time,
-					Events: events.EmptyList(),
-				}
+				currentChunk = events.EmptyList()
 			}
 		}
 
 		// If there is a remaining chunk with fewer than the desired number of events, append it to the result
-		if currentChunk.Events.Len() > 0 {
+		if currentChunk.Len() > 0 {
 			result = append(result, currentChunk)
 		}
 
@@ -91,8 +76,8 @@ func EventLimitLogger(eventLimit int64) func(EventRecord) []EventRecord {
 	}
 }
 
-func OneFileLogger() func(EventRecord) []EventRecord {
-	return func(record EventRecord) []EventRecord {
-		return []EventRecord{record}
+func OneFileLogger() func(*events.EventList) []*events.EventList {
+	return func(evts *events.EventList) []*events.EventList {
+		return []*events.EventList{evts}
 	}
 }

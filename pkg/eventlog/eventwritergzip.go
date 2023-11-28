@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -35,10 +36,10 @@ func NewGzipWriter(filename string, compressionLevel int, nodeID t.NodeID, logge
 	}, nil
 }
 
-func (w *gzipWriter) Write(record EventRecord) (EventRecord, error) {
+func (w *gzipWriter) Write(evts *events.EventList, timestamp int64) (*events.EventList, error) {
 	gzWriter, err := gzip.NewWriterLevel(w.dest, w.compressionLevel)
 	if err != nil {
-		return record, err
+		return nil, err
 	}
 	defer func() {
 		if err := gzWriter.Close(); err != nil {
@@ -46,10 +47,10 @@ func (w *gzipWriter) Write(record EventRecord) (EventRecord, error) {
 		}
 	}()
 
-	return record, writeRecordedEvent(gzWriter, &recordingpb.Entry{
+	return evts, writeRecordedEvent(gzWriter, &recordingpb.Entry{
 		NodeId: w.nodeID.Pb(),
-		Time:   record.Time,
-		Events: record.Events.Slice(),
+		Time:   timestamp,
+		Events: evts.Slice(),
 	})
 }
 
