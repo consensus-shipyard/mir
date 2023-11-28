@@ -45,7 +45,7 @@ func (em *echoModule) applyEvent(event *eventpb.Event) (*events.EventList, error
 	assert.Equal(em.t, em.id, destModuleID)
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
-		return events.ListOf(events.TestingString(destModuleID.Top(), string(em.id)+" Init")), nil
+		return events.ListOf(events.TestingString(destModuleID.Top(), string(em.id)+" Init")), nil //nolint:goconst
 	case *eventpb.Event_TestingString:
 		return events.ListOf(events.TestingString(destModuleID.Top(), em.prefix+e.TestingString.GetValue())), nil
 	default:
@@ -86,7 +86,7 @@ func TestFactoryModule(t *testing.T) {
 			assert.Equal(t, 1, evOut.Len())
 			assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
 			assert.Equal(t,
-				string(echoFactoryID.Then("inst0"))+" Init",
+				string(echoFactoryID.Then("inst0"))+" Init", //nolint:goconst
 				evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 			)
 		},
@@ -116,7 +116,7 @@ func TestFactoryModule(t *testing.T) {
 				assert.Equal(t, 1, evOut.Len())
 				assert.Equal(t, echoFactoryID.Pb(), evOut.Slice()[0].DestModule)
 				assert.Equal(t,
-					string(echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))+" Init",
+					string(echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))+" Init", //nolint:goconst
 					evOut.Slice()[0].Type.(*eventpb.Event_TestingString).TestingString.GetValue(),
 				)
 			}

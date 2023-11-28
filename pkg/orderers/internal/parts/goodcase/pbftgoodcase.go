@@ -475,7 +475,7 @@ func preprocessMessage(
 	} else if slot.Committed {
 		// Check if the slot has already been committed (this can happen with state transfer).
 		return nil
-	} else {
+	} else { //nolint:revive
 		return slot
 	}
 }

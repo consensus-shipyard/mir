@@ -21,11 +21,10 @@ func add(i1 Element, i2 Element) Element {
 }
 
 func (s Set) Elements() []Element {
-	//var items []Element
-	//
 	if p, ok := s["product"]; ok {
 		return product(p.([]any))
-	} else if u, ok := s["union"]; ok {
+	}
+	if u, ok := s["union"]; ok {
 		return union(u.([]any))
 	} else if r, ok := s["range"]; ok {
 		name := r.(map[string]any)["name"].(string)
@@ -33,17 +32,19 @@ func (s Set) Elements() []Element {
 		step := r.(map[string]any)["step"].(int)
 		max := r.(map[string]any)["max"].(int)
 		return rangeFunc(name, min, step, max)
-	} else if e, ok := s["enum"]; ok {
+	}
+	if e, ok := s["enum"]; ok {
 		name := e.(map[string]any)["name"].(string)
 		vals := e.(map[string]any)["values"].([]any)
 		return enum(name, vals)
-	} else if e, ok := s["single"]; ok {
+	}
+	if e, ok := s["single"]; ok {
 		name := e.(map[string]any)["name"].(string)
 		val := e.(map[string]any)["value"]
 		return enum(name, []any{val})
-	} else {
-		panic(fmt.Errorf("unknown type of parameter set: %v", s))
 	}
+
+	panic(fmt.Errorf("unknown type of parameter set: %v", s))
 }
 
 func enum(name string, values []any) []Element {

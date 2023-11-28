@@ -260,13 +260,14 @@ func IncludeViewChange( //nolint:gocognit
 				msgView, err := getMsgView(msgPb)
 				if err != nil {
 					return messagebuffer.Invalid
-				} else if msgView < state.View {
-					return messagebuffer.Past
-				} else if msgView == state.View {
-					return messagebuffer.Current
-				} else {
-					return messagebuffer.Future
 				}
+				if msgView < state.View {
+					return messagebuffer.Past
+				}
+				if msgView == state.View {
+					return messagebuffer.Current
+				}
+				return messagebuffer.Future
 			}, func(msgPb proto.Message) {
 				goodcase.ApplyBufferedMsg(m, state, params, moduleConfig, msgPb, from, logger)
 			})
