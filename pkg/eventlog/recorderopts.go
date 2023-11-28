@@ -1,6 +1,7 @@
 package eventlog
 
 import (
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -36,9 +37,9 @@ func BufferSizeOpt(size int) RecorderOpt {
 
 // TODO: Write documenting comments for the options below.
 
-type fileSplitterOpt func(EventRecord) []EventRecord
+type fileSplitterOpt func(*events.EventList) []*events.EventList
 
-func FileSplitterOpt(splitter func(EventRecord) []EventRecord) RecorderOpt {
+func FileSplitterOpt(splitter func(*events.EventList) []*events.EventList) RecorderOpt {
 	return fileSplitterOpt(splitter)
 }
 
