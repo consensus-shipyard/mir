@@ -461,6 +461,8 @@ func (n *Node) importEvents(
 
 // If the interceptor module is present, passes events to it. Otherwise, does nothing.
 // If an error occurs passing events to the interceptor, notifies the node by means of the workErrorNotifier.
+// The interceptor has the ability to modify the EventList.
+// The events returned by the interceptor are the events actually delivered to the system's modules
 // Note: The passed Events should be free of any follow-up Events,
 // as those will be intercepted separately when processed.
 // Make sure to call the Strip method of the EventList before passing it to interceptEvents.
@@ -473,7 +475,7 @@ func (n *Node) interceptEvents(events *events.EventList) *events.EventList {
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
 	var err error
 	if n.interceptor != nil {
-		events, err = n.interceptor.InterceptWithReturn(events)
+		events, err = n.interceptor.Intercept(events)
 		if err != nil {
 			n.workErrNotifier.Fail(err)
 		}

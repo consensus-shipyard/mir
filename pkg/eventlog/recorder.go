@@ -136,43 +136,7 @@ func NewRecorder(
 // If there is no room in the buffer, it blocks.  If draining the buffer
 // to the output stream has completed (successfully or otherwise), Intercept
 // returns an error.
-func (i *Recorder) Intercept(events *events.EventList) error {
-
-	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
-	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
-	// Mir would treat that variable as non-nil, thinking there is an interceptor, and call Intercept() on it.
-	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
-	if i == nil {
-		return nil
-	}
-
-	// If synchronous writing is enabled, write data and return immediately, without using any channels.
-	if i.syncWrite {
-		i.writerLock.Lock()
-		defer i.writerLock.Unlock()
-		var err error
-		_, err = i.writeEvents(events, i.timeSource())
-		if err != nil {
-			return es.Errorf("error writing events: %w", err)
-		}
-		if err := i.dest.Flush(); err != nil {
-			return es.Errorf("error flushing written events: %w", err)
-		}
-		return nil
-	}
-
-	// If writing is asynchronous, pass the record to the background writing goroutine.
-	select {
-	case i.eventC <- eventRecord{events, i.timeSource()}:
-		return nil
-	case <-i.exitC:
-		i.exitErrMutex.Lock()
-		defer i.exitErrMutex.Unlock()
-		return i.exitErr
-	}
-}
-
-func (i *Recorder) InterceptWithReturn(events *events.EventList) (*events.EventList, error) {
+func (i *Recorder) Intercept(events *events.EventList) (*events.EventList, error) {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
