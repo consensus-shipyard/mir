@@ -14,6 +14,5 @@ type Interceptor interface {
 	// The implementation of the concrete type must make sure that calling Intercept even on the nil value
 	// does not cause any problems.
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
-	Intercept(events *events.EventList) error
-	InterceptWithReturn(events *events.EventList) (*events.EventList, error)
+	Intercept(events *events.EventList) (*events.EventList, error)
 }
