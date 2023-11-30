@@ -17,11 +17,11 @@ func (r *repeater) Intercept(events *events.EventList) (*events.EventList, error
 	if r == nil {
 		return events, nil
 	}
-
+	var err error
 	for _, i := range r.interceptors {
-		_, err := i.Intercept(events)
+		events, err = i.Intercept(events)
 		if err != nil {
-			return events, err
+			return nil, err
 		}
 	}
 	return events, nil
