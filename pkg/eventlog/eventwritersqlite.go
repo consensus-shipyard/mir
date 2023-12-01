@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3" // Driver for the sql database
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
@@ -43,27 +44,27 @@ func NewSqliteWriter(filename string, nodeID t.NodeID, logger logging.Logger) (E
 	}, nil
 }
 
-func (w sqliteWriter) Write(record EventRecord) error {
+func (w sqliteWriter) Write(evts *events.EventList, timestamp int64) (*events.EventList, error) {
 	// For each incoming event
-	iter := record.Events.Iterator()
+	iter := evts.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		jsonData, err := protojson.Marshal(event)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		_, err = w.db.Exec(
 			insert,
-			record.Time,
+			timestamp,
 			w.nodeID,
 			fmt.Sprintf("%T", event.Type)[len("*eventpb.Event_"):],
 			jsonData,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return evts, nil
 }
 
 func (w sqliteWriter) Flush() error {

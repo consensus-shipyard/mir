@@ -3,12 +3,13 @@ package eventlog
 import (
 	"compress/gzip"
 
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type EventWriter interface {
-	Write(record EventRecord) error
+	Write(evts *events.EventList, timestamp int64) (*events.EventList, error)
 	Flush() error
 	Close() error
 }

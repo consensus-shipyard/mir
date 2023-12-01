@@ -8,22 +8,23 @@ type repeater struct {
 	interceptors []Interceptor
 }
 
-func (r *repeater) Intercept(events *events.EventList) error {
+func (r *repeater) Intercept(events *events.EventList) (*events.EventList, error) {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
 	// Mir would treat that variable as non-nil, thinking there is an interceptor, and call Intercept() on it.
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
 	if r == nil {
-		return nil
+		return events, nil
 	}
-
+	var err error
 	for _, i := range r.interceptors {
-		if err := i.Intercept(events); err != nil {
-			return err
+		events, err = i.Intercept(events)
+		if err != nil {
+			return nil, err
 		}
 	}
-	return nil
+	return events, nil
 }
 
 func MultiInterceptor(interceptors ...Interceptor) Interceptor {

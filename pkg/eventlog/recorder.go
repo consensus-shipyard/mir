@@ -25,25 +25,9 @@ import (
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
-type EventRecord struct {
+type eventRecord struct {
 	Events *events.EventList
 	Time   int64
-}
-
-func (record *EventRecord) Filter(predicate func(event *eventpb.Event) bool) EventRecord {
-	filtered := &events.EventList{}
-
-	iter := record.Events.Iterator()
-	for event := iter.Next(); event != nil; event = iter.Next() {
-		if predicate(event) {
-			filtered.PushBack(event)
-		}
-	}
-
-	return EventRecord{
-		Events: filtered,
-		Time:   record.Time,
-	}
 }
 
 // Recorder is intended to be used as an implementation of the
@@ -53,14 +37,14 @@ type Recorder struct {
 	nodeID         t.NodeID
 	dest           EventWriter
 	timeSource     func() int64
-	newDests       func(EventRecord) []EventRecord
+	newDests       func(list *events.EventList) []*events.EventList
 	path           string
 	filter         func(event *eventpb.Event) bool
 	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
 	syncWrite      bool
 
 	logger     logging.Logger
-	eventC     chan EventRecord
+	eventC     chan eventRecord
 	doneC      chan struct{}
 	exitC      chan struct{}
 	fileCount  int
@@ -87,7 +71,7 @@ func NewRecorder(
 		timeSource: func() int64 {
 			return time.Since(startTime).Milliseconds()
 		},
-		eventC:    make(chan EventRecord, DefaultBufferSize),
+		eventC:    make(chan eventRecord, DefaultBufferSize),
 		doneC:     make(chan struct{}),
 		exitC:     make(chan struct{}),
 		fileCount: 1,
@@ -107,7 +91,7 @@ func NewRecorder(
 		case timeSourceOpt:
 			i.timeSource = v
 		case bufferSizeOpt:
-			i.eventC = make(chan EventRecord, v)
+			i.eventC = make(chan eventRecord, v)
 		case fileSplitterOpt:
 			i.newDests = v
 		case eventFilterOpt:
@@ -152,43 +136,41 @@ func NewRecorder(
 // If there is no room in the buffer, it blocks.  If draining the buffer
 // to the output stream has completed (successfully or otherwise), Intercept
 // returns an error.
-func (i *Recorder) Intercept(events *events.EventList) error {
+func (i *Recorder) Intercept(events *events.EventList) (*events.EventList, error) {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.
 	// Mir would treat that variable as non-nil, thinking there is an interceptor, and call Intercept() on it.
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
 	if i == nil {
-		return nil
-	}
-
-	record := EventRecord{
-		Events: events,
-		Time:   i.timeSource(),
+		return events, nil
 	}
 
 	// If synchronous writing is enabled, write data and return immediately, without using any channels.
+	// Event modification is only possible here (in synchronous mode).
 	if i.syncWrite {
 		i.writerLock.Lock()
 		defer i.writerLock.Unlock()
-
-		if err := i.writeEvents(record); err != nil {
-			return es.Errorf("error writing events: %w", err)
+		newEvents, err := i.writeEvents(events, i.timeSource())
+		if err != nil {
+			return nil, es.Errorf("error writing events: %w", err)
 		}
 		if err := i.dest.Flush(); err != nil {
-			return es.Errorf("error flushing written events: %w", err)
+			return nil, es.Errorf("error flushing written events: %w", err)
 		}
-		return nil
+		return newEvents, nil
 	}
 
 	// If writing is asynchronous, pass the record to the background writing goroutine.
+	// Note that the recorder will not modify the event list in asynchronous mode, even if the used event writer
+	// returns a modified event list.
 	select {
-	case i.eventC <- record:
-		return nil
+	case i.eventC <- eventRecord{events, i.timeSource()}:
+		return events, nil
 	case <-i.exitC:
 		i.exitErrMutex.Lock()
 		defer i.exitErrMutex.Unlock()
-		return i.exitErr
+		return events, i.exitErr
 	}
 }
 
@@ -236,14 +218,19 @@ func (i *Recorder) run() (exitErr error) {
 		i.logger.Log(logging.LevelInfo, "Intercepted Events written to event log.", "numEvents", cnt, ", path", i.path)
 	}()
 
+	// Keep reading records of intercepted events and pass them to the event writer.
+	// Note that the return value of writeEvents is ignored.
+	// This is because, in asynchronous mode, the interceptor cannot modify the event stream.
+	// All its modifications are thus ignored.
 	for {
 		select {
 		case <-i.doneC:
 			for {
 				select {
 				case record := <-i.eventC:
-
-					if err := i.writeEvents(record); err != nil {
+					var err error
+					_, err = i.writeEvents(record.Events, record.Time)
+					if err != nil {
 						return es.Errorf("error serializing to stream: %w", err)
 					}
 				default:
@@ -251,7 +238,9 @@ func (i *Recorder) run() (exitErr error) {
 				}
 			}
 		case record := <-i.eventC:
-			if err := i.writeEvents(record); err != nil {
+			var err error
+			_, err = i.writeEvents(record.Events, record.Time)
+			if err != nil {
 				return es.Errorf("error serializing to stream: %w", err)
 			}
 			cnt++
@@ -259,9 +248,10 @@ func (i *Recorder) run() (exitErr error) {
 	}
 }
 
-func (i *Recorder) writeEvents(record EventRecord) error {
-	eventByDests := i.newDests(record)
+func (i *Recorder) writeEvents(evts *events.EventList, timestamp int64) (*events.EventList, error) {
+	eventByDests := i.newDests(evts)
 	count := 0
+	eventsOut := events.EmptyList()
 	for _, rec := range eventByDests {
 		if count > 0 {
 			// newDest required
@@ -271,22 +261,25 @@ func (i *Recorder) writeEvents(record EventRecord) error {
 				i.logger,
 			)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = i.dest.Close()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			i.dest = dest
 			i.fileCount++
 		}
 
-		if rec.Events.Len() != 0 {
-			if err := i.dest.Write(rec.Filter(i.filter)); err != nil {
-				return err
+		if rec.Len() != 0 {
+			var err error
+			evtsOut, err := i.dest.Write(rec.Filter(i.filter), timestamp)
+			if err != nil {
+				return nil, err
 			}
+			eventsOut.PushBackList(evtsOut)
 		}
 		count++
 	}
-	return nil
+	return eventsOut, nil
 }
