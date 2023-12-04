@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"os"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/pingpong/lowlevel"
 )
 
 func main() {
@@ -27,8 +27,14 @@ func main() {
 
 	// Get own ID from command line.
 	ownID := t.NodeID(os.Args[1])
+	// Get 0 for no debugger, 1 for debugger
+	debugger := os.Args[2]
 
-	// Instantiate network trnasport module and establish connections.
+	var interceptor *eventlog.Recorder
+	var err error
+	interceptor, err = InterceptorInit(debugger == "1", ownID)
+
+	// Instantiate network transport module and establish connections.
 	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
 	if err != nil {
 		panic(err)
@@ -44,11 +50,11 @@ func main() {
 		mir.DefaultNodeConfig(),
 		map[t.ModuleID]modules.Module{
 			"transport": transport,
-			//"pingpong":  NewPingPong(ownID),
-			"pingpong": lowlevel.NewPingPong(ownID),
-			"timer":    timer.New(),
+			"pingpong":  NewPingPong(ownID),
+			//"pingpong": lowlevel.NewPingPong(ownID),
+			"timer": timer.New(),
 		},
-		nil,
+		interceptor,
 	)
 	if err != nil {
 		panic(err)
