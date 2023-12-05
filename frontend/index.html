@@ -323,8 +323,24 @@
             }
         };
 
+        const closeConnection = () => {
+            console.log('Closing connection from button');
+            if (ws) {
+                ws.close()
+
+                // Send the response on the WebSocket
+                let webSocketResponse = {
+                    "Type": "close",
+                    "Value": ""
+                };
+                const webSocketResponseJSON = JSON.stringify(webSocketResponse);
+                ws.send(webSocketResponseJSON);
+            }
+        }
+
         return (
             <div id="sub-screen" className="sub-screen">
+                <button onClick={closeConnection} className="close-button">Close Connection</button>
                 <p className="websocket-console-title">
                     WebSocket Console for Port {port}:
                 </p>
