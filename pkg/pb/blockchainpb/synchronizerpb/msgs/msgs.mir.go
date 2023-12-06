@@ -9,7 +9,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func ChainRequest(destModule types.ModuleID, requestId uint64, blockId uint64, leaveIds []uint64) *types1.Message {
+func ChainRequest(destModule types.ModuleID, requestId string, blockId uint64, leaveIds []uint64) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{
@@ -26,7 +26,7 @@ func ChainRequest(destModule types.ModuleID, requestId uint64, blockId uint64, l
 	}
 }
 
-func ChainResponse(destModule types.ModuleID, requestId uint64, found bool, chain []*blockchainpb.Block) *types1.Message {
+func ChainResponse(destModule types.ModuleID, requestId string, found bool, chain []*blockchainpb.Block) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{

@@ -74,7 +74,7 @@ func main() {
 
 	mangler, err := eventmangler.NewModule(
 		eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
-		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 2 * time.Second, DropRate: 0.01},
+		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 2 * time.Second, DropRate: 0.15},
 	)
 	if err != nil {
 		panic(err)
@@ -91,7 +91,7 @@ func main() {
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
 			// "tpm":           NewTPM(logging.Decorate(logger, "TPM:\t")),
 			"application":  application.NewApplication(logging.Decorate(logger, "App:\t")),
-			"synchronizer": NewSynchronizer(otherNodes, false, logging.Decorate(logger, "Sync:\t")),
+			"synchronizer": NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
 			"timer":        timer,
 			"mangler":      mangler,
 			"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor

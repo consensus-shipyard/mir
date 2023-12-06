@@ -39,7 +39,7 @@ func NewChain(destModule types.ModuleID, blocks []*blockchainpb.Block) *types1.E
 	}
 }
 
-func GetBlockRequest(destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, blockId uint64) *types1.Event {
+func GetBlockRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, blockId uint64) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Bcm{
@@ -56,7 +56,7 @@ func GetBlockRequest(destModule types.ModuleID, requestId uint64, sourceModule t
 	}
 }
 
-func GetBlockResponse(destModule types.ModuleID, requestId uint64, found bool, block *blockchainpb.Block) *types1.Event {
+func GetBlockResponse(destModule types.ModuleID, requestId string, found bool, block *blockchainpb.Block) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Bcm{
@@ -73,7 +73,7 @@ func GetBlockResponse(destModule types.ModuleID, requestId uint64, found bool, b
 	}
 }
 
-func GetChainRequest(destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) *types1.Event {
+func GetChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Bcm{
@@ -91,7 +91,7 @@ func GetChainRequest(destModule types.ModuleID, requestId uint64, sourceModule t
 	}
 }
 
-func GetChainResponse(destModule types.ModuleID, requestId uint64, success bool, chain []*blockchainpb.Block) *types1.Event {
+func GetChainResponse(destModule types.ModuleID, requestId string, success bool, chain []*blockchainpb.Block) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Bcm{

@@ -40,7 +40,7 @@ message Message {
 message ChainRequest {
   option (net.message) = true;
   
-  uint64          request_id  = 1;
+  string          request_id  = 1;
   uint64          block_id    = 2;
   repeated uint64 leave_ids   = 3;
 }
@@ -48,7 +48,7 @@ message ChainRequest {
 message ChainResponse {
   option (net.message) = true;
   
-  uint64                      request_id  = 1;
+  string                      request_id  = 1;
   bool                        found       = 2;
   repeated blockchainpb.Block chain       = 3; // possibly undefined (proto3 spec no-longer supports optional/required...)
   

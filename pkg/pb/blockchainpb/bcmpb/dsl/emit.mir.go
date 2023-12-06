@@ -19,18 +19,18 @@ func NewChain(m dsl.Module, destModule types.ModuleID, blocks []*blockchainpb.Bl
 	dsl.EmitMirEvent(m, events.NewChain(destModule, blocks))
 }
 
-func GetBlockRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, blockId uint64) {
+func GetBlockRequest(m dsl.Module, destModule types.ModuleID, requestId string, sourceModule types.ModuleID, blockId uint64) {
 	dsl.EmitMirEvent(m, events.GetBlockRequest(destModule, requestId, sourceModule, blockId))
 }
 
-func GetBlockResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, found bool, block *blockchainpb.Block) {
+func GetBlockResponse(m dsl.Module, destModule types.ModuleID, requestId string, found bool, block *blockchainpb.Block) {
 	dsl.EmitMirEvent(m, events.GetBlockResponse(destModule, requestId, found, block))
 }
 
-func GetChainRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) {
+func GetChainRequest(m dsl.Module, destModule types.ModuleID, requestId string, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) {
 	dsl.EmitMirEvent(m, events.GetChainRequest(destModule, requestId, sourceModule, endBlockId, sourceBlockIds))
 }
 
-func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, success bool, chain []*blockchainpb.Block) {
+func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, success bool, chain []*blockchainpb.Block) {
 	dsl.EmitMirEvent(m, events.GetChainResponse(destModule, requestId, success, chain))
 }

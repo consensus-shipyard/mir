@@ -108,7 +108,7 @@ func (bcm *bcmModule) addBlock(block *blockchainpb.Block) error {
 		// check if curr matches the block to be added - if so, ignore
 		if currBlock.block.BlockId == block.BlockId {
 			bcm.logger.Log(logging.LevelDebug, "Block already in tree", "blockId", utils.FormatBlockId(block.BlockId))
-			return false, ErrNodeAlreadyInTree
+			return true, ErrNodeAlreadyInTree
 		}
 
 		// check if curr is parent
@@ -151,16 +151,21 @@ func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
 	currentHead := bcm.getHead()
 	// insert block
 	if err := bcm.addBlock(block); err != nil {
-		if err == ErrParentNotFound {
+		switch err {
+		case ErrNodeAlreadyInTree:
+			// ignore
+			bcm.logger.Log(logging.LevelDebug, "Block already in tree - ignore", "blockId", utils.FormatBlockId(block.BlockId))
+		case ErrParentNotFound:
 			// ask synchronizer for help
 			leavesPlusGenesis := append(maps.Keys(bcm.leaves), bcm.genesis.block.BlockId)
 			bcm.logger.Log(logging.LevelDebug, "Sending sync request", "blockId", utils.FormatBlockId(block.BlockId), "leaves+genesis", utils.FormatBlockIdSlice(leavesPlusGenesis))
 			synchronizerpbdsl.SyncRequest(*bcm.m, "synchronizer", block, leavesPlusGenesis)
 			// announce orphan block to interceptor
 			interceptorpbdsl.NewOrphan(*bcm.m, "devnull", block)
-		} else {
+		default:
 			// some other error
 			bcm.logger.Log(logging.LevelError, "Unexpected error adding block", "blockId", utils.FormatBlockId(block.BlockId), "error", err)
+			panic(err)
 		}
 		return
 	}
@@ -190,15 +195,21 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
 	// insert block
 	for _, block := range blocks {
 		if err := bcm.addBlock(block); err != nil {
-			if err == ErrNodeAlreadyInTree {
+			switch err {
+			case ErrNodeAlreadyInTree:
 				// ignore
 				bcm.logger.Log(logging.LevelDebug, "Block already in tree - ignore", "blockId", utils.FormatBlockId(block.BlockId))
-				continue
-			} else {
+			case ErrParentNotFound:
+				// ask synchronizer for help
+				leavesPlusGenesis := append(maps.Keys(bcm.leaves), bcm.genesis.block.BlockId)
+				bcm.logger.Log(logging.LevelDebug, "Sending sync request", "blockId", utils.FormatBlockId(block.BlockId), "leaves+genesis", utils.FormatBlockIdSlice(leavesPlusGenesis))
+				synchronizerpbdsl.SyncRequest(*bcm.m, "synchronizer", block, leavesPlusGenesis)
+				// announce orphan block to interceptor
+				interceptorpbdsl.NewOrphan(*bcm.m, "devnull", block)
+			default:
 				// some other error
-				bcm.logger.Log(logging.LevelError, "Unexpected error adding block from chain", "blockId", utils.FormatBlockId(block.BlockId), "error", err, "leaves", utils.FormatBlockIdSlice(maps.Keys(bcm.leaves)))
-				panic("Unexpected error adding block from chain")
-				return
+				bcm.logger.Log(logging.LevelError, "Unexpected error adding block", "blockId", utils.FormatBlockId(block.BlockId), "error", err)
+				panic(err)
 			}
 		}
 		// register block in app
@@ -291,25 +302,25 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		return nil
 	})
 
-	bcmpbdsl.UponGetBlockRequest(m, func(requestID uint64, sourceModule t.ModuleID, blockID uint64) error {
-		bcm.logger.Log(logging.LevelInfo, "Received get block request", "requestId", utils.FormatBlockId(requestID), "sourceModule", sourceModule)
+	bcmpbdsl.UponGetBlockRequest(m, func(requestID string, sourceModule t.ModuleID, blockID uint64) error {
+		bcm.logger.Log(logging.LevelInfo, "Received get block request", "requestId", requestID, "sourceModule", sourceModule)
 		// check if block is in tree
 		hit := bcm.findBlock(blockID)
 
 		if hit == nil {
-			bcm.logger.Log(logging.LevelDebug, "Block not found", "requestId", utils.FormatBlockId(requestID))
+			bcm.logger.Log(logging.LevelDebug, "Block not found", "requestId", requestID)
 			bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, false, nil)
 			return nil
 		}
 
-		bcm.logger.Log(logging.LevelDebug, "Found block in tree", "requestId", utils.FormatBlockId(requestID))
+		bcm.logger.Log(logging.LevelDebug, "Found block in tree", "requestId", requestID)
 		bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, true, hit.block)
 
 		return nil
 	})
 
-	bcmpbdsl.UponGetChainRequest(m, func(requestID uint64, sourceModule t.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error {
-		bcm.logger.Log(logging.LevelInfo, "Received get chain request", "requestId", utils.FormatBlockId(requestID), "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
+	bcmpbdsl.UponGetChainRequest(m, func(requestID string, sourceModule t.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error {
+		bcm.logger.Log(logging.LevelInfo, "Received get chain request", "requestId", requestID, "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
 		chain := make([]*blockchainpb.Block, 0)
 		// for easier lookup...
 		sourceBlockIdsMap := make(map[uint64]uint64)
@@ -319,12 +330,12 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		currentBlock := bcm.findBlock(endBlockId)
 
 		if currentBlock == nil {
-			bcm.logger.Log(logging.LevelDebug, "Block not found - can't build chain", "requestId", utils.FormatBlockId(requestID))
+			bcm.logger.Log(logging.LevelDebug, "Block not found - can't build chain", "requestId", requestID)
 			bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, false, nil)
 			return nil
 		}
 
-		bcm.logger.Log(logging.LevelDebug, "Found block in tree - building chain", "requestId", utils.FormatBlockId(requestID))
+		bcm.logger.Log(logging.LevelDebug, "Found block in tree - building chain", "requestId", requestID)
 
 		// initialize chain
 		chain = append(chain, currentBlock.block)
@@ -333,7 +344,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 			// if parent is in sourceBlockIds, stop
 			if _, ok := sourceBlockIdsMap[currentBlock.parent.block.BlockId]; ok {
 				// chain build
-				bcm.logger.Log(logging.LevelDebug, "Found link with sourceBlockIds - chain build", "requestId", utils.FormatBlockId(requestID))
+				bcm.logger.Log(logging.LevelDebug, "Found link with sourceBlockIds - chain build", "requestId", requestID)
 				// reversing chain to send it in the right order
 				for i, j := 0, len(chain)-1; i < j; i, j = i+1, j-1 {
 					chain[i], chain[j] = chain[j], chain[i]
@@ -347,7 +358,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		}
 
 		// if we get here, we didn't find a link with sourceBlockIds
-		bcm.logger.Log(logging.LevelDebug, "No link with sourceBlockIds - can't build chain", "requestId", utils.FormatBlockId(requestID))
+		bcm.logger.Log(logging.LevelDebug, "No link with sourceBlockIds - can't build chain", "requestId", requestID)
 		bcmpbdsl.GetChainResponse(*bcm.m, sourceModule, requestID, false, nil)
 		return nil
 

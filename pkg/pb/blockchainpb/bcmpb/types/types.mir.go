@@ -278,7 +278,7 @@ func (*NewChain) MirReflect() mirreflect.Type {
 }
 
 type GetBlockRequest struct {
-	RequestId    uint64
+	RequestId    string
 	SourceModule types.ModuleID
 	BlockId      uint64
 }
@@ -313,7 +313,7 @@ func (*GetBlockRequest) MirReflect() mirreflect.Type {
 }
 
 type GetBlockResponse struct {
-	RequestId uint64
+	RequestId string
 	Found     bool
 	Block     *blockchainpb.Block
 }
@@ -350,7 +350,7 @@ func (*GetBlockResponse) MirReflect() mirreflect.Type {
 }
 
 type GetChainRequest struct {
-	RequestId      uint64
+	RequestId      string
 	SourceModule   types.ModuleID
 	EndBlockId     uint64
 	SourceBlockIds []uint64
@@ -388,7 +388,7 @@ func (*GetChainRequest) MirReflect() mirreflect.Type {
 }
 
 type GetChainResponse struct {
-	RequestId uint64
+	RequestId string
 	Success   bool
 	Chain     []*blockchainpb.Block
 }

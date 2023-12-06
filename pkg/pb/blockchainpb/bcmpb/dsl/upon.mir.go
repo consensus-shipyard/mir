@@ -35,25 +35,25 @@ func UponNewChain(m dsl.Module, handler func(blocks []*blockchainpb.Block) error
 	})
 }
 
-func UponGetBlockRequest(m dsl.Module, handler func(requestId uint64, sourceModule types2.ModuleID, blockId uint64) error) {
+func UponGetBlockRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID, blockId uint64) error) {
 	UponEvent[*types.Event_GetBlockRequest](m, func(ev *types.GetBlockRequest) error {
 		return handler(ev.RequestId, ev.SourceModule, ev.BlockId)
 	})
 }
 
-func UponGetBlockResponse(m dsl.Module, handler func(requestId uint64, found bool, block *blockchainpb.Block) error) {
+func UponGetBlockResponse(m dsl.Module, handler func(requestId string, found bool, block *blockchainpb.Block) error) {
 	UponEvent[*types.Event_GetBlockResponse](m, func(ev *types.GetBlockResponse) error {
 		return handler(ev.RequestId, ev.Found, ev.Block)
 	})
 }
 
-func UponGetChainRequest(m dsl.Module, handler func(requestId uint64, sourceModule types2.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
+func UponGetChainRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
 	UponEvent[*types.Event_GetChainRequest](m, func(ev *types.GetChainRequest) error {
 		return handler(ev.RequestId, ev.SourceModule, ev.EndBlockId, ev.SourceBlockIds)
 	})
 }
 
-func UponGetChainResponse(m dsl.Module, handler func(requestId uint64, success bool, chain []*blockchainpb.Block) error) {
+func UponGetChainResponse(m dsl.Module, handler func(requestId string, success bool, chain []*blockchainpb.Block) error) {
 	UponEvent[*types.Event_GetChainResponse](m, func(ev *types.GetChainResponse) error {
 		return handler(ev.RequestId, ev.Success, ev.Chain)
 	})

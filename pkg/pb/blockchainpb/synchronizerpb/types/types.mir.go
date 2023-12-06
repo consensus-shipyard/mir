@@ -224,7 +224,7 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type ChainRequest struct {
-	RequestId uint64
+	RequestId string
 	BlockId   uint64
 	LeaveIds  []uint64
 }
@@ -259,7 +259,7 @@ func (*ChainRequest) MirReflect() mirreflect.Type {
 }
 
 type ChainResponse struct {
-	RequestId uint64
+	RequestId string
 	Found     bool
 	Chain     []*blockchainpb.Block
 }
