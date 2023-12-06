@@ -21,7 +21,7 @@ func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 	m := dsl.NewModule("pingpong")
 	nextSN := uint64(0)
 
-	dsl.UponInit(m, func() error {
+	eventpbdsl.UponInit(m, func() error {
 		eventpbdsl.TimerRepeat(
 			m,
 			"timer",
