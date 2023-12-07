@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"os"
 	"time"
 
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/debugger"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
@@ -18,7 +20,6 @@ import (
 
 func main() {
 	fmt.Println("Starting ping-pong.")
-
 	// Manually create system membership with just 2 nodes.
 	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
 		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, "1"}, // nolint:govet
@@ -27,6 +28,12 @@ func main() {
 
 	// Get own ID from command line.
 	ownID := t.NodeID(os.Args[1])
+	// Get 0 for no debugger, 1 for debugger
+	debugg := os.Args[2]
+
+	var interceptor *eventlog.Recorder
+	var err error
+	interceptor, err = debugger.InterceptorInit(debugg == "1", ownID) //debugger.InterceptorInit(debugger == "1", ownID)
 
 	// Instantiate network trnasport module and establish connections.
 	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
@@ -48,7 +55,7 @@ func main() {
 			"pingpong": lowlevel.NewPingPong(ownID),
 			"timer":    timer.New(),
 		},
-		nil,
+		interceptor,
 	)
 	if err != nil {
 		panic(err)
