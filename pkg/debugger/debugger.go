@@ -74,7 +74,7 @@ func (wsw *WSWriter) Close() error {
 
 // Write sends every event to the frontend and then wits for a message detailing how to proceed with that event
 // The returned EventList contains the accepted events
-func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.EventList, error) {
+func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, error) {
 	for wsw.conn == nil {
 		fmt.Println("No connection.")
 		time.Sleep(time.Millisecond * 100)
@@ -117,18 +117,12 @@ func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.Eve
 // EventAction decides, based on the input what exactly is done next with the current event
 func EventAction(
 	actionType string,
-	actionValue string,
+	_ string,
 	acceptedEvents *events.EventList,
 	currentEvent *eventpb.Event,
 ) (*events.EventList, error) {
 	if actionType == "accept" {
 		acceptedEvents.PushBack(currentEvent)
-	} else if actionType == "decline" {
-		// do nothing
-	} else if actionType == "delay" {
-		//TODO: delay the event based on the value specified in actionValue
-	} else if actionType == "modify" {
-		//TODO
 	}
 	return acceptedEvents, nil
 }
@@ -207,7 +201,7 @@ func newWSWriter(port string) *WSWriter {
 
 // writerFactory creates and returns a WebSocket-based event writer
 // It determines the port for the WebSocket server based on the given nodeID and a base port value
-func writerFactory(dest string, nodeID t.NodeID, logger logging.Logger) (eventlog.EventWriter, error) {
+func writerFactory(_ string, nodeID t.NodeID, _ logging.Logger) (eventlog.EventWriter, error) {
 	ownPort, err := strconv.Atoi(string(nodeID))
 	if err != nil {
 		panic(err)
