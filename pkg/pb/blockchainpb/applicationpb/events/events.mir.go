@@ -3,7 +3,6 @@
 package applicationpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -18,21 +17,6 @@ func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
 				Type: &types2.Event_NewHead{
 					NewHead: &types2.NewHead{
 						HeadId: headId,
-					},
-				},
-			},
-		},
-	}
-}
-
-func RegisterBlock(destModule types.ModuleID, blockId *blockchainpb.Block) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_RegisterBlock{
-					RegisterBlock: &types2.RegisterBlock{
-						BlockId: blockId,
 					},
 				},
 			},

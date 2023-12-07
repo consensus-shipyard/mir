@@ -5,6 +5,7 @@ package bcmpbevents
 import (
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -101,6 +102,54 @@ func GetChainResponse(destModule types.ModuleID, requestId string, success bool,
 						RequestId: requestId,
 						Success:   success,
 						Chain:     chain,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_GetHeadToCheckpointChainRequest{
+					GetHeadToCheckpointChainRequest: &types2.GetHeadToCheckpointChainRequest{
+						RequestId:    requestId,
+						SourceModule: sourceModule,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*blockchainpb.BlockInternal) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_GetHeadToCheckpointChainResponse{
+					GetHeadToCheckpointChainResponse: &types2.GetHeadToCheckpointChainResponse{
+						RequestId: requestId,
+						Chain:     chain,
+					},
+				},
+			},
+		},
+	}
+}
+
+func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *statepb.State) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_RegisterCheckpoint{
+					RegisterCheckpoint: &types2.RegisterCheckpoint{
+						BlockId: blockId,
+						State:   state,
 					},
 				},
 			},

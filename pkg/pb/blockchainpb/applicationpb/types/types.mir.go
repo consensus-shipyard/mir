@@ -4,7 +4,6 @@ package applicationpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
@@ -32,8 +31,6 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *applicationpb.Event_NewHead:
 		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
-	case *applicationpb.Event_RegisterBlock:
-		return &Event_RegisterBlock{RegisterBlock: RegisterBlockFromPb(pb.RegisterBlock)}
 	case *applicationpb.Event_PayloadRequest:
 		return &Event_PayloadRequest{PayloadRequest: PayloadRequestFromPb(pb.PayloadRequest)}
 	case *applicationpb.Event_PayloadResponse:
@@ -64,30 +61,6 @@ func (w *Event_NewHead) Pb() applicationpb.Event_Type {
 
 func (*Event_NewHead) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_NewHead]()}
-}
-
-type Event_RegisterBlock struct {
-	RegisterBlock *RegisterBlock
-}
-
-func (*Event_RegisterBlock) isEvent_Type() {}
-
-func (w *Event_RegisterBlock) Unwrap() *RegisterBlock {
-	return w.RegisterBlock
-}
-
-func (w *Event_RegisterBlock) Pb() applicationpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.RegisterBlock == nil {
-		return &applicationpb.Event_RegisterBlock{}
-	}
-	return &applicationpb.Event_RegisterBlock{RegisterBlock: (w.RegisterBlock).Pb()}
-}
-
-func (*Event_RegisterBlock) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_RegisterBlock]()}
 }
 
 type Event_PayloadRequest struct {
@@ -192,37 +165,6 @@ func (m *NewHead) Pb() *applicationpb.NewHead {
 
 func (*NewHead) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.NewHead]()}
-}
-
-type RegisterBlock struct {
-	BlockId *blockchainpb.Block
-}
-
-func RegisterBlockFromPb(pb *applicationpb.RegisterBlock) *RegisterBlock {
-	if pb == nil {
-		return nil
-	}
-	return &RegisterBlock{
-		BlockId: pb.BlockId,
-	}
-}
-
-func (m *RegisterBlock) Pb() *applicationpb.RegisterBlock {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &applicationpb.RegisterBlock{}
-	{
-		if m.BlockId != nil {
-			pbMessage.BlockId = m.BlockId
-		}
-	}
-
-	return pbMessage
-}
-
-func (*RegisterBlock) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.RegisterBlock]()}
 }
 
 type PayloadRequest struct {

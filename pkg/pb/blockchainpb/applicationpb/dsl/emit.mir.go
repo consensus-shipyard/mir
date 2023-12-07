@@ -4,7 +4,6 @@ package applicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types "github.com/filecoin-project/mir/pkg/types"
@@ -14,10 +13,6 @@ import (
 
 func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
 	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
-}
-
-func RegisterBlock(m dsl.Module, destModule types.ModuleID, blockId *blockchainpb.Block) {
-	dsl.EmitMirEvent(m, events.RegisterBlock(destModule, blockId))
 }
 
 func PayloadRequest(m dsl.Module, destModule types.ModuleID, headId uint64) {

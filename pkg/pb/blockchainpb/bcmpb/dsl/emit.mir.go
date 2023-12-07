@@ -6,6 +6,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -33,4 +34,16 @@ func GetChainRequest(m dsl.Module, destModule types.ModuleID, requestId string, 
 
 func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, success bool, chain []*blockchainpb.Block) {
 	dsl.EmitMirEvent(m, events.GetChainResponse(destModule, requestId, success, chain))
+}
+
+func GetHeadToCheckpointChainRequest(m dsl.Module, destModule types.ModuleID, requestId string, sourceModule types.ModuleID) {
+	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainRequest(destModule, requestId, sourceModule))
+}
+
+func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, chain []*blockchainpb.BlockInternal) {
+	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainResponse(destModule, requestId, chain))
+}
+
+func RegisterCheckpoint(m dsl.Module, destModule types.ModuleID, blockId uint64, state *statepb.State) {
+	dsl.EmitMirEvent(m, events.RegisterCheckpoint(destModule, blockId, state))
 }

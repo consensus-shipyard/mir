@@ -3,6 +3,7 @@ package application
 // app module
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -10,15 +11,28 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/dsl"
+	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
 	interceptorpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
+type localState struct {
+	head  uint64
+	state *statepb.State
+}
+
 type ApplicationModule struct {
-	m      *dsl.Module
-	state  *state
-	logger logging.Logger
+	m            *dsl.Module
+	currentState *localState
+	logger       logging.Logger
+}
+
+func applyBlockToState(state *statepb.State, block *blockchainpb.Block) *statepb.State {
+	return &statepb.State{
+		Counter: state.Counter + block.Payload.AddMinus,
+	}
 }
 
 func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
@@ -37,25 +51,47 @@ func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 	return nil
 }
 
-func (am *ApplicationModule) handleRegisterBlock(block *blockchainpb.Block) error {
-	am.state.applyBlock(block)
-	am.logger.Log(logging.LevelDebug, "Registered new block", "block_id", utils.FormatBlockId(block.BlockId))
+func (am *ApplicationModule) handleGetHeadToCheckpointChainResponse(requestID string, chain []*blockchainpb.BlockInternal) error {
+	// TODO: ignoring request ids rn - they are probably not even needed
+	am.logger.Log(logging.LevelInfo, "Received chain", "requestId", requestID, "chain", chain)
+
+	if len(chain) == 0 {
+		am.logger.Log(logging.LevelError, "Received empty chain - this should not happen")
+		panic("Received empty chain - this should not happen")
+	}
+
+	state := chain[0].State
+	blockId := chain[0].Block.BlockId
+	if state == nil {
+		am.logger.Log(logging.LevelError, "Received chain with empty checkpoint state - this should not happen")
+		panic("Received chain with empty checkpoint state - this should not happen")
+	}
+
+	for _, block := range chain[1:] {
+		state = applyBlockToState(state, block.Block)
+		blockId = block.Block.BlockId
+	}
+
+	bcmpbdsl.RegisterCheckpoint(*am.m, "bcm", blockId, state)
+	interceptorpbdsl.AppUpdate(*am.m, "devnull", state.Counter)
+	am.currentState = &localState{
+		head:  blockId,
+		state: state,
+	}
+
 	return nil
 }
 
 func (am *ApplicationModule) handleNewHead(head_id uint64) error {
-	previousState := am.state.getCurrentState()
-	am.state.setHead(head_id)
-	currentState := am.state.getCurrentState()
-	interceptorpbdsl.AppUpdate(*am.m, "devnull", currentState)
-	am.logger.Log(logging.LevelInfo, "Application state updated", "previousState", previousState, "currentState", currentState, "headId", utils.FormatBlockId(head_id))
+	am.logger.Log(logging.LevelDebug, "Processing new head, sending request for state update", "headId", utils.FormatBlockId(head_id))
+	bcmpbdsl.GetHeadToCheckpointChainRequest(*am.m, "bcm", fmt.Sprint(head_id), "application")
 	return nil
 }
 
 func NewApplication(logger logging.Logger) modules.PassiveModule {
 
 	m := dsl.NewModule("application")
-	am := &ApplicationModule{m: &m, state: initState(), logger: logger}
+	am := &ApplicationModule{m: &m, currentState: nil, logger: logger}
 
 	dsl.UponInit(m, func() error {
 		return nil
@@ -63,7 +99,7 @@ func NewApplication(logger logging.Logger) modules.PassiveModule {
 
 	applicationpbdsl.UponPayloadRequest(m, am.handlePayloadRequest)
 	applicationpbdsl.UponNewHead(m, am.handleNewHead)
-	applicationpbdsl.UponRegisterBlock(m, am.handleRegisterBlock)
+	bcmpbdsl.UponGetHeadToCheckpointChainResponse(m, am.handleGetHeadToCheckpointChainResponse)
 
 	return m
 }

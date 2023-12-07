@@ -4,7 +4,6 @@ package applicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -26,12 +25,6 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
 	UponEvent[*types.Event_NewHead](m, func(ev *types.NewHead) error {
 		return handler(ev.HeadId)
-	})
-}
-
-func UponRegisterBlock(m dsl.Module, handler func(blockId *blockchainpb.Block) error) {
-	UponEvent[*types.Event_RegisterBlock](m, func(ev *types.RegisterBlock) error {
-		return handler(ev.BlockId)
 	})
 }
 

@@ -5,6 +5,7 @@ package bcmpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb";
 
 import "blockchainpb/blockchainpb.proto";
+import "blockchainpb/statepb/statepb.proto";
 
 import "mir/codegen_extensions.proto";
 
@@ -14,13 +15,16 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    NewBlock          new_block           = 1;
-    NewChain          new_chain           = 2;
+    NewBlock                          new_block                             = 1;
+    NewChain                          new_chain                             = 2;
 
-    GetBlockRequest   get_block_request   = 3;
-    GetBlockResponse  get_block_response  = 4;
-    GetChainRequest   get_chain_request   = 5;
-    GetChainResponse  get_chain_response  = 6;
+    GetBlockRequest                   get_block_request                     = 3;
+    GetBlockResponse                  get_block_response                    = 4;
+    GetChainRequest                   get_chain_request                     = 5;
+    GetChainResponse                  get_chain_response                    = 6;
+    GetHeadToCheckpointChainRequest   get_head_to_checkpoint_chain_request  = 7;
+    GetHeadToCheckpointChainResponse  get_head_to_checkpoint_chain_response = 8;
+    RegisterCheckpoint                register_checkpoint                   = 9;
   }
 }
 
@@ -70,4 +74,25 @@ message GetChainResponse {
   string                        request_id  = 1;
   bool                          success     = 2;
   repeated blockchainpb.Block   chain       = 3; // sorted from oldest to youngest
+}
+
+message GetHeadToCheckpointChainRequest {
+  option (mir.event) = true;
+
+  string                        request_id    = 1;
+  string                        source_module = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+}
+
+message GetHeadToCheckpointChainResponse {
+  option (mir.event) = true;
+
+  string                                request_id    = 1;
+  repeated blockchainpb.BlockInternal   chain         = 3; // from checkpoint to head
+}
+
+message RegisterCheckpoint {
+  option (mir.event) = true;
+
+  uint64        block_id  = 1;
+  statepb.State state     = 2;
 }

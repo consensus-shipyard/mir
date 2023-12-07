@@ -6,6 +6,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/types"
 )
@@ -56,5 +57,23 @@ func UponGetChainRequest(m dsl.Module, handler func(requestId string, sourceModu
 func UponGetChainResponse(m dsl.Module, handler func(requestId string, success bool, chain []*blockchainpb.Block) error) {
 	UponEvent[*types.Event_GetChainResponse](m, func(ev *types.GetChainResponse) error {
 		return handler(ev.RequestId, ev.Success, ev.Chain)
+	})
+}
+
+func UponGetHeadToCheckpointChainRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID) error) {
+	UponEvent[*types.Event_GetHeadToCheckpointChainRequest](m, func(ev *types.GetHeadToCheckpointChainRequest) error {
+		return handler(ev.RequestId, ev.SourceModule)
+	})
+}
+
+func UponGetHeadToCheckpointChainResponse(m dsl.Module, handler func(requestId string, chain []*blockchainpb.BlockInternal) error) {
+	UponEvent[*types.Event_GetHeadToCheckpointChainResponse](m, func(ev *types.GetHeadToCheckpointChainResponse) error {
+		return handler(ev.RequestId, ev.Chain)
+	})
+}
+
+func UponRegisterCheckpoint(m dsl.Module, handler func(blockId uint64, state *statepb.State) error) {
+	UponEvent[*types.Event_RegisterCheckpoint](m, func(ev *types.RegisterCheckpoint) error {
+		return handler(ev.BlockId, ev.State)
 	})
 }

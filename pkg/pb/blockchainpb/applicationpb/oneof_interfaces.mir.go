@@ -13,10 +13,6 @@ func (w *Event_NewHead) Unwrap() *NewHead {
 	return w.NewHead
 }
 
-func (w *Event_RegisterBlock) Unwrap() *RegisterBlock {
-	return w.RegisterBlock
-}
-
 func (w *Event_PayloadRequest) Unwrap() *PayloadRequest {
 	return w.PayloadRequest
 }
