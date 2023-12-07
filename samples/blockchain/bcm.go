@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -261,24 +262,51 @@ func (bcm *bcmModule) sendTreeUpdate() {
 	interceptorpbdsl.TreeUpdate(*bcm.m, "devnull", &blockTree, bcm.head.block.Block.BlockId)
 }
 
+func formatBlockInts(blocks []*blockchainpb.BlockInternal) []string {
+	blockIds := make([]string, 0, len(blocks))
+	for _, v := range blocks {
+		stateText := "no state"
+		if v.State != nil {
+			stateText = v.State.String()
+		}
+		blockIds = append(blockIds, fmt.Sprintf("%d - %s", v.Block.BlockId, stateText))
+	}
+	return blockIds
+}
+
 func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, sourceModule t.ModuleID) error {
-	bcm.logger.Log(logging.LevelInfo, "Received get head to checkpoint chain request", "requestId", requestID)
+	// for debugging
+	// TODO: remove
+	checkpoints := make([]*blockchainpb.BlockInternal, 0, len(bcm.checkpoints))
+
+	for _, value := range bcm.checkpoints {
+		checkpoints = append(checkpoints, value.block)
+	}
+
+	bcm.logger.Log(logging.LevelInfo, "Received get head to checkpoint chain request", "requestId", requestID, "checkpoints", formatBlockInts(checkpoints))
 	chain := make([]*blockchainpb.BlockInternal, 0)
 
 	// start with head
 	currentBlock := bcm.head
 	for currentBlock != nil {
-		chain = append(chain, currentBlock.block)
-		if _, ok := bcm.checkpoints[currentBlock.block.Block.BlockId]; ok {
+		if cp, ok := bcm.checkpoints[currentBlock.block.Block.BlockId]; ok {
+			chain = append(chain, cp.block)
 			break
 		}
+		chain = append(chain, currentBlock.block)
 		currentBlock = currentBlock.parent
+	}
+
+	if currentBlock == nil {
+		bcm.logger.Log(logging.LevelError, "Cannot link up with checkpoints - this should not happen", "chain", chain)
+		panic("Cannot link up with checkpoints - this should not happen")
 	}
 
 	for i, j := 0, len(chain)-1; i < j; i, j = i+1, j-1 {
 		chain[i], chain[j] = chain[j], chain[i]
 	}
 
+	bcm.logger.Log(logging.LevelDebug, "Sending chain for state comp", "requestId", requestID, "chain", formatBlockInts(chain), "checkpoint", formatBlockInts([]*blockchainpb.BlockInternal{currentBlock.block}))
 	bcmpbdsl.GetHeadToCheckpointChainResponse(*bcm.m, sourceModule, requestID, chain)
 
 	return nil
@@ -299,8 +327,8 @@ func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepb.S
 		panic("block not found when registering checkpoint") // should never happen
 	} else {
 		bcm.logger.Log(logging.LevelDebug, "Found block - registering checkpoint", "blockId", utils.FormatBlockId(block_id))
-		bcm.checkpoints[block_id] = hit
 		hit.block.State = state
+		bcm.checkpoints[block_id] = hit
 	}
 
 	return nil

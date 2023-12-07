@@ -74,7 +74,7 @@ func main() {
 
 	mangler, err := eventmangler.NewModule(
 		eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
-		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 2 * time.Second, DropRate: 0.15},
+		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 1 * time.Second, DropRate: 0.05},
 	)
 	if err != nil {
 		panic(err)
