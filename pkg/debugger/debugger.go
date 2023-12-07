@@ -162,7 +162,7 @@ func newWSWriter(port string) *WSWriter {
 				defer func(conn *websocket.Conn) {
 					err := conn.Close()
 					if err != nil {
-
+						panic(err)
 					}
 				}(conn) // Ensure the connection is closed when the function exits
 

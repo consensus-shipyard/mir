@@ -6,10 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/eventlog"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/debugger"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
