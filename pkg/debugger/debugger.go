@@ -107,11 +107,8 @@ func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.Eve
 		}
 
 		eventAction := <-wsw.eventSignal
-		actionType, ok := eventAction["type"].(string)
-		value, ok := eventAction["value"].(string)
-		if ok {
-			panic(ok)
-		}
+		actionType, _ := eventAction["type"].(string)
+		value, _ := eventAction["value"].(string)
 		acceptedEvents, _ = EventAction(actionType, value, acceptedEvents, event)
 	}
 	return acceptedEvents, nil

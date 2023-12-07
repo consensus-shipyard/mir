@@ -3,9 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/eventlog"
 	"os"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/eventlog"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/debugger"
