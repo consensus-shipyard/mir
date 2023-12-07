@@ -33,7 +33,7 @@ func main() {
 
 	var interceptor *eventlog.Recorder
 	var err error
-	interceptor, err = debugger.InterceptorInit(debugg == "1", ownID) //debugger.InterceptorInit(debugger == "1", ownID)
+	interceptor, _ = debugger.InterceptorInit(debugg == "1", ownID) //debugger.InterceptorInit(debugger == "1", ownID)
 
 	// Instantiate network trnasport module and establish connections.
 	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)

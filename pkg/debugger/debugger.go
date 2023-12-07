@@ -3,15 +3,17 @@ package debugger
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gorilla/websocket"
+
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/gorilla/websocket"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 const (
@@ -100,17 +102,17 @@ func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.Eve
 		}
 
 		// Send the JSON message over WebSocket
-		if err := wsw.conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+		if err := wsw.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 			return list, fmt.Errorf("error sending message over WebSocket: %w", err)
 		}
 
 		eventAction := <-wsw.eventSignal
 		actionType, ok := eventAction["type"].(string)
 		value, ok := eventAction["value"].(string)
-		if !ok {
-			continue
+		if ok {
+			panic(ok)
 		}
-		acceptedEvents, err = EventAction(actionType, value, acceptedEvents, event)
+		acceptedEvents, _ = EventAction(actionType, value, acceptedEvents, event)
 	}
 	return acceptedEvents, nil
 }
@@ -189,7 +191,15 @@ func newWSWriter(port string) *WSWriter {
 			}()
 		})
 
-		err := http.ListenAndServe(port, nil)
+		server := &http.Server{
+			Addr:         port,
+			Handler:      nil,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  15 * time.Second,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			panic(err)
 		}
