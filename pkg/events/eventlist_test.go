@@ -19,9 +19,9 @@ func TestEventList_Constructors(t *testing.T) {
 		},
 		"three items": {
 			list: ListOf(NewTestString("testmodule", "hello"), NewTestString("testmodule", "world"),
-				NewTestUint("testmodule", 42)),
+				NewTestUint64("testmodule", 42)),
 			expected: []Event{NewTestString("testmodule", "hello"), NewTestString("testmodule", "world"),
-				NewTestUint("testmodule", 42)},
+				NewTestUint64("testmodule", 42)},
 		},
 	}
 
