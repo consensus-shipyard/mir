@@ -6,7 +6,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	apppbdsl "github.com/filecoin-project/mir/pkg/pb/apppb/dsl"
@@ -25,6 +24,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // NewModule returns a new batch fetcher module.
@@ -77,7 +77,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
-			f: func(_ events.Event) {
+			f: func(_ stdtypes.Event) {
 				clientProgress.GarbageCollect()
 				mppbdsl.NewEpoch(m, mc.Mempool, epochNr, trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()))
 			},
@@ -101,7 +101,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			// NOT on reception of the transaction payloads.
 			// (Otherwise, delivering the transaction payloads from the availability module
 			// in different order at different nodes would lead to inconsistencies).
-			f: func(e events.Event) {
+			f: func(e stdtypes.Event) {
 				// Casting event to the NewOrderedBatch type is safe,
 				// because no other event type is ever saved in an output item created at certificate delivery.
 				filterDuplicates(e.(*eventpb.Event).
@@ -140,7 +140,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			event: apppbevents.SnapshotRequest(mc.Destination, replyTo).Pb(),
 
 			// At the time of forwarding, submit the client progress to the checkpointing protocol.
-			f: func(_ events.Event) {
+			f: func(_ stdtypes.Event) {
 				clientProgress.GarbageCollect()
 				trantorpbdsl.ClientProgress(m,
 					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
@@ -198,7 +198,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 	})
 
 	// All other events simply pass through the batch fetcher unchanged (except their destination module).
-	dsl.UponOtherEvent(m, func(ev events.Event) error {
+	dsl.UponOtherEvent(m, func(ev stdtypes.Event) error {
 		output.Enqueue(&outputItem{
 			event: ev.NewDest(mc.Destination),
 		})

@@ -7,8 +7,8 @@
 package eventpb
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,7 +21,7 @@ func (event *Event) Src() t.ModuleID {
 
 // NewSrc returns a shallow copy of this Event with an updated source module ID.
 // This method is not yet implemented in proto events.
-func (event *Event) NewSrc(newSrc t.ModuleID) events.Event {
+func (event *Event) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	panic("Proto events do not contain source information yet")
 }
 
@@ -31,7 +31,7 @@ func (event *Event) Dest() t.ModuleID {
 }
 
 // NewDest returns a shallow copy of the event with a new destination module ID.
-func (event *Event) NewDest(newDest t.ModuleID) events.Event {
+func (event *Event) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newEvent := Event{
 		DestModule: newDest.Pb(),
 		Type:       event.Type,
@@ -57,8 +57,8 @@ func (event *Event) ToString() string {
 }
 
 // List returns EventList containing the given elements.
-func List(evts ...*Event) *events.EventList {
-	res := events.EmptyList()
+func List(evts ...*Event) *stdtypes.EventList {
+	res := stdtypes.EmptyList()
 	for _, ev := range evts {
 		res.PushBack(ev)
 	}

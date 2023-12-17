@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
@@ -16,7 +16,7 @@ import (
 // The Timer module abstracts the passage of real time.
 // It is used for implementing timeouts and periodic repetition.
 type Timer struct {
-	eventsOut chan *events.EventList
+	eventsOut chan *stdtypes.EventList
 
 	retIndexMutex sync.RWMutex
 	retIndex      tt.RetentionIndex
@@ -24,18 +24,18 @@ type Timer struct {
 
 func New() *Timer {
 	return &Timer{
-		eventsOut: make(chan *events.EventList),
+		eventsOut: make(chan *stdtypes.EventList),
 	}
 }
 
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (tm *Timer) ImplementsModule() {}
 
-func (tm *Timer) EventsOut() <-chan *events.EventList {
+func (tm *Timer) EventsOut() <-chan *stdtypes.EventList {
 	return tm.eventsOut
 }
 
-func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
+func (tm *Timer) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
@@ -82,7 +82,7 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *events.EventList) e
 // If context is canceled, no events might be written.
 func (tm *Timer) Delay(
 	ctx context.Context,
-	events *events.EventList,
+	events *stdtypes.EventList,
 	delay types.Duration,
 ) {
 
@@ -112,7 +112,7 @@ func (tm *Timer) Delay(
 // 2) GarbageCollect is called with an argument greater than the associated retIndex.
 func (tm *Timer) Repeat(
 	ctx context.Context,
-	events *events.EventList,
+	events *stdtypes.EventList,
 	period types.Duration,
 	retIndex tt.RetentionIndex,
 ) {

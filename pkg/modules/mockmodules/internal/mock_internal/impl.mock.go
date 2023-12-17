@@ -7,7 +7,7 @@ package mock_internal
 import (
 	reflect "reflect"
 
-	events "github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/stdtypes"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,10 +35,10 @@ func (m *MockModuleImpl) EXPECT() *MockModuleImplMockRecorder {
 }
 
 // Event mocks base method.
-func (m *MockModuleImpl) Event(ev events.Event) (*events.EventList, error) {
+func (m *MockModuleImpl) Event(ev stdtypes.Event) (*stdtypes.EventList, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Event", ev)
-	ret0, _ := ret[0].(*events.EventList)
+	ret0, _ := ret[0].(*stdtypes.EventList)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

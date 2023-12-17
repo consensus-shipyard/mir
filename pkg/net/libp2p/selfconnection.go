@@ -1,10 +1,10 @@
 package libp2p
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/peer"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
@@ -17,7 +17,7 @@ type selfConnection struct {
 	ownID       t.NodeID
 	peerID      peer.ID
 	msgBuffer   chan *messagepb.Message
-	deliverChan chan<- *events.EventList
+	deliverChan chan<- *stdtypes.EventList
 	stop        chan struct{}
 	done        chan struct{}
 }
@@ -26,7 +26,7 @@ type selfConnection struct {
 // Addr is the own address and deliverChan is the channel to which delivered messages need to be written.
 // Messages sent to this connection will be buffered and eventually written to deliverChan in form of MessageDelivered
 // events (unless the buffer fills up, in which case sent messages will be dropped.)
-func newSelfConnection(params Params, ownID t.NodeID, ownAddr t.NodeAddress, deliverChan chan<- *events.EventList) (*selfConnection, error) {
+func newSelfConnection(params Params, ownID t.NodeID, ownAddr t.NodeAddress, deliverChan chan<- *stdtypes.EventList) (*selfConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(ownAddr)
 	if err != nil {
 		return nil, es.Errorf("failed to parse address: %w", err)
@@ -108,7 +108,7 @@ func (conn *selfConnection) process() {
 			select {
 			case <-conn.stop:
 				return
-			case conn.deliverChan <- events.ListOf(transportpbevents.MessageReceived(
+			case conn.deliverChan <- stdtypes.ListOf(transportpbevents.MessageReceived(
 				t.ModuleID(msg.DestModule),
 				conn.ownID,
 				messagepbtypes.MessageFromPb(msg)).Pb(),

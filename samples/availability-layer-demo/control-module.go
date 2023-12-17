@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -16,7 +17,6 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
@@ -24,19 +24,19 @@ import (
 )
 
 type controlModule struct {
-	eventsOut           chan *events.EventList
+	eventsOut           chan *stdtypes.EventList
 	readyForNextCommand chan struct{}
 }
 
 func newControlModule() modules.ActiveModule {
 	return &controlModule{
-		eventsOut: make(chan *events.EventList),
+		eventsOut: make(chan *stdtypes.EventList),
 	}
 }
 
 func (m *controlModule) ImplementsModule() {}
 
-func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList) error {
+func (m *controlModule) ApplyEvents(_ context.Context, events *stdtypes.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
@@ -81,7 +81,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 	return nil
 }
 
-func (m *controlModule) EventsOut() <-chan *events.EventList {
+func (m *controlModule) EventsOut() <-chan *stdtypes.EventList {
 	return m.eventsOut
 }
 
@@ -139,10 +139,10 @@ func (m *controlModule) createBatch(scanner *bufio.Scanner) error {
 		}
 
 		tx := &trantorpbtypes.Transaction{Data: []byte(text)}
-		m.eventsOut <- events.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}).Pb())
+		m.eventsOut <- stdtypes.ListOf(mempoolpbevents.NewTransactions("mempool", []*trantorpbtypes.Transaction{tx}).Pb())
 	}
 
-	m.eventsOut <- events.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{
+	m.eventsOut <- stdtypes.ListOf(apbevents.RequestCert("availability", &apbtypes.RequestCertOrigin{
 		Module: "control",
 		Type:   &apbtypes.RequestCertOrigin_ContextStore{},
 	}).Pb())
@@ -171,7 +171,7 @@ func (m *controlModule) readBatch(scanner *bufio.Scanner) error {
 	}
 	cert := apbtypes.CertFromPb(_cert)
 
-	m.eventsOut <- events.ListOf(apbevents.RequestTransactions("availability", cert,
+	m.eventsOut <- stdtypes.ListOf(apbevents.RequestTransactions("availability", cert,
 		&apbtypes.RequestTransactionsOrigin{
 			Module: "control",
 			Type:   &apbtypes.RequestTransactionsOrigin_ContextStore{},

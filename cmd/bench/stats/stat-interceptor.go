@@ -5,12 +5,12 @@
 package stats
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
 	bfpb "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type StatInterceptor struct {
@@ -26,7 +26,7 @@ func NewStatInterceptor(s *LiveStats, txConsumer t.ModuleID) *StatInterceptor {
 	return &StatInterceptor{s, txConsumer}
 }
 
-func (i *StatInterceptor) Intercept(events *events.EventList) error {
+func (i *StatInterceptor) Intercept(events *stdtypes.EventList) error {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.

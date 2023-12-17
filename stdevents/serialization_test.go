@@ -1,10 +1,11 @@
-package events
+package stdevents
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +61,7 @@ func TestSerialization_SendMessage(t *testing.T) {
 	assert.NoError(t, err)
 
 	expected := *e
-	expected.Payload = RawMessage(dummyMsgBytes)
+	expected.Payload = stdtypes.RawMessage(dummyMsgBytes)
 	assert.Equal(t, &expected, restoredEvent)
 }
 
@@ -78,7 +79,7 @@ func TestSerialization_MessageReceived(t *testing.T) {
 	assert.NoError(t, err)
 
 	expected := *e
-	expected.Payload = RawMessage(dummyMsgBytes)
+	expected.Payload = stdtypes.RawMessage(dummyMsgBytes)
 	assert.Equal(t, &expected, restoredEvent)
 }
 
@@ -140,7 +141,7 @@ func TestSerialization_TestString(t *testing.T) {
 	assert.Equal(t, e, restoredEvent)
 }
 
-func TestSerialization_TestUint(t *testing.T) {
+func TestSerialization_TestUint64(t *testing.T) {
 	e := NewTestUint64WithSrc("srcModule", "destModule", 123)
 
 	data, err := e.ToBytes()

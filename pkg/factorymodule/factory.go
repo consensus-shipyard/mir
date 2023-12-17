@@ -3,10 +3,10 @@ package factorymodule
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -39,7 +39,7 @@ type FactoryModule struct {
 	retIdx          tt.RetentionIndex
 	messageBuffer   *messagebuffer.MessageBuffer // TODO: Split by NodeID (using NewBuffers). Future configurations...?
 
-	eventBuffer map[t.ModuleID]*events.EventList
+	eventBuffer map[t.ModuleID]*stdtypes.EventList
 	logger      logging.Logger
 }
 
@@ -58,14 +58,14 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		retIdx:          0,
 		messageBuffer:   messagebuffer.New(params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ", "factory", fmt.Sprintf("%v", id))),
 
-		eventBuffer: make(map[t.ModuleID]*events.EventList),
+		eventBuffer: make(map[t.ModuleID]*stdtypes.EventList),
 		logger:      logger,
 	}
 }
 
 func (fm *FactoryModule) ImplementsModule() {}
 
-func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
+func (fm *FactoryModule) ApplyEvents(evts *stdtypes.EventList) (*stdtypes.EventList, error) {
 	// TODO: Perform event processing in parallel (applyEvent will need to be made thread-safe).
 	//       The idea is to have one internal thread per submodule, distribute the events to them through channels,
 	//       and wait until all are processed.
@@ -81,7 +81,7 @@ func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList,
 	return eventsOut.PushBackList(submoduleEventsOut), nil
 }
 
-func (fm *FactoryModule) applyEvent(event events.Event) (*events.EventList, error) {
+func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 	if event.Dest() == fm.ownID {
 
 		// We only support proto events.
@@ -92,7 +92,7 @@ func (fm *FactoryModule) applyEvent(event events.Event) (*events.EventList, erro
 
 		switch e := pbevent.Type.(type) {
 		case *eventpb.Event_Init:
-			return events.EmptyList(), nil // Nothing to do at initialization.
+			return stdtypes.EmptyList(), nil // Nothing to do at initialization.
 		case *eventpb.Event_Factory:
 
 			// Before applying an event for the factory itself, process all the buffered submodule events
@@ -128,14 +128,14 @@ func (fm *FactoryModule) applyEvent(event events.Event) (*events.EventList, erro
 	// Note that this is different from (and orthogonal to) buffering early messages for non-existent submodules.
 	fm.bufferSubmoduleEvent(event)
 
-	return events.EmptyList(), nil
+	return stdtypes.EmptyList(), nil
 }
 
 // bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are lists of events.
-func (fm *FactoryModule) bufferSubmoduleEvent(event events.Event) {
+func (fm *FactoryModule) bufferSubmoduleEvent(event stdtypes.Event) {
 	smID := event.Dest()
 	if _, ok := fm.eventBuffer[smID]; !ok {
-		fm.eventBuffer[smID] = events.EmptyList()
+		fm.eventBuffer[smID] = stdtypes.EmptyList()
 	}
 
 	fm.eventBuffer[smID] = fm.eventBuffer[smID].PushBack(event)
@@ -144,10 +144,10 @@ func (fm *FactoryModule) bufferSubmoduleEvent(event events.Event) {
 // applySubmodulesEvents applies all buffered events to the existing submodules,
 // returns the first encountered error if any,
 // or the full list of outgoing events after applying all the events to each of the submodules
-func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
-	eventsOut := events.EmptyList()
+func (fm *FactoryModule) applySubmodulesEvents() (*stdtypes.EventList, error) {
+	eventsOut := stdtypes.EmptyList()
 	errChan := make(chan error)
-	evtsChan := make(chan *events.EventList)
+	evtsChan := make(chan *stdtypes.EventList)
 
 	// Apply submodule events concurrently to their respective submodules.
 	existingSubmodules := 0
@@ -158,7 +158,7 @@ func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
 		} else {
 			// Otherwise, call the submodule's ApplyEvents method in the background.
 			existingSubmodules++
-			go func(submodule modules.PassiveModule, eventList *events.EventList) {
+			go func(submodule modules.PassiveModule, eventList *stdtypes.EventList) {
 				evtsOut, err := submodule.ApplyEvents(eventList)
 				errChan <- err
 				evtsChan <- evtsOut
@@ -175,20 +175,20 @@ func (fm *FactoryModule) applySubmodulesEvents() (*events.EventList, error) {
 		eventsOut.PushBackList(<-evtsChan)
 	}
 
-	fm.eventBuffer = make(map[t.ModuleID]*events.EventList)
+	fm.eventBuffer = make(map[t.ModuleID]*stdtypes.EventList)
 	return eventsOut, nil
 }
 
 // bufferEarlyMsgs buffers message events for later application.
 // It is used when receiving early messages for submodules that do not exist yet.
-func (fm *FactoryModule) bufferEarlyMsgs(eventList *events.EventList) {
+func (fm *FactoryModule) bufferEarlyMsgs(eventList *stdtypes.EventList) {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		fm.tryBuffering(event)
 	}
 }
 
-func (fm *FactoryModule) tryBuffering(event events.Event) {
+func (fm *FactoryModule) tryBuffering(event stdtypes.Event) {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -225,7 +225,7 @@ func (fm *FactoryModule) tryBuffering(event events.Event) {
 	}
 }
 
-func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*events.EventList, error) {
+func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*stdtypes.EventList, error) {
 
 	// Convenience variables
 	id := newModule.ModuleId
@@ -240,7 +240,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 	if retIdx < fm.retIdx {
 		fm.logger.Log(logging.LevelWarn, "Ignoring new module instantiation with low retention index.",
 			"moduleID", id, "currentRetIdx", fm.retIdx, "moduleRetIdx", retIdx)
-		return events.EmptyList(), nil
+		return stdtypes.EmptyList(), nil
 	}
 
 	// Create new instance of the submodule.
@@ -254,7 +254,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 	fm.moduleRetention[retIdx] = append(fm.moduleRetention[retIdx], id)
 
 	// Initialize new submodule.
-	eventsOut, err := fm.submodules[id].ApplyEvents(events.ListOf(
+	eventsOut, err := fm.submodules[id].ApplyEvents(stdtypes.ListOf(
 		&eventpb.Event{DestModule: id.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}},
 	))
 	if err != nil {
@@ -262,7 +262,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 	}
 
 	// Get messages for the new submodule that arrived early and have been buffered.
-	bufferedMessages := events.EmptyList()
+	bufferedMessages := stdtypes.EmptyList()
 	fm.messageBuffer.Iterate(func(msg proto.Message) messagebuffer.Applicable {
 		if t.ModuleID(msg.(*eventpb.Event).DestModule) == id {
 			return messagebuffer.Current
@@ -283,7 +283,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*e
 	return eventsOut, nil
 }
 
-func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) (*events.EventList, error) {
+func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) (*stdtypes.EventList, error) {
 	// While the new retention index is larger than the current one
 	for gc.RetentionIndex > fm.retIdx {
 
@@ -307,5 +307,5 @@ func (fm *FactoryModule) applyGarbageCollect(gc *factorypbtypes.GarbageCollect) 
 		fm.retIdx++
 	}
 
-	return events.EmptyList(), nil
+	return stdtypes.EmptyList(), nil
 }

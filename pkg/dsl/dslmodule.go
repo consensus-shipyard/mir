@@ -3,10 +3,10 @@ package dsl
 import (
 	"reflect"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	cs "github.com/filecoin-project/mir/pkg/contextstore"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
@@ -16,12 +16,12 @@ import (
 
 type dslModuleImpl struct {
 	moduleID                 t.ModuleID
-	defaultEventHandler      func(ev events.Event) error
-	eventHandlers            map[reflect.Type][]func(ev events.Event) error
-	pbEventHandlers          map[reflect.Type][]func(ev events.Event) error
+	defaultEventHandler      func(ev stdtypes.Event) error
+	eventHandlers            map[reflect.Type][]func(ev stdtypes.Event) error
+	pbEventHandlers          map[reflect.Type][]func(ev stdtypes.Event) error
 	stateUpdateHandlers      []func() error
 	stateUpdateBatchHandlers []func() error
-	outputEvents             *events.EventList
+	outputEvents             *stdtypes.EventList
 	// contextStore is used to store and recover context on asynchronous operations such as signature verification.
 	contextStore cs.ContextStore[any]
 	// eventCleanupContextIDs is used to dispose of the used up entries in contextStore.
@@ -53,9 +53,9 @@ func NewModule(moduleID t.ModuleID) Module {
 	return &dslModuleImpl{
 		moduleID:               moduleID,
 		defaultEventHandler:    failExceptForInitAndTransport,
-		eventHandlers:          make(map[reflect.Type][]func(ev events.Event) error),
-		pbEventHandlers:        make(map[reflect.Type][]func(ev events.Event) error),
-		outputEvents:           &events.EventList{},
+		eventHandlers:          make(map[reflect.Type][]func(ev stdtypes.Event) error),
+		pbEventHandlers:        make(map[reflect.Type][]func(ev stdtypes.Event) error),
+		outputEvents:           &stdtypes.EventList{},
 		contextStore:           cs.NewSequentialContextStore[any](),
 		eventCleanupContextIDs: make(map[ContextID]struct{}),
 	}
@@ -75,11 +75,11 @@ func (m *dslModuleImpl) ModuleID() t.ModuleID {
 // This event handler will be called every time an event of type EvWrapper is received.
 // NB: This function works with the (legacy) protoc-generated types and is likely to be
 // removed in the future, with UponMirEvent taking its place.
-func UponEvent[T events.Event](m Module, handler func(ev T) error) {
+func UponEvent[T stdtypes.Event](m Module, handler func(ev T) error) {
 	reflectType := reflectutil.TypeOf[T]()
 
 	m.DslHandle().impl.eventHandlers[reflectType] = append(m.DslHandle().impl.eventHandlers[reflectType],
-		func(ev events.Event) error {
+		func(ev stdtypes.Event) error {
 			return handler(ev.(T))
 		})
 }
@@ -95,12 +95,12 @@ func UponMirEvent[EvWrapper eventpbtypes.Event_TypeWrapper[Ev], Ev any](m Module
 	evWrapperType := zeroW.MirReflect().PbType()
 
 	m.DslHandle().impl.pbEventHandlers[evWrapperType] = append(m.DslHandle().impl.pbEventHandlers[evWrapperType],
-		func(ev events.Event) error {
+		func(ev stdtypes.Event) error {
 			return handler(eventpbtypes.EventFromPb(ev.(*eventpb.Event)).Type.(EvWrapper).Unwrap())
 		})
 }
 
-func UponOtherEvent(m Module, handler func(ev events.Event) error) {
+func UponOtherEvent(m Module, handler func(ev stdtypes.Event) error) {
 	m.DslHandle().impl.defaultEventHandler = handler
 }
 
@@ -165,7 +165,7 @@ func (m *dslModuleImpl) ImplementsModule() {}
 // EmitEvent adds the event to the queue of output events
 // NB: This function works with the (legacy) protoc-generated types and is likely to be
 // removed in the future, with EmitMirEvent taking its place.
-func EmitEvent(m Module, ev events.Event) {
+func EmitEvent(m Module, ev stdtypes.Event) {
 	m.DslHandle().impl.outputEvents.PushBack(ev)
 }
 
@@ -178,12 +178,12 @@ func EmitMirEvent(m Module, ev *eventpbtypes.Event) {
 
 // ApplyEvents applies a list of input events to the module, making it advance its state
 // and returns a (potentially empty) list of output events that the application of the input events results in.
-func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, error) {
+func (m *dslModuleImpl) ApplyEvents(evs *stdtypes.EventList) (*stdtypes.EventList, error) {
 	// Run event handlers.
 	iter := evs.Iterator()
 	for ev := iter.Next(); ev != nil; ev = iter.Next() {
 
-		var handlers []func(event events.Event) error
+		var handlers []func(event stdtypes.Event) error
 		var ok bool
 		switch e := ev.(type) {
 		case *eventpb.Event:
@@ -238,14 +238,14 @@ func (m *dslModuleImpl) ApplyEvents(evs *events.EventList) (*events.EventList, e
 	}
 
 	outputEvents := m.outputEvents
-	m.outputEvents = &events.EventList{}
+	m.outputEvents = &stdtypes.EventList{}
 	return outputEvents, nil
 }
 
 // The failExceptForInit returns an error for every received event type except for Init.
 // For convenience, if this is used as the default event handler,
 // it is not considered an error to not have handlers for the Init event.
-func failExceptForInit(ev events.Event) error { //nolint
+func failExceptForInit(ev stdtypes.Event) error { //nolint
 	pbev, ok := ev.(*eventpb.Event)
 	if !ok {
 		return es.Errorf("unknown event type '%T'", ev)
@@ -261,7 +261,7 @@ func failExceptForInit(ev events.Event) error { //nolint
 // that if the module does not tolerate a transport event, it gracefully
 // ignores it. This prevents external nodes from crashing the node by sending
 // transport events to modules that do not tolerate it.
-func failExceptForInitAndTransport(ev events.Event) error {
+func failExceptForInitAndTransport(ev stdtypes.Event) error {
 	pbev, ok := ev.(*eventpb.Event)
 	if !ok {
 		return es.Errorf("unknown event type '%T'", ev)

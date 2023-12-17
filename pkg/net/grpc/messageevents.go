@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type Serializable interface {
@@ -35,7 +35,7 @@ func (om *OutgoingMessage) Src() t.ModuleID {
 	return om.SrcModule
 }
 
-func (om *OutgoingMessage) NewSrc(newSrc t.ModuleID) events.Event {
+func (om *OutgoingMessage) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newOM := *om
 	newOM.SrcModule = newSrc
 	return &newOM
@@ -45,7 +45,7 @@ func (om *OutgoingMessage) Dest() t.ModuleID {
 	return om.LocalDestModule
 }
 
-func (om *OutgoingMessage) NewDest(dest t.ModuleID) events.Event {
+func (om *OutgoingMessage) NewDest(dest t.ModuleID) stdtypes.Event {
 	newOM := *om
 	newOM.LocalDestModule = dest
 	return &newOM
@@ -75,7 +75,7 @@ func (m *MessageReceived) Src() t.ModuleID {
 	return m.SrcModule
 }
 
-func (m *MessageReceived) NewSrc(newSrc t.ModuleID) events.Event {
+func (m *MessageReceived) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newEvent := *m
 	newEvent.SrcModule = newSrc
 	return &newEvent
@@ -85,7 +85,7 @@ func (m *MessageReceived) Dest() t.ModuleID {
 	return m.DstModule
 }
 
-func (m *MessageReceived) NewDest(newDest t.ModuleID) events.Event {
+func (m *MessageReceived) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newEvent := *m
 	newEvent.DstModule = newDest
 	return &newEvent

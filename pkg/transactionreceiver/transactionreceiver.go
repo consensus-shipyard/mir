@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 
 	"github.com/filecoin-project/mir"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
@@ -90,7 +90,7 @@ func (rr *TransactionReceiver) Listen(srv TransactionReceiver_ListenServer) erro
 		rr.logger.Log(logging.LevelInfo, "Received transaction", "clId", tx.ClientId, "txNo", tx.TxNo)
 
 		// Submit the transaction to the Node.
-		if srErr := rr.node.InjectEvents(srv.Context(), events.ListOf(mempoolpbevents.NewTransactions(
+		if srErr := rr.node.InjectEvents(srv.Context(), stdtypes.ListOf(mempoolpbevents.NewTransactions(
 			rr.moduleID,
 			[]*trantorpbtypes.Transaction{trantorpbtypes.TransactionFromPb(tx)},
 		).Pb())); srErr != nil {

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -221,7 +221,7 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeI
 	}
 }
 
-func (m *mockLibp2pCommunication) testThatSenderIs(events *events.EventList, nodeID types.NodeID) {
+func (m *mockLibp2pCommunication) testThatSenderIs(events *stdtypes.EventList, nodeID types.NodeID) {
 	tEvent, valid := events.Iterator().Next().(*eventpb.Event).Type.(*eventpb.Event_Transport)
 	require.True(m.t, valid)
 	msg, valid := tEvent.Transport.Type.(*transportpb.Event_MessageReceived)
@@ -827,10 +827,10 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	t.Log(">>> blocking message")
 
 	go func() {
-		b.incomingMessages <- events.ListOf(
+		b.incomingMessages <- stdtypes.ListOf(
 			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
 		)
-		b.incomingMessages <- events.ListOf(
+		b.incomingMessages <- stdtypes.ListOf(
 			transportpbevents.MessageReceived("1", "blocker", testMsg).Pb(),
 		)
 	}()
@@ -977,7 +977,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 		}
 	}
 
-	receiver := func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
+	receiver := func(nodeID types.NodeID, events chan *stdtypes.EventList, stop chan struct{}) {
 		defer receivers.Done()
 
 		for {

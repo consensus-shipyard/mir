@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -15,14 +15,14 @@ import (
 
 // workChans represents input channels for the modules within the Node.
 // the Node.process() method writes events to these channels to route them between the Node's modules.
-type workChans map[t.ModuleID]chan *events.EventList
+type workChans map[t.ModuleID]chan *stdtypes.EventList
 
 // Allocate and return a new workChans structure.
 func newWorkChans(modules modules.Modules) workChans {
-	wc := make(map[t.ModuleID]chan *events.EventList)
+	wc := make(map[t.ModuleID]chan *stdtypes.EventList)
 
 	for moduleID := range modules {
-		wc[moduleID] = make(chan *events.EventList)
+		wc[moduleID] = make(chan *stdtypes.EventList)
 	}
 
 	return wc
@@ -47,11 +47,11 @@ func newWorkChans(modules modules.Modules) workChans {
 func (n *Node) processModuleEvents(
 	ctx context.Context,
 	module modules.Module,
-	eventSource <-chan *events.EventList,
-	eventSink chan<- *events.EventList,
+	eventSource <-chan *stdtypes.EventList,
+	eventSink chan<- *stdtypes.EventList,
 	sw *Stopwatch,
 ) (bool, error) {
-	var eventsIn *events.EventList
+	var eventsIn *stdtypes.EventList
 	var inputOpen bool
 
 	// Read input.
@@ -66,7 +66,7 @@ func (n *Node) processModuleEvents(
 		return false, nil
 	}
 
-	eventsOut := events.EmptyList()
+	eventsOut := stdtypes.EmptyList()
 
 	sw.Start()
 
@@ -90,7 +90,7 @@ func (n *Node) processModuleEvents(
 		// For a passive module, synchronously apply all events and
 		// add potential resulting events to the output EventList.
 
-		var newEvents *events.EventList
+		var newEvents *stdtypes.EventList
 		var err error
 		if newEvents, err = safelyApplyEventsPassive(m, eventsIn); err != nil {
 			return false, err
@@ -136,8 +136,8 @@ func (n *Node) processModuleEvents(
 
 func safelyApplyEventsPassive(
 	module modules.PassiveModule,
-	events *events.EventList,
-) (result *events.EventList, err error) {
+	events *stdtypes.EventList,
+) (result *stdtypes.EventList, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {
@@ -151,7 +151,7 @@ func safelyApplyEventsPassive(
 	return module.ApplyEvents(events)
 }
 
-func safelyApplyEventsActive(ctx context.Context, module modules.ActiveModule, events *events.EventList) (err error) {
+func safelyApplyEventsActive(ctx context.Context, module modules.ActiveModule, events *stdtypes.EventList) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {

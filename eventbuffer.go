@@ -1,15 +1,15 @@
 package mir
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // eventBuffer is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each module.
 type eventBuffer struct {
-	buffers     map[t.ModuleID]*events.EventList
+	buffers     map[t.ModuleID]*stdtypes.EventList
 	totalEvents int
 }
 
@@ -17,12 +17,12 @@ type eventBuffer struct {
 func newEventBuffer(modules modules.Modules) eventBuffer {
 
 	wi := eventBuffer{
-		buffers:     make(map[t.ModuleID]*events.EventList),
+		buffers:     make(map[t.ModuleID]*stdtypes.EventList),
 		totalEvents: 0,
 	}
 
 	for moduleID := range modules {
-		wi.buffers[moduleID] = events.EmptyList()
+		wi.buffers[moduleID] = stdtypes.EmptyList()
 	}
 
 	return wi
@@ -31,7 +31,7 @@ func newEventBuffer(modules modules.Modules) eventBuffer {
 // Add adds events produced by modules to the eventBuffer buffer.
 // According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
 // When Add returns a non-nil error, any subset of the events may have been added.
-func (eb *eventBuffer) Add(events *events.EventList) error {
+func (eb *eventBuffer) Add(events *stdtypes.EventList) error {
 	// Note that this MUST be a pointer receiver.
 	// Otherwise, we'd increment a copy of the event counter rather than the counter itself.
 	iter := events.Iterator()

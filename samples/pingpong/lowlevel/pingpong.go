@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
@@ -35,11 +35,11 @@ func NewPingPong(ownID t.NodeID) *Pingpong {
 
 func (p *Pingpong) ImplementsModule() {}
 
-func (p *Pingpong) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
+func (p *Pingpong) ApplyEvents(evts *stdtypes.EventList) (*stdtypes.EventList, error) {
 	return modules.ApplyEventsSequentially(evts, p.applyEvent)
 }
 
-func (p *Pingpong) applyEvent(event events.Event) (*events.EventList, error) {
+func (p *Pingpong) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -69,7 +69,7 @@ func (p *Pingpong) applyEvent(event events.Event) (*events.EventList, error) {
 	}
 }
 
-func (p *Pingpong) applyInit() (*events.EventList, error) {
+func (p *Pingpong) applyInit() (*stdtypes.EventList, error) {
 	p.nextSn = 0
 	timerEvent := eventpbevents.TimerRepeat(
 		"timer",
@@ -77,14 +77,14 @@ func (p *Pingpong) applyInit() (*events.EventList, error) {
 		types.Duration(time.Second),
 		0,
 	)
-	return events.ListOf(timerEvent.Pb()), nil
+	return stdtypes.ListOf(timerEvent.Pb()), nil
 }
 
-func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*events.EventList, error) {
+func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*stdtypes.EventList, error) {
 	return p.sendPing()
 }
 
-func (p *Pingpong) sendPing() (*events.EventList, error) {
+func (p *Pingpong) sendPing() (*stdtypes.EventList, error) {
 	var destID t.NodeID
 	if p.ownID == "0" {
 		destID = "1"
@@ -95,10 +95,10 @@ func (p *Pingpong) sendPing() (*events.EventList, error) {
 	ping := PingMessage("pingpong", p.nextSn)
 	p.nextSn++
 	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []t.NodeID{destID})
-	return events.ListOf(sendMsgEvent.Pb()), nil
+	return stdtypes.ListOf(sendMsgEvent.Pb()), nil
 }
 
-func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*events.EventList, error) {
+func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*stdtypes.EventList, error) {
 	switch message := msg.Msg.Type.(type) {
 	case *messagepb.Message_Pingpong:
 		switch m := message.Pingpong.Type.(type) {
@@ -114,14 +114,14 @@ func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*even
 	}
 }
 
-func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*events.EventList, error) {
+func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*stdtypes.EventList, error) {
 	fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
 	pong := PongMessage("pingpong", ping.SeqNr)
 	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []t.NodeID{from})
-	return events.ListOf(sendMsgEvent.Pb()), nil
+	return stdtypes.ListOf(sendMsgEvent.Pb()), nil
 }
 
-func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from t.NodeID) (*events.EventList, error) {
+func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from t.NodeID) (*stdtypes.EventList, error) {
 	fmt.Printf("Received pong from %s: %d\n", from, pong.SeqNr)
-	return events.EmptyList(), nil
+	return stdtypes.EmptyList(), nil
 }

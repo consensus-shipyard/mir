@@ -1,6 +1,8 @@
 package eventlog
 
-import "github.com/filecoin-project/mir/pkg/events"
+import (
+	"github.com/filecoin-project/mir/stdtypes"
+)
 
 // Interceptor provides a way to gain insight into the internal operation of the node.
 // Before being passed to the respective target modules, Events can be intercepted and logged
@@ -14,5 +16,5 @@ type Interceptor interface {
 	// The implementation of the concrete type must make sure that calling Intercept even on the nil value
 	// does not cause any problems.
 	// For more explanation, see https://mangatmodi.medium.com/go-check-nil-interface-the-right-way-d142776edef1
-	Intercept(events *events.EventList) error
+	Intercept(events *stdtypes.EventList) error
 }

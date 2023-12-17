@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
@@ -79,7 +80,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 
 	dsl.UponStateUpdates(m, func() error {
 		if len(testingStrings) >= 3 {
-			dsl.EmitEvent(m, events.NewTestString(
+			dsl.EmitEvent(m, stdevents.NewTestString(
 				"reports",
 				fmt.Sprintf("Collected at least 3 NewTest strings: %v", testingStrings),
 			))
@@ -95,7 +96,7 @@ func newSimpleTestingModule(mc *simpleModuleConfig) modules.PassiveModule {
 	dsl.UponStateUpdates(m, func() error {
 		for uintsSum >= lastReportedUint+100 {
 			lastReportedUint += 100
-			dsl.EmitEvent(m, events.NewTestUint(
+			dsl.EmitEvent(m, stdevents.NewTestUint64(
 				"reports",
 				lastReportedUint,
 			))
@@ -120,64 +121,64 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 	mc := defaultSimpleModuleConfig()
 
 	tests := map[string]struct {
-		eventsIn  *events.EventList
-		eventsOut *events.EventList
+		eventsIn  *stdtypes.EventList
+		eventsOut *stdtypes.EventList
 		err       error
 	}{
 		"empty": {
-			eventsIn:  events.EmptyList(),
-			eventsOut: events.EmptyList(),
+			eventsIn:  stdtypes.EmptyList(),
+			eventsOut: stdtypes.EmptyList(),
 			err:       nil,
 		},
 		"hello world": {
-			eventsIn:  events.ListOf(events.NewTestString(mc.Self, "hello")),
-			eventsOut: events.ListOf(events.NewTestString(mc.Replies, "world"), events.NewTestUint(mc.Replies, 42)),
+			eventsIn:  stdtypes.ListOf(stdevents.NewTestString(mc.Self, "hello")),
+			eventsOut: stdtypes.ListOf(stdevents.NewTestString(mc.Replies, "world"), stdevents.NewTestUint64(mc.Replies, 42)),
 			err:       nil,
 		},
 		"test error": {
-			eventsIn:  events.ListOf(events.NewTestString(mc.Self, "good")),
-			eventsOut: events.EmptyList(),
+			eventsIn:  stdtypes.ListOf(stdevents.NewTestString(mc.Self, "good")),
+			eventsOut: stdtypes.EmptyList(),
 			err:       errors.New("bye"),
 		},
 		"test simple condition": {
-			eventsIn: events.ListOf(
-				events.NewTestString(mc.Self, "foo"), events.NewTestString(mc.Self, "bar"),
-				events.NewTestString(mc.Self, "baz"), events.NewTestString(mc.Self, "quz")),
-			eventsOut: events.ListOf(
-				events.NewTestString(mc.Reports, "Collected at least 3 NewTest strings: [foo bar baz quz]")),
+			eventsIn: stdtypes.ListOf(
+				stdevents.NewTestString(mc.Self, "foo"), stdevents.NewTestString(mc.Self, "bar"),
+				stdevents.NewTestString(mc.Self, "baz"), stdevents.NewTestString(mc.Self, "quz")),
+			eventsOut: stdtypes.ListOf(
+				stdevents.NewTestString(mc.Reports, "Collected at least 3 NewTest strings: [foo bar baz quz]")),
 		},
 		"test multiple handlers for one event and a loop condition": {
-			eventsIn: events.ListOf(
-				events.NewTestUint(mc.Self, 0), events.NewTestUint(mc.Self, 17), events.NewTestUint(mc.Self, 105),
-				events.NewTestUint(mc.Self, 182), events.NewTestUint(mc.Self, 42), events.NewTestUint(mc.Self, 222),
-				events.NewTestUint(mc.Self, 14)),
+			eventsIn: stdtypes.ListOf(
+				stdevents.NewTestUint64(mc.Self, 0), stdevents.NewTestUint64(mc.Self, 17), stdevents.NewTestUint64(mc.Self, 105),
+				stdevents.NewTestUint64(mc.Self, 182), stdevents.NewTestUint64(mc.Self, 42), stdevents.NewTestUint64(mc.Self, 222),
+				stdevents.NewTestUint64(mc.Self, 14)),
 			// if the number is below 100, the module will reply with a string representation of the number.
 			// the module will also add up all received values and will emit reports 100, 200, and so on if these
 			// thresholds are passed at the end of the batch. In this example, the total sum is 582.
-			eventsOut: events.ListOf(
-				events.NewTestString(mc.Replies, "0"), events.NewTestString(mc.Replies, "17"),
-				events.NewTestString(mc.Replies, "42"), events.NewTestString(mc.Replies, "14"),
-				events.NewTestUint(mc.Reports, 100), events.NewTestUint(mc.Reports, 200),
-				events.NewTestUint(mc.Reports, 300), events.NewTestUint(mc.Reports, 400),
-				events.NewTestUint(mc.Reports, 500)),
+			eventsOut: stdtypes.ListOf(
+				stdevents.NewTestString(mc.Replies, "0"), stdevents.NewTestString(mc.Replies, "17"),
+				stdevents.NewTestString(mc.Replies, "42"), stdevents.NewTestString(mc.Replies, "14"),
+				stdevents.NewTestUint64(mc.Reports, 100), stdevents.NewTestUint64(mc.Reports, 200),
+				stdevents.NewTestUint64(mc.Reports, 300), stdevents.NewTestUint64(mc.Reports, 400),
+				stdevents.NewTestUint64(mc.Reports, 500)),
 		},
 		"test unknown message event type": {
-			eventsIn: events.ListOf(transportpbevents.SendMessage(
+			eventsIn: stdtypes.ListOf(transportpbevents.SendMessage(
 				mc.Self,
 				&messagepbtypes.Message{},
 				[]types.NodeID{}).Pb(),
 			),
-			eventsOut: events.EmptyList(),
+			eventsOut: stdtypes.EmptyList(),
 			err:       nil,
 		},
 		"test unknown event type": {
-			eventsIn:  events.ListOf(testerpbevents.Tester(mc.Self).Pb()),
-			eventsOut: events.EmptyList(),
+			eventsIn:  stdtypes.ListOf(testerpbevents.Tester(mc.Self).Pb()),
+			eventsOut: stdtypes.EmptyList(),
 			err:       errors.New("unknown event type '*eventpb.Event_Tester'"),
 		},
 		"test failed condition": {
-			eventsIn:  events.ListOf(events.NewTestUint(mc.Self, 2000)),
-			eventsOut: events.EmptyList(),
+			eventsIn:  stdtypes.ListOf(stdevents.NewTestUint64(mc.Self, 2000)),
+			eventsOut: stdtypes.EmptyList(),
 			err:       errors.New("too much"),
 		},
 	}
@@ -306,55 +307,55 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 		"empty": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {},
 
 		"request response": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
-			eventsOut, err := m.ApplyEvents(events.ListOf(events.NewTestString(mc.Self, "hello")))
+			eventsOut, err := m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestString(mc.Self, "hello")))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
 			signOrigin := iter.Next().(*eventpb.Event).Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin
 
-			eventsOut, err = m.ApplyEvents(events.ListOf(cryptopbevents.SignResult(
+			eventsOut, err = m.ApplyEvents(stdtypes.ListOf(cryptopbevents.SignResult(
 				mc.Self,
 				[]byte("world"),
 				cryptopbtypes.SignOriginFromPb(signOrigin),
 			).Pb()))
 			assert.Nil(t, err)
-			assert.Equal(t, []events.Event{events.NewTestString(mc.Signed, "hello: world")}, eventsOut.Slice())
+			assert.Equal(t, []stdtypes.Event{stdevents.NewTestString(mc.Signed, "hello: world")}, eventsOut.Slice())
 		},
 
 		"response without request": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			assert.Panics(t, func() {
 				// Context with id 42 doesn't exist. The module should panic.
-				_, _ = m.ApplyEvents(events.ListOf(
+				_, _ = m.ApplyEvents(stdtypes.ListOf(
 					cryptopbevents.SignResult(mc.Self, []byte{}, DslSignOrigin(mc.Self, dsl.ContextID(42))).Pb()))
 			})
 		},
 
 		"check context is disposed": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
-			eventsOut, err := m.ApplyEvents(events.ListOf(events.NewTestString(mc.Self, "hello")))
+			eventsOut, err := m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestString(mc.Self, "hello")))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
 			iter := eventsOut.Iterator()
 			signOrigin := cryptopbtypes.SignOriginFromPb(iter.Next().(*eventpb.Event).Type.(*eventpb.Event_Crypto).Crypto.Type.(*cryptopb.Event_SignRequest).SignRequest.Origin)
 
-			eventsOut, err = m.ApplyEvents(events.ListOf(
+			eventsOut, err = m.ApplyEvents(stdtypes.ListOf(
 				cryptopbevents.SignResult(mc.Self, []byte("world"), signOrigin).Pb(),
 			))
 			assert.Nil(t, err)
-			assert.Equal(t, []events.Event{events.NewTestString(mc.Signed, "hello: world")}, eventsOut.Slice())
+			assert.Equal(t, []stdtypes.Event{stdevents.NewTestString(mc.Signed, "hello: world")}, eventsOut.Slice())
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
 				// The context should already be disposed of and the module should panic.
-				_, _ = m.ApplyEvents(events.ListOf(
+				_, _ = m.ApplyEvents(stdtypes.ListOf(
 					cryptopbevents.SignResult(mc.Self, []byte("world"), signOrigin).Pb()),
 				)
 			})
 		},
 
 		"check multiple handlers for response": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
-			eventsOut, err := m.ApplyEvents(events.ListOf(events.NewTestUint(mc.Self, 8)))
+			eventsOut, err := m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestUint64(mc.Self, 8)))
 			assert.Nil(t, err)
 			assert.Equal(t, 1, eventsOut.Len())
 
@@ -365,11 +366,11 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			sigVerOrigin := cryptopbtypes.SigVerOriginFromPb(sigVerEvent.Origin)
 
 			// send some unrelated events to make sure the context is preserved and does not get overwritten
-			_, err = m.ApplyEvents(events.ListOf(events.NewTestString(mc.Self, "hello")))
+			_, err = m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestString(mc.Self, "hello")))
 			assert.Nil(t, err)
-			_, err = m.ApplyEvents(events.ListOf(events.NewTestUint(mc.Self, 3)))
+			_, err = m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestUint64(mc.Self, 3)))
 			assert.Nil(t, err)
-			_, err = m.ApplyEvents(events.ListOf(events.NewTestUint(mc.Self, 16), events.NewTestString(mc.Self, "foo")))
+			_, err = m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestUint64(mc.Self, 16), stdevents.NewTestString(mc.Self, "foo")))
 			assert.Nil(t, err)
 
 			// construct a response for the signature verification request.
@@ -382,21 +383,21 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 				/*allOk*/ true,
 			).Pb()
 
-			eventsOut, err = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
+			eventsOut, err = m.ApplyEvents(stdtypes.ListOf(sigsVerifiedEvent))
 			assert.Nil(t, err)
 
-			var expectedResponse []events.Event
+			var expectedResponse []stdtypes.Event
 			for i := 0; i < 8; i++ {
-				expectedResponse = append(expectedResponse, events.NewTestString(mc.Verified, fmt.Sprintf("8: %v verified", i)))
+				expectedResponse = append(expectedResponse, stdevents.NewTestString(mc.Verified, fmt.Sprintf("8: %v verified", i)))
 			}
-			expectedResponse = append(expectedResponse, events.NewTestUint(mc.Verified, 8))
+			expectedResponse = append(expectedResponse, stdevents.NewTestUint64(mc.Verified, 8))
 
 			assert.Equal(t, expectedResponse, eventsOut.Slice())
 
 			assert.Panics(t, func() {
 				// This reply is sent for the second time.
 				// The context should already be disposed of and the module should panic.
-				_, _ = m.ApplyEvents(events.ListOf(sigsVerifiedEvent))
+				_, _ = m.ApplyEvents(stdtypes.ListOf(sigsVerifiedEvent))
 			})
 		},
 	}
@@ -426,21 +427,21 @@ func DslSignOrigin(module types.ModuleID, contextID dsl.ContextID) *cryptopbtype
 // dsl wrappers (similar to the ones in pkg/dsl/events.go)
 
 func EmitTestingString(m dsl.Module, dest types.ModuleID, s string) {
-	dsl.EmitEvent(m, events.NewTestString(dest, s))
+	dsl.EmitEvent(m, stdevents.NewTestString(dest, s))
 }
 
 func EmitTestingUint(m dsl.Module, dest types.ModuleID, u uint64) {
-	dsl.EmitEvent(m, events.NewTestUint(dest, u))
+	dsl.EmitEvent(m, stdevents.NewTestUint64(dest, u))
 }
 
 func UponTestingString(m dsl.Module, handler func(s string) error) {
-	dsl.UponEvent(m, func(ev *events.TestStringEvent) error {
+	dsl.UponEvent(m, func(ev *stdevents.TestString) error {
 		return handler(ev.Value)
 	})
 }
 
 func UponTestingUint(m dsl.Module, handler func(u uint64) error) {
-	dsl.UponEvent(m, func(ev *events.TestUintEvent) error {
+	dsl.UponEvent(m, func(ev *stdevents.TestUint64) error {
 		return handler(ev.Value)
 	})
 }

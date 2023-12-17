@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
@@ -73,10 +74,10 @@ func TestNode_Run(t *testing.T) {
 
 			mockModule1.EXPECT().Event(&eventpb.Event{DestModule: "mock1", Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}).
 				Do(func(_ any) { wg.Done() }).
-				Return(events.EmptyList(), nil)
+				Return(stdtypes.EmptyList(), nil)
 			mockModule2.EXPECT().Event(&eventpb.Event{DestModule: "mock2", Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}).
 				Do(func(_ any) { wg.Done() }).
-				Return(events.EmptyList(), nil)
+				Return(stdtypes.EmptyList(), nil)
 
 			done := make(chan struct{})
 			go func() {
@@ -193,17 +194,17 @@ func TestNode_Backpressure(t *testing.T) {
 
 // The babbler is a simple ActiveModule that just produces batches of dummy events at a given rate.
 type blabber struct {
-	flood          chan *events.EventList // Output channel for batches of dummy events.
-	batchSize      uint64                 // Number of events output at once.
-	period         time.Duration          // Time between batches.
-	totalSubmitted uint64                 // Counter for total number of submitted events.
-	stop           chan struct{}          // Stop channel.
-	wg             sync.WaitGroup         // WaitGroup to control stopping of the goroutine.
+	flood          chan *stdtypes.EventList // Output channel for batches of dummy events.
+	batchSize      uint64                   // Number of events output at once.
+	period         time.Duration            // Time between batches.
+	totalSubmitted uint64                   // Counter for total number of submitted events.
+	stop           chan struct{}            // Stop channel.
+	wg             sync.WaitGroup           // WaitGroup to control stopping of the goroutine.
 }
 
 func newBlabber(batchSize uint64, period time.Duration) *blabber {
 	return &blabber{
-		flood:     make(chan *events.EventList),
+		flood:     make(chan *stdtypes.EventList),
 		batchSize: batchSize,
 		period:    period,
 		stop:      make(chan struct{}),
@@ -223,7 +224,10 @@ func (b *blabber) Go() {
 				return
 			default:
 			}
-			evts := events.ListOf(sliceutil.Repeat(events.NewTestUint("consumer", 0), int(b.batchSize))...)
+			evts := stdtypes.ListOf(sliceutil.Repeat(
+				stdtypes.Event(stdevents.NewTestUint64("consumer", 0)),
+				int(b.batchSize),
+			)...)
 			select {
 			case <-b.stop:
 				return
@@ -242,11 +246,11 @@ func (b *blabber) Close() {
 
 func (b *blabber) ImplementsModule() {}
 
-func (b *blabber) ApplyEvents(_ context.Context, _ *events.EventList) error {
+func (b *blabber) ApplyEvents(_ context.Context, _ *stdtypes.EventList) error {
 	return nil
 }
 
-func (b *blabber) EventsOut() <-chan *events.EventList {
+func (b *blabber) EventsOut() <-chan *stdtypes.EventList {
 	return b.flood
 }
 
@@ -269,11 +273,11 @@ func (c *consumer) ImplementsModule() {}
 
 // ApplyEvents increments a counter and sleeps for a given duration (set at module instantiation)
 // for each event in the given list.
-func (c *consumer) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
-	evtsOut, err := modules.ApplyEventsSequentially(evts, func(event events.Event) (*events.EventList, error) {
+func (c *consumer) ApplyEvents(evts *stdtypes.EventList) (*stdtypes.EventList, error) {
+	evtsOut, err := modules.ApplyEventsSequentially(evts, func(event stdtypes.Event) (*stdtypes.EventList, error) {
 		atomic.AddUint64(&c.numProcessed, 1)
 		time.Sleep(c.delay)
-		return events.EmptyList(), nil
+		return stdtypes.EmptyList(), nil
 	})
 	return evtsOut, err
 }

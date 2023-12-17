@@ -1,9 +1,10 @@
-package events
+package stdevents
 
 import (
 	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type Raw struct {
@@ -26,13 +27,13 @@ func NewRawWithSrc(src t.ModuleID, dest t.ModuleID, data []byte) *Raw {
 	return e
 }
 
-func (e *Raw) NewSrc(newSrc t.ModuleID) Event {
+func (e *Raw) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *Raw) NewDest(newDest t.ModuleID) Event {
+func (e *Raw) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE
@@ -51,7 +52,7 @@ func (e *Raw) ToString() string {
 	return string(data)
 }
 
-func WrapInRaw(e Event) (*Raw, error) {
+func WrapInRaw(e stdtypes.Event) (*Raw, error) {
 	data, err := e.ToBytes()
 	if err != nil {
 		return nil, err

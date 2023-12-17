@@ -1,4 +1,4 @@
-package events
+package stdevents
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 )
 
@@ -13,13 +14,13 @@ type serializableTimerRepeat struct {
 	mirEvent
 	Events         []*Raw
 	Period         time.Duration
-	RetentionIndex RetentionIndex
+	RetentionIndex stdtypes.RetentionIndex
 }
 
 func (str *serializableTimerRepeat) TimerRepeat() *TimerRepeat {
 	return &TimerRepeat{
 		mirEvent:       str.mirEvent,
-		Events:         sliceutil.Transform(str.Events, func(_ int, raw *Raw) Event { return Event(raw) }),
+		Events:         sliceutil.Transform(str.Events, func(_ int, raw *Raw) stdtypes.Event { return stdtypes.Event(raw) }),
 		Period:         str.Period,
 		RetentionIndex: str.RetentionIndex,
 	}
@@ -27,9 +28,9 @@ func (str *serializableTimerRepeat) TimerRepeat() *TimerRepeat {
 
 type TimerRepeat struct {
 	mirEvent
-	Events         []Event
+	Events         []stdtypes.Event
 	Period         time.Duration
-	RetentionIndex RetentionIndex
+	RetentionIndex stdtypes.RetentionIndex
 }
 
 func (e *TimerRepeat) serializable() (*serializableTimerRepeat, error) {
@@ -55,8 +56,8 @@ func (e *TimerRepeat) serializable() (*serializableTimerRepeat, error) {
 func NewTimerRepeat(
 	dest t.ModuleID,
 	period time.Duration,
-	retentionIndex RetentionIndex,
-	events ...Event,
+	retentionIndex stdtypes.RetentionIndex,
+	events ...stdtypes.Event,
 ) *TimerRepeat {
 	return &TimerRepeat{
 		mirEvent:       mirEvent{DestModule: dest},
@@ -70,21 +71,21 @@ func NewTimerRepeatWithSrc(
 	src t.ModuleID,
 	dest t.ModuleID,
 	period time.Duration,
-	retentionIndex RetentionIndex,
-	events ...Event,
+	retentionIndex stdtypes.RetentionIndex,
+	events ...stdtypes.Event,
 ) *TimerRepeat {
 	e := NewTimerRepeat(dest, period, retentionIndex, events...)
 	e.SrcModule = src
 	return e
 }
 
-func (e *TimerRepeat) NewSrc(newSrc t.ModuleID) Event {
+func (e *TimerRepeat) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *TimerRepeat) NewDest(newDest t.ModuleID) Event {
+func (e *TimerRepeat) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

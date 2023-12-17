@@ -1,15 +1,16 @@
-package events
+package stdevents
 
 import (
 	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type serializableMessageReceived struct {
 	mirEvent
 	Sender  t.NodeID
-	Payload RawMessage
+	Payload stdtypes.RawMessage
 }
 
 func (smr *serializableMessageReceived) MessageReceived() *MessageReceived {
@@ -23,7 +24,7 @@ func (smr *serializableMessageReceived) MessageReceived() *MessageReceived {
 type MessageReceived struct {
 	mirEvent
 	Sender  t.NodeID
-	Payload Message
+	Payload stdtypes.Message
 }
 
 func (e *MessageReceived) serializable() (*serializableMessageReceived, error) {
@@ -39,7 +40,7 @@ func (e *MessageReceived) serializable() (*serializableMessageReceived, error) {
 	}, nil
 }
 
-func NewMessageReceived(dest t.ModuleID, sender t.NodeID, payload Message) *MessageReceived {
+func NewMessageReceived(dest t.ModuleID, sender t.NodeID, payload stdtypes.Message) *MessageReceived {
 	return &MessageReceived{
 		mirEvent: mirEvent{DestModule: dest},
 		Sender:   sender,
@@ -47,19 +48,19 @@ func NewMessageReceived(dest t.ModuleID, sender t.NodeID, payload Message) *Mess
 	}
 }
 
-func NewMessageReceivedWithSrc(src t.ModuleID, dest t.ModuleID, sender t.NodeID, payload Message) *MessageReceived {
+func NewMessageReceivedWithSrc(src t.ModuleID, dest t.ModuleID, sender t.NodeID, payload stdtypes.Message) *MessageReceived {
 	e := NewMessageReceived(dest, sender, payload)
 	e.SrcModule = src
 	return e
 }
 
-func (e *MessageReceived) NewSrc(newSrc t.ModuleID) Event {
+func (e *MessageReceived) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *MessageReceived) NewDest(newDest t.ModuleID) Event {
+func (e *MessageReceived) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

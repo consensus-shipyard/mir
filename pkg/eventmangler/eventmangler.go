@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
@@ -90,7 +90,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 	m := dsl.NewModule(mc.Self)
 
 	// Register only a single handler for all events, dropping and / or delaying them as configured.
-	dsl.UponOtherEvent(m, func(ev events.Event) error {
+	dsl.UponOtherEvent(m, func(ev stdtypes.Event) error {
 
 		// Drop event completely with probability params.DropRate
 		if r.Float32() < params.DropRate {

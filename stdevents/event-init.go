@@ -1,9 +1,10 @@
-package events
+package stdevents
 
 import (
 	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type Init struct {
@@ -24,13 +25,13 @@ func NewInitWithSrc(src t.ModuleID, dest t.ModuleID) *Init {
 	return e
 }
 
-func (e *Init) NewSrc(newSrc t.ModuleID) Event {
+func (e *Init) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *Init) NewDest(newDest t.ModuleID) Event {
+func (e *Init) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

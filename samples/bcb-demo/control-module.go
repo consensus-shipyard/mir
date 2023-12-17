@@ -6,29 +6,29 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 )
 
 type controlModule struct {
-	eventsOut chan *events.EventList
+	eventsOut chan *stdtypes.EventList
 	isLeader  bool
 }
 
 func newControlModule(isLeader bool) modules.ActiveModule {
 	return &controlModule{
-		eventsOut: make(chan *events.EventList),
+		eventsOut: make(chan *stdtypes.EventList),
 		isLeader:  isLeader,
 	}
 }
 
 func (m *controlModule) ImplementsModule() {}
 
-func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList) error {
+func (m *controlModule) ApplyEvents(_ context.Context, events *stdtypes.EventList) error {
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
@@ -72,7 +72,7 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *events.EventList)
 	return nil
 }
 
-func (m *controlModule) EventsOut() <-chan *events.EventList {
+func (m *controlModule) EventsOut() <-chan *stdtypes.EventList {
 	return m.eventsOut
 }
 
@@ -86,7 +86,7 @@ func (m *controlModule) readMessageFromConsole() error {
 		return es.Errorf("error reading from console: %w", scanner.Err())
 	}
 
-	m.eventsOut <- events.ListOf(&eventpb.Event{
+	m.eventsOut <- stdtypes.ListOf(&eventpb.Event{
 		DestModule: "bcb",
 		Type: &eventpb.Event_Bcb{
 			Bcb: &bcbpb.Event{
