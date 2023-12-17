@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -77,7 +77,7 @@ type simTransportModule struct {
 	*SimTransport
 	*SimNode
 	id       t.NodeID
-	outChan  chan *events.EventList
+	outChan  chan *stdtypes.EventList
 	simChan  *testsim.Chan
 	stopChan chan struct{}
 }
@@ -87,7 +87,7 @@ func newModule(t *SimTransport, id t.NodeID, node *SimNode) *simTransportModule 
 		SimTransport: t,
 		SimNode:      node,
 		id:           id,
-		outChan:      make(chan *events.EventList, 1),
+		outChan:      make(chan *stdtypes.EventList, 1),
 		simChan:      testsim.NewChan(),
 		stopChan:     make(chan struct{}),
 	}
@@ -120,14 +120,14 @@ func (m *simTransportModule) WaitFor(_ int) error {
 	return nil
 }
 
-func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e events.Event) (*events.EventList, error) {
-		return events.EmptyList(), m.applyEvent(ctx, e)
+func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList) error {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e stdtypes.Event) (*stdtypes.EventList, error) {
+		return stdtypes.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTransportModule) applyEvent(ctx context.Context, event events.Event) error {
+func (m *simTransportModule) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -190,7 +190,7 @@ func (m *simTransportModule) sendMessage(msg *messagepb.Message, target t.NodeID
 	}()
 }
 
-func (m *simTransportModule) EventsOut() <-chan *events.EventList {
+func (m *simTransportModule) EventsOut() <-chan *stdtypes.EventList {
 	return m.outChan
 }
 
@@ -208,7 +208,7 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 		msg := v.(message)
 
 		destModule := t.ModuleID(msg.message.DestModule)
-		eventList := events.ListOf(transportpbevents.MessageReceived(
+		eventList := stdtypes.ListOf(transportpbevents.MessageReceived(
 			destModule,
 			msg.from,
 			messagepbtypes.MessageFromPb(msg.message),

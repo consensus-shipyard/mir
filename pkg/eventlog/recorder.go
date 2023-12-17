@@ -16,21 +16,21 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type EventRecord struct {
-	Events *events.EventList
+	Events *stdtypes.EventList
 	Time   int64
 }
 
-func (record *EventRecord) Filter(predicate func(event events.Event) bool) EventRecord {
-	filtered := &events.EventList{}
+func (record *EventRecord) Filter(predicate func(event stdtypes.Event) bool) EventRecord {
+	filtered := &stdtypes.EventList{}
 
 	iter := record.Events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -54,7 +54,7 @@ type Recorder struct {
 	timeSource     func() int64
 	newDests       func(EventRecord) []EventRecord
 	path           string
-	filter         func(event events.Event) bool
+	filter         func(event stdtypes.Event) bool
 	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
 	syncWrite      bool
 
@@ -92,7 +92,7 @@ func NewRecorder(
 		fileCount: 1,
 		newDests:  OneFileLogger(),
 		path:      path,
-		filter: func(event events.Event) bool {
+		filter: func(event stdtypes.Event) bool {
 			// Record all events by default.
 			return true
 		},
@@ -112,7 +112,7 @@ func NewRecorder(
 		case eventFilterOpt:
 			// Apply the given filter on top of the existing one.
 			oldFilter := i.filter
-			i.filter = func(e events.Event) bool {
+			i.filter = func(e stdtypes.Event) bool {
 				return oldFilter(e) && v(e)
 			}
 		case eventWriterOpt:
@@ -151,7 +151,7 @@ func NewRecorder(
 // If there is no room in the buffer, it blocks.  If draining the buffer
 // to the output stream has completed (successfully or otherwise), Intercept
 // returns an error.
-func (i *Recorder) Intercept(events *events.EventList) error {
+func (i *Recorder) Intercept(events *stdtypes.EventList) error {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.

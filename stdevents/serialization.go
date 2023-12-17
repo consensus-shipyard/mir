@@ -1,9 +1,10 @@
-package events
+package stdevents
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 )
 
@@ -70,7 +71,7 @@ func serialize(e any) ([]byte, error) {
 	return data, nil
 }
 
-func Deserialize(data []byte) (Event, error) {
+func Deserialize(data []byte) (stdtypes.Event, error) {
 	var se serializedEvent
 	err := json.Unmarshal(data, &se)
 	if err != nil {

@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -31,7 +32,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/events"
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
@@ -267,7 +267,7 @@ func run() error {
 	for scanner.Scan() {
 
 		// Submit the chat message as transaction payload to the mempool module.
-		err := node.InjectEvents(ctx, events.ListOf(mempoolpbevents.NewTransactions(
+		err := node.InjectEvents(ctx, stdtypes.ListOf(mempoolpbevents.NewTransactions(
 			"mempool",
 			[]*trantorpbtypes.Transaction{{
 				ClientId: tt.ClientID(args.OwnID),

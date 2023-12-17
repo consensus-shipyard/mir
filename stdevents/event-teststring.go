@@ -1,9 +1,10 @@
-package events
+package stdevents
 
 import (
 	"fmt"
 
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type TestString struct {
@@ -26,13 +27,13 @@ func NewTestStringWithSrc(src t.ModuleID, dest t.ModuleID, value string) *TestSt
 	return e
 }
 
-func (e *TestString) NewSrc(newSrc t.ModuleID) Event {
+func (e *TestString) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *TestString) NewDest(newDest t.ModuleID) Event {
+func (e *TestString) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

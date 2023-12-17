@@ -3,9 +3,9 @@
 package crypto
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/cryptopb"
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
@@ -22,11 +22,11 @@ func New(crypto Crypto) *MirModule {
 	return &MirModule{crypto: crypto}
 }
 
-func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (c *MirModule) ApplyEvents(eventsIn *stdtypes.EventList) (*stdtypes.EventList, error) {
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
+func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -37,7 +37,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-		return events.EmptyList(), nil
+		return stdtypes.EmptyList(), nil
 	case *eventpb.Event_Crypto:
 		switch e := e.Crypto.Type.(type) {
 		case *cryptopb.Event_SignRequest:
@@ -47,7 +47,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 			if err != nil {
 				return nil, err
 			}
-			return events.ListOf(
+			return stdtypes.ListOf(
 				cryptopbevents.SignResult(
 					t.ModuleID(e.SignRequest.Origin.Module),
 					signature,
@@ -71,7 +71,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 			}
 
 			// Return result event
-			return events.ListOf(cryptopbevents.SigsVerified(
+			return stdtypes.ListOf(cryptopbevents.SigsVerified(
 				t.ModuleID(verifyEvent.Origin.Module),
 				cryptopbtypes.SigVerOriginFromPb(verifyEvent.Origin),
 				t.NodeIDSlice(verifyEvent.NodeIds),
@@ -86,7 +86,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 				t.NodeID(e.VerifySig.NodeId),
 			)
 
-			return events.ListOf(cryptopbevents.SigVerified(
+			return stdtypes.ListOf(cryptopbevents.SigVerified(
 				t.ModuleID(e.VerifySig.Origin.Module),
 				cryptopbtypes.SigVerOriginFromPb(e.VerifySig.Origin),
 				t.NodeID(e.VerifySig.NodeId),

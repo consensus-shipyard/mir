@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/ttacon/chalk"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
@@ -89,7 +89,7 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 					}
 
 					if args.dbgModule {
-						if _, err := module.ApplyEvents(events.ListOf(event)); err != nil {
+						if _, err := module.ApplyEvents(stdtypes.ListOf(event)); err != nil {
 							return fmt.Errorf("error replaying event to module: %w", err)
 						}
 					}

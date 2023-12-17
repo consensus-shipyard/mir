@@ -3,9 +3,9 @@
 package threshcrypto
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
@@ -21,11 +21,11 @@ func New(threshCrypto ThreshCrypto) *MirModule {
 	return &MirModule{threshCrypto: threshCrypto}
 }
 
-func (c *MirModule) ApplyEvents(eventsIn *events.EventList) (*events.EventList, error) {
+func (c *MirModule) ApplyEvents(eventsIn *stdtypes.EventList) (*stdtypes.EventList, error) {
 	return modules.ApplyEventsConcurrently(eventsIn, c.ApplyEvent)
 }
 
-func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
+func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -36,7 +36,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 	switch e := pbevent.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-		return events.EmptyList(), nil
+		return stdtypes.EmptyList(), nil
 	case *eventpb.Event_ThreshCrypto:
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:
@@ -46,7 +46,7 @@ func (c *MirModule) ApplyEvent(event events.Event) (*events.EventList, error) {
 }
 
 // apply a thresholdcryptopb.Event
-func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList, error) {
+func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*stdtypes.EventList, error) {
 	switch e := event.Type.(type) {
 	case *threshcryptopb.Event_SignShare:
 		// Compute signature share
@@ -56,7 +56,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			return nil, err
 		}
 
-		return events.ListOf(
+		return stdtypes.ListOf(
 			tcEvents.SignShareResult(t.ModuleID(e.SignShare.Origin.Module), sigShare, e.SignShare.Origin),
 		), nil
 
@@ -71,7 +71,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
-		return events.ListOf(
+		return stdtypes.ListOf(
 			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, errStr, e.VerifyShare.Origin),
 		), nil
 
@@ -86,7 +86,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
-		return events.ListOf(
+		return stdtypes.ListOf(
 			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, errStr, e.VerifyFull.Origin),
 		), nil
 
@@ -101,7 +101,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*events.EventList
 			errStr = err.Error()
 		}
 
-		return events.ListOf(
+		return stdtypes.ListOf(
 			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, errStr, e.Recover.Origin),
 		), nil
 	default:

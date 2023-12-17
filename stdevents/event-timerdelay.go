@@ -1,4 +1,4 @@
-package events
+package stdevents
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 )
 
@@ -18,14 +19,14 @@ type serializableTimerDelay struct {
 func (std *serializableTimerDelay) TimerDelay() *TimerDelay {
 	return &TimerDelay{
 		mirEvent: std.mirEvent,
-		Events:   sliceutil.Transform(std.Events, func(_ int, raw *Raw) Event { return Event(raw) }),
+		Events:   sliceutil.Transform(std.Events, func(_ int, raw *Raw) stdtypes.Event { return stdtypes.Event(raw) }),
 		Delay:    std.Delay,
 	}
 }
 
 type TimerDelay struct {
 	mirEvent
-	Events []Event
+	Events []stdtypes.Event
 	Delay  time.Duration
 }
 
@@ -49,7 +50,7 @@ func (e *TimerDelay) serializable() (*serializableTimerDelay, error) {
 	}, nil
 }
 
-func NewTimerDelay(dest t.ModuleID, delay time.Duration, events ...Event) *TimerDelay {
+func NewTimerDelay(dest t.ModuleID, delay time.Duration, events ...stdtypes.Event) *TimerDelay {
 	return &TimerDelay{
 		mirEvent: mirEvent{DestModule: dest},
 		Events:   events,
@@ -57,19 +58,19 @@ func NewTimerDelay(dest t.ModuleID, delay time.Duration, events ...Event) *Timer
 	}
 }
 
-func NewTimerDelayWithSrc(src t.ModuleID, dest t.ModuleID, delay time.Duration, events ...Event) *TimerDelay {
+func NewTimerDelayWithSrc(src t.ModuleID, dest t.ModuleID, delay time.Duration, events ...stdtypes.Event) *TimerDelay {
 	e := NewTimerDelay(dest, delay, events...)
 	e.SrcModule = src
 	return e
 }
 
-func (e *TimerDelay) NewSrc(newSrc t.ModuleID) Event {
+func (e *TimerDelay) NewSrc(newSrc t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *TimerDelay) NewDest(newDest t.ModuleID) Event {
+func (e *TimerDelay) NewDest(newDest t.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

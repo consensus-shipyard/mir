@@ -15,10 +15,10 @@ import (
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -40,7 +40,7 @@ type FakeLink struct {
 
 func (fl *FakeLink) ApplyEvents(
 	ctx context.Context,
-	eventList *events.EventList,
+	eventList *stdtypes.EventList,
 ) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -69,7 +69,7 @@ func (fl *FakeLink) ApplyEvents(
 						eventsOut := fl.FakeTransport.NodeSinks[fl.Source]
 						go func() {
 							select {
-							case eventsOut <- events.ListOf(receivedEvent.Pb()):
+							case eventsOut <- stdtypes.ListOf(receivedEvent.Pb()):
 							case <-ctx.Done():
 							}
 						}()
@@ -99,7 +99,7 @@ func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
 	return nil
 }
 
-func (fl *FakeLink) EventsOut() <-chan *events.EventList {
+func (fl *FakeLink) EventsOut() <-chan *stdtypes.EventList {
 	return fl.FakeTransport.NodeSinks[fl.Source]
 }
 
@@ -107,24 +107,24 @@ var _ LocalTransportLayer = &FakeTransport{}
 
 type FakeTransport struct {
 	// Buffers is source x dest
-	Buffers       map[t.NodeID]map[t.NodeID]chan *events.EventList
-	NodeSinks     map[t.NodeID]chan *events.EventList
+	Buffers       map[t.NodeID]map[t.NodeID]chan *stdtypes.EventList
+	NodeSinks     map[t.NodeID]chan *stdtypes.EventList
 	logger        logging.Logger
 	nodeIDsWeight map[t.NodeID]types.VoteWeight
 }
 
 func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTransport {
-	buffers := make(map[t.NodeID]map[t.NodeID]chan *events.EventList)
-	nodeSinks := make(map[t.NodeID]chan *events.EventList)
+	buffers := make(map[t.NodeID]map[t.NodeID]chan *stdtypes.EventList)
+	nodeSinks := make(map[t.NodeID]chan *stdtypes.EventList)
 	for sourceID := range nodeIDsWeight {
-		buffers[sourceID] = make(map[t.NodeID]chan *events.EventList)
+		buffers[sourceID] = make(map[t.NodeID]chan *stdtypes.EventList)
 		for destID := range nodeIDsWeight {
 			if sourceID == destID {
 				continue
 			}
-			buffers[sourceID][destID] = make(chan *events.EventList, 10000)
+			buffers[sourceID][destID] = make(chan *stdtypes.EventList, 10000)
 		}
-		nodeSinks[sourceID] = make(chan *events.EventList)
+		nodeSinks[sourceID] = make(chan *stdtypes.EventList)
 	}
 
 	return &FakeTransport{
@@ -137,7 +137,7 @@ func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTranspor
 
 func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
 	select {
-	case ft.Buffers[source][dest] <- events.ListOf(
+	case ft.Buffers[source][dest] <- stdtypes.ListOf(
 		transportpbevents.MessageReceived(t.ModuleID(msg.DestModule), source, messagepbtypes.MessageFromPb(msg)).Pb(),
 	):
 	default:
@@ -174,7 +174,7 @@ func (ft *FakeTransport) Close() {}
 
 func (fl *FakeLink) CloseOldConnections(_ *trantorpbtypes.Membership) {}
 
-func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *events.EventList {
+func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *stdtypes.EventList {
 	return ft.NodeSinks[dest]
 }
 
@@ -192,7 +192,7 @@ func (fl *FakeLink) Connect(_ *trantorpbtypes.Membership) {
 			fl.wg.Done()
 			continue
 		}
-		go func(destID t.NodeID, buffer chan *events.EventList) {
+		go func(destID t.NodeID, buffer chan *stdtypes.EventList) {
 			defer fl.wg.Done()
 			for {
 				select {

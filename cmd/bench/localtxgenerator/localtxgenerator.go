@@ -7,11 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
@@ -45,16 +45,16 @@ type LocalTXGen struct {
 	modules       ModuleConfig
 	params        ModuleParams
 	statsTrackers []stats.Tracker
-	txChan        chan events.Event
+	txChan        chan stdtypes.Event
 	clients       map[tt.ClientID]*client
 
-	eventsOut chan *events.EventList
+	eventsOut chan *stdtypes.EventList
 	wg        sync.WaitGroup
 	stopChan  chan struct{}
 }
 
 func New(moduleConfig ModuleConfig, params ModuleParams) *LocalTXGen {
-	txChan := make(chan events.Event, params.NumClients)
+	txChan := make(chan stdtypes.Event, params.NumClients)
 	logger := logging.ConsoleInfoLogger
 
 	clients := make(map[tt.ClientID]*client, params.NumClients)
@@ -68,7 +68,7 @@ func New(moduleConfig ModuleConfig, params ModuleParams) *LocalTXGen {
 		params:    params,
 		txChan:    txChan,
 		clients:   clients,
-		eventsOut: make(chan *events.EventList),
+		eventsOut: make(chan *stdtypes.EventList),
 		stopChan:  make(chan struct{}),
 	}
 }
@@ -95,7 +95,7 @@ func (gen *LocalTXGen) Start() {
 	go func() {
 		defer gen.wg.Done()
 
-		txEventList := events.EmptyList()
+		txEventList := stdtypes.EmptyList()
 
 		for {
 			// Give priority to collecting submitted transactions.
@@ -109,7 +109,7 @@ func (gen *LocalTXGen) Start() {
 				case txEvent := <-gen.txChan:
 					txEventList.PushBack(txEvent)
 				case gen.eventsOut <- txEventList:
-					txEventList = events.EmptyList()
+					txEventList = stdtypes.EmptyList()
 				case <-gen.stopChan:
 					return
 				}
@@ -156,7 +156,7 @@ func (gen *LocalTXGen) Stop() {
 func (gen *LocalTXGen) ImplementsModule() {}
 
 // ApplyEvents returns an error on any event it receives, except fot the Init event, which it silently ignores.
-func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *events.EventList) error {
+func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *stdtypes.EventList) error {
 	for _, evt := range evts.Slice() {
 
 		// We only support proto events.
@@ -174,7 +174,7 @@ func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *events.EventList) er
 }
 
 // EventsOut returns the channel to which LocalTXGen writes all output events (in this case just NewRequests events).
-func (gen *LocalTXGen) EventsOut() <-chan *events.EventList {
+func (gen *LocalTXGen) EventsOut() <-chan *stdtypes.EventList {
 	return gen.eventsOut
 }
 

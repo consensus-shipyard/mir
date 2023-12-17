@@ -1,14 +1,14 @@
 package eventlog
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type repeater struct {
 	interceptors []Interceptor
 }
 
-func (r *repeater) Intercept(events *events.EventList) error {
+func (r *repeater) Intercept(events *stdtypes.EventList) error {
 
 	// Avoid nil dereference if Intercept is called on a nil *Recorder and simply do nothing.
 	// This can happen if a pointer type to *Recorder is assigned to a variable with the interface type Interceptor.

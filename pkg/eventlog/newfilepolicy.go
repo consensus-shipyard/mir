@@ -1,16 +1,16 @@
 package eventlog
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/apppb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // Returns a file that splits an record slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
 func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []EventRecord {
-	eventNewLogFileLogger := func(event events.Event) bool {
+	eventNewLogFileLogger := func(event stdtypes.Event) bool {
 		pbevent, ok := event.(*eventpb.Event)
 		if !ok {
 			return false
@@ -29,13 +29,13 @@ func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []Even
 
 // eventTrackerLogger returns a function that tracks every single event of EventRecord and
 // creates a new file for every event such that newFile(event) = True
-func EventTrackerLogger(newFile func(event events.Event) bool) func(time EventRecord) []EventRecord {
+func EventTrackerLogger(newFile func(event stdtypes.Event) bool) func(time EventRecord) []EventRecord {
 	return func(record EventRecord) []EventRecord {
 		var result []EventRecord
 		// Create a variable to hold the current chunk
 		currentChunk := &EventRecord{
 			Time:   record.Time,
-			Events: events.EmptyList(),
+			Events: stdtypes.EmptyList(),
 		}
 
 		for _, event := range record.Events.Slice() {
@@ -43,7 +43,7 @@ func EventTrackerLogger(newFile func(event events.Event) bool) func(time EventRe
 				result = append(result, *currentChunk)
 				currentChunk = &EventRecord{
 					Time:   record.Time,
-					Events: events.EmptyList().PushBack(event),
+					Events: stdtypes.EmptyList().PushBack(event),
 				}
 			} else {
 				currentChunk.Events.PushBack(event)
@@ -69,7 +69,7 @@ func EventLimitLogger(eventLimit int64) func(EventRecord) []EventRecord {
 		// Create a variable to hold the current chunk
 		currentChunk := EventRecord{
 			Time:   record.Time,
-			Events: events.EmptyList(),
+			Events: stdtypes.EmptyList(),
 		}
 
 		// Iterate over the events in the input slice
@@ -82,7 +82,7 @@ func EventLimitLogger(eventLimit int64) func(EventRecord) []EventRecord {
 				result = append(result, currentChunk)
 				currentChunk = EventRecord{
 					Time:   record.Time,
-					Events: events.EmptyList(),
+					Events: stdtypes.EmptyList(),
 				}
 			}
 		}

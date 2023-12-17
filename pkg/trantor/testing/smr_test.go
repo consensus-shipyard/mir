@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/eventmangler"
-	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -409,7 +409,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	var simulation *deploytest.Simulation
 	if conf.Transport == "sim" {
 		r := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
-		eventDelayFn := func(e events.Event) time.Duration {
+		eventDelayFn := func(e stdtypes.Event) time.Duration {
 			// TODO: Make min and max event processing delay configurable
 			return testsim.RandDuration(r, 0, time.Microsecond)
 		}

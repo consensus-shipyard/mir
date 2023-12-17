@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -12,7 +13,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
@@ -52,7 +52,7 @@ type Transport struct {
 	incomingConnWg  sync.WaitGroup
 	lastComplaint   time.Time
 
-	incomingMessages chan *events.EventList
+	incomingMessages chan *stdtypes.EventList
 }
 
 func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Logger, stats Stats) *Transport {
@@ -63,7 +63,7 @@ func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Log
 		logger:           logger,
 		connections:      make(map[t.NodeID]connection),
 		nodeIDs:          make(map[peer.ID]t.NodeID),
-		incomingMessages: make(chan *events.EventList),
+		incomingMessages: make(chan *stdtypes.EventList),
 		stop:             make(chan struct{}),
 		stats:            stats,
 	}
@@ -71,7 +71,7 @@ func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Log
 
 func (tr *Transport) ImplementsModule() {}
 
-func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList) error {
+func (tr *Transport) ApplyEvents(_ context.Context, eventList *stdtypes.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
@@ -117,7 +117,7 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *events.EventList)
 	return nil
 }
 
-func (tr *Transport) EventsOut() <-chan *events.EventList {
+func (tr *Transport) EventsOut() <-chan *stdtypes.EventList {
 	return tr.incomingMessages
 }
 
@@ -388,7 +388,7 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 		select {
 		// TODO: Think of a smarter way of batching the incoming messages on the channel,
 		//       instead of sending each individual message as a list of length one.
-		case tr.incomingMessages <- events.ListOf(transportpbevents.MessageReceived(
+		case tr.incomingMessages <- stdtypes.ListOf(transportpbevents.MessageReceived(
 			t.ModuleID(msg.DestModule),
 			sender,
 			messagepbtypes.MessageFromPb(msg),

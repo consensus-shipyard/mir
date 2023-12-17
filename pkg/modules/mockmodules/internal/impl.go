@@ -1,9 +1,9 @@
 package internal
 
 import (
-	"github.com/filecoin-project/mir/pkg/events"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type ModuleImpl interface {
-	Event(ev events.Event) (*events.EventList, error)
+	Event(ev stdtypes.Event) (*stdtypes.EventList, error)
 }

@@ -1,4 +1,4 @@
-package events
+package stdtypes
 
 import t "github.com/filecoin-project/mir/pkg/types"
 

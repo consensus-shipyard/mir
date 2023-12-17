@@ -6,11 +6,11 @@ import (
 	"io"
 	"os"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
@@ -91,7 +91,7 @@ func writeSizePrefixedProto(dest io.Writer, msg proto.Message) error {
 	return nil
 }
 
-func pbEventSlice(list *events.EventList) ([]*eventpb.Event, error) {
+func pbEventSlice(list *stdtypes.EventList) ([]*eventpb.Event, error) {
 	// Create empty result slice.
 	result := make([]*eventpb.Event, 0, list.Len())
 

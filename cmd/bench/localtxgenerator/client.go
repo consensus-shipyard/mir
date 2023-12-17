@@ -8,11 +8,11 @@ import (
 	"sync/atomic"
 
 	"github.com/filecoin-project/mir/cmd/bench/stats"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
 )
@@ -24,14 +24,14 @@ type client struct {
 	randSource    *rand.Rand
 	nextTXNo      tt.TxNo
 	statsTrackers []stats.Tracker
-	txOutChan     chan events.Event
+	txOutChan     chan stdtypes.Event
 	txDeliverChan chan *trantorpbtypes.Transaction
 	stopChan      chan struct{}
 	wg            sync.WaitGroup
 	logger        logging.Logger
 }
 
-func newClient(id tt.ClientID, moduleConfig ModuleConfig, params ModuleParams, txOutChan chan events.Event, logger logging.Logger) *client {
+func newClient(id tt.ClientID, moduleConfig ModuleConfig, params ModuleParams, txOutChan chan stdtypes.Event, logger logging.Logger) *client {
 	seed := make([]byte, 8)
 	copy(seed, id.Bytes())
 	return &client{

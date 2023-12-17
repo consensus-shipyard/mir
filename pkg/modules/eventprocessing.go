@@ -3,9 +3,8 @@ package modules
 import (
 	"runtime/debug"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/pkg/events"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.
@@ -13,11 +12,11 @@ import (
 // The EventLists returned by applyEvent are aggregated in a single EventList (in order of creation)
 // and returned by ApplyEventsSequentially.
 func ApplyEventsSequentially(
-	eventsIn *events.EventList,
-	applyEvent func(events.Event) (*events.EventList, error),
-) (*events.EventList, error) {
+	eventsIn *stdtypes.EventList,
+	applyEvent func(stdtypes.Event) (*stdtypes.EventList, error),
+) (*stdtypes.EventList, error) {
 
-	eventsOut := events.EmptyList()
+	eventsOut := stdtypes.EmptyList()
 
 	iter := eventsIn.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -41,15 +40,15 @@ func ApplyEventsSequentially(
 // If one or more errors occur during processing, ApplyEventsConcurrently returns the first of them,
 // along with an empty EventList.
 func ApplyEventsConcurrently(
-	eventsIn *events.EventList,
-	applyEvent func(events.Event) (*events.EventList, error),
-) (*events.EventList, error) {
+	eventsIn *stdtypes.EventList,
+	applyEvent func(stdtypes.Event) (*stdtypes.EventList, error),
+) (*stdtypes.EventList, error) {
 
 	// Initialize channels into which the results of each invocation of applyEvent will be written.
-	results := make([]chan *events.EventList, eventsIn.Len())
+	results := make([]chan *stdtypes.EventList, eventsIn.Len())
 	errors := make([]chan error, eventsIn.Len())
 	for i := 0; i < eventsIn.Len(); i++ {
-		results[i] = make(chan *events.EventList)
+		results[i] = make(chan *stdtypes.EventList)
 		errors[i] = make(chan error)
 	}
 
@@ -59,7 +58,7 @@ func ApplyEventsConcurrently(
 	i := 0
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		go func(e events.Event, j int) {
+		go func(e stdtypes.Event, j int) {
 
 			// Apply the input event, catching potential panics.
 			res, err := applySafely(e, applyEvent)
@@ -77,7 +76,7 @@ func ApplyEventsConcurrently(
 
 	// The event processing results will be aggregated here.
 	var firstError error
-	eventsOut := events.EmptyList()
+	eventsOut := stdtypes.EmptyList()
 
 	// For each input event, read the processing result from the common channels and aggregate it with the rest.
 	for i := 0; i < eventsIn.Len(); i++ {
@@ -108,9 +107,9 @@ func ApplyEventsConcurrently(
 
 // applySafely is a wrapper around an event processing function that catches its panic and returns it as an error.
 func applySafely(
-	event events.Event,
-	processingFunc func(events.Event) (*events.EventList, error),
-) (result *events.EventList, err error) {
+	event stdtypes.Event,
+	processingFunc func(stdtypes.Event) (*stdtypes.EventList, error),
+) (result *stdtypes.EventList, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rErr, ok := r.(error); ok {

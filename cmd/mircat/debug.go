@@ -12,6 +12,7 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/timer"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -21,7 +22,6 @@ import (
 	mirCrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/iss"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -57,9 +57,9 @@ func debug(args *arguments) error {
 	defer stopNode()
 
 	// Create channel for node output events and start printing its contents.
-	var nodeOutput chan *events.EventList
+	var nodeOutput chan *stdtypes.EventList
 	if args.showNodeEvents {
-		nodeOutput = make(chan *events.EventList)
+		nodeOutput = make(chan *stdtypes.EventList)
 		go printNodeOutput(nodeOutput)
 	} else {
 		nodeOutput = nil
@@ -126,7 +126,7 @@ func debug(args *arguments) error {
 				}
 
 				// Submit the event to the debugger node.
-				if err := node.InjectEvents(ctx, events.ListOf(event)); err != nil {
+				if err := node.InjectEvents(ctx, stdtypes.ListOf(event)); err != nil {
 					kingpin.Errorf("Error injecting events of src file", filename, ": ", err)
 					fmt.Printf("\n\n!!!\nContinuing after error with next file\n!!!\n\n")
 					continue
@@ -228,7 +228,7 @@ func stopBeforeNext(event *eventpb.Event, metadata eventMetadata) {
 
 // printNodeOutput reads all events output by a node from the given eventChan channel
 // and prints them to standard output.
-func printNodeOutput(eventChan chan *events.EventList) {
+func printNodeOutput(eventChan chan *stdtypes.EventList) {
 	for receivedEvents, ok := <-eventChan; ok; receivedEvents, ok = <-eventChan {
 		fmt.Printf("========================================\n")
 		fmt.Printf("Node produced the following events:\n\n")

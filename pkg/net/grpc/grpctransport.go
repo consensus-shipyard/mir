@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -19,7 +20,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	mirnet "github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
@@ -54,7 +54,7 @@ type Transport struct {
 
 	// Channel to which all incoming messages are written.
 	// This channel is also returned by the ReceiveChan() method.
-	incomingMessages chan *events.EventList
+	incomingMessages chan *stdtypes.EventList
 
 	// For each node ID, stores a gRPC message sink, calling the Send() method of which sends a message to that node.
 	clients map[t.NodeID]GrpcTransport_ListenClient
@@ -96,7 +96,7 @@ func NewTransport(id t.NodeID, addrStr string, l logging.Logger) (*Transport, er
 	return &Transport{
 		ownID:            id,
 		ownAddr:          addr,
-		incomingMessages: make(chan *events.EventList),
+		incomingMessages: make(chan *stdtypes.EventList),
 		clients:          make(map[t.NodeID]GrpcTransport_ListenClient),
 		conns:            make(map[t.NodeID]*grpc.ClientConn),
 		logger:           l,
@@ -106,13 +106,13 @@ func NewTransport(id t.NodeID, addrStr string, l logging.Logger) (*Transport, er
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (gt *Transport) ImplementsModule() {}
 
-func (gt *Transport) EventsOut() <-chan *events.EventList {
+func (gt *Transport) EventsOut() <-chan *stdtypes.EventList {
 	return gt.incomingMessages
 }
 
 func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this function.
 	ctx context.Context,
-	eventList *events.EventList,
+	eventList *stdtypes.EventList,
 ) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
@@ -136,7 +136,7 @@ func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this funct
 					}
 					go func() {
 						select {
-						case gt.incomingMessages <- events.ListOf(&receivedEvent):
+						case gt.incomingMessages <- stdtypes.ListOf(&receivedEvent):
 						case <-ctx.Done():
 						}
 					}()
@@ -167,7 +167,7 @@ func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this funct
 							)
 							go func() {
 								select {
-								case gt.incomingMessages <- events.ListOf(receivedEvent.Pb()):
+								case gt.incomingMessages <- stdtypes.ListOf(receivedEvent.Pb()):
 								case <-ctx.Done():
 								}
 							}()
@@ -240,7 +240,7 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 	// For each message received
 	for grpcMsg, err = srv.Recv(); err == nil; grpcMsg, err = srv.Recv() {
 
-		var rcvEvent events.Event
+		var rcvEvent stdtypes.Event
 		switch msg := grpcMsg.Type.(type) {
 		case *GrpcMessage_PbMsg:
 			rcvEvent = transportpbevents.MessageReceived(
@@ -257,7 +257,7 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 		}
 
 		select {
-		case gt.incomingMessages <- events.ListOf(rcvEvent):
+		case gt.incomingMessages <- stdtypes.ListOf(rcvEvent):
 			// Write the message to the channel. This channel will be read by the user of the module.
 
 		case <-srv.Context().Done():

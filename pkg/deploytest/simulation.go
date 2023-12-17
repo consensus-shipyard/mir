@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // Simulation represents a test deployment in the simulation runtime.
@@ -25,7 +25,7 @@ type Simulation struct {
 }
 
 // EventDelayFn defines a function to provide event processing delay.
-type EventDelayFn func(e events.Event) time.Duration
+type EventDelayFn func(e stdtypes.Event) time.Duration
 
 func NewSimulation(rnd *rand.Rand, nodeIDs []t.NodeID, delayFn EventDelayFn) *Simulation {
 	s := &Simulation{
@@ -64,15 +64,15 @@ func newNode(s *Simulation, id t.NodeID, delayFn EventDelayFn) *SimNode {
 
 // SendEvents notifies simulation about the list of emitted events on
 // behalf of the given process.
-func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList) {
+func (n *SimNode) SendEvents(proc *testsim.Process, eventList *stdtypes.EventList) {
 	moduleIDs := make([]t.ModuleID, 0)
-	eventsMap := make(map[t.ModuleID]*events.EventList)
+	eventsMap := make(map[t.ModuleID]*stdtypes.EventList)
 
 	it := eventList.Iterator()
 	for e := it.Next(); e != nil; e = it.Next() {
 		m := e.Dest().Top()
 		if eventsMap[m] == nil {
-			eventsMap[m] = events.EmptyList()
+			eventsMap[m] = stdtypes.EmptyList()
 			moduleIDs = append(moduleIDs, m)
 		}
 		eventsMap[m].PushBack(e)
@@ -92,12 +92,12 @@ func (n *SimNode) SendEvents(proc *testsim.Process, eventList *events.EventList)
 	}
 }
 
-func (n *SimNode) recvEvents(proc *testsim.Process, simChan *testsim.Chan) (eventList *events.EventList, ok bool) {
+func (n *SimNode) recvEvents(proc *testsim.Process, simChan *testsim.Chan) (eventList *stdtypes.EventList, ok bool) {
 	v, ok := proc.Recv(simChan)
 	if !ok {
 		return nil, false
 	}
-	return v.(*events.EventList), true
+	return v.(*stdtypes.EventList), true
 }
 
 // WrapModules wraps the modules to be used in simulation. Mir nodes
@@ -129,22 +129,22 @@ func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
 // on behalf of the given process. To be called concurrently with
 // mir.Node.Run().
 func (n *SimNode) Start(proc *testsim.Process) {
-	initEvents := events.EmptyList()
+	initEvents := stdtypes.EmptyList()
 	for m := range n.moduleChans {
 		initEvents.PushBack(&eventpb.Event{DestModule: m.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}})
 	}
 	n.SendEvents(proc, initEvents)
 }
 
-type applyEventsFn func(ctx context.Context, eventList *events.EventList) (*events.EventList, error)
+type applyEventsFn func(ctx context.Context, eventList *stdtypes.EventList) (*stdtypes.EventList, error)
 
 type eventsIn struct {
 	ctx       context.Context
-	eventList *events.EventList
+	eventList *stdtypes.EventList
 }
 
 type eventsOut struct {
-	eventList *events.EventList
+	eventList *stdtypes.EventList
 	err       error
 }
 
@@ -160,12 +160,12 @@ func newSimModule(n *SimNode, m modules.Module, simChan *testsim.Chan) *simModul
 	var applyFn applyEventsFn
 	switch m := m.(type) {
 	case modules.PassiveModule:
-		applyFn = func(_ context.Context, eventList *events.EventList) (*events.EventList, error) {
+		applyFn = func(_ context.Context, eventList *stdtypes.EventList) (*stdtypes.EventList, error) {
 			return m.ApplyEvents(eventList)
 		}
 	case modules.ActiveModule:
-		applyFn = func(ctx context.Context, eventList *events.EventList) (*events.EventList, error) {
-			return events.EmptyList(), m.ApplyEvents(ctx, eventList)
+		applyFn = func(ctx context.Context, eventList *stdtypes.EventList) (*stdtypes.EventList, error) {
+			return stdtypes.EmptyList(), m.ApplyEvents(ctx, eventList)
 		}
 	default:
 		panic(fmt.Sprintf("Unexpected module type: %v %T", m, m))
@@ -186,7 +186,7 @@ func newSimModule(n *SimNode, m modules.Module, simChan *testsim.Chan) *simModul
 func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 	defer m.wg.Done()
 
-	origEvents := events.EmptyList()
+	origEvents := stdtypes.EmptyList()
 	for {
 		if origEvents.Len() == 0 {
 			newOrigEvents, ok := m.SimNode.recvEvents(proc, m.simChan)
@@ -227,7 +227,7 @@ func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 			// First, collect from the original event list
 			// follow-ups for each event in the event list
 			// passed by the Mir node to ApplyEvents
-			followUps := events.EmptyList()
+			followUps := stdtypes.EmptyList()
 			for i := 0; i < in.eventList.Len(); i++ {
 				it.Next()
 				//followUps.PushBackSlice(it.Next().Next)
@@ -235,7 +235,7 @@ func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 
 			// Then keep only the rest of the events in
 			// the original event list
-			origEvents = events.EmptyList()
+			origEvents = stdtypes.EmptyList()
 			for e := it.Next(); e != nil; e = it.Next() {
 				origEvents.PushBack(e)
 			}
@@ -259,7 +259,7 @@ func (m *simModule) run(proc *testsim.Process, applyFn applyEventsFn) {
 	}
 }
 
-func (m *simModule) applyEvents(ctx context.Context, eventList *events.EventList) (eventsOut *events.EventList, err error) {
+func (m *simModule) applyEvents(ctx context.Context, eventList *stdtypes.EventList) (eventsOut *stdtypes.EventList, err error) {
 	m.inChan <- eventsIn{ctx, eventList}
 	out := <-m.outChan
 	return out.eventList, out.err
@@ -274,7 +274,7 @@ func (n *SimNode) wrapPassive(m modules.PassiveModule, simChan *testsim.Chan) mo
 	return &passiveSimModule{m, newSimModule(n, m, simChan)}
 }
 
-func (m *passiveSimModule) ApplyEvents(eventList *events.EventList) (*events.EventList, error) {
+func (m *passiveSimModule) ApplyEvents(eventList *stdtypes.EventList) (*stdtypes.EventList, error) {
 	return m.applyEvents(context.Background(), eventList)
 }
 
@@ -287,7 +287,7 @@ func (n *SimNode) wrapActive(m modules.ActiveModule, simChan *testsim.Chan) modu
 	return &activeSimModule{m, newSimModule(n, m, simChan)}
 }
 
-func (m *activeSimModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
+func (m *activeSimModule) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList) error {
 	_, err := m.applyEvents(ctx, eventList)
 	return err
 }

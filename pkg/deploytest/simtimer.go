@@ -8,9 +8,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
@@ -20,7 +20,7 @@ import (
 
 type simTimerModule struct {
 	*SimNode
-	eventsOut chan *events.EventList
+	eventsOut chan *stdtypes.EventList
 	processes map[tt.RetentionIndex]*testsim.Process
 }
 
@@ -28,25 +28,25 @@ type simTimerModule struct {
 func NewSimTimerModule(node *SimNode) modules.ActiveModule {
 	return &simTimerModule{
 		SimNode:   node,
-		eventsOut: make(chan *events.EventList, 1),
+		eventsOut: make(chan *stdtypes.EventList, 1),
 		processes: map[tt.RetentionIndex]*testsim.Process{},
 	}
 }
 
 func (m *simTimerModule) ImplementsModule() {}
 
-func (m *simTimerModule) EventsOut() <-chan *events.EventList {
+func (m *simTimerModule) EventsOut() <-chan *stdtypes.EventList {
 	return m.eventsOut
 }
 
-func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *events.EventList) error {
-	_, err := modules.ApplyEventsSequentially(eventList, func(e events.Event) (*events.EventList, error) {
-		return events.EmptyList(), m.applyEvent(ctx, e)
+func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList) error {
+	_, err := modules.ApplyEventsSequentially(eventList, func(e stdtypes.Event) (*stdtypes.EventList, error) {
+		return stdtypes.EmptyList(), m.applyEvent(ctx, e)
 	})
 	return err
 }
 
-func (m *simTimerModule) applyEvent(ctx context.Context, event events.Event) error {
+func (m *simTimerModule) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
@@ -81,7 +81,7 @@ func (m *simTimerModule) applyEvent(ctx context.Context, event events.Event) err
 	return nil
 }
 
-func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList, d types.Duration) {
+func (m *simTimerModule) delay(ctx context.Context, eventList *stdtypes.EventList, d types.Duration) {
 	proc := m.Spawn()
 
 	done := make(chan struct{})
@@ -113,7 +113,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *events.EventList,
 	}()
 }
 
-func (m *simTimerModule) repeat(ctx context.Context, eventList *events.EventList, d types.Duration, retIdx tt.RetentionIndex) {
+func (m *simTimerModule) repeat(ctx context.Context, eventList *stdtypes.EventList, d types.Duration, retIdx tt.RetentionIndex) {
 	proc := m.Spawn()
 	m.processes[retIdx] = proc
 

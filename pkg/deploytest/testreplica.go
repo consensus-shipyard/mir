@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventlog"
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
@@ -179,7 +179,7 @@ func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Nod
 			break
 		default:
 			// Otherwise, submit next transaction.
-			eventList := events.ListOf(mempoolpbevents.NewTransactions(
+			eventList := stdtypes.ListOf(mempoolpbevents.NewTransactions(
 				destModule,
 				[]*trantorpbtypes.Transaction{{
 					ClientId: tt.NewClientIDFromInt(0),

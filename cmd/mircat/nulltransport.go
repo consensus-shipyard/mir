@@ -3,21 +3,21 @@ package main
 import (
 	"context"
 
-	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type NullTransport struct{}
 
 func (n *NullTransport) ImplementsModule() {}
 
-func (n *NullTransport) ApplyEvents(_ context.Context, _ *events.EventList) error {
+func (n *NullTransport) ApplyEvents(_ context.Context, _ *stdtypes.EventList) error {
 	return nil
 }
 
-func (n *NullTransport) EventsOut() <-chan *events.EventList {
+func (n *NullTransport) EventsOut() <-chan *stdtypes.EventList {
 	return nil
 }
 
