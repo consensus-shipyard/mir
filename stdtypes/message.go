@@ -1,16 +1,5 @@
 package stdtypes
 
-import (
-	"github.com/multiformats/go-multiaddr"
-)
-
-// RetentionIndex represents an abstract notion of system progress used in garbage collection.
-// The basic idea is to associate various parts of the system (parts of the state, even whole modules)
-// that are subject to eventual garbage collection with a retention index.
-// As the system progresses, the retention index monotonically increases
-// and parts of the system associated with a lower retention index can be garbage-collected.
-type RetentionIndex uint64
-
 // Message represents a message to be sent over the network.
 // It is the data type of the stdevents.SendMessage.Payload and stdevents.MessageReceived.Payload.
 // The only requirement of a Message is that it must be serializable.
@@ -23,6 +12,3 @@ type RetentionIndex uint64
 type Message interface {
 	ToBytes() ([]byte, error)
 }
-
-// NodeAddress represents the address of a node.
-type NodeAddress multiaddr.Multiaddr
