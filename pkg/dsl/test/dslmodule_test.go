@@ -419,7 +419,7 @@ func DslSignOrigin(module stdtypes.ModuleID, contextID dsl.ContextID) *cryptopbt
 	return &cryptopbtypes.SignOrigin{
 		Module: module,
 		Type: &cryptopbtypes.SignOrigin_Dsl{
-			Dsl: dsl.Origin(contextID),
+			Dsl: dsl.MirOrigin(contextID),
 		},
 	}
 }
