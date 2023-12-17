@@ -9,8 +9,9 @@ package crypto
 import (
 	insecureRNG "math/rand"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 var (

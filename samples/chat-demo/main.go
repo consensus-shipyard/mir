@@ -21,12 +21,13 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/checkpoint"

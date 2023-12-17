@@ -8,8 +8,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"

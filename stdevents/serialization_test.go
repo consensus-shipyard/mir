@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type fakeMessage struct {

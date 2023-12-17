@@ -9,10 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/ttacon/chalk"
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/modules"

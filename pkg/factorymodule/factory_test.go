@@ -5,11 +5,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/filecoin-project/mir/stdevents"
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
+
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"

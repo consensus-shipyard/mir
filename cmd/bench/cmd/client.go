@@ -14,10 +14,11 @@ import (
 	"strconv"
 	"time"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/spf13/cobra"
 	rateLimiter "golang.org/x/time/rate"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/dummyclient"
 	"github.com/filecoin-project/mir/pkg/logging"

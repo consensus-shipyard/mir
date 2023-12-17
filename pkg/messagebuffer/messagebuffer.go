@@ -22,10 +22,10 @@ package messagebuffer
 import (
 	"container/list"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Applicable is an enum-style type representing the status of a message stored in the message buffer.

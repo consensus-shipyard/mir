@@ -12,15 +12,17 @@
 package isspb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	_ "github.com/filecoin-project/mir/pkg/pb/mir"
 	_ "github.com/filecoin-project/mir/pkg/pb/net"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (

@@ -3,8 +3,9 @@ package threshcrypto
 import (
 	"bytes"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // DummyCrypto represents a dummy MirModule module that

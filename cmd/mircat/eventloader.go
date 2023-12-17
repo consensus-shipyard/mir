@@ -9,8 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"

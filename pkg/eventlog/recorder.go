@@ -16,11 +16,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type EventRecord struct {

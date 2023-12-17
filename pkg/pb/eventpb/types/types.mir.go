@@ -3,6 +3,8 @@
 package eventpbtypes
 
 import (
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types19 "github.com/filecoin-project/mir/codegen/model/types"
 	types12 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
@@ -28,7 +30,6 @@ import (
 	types20 "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {

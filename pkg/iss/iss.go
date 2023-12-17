@@ -15,9 +15,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"

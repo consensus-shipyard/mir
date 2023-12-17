@@ -5,9 +5,10 @@ import (
 	"context"
 	"os"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/reactivex/rxgo/v2"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/batchfetcherpb"

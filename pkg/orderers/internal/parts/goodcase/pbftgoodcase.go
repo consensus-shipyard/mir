@@ -3,8 +3,9 @@ package goodcase
 import (
 	"fmt"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"

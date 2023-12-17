@@ -1,9 +1,10 @@
 package deploytest
 
 import (
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
 

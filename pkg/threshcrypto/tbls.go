@@ -13,9 +13,10 @@ import (
 	"github.com/drand/kyber/share"
 	"github.com/drand/kyber/sign"
 	"github.com/drand/kyber/sign/tbls"
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"golang.org/x/exp/slices"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // TBLSInst an instance of a BLS-based (t, len(members))-threshold signature scheme

@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"sort"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"

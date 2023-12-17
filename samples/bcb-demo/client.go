@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/bcb"

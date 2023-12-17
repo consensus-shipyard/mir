@@ -8,8 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"

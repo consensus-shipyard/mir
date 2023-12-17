@@ -1,8 +1,9 @@
 package chkpvalidator
 
 import (
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"

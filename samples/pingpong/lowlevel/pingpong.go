@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type Pingpong struct {

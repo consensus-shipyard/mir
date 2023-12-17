@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	t "github.com/filecoin-project/mir/stdtypes"
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // mircat is a tool for reviewing Mir state machine recordings.

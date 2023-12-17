@@ -2,15 +2,14 @@ package generator
 
 import (
 	"github.com/dave/jennifer/jen"
-	t "github.com/filecoin-project/mir/stdtypes"
-
-	"github.com/filecoin-project/mir/codegen/model/messages"
 
 	"github.com/filecoin-project/mir/codegen"
+	"github.com/filecoin-project/mir/codegen/model/messages"
 	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/codegen/util/params"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 var tNodeIDCode jen.Code = jenutil.QualFromType(reflectutil.TypeOf[t.NodeID]())

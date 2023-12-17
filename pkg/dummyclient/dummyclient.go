@@ -12,10 +12,11 @@ import (
 	"fmt"
 	"sync"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
