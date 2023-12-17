@@ -12,10 +12,11 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/logging"

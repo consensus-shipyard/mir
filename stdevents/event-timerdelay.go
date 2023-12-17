@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	es "github.com/go-errors/errors"
+
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	"github.com/filecoin-project/mir/stdtypes"
-	es "github.com/go-errors/errors"
 )
 
 type serializableTimerDelay struct {

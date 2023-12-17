@@ -3,10 +3,11 @@ package checkpoint
 import (
 	"reflect"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"

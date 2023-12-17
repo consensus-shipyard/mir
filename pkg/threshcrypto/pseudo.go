@@ -5,9 +5,10 @@ import (
 	prand "math/rand"
 
 	"github.com/drand/kyber/util/random"
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"golang.org/x/exp/slices"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 var (

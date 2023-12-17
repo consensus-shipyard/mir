@@ -1,7 +1,6 @@
 package common
 
 import (
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/orderers/types"
@@ -9,6 +8,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // The Segment type represents an ISS Segment.

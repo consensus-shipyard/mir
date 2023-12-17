@@ -3,9 +3,10 @@ package viewchange
 import (
 	"bytes"
 
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -206,7 +207,7 @@ func IncludeViewChange( //nolint:gocognit
 
 		// Feed all obtained ViewChange messages to the view change state.
 		for i, signedViewChange := range context.SignedViewChanges {
-			vcState.AddSignedViewChange(signedViewChange, t.NodeID(context.ViewChangeSenders[i]), logger)
+			vcState.AddSignedViewChange(signedViewChange, context.ViewChangeSenders[i], logger)
 		}
 
 		// If the obtained ViewChange messages are not sufficient to infer all re-proposals, ignore NewView message.

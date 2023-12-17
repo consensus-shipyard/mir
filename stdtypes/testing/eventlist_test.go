@@ -4,9 +4,10 @@ package testing
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEventList_Constructors(t *testing.T) {

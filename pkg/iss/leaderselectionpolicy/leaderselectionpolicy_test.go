@@ -3,9 +3,10 @@ package leaderselectionpolicy
 import (
 	"testing"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/filecoin-project/mir/stdtypes"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"

@@ -1,9 +1,10 @@
 package checkpoint
 
 import (
-	t "github.com/filecoin-project/mir/stdtypes"
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
+
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )

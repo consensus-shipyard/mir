@@ -5,13 +5,14 @@ import (
 	mrand "math/rand"
 	"net"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p"
 	libp2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
+
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // NewDummyHostWithPrivKey creates new dummy libp2p host with an identity

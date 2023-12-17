@@ -1,3 +1,4 @@
+//nolint:dupl
 package stdevents
 
 import (
@@ -5,6 +6,9 @@ import (
 
 	"github.com/filecoin-project/mir/stdtypes"
 )
+
+// TODO: Make this generic in the form of TestValue[T any] (or some subset of any)
+//   Then the linter will stop complaining about duplication.
 
 type TestString struct {
 	mirEvent

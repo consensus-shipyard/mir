@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -14,6 +13,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type gzipWriter struct {
