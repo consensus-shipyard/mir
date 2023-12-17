@@ -3,16 +3,16 @@
 package testerpbevents
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func Tester(destModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func Tester(destModule stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Tester{
-			Tester: &types2.Tester{},
+		Type: &types.Event_Tester{
+			Tester: &types1.Tester{},
 		},
 	}
 }

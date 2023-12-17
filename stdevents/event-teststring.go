@@ -3,7 +3,6 @@ package stdevents
 import (
 	"fmt"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -12,7 +11,7 @@ type TestString struct {
 	Value string
 }
 
-func NewTestString(dest t.ModuleID, value string) *TestString {
+func NewTestString(dest stdtypes.ModuleID, value string) *TestString {
 	return &TestString{
 		mirEvent{
 			DestModule: dest,
@@ -21,19 +20,19 @@ func NewTestString(dest t.ModuleID, value string) *TestString {
 	}
 }
 
-func NewTestStringWithSrc(src t.ModuleID, dest t.ModuleID, value string) *TestString {
+func NewTestStringWithSrc(src stdtypes.ModuleID, dest stdtypes.ModuleID, value string) *TestString {
 	e := NewTestString(dest, value)
 	e.SrcModule = src
 	return e
 }
 
-func (e *TestString) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (e *TestString) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *TestString) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (e *TestString) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

@@ -3,7 +3,6 @@ package stdevents
 import (
 	"fmt"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -12,7 +11,7 @@ type Raw struct {
 	Data []byte
 }
 
-func NewRaw(dest t.ModuleID, data []byte) *Raw {
+func NewRaw(dest stdtypes.ModuleID, data []byte) *Raw {
 	return &Raw{
 		mirEvent: mirEvent{
 			DestModule: dest,
@@ -21,19 +20,19 @@ func NewRaw(dest t.ModuleID, data []byte) *Raw {
 	}
 }
 
-func NewRawWithSrc(src t.ModuleID, dest t.ModuleID, data []byte) *Raw {
+func NewRawWithSrc(src stdtypes.ModuleID, dest stdtypes.ModuleID, data []byte) *Raw {
 	e := NewRaw(dest, data)
 	e.SrcModule = src
 	return e
 }
 
-func (e *Raw) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (e *Raw) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *Raw) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (e *Raw) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

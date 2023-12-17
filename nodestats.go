@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // ==============================================================================================================

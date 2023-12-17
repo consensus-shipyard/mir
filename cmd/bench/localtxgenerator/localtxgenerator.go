@@ -16,11 +16,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type ModuleConfig struct {
-	Mempool t.ModuleID
+	Mempool stdtypes.ModuleID
 }
 
 func DefaultModuleConfig() ModuleConfig {

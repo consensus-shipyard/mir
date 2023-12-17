@@ -20,7 +20,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Stats represents a statistics tracker for networking.
@@ -34,19 +33,19 @@ type Stats interface {
 }
 
 type TransportMessage struct {
-	Sender  string
+	Sender  []byte
 	Payload []byte
 }
 
 type Transport struct {
 	params Params
-	ownID  t.NodeID
+	ownID  stdtypes.NodeID
 	host   host.Host
 	logger logging.Logger
 	stats  Stats
 
-	connections     map[t.NodeID]connection
-	nodeIDs         map[peer.ID]t.NodeID
+	connections     map[stdtypes.NodeID]connection
+	nodeIDs         map[peer.ID]stdtypes.NodeID
 	connectionsLock sync.RWMutex
 	stop            chan struct{}
 	incomingConnWg  sync.WaitGroup
@@ -55,14 +54,14 @@ type Transport struct {
 	incomingMessages chan *stdtypes.EventList
 }
 
-func NewTransport(params Params, ownID t.NodeID, h host.Host, logger logging.Logger, stats Stats) *Transport {
+func NewTransport(params Params, ownID stdtypes.NodeID, h host.Host, logger logging.Logger, stats Stats) *Transport {
 	return &Transport{
 		params:           params,
 		ownID:            ownID,
 		host:             h,
 		logger:           logger,
-		connections:      make(map[t.NodeID]connection),
-		nodeIDs:          make(map[peer.ID]t.NodeID),
+		connections:      make(map[stdtypes.NodeID]connection),
+		nodeIDs:          make(map[peer.ID]stdtypes.NodeID),
 		incomingMessages: make(chan *stdtypes.EventList),
 		stop:             make(chan struct{}),
 		stats:            stats,
@@ -136,7 +135,7 @@ func (tr *Transport) Stop() {
 	tr.connectionsLock.Unlock()
 
 	// Passing an empty membership means that no connections will be kept.
-	tr.CloseOldConnections(&trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{}}) // nolint:govet
+	tr.CloseOldConnections(&trantorpbtypes.Membership{map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity{}}) // nolint:govet
 
 	// Wait for incoming connection handlers to terminate.
 	tr.incomingConnWg.Wait()
@@ -197,7 +196,7 @@ func (tr *Transport) Connect(membership *trantorpbtypes.Membership) {
 	}
 }
 
-func (tr *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (tr *Transport) Send(dest stdtypes.NodeID, msg *messagepb.Message) error {
 	conn, err := tr.getConnection(dest)
 	if err != nil {
 		return err
@@ -254,7 +253,7 @@ func (tr *Transport) CloseOldConnections(newMembership *trantorpbtypes.Membershi
 	// Select connections to nodes that are NOT part of the new membership.
 	// We first select the connections (while holding a lock) and only then close them (after releasing the lock),
 	// As closing a connection involves waiting for its processing goroutine to stop.
-	toClose := make(map[t.NodeID]connection)
+	toClose := make(map[stdtypes.NodeID]connection)
 	tr.connectionsLock.Lock()
 	for nodeID, conn := range tr.connections {
 		if _, ok := newMembership.Nodes[nodeID]; !ok {
@@ -269,7 +268,7 @@ func (tr *Transport) CloseOldConnections(newMembership *trantorpbtypes.Membershi
 	wg := sync.WaitGroup{}
 	wg.Add(len(toClose))
 	for nodeID, conn := range toClose {
-		go func(nodeID t.NodeID, conn connection) {
+		go func(nodeID stdtypes.NodeID, conn connection) {
 			conn.Close()
 			tr.logger.Log(logging.LevelInfo, "Closed connection to node.", "nodeID", nodeID)
 			wg.Done()
@@ -278,7 +277,7 @@ func (tr *Transport) CloseOldConnections(newMembership *trantorpbtypes.Membershi
 	wg.Wait()
 }
 
-func (tr *Transport) getConnection(nodeID t.NodeID) (connection, error) {
+func (tr *Transport) getConnection(nodeID stdtypes.NodeID) (connection, error) {
 	tr.connectionsLock.RLock()
 	defer tr.connectionsLock.RUnlock()
 
@@ -368,7 +367,7 @@ func (tr *Transport) handleIncomingConnection(s network.Stream) {
 
 // readAndProcessMessages Reads incoming data from the stream s, parses it to Mir messages,
 // and writes them to the incomingMessages channel
-func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, peerID peer.ID) {
+func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID stdtypes.NodeID, peerID peer.ID) {
 	for {
 		// Read message from the network.
 		msg, sender, err := readAndDecode(s, tr.stats)
@@ -389,7 +388,7 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 		// TODO: Think of a smarter way of batching the incoming messages on the channel,
 		//       instead of sending each individual message as a list of length one.
 		case tr.incomingMessages <- stdtypes.ListOf(transportpbevents.MessageReceived(
-			t.ModuleID(msg.DestModule),
+			stdtypes.ModuleID(msg.DestModule),
 			sender,
 			messagepbtypes.MessageFromPb(msg),
 		).Pb()):
@@ -402,7 +401,7 @@ func (tr *Transport) readAndProcessMessages(s network.Stream, nodeID t.NodeID, p
 	}
 }
 
-func readAndDecode(s network.Stream, stats Stats) (*messagepb.Message, t.NodeID, error) {
+func readAndDecode(s network.Stream, stats Stats) (*messagepb.Message, stdtypes.NodeID, error) {
 	var tm TransportMessage
 	err := tm.UnmarshalCBOR(s)
 	if err != nil {
@@ -421,8 +420,8 @@ func readAndDecode(s network.Stream, stats Stats) (*messagepb.Message, t.NodeID,
 	//   Thus, in the end result the amount of data received will be less (by the CBOR serialization overhead)
 	//   than the amount of data sent. The difference is expected to be marginal though.
 	if stats != nil {
-		stats.Received(len(tm.Payload)+len(tm.Sender), string(t.ModuleID(msg.DestModule).Top()))
+		stats.Received(len(tm.Payload)+len(tm.Sender), string(stdtypes.ModuleID(msg.DestModule).Top()))
 	}
 
-	return &msg, t.NodeID(tm.Sender), nil
+	return &msg, stdtypes.NodeID(tm.Sender), nil
 }

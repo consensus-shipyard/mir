@@ -5,7 +5,7 @@ import (
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // InstanceUID is used to uniquely identify an instance of multisig collector.

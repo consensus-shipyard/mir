@@ -1,10 +1,10 @@
 package checkpoint
 
 import (
+	t "github.com/filecoin-project/mir/stdtypes"
 	"github.com/fxamacker/cbor/v2"
 	es "github.com/go-errors/errors"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -15,7 +15,7 @@ type Certificate map[t.NodeID][]byte
 func (cert *Certificate) Pb() map[string][]byte {
 	return maputil.Transform(*cert,
 		func(k t.NodeID, v []byte) (string, []byte) {
-			return k.Pb(), v
+			return string(k.Bytes()), v
 		},
 	)
 }

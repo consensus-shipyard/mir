@@ -5,38 +5,38 @@ package hasherpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func Request[C any](m dsl.Module, destModule types.ModuleID, data []*types1.HashData, context *C) {
+func Request[C any](m dsl.Module, destModule stdtypes.ModuleID, data []*types.HashData, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.HashOrigin{
+	origin := &types.HashOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.HashOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.HashOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.Request(destModule, data, origin))
 }
 
-func Result(m dsl.Module, destModule types.ModuleID, digests [][]uint8, origin *types1.HashOrigin) {
+func Result(m dsl.Module, destModule stdtypes.ModuleID, digests [][]uint8, origin *types.HashOrigin) {
 	dsl.EmitMirEvent(m, events.Result(destModule, digests, origin))
 }
 
-func RequestOne[C any](m dsl.Module, destModule types.ModuleID, data *types1.HashData, context *C) {
+func RequestOne[C any](m dsl.Module, destModule stdtypes.ModuleID, data *types.HashData, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.HashOrigin{
+	origin := &types.HashOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.HashOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.HashOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.RequestOne(destModule, data, origin))
 }
 
-func ResultOne(m dsl.Module, destModule types.ModuleID, digest []uint8, origin *types1.HashOrigin) {
+func ResultOne(m dsl.Module, destModule stdtypes.ModuleID, digest []uint8, origin *types.HashOrigin) {
 	dsl.EmitMirEvent(m, events.ResultOne(destModule, digest, origin))
 }

@@ -4,13 +4,13 @@ package ordererpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types4 "github.com/filecoin-project/mir/codegen/model/types"
+	types3 "github.com/filecoin-project/mir/codegen/model/types"
 	ordererpb "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -168,9 +168,9 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type PBFTSegment struct {
-	Leader     types1.NodeID
-	Membership *types2.Membership
-	Proposals  map[types3.SeqNr][]uint8
+	Leader     stdtypes.NodeID
+	Membership *types1.Membership
+	Proposals  map[types2.SeqNr][]uint8
 }
 
 func PBFTSegmentFromPb(pb *ordererpb.PBFTSegment) *PBFTSegment {
@@ -178,10 +178,10 @@ func PBFTSegmentFromPb(pb *ordererpb.PBFTSegment) *PBFTSegment {
 		return nil
 	}
 	return &PBFTSegment{
-		Leader:     (types1.NodeID)(pb.Leader),
-		Membership: types2.MembershipFromPb(pb.Membership),
-		Proposals: types4.ConvertMap(pb.Proposals, func(k uint64, v []uint8) (types3.SeqNr, []uint8) {
-			return (types3.SeqNr)(k), v
+		Leader:     (stdtypes.NodeID)(pb.Leader),
+		Membership: types1.MembershipFromPb(pb.Membership),
+		Proposals: types3.ConvertMap(pb.Proposals, func(k uint64, v []uint8) (types2.SeqNr, []uint8) {
+			return (types2.SeqNr)(k), v
 		}),
 	}
 }
@@ -196,7 +196,7 @@ func (m *PBFTSegment) Pb() *ordererpb.PBFTSegment {
 		if m.Membership != nil {
 			pbMessage.Membership = (m.Membership).Pb()
 		}
-		pbMessage.Proposals = types4.ConvertMap(m.Proposals, func(k types3.SeqNr, v []uint8) (uint64, []uint8) {
+		pbMessage.Proposals = types3.ConvertMap(m.Proposals, func(k types2.SeqNr, v []uint8) (uint64, []uint8) {
 			return (uint64)(k), v
 		})
 	}

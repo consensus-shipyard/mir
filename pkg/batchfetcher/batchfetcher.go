@@ -23,7 +23,6 @@ import (
 	trantorpbdsl "github.com/filecoin-project/mir/pkg/pb/trantorpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -73,7 +72,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 	}
 
 	// The NewEpoch handler updates the current epoch number and forwards the event to the output.
-	apppbdsl.UponNewEpoch(m, func(newEpochNr tt.EpochNr, protocolModule t.ModuleID) error {
+	apppbdsl.UponNewEpoch(m, func(newEpochNr tt.EpochNr, protocolModule stdtypes.ModuleID) error {
 		epochNr = newEpochNr
 		output.Enqueue(&outputItem{
 			event: apppbevents.NewEpoch(mc.Destination, epochNr, protocolModule).Pb(),
@@ -120,7 +119,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			// If this is a proper certificate, request transactions from the availability layer.
 			availabilitypbdsl.RequestTransactions(
 				m,
-				mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+				mc.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epochNr))),
 				cert,
 				&txRequestContext{queueItem: &item},
 			)
@@ -131,7 +130,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 
 	// The AppSnapshotRequest handler triggers a ClientProgress event (for the checkpointing protocol)
 	// and forwards the original snapshot request event to the output.
-	apppbdsl.UponSnapshotRequest(m, func(replyTo t.ModuleID) error {
+	apppbdsl.UponSnapshotRequest(m, func(replyTo stdtypes.ModuleID) error {
 		// Save the number of the epoch when the AppSnapshotRequest has been received.
 		// This is necessary in case the epoch number changes
 		// by the time the AppSnapshotRequest event is output and the hook function (added below) executed.
@@ -143,7 +142,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 			f: func(_ stdtypes.Event) {
 				clientProgress.GarbageCollect()
 				trantorpbdsl.ClientProgress(m,
-					mc.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+					mc.Checkpoint.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epochNr))),
 					trantorpbtypes.ClientProgressFromPb(clientProgress.Pb()).Progress,
 				)
 			},

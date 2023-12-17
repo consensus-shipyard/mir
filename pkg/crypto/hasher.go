@@ -11,7 +11,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	hasherpbevents "github.com/filecoin-project/mir/pkg/pb/hasherpb/events"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type HashImpl interface {
@@ -52,14 +51,14 @@ func (hasher *Hasher) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 		case *hasherpb.Event_Request:
 			// Return all computed digests in one common event.
 			return stdtypes.ListOf(hasherpbevents.Result(
-				t.ModuleID(e.Request.Origin.Module),
+				stdtypes.ModuleID(e.Request.Origin.Module),
 				hasher.computeDigests(e.Request.Data),
 				hasherpbtypes.HashOriginFromPb(e.Request.Origin),
 			).Pb()), nil
 		case *hasherpb.Event_RequestOne:
 			// Return a single computed digests.
 			return stdtypes.ListOf(hasherpbevents.ResultOne(
-				t.ModuleID(e.RequestOne.Origin.Module),
+				stdtypes.ModuleID(e.RequestOne.Origin.Module),
 				hasher.computeDigests([]*hasherpb.HashData{e.RequestOne.Data})[0],
 				hasherpbtypes.HashOriginFromPb(e.RequestOne.Origin),
 			).Pb()), nil

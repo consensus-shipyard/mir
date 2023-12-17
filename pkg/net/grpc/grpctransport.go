@@ -28,7 +28,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (
@@ -47,20 +46,20 @@ type Transport struct {
 	UnimplementedGrpcTransportServer
 
 	// The ID of the node that uses this networking module.
-	ownID t.NodeID
+	ownID stdtypes.NodeID
 
 	// The address of the node.
-	ownAddr t.NodeAddress
+	ownAddr stdtypes.NodeAddress
 
 	// Channel to which all incoming messages are written.
 	// This channel is also returned by the ReceiveChan() method.
 	incomingMessages chan *stdtypes.EventList
 
 	// For each node ID, stores a gRPC message sink, calling the Send() method of which sends a message to that node.
-	clients map[t.NodeID]GrpcTransport_ListenClient
+	clients map[stdtypes.NodeID]GrpcTransport_ListenClient
 
 	// For each node ID, stores a gRPC connection to that node.
-	conns map[t.NodeID]*grpc.ClientConn
+	conns map[stdtypes.NodeID]*grpc.ClientConn
 
 	// The gRPC server used by this networking module.
 	grpcServer *grpc.Server
@@ -80,7 +79,7 @@ type Transport struct {
 // The returned GrpcTransport is not yet running (able to receive messages),
 // nor is it connected to any nodes (able to send messages).
 // This needs to be done explicitly by calling the respective Start() and Connect() methods.
-func NewTransport(id t.NodeID, addrStr string, l logging.Logger) (*Transport, error) {
+func NewTransport(id stdtypes.NodeID, addrStr string, l logging.Logger) (*Transport, error) {
 
 	// Parse own address.
 	addr, err := multiaddr.NewMultiaddr(addrStr)
@@ -97,8 +96,8 @@ func NewTransport(id t.NodeID, addrStr string, l logging.Logger) (*Transport, er
 		ownID:            id,
 		ownAddr:          addr,
 		incomingMessages: make(chan *stdtypes.EventList),
-		clients:          make(map[t.NodeID]GrpcTransport_ListenClient),
-		conns:            make(map[t.NodeID]*grpc.ClientConn),
+		clients:          make(map[stdtypes.NodeID]GrpcTransport_ListenClient),
+		conns:            make(map[stdtypes.NodeID]*grpc.ClientConn),
 		logger:           l,
 	}, nil
 }
@@ -195,24 +194,24 @@ func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this funct
 
 // SendPbMessage sends a protobuf type message msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *Transport) SendPbMessage(dest t.NodeID, msg *messagepb.Message) error {
+func (gt *Transport) SendPbMessage(dest stdtypes.NodeID, msg *messagepb.Message) error {
 	return gt.clients[dest].Send(&GrpcMessage{
-		Sender: gt.ownID.Pb(),
+		Sender: gt.ownID.Bytes(),
 		Type:   &GrpcMessage_PbMsg{PbMsg: msg},
 	})
 }
 
 // Send sends a protobuf type message msg to the node with ID dest.
 // Concurrent calls to Send are not (yet? TODO) supported.
-func (gt *Transport) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (gt *Transport) Send(dest stdtypes.NodeID, msg *messagepb.Message) error {
 	return gt.SendPbMessage(dest, msg)
 }
 
-func (gt *Transport) SendRawMessage(destNode t.NodeID, destModule t.ModuleID, serializedMsgData []byte) error {
+func (gt *Transport) SendRawMessage(destNode stdtypes.NodeID, destModule stdtypes.ModuleID, serializedMsgData []byte) error {
 	return gt.clients[destNode].Send(&GrpcMessage{
-		Sender: gt.ownID.Pb(),
+		Sender: gt.ownID.Bytes(),
 		Type: &GrpcMessage_RawMsg{RawMsg: &RawMessage{
-			DestModule: destModule.Pb(),
+			DestModule: destModule.String(), // TODO: Get rid of the String conversion here.
 			Data:       serializedMsgData,
 		}},
 	})
@@ -244,14 +243,14 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 		switch msg := grpcMsg.Type.(type) {
 		case *GrpcMessage_PbMsg:
 			rcvEvent = transportpbevents.MessageReceived(
-				t.ModuleID(msg.PbMsg.DestModule),
-				t.NodeID(grpcMsg.Sender),
+				stdtypes.ModuleID(msg.PbMsg.DestModule),
+				stdtypes.NodeID(grpcMsg.Sender),
 				messagepbtypes.MessageFromPb(msg.PbMsg),
 			).Pb()
 		case *GrpcMessage_RawMsg:
 			rcvEvent = &MessageReceived{
-				SourceNode: t.NodeID(grpcMsg.Sender),
-				DstModule:  t.ModuleID(msg.RawMsg.DestModule),
+				SourceNode: stdtypes.NodeID(grpcMsg.Sender),
+				DstModule:  stdtypes.ModuleID(msg.RawMsg.DestModule),
 				MsgData:    msg.RawMsg.Data,
 			}
 		}
@@ -435,7 +434,7 @@ func (gt *Transport) Connect(membership *trantorpbtypes.Membership) {
 		}
 
 		// Launch a goroutine that connects to the node.
-		go func(id t.NodeID, addr string) {
+		go func(id stdtypes.NodeID, addr string) {
 			defer wg.Done()
 
 			// Create and store connection

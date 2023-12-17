@@ -9,9 +9,9 @@ import (
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types3 "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Message struct {
@@ -310,7 +310,7 @@ func (*ProvideBatchMessage) MirReflect() mirreflect.Type {
 
 type Cert struct {
 	BatchId    types2.BatchID
-	Signers    []types3.NodeID
+	Signers    []stdtypes.NodeID
 	Signatures [][]uint8
 }
 
@@ -320,8 +320,8 @@ func CertFromPb(pb *mscpb.Cert) *Cert {
 	}
 	return &Cert{
 		BatchId: (types2.BatchID)(pb.BatchId),
-		Signers: types1.ConvertSlice(pb.Signers, func(t string) types3.NodeID {
-			return (types3.NodeID)(t)
+		Signers: types1.ConvertSlice(pb.Signers, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
 		}),
 		Signatures: pb.Signatures,
 	}
@@ -334,7 +334,7 @@ func (m *Cert) Pb() *mscpb.Cert {
 	pbMessage := &mscpb.Cert{}
 	{
 		pbMessage.BatchId = ([]uint8)(m.BatchId)
-		pbMessage.Signers = types1.ConvertSlice(m.Signers, func(t types3.NodeID) string {
+		pbMessage.Signers = types1.ConvertSlice(m.Signers, func(t stdtypes.NodeID) string {
 			return (string)(t)
 		})
 		pbMessage.Signatures = m.Signatures
@@ -381,7 +381,7 @@ func (*Certs) MirReflect() mirreflect.Type {
 }
 
 type InstanceParams struct {
-	Epoch       types4.EpochNr
+	Epoch       types3.EpochNr
 	Membership  *types.Membership
 	MaxRequests uint64
 }
@@ -391,7 +391,7 @@ func InstanceParamsFromPb(pb *mscpb.InstanceParams) *InstanceParams {
 		return nil
 	}
 	return &InstanceParams{
-		Epoch:       (types4.EpochNr)(pb.Epoch),
+		Epoch:       (types3.EpochNr)(pb.Epoch),
 		Membership:  types.MembershipFromPb(pb.Membership),
 		MaxRequests: pb.MaxRequests,
 	}

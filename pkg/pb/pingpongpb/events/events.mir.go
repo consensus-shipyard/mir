@@ -3,18 +3,18 @@
 package pingpongpbevents
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func PingTime(destModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func PingTime(destModule stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_PingPong{
-			PingPong: &types2.Event{
-				Type: &types2.Event_PingTime{
-					PingTime: &types2.PingTime{},
+		Type: &types.Event_PingPong{
+			PingPong: &types1.Event{
+				Type: &types1.Event_PingTime{
+					PingTime: &types1.PingTime{},
 				},
 			},
 		},

@@ -4,7 +4,7 @@ import (
 	contextstorepbtypes "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Origin returns a contextstorepb.Origin protobuf containing the given id.

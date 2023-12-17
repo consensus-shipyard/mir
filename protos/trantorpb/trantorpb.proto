@@ -52,13 +52,13 @@ message EpochConfig {
 message Membership {
   option (mir.struct) = true;
 
-  map<string, NodeIdentity> nodes = 1 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  map<string, NodeIdentity> nodes = 1 [(mir.key_type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
 }
 
 message NodeIdentity {
   option (mir.struct) = true;
 
-  string id     = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string id     = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   string addr   = 2; // Value type is Multiaddr, convert in code directly.
   bytes  key    = 3;
   string weight = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.VoteWeight"];

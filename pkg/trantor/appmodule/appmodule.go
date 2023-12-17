@@ -1,6 +1,7 @@
 package appmodule
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
@@ -14,7 +15,6 @@ import (
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
 )
 
@@ -29,7 +29,7 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule.
-func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleID) modules.PassiveModule {
+func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID stdtypes.ModuleID) modules.PassiveModule {
 
 	appModule := &AppModule{
 		appLogic:  appLogic,
@@ -45,7 +45,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 	})
 
 	// UponSnapshotRequest return an event that contains the snapshot back to the originator of the request.
-	apppbdsl.UponSnapshotRequest(m, func(replyTo t.ModuleID) error {
+	apppbdsl.UponSnapshotRequest(m, func(replyTo stdtypes.ModuleID) error {
 		snapshot, err := appModule.appLogic.Snapshot()
 		if err != nil {
 			return err
@@ -67,7 +67,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 
 	// UponNewEpoch inform the application logic of the new epoch and emit an event (to the protocol module)
 	// containing the configuration for the new epoch.
-	apppbdsl.UponNewEpoch(m, func(epochNr types.EpochNr, protocolModule t.ModuleID) error {
+	apppbdsl.UponNewEpoch(m, func(epochNr types.EpochNr, protocolModule stdtypes.ModuleID) error {
 		membership, err := appModule.appLogic.NewEpoch(epochNr)
 		if err != nil {
 			return es.Errorf("error handling NewEpoch event: %w", err)
@@ -82,7 +82,7 @@ func NewAppModule(appLogic AppLogic, transport net.Transport, moduleID t.ModuleI
 		return nil
 	})
 
-	checkpointpbdsl.UponStableCheckpoint(m, func(sn types.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]uint8) error {
+	checkpointpbdsl.UponStableCheckpoint(m, func(sn types.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[stdtypes.NodeID][]uint8) error {
 		chkp := &checkpoint.StableCheckpoint{
 			Sn:       sn,
 			Snapshot: snapshot,

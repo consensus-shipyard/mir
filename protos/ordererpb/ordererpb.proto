@@ -34,7 +34,7 @@ message PBFTSegment {
   option (mir.struct) = true;
 
   // The leader node of the orderer.
-  string leader = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string leader = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
 
   // All nodes executing the orderer implementation.
   trantorpb.Membership membership = 2;

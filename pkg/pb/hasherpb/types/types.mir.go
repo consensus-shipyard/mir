@@ -5,11 +5,11 @@ package hasherpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types "github.com/filecoin-project/mir/codegen/model/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
-	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -310,7 +310,7 @@ func (*ResultOne) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin struct {
-	Module types1.ModuleID
+	Module stdtypes.ModuleID
 	Type   HashOrigin_Type
 }
 
@@ -331,20 +331,20 @@ func HashOrigin_TypeFromPb(pb hasherpb.HashOrigin_Type) HashOrigin_Type {
 	}
 	switch pb := pb.(type) {
 	case *hasherpb.HashOrigin_ContextStore:
-		return &HashOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
+		return &HashOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *hasherpb.HashOrigin_Dsl:
-		return &HashOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
+		return &HashOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type HashOrigin_ContextStore struct {
-	ContextStore *types2.Origin
+	ContextStore *types1.Origin
 }
 
 func (*HashOrigin_ContextStore) isHashOrigin_Type() {}
 
-func (w *HashOrigin_ContextStore) Unwrap() *types2.Origin {
+func (w *HashOrigin_ContextStore) Unwrap() *types1.Origin {
 	return w.ContextStore
 }
 
@@ -363,12 +363,12 @@ func (*HashOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type HashOrigin_Dsl struct {
-	Dsl *types3.Origin
+	Dsl *types2.Origin
 }
 
 func (*HashOrigin_Dsl) isHashOrigin_Type() {}
 
-func (w *HashOrigin_Dsl) Unwrap() *types3.Origin {
+func (w *HashOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
@@ -391,7 +391,7 @@ func HashOriginFromPb(pb *hasherpb.HashOrigin) *HashOrigin {
 		return nil
 	}
 	return &HashOrigin{
-		Module: (types1.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   HashOrigin_TypeFromPb(pb.Type),
 	}
 }

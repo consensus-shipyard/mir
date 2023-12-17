@@ -17,18 +17,17 @@ import (
 	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	tp "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/testlogger"
 )
 
 const (
-	echoFactoryID = tp.ModuleID("echoFactory")
+	echoFactoryID = stdtypes.ModuleID("echoFactory")
 )
 
 type echoModule struct {
 	t      *testing.T
-	id     tp.ModuleID
+	id     stdtypes.ModuleID
 	prefix string
 }
 
@@ -62,7 +61,7 @@ func (em *echoModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 	return New(
 		echoFactoryID,
-		DefaultParams(func(id tp.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+		DefaultParams(func(id stdtypes.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 			return &echoModule{
 				t:      t,
 				id:     id,
@@ -114,7 +113,7 @@ func TestFactoryModule(t *testing.T) {
 			for i := 1; i <= 5; i++ {
 				evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(factorypbevents.NewModule(
 					echoFactoryID,
-					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
+					echoFactoryID.Then(stdtypes.ModuleID(fmt.Sprintf("inst%d", i))),
 					tt.RetentionIndex(i),
 					EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
 				).Pb()))
@@ -122,7 +121,7 @@ func TestFactoryModule(t *testing.T) {
 				assert.Equal(t, 1, evOut.Len())
 				assert.Equal(t, echoFactoryID, evOut.Slice()[0].Dest())
 				assert.Equal(t,
-					string(echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))))+" Init", //nolint:goconst
+					string(echoFactoryID.Then(stdtypes.ModuleID(fmt.Sprintf("inst%d", i))))+" Init", //nolint:goconst
 					evOut.Slice()[0].(*stdevents.TestString).Value,
 				)
 			}
@@ -132,7 +131,7 @@ func TestFactoryModule(t *testing.T) {
 			evList := stdtypes.EmptyList()
 			for i := 5; i >= 0; i-- {
 				evList.PushBack(stdevents.NewTestString(
-					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
+					echoFactoryID.Then(stdtypes.ModuleID(fmt.Sprintf("inst%d", i))),
 					"Hi!"),
 				)
 			}
@@ -189,7 +188,7 @@ func TestFactoryModule(t *testing.T) {
 			evList := stdtypes.EmptyList()
 			for i := 0; i <= 5; i++ {
 				evList.PushBack(stdevents.NewTestString(
-					echoFactoryID.Then(tp.ModuleID(fmt.Sprintf("inst%d", i))),
+					echoFactoryID.Then(stdtypes.ModuleID(fmt.Sprintf("inst%d", i))),
 					"Hi!"),
 				)
 			}

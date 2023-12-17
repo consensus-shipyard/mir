@@ -3,6 +3,7 @@ package goodcase
 import (
 	"fmt"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
@@ -34,7 +35,6 @@ import (
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 func IncludeGoodCase(

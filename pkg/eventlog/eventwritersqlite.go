@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	_ "github.com/mattn/go-sqlite3" // Driver for the sql database
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (

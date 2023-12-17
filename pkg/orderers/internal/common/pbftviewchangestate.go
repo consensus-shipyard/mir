@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sort"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
@@ -14,7 +15,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 

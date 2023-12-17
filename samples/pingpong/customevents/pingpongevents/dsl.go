@@ -5,7 +5,7 @@ package pingpongevents
 import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 )
 

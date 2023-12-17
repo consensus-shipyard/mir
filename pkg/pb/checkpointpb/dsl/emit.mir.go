@@ -5,17 +5,17 @@ package checkpointpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/checkpointpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func StableCheckpoint(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, snapshot *types2.StateSnapshot, cert map[types.NodeID][]uint8) {
+func StableCheckpoint(m dsl.Module, destModule stdtypes.ModuleID, sn types.SeqNr, snapshot *types1.StateSnapshot, cert map[stdtypes.NodeID][]uint8) {
 	dsl.EmitMirEvent(m, events.StableCheckpoint(destModule, sn, snapshot, cert))
 }
 
-func EpochProgress(m dsl.Module, destModule types.ModuleID, nodeId types.NodeID, epoch types1.EpochNr) {
+func EpochProgress(m dsl.Module, destModule stdtypes.ModuleID, nodeId stdtypes.NodeID, epoch types.EpochNr) {
 	dsl.EmitMirEvent(m, events.EpochProgress(destModule, nodeId, epoch))
 }

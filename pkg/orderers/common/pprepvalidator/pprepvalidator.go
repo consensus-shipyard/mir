@@ -12,7 +12,7 @@ import (
 	ppvpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // ModuleConfig sets the module ids.

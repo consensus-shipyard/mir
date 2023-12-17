@@ -10,7 +10,7 @@ SPDX-License-Identifier: Apache-2.0
 package modules
 
 import (
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module generalizes the ActiveModule and PassiveModule types.

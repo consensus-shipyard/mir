@@ -4,10 +4,9 @@ import (
 	"io"
 	"testing"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/filecoin-project/mir/pkg/types"
 )
 
 func TestTBLSHappySmoke(t *testing.T) {
@@ -30,7 +29,7 @@ func TestTBLSHappySmoke(t *testing.T) {
 	// everyone can verify everyone's share
 	for _, k := range keys {
 		for i, sh := range shares {
-			require.NoError(t, k.VerifyShare(data, sh, types.NewNodeIDFromInt(i)))
+			require.NoError(t, k.VerifyShare(data, sh, stdtypes.NewNodeIDFromInt(i)))
 		}
 	}
 
@@ -116,9 +115,9 @@ func TestTBLSMarshalling(t *testing.T) {
 }
 
 func keygen(_, T, N int) []*TBLSInst {
-	members := make([]types.NodeID, N)
+	members := make([]stdtypes.NodeID, N)
 	for i := range members {
-		members[i] = types.NewNodeIDFromInt(i)
+		members[i] = stdtypes.NewNodeIDFromInt(i)
 	}
 
 	rand := pseudorandomStream(DefaultPseudoSeed)

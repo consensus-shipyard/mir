@@ -9,7 +9,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/mempoolpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -19,10 +18,10 @@ type StatInterceptor struct {
 	// ID of the module that is consuming the transactions.
 	// Statistics will only be performed on transactions destined to this module
 	// and the rest of the events will be ignored by the StatInterceptor.
-	txConsumerModule t.ModuleID
+	txConsumerModule stdtypes.ModuleID
 }
 
-func NewStatInterceptor(s *LiveStats, txConsumer t.ModuleID) *StatInterceptor {
+func NewStatInterceptor(s *LiveStats, txConsumer stdtypes.ModuleID) *StatInterceptor {
 	return &StatInterceptor{s, txConsumer}
 }
 

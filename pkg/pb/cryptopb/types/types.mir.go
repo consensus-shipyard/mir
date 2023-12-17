@@ -4,12 +4,12 @@ package cryptopbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types "github.com/filecoin-project/mir/codegen/model/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
-	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -293,7 +293,7 @@ type VerifySig struct {
 	Data      *SignedData
 	Signature []uint8
 	Origin    *SigVerOrigin
-	NodeId    types.NodeID
+	NodeId    stdtypes.NodeID
 }
 
 func VerifySigFromPb(pb *cryptopb.VerifySig) *VerifySig {
@@ -304,7 +304,7 @@ func VerifySigFromPb(pb *cryptopb.VerifySig) *VerifySig {
 		Data:      SignedDataFromPb(pb.Data),
 		Signature: pb.Signature,
 		Origin:    SigVerOriginFromPb(pb.Origin),
-		NodeId:    (types.NodeID)(pb.NodeId),
+		NodeId:    (stdtypes.NodeID)(pb.NodeId),
 	}
 }
 
@@ -333,7 +333,7 @@ func (*VerifySig) MirReflect() mirreflect.Type {
 
 type SigVerified struct {
 	Origin *SigVerOrigin
-	NodeId types.NodeID
+	NodeId stdtypes.NodeID
 	Error  error
 }
 
@@ -343,8 +343,8 @@ func SigVerifiedFromPb(pb *cryptopb.SigVerified) *SigVerified {
 	}
 	return &SigVerified{
 		Origin: SigVerOriginFromPb(pb.Origin),
-		NodeId: (types.NodeID)(pb.NodeId),
-		Error:  types1.StringToError(pb.Error),
+		NodeId: (stdtypes.NodeID)(pb.NodeId),
+		Error:  types.StringToError(pb.Error),
 	}
 }
 
@@ -358,7 +358,7 @@ func (m *SigVerified) Pb() *cryptopb.SigVerified {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
 		pbMessage.NodeId = (string)(m.NodeId)
-		pbMessage.Error = types1.ErrorToString(m.Error)
+		pbMessage.Error = types.ErrorToString(m.Error)
 	}
 
 	return pbMessage
@@ -372,7 +372,7 @@ type VerifySigs struct {
 	Data       []*SignedData
 	Signatures [][]uint8
 	Origin     *SigVerOrigin
-	NodeIds    []types.NodeID
+	NodeIds    []stdtypes.NodeID
 }
 
 func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
@@ -380,13 +380,13 @@ func VerifySigsFromPb(pb *cryptopb.VerifySigs) *VerifySigs {
 		return nil
 	}
 	return &VerifySigs{
-		Data: types1.ConvertSlice(pb.Data, func(t *cryptopb.SignedData) *SignedData {
+		Data: types.ConvertSlice(pb.Data, func(t *cryptopb.SignedData) *SignedData {
 			return SignedDataFromPb(t)
 		}),
 		Signatures: pb.Signatures,
 		Origin:     SigVerOriginFromPb(pb.Origin),
-		NodeIds: types1.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
-			return (types.NodeID)(t)
+		NodeIds: types.ConvertSlice(pb.NodeIds, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
 		}),
 	}
 }
@@ -397,14 +397,14 @@ func (m *VerifySigs) Pb() *cryptopb.VerifySigs {
 	}
 	pbMessage := &cryptopb.VerifySigs{}
 	{
-		pbMessage.Data = types1.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
+		pbMessage.Data = types.ConvertSlice(m.Data, func(t *SignedData) *cryptopb.SignedData {
 			return (t).Pb()
 		})
 		pbMessage.Signatures = m.Signatures
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
-		pbMessage.NodeIds = types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+		pbMessage.NodeIds = types.ConvertSlice(m.NodeIds, func(t stdtypes.NodeID) string {
 			return (string)(t)
 		})
 	}
@@ -418,7 +418,7 @@ func (*VerifySigs) MirReflect() mirreflect.Type {
 
 type SigsVerified struct {
 	Origin  *SigVerOrigin
-	NodeIds []types.NodeID
+	NodeIds []stdtypes.NodeID
 	Errors  []error
 	AllOk   bool
 }
@@ -429,11 +429,11 @@ func SigsVerifiedFromPb(pb *cryptopb.SigsVerified) *SigsVerified {
 	}
 	return &SigsVerified{
 		Origin: SigVerOriginFromPb(pb.Origin),
-		NodeIds: types1.ConvertSlice(pb.NodeIds, func(t string) types.NodeID {
-			return (types.NodeID)(t)
+		NodeIds: types.ConvertSlice(pb.NodeIds, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
 		}),
-		Errors: types1.ConvertSlice(pb.Errors, func(t string) error {
-			return types1.StringToError(t)
+		Errors: types.ConvertSlice(pb.Errors, func(t string) error {
+			return types.StringToError(t)
 		}),
 		AllOk: pb.AllOk,
 	}
@@ -448,11 +448,11 @@ func (m *SigsVerified) Pb() *cryptopb.SigsVerified {
 		if m.Origin != nil {
 			pbMessage.Origin = (m.Origin).Pb()
 		}
-		pbMessage.NodeIds = types1.ConvertSlice(m.NodeIds, func(t types.NodeID) string {
+		pbMessage.NodeIds = types.ConvertSlice(m.NodeIds, func(t stdtypes.NodeID) string {
 			return (string)(t)
 		})
-		pbMessage.Errors = types1.ConvertSlice(m.Errors, func(t error) string {
-			return types1.ErrorToString(t)
+		pbMessage.Errors = types.ConvertSlice(m.Errors, func(t error) string {
+			return types.ErrorToString(t)
 		})
 		pbMessage.AllOk = m.AllOk
 	}
@@ -465,7 +465,7 @@ func (*SigsVerified) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   SignOrigin_Type
 }
 
@@ -486,20 +486,20 @@ func SignOrigin_TypeFromPb(pb cryptopb.SignOrigin_Type) SignOrigin_Type {
 	}
 	switch pb := pb.(type) {
 	case *cryptopb.SignOrigin_ContextStore:
-		return &SignOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
+		return &SignOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *cryptopb.SignOrigin_Dsl:
-		return &SignOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
+		return &SignOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type SignOrigin_ContextStore struct {
-	ContextStore *types2.Origin
+	ContextStore *types1.Origin
 }
 
 func (*SignOrigin_ContextStore) isSignOrigin_Type() {}
 
-func (w *SignOrigin_ContextStore) Unwrap() *types2.Origin {
+func (w *SignOrigin_ContextStore) Unwrap() *types1.Origin {
 	return w.ContextStore
 }
 
@@ -518,12 +518,12 @@ func (*SignOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type SignOrigin_Dsl struct {
-	Dsl *types3.Origin
+	Dsl *types2.Origin
 }
 
 func (*SignOrigin_Dsl) isSignOrigin_Type() {}
 
-func (w *SignOrigin_Dsl) Unwrap() *types3.Origin {
+func (w *SignOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
@@ -546,7 +546,7 @@ func SignOriginFromPb(pb *cryptopb.SignOrigin) *SignOrigin {
 		return nil
 	}
 	return &SignOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   SignOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -571,7 +571,7 @@ func (*SignOrigin) MirReflect() mirreflect.Type {
 }
 
 type SigVerOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   SigVerOrigin_Type
 }
 
@@ -592,20 +592,20 @@ func SigVerOrigin_TypeFromPb(pb cryptopb.SigVerOrigin_Type) SigVerOrigin_Type {
 	}
 	switch pb := pb.(type) {
 	case *cryptopb.SigVerOrigin_ContextStore:
-		return &SigVerOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
+		return &SigVerOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
 	case *cryptopb.SigVerOrigin_Dsl:
-		return &SigVerOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
+		return &SigVerOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type SigVerOrigin_ContextStore struct {
-	ContextStore *types2.Origin
+	ContextStore *types1.Origin
 }
 
 func (*SigVerOrigin_ContextStore) isSigVerOrigin_Type() {}
 
-func (w *SigVerOrigin_ContextStore) Unwrap() *types2.Origin {
+func (w *SigVerOrigin_ContextStore) Unwrap() *types1.Origin {
 	return w.ContextStore
 }
 
@@ -624,12 +624,12 @@ func (*SigVerOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type SigVerOrigin_Dsl struct {
-	Dsl *types3.Origin
+	Dsl *types2.Origin
 }
 
 func (*SigVerOrigin_Dsl) isSigVerOrigin_Type() {}
 
-func (w *SigVerOrigin_Dsl) Unwrap() *types3.Origin {
+func (w *SigVerOrigin_Dsl) Unwrap() *types2.Origin {
 	return w.Dsl
 }
 
@@ -652,7 +652,7 @@ func SigVerOriginFromPb(pb *cryptopb.SigVerOrigin) *SigVerOrigin {
 		return nil
 	}
 	return &SigVerOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   SigVerOrigin_TypeFromPb(pb.Type),
 	}
 }

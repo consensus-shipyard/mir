@@ -4,10 +4,10 @@ package bcbpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	types "github.com/filecoin-project/mir/codegen/model/types"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
-	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -360,7 +360,7 @@ func (*EchoMessage) MirReflect() mirreflect.Type {
 
 type FinalMessage struct {
 	Data       []uint8
-	Signers    []types.NodeID
+	Signers    []stdtypes.NodeID
 	Signatures [][]uint8
 }
 
@@ -370,8 +370,8 @@ func FinalMessageFromPb(pb *bcbpb.FinalMessage) *FinalMessage {
 	}
 	return &FinalMessage{
 		Data: pb.Data,
-		Signers: types1.ConvertSlice(pb.Signers, func(t string) types.NodeID {
-			return (types.NodeID)(t)
+		Signers: types.ConvertSlice(pb.Signers, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
 		}),
 		Signatures: pb.Signatures,
 	}
@@ -384,7 +384,7 @@ func (m *FinalMessage) Pb() *bcbpb.FinalMessage {
 	pbMessage := &bcbpb.FinalMessage{}
 	{
 		pbMessage.Data = m.Data
-		pbMessage.Signers = types1.ConvertSlice(m.Signers, func(t types.NodeID) string {
+		pbMessage.Signers = types.ConvertSlice(m.Signers, func(t stdtypes.NodeID) string {
 			return (string)(t)
 		})
 		pbMessage.Signatures = m.Signatures

@@ -1,6 +1,8 @@
 package common
 
-import t "github.com/filecoin-project/mir/pkg/types"
+import (
+	t "github.com/filecoin-project/mir/stdtypes"
+)
 
 type ModuleConfig struct {
 	Self t.ModuleID

@@ -14,7 +14,6 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // TODO: Add support for active modules as well.
@@ -31,20 +30,20 @@ import (
 //     If a single message is too large to fit into the buffer, it is discarded.
 //  3. Other events destined for non-existent submodules are ignored.
 type FactoryModule struct {
-	ownID     t.ModuleID
+	ownID     stdtypes.ModuleID
 	generator ModuleGenerator
 
-	submodules      map[t.ModuleID]modules.PassiveModule
-	moduleRetention map[tt.RetentionIndex][]t.ModuleID
+	submodules      map[stdtypes.ModuleID]modules.PassiveModule
+	moduleRetention map[tt.RetentionIndex][]stdtypes.ModuleID
 	retIdx          tt.RetentionIndex
 	messageBuffer   *messagebuffer.MessageBuffer // TODO: Split by NodeID (using NewBuffers). Future configurations...?
 
-	eventBuffer map[t.ModuleID]*stdtypes.EventList
+	eventBuffer map[stdtypes.ModuleID]*stdtypes.EventList
 	logger      logging.Logger
 }
 
 // New creates a new factory module.
-func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModule {
+func New(id stdtypes.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -53,12 +52,12 @@ func New(id t.ModuleID, params ModuleParams, logger logging.Logger) *FactoryModu
 		ownID:     id,
 		generator: params.Generator,
 
-		submodules:      make(map[t.ModuleID]modules.PassiveModule),
-		moduleRetention: make(map[tt.RetentionIndex][]t.ModuleID),
+		submodules:      make(map[stdtypes.ModuleID]modules.PassiveModule),
+		moduleRetention: make(map[tt.RetentionIndex][]stdtypes.ModuleID),
 		retIdx:          0,
 		messageBuffer:   messagebuffer.New(params.MsgBufSize, logging.Decorate(logger, "MsgBuf: ", "factory", fmt.Sprintf("%v", id))),
 
-		eventBuffer: make(map[t.ModuleID]*stdtypes.EventList),
+		eventBuffer: make(map[stdtypes.ModuleID]*stdtypes.EventList),
 		logger:      logger,
 	}
 }
@@ -175,7 +174,7 @@ func (fm *FactoryModule) applySubmodulesEvents() (*stdtypes.EventList, error) {
 		eventsOut.PushBackList(<-evtsChan)
 	}
 
-	fm.eventBuffer = make(map[t.ModuleID]*stdtypes.EventList)
+	fm.eventBuffer = make(map[stdtypes.ModuleID]*stdtypes.EventList)
 	return eventsOut, nil
 }
 
@@ -210,7 +209,7 @@ func (fm *FactoryModule) tryBuffering(event stdtypes.Event) {
 	if !isMessageReceivedEvent {
 		// Events other than MessageReceived are ignored.
 		fm.logger.Log(logging.LevelDebug, "Ignoring submodule event. Destination module not found.",
-			"moduleID", t.ModuleID(pbevent.DestModule),
+			"moduleID", stdtypes.ModuleID(pbevent.DestModule),
 			"eventType", fmt.Sprintf("%T", pbevent.Type),
 			"eventValue", fmt.Sprintf("%v", pbevent.Type))
 		// TODO: Get rid of Sprintf of the value and just use the value directly. Using Sprintf is just a work-around
@@ -220,7 +219,7 @@ func (fm *FactoryModule) tryBuffering(event stdtypes.Event) {
 
 	if !fm.messageBuffer.Store(pbevent) {
 		fm.logger.Log(logging.LevelWarn, "Failed buffering incoming submodule message.",
-			"moduleID", t.ModuleID(pbevent.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
+			"moduleID", stdtypes.ModuleID(pbevent.DestModule), "msgType", fmt.Sprintf("%T", msg.MessageReceived.Msg.Type),
 			"from", msg.MessageReceived.From)
 	}
 }
@@ -255,7 +254,8 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*s
 
 	// Initialize new submodule.
 	eventsOut, err := fm.submodules[id].ApplyEvents(stdtypes.ListOf(
-		&eventpb.Event{DestModule: id.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}},
+		// TODO: Use new stdevent.Init instead of old protobuf event.
+		&eventpb.Event{DestModule: id.String(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}},
 	))
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func (fm *FactoryModule) applyNewModule(newModule *factorypbtypes.NewModule) (*s
 	// Get messages for the new submodule that arrived early and have been buffered.
 	bufferedMessages := stdtypes.EmptyList()
 	fm.messageBuffer.Iterate(func(msg proto.Message) messagebuffer.Applicable {
-		if t.ModuleID(msg.(*eventpb.Event).DestModule) == id {
+		if stdtypes.ModuleID(msg.(*eventpb.Event).DestModule) == id {
 			return messagebuffer.Current
 		}
 		return messagebuffer.Future

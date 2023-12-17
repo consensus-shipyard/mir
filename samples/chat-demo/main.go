@@ -40,7 +40,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
@@ -50,7 +49,7 @@ type parsedArgs struct {
 
 	// ID of this node.
 	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
-	OwnID t.NodeID
+	OwnID stdtypes.NodeID
 
 	// If set, print debug output to stdout.
 	Verbose bool
@@ -149,7 +148,7 @@ func run() error {
 
 	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		t.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
+		stdtypes.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
 		libp2p.NewDummyHostKey(ownNumericID),
 	)
 	if err != nil {
@@ -326,7 +325,7 @@ func parseArgs(args []string) *parsedArgs {
 	}
 
 	return &parsedArgs{
-		OwnID:              t.NodeID(*ownID),
+		OwnID:              stdtypes.NodeID(*ownID),
 		Verbose:            *verbose,
 		Trace:              *trace,
 		InitMembershipFile: *initMembershipFile,

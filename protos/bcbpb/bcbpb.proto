@@ -66,6 +66,6 @@ message FinalMessage {
   option (net.message) = true;
 
   bytes           data       = 1;
-  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   repeated bytes  signatures = 3;
 }

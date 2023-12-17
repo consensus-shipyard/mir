@@ -10,34 +10,32 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/stdtypes"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Src returns the module that emitted the event.
 // While this information is not always necessary for the system operation,
 // it is useful for analyzing event traces and debugging.
-func (event *Event) Src() t.ModuleID {
+func (event *Event) Src() stdtypes.ModuleID {
 	return ""
 }
 
 // NewSrc returns a shallow copy of this Event with an updated source module ID.
 // This method is not yet implemented in proto events.
-func (event *Event) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (event *Event) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	panic("Proto events do not contain source information yet")
 }
 
 // Dest returns the destination module of the event.
-func (event *Event) Dest() t.ModuleID {
-	return t.ModuleID(event.DestModule)
+func (event *Event) Dest() stdtypes.ModuleID {
+	return stdtypes.ModuleID(event.DestModule)
 }
 
 // NewDest returns a shallow copy of the event with a new destination module ID.
-func (event *Event) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (event *Event) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newEvent := Event{
-		DestModule: newDest.Pb(),
+		DestModule: newDest.String(),
 		Type:       event.Type,
 	}
-	newEvent.DestModule = newDest.Pb()
 	return &newEvent
 }
 

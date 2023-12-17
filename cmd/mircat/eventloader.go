@@ -9,13 +9,13 @@ import (
 	"sort"
 	"strings"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/isspb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type eventMetadata struct {

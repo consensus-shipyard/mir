@@ -4,12 +4,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func Message(destModule t.ModuleID, message *pingpongpb.Message) *messagepb.Message {
 	return &messagepb.Message{
-		DestModule: destModule.Pb(),
+		DestModule: destModule.String(),
 		Type:       &messagepb.Message_Pingpong{Pingpong: message},
 	}
 }
@@ -36,7 +36,7 @@ func PongMessage(destModule t.ModuleID, seqNr uint64) *messagepb.Message {
 
 func Event(destModule t.ModuleID, ppEvent *pingpongpb.Event) *eventpb.Event {
 	return &eventpb.Event{
-		DestModule: destModule.Pb(),
+		DestModule: destModule.String(),
 		Type: &eventpb.Event_PingPong{
 			PingPong: ppEvent,
 		},

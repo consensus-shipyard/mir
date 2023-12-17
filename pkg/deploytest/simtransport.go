@@ -23,24 +23,23 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
-type MessageDelayFn func(from, to t.NodeID) time.Duration
+type MessageDelayFn func(from, to stdtypes.NodeID) time.Duration
 
 type SimTransport struct {
 	*Simulation
 	delayFn       MessageDelayFn
-	nodes         map[t.NodeID]*simTransportModule
-	nodeIDsWeight map[t.NodeID]types.VoteWeight
+	nodes         map[stdtypes.NodeID]*simTransportModule
+	nodeIDsWeight map[stdtypes.NodeID]types.VoteWeight
 }
 
-func NewSimTransport(s *Simulation, nodeIDsWeight map[t.NodeID]types.VoteWeight, delayFn MessageDelayFn) *SimTransport {
+func NewSimTransport(s *Simulation, nodeIDsWeight map[stdtypes.NodeID]types.VoteWeight, delayFn MessageDelayFn) *SimTransport {
 	st := &SimTransport{
 		Simulation:    s,
 		delayFn:       delayFn,
-		nodes:         make(map[t.NodeID]*simTransportModule, len(nodeIDsWeight)),
+		nodes:         make(map[stdtypes.NodeID]*simTransportModule, len(nodeIDsWeight)),
 		nodeIDsWeight: nodeIDsWeight,
 	}
 
@@ -51,12 +50,12 @@ func NewSimTransport(s *Simulation, nodeIDsWeight map[t.NodeID]types.VoteWeight,
 	return st
 }
 
-func (st *SimTransport) Link(source t.NodeID) (net.Transport, error) {
+func (st *SimTransport) Link(source stdtypes.NodeID) (net.Transport, error) {
 	return st.nodes[source], nil
 }
 
 func (st *SimTransport) Membership() *trantorpbtypes.Membership {
-	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
+	membership := &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range st.nodes {
@@ -76,13 +75,13 @@ func (st *SimTransport) Close() {}
 type simTransportModule struct {
 	*SimTransport
 	*SimNode
-	id       t.NodeID
+	id       stdtypes.NodeID
 	outChan  chan *stdtypes.EventList
 	simChan  *testsim.Chan
 	stopChan chan struct{}
 }
 
-func newModule(t *SimTransport, id t.NodeID, node *SimNode) *simTransportModule {
+func newModule(t *SimTransport, id stdtypes.NodeID, node *SimNode) *simTransportModule {
 	return &simTransportModule{
 		SimTransport: t,
 		SimNode:      node,
@@ -103,7 +102,7 @@ func (m *simTransportModule) Stop() {
 	close(m.stopChan)
 }
 
-func (m *simTransportModule) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (m *simTransportModule) Send(dest stdtypes.NodeID, msg *messagepb.Message) error {
 	m.sendMessage(msg, dest)
 	return nil
 }
@@ -141,7 +140,7 @@ func (m *simTransportModule) applyEvent(ctx context.Context, event stdtypes.Even
 	case *eventpb.Event_Transport:
 		switch e := e.Transport.Type.(type) {
 		case *transportpb.Event_SendMessage:
-			targets := t.NodeIDSlice(e.SendMessage.Destinations)
+			targets := stdtypes.NodeIDSlice(e.SendMessage.Destinations)
 			m.multicastMessage(ctx, e.SendMessage.Msg, targets)
 		default:
 			return es.Errorf("unexpected transport event type: %T", e)
@@ -153,13 +152,13 @@ func (m *simTransportModule) applyEvent(ctx context.Context, event stdtypes.Even
 	return nil
 }
 
-func (m *simTransportModule) multicastMessage(_ context.Context, msg *messagepb.Message, targets []t.NodeID) {
+func (m *simTransportModule) multicastMessage(_ context.Context, msg *messagepb.Message, targets []stdtypes.NodeID) {
 	for _, target := range targets {
 		m.sendMessage(msg, target)
 	}
 }
 
-func (m *simTransportModule) sendMessage(msg *messagepb.Message, target t.NodeID) {
+func (m *simTransportModule) sendMessage(msg *messagepb.Message, target stdtypes.NodeID) {
 	proc := m.SimTransport.Simulation.Spawn()
 
 	done := make(chan struct{})
@@ -207,7 +206,7 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 		}
 		msg := v.(message)
 
-		destModule := t.ModuleID(msg.message.DestModule)
+		destModule := stdtypes.ModuleID(msg.message.DestModule)
 		eventList := stdtypes.ListOf(transportpbevents.MessageReceived(
 			destModule,
 			msg.from,
@@ -226,7 +225,7 @@ func (m *simTransportModule) handleOutChan(proc *testsim.Process) {
 }
 
 type message struct {
-	from    t.NodeID
-	to      t.NodeID
+	from    stdtypes.NodeID
+	to      stdtypes.NodeID
 	message *messagepb.Message
 }

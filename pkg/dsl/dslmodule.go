@@ -10,12 +10,11 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
 type dslModuleImpl struct {
-	moduleID                 t.ModuleID
+	moduleID                 stdtypes.ModuleID
 	defaultEventHandler      func(ev stdtypes.Event) error
 	eventHandlers            map[reflect.Type][]func(ev stdtypes.Event) error
 	pbEventHandlers          map[reflect.Type][]func(ev stdtypes.Event) error
@@ -45,11 +44,11 @@ type Module interface {
 
 	// ModuleID returns the identifier of the module.
 	// TODO: consider moving this method to modules.Module.
-	ModuleID() t.ModuleID
+	ModuleID() stdtypes.ModuleID
 }
 
 // NewModule creates a new dsl module with a given id.
-func NewModule(moduleID t.ModuleID) Module {
+func NewModule(moduleID stdtypes.ModuleID) Module {
 	return &dslModuleImpl{
 		moduleID:               moduleID,
 		defaultEventHandler:    failExceptForInitAndTransport,
@@ -67,7 +66,7 @@ func (m *dslModuleImpl) DslHandle() Handle {
 }
 
 // ModuleID returns the identifier of the module.
-func (m *dslModuleImpl) ModuleID() t.ModuleID {
+func (m *dslModuleImpl) ModuleID() stdtypes.ModuleID {
 	return m.moduleID
 }
 

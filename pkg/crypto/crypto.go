@@ -11,7 +11,6 @@ import (
 	cryptopbevents "github.com/filecoin-project/mir/pkg/pb/cryptopb/events"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type MirModule struct {
@@ -49,7 +48,7 @@ func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error
 			}
 			return stdtypes.ListOf(
 				cryptopbevents.SignResult(
-					t.ModuleID(e.SignRequest.Origin.Module),
+					stdtypes.ModuleID(e.SignRequest.Origin.Module),
 					signature,
 					cryptopbtypes.SignOriginFromPb(e.SignRequest.Origin),
 				).Pb()), nil
@@ -64,7 +63,7 @@ func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error
 
 			// Verify each signature.
 			for i, data := range verifyEvent.Data {
-				errors[i] = c.crypto.Verify(data.Data, verifyEvent.Signatures[i], t.NodeID(verifyEvent.NodeIds[i]))
+				errors[i] = c.crypto.Verify(data.Data, verifyEvent.Signatures[i], stdtypes.NodeID(verifyEvent.NodeIds[i]))
 				if errors[i] != nil {
 					allOK = false
 				}
@@ -72,9 +71,9 @@ func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error
 
 			// Return result event
 			return stdtypes.ListOf(cryptopbevents.SigsVerified(
-				t.ModuleID(verifyEvent.Origin.Module),
+				stdtypes.ModuleID(verifyEvent.Origin.Module),
 				cryptopbtypes.SigVerOriginFromPb(verifyEvent.Origin),
-				t.NodeIDSlice(verifyEvent.NodeIds),
+				stdtypes.NodeIDSlice(verifyEvent.NodeIds),
 				errors,
 				allOK,
 			).Pb()), nil
@@ -83,13 +82,13 @@ func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error
 			err := c.crypto.Verify(
 				e.VerifySig.Data.Data,
 				e.VerifySig.Signature,
-				t.NodeID(e.VerifySig.NodeId),
+				stdtypes.NodeID(e.VerifySig.NodeId),
 			)
 
 			return stdtypes.ListOf(cryptopbevents.SigVerified(
-				t.ModuleID(e.VerifySig.Origin.Module),
+				stdtypes.ModuleID(e.VerifySig.Origin.Module),
 				cryptopbtypes.SigVerOriginFromPb(e.VerifySig.Origin),
-				t.NodeID(e.VerifySig.NodeId),
+				stdtypes.NodeID(e.VerifySig.NodeId),
 				err,
 			).Pb()), nil
 

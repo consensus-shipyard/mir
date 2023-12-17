@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -27,8 +26,8 @@ var ErrStopped = fmt.Errorf("stopped at caller request")
 
 // Node is the local instance of Mir and the application's interface to the mir library.
 type Node struct {
-	ID     t.NodeID    // Protocol-level node ID
-	Config *NodeConfig // Node-level (protocol-independent) configuration, like buffer sizes, logging, ...
+	ID     stdtypes.NodeID // Protocol-level node ID
+	Config *NodeConfig     // Node-level (protocol-independent) configuration, like buffer sizes, logging, ...
 
 	// Incoming events to be processed by the node.
 	// E.g., all modules' output events are written in this channel,
@@ -83,7 +82,7 @@ type Node struct {
 	dispatchStats eventDispatchStats
 
 	// Each module has a stopwatch that is measuring the time the module spent processing events.
-	stopwatches map[t.ModuleID]*Stopwatch
+	stopwatches map[stdtypes.ModuleID]*Stopwatch
 
 	// Lock guarding event processing stats.
 	// This data is accessed concurrently by both the main event loop and the stats monitoring goroutine.
@@ -96,7 +95,7 @@ type Node struct {
 // The config parameter specifies Node-level (protocol-independent) configuration, like buffer sizes, logging, ...
 // The modules parameter must contain initialized, ready-to-use modules that the new Node will use.
 func NewNode(
-	id t.NodeID,
+	id stdtypes.NodeID,
 	config *NodeConfig,
 	m modules.Modules,
 	interceptor eventlog.Interceptor,
@@ -114,7 +113,7 @@ func NewNode(
 		config.Logger = logging.Synchronize(config.Logger)
 	}
 
-	stopwatches := make(map[t.ModuleID]*Stopwatch, len(m))
+	stopwatches := make(map[stdtypes.ModuleID]*Stopwatch, len(m))
 	for mID := range m {
 		stopwatches[mID] = &Stopwatch{}
 	}
@@ -350,9 +349,9 @@ func (n *Node) startModules(ctx context.Context, wg *sync.WaitGroup) {
 
 		// For each module, we start a worker function reads a single work item (EventList) and processes it.
 		wg.Add(1)
-		go func(mID t.ModuleID, m modules.Module, workChan chan *stdtypes.EventList) {
-			n.Config.Logger.Log(logging.LevelInfo, "module started", "ID", mID.Pb())
-			defer n.Config.Logger.Log(logging.LevelInfo, "module finished", "ID", mID.Pb())
+		go func(mID stdtypes.ModuleID, m modules.Module, workChan chan *stdtypes.EventList) {
+			n.Config.Logger.Log(logging.LevelInfo, "module started", "ID", mID.String())
+			defer n.Config.Logger.Log(logging.LevelInfo, "module finished", "ID", mID.String())
 			defer wg.Done()
 
 			// Create a context that is passed to the module event application function
@@ -509,8 +508,9 @@ func (n *Node) inputIsPaused() bool {
 func createInitEvents(m modules.Modules) *stdtypes.EventList {
 	initEvents := stdtypes.EmptyList()
 	for moduleID := range m {
+		// TODO: Use stdevents.Init instead of the old protobuf event.
 		initEvents.PushBack(&eventpb.Event{
-			DestModule: moduleID.Pb(),
+			DestModule: moduleID.String(),
 			Type:       &eventpb.Event_Init{Init: &eventpb.Init{}},
 		})
 	}

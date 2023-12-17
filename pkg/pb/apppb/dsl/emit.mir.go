@@ -5,25 +5,25 @@ package apppbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/apppb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func SnapshotRequest(m dsl.Module, destModule types.ModuleID, replyTo types.ModuleID) {
+func SnapshotRequest(m dsl.Module, destModule stdtypes.ModuleID, replyTo stdtypes.ModuleID) {
 	dsl.EmitMirEvent(m, events.SnapshotRequest(destModule, replyTo))
 }
 
-func Snapshot(m dsl.Module, destModule types.ModuleID, appData []uint8) {
+func Snapshot(m dsl.Module, destModule stdtypes.ModuleID, appData []uint8) {
 	dsl.EmitMirEvent(m, events.Snapshot(destModule, appData))
 }
 
-func RestoreState(m dsl.Module, destModule types.ModuleID, checkpoint *types1.StableCheckpoint) {
+func RestoreState(m dsl.Module, destModule stdtypes.ModuleID, checkpoint *types.StableCheckpoint) {
 	dsl.EmitMirEvent(m, events.RestoreState(destModule, checkpoint))
 }
 
-func NewEpoch(m dsl.Module, destModule types.ModuleID, epochNr types2.EpochNr, protocolModule types.ModuleID) {
+func NewEpoch(m dsl.Module, destModule stdtypes.ModuleID, epochNr types1.EpochNr, protocolModule stdtypes.ModuleID) {
 	dsl.EmitMirEvent(m, events.NewEpoch(destModule, epochNr, protocolModule))
 }

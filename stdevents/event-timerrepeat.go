@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
@@ -54,7 +53,7 @@ func (e *TimerRepeat) serializable() (*serializableTimerRepeat, error) {
 }
 
 func NewTimerRepeat(
-	dest t.ModuleID,
+	dest stdtypes.ModuleID,
 	period time.Duration,
 	retentionIndex stdtypes.RetentionIndex,
 	events ...stdtypes.Event,
@@ -68,8 +67,8 @@ func NewTimerRepeat(
 }
 
 func NewTimerRepeatWithSrc(
-	src t.ModuleID,
-	dest t.ModuleID,
+	src stdtypes.ModuleID,
+	dest stdtypes.ModuleID,
 	period time.Duration,
 	retentionIndex stdtypes.RetentionIndex,
 	events ...stdtypes.Event,
@@ -79,13 +78,13 @@ func NewTimerRepeatWithSrc(
 	return e
 }
 
-func (e *TimerRepeat) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (e *TimerRepeat) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *TimerRepeat) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (e *TimerRepeat) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

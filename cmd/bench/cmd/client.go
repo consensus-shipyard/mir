@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/spf13/cobra"
 	rateLimiter "golang.org/x/time/rate"
@@ -22,7 +23,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (

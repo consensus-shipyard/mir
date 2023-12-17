@@ -9,9 +9,8 @@ package crypto
 import (
 	"bytes"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
-
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // TODO: Write comments.

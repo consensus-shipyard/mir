@@ -5,68 +5,68 @@ package threshcryptopbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func SignShare[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, context *C) {
+func SignShare[C any](m dsl.Module, destModule stdtypes.ModuleID, data [][]uint8, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.SignShareOrigin{
+	origin := &types.SignShareOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.SignShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.SignShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.SignShare(destModule, data, origin))
 }
 
-func SignShareResult(m dsl.Module, destModule types.ModuleID, signatureShare []uint8, origin *types1.SignShareOrigin) {
+func SignShareResult(m dsl.Module, destModule stdtypes.ModuleID, signatureShare []uint8, origin *types.SignShareOrigin) {
 	dsl.EmitMirEvent(m, events.SignShareResult(destModule, signatureShare, origin))
 }
 
-func VerifyShare[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, signatureShare []uint8, nodeId types.NodeID, context *C) {
+func VerifyShare[C any](m dsl.Module, destModule stdtypes.ModuleID, data [][]uint8, signatureShare []uint8, nodeId stdtypes.NodeID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.VerifyShareOrigin{
+	origin := &types.VerifyShareOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.VerifyShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.VerifyShareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.VerifyShare(destModule, data, signatureShare, nodeId, origin))
 }
 
-func VerifyShareResult(m dsl.Module, destModule types.ModuleID, ok bool, error string, origin *types1.VerifyShareOrigin) {
+func VerifyShareResult(m dsl.Module, destModule stdtypes.ModuleID, ok bool, error string, origin *types.VerifyShareOrigin) {
 	dsl.EmitMirEvent(m, events.VerifyShareResult(destModule, ok, error, origin))
 }
 
-func VerifyFull[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, fullSignature []uint8, context *C) {
+func VerifyFull[C any](m dsl.Module, destModule stdtypes.ModuleID, data [][]uint8, fullSignature []uint8, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.VerifyFullOrigin{
+	origin := &types.VerifyFullOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.VerifyFullOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.VerifyFullOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.VerifyFull(destModule, data, fullSignature, origin))
 }
 
-func VerifyFullResult(m dsl.Module, destModule types.ModuleID, ok bool, error string, origin *types1.VerifyFullOrigin) {
+func VerifyFullResult(m dsl.Module, destModule stdtypes.ModuleID, ok bool, error string, origin *types.VerifyFullOrigin) {
 	dsl.EmitMirEvent(m, events.VerifyFullResult(destModule, ok, error, origin))
 }
 
-func Recover[C any](m dsl.Module, destModule types.ModuleID, data [][]uint8, signatureShares [][]uint8, context *C) {
+func Recover[C any](m dsl.Module, destModule stdtypes.ModuleID, data [][]uint8, signatureShares [][]uint8, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.RecoverOrigin{
+	origin := &types.RecoverOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.RecoverOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.RecoverOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.Recover(destModule, data, signatureShares, origin))
 }
 
-func RecoverResult(m dsl.Module, destModule types.ModuleID, fullSignature []uint8, ok bool, error string, origin *types1.RecoverOrigin) {
+func RecoverResult(m dsl.Module, destModule stdtypes.ModuleID, fullSignature []uint8, ok bool, error string, origin *types.RecoverOrigin) {
 	dsl.EmitMirEvent(m, events.RecoverResult(destModule, fullSignature, ok, error, origin))
 }

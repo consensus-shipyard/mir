@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type EventRecord struct {
@@ -49,13 +48,13 @@ func (record *EventRecord) Filter(predicate func(event stdtypes.Event) bool) Eve
 // mir.EventInterceptor interface.  It receives state Events,
 // serializes them, compresses them, and writes them to a stream.
 type Recorder struct {
-	nodeID         t.NodeID
+	nodeID         stdtypes.NodeID
 	dest           EventWriter
 	timeSource     func() int64
 	newDests       func(EventRecord) []EventRecord
 	path           string
 	filter         func(event stdtypes.Event) bool
-	newEventWriter func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
+	newEventWriter func(dest string, nodeID stdtypes.NodeID, logger logging.Logger) (EventWriter, error)
 	syncWrite      bool
 
 	logger     logging.Logger
@@ -70,7 +69,7 @@ type Recorder struct {
 }
 
 func NewRecorder(
-	nodeID t.NodeID,
+	nodeID stdtypes.NodeID,
 	path string, // TODO: Remove the path argument. It is writer-specific and should be specified in the writer factory.
 	logger logging.Logger,
 	opts ...RecorderOpt,

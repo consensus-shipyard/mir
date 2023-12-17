@@ -1,24 +1,22 @@
 package stdtypes
 
-import t "github.com/filecoin-project/mir/pkg/types"
-
 type Event interface {
 
 	// Src returns the module that emitted the event.
 	// While this information is not always necessary for the system operation,
 	// it is useful for analyzing event traces and debugging.
-	Src() t.ModuleID
+	Src() ModuleID
 
 	// NewSrc returns a new Event that has the given source module
 	// and is otherwise identical to the original event.
-	NewSrc(newSrc t.ModuleID) Event
+	NewSrc(newSrc ModuleID) Event
 
 	// Dest returns the destination module of the event.
-	Dest() t.ModuleID
+	Dest() ModuleID
 
 	// NewDest returns a new Event that has the given destination module
 	// and is otherwise identical to the original event.
-	NewDest(newDest t.ModuleID) Event
+	NewDest(newDest ModuleID) Event
 
 	// ToBytes returns a serialized representation of the event
 	// as a slice of bytes from which the event can be reconstructed.

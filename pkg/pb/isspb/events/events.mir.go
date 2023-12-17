@@ -3,34 +3,34 @@
 package isspbevents
 
 import (
-	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func PushCheckpoint(destModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func PushCheckpoint(destModule stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Iss{
-			Iss: &types2.Event{
-				Type: &types2.Event_PushCheckpoint{
-					PushCheckpoint: &types2.PushCheckpoint{},
+		Type: &types.Event_Iss{
+			Iss: &types1.Event{
+				Type: &types1.Event_PushCheckpoint{
+					PushCheckpoint: &types1.PushCheckpoint{},
 				},
 			},
 		},
 	}
 }
 
-func SBDeliver(destModule types.ModuleID, sn types3.SeqNr, data []uint8, aborted bool, leader types.NodeID, instanceId types.ModuleID) *types1.Event {
-	return &types1.Event{
+func SBDeliver(destModule stdtypes.ModuleID, sn types2.SeqNr, data []uint8, aborted bool, leader stdtypes.NodeID, instanceId stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Iss{
-			Iss: &types2.Event{
-				Type: &types2.Event_SbDeliver{
-					SbDeliver: &types2.SBDeliver{
+		Type: &types.Event_Iss{
+			Iss: &types1.Event{
+				Type: &types1.Event_SbDeliver{
+					SbDeliver: &types1.SBDeliver{
 						Sn:         sn,
 						Data:       data,
 						Aborted:    aborted,
@@ -43,13 +43,13 @@ func SBDeliver(destModule types.ModuleID, sn types3.SeqNr, data []uint8, aborted
 	}
 }
 
-func DeliverCert(destModule types.ModuleID, sn types3.SeqNr, cert *types4.Cert, empty bool) *types1.Event {
-	return &types1.Event{
+func DeliverCert(destModule stdtypes.ModuleID, sn types2.SeqNr, cert *types3.Cert, empty bool) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Iss{
-			Iss: &types2.Event{
-				Type: &types2.Event_DeliverCert{
-					DeliverCert: &types2.DeliverCert{
+		Type: &types.Event_Iss{
+			Iss: &types1.Event{
+				Type: &types1.Event_DeliverCert{
+					DeliverCert: &types1.DeliverCert{
 						Sn:    sn,
 						Cert:  cert,
 						Empty: empty,
@@ -60,13 +60,13 @@ func DeliverCert(destModule types.ModuleID, sn types3.SeqNr, cert *types4.Cert, 
 	}
 }
 
-func NewConfig(destModule types.ModuleID, epochNr types3.EpochNr, membership *types5.Membership) *types1.Event {
-	return &types1.Event{
+func NewConfig(destModule stdtypes.ModuleID, epochNr types2.EpochNr, membership *types4.Membership) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Iss{
-			Iss: &types2.Event{
-				Type: &types2.Event_NewConfig{
-					NewConfig: &types2.NewConfig{
+		Type: &types.Event_Iss{
+			Iss: &types1.Event{
+				Type: &types1.Event_NewConfig{
+					NewConfig: &types1.NewConfig{
 						EpochNr:    epochNr,
 						Membership: membership,
 					},

@@ -10,7 +10,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	tcEvents "github.com/filecoin-project/mir/pkg/threshcrypto/events"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type MirModule struct {
@@ -57,13 +56,13 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*stdtypes.EventLi
 		}
 
 		return stdtypes.ListOf(
-			tcEvents.SignShareResult(t.ModuleID(e.SignShare.Origin.Module), sigShare, e.SignShare.Origin),
+			tcEvents.SignShareResult(stdtypes.ModuleID(e.SignShare.Origin.Module), sigShare, e.SignShare.Origin),
 		), nil
 
 	case *threshcryptopb.Event_VerifyShare:
 		// Verify signature share
 
-		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, t.NodeID(e.VerifyShare.NodeId))
+		err := c.threshCrypto.VerifyShare(e.VerifyShare.Data, e.VerifyShare.SignatureShare, stdtypes.NodeID(e.VerifyShare.NodeId))
 
 		ok := err == nil
 		var errStr string
@@ -72,7 +71,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*stdtypes.EventLi
 		}
 
 		return stdtypes.ListOf(
-			tcEvents.VerifyShareResult(t.ModuleID(e.VerifyShare.Origin.Module), ok, errStr, e.VerifyShare.Origin),
+			tcEvents.VerifyShareResult(stdtypes.ModuleID(e.VerifyShare.Origin.Module), ok, errStr, e.VerifyShare.Origin),
 		), nil
 
 	case *threshcryptopb.Event_VerifyFull:
@@ -87,7 +86,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*stdtypes.EventLi
 		}
 
 		return stdtypes.ListOf(
-			tcEvents.VerifyFullResult(t.ModuleID(e.VerifyFull.Origin.Module), ok, errStr, e.VerifyFull.Origin),
+			tcEvents.VerifyFullResult(stdtypes.ModuleID(e.VerifyFull.Origin.Module), ok, errStr, e.VerifyFull.Origin),
 		), nil
 
 	case *threshcryptopb.Event_Recover:
@@ -102,7 +101,7 @@ func (c *MirModule) applyTCEvent(event *threshcryptopb.Event) (*stdtypes.EventLi
 		}
 
 		return stdtypes.ListOf(
-			tcEvents.RecoverResult(t.ModuleID(e.Recover.Origin.Module), fullSig, ok, errStr, e.Recover.Origin),
+			tcEvents.RecoverResult(stdtypes.ModuleID(e.Recover.Origin.Module), fullSig, ok, errStr, e.Recover.Origin),
 		), nil
 	default:
 		// Complain about all other incoming event types.

@@ -4,13 +4,13 @@ package isspbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
-	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type ISSMessage struct {
@@ -273,8 +273,8 @@ type SBDeliver struct {
 	Sn         types1.SeqNr
 	Data       []uint8
 	Aborted    bool
-	Leader     types2.NodeID
-	InstanceId types2.ModuleID
+	Leader     stdtypes.NodeID
+	InstanceId stdtypes.ModuleID
 }
 
 func SBDeliverFromPb(pb *isspb.SBDeliver) *SBDeliver {
@@ -285,8 +285,8 @@ func SBDeliverFromPb(pb *isspb.SBDeliver) *SBDeliver {
 		Sn:         (types1.SeqNr)(pb.Sn),
 		Data:       pb.Data,
 		Aborted:    pb.Aborted,
-		Leader:     (types2.NodeID)(pb.Leader),
-		InstanceId: (types2.ModuleID)(pb.InstanceId),
+		Leader:     (stdtypes.NodeID)(pb.Leader),
+		InstanceId: (stdtypes.ModuleID)(pb.InstanceId),
 	}
 }
 
@@ -312,7 +312,7 @@ func (*SBDeliver) MirReflect() mirreflect.Type {
 
 type DeliverCert struct {
 	Sn    types1.SeqNr
-	Cert  *types3.Cert
+	Cert  *types2.Cert
 	Empty bool
 }
 
@@ -322,7 +322,7 @@ func DeliverCertFromPb(pb *isspb.DeliverCert) *DeliverCert {
 	}
 	return &DeliverCert{
 		Sn:    (types1.SeqNr)(pb.Sn),
-		Cert:  types3.CertFromPb(pb.Cert),
+		Cert:  types2.CertFromPb(pb.Cert),
 		Empty: pb.Empty,
 	}
 }
@@ -349,7 +349,7 @@ func (*DeliverCert) MirReflect() mirreflect.Type {
 
 type NewConfig struct {
 	EpochNr    types1.EpochNr
-	Membership *types4.Membership
+	Membership *types3.Membership
 }
 
 func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
@@ -358,7 +358,7 @@ func NewConfigFromPb(pb *isspb.NewConfig) *NewConfig {
 	}
 	return &NewConfig{
 		EpochNr:    (types1.EpochNr)(pb.EpochNr),
-		Membership: types4.MembershipFromPb(pb.Membership),
+		Membership: types3.MembershipFromPb(pb.Membership),
 	}
 }
 

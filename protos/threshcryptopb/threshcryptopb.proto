@@ -42,7 +42,7 @@ message SignShareResult {
 message SignShareOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -54,7 +54,7 @@ message VerifyShare {
 
   repeated bytes    data            = 1;
   bytes             signature_share = 2;
-  string            node_id         = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string            node_id         = 3 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   VerifyShareOrigin origin          = 4 [(mir.origin_request) = true];
 }
 
@@ -69,7 +69,7 @@ message VerifyShareResult {
 message VerifyShareOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -95,7 +95,7 @@ message VerifyFullResult {
 message VerifyFullOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -122,7 +122,7 @@ message RecoverResult {
 message RecoverOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;

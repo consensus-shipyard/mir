@@ -3,22 +3,22 @@
 package pbftpbevents
 
 import (
-	types4 "github.com/filecoin-project/mir/pkg/orderers/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/orderers/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func ProposeTimeout(destModule types.ModuleID, proposeTimeout uint64) *types1.Event {
-	return &types1.Event{
+func ProposeTimeout(destModule stdtypes.ModuleID, proposeTimeout uint64) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Orderer{
-			Orderer: &types2.Event{
-				Type: &types2.Event_Pbft{
-					Pbft: &types3.Event{
-						Type: &types3.Event_ProposeTimeout{
-							ProposeTimeout: &types3.ProposeTimeout{
+		Type: &types.Event_Orderer{
+			Orderer: &types1.Event{
+				Type: &types1.Event_Pbft{
+					Pbft: &types2.Event{
+						Type: &types2.Event_ProposeTimeout{
+							ProposeTimeout: &types2.ProposeTimeout{
 								ProposeTimeout: proposeTimeout,
 							},
 						},
@@ -29,15 +29,15 @@ func ProposeTimeout(destModule types.ModuleID, proposeTimeout uint64) *types1.Ev
 	}
 }
 
-func ViewChangeSNTimeout(destModule types.ModuleID, view types4.ViewNr, numCommitted uint64) *types1.Event {
-	return &types1.Event{
+func ViewChangeSNTimeout(destModule stdtypes.ModuleID, view types3.ViewNr, numCommitted uint64) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Orderer{
-			Orderer: &types2.Event{
-				Type: &types2.Event_Pbft{
-					Pbft: &types3.Event{
-						Type: &types3.Event_ViewChangeSnTimeout{
-							ViewChangeSnTimeout: &types3.ViewChangeSNTimeout{
+		Type: &types.Event_Orderer{
+			Orderer: &types1.Event{
+				Type: &types1.Event_Pbft{
+					Pbft: &types2.Event{
+						Type: &types2.Event_ViewChangeSnTimeout{
+							ViewChangeSnTimeout: &types2.ViewChangeSNTimeout{
 								View:         view,
 								NumCommitted: numCommitted,
 							},
@@ -49,15 +49,15 @@ func ViewChangeSNTimeout(destModule types.ModuleID, view types4.ViewNr, numCommi
 	}
 }
 
-func ViewChangeSegTimeout(destModule types.ModuleID, viewChangeSegTimeout uint64) *types1.Event {
-	return &types1.Event{
+func ViewChangeSegTimeout(destModule stdtypes.ModuleID, viewChangeSegTimeout uint64) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Orderer{
-			Orderer: &types2.Event{
-				Type: &types2.Event_Pbft{
-					Pbft: &types3.Event{
-						Type: &types3.Event_ViewChangeSegTimeout{
-							ViewChangeSegTimeout: &types3.ViewChangeSegTimeout{
+		Type: &types.Event_Orderer{
+			Orderer: &types1.Event{
+				Type: &types1.Event_Pbft{
+					Pbft: &types2.Event{
+						Type: &types2.Event_ViewChangeSegTimeout{
+							ViewChangeSegTimeout: &types2.ViewChangeSegTimeout{
 								ViewChangeSegTimeout: viewChangeSegTimeout,
 							},
 						},

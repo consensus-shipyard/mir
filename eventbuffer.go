@@ -2,14 +2,13 @@ package mir
 
 import (
 	"github.com/filecoin-project/mir/pkg/modules"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // eventBuffer is a buffer for storing outstanding events that need to be processed by the node.
 // It contains a separate list for each module.
 type eventBuffer struct {
-	buffers     map[t.ModuleID]*stdtypes.EventList
+	buffers     map[stdtypes.ModuleID]*stdtypes.EventList
 	totalEvents int
 }
 
@@ -17,7 +16,7 @@ type eventBuffer struct {
 func newEventBuffer(modules modules.Modules) eventBuffer {
 
 	wi := eventBuffer{
-		buffers:     make(map[t.ModuleID]*stdtypes.EventList),
+		buffers:     make(map[stdtypes.ModuleID]*stdtypes.EventList),
 		totalEvents: 0,
 	}
 
@@ -76,8 +75,8 @@ func (eb *eventBuffer) Add(events *stdtypes.EventList) error {
 }
 
 // Stats returns a map containing the number of buffered events for each module.
-func (eb *eventBuffer) Stats() map[t.ModuleID]int {
-	stats := make(map[t.ModuleID]int)
+func (eb *eventBuffer) Stats() map[stdtypes.ModuleID]int {
+	stats := make(map[stdtypes.ModuleID]int)
 	for mID, evts := range eb.buffers {
 		stats[mID] = evts.Len()
 	}

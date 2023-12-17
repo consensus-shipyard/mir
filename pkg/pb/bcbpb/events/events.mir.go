@@ -3,18 +3,18 @@
 package bcbpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func BroadcastRequest(destModule types.ModuleID, data []uint8) *types1.Event {
-	return &types1.Event{
+func BroadcastRequest(destModule stdtypes.ModuleID, data []uint8) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcb{
-			Bcb: &types2.Event{
-				Type: &types2.Event_Request{
-					Request: &types2.BroadcastRequest{
+		Type: &types.Event_Bcb{
+			Bcb: &types1.Event{
+				Type: &types1.Event_Request{
+					Request: &types1.BroadcastRequest{
 						Data: data,
 					},
 				},
@@ -23,13 +23,13 @@ func BroadcastRequest(destModule types.ModuleID, data []uint8) *types1.Event {
 	}
 }
 
-func Deliver(destModule types.ModuleID, data []uint8) *types1.Event {
-	return &types1.Event{
+func Deliver(destModule stdtypes.ModuleID, data []uint8) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcb{
-			Bcb: &types2.Event{
-				Type: &types2.Event_Deliver{
-					Deliver: &types2.Deliver{
+		Type: &types.Event_Bcb{
+			Bcb: &types1.Event{
+				Type: &types1.Event_Deliver{
+					Deliver: &types1.Deliver{
 						Data: data,
 					},
 				},

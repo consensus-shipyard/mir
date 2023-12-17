@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 
 	"github.com/filecoin-project/mir/pkg/logging"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 type EventWriter interface {

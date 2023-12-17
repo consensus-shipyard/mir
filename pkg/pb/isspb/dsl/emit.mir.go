@@ -4,27 +4,27 @@ package isspbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	events "github.com/filecoin-project/mir/pkg/pb/isspb/events"
-	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func PushCheckpoint(m dsl.Module, destModule types.ModuleID) {
+func PushCheckpoint(m dsl.Module, destModule stdtypes.ModuleID) {
 	dsl.EmitMirEvent(m, events.PushCheckpoint(destModule))
 }
 
-func SBDeliver(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, data []uint8, aborted bool, leader types.NodeID, instanceId types.ModuleID) {
+func SBDeliver(m dsl.Module, destModule stdtypes.ModuleID, sn types.SeqNr, data []uint8, aborted bool, leader stdtypes.NodeID, instanceId stdtypes.ModuleID) {
 	dsl.EmitMirEvent(m, events.SBDeliver(destModule, sn, data, aborted, leader, instanceId))
 }
 
-func DeliverCert(m dsl.Module, destModule types.ModuleID, sn types1.SeqNr, cert *types2.Cert, empty bool) {
+func DeliverCert(m dsl.Module, destModule stdtypes.ModuleID, sn types.SeqNr, cert *types1.Cert, empty bool) {
 	dsl.EmitMirEvent(m, events.DeliverCert(destModule, sn, cert, empty))
 }
 
-func NewConfig(m dsl.Module, destModule types.ModuleID, epochNr types1.EpochNr, membership *types3.Membership) {
+func NewConfig(m dsl.Module, destModule stdtypes.ModuleID, epochNr types.EpochNr, membership *types2.Membership) {
 	dsl.EmitMirEvent(m, events.NewConfig(destModule, epochNr, membership))
 }

@@ -18,15 +18,14 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type Pingpong struct {
-	ownID  t.NodeID
+	ownID  stdtypes.NodeID
 	nextSn uint64
 }
 
-func NewPingPong(ownID t.NodeID) *Pingpong {
+func NewPingPong(ownID stdtypes.NodeID) *Pingpong {
 	return &Pingpong{
 		ownID:  ownID,
 		nextSn: 0,
@@ -85,7 +84,7 @@ func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*stdtypes.EventList, e
 }
 
 func (p *Pingpong) sendPing() (*stdtypes.EventList, error) {
-	var destID t.NodeID
+	var destID stdtypes.NodeID
 	if p.ownID == "0" {
 		destID = "1"
 	} else {
@@ -94,7 +93,7 @@ func (p *Pingpong) sendPing() (*stdtypes.EventList, error) {
 
 	ping := PingMessage("pingpong", p.nextSn)
 	p.nextSn++
-	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []t.NodeID{destID})
+	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(ping), []stdtypes.NodeID{destID})
 	return stdtypes.ListOf(sendMsgEvent.Pb()), nil
 }
 
@@ -103,9 +102,9 @@ func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*stdt
 	case *messagepb.Message_Pingpong:
 		switch m := message.Pingpong.Type.(type) {
 		case *pingpongpb.Message_Ping:
-			return p.applyPing(m.Ping, t.NodeID(msg.From))
+			return p.applyPing(m.Ping, stdtypes.NodeID(msg.From))
 		case *pingpongpb.Message_Pong:
-			return p.applyPong(m.Pong, t.NodeID(msg.From))
+			return p.applyPong(m.Pong, stdtypes.NodeID(msg.From))
 		default:
 			return nil, errors.Errorf("unknown pingpong message type: %T", m)
 		}
@@ -114,14 +113,14 @@ func (p *Pingpong) applyMessageReceived(msg *transportpb.MessageReceived) (*stdt
 	}
 }
 
-func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from t.NodeID) (*stdtypes.EventList, error) {
+func (p *Pingpong) applyPing(ping *pingpongpb.Ping, from stdtypes.NodeID) (*stdtypes.EventList, error) {
 	fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
 	pong := PongMessage("pingpong", ping.SeqNr)
-	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []t.NodeID{from})
+	sendMsgEvent := transportpbevents.SendMessage("transport", messagepbtypes.MessageFromPb(pong), []stdtypes.NodeID{from})
 	return stdtypes.ListOf(sendMsgEvent.Pb()), nil
 }
 
-func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from t.NodeID) (*stdtypes.EventList, error) {
+func (p *Pingpong) applyPong(pong *pingpongpb.Pong, from stdtypes.NodeID) (*stdtypes.EventList, error) {
 	fmt.Printf("Received pong from %s: %d\n", from, pong.SeqNr)
 	return stdtypes.EmptyList(), nil
 }

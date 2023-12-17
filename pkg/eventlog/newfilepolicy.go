@@ -3,13 +3,12 @@ package eventlog
 import (
 	"github.com/filecoin-project/mir/pkg/pb/apppb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // Returns a file that splits an record slice into multiple slices
 // every time a an event eventpb.Event_NewLogFile is found
-func EventNewEpochLogger(appModuleID t.ModuleID) func(record EventRecord) []EventRecord {
+func EventNewEpochLogger(appModuleID stdtypes.ModuleID) func(record EventRecord) []EventRecord {
 	eventNewLogFileLogger := func(event stdtypes.Event) bool {
 		pbevent, ok := event.(*eventpb.Event)
 		if !ok {

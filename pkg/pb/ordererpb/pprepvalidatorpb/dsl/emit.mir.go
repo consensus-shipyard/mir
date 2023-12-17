@@ -5,24 +5,24 @@ package pprepvalidatorpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func ValidatePreprepare[C any](m dsl.Module, destModule types.ModuleID, preprepare *types1.Preprepare, context *C) {
+func ValidatePreprepare[C any](m dsl.Module, destModule stdtypes.ModuleID, preprepare *types.Preprepare, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types2.ValidatePreprepareOrigin{
+	origin := &types1.ValidatePreprepareOrigin{
 		Module: m.ModuleID(),
-		Type:   &types2.ValidatePreprepareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types1.ValidatePreprepareOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.ValidatePreprepare(destModule, preprepare, origin))
 }
 
-func PreprepareValidated(m dsl.Module, destModule types.ModuleID, error error, origin *types2.ValidatePreprepareOrigin) {
+func PreprepareValidated(m dsl.Module, destModule stdtypes.ModuleID, error error, origin *types1.ValidatePreprepareOrigin) {
 	dsl.EmitMirEvent(m, events.PreprepareValidated(destModule, error, origin))
 }

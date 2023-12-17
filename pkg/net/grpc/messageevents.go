@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -13,14 +12,14 @@ type Serializable interface {
 }
 
 type OutgoingMessage struct {
-	SrcModule        t.ModuleID
-	LocalDestModule  t.ModuleID
-	DestNodes        []t.NodeID
-	RemoteDestModule t.ModuleID
+	SrcModule        stdtypes.ModuleID
+	LocalDestModule  stdtypes.ModuleID
+	DestNodes        []stdtypes.NodeID
+	RemoteDestModule stdtypes.ModuleID
 	Data             Serializable
 }
 
-func NewOutgoingMessage(msg Serializable, localDestModule t.ModuleID, remoteDestModule t.ModuleID, destinations []t.NodeID) *OutgoingMessage {
+func NewOutgoingMessage(msg Serializable, localDestModule stdtypes.ModuleID, remoteDestModule stdtypes.ModuleID, destinations []stdtypes.NodeID) *OutgoingMessage {
 
 	return &OutgoingMessage{
 		SrcModule:        "pingpong",
@@ -31,21 +30,21 @@ func NewOutgoingMessage(msg Serializable, localDestModule t.ModuleID, remoteDest
 	}
 }
 
-func (om *OutgoingMessage) Src() t.ModuleID {
+func (om *OutgoingMessage) Src() stdtypes.ModuleID {
 	return om.SrcModule
 }
 
-func (om *OutgoingMessage) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (om *OutgoingMessage) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newOM := *om
 	newOM.SrcModule = newSrc
 	return &newOM
 }
 
-func (om *OutgoingMessage) Dest() t.ModuleID {
+func (om *OutgoingMessage) Dest() stdtypes.ModuleID {
 	return om.LocalDestModule
 }
 
-func (om *OutgoingMessage) NewDest(dest t.ModuleID) stdtypes.Event {
+func (om *OutgoingMessage) NewDest(dest stdtypes.ModuleID) stdtypes.Event {
 	newOM := *om
 	newOM.LocalDestModule = dest
 	return &newOM
@@ -65,37 +64,37 @@ func (om *OutgoingMessage) ToString() string {
 }
 
 type MessageReceived struct {
-	SrcModule  t.ModuleID
-	DstModule  t.ModuleID
-	SourceNode t.NodeID
+	SrcModule  stdtypes.ModuleID
+	DstModule  stdtypes.ModuleID
+	SourceNode stdtypes.NodeID
 	MsgData    []byte
 }
 
-func (m *MessageReceived) Src() t.ModuleID {
+func (m *MessageReceived) Src() stdtypes.ModuleID {
 	return m.SrcModule
 }
 
-func (m *MessageReceived) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (m *MessageReceived) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newEvent := *m
 	newEvent.SrcModule = newSrc
 	return &newEvent
 }
 
-func (m *MessageReceived) Dest() t.ModuleID {
+func (m *MessageReceived) Dest() stdtypes.ModuleID {
 	return m.DstModule
 }
 
-func (m *MessageReceived) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (m *MessageReceived) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newEvent := *m
 	newEvent.DstModule = newDest
 	return &newEvent
 }
 
-func (m *MessageReceived) SrcNode() t.NodeID {
+func (m *MessageReceived) SrcNode() stdtypes.NodeID {
 	return m.SourceNode
 }
 
-func (m *MessageReceived) DestModule() t.ModuleID {
+func (m *MessageReceived) DestModule() stdtypes.ModuleID {
 	return m.DstModule
 }
 

@@ -4,8 +4,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // PbftSegmentChkp groups data structures pertaining to an instance-local checkpoint
@@ -25,10 +25,10 @@ type PbftSegmentChkp struct {
 	// Saves all the Done messages received from other nodes.
 	// They contain the hashes of all Preprepare messages, as committed by the respective nodes.
 	// (A node sends a Done message when it commits everything in the segment.)
-	doneReceived map[types.NodeID]struct{}
+	doneReceived map[stdtypes.NodeID]struct{}
 
 	// For each received Done message, stores the IDs of nodes that sent it.
-	doneMsgIndex map[string][]types.NodeID
+	doneMsgIndex map[string][]stdtypes.NodeID
 
 	// Once enough Done messages have been received,
 	// digests will contain the Preprepare digests for all sequence numbers in the segment.
@@ -40,7 +40,7 @@ type PbftSegmentChkp struct {
 
 	// Once enough Done messages have been received,
 	// DoneNodes will contain IDs of nodes from which matching Done messages were received.
-	doneNodes []types.NodeID
+	doneNodes []stdtypes.NodeID
 
 	// This flag is set once the retransmission of missing committed entries is requested.
 	// It serves preventing redundant retransmission entries when more than a quorum of Done messages are received.
@@ -50,8 +50,8 @@ type PbftSegmentChkp struct {
 // NewPbftSegmentChkp returns a pointer to a new instance of PbftSegmentChkp
 func NewPbftSegmentChkp() *PbftSegmentChkp {
 	return &PbftSegmentChkp{
-		doneReceived: make(map[types.NodeID]struct{}),
-		doneMsgIndex: make(map[string][]types.NodeID),
+		doneReceived: make(map[stdtypes.NodeID]struct{}),
+		doneMsgIndex: make(map[string][]stdtypes.NodeID),
 	}
 }
 
@@ -70,7 +70,7 @@ func (chkp *PbftSegmentChkp) Digests() map[types2.SeqNr][]byte {
 
 // DoneNodes returns a list of IDs of Nodes from which a matching Done message has been received.
 // If a quorum of Done messages has not yet been received, DoneNodes returns nil.
-func (chkp *PbftSegmentChkp) DoneNodes() []types.NodeID {
+func (chkp *PbftSegmentChkp) DoneNodes() []stdtypes.NodeID {
 	return chkp.doneNodes
 }
 
@@ -98,7 +98,7 @@ func (chkp *PbftSegmentChkp) Stable(membership *trantorpbtypes.Membership) bool 
 // NodeDone registers a Done message received from a node.
 // Once NodeDone has been called with matching Done messages for a quorum of nodes,
 // the instance-level checkpoint will become stable.
-func (chkp *PbftSegmentChkp) NodeDone(nodeID types.NodeID, doneDigests [][]byte, segment *common.Segment) {
+func (chkp *PbftSegmentChkp) NodeDone(nodeID stdtypes.NodeID, doneDigests [][]byte, segment *common.Segment) {
 
 	// Ignore duplicate Done messages.
 	if _, ok := chkp.doneReceived[nodeID]; ok {

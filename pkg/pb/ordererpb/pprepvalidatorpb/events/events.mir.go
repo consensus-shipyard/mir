@@ -3,19 +3,19 @@
 package pprepvalidatorpbevents
 
 import (
-	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func ValidatePreprepare(destModule types.ModuleID, preprepare *types1.Preprepare, origin *types2.ValidatePreprepareOrigin) *types3.Event {
-	return &types3.Event{
+func ValidatePreprepare(destModule stdtypes.ModuleID, preprepare *types.Preprepare, origin *types1.ValidatePreprepareOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_PprepValiadtor{
-			PprepValiadtor: &types2.Event{
-				Type: &types2.Event_ValidatePreprepare{
-					ValidatePreprepare: &types2.ValidatePreprepare{
+		Type: &types2.Event_PprepValiadtor{
+			PprepValiadtor: &types1.Event{
+				Type: &types1.Event_ValidatePreprepare{
+					ValidatePreprepare: &types1.ValidatePreprepare{
 						Preprepare: preprepare,
 						Origin:     origin,
 					},
@@ -25,13 +25,13 @@ func ValidatePreprepare(destModule types.ModuleID, preprepare *types1.Preprepare
 	}
 }
 
-func PreprepareValidated(destModule types.ModuleID, error error, origin *types2.ValidatePreprepareOrigin) *types3.Event {
-	return &types3.Event{
+func PreprepareValidated(destModule stdtypes.ModuleID, error error, origin *types1.ValidatePreprepareOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_PprepValiadtor{
-			PprepValiadtor: &types2.Event{
-				Type: &types2.Event_PreprepareValidated{
-					PreprepareValidated: &types2.PreprepareValidated{
+		Type: &types2.Event_PprepValiadtor{
+			PprepValiadtor: &types1.Event{
+				Type: &types1.Event_PreprepareValidated{
+					PreprepareValidated: &types1.PreprepareValidated{
 						Error:  error,
 						Origin: origin,
 					},
