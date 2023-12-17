@@ -7,7 +7,7 @@ package mock_internal
 import (
 	reflect "reflect"
 
-	"github.com/filecoin-project/mir/stdtypes"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 	gomock "github.com/golang/mock/gomock"
 )
 
