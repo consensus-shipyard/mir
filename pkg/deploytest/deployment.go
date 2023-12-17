@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir"
@@ -24,7 +25,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
 )
 
@@ -47,13 +47,13 @@ type TestConfig struct {
 	Simulation *Simulation
 
 	// IDs of nodes in this test.
-	NodeIDs []t.NodeID
+	NodeIDs []stdtypes.NodeID
 
 	// List of nodes.
 	Membership *trantorpbtypes.Membership
 
 	// The modules that will be run by each replica.
-	NodeModules map[t.NodeID]modules.Modules
+	NodeModules map[stdtypes.NodeID]modules.Modules
 
 	// Number of clients in the tested deployment.
 	NumClients int
@@ -65,7 +65,7 @@ type TestConfig struct {
 	NumNetTXs int
 
 	// The target module for the clients' transactions.
-	FakeTXDestModule t.ModuleID
+	FakeTXDestModule stdtypes.ModuleID
 
 	// Directory where all the test-related files will be stored.
 	// If empty, an OS-default temporary directory will be used.
@@ -78,7 +78,7 @@ type TestConfig struct {
 	TransportLayer LocalTransportLayer
 
 	// Fake applications of all the test replicas. Required for checking results.
-	FakeApps map[t.NodeID]*FakeApp
+	FakeApps map[stdtypes.NodeID]*FakeApp
 }
 
 // The Deployment represents a list of replicas interconnected by a simulated network transport.
@@ -252,8 +252,8 @@ func (d *Deployment) Run(ctx context.Context) (nodeErrors []error, heapObjects i
 	return nodeErrors, heapObjects, heapAlloc
 }
 
-func (d *Deployment) EventLogFiles() map[t.NodeID]string {
-	logFiles := make(map[t.NodeID]string)
+func (d *Deployment) EventLogFiles() map[stdtypes.NodeID]string {
+	logFiles := make(map[stdtypes.NodeID]string)
 	for _, r := range d.TestReplicas {
 		logFiles[r.ID] = r.EventLogFile()
 	}
@@ -264,9 +264,9 @@ func (d *Deployment) EventLogFiles() map[t.NodeID]string {
 // an address map.
 // It is assumed that node ID strings must be parseable to decimal numbers.
 // Each test replica is on the local machine - 127.0.0.1
-func (d *Deployment) localTransactionreceiverAddrs() map[t.NodeID]string {
+func (d *Deployment) localTransactionreceiverAddrs() map[stdtypes.NodeID]string {
 
-	addrs := make(map[t.NodeID]string, len(d.TestReplicas))
+	addrs := make(map[stdtypes.NodeID]string, len(d.TestReplicas))
 	for i, tr := range d.TestReplicas {
 		addrs[tr.ID] = fmt.Sprintf("127.0.0.1:%d", TXListenPort+i)
 	}

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"time"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -24,7 +25,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
 )

@@ -12,21 +12,21 @@ import (
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/pingpong/customevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 func main() {
 	fmt.Println("Starting ping-pong.")
 
 	// Manually create system membership with just 2 nodes.
-	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
+	membership := &trantorpbtypes.Membership{map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
 		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, "1"}, // nolint:govet
 		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, "1"}, // nolint:govet
 	}}
 
 	// Get own ID from command line.
-	ownID := t.NodeID(os.Args[1])
+	ownID := stdtypes.NodeID(os.Args[1])
 
 	// Instantiate network trnasport module and establish connections.
 	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
@@ -42,7 +42,7 @@ func main() {
 	node, err := mir.NewNode(
 		ownID,
 		mir.DefaultNodeConfig(),
-		map[t.ModuleID]modules.Module{
+		map[stdtypes.ModuleID]modules.Module{
 			"transport": transport,
 			//"pingpong":  NewPingPong(ownID),
 			//"pingpong": lowlevel.NewPingPong(ownID),

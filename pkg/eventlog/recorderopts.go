@@ -2,7 +2,6 @@ package eventlog
 
 import (
 	"github.com/filecoin-project/mir/pkg/logging"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -48,10 +47,10 @@ func EventFilterOpt(filter func(event stdtypes.Event) bool) RecorderOpt {
 	return eventFilterOpt(filter)
 }
 
-type eventWriterOpt func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error)
+type eventWriterOpt func(dest string, nodeID stdtypes.NodeID, logger logging.Logger) (EventWriter, error)
 
 func EventWriterOpt(
-	factory func(dest string, nodeID t.NodeID, logger logging.Logger) (EventWriter, error),
+	factory func(dest string, nodeID stdtypes.NodeID, logger logging.Logger) (EventWriter, error),
 ) RecorderOpt {
 	return eventWriterOpt(factory)
 }

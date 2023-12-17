@@ -3,47 +3,47 @@
 package batchdbpbdsl
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
+	types "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func LookupBatch[C any](m dsl.Module, destModule types.ModuleID, batchId types1.BatchID, context *C) {
+func LookupBatch[C any](m dsl.Module, destModule stdtypes.ModuleID, batchId types.BatchID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types2.LookupBatchOrigin{
+	origin := &types1.LookupBatchOrigin{
 		Module: m.ModuleID(),
-		Type:   &types2.LookupBatchOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types1.LookupBatchOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.LookupBatch(destModule, batchId, origin))
 }
 
-func LookupBatchResponse(m dsl.Module, destModule types.ModuleID, found bool, txs []*types3.Transaction, origin *types2.LookupBatchOrigin) {
+func LookupBatchResponse(m dsl.Module, destModule stdtypes.ModuleID, found bool, txs []*types2.Transaction, origin *types1.LookupBatchOrigin) {
 	dsl.EmitMirEvent(m, events.LookupBatchResponse(destModule, found, txs, origin))
 }
 
-func StoreBatch[C any](m dsl.Module, destModule types.ModuleID, batchId types1.BatchID, txs []*types3.Transaction, retentionIndex types4.RetentionIndex, context *C) {
+func StoreBatch[C any](m dsl.Module, destModule stdtypes.ModuleID, batchId types.BatchID, txs []*types2.Transaction, retentionIndex types3.RetentionIndex, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types2.StoreBatchOrigin{
+	origin := &types1.StoreBatchOrigin{
 		Module: m.ModuleID(),
-		Type:   &types2.StoreBatchOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types1.StoreBatchOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.StoreBatch(destModule, batchId, txs, retentionIndex, origin))
 }
 
-func BatchStored(m dsl.Module, destModule types.ModuleID, origin *types2.StoreBatchOrigin) {
+func BatchStored(m dsl.Module, destModule stdtypes.ModuleID, origin *types1.StoreBatchOrigin) {
 	dsl.EmitMirEvent(m, events.BatchStored(destModule, origin))
 }
 
-func GarbageCollect(m dsl.Module, destModule types.ModuleID, retentionIndex types4.RetentionIndex) {
+func GarbageCollect(m dsl.Module, destModule stdtypes.ModuleID, retentionIndex types3.RetentionIndex) {
 	dsl.EmitMirEvent(m, events.GarbageCollect(destModule, retentionIndex))
 }

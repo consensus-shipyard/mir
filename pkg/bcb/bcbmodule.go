@@ -1,6 +1,7 @@
 package bcb
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -10,7 +11,6 @@ import (
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -19,18 +19,18 @@ import (
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
 type ModuleConfig struct {
-	Self     t.ModuleID // id of this module
-	Consumer t.ModuleID // id of the module to send the "Deliver" event to
-	Net      t.ModuleID
-	Crypto   t.ModuleID
+	Self     stdtypes.ModuleID // id of this module
+	Consumer stdtypes.ModuleID // id of the module to send the "Deliver" event to
+	Net      stdtypes.ModuleID
+	Crypto   stdtypes.ModuleID
 }
 
 // ModuleParams sets the values for the parameters of an instance of the protocol.
 // All replicas are expected to use identical module parameters.
 type ModuleParams struct {
-	InstanceUID []byte     // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
-	AllNodes    []t.NodeID // the list of participating nodes
-	Leader      t.NodeID   // the id of the leader of the instance
+	InstanceUID []byte            // unique identifier for this instance of BCB, used to prevent cross-instance replay attacks
+	AllNodes    []stdtypes.NodeID // the list of participating nodes
+	Leader      stdtypes.NodeID   // the id of the leader of the instance
 }
 
 // GetN returns the total number of nodes.
@@ -51,15 +51,15 @@ type bcbModuleState struct {
 	sentEcho     bool
 	sentFinal    bool
 	delivered    bool
-	receivedEcho map[t.NodeID]bool
-	echoSigs     map[t.NodeID][]byte
+	receivedEcho map[stdtypes.NodeID]bool
+	echoSigs     map[stdtypes.NodeID][]byte
 }
 
 // NewModule returns a passive module for the Signed Echo Broadcast from the textbook "Introduction to reliable and
 // secure distributed programming". It serves as a motivating example for the DSL module interface.
 // The pseudocode can also be found in https://dcl.epfl.ch/site/_media/education/sdc_byzconsensus.pdf (Algorithm 4
 // (Echo broadcast [Rei94]))
-func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.PassiveModule {
+func NewModule(mc ModuleConfig, params *ModuleParams, nodeID stdtypes.NodeID) modules.PassiveModule {
 	m := dsl.NewModule(mc.Self)
 
 	state := bcbModuleState{
@@ -68,8 +68,8 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 		sentEcho:     false,
 		sentFinal:    false,
 		delivered:    false,
-		receivedEcho: make(map[t.NodeID]bool),
-		echoSigs:     make(map[t.NodeID][]byte),
+		receivedEcho: make(map[stdtypes.NodeID]bool),
+		echoSigs:     make(map[stdtypes.NodeID][]byte),
 	}
 
 	// upon event <bcb, Broadcast | m> do    // only process s
@@ -83,7 +83,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	})
 
 	// upon event <al, Deliver | p, [Send, m]> ...
-	bcbpbdsl.UponStartMessageReceived(m, func(from t.NodeID, data []byte) error {
+	bcbpbdsl.UponStartMessageReceived(m, func(from stdtypes.NodeID, data []byte) error {
 		// ... such that p = s and sentecho = false do
 		if from == params.Leader && !state.sentEcho {
 			// σ := sign(self, bcb||self||ECHO||m);
@@ -96,13 +96,13 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
 		if !state.sentEcho {
 			state.sentEcho = true
-			transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
+			transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []stdtypes.NodeID{params.Leader})
 		}
 		return nil
 	})
 
 	// upon event <al, Deliver | p, [ECHO, m, σ]> do    // only process s
-	bcbpbdsl.UponEchoMessageReceived(m, func(from t.NodeID, signature []byte) error {
+	bcbpbdsl.UponEchoMessageReceived(m, func(from stdtypes.NodeID, signature []byte) error {
 		// if echos[p] = ⊥ ∧ verifysig(p, bcb||p||ECHO||m, σ) then
 		if nodeID == params.Leader && !state.receivedEcho[from] && state.request != nil {
 			state.receivedEcho[from] = true
@@ -112,7 +112,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 		return nil
 	})
 
-	cryptopbdsl.UponSigVerified(m, func(nodeID t.NodeID, err error, context *verifyEchoContext) error {
+	cryptopbdsl.UponSigVerified(m, func(nodeID stdtypes.NodeID, err error, context *verifyEchoContext) error {
 		if err == nil {
 			state.echoSigs[nodeID] = context.signature
 		}
@@ -132,7 +132,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	})
 
 	// upon event <al, Deliver | p, [FINAL, m, Σ]> do
-	bcbpbdsl.UponFinalMessageReceived(m, func(from t.NodeID, data []byte, signers []t.NodeID, signatures [][]byte) error {
+	bcbpbdsl.UponFinalMessageReceived(m, func(from stdtypes.NodeID, data []byte, signers []stdtypes.NodeID, signatures [][]byte) error {
 		// if #({p ∈ Π | Σ[p] != ⊥ ∧ verifysig(p, bcb||p||ECHO||m, Σ[p])}) > (N+f)/2 and delivered = FALSE do
 		if len(signers) == len(signatures) && len(signers) > (params.GetN()+params.GetF())/2 && !state.delivered {
 			signedMessage := [][]byte{params.InstanceUID, []byte("ECHO"), data}
@@ -142,7 +142,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(_ []t.NodeID, _ []error, allOK bool, context *verifyFinalContext) error {
+	cryptopbdsl.UponSigsVerified(m, func(_ []stdtypes.NodeID, _ []error, allOK bool, context *verifyFinalContext) error {
 		if allOK && !state.delivered {
 			state.delivered = true
 			bcbpbdsl.Deliver(m, mc.Consumer, context.data)

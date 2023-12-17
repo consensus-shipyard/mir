@@ -2,14 +2,14 @@ package trantor
 
 import (
 	"github.com/filecoin-project/mir/pkg/eventmangler"
-	"github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // PerturbMessages configures the SMR system to randomly drop and delay some of the messages sent over the network.
 // Useful for debugging and stress-testing.
 // The params argument defines parameters of the perturbation, such as how many messages should be dropped
 // and how the remaining messages should be delayed.
-func PerturbMessages(params *eventmangler.ModuleParams, moduleID types.ModuleID, sys *System) error {
+func PerturbMessages(params *eventmangler.ModuleParams, moduleID stdtypes.ModuleID, sys *System) error {
 
 	// Create event mangler perturbing (dropping and delaying) events.
 	messageMangler, err := eventmangler.NewModule(

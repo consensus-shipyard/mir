@@ -10,7 +10,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 type ModuleConfig struct {

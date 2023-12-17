@@ -3,7 +3,6 @@ package stdevents
 import (
 	"fmt"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -11,7 +10,7 @@ type Init struct {
 	mirEvent
 }
 
-func NewInit(dest t.ModuleID) *Init {
+func NewInit(dest stdtypes.ModuleID) *Init {
 	return &Init{
 		mirEvent{
 			DestModule: dest,
@@ -19,19 +18,19 @@ func NewInit(dest t.ModuleID) *Init {
 	}
 }
 
-func NewInitWithSrc(src t.ModuleID, dest t.ModuleID) *Init {
+func NewInitWithSrc(src stdtypes.ModuleID, dest stdtypes.ModuleID) *Init {
 	e := NewInit(dest)
 	e.SrcModule = src
 	return e
 }
 
-func (e *Init) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (e *Init) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *Init) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (e *Init) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

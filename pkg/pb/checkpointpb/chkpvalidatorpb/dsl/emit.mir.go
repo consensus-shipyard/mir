@@ -5,26 +5,26 @@ package chkpvalidatorpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/events"
-	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func ValidateCheckpoint[C any](m dsl.Module, destModule types.ModuleID, checkpoint *types1.StableCheckpoint, epochNr types2.EpochNr, memberships []*types3.Membership, context *C) {
+func ValidateCheckpoint[C any](m dsl.Module, destModule stdtypes.ModuleID, checkpoint *types.StableCheckpoint, epochNr types1.EpochNr, memberships []*types2.Membership, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types4.ValidateChkpOrigin{
+	origin := &types3.ValidateChkpOrigin{
 		Module: m.ModuleID(),
-		Type:   &types4.ValidateChkpOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types3.ValidateChkpOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.ValidateCheckpoint(destModule, checkpoint, epochNr, memberships, origin))
 }
 
-func CheckpointValidated(m dsl.Module, destModule types.ModuleID, error error, origin *types4.ValidateChkpOrigin) {
+func CheckpointValidated(m dsl.Module, destModule stdtypes.ModuleID, error error, origin *types3.ValidateChkpOrigin) {
 	dsl.EmitMirEvent(m, events.CheckpointValidated(destModule, error, origin))
 }

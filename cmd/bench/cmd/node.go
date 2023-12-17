@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -30,7 +31,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
@@ -104,10 +104,10 @@ func runNode() error {
 
 	// Check if own id is in the membership
 	initialMembership := params.Trantor.Iss.InitialMembership
-	if _, ok := initialMembership.Nodes[t.NodeID(id)]; !ok {
+	if _, ok := initialMembership.Nodes[stdtypes.NodeID(id)]; !ok {
 		return es.Errorf("own ID (%v) not found in membership (%v)", id, maputil.GetKeys(initialMembership.Nodes))
 	}
-	ownID := t.NodeID(id)
+	ownID := stdtypes.NodeID(id)
 
 	// Assemble listening address.
 	// In this benchmark code, we always listen on the address 0.0.0.0.
@@ -123,7 +123,7 @@ func runNode() error {
 
 	// Create libp2p host
 	h, err := libp2p.NewDummyHostWithPrivKey(
-		t.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
+		stdtypes.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
 		libp2p.NewDummyHostKey(ownNumericID),
 	)
 	if err != nil {
@@ -187,7 +187,7 @@ func runNode() error {
 	// Instantiate the Mir Node.
 	nodeConfig := mir.DefaultNodeConfig().WithLogger(logger)
 	nodeConfig.Stats.Period = time.Second
-	node, err := mir.NewNode(t.NodeID(id), nodeConfig, trantorInstance.Modules(), nil)
+	node, err := mir.NewNode(stdtypes.NodeID(id), nodeConfig, trantorInstance.Modules(), nil)
 	if err != nil {
 		return es.Errorf("could not create node: %w", err)
 	}

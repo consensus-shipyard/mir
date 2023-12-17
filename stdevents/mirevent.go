@@ -1,6 +1,8 @@
 package stdevents
 
-import t "github.com/filecoin-project/mir/pkg/types"
+import (
+	t "github.com/filecoin-project/mir/stdtypes"
+)
 
 type mirEvent struct {
 	SrcModule  t.ModuleID

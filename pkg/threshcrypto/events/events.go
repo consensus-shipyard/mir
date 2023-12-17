@@ -3,13 +3,13 @@ package events
 import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	pb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
-	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // SignShare returns an event representing a request to the threshcrypto module for computing the signature share over data.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // SignShareResult produced by the threshcrypto module.
-func SignShare(destModule t.ModuleID, data [][]byte, origin *pb.SignShareOrigin) *eventpb.Event {
+func SignShare(destModule stdtypes.ModuleID, data [][]byte, origin *pb.SignShareOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{
 		Type: &pb.Event_SignShare{SignShare: &pb.SignShare{
 			Data:   data,
@@ -22,7 +22,7 @@ func SignShare(destModule t.ModuleID, data [][]byte, origin *pb.SignShareOrigin)
 // It contains the computed signature share and the SignShareOrigin,
 // an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained signature.
-func SignShareResult(destModule t.ModuleID, signatureShare []byte, origin *pb.SignShareOrigin) *eventpb.Event {
+func SignShareResult(destModule stdtypes.ModuleID, signatureShare []byte, origin *pb.SignShareOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{Type: &pb.Event_SignShareResult{SignShareResult: &pb.SignShareResult{
 		SignatureShare: signatureShare,
 		Origin:         origin,
@@ -33,12 +33,12 @@ func SignShareResult(destModule t.ModuleID, signatureShare []byte, origin *pb.Si
 // a signature share over data against a node's public key share, belonging to the module instance's group.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // VerifyShareResult produced by the crypto module.
-func VerifyShare(destModule t.ModuleID, data [][]byte, sigShare []byte, nodeID t.NodeID, origin *pb.VerifyShareOrigin) *eventpb.Event {
+func VerifyShare(destModule stdtypes.ModuleID, data [][]byte, sigShare []byte, nodeID stdtypes.NodeID, origin *pb.VerifyShareOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{
 		Type: &pb.Event_VerifyShare{VerifyShare: &pb.VerifyShare{
 			Data:           data,
 			SignatureShare: sigShare,
-			NodeId:         nodeID.Pb(),
+			NodeId:         string(nodeID.Bytes()),
 			Origin:         origin,
 		}},
 	})
@@ -48,7 +48,7 @@ func VerifyShare(destModule t.ModuleID, data [][]byte, sigShare []byte, nodeID t
 // It contains the result of the verification (boolean and a string error if applicable) and the VerifyShareOrigin,
 // an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained signature.
-func VerifyShareResult(destModule t.ModuleID, ok bool, err string, origin *pb.VerifyShareOrigin) *eventpb.Event {
+func VerifyShareResult(destModule stdtypes.ModuleID, ok bool, err string, origin *pb.VerifyShareOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{Type: &pb.Event_VerifyShareResult{VerifyShareResult: &pb.VerifyShareResult{
 		Ok:     ok,
 		Error:  err,
@@ -60,7 +60,7 @@ func VerifyShareResult(destModule t.ModuleID, ok bool, err string, origin *pb.Ve
 // a full signature over data against the group/module's public key.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // VerifyFullResult produced by the crypto module.
-func VerifyFull(destModule t.ModuleID, data [][]byte, sigFull []byte, origin *pb.VerifyFullOrigin) *eventpb.Event {
+func VerifyFull(destModule stdtypes.ModuleID, data [][]byte, sigFull []byte, origin *pb.VerifyFullOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{
 		Type: &pb.Event_VerifyFull{VerifyFull: &pb.VerifyFull{
 			Data:          data,
@@ -74,7 +74,7 @@ func VerifyFull(destModule t.ModuleID, data [][]byte, sigFull []byte, origin *pb
 // It contains the result of the verification (boolean and a string error if applicable) and the VerifyFullOrigin,
 // an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained signature.
-func VerifyFullResult(destModule t.ModuleID, ok bool, err string, origin *pb.VerifyFullOrigin) *eventpb.Event {
+func VerifyFullResult(destModule stdtypes.ModuleID, ok bool, err string, origin *pb.VerifyFullOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{Type: &pb.Event_VerifyFullResult{VerifyFullResult: &pb.VerifyFullResult{
 		Ok:     ok,
 		Error:  err,
@@ -88,7 +88,7 @@ func VerifyFullResult(destModule t.ModuleID, ok bool, err string, origin *pb.Ver
 // private key shares, therefore the full signature is always valid for this data in the group.
 // The origin is an object used to maintain the context for the requesting module and will be included in the
 // RecoverResult produced by the crypto module.
-func Recover(destModule t.ModuleID, data [][]byte, sigShares [][]byte, origin *pb.RecoverOrigin) *eventpb.Event {
+func Recover(destModule stdtypes.ModuleID, data [][]byte, sigShares [][]byte, origin *pb.RecoverOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{
 		Type: &pb.Event_Recover{Recover: &pb.Recover{
 			Data:            data,
@@ -102,7 +102,7 @@ func Recover(destModule t.ModuleID, data [][]byte, sigShares [][]byte, origin *p
 // It contains the result of the recovery (boolean, the recovered signature, and a string error if applicable)
 // and the RecoverOrigin, an object used to maintain the context for the requesting module,
 // i.e., information about what to do with the contained signature.
-func RecoverResult(destModule t.ModuleID, fullSig []byte, ok bool, err string, origin *pb.RecoverOrigin) *eventpb.Event {
+func RecoverResult(destModule stdtypes.ModuleID, fullSig []byte, ok bool, err string, origin *pb.RecoverOrigin) *eventpb.Event {
 	return threshcryptoEvent(destModule, &pb.Event{Type: &pb.Event_RecoverResult{RecoverResult: &pb.RecoverResult{
 		FullSignature: fullSig,
 		Ok:            ok,
@@ -111,9 +111,10 @@ func RecoverResult(destModule t.ModuleID, fullSig []byte, ok bool, err string, o
 	}}})
 }
 
-func threshcryptoEvent(destModule t.ModuleID, ev *pb.Event) *eventpb.Event {
+func threshcryptoEvent(destModule stdtypes.ModuleID, ev *pb.Event) *eventpb.Event {
+	// TODO: Stop using proto events directly and use the generated types instead
 	return &eventpb.Event{
-		DestModule: destModule.Pb(),
+		DestModule: destModule.String(),
 		Type: &eventpb.Event_ThreshCrypto{
 			ThreshCrypto: ev,
 		},

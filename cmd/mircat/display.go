@@ -18,7 +18,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // extracts events from eventlog entries and
@@ -64,7 +63,7 @@ func displayEvents(args *arguments) error { //nolint:gocognit
 		var entry *recordingpb.Entry
 		for entry, err = reader.ReadEntry(); err == nil; entry, err = reader.ReadEntry() {
 			metadata := eventMetadata{
-				nodeID: t.NodeID(entry.NodeId),
+				nodeID: stdtypes.NodeID(entry.NodeId),
 				time:   entry.Time,
 			}
 			// getting events from entry

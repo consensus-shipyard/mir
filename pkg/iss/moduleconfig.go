@@ -1,6 +1,8 @@
 package iss
 
-import t "github.com/filecoin-project/mir/pkg/types"
+import (
+	t "github.com/filecoin-project/mir/stdtypes"
+)
 
 // ModuleConfig contains the names of modules ISS depends on.
 // The corresponding modules are expected by ISS to be stored under these keys by the Node.

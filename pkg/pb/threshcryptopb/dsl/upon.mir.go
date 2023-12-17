@@ -6,7 +6,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for processing events.
@@ -45,7 +45,7 @@ func UponSignShareResult[C any](m dsl.Module, handler func(signatureShare []uint
 	})
 }
 
-func UponVerifyShare(m dsl.Module, handler func(data [][]uint8, signatureShare []uint8, nodeId types2.NodeID, origin *types.VerifyShareOrigin) error) {
+func UponVerifyShare(m dsl.Module, handler func(data [][]uint8, signatureShare []uint8, nodeId stdtypes.NodeID, origin *types.VerifyShareOrigin) error) {
 	UponEvent[*types.Event_VerifyShare](m, func(ev *types.VerifyShare) error {
 		return handler(ev.Data, ev.SignatureShare, ev.NodeId, ev.Origin)
 	})

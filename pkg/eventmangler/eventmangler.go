@@ -13,13 +13,12 @@ import (
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type ModuleConfig struct {
-	Self  t.ModuleID
-	Dest  t.ModuleID
-	Timer t.ModuleID
+	Self  stdtypes.ModuleID
+	Dest  stdtypes.ModuleID
+	Timer stdtypes.ModuleID
 }
 
 type ModuleParams struct {

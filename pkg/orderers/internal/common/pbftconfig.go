@@ -4,7 +4,7 @@ import (
 	"time"
 
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // PBFTConfig holds PBFT-specific configuration parameters used by a concrete instance of PBFT.

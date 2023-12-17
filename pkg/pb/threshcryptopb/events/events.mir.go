@@ -3,18 +3,18 @@
 package threshcryptopbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func SignShare(destModule types.ModuleID, data [][]uint8, origin *types1.SignShareOrigin) *types2.Event {
-	return &types2.Event{
+func SignShare(destModule stdtypes.ModuleID, data [][]uint8, origin *types.SignShareOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_SignShare{
-					SignShare: &types1.SignShare{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_SignShare{
+					SignShare: &types.SignShare{
 						Data:   data,
 						Origin: origin,
 					},
@@ -24,13 +24,13 @@ func SignShare(destModule types.ModuleID, data [][]uint8, origin *types1.SignSha
 	}
 }
 
-func SignShareResult(destModule types.ModuleID, signatureShare []uint8, origin *types1.SignShareOrigin) *types2.Event {
-	return &types2.Event{
+func SignShareResult(destModule stdtypes.ModuleID, signatureShare []uint8, origin *types.SignShareOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_SignShareResult{
-					SignShareResult: &types1.SignShareResult{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_SignShareResult{
+					SignShareResult: &types.SignShareResult{
 						SignatureShare: signatureShare,
 						Origin:         origin,
 					},
@@ -40,13 +40,13 @@ func SignShareResult(destModule types.ModuleID, signatureShare []uint8, origin *
 	}
 }
 
-func VerifyShare(destModule types.ModuleID, data [][]uint8, signatureShare []uint8, nodeId types.NodeID, origin *types1.VerifyShareOrigin) *types2.Event {
-	return &types2.Event{
+func VerifyShare(destModule stdtypes.ModuleID, data [][]uint8, signatureShare []uint8, nodeId stdtypes.NodeID, origin *types.VerifyShareOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_VerifyShare{
-					VerifyShare: &types1.VerifyShare{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_VerifyShare{
+					VerifyShare: &types.VerifyShare{
 						Data:           data,
 						SignatureShare: signatureShare,
 						NodeId:         nodeId,
@@ -58,13 +58,13 @@ func VerifyShare(destModule types.ModuleID, data [][]uint8, signatureShare []uin
 	}
 }
 
-func VerifyShareResult(destModule types.ModuleID, ok bool, error string, origin *types1.VerifyShareOrigin) *types2.Event {
-	return &types2.Event{
+func VerifyShareResult(destModule stdtypes.ModuleID, ok bool, error string, origin *types.VerifyShareOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_VerifyShareResult{
-					VerifyShareResult: &types1.VerifyShareResult{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_VerifyShareResult{
+					VerifyShareResult: &types.VerifyShareResult{
 						Ok:     ok,
 						Error:  error,
 						Origin: origin,
@@ -75,13 +75,13 @@ func VerifyShareResult(destModule types.ModuleID, ok bool, error string, origin 
 	}
 }
 
-func VerifyFull(destModule types.ModuleID, data [][]uint8, fullSignature []uint8, origin *types1.VerifyFullOrigin) *types2.Event {
-	return &types2.Event{
+func VerifyFull(destModule stdtypes.ModuleID, data [][]uint8, fullSignature []uint8, origin *types.VerifyFullOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_VerifyFull{
-					VerifyFull: &types1.VerifyFull{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_VerifyFull{
+					VerifyFull: &types.VerifyFull{
 						Data:          data,
 						FullSignature: fullSignature,
 						Origin:        origin,
@@ -92,13 +92,13 @@ func VerifyFull(destModule types.ModuleID, data [][]uint8, fullSignature []uint8
 	}
 }
 
-func VerifyFullResult(destModule types.ModuleID, ok bool, error string, origin *types1.VerifyFullOrigin) *types2.Event {
-	return &types2.Event{
+func VerifyFullResult(destModule stdtypes.ModuleID, ok bool, error string, origin *types.VerifyFullOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_VerifyFullResult{
-					VerifyFullResult: &types1.VerifyFullResult{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_VerifyFullResult{
+					VerifyFullResult: &types.VerifyFullResult{
 						Ok:     ok,
 						Error:  error,
 						Origin: origin,
@@ -109,13 +109,13 @@ func VerifyFullResult(destModule types.ModuleID, ok bool, error string, origin *
 	}
 }
 
-func Recover(destModule types.ModuleID, data [][]uint8, signatureShares [][]uint8, origin *types1.RecoverOrigin) *types2.Event {
-	return &types2.Event{
+func Recover(destModule stdtypes.ModuleID, data [][]uint8, signatureShares [][]uint8, origin *types.RecoverOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_Recover{
-					Recover: &types1.Recover{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_Recover{
+					Recover: &types.Recover{
 						Data:            data,
 						SignatureShares: signatureShares,
 						Origin:          origin,
@@ -126,13 +126,13 @@ func Recover(destModule types.ModuleID, data [][]uint8, signatureShares [][]uint
 	}
 }
 
-func RecoverResult(destModule types.ModuleID, fullSignature []uint8, ok bool, error string, origin *types1.RecoverOrigin) *types2.Event {
-	return &types2.Event{
+func RecoverResult(destModule stdtypes.ModuleID, fullSignature []uint8, ok bool, error string, origin *types.RecoverOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_ThreshCrypto{
-			ThreshCrypto: &types1.Event{
-				Type: &types1.Event_RecoverResult{
-					RecoverResult: &types1.RecoverResult{
+		Type: &types1.Event_ThreshCrypto{
+			ThreshCrypto: &types.Event{
+				Type: &types.Event_RecoverResult{
+					RecoverResult: &types.RecoverResult{
 						FullSignature: fullSignature,
 						Ok:            ok,
 						Error:         error,

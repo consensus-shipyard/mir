@@ -9,6 +9,7 @@ import (
 	pbftpb "github.com/filecoin-project/mir/pkg/pb/pbftpb"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Message struct {
@@ -621,7 +622,7 @@ func (*MissingPreprepare) MirReflect() mirreflect.Type {
 
 type NewView struct {
 	View              types1.ViewNr
-	ViewChangeSenders []string
+	ViewChangeSenders []stdtypes.NodeID
 	SignedViewChanges []*SignedViewChange
 	PreprepareSeqNrs  []types.SeqNr
 	Preprepares       []*Preprepare
@@ -632,8 +633,10 @@ func NewViewFromPb(pb *pbftpb.NewView) *NewView {
 		return nil
 	}
 	return &NewView{
-		View:              (types1.ViewNr)(pb.View),
-		ViewChangeSenders: pb.ViewChangeSenders,
+		View: (types1.ViewNr)(pb.View),
+		ViewChangeSenders: types2.ConvertSlice(pb.ViewChangeSenders, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
+		}),
 		SignedViewChanges: types2.ConvertSlice(pb.SignedViewChanges, func(t *pbftpb.SignedViewChange) *SignedViewChange {
 			return SignedViewChangeFromPb(t)
 		}),
@@ -653,7 +656,9 @@ func (m *NewView) Pb() *pbftpb.NewView {
 	pbMessage := &pbftpb.NewView{}
 	{
 		pbMessage.View = (uint64)(m.View)
-		pbMessage.ViewChangeSenders = m.ViewChangeSenders
+		pbMessage.ViewChangeSenders = types2.ConvertSlice(m.ViewChangeSenders, func(t stdtypes.NodeID) string {
+			return (string)(t)
+		})
 		pbMessage.SignedViewChanges = types2.ConvertSlice(m.SignedViewChanges, func(t *SignedViewChange) *pbftpb.SignedViewChange {
 			return (t).Pb()
 		})

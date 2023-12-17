@@ -48,14 +48,14 @@ message VerifySig {
   SignedData   data      = 1;
   bytes        signature = 2;
   SigVerOrigin origin    = 3 [(mir.origin_request) = true];
-  string       node_id   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string       node_id   = 4 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
 }
 
 message SigVerified {
   option (mir.event) = true;
 
   SigVerOrigin origin  = 1 [(mir.origin_response) = true];
-  string       node_id = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string       node_id = 2 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   string       error   = 3 [(mir.type) = "error"];
 }
 
@@ -65,14 +65,14 @@ message VerifySigs {
   repeated SignedData data       = 1;
   repeated bytes      signatures = 2;
   SigVerOrigin        origin     = 3 [(mir.origin_request) = true];
-  repeated string     node_ids   = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  repeated string     node_ids   = 4 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
 }
 
 message SigsVerified {
   option (mir.event) = true;
 
   SigVerOrigin    origin   = 1 [(mir.origin_response) = true];
-  repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  repeated string node_ids = 2 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   repeated string errors   = 3 [(mir.type) = "error"];
   bool            all_ok   = 4;
 }
@@ -84,7 +84,7 @@ message SigsVerified {
 message SignOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin   context_store = 2;
     dslpb.Origin            dsl           = 4;
@@ -94,7 +94,7 @@ message SignOrigin {
 message SigVerOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin     context_store = 2;
     dslpb.Origin              dsl           = 4;

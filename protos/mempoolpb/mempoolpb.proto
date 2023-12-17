@@ -133,7 +133,7 @@ message BatchTimeout {
 message RequestBatchOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof Type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -143,7 +143,7 @@ message RequestBatchOrigin {
 message RequestTransactionsOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof Type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -153,7 +153,7 @@ message RequestTransactionsOrigin {
 message RequestTransactionIDsOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof Type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
@@ -163,7 +163,7 @@ message RequestTransactionIDsOrigin {
 message RequestBatchIDOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof Type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;

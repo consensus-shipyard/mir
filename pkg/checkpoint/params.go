@@ -3,7 +3,7 @@ package checkpoint
 import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // ModuleParams represents the state associated with a single instance of the checkpoint protocol

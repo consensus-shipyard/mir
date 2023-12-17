@@ -13,7 +13,7 @@ import (
 	ppmsgs "github.com/filecoin-project/mir/pkg/pb/pingpongpb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {

@@ -21,16 +21,15 @@ import (
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	testerpbevents "github.com/filecoin-project/mir/pkg/pb/testerpb/events"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/mathutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 	// TODO: Try removing the dependency on the crypto module. (Does that mean completely removing some tests?)
 )
 
 type simpleModuleConfig struct {
-	Self    types.ModuleID
-	Replies types.ModuleID
-	Reports types.ModuleID
+	Self    stdtypes.ModuleID
+	Replies stdtypes.ModuleID
+	Reports stdtypes.ModuleID
 }
 
 func defaultSimpleModuleConfig() *simpleModuleConfig {
@@ -166,7 +165,7 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 			eventsIn: stdtypes.ListOf(transportpbevents.SendMessage(
 				mc.Self,
 				&messagepbtypes.Message{},
-				[]types.NodeID{}).Pb(),
+				[]stdtypes.NodeID{}).Pb(),
 			),
 			eventsOut: stdtypes.EmptyList(),
 			err:       nil,
@@ -222,13 +221,13 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 }
 
 type contextTestingModuleModuleConfig struct {
-	Self     types.ModuleID
-	Crypto   types.ModuleID
-	Hasher   types.ModuleID
-	Timer    types.ModuleID
-	Signed   types.ModuleID
-	Hashed   types.ModuleID
-	Verified types.ModuleID
+	Self     stdtypes.ModuleID
+	Crypto   stdtypes.ModuleID
+	Hasher   stdtypes.ModuleID
+	Timer    stdtypes.ModuleID
+	Signed   stdtypes.ModuleID
+	Hashed   stdtypes.ModuleID
+	Verified stdtypes.ModuleID
 }
 
 func defaultContextTestingModuleConfig() *contextTestingModuleModuleConfig {
@@ -270,10 +269,10 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 			msg := &cryptopbtypes.SignedData{Data: [][]byte{[]byte("uint"), []byte(strconv.FormatUint(u, 10))}}
 
 			var signatures [][]byte
-			var nodeIDs []types.NodeID
+			var nodeIDs []stdtypes.NodeID
 			for i := uint64(0); i < u; i++ {
 				signatures = append(signatures, []byte(strconv.FormatUint(i, 10)))
-				nodeIDs = append(nodeIDs, types.NodeID(strconv.FormatUint(i, 10)))
+				nodeIDs = append(nodeIDs, stdtypes.NodeID(strconv.FormatUint(i, 10)))
 			}
 
 			// NB: avoid using primitive types as the context in the actual implementation, prefer named structs,
@@ -283,7 +282,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []stdtypes.NodeID, errs []error, allOK bool, context *uint64) error {
 		if allOK {
 			for _, nodeID := range nodeIDs {
 				EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
@@ -292,7 +291,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []types.NodeID, errs []error, allOK bool, context *uint64) error {
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []stdtypes.NodeID, errs []error, allOK bool, context *uint64) error {
 		if allOK {
 			EmitTestingUint(m, mc.Verified, *context)
 		}
@@ -378,7 +377,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 			sigsVerifiedEvent := cryptopbevents.SigsVerified(
 				/*destModule*/ mc.Self,
 				/*origin*/ sigVerOrigin,
-				/*nodeIDs*/ types.NodeIDSlice(sigVerNodes),
+				/*nodeIDs*/ stdtypes.NodeIDSlice(sigVerNodes),
 				/*errors*/ sliceutil.Repeat(nilErr, 8),
 				/*allOk*/ true,
 			).Pb()
@@ -415,7 +414,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 
 // event wrappers (similar to the ones in pkg/events/events.go)
 
-func DslSignOrigin(module types.ModuleID, contextID dsl.ContextID) *cryptopbtypes.SignOrigin {
+func DslSignOrigin(module stdtypes.ModuleID, contextID dsl.ContextID) *cryptopbtypes.SignOrigin {
 	return &cryptopbtypes.SignOrigin{
 		Module: module,
 		Type: &cryptopbtypes.SignOrigin_Dsl{
@@ -426,11 +425,11 @@ func DslSignOrigin(module types.ModuleID, contextID dsl.ContextID) *cryptopbtype
 
 // dsl wrappers (similar to the ones in pkg/dsl/events.go)
 
-func EmitTestingString(m dsl.Module, dest types.ModuleID, s string) {
+func EmitTestingString(m dsl.Module, dest stdtypes.ModuleID, s string) {
 	dsl.EmitEvent(m, stdevents.NewTestString(dest, s))
 }
 
-func EmitTestingUint(m dsl.Module, dest types.ModuleID, u uint64) {
+func EmitTestingUint(m dsl.Module, dest stdtypes.ModuleID, u uint64) {
 	dsl.EmitEvent(m, stdevents.NewTestUint64(dest, u))
 }
 

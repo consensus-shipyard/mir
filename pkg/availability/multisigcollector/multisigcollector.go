@@ -12,7 +12,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.

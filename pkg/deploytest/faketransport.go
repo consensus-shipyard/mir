@@ -27,13 +27,12 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 type FakeLink struct {
 	FakeTransport *FakeTransport
-	Source        t.NodeID
+	Source        stdtypes.NodeID
 	DoneC         chan struct{}
 	wg            sync.WaitGroup
 }
@@ -94,7 +93,7 @@ func (fl *FakeLink) ApplyEvents(
 // The ImplementsModule method only serves the purpose of indicating that this is a Module and must not be called.
 func (fl *FakeLink) ImplementsModule() {}
 
-func (fl *FakeLink) Send(dest t.NodeID, msg *messagepb.Message) error {
+func (fl *FakeLink) Send(dest stdtypes.NodeID, msg *messagepb.Message) error {
 	fl.FakeTransport.Send(fl.Source, dest, msg)
 	return nil
 }
@@ -107,17 +106,17 @@ var _ LocalTransportLayer = &FakeTransport{}
 
 type FakeTransport struct {
 	// Buffers is source x dest
-	Buffers       map[t.NodeID]map[t.NodeID]chan *stdtypes.EventList
-	NodeSinks     map[t.NodeID]chan *stdtypes.EventList
+	Buffers       map[stdtypes.NodeID]map[stdtypes.NodeID]chan *stdtypes.EventList
+	NodeSinks     map[stdtypes.NodeID]chan *stdtypes.EventList
 	logger        logging.Logger
-	nodeIDsWeight map[t.NodeID]types.VoteWeight
+	nodeIDsWeight map[stdtypes.NodeID]types.VoteWeight
 }
 
-func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTransport {
-	buffers := make(map[t.NodeID]map[t.NodeID]chan *stdtypes.EventList)
-	nodeSinks := make(map[t.NodeID]chan *stdtypes.EventList)
+func NewFakeTransport(nodeIDsWeight map[stdtypes.NodeID]types.VoteWeight) *FakeTransport {
+	buffers := make(map[stdtypes.NodeID]map[stdtypes.NodeID]chan *stdtypes.EventList)
+	nodeSinks := make(map[stdtypes.NodeID]chan *stdtypes.EventList)
 	for sourceID := range nodeIDsWeight {
-		buffers[sourceID] = make(map[t.NodeID]chan *stdtypes.EventList)
+		buffers[sourceID] = make(map[stdtypes.NodeID]chan *stdtypes.EventList)
 		for destID := range nodeIDsWeight {
 			if sourceID == destID {
 				continue
@@ -135,17 +134,17 @@ func NewFakeTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight) *FakeTranspor
 	}
 }
 
-func (ft *FakeTransport) Send(source, dest t.NodeID, msg *messagepb.Message) {
+func (ft *FakeTransport) Send(source, dest stdtypes.NodeID, msg *messagepb.Message) {
 	select {
 	case ft.Buffers[source][dest] <- stdtypes.ListOf(
-		transportpbevents.MessageReceived(t.ModuleID(msg.DestModule), source, messagepbtypes.MessageFromPb(msg)).Pb(),
+		transportpbevents.MessageReceived(stdtypes.ModuleID(msg.DestModule), source, messagepbtypes.MessageFromPb(msg)).Pb(),
 	):
 	default:
 		fmt.Printf("Warning: Dropping message %T from %s to %s\n", msg.Type, source, dest)
 	}
 }
 
-func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
+func (ft *FakeTransport) Link(source stdtypes.NodeID) (net.Transport, error) {
 	return &FakeLink{
 		Source:        source,
 		FakeTransport: ft,
@@ -154,7 +153,7 @@ func (ft *FakeTransport) Link(source t.NodeID) (net.Transport, error) {
 }
 
 func (ft *FakeTransport) Membership() *trantorpbtypes.Membership {
-	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
+	membership := &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	// Dummy addresses. Never actually used.
 	for nID := range ft.Buffers {
@@ -174,7 +173,7 @@ func (ft *FakeTransport) Close() {}
 
 func (fl *FakeLink) CloseOldConnections(_ *trantorpbtypes.Membership) {}
 
-func (ft *FakeTransport) RecvC(dest t.NodeID) <-chan *stdtypes.EventList {
+func (ft *FakeTransport) RecvC(dest stdtypes.NodeID) <-chan *stdtypes.EventList {
 	return ft.NodeSinks[dest]
 }
 
@@ -192,7 +191,7 @@ func (fl *FakeLink) Connect(_ *trantorpbtypes.Membership) {
 			fl.wg.Done()
 			continue
 		}
-		go func(destID t.NodeID, buffer chan *stdtypes.EventList) {
+		go func(destID stdtypes.NodeID, buffer chan *stdtypes.EventList) {
 			defer fl.wg.Done()
 			for {
 				select {

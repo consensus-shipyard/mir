@@ -65,7 +65,7 @@ message Cert {
 
   bytes           batch_id   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types.BatchID"];
   // TODO: can be encoded as n bits
-  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   repeated bytes  signatures = 3;
 }
 

@@ -16,10 +16,10 @@ import (
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // certCreationState represents the state related to this part of the module.

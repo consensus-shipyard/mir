@@ -3,6 +3,7 @@ package certverification
 import (
 	"errors"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
@@ -12,7 +13,6 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
@@ -48,7 +48,7 @@ func IncludeVerificationOfCertificates(
 		state.NextReqID++
 
 		mscCerts, err := verifyCertificateStructure(params, cert)
-		valid, errStr := t.ErrorPb(err)
+		valid, errStr := errorPb(err)
 
 		if err != nil { // invalid certificate, send cert verified event with valid=False
 			apbdsl.CertVerified(m, origin.Module, valid, errStr, origin)
@@ -91,7 +91,7 @@ func IncludeVerificationOfCertificates(
 		var err error
 		if !allOK {
 			err = errors.New("some signatures are invalid")
-			valid, errStr := t.ErrorPb(err)
+			valid, errStr := errorPb(err)
 			apbdsl.CertVerified(m, context.origin.Module, valid, errStr, context.origin)
 			delete(state.RequestState, reqID)
 			return nil
@@ -169,4 +169,15 @@ type verifySigsInCertContext struct {
 	origin *apbtypes.VerifyCertOrigin
 	reqID  RequestID
 	cert   *mscpbtypes.Cert
+}
+
+// errorPb converts a error to its representation in protocol buffers.
+func errorPb(err error) (ok bool, errStr string) {
+	ok = err == nil
+	if ok {
+		errStr = ""
+	} else {
+		errStr = err.Error()
+	}
+	return
 }

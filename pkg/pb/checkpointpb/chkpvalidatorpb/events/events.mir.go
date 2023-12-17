@@ -3,21 +3,21 @@
 package chkpvalidatorpbevents
 
 import (
-	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func ValidateCheckpoint(destModule types.ModuleID, checkpoint *types1.StableCheckpoint, epochNr types2.EpochNr, memberships []*types3.Membership, origin *types4.ValidateChkpOrigin) *types5.Event {
-	return &types5.Event{
+func ValidateCheckpoint(destModule stdtypes.ModuleID, checkpoint *types.StableCheckpoint, epochNr types1.EpochNr, memberships []*types2.Membership, origin *types3.ValidateChkpOrigin) *types4.Event {
+	return &types4.Event{
 		DestModule: destModule,
-		Type: &types5.Event_ChkpValidator{
-			ChkpValidator: &types4.Event{
-				Type: &types4.Event_ValidateCheckpoint{
-					ValidateCheckpoint: &types4.ValidateCheckpoint{
+		Type: &types4.Event_ChkpValidator{
+			ChkpValidator: &types3.Event{
+				Type: &types3.Event_ValidateCheckpoint{
+					ValidateCheckpoint: &types3.ValidateCheckpoint{
 						Checkpoint:  checkpoint,
 						EpochNr:     epochNr,
 						Memberships: memberships,
@@ -29,13 +29,13 @@ func ValidateCheckpoint(destModule types.ModuleID, checkpoint *types1.StableChec
 	}
 }
 
-func CheckpointValidated(destModule types.ModuleID, error error, origin *types4.ValidateChkpOrigin) *types5.Event {
-	return &types5.Event{
+func CheckpointValidated(destModule stdtypes.ModuleID, error error, origin *types3.ValidateChkpOrigin) *types4.Event {
+	return &types4.Event{
 		DestModule: destModule,
-		Type: &types5.Event_ChkpValidator{
-			ChkpValidator: &types4.Event{
-				Type: &types4.Event_CheckpointValidated{
-					CheckpointValidated: &types4.CheckpointValidated{
+		Type: &types4.Event_ChkpValidator{
+			ChkpValidator: &types3.Event{
+				Type: &types3.Event_CheckpointValidated{
+					CheckpointValidated: &types3.CheckpointValidated{
 						Error:  error,
 						Origin: origin,
 					},

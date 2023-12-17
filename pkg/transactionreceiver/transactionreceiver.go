@@ -22,7 +22,6 @@ import (
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type TransactionReceiver struct {
@@ -32,7 +31,7 @@ type TransactionReceiver struct {
 	node *mir.Node
 
 	// The ID of the module to which to submit the received transactions.
-	moduleID t.ModuleID
+	moduleID stdtypes.ModuleID
 
 	// The gRPC server used by this networking module.
 	grpcServer *grpc.Server
@@ -52,7 +51,7 @@ type TransactionReceiver struct {
 // The returned TransactionReceiver is not yet running (able to receive transactions).
 // This needs to be done explicitly by calling the Start() method.
 // For the transactions to be processed by passed Node, the Node must also be running.
-func NewTransactionReceiver(node *mir.Node, moduleID t.ModuleID, logger logging.Logger) *TransactionReceiver {
+func NewTransactionReceiver(node *mir.Node, moduleID stdtypes.ModuleID, logger logging.Logger) *TransactionReceiver {
 	// If no logger was given, only write errors to the console.
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger

@@ -3,18 +3,18 @@
 package bcbpbmsgs
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func StartMessage(destModule types.ModuleID, data []uint8) *types1.Message {
-	return &types1.Message{
+func StartMessage(destModule stdtypes.ModuleID, data []uint8) *types.Message {
+	return &types.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Bcb{
-			Bcb: &types2.Message{
-				Type: &types2.Message_StartMessage{
-					StartMessage: &types2.StartMessage{
+		Type: &types.Message_Bcb{
+			Bcb: &types1.Message{
+				Type: &types1.Message_StartMessage{
+					StartMessage: &types1.StartMessage{
 						Data: data,
 					},
 				},
@@ -23,13 +23,13 @@ func StartMessage(destModule types.ModuleID, data []uint8) *types1.Message {
 	}
 }
 
-func EchoMessage(destModule types.ModuleID, signature []uint8) *types1.Message {
-	return &types1.Message{
+func EchoMessage(destModule stdtypes.ModuleID, signature []uint8) *types.Message {
+	return &types.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Bcb{
-			Bcb: &types2.Message{
-				Type: &types2.Message_EchoMessage{
-					EchoMessage: &types2.EchoMessage{
+		Type: &types.Message_Bcb{
+			Bcb: &types1.Message{
+				Type: &types1.Message_EchoMessage{
+					EchoMessage: &types1.EchoMessage{
 						Signature: signature,
 					},
 				},
@@ -38,13 +38,13 @@ func EchoMessage(destModule types.ModuleID, signature []uint8) *types1.Message {
 	}
 }
 
-func FinalMessage(destModule types.ModuleID, data []uint8, signers []types.NodeID, signatures [][]uint8) *types1.Message {
-	return &types1.Message{
+func FinalMessage(destModule stdtypes.ModuleID, data []uint8, signers []stdtypes.NodeID, signatures [][]uint8) *types.Message {
+	return &types.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Bcb{
-			Bcb: &types2.Message{
-				Type: &types2.Message_FinalMessage{
-					FinalMessage: &types2.FinalMessage{
+		Type: &types.Message_Bcb{
+			Bcb: &types1.Message{
+				Type: &types1.Message_FinalMessage{
+					FinalMessage: &types1.FinalMessage{
 						Data:       data,
 						Signers:    signers,
 						Signatures: signatures,

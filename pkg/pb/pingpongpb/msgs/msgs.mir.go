@@ -3,18 +3,18 @@
 package pingpongpbmsgs
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func Ping(destModule types.ModuleID, seqNr uint64) *types1.Message {
-	return &types1.Message{
+func Ping(destModule stdtypes.ModuleID, seqNr uint64) *types.Message {
+	return &types.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Pingpong{
-			Pingpong: &types2.Message{
-				Type: &types2.Message_Ping{
-					Ping: &types2.Ping{
+		Type: &types.Message_Pingpong{
+			Pingpong: &types1.Message{
+				Type: &types1.Message_Ping{
+					Ping: &types1.Ping{
 						SeqNr: seqNr,
 					},
 				},
@@ -23,13 +23,13 @@ func Ping(destModule types.ModuleID, seqNr uint64) *types1.Message {
 	}
 }
 
-func Pong(destModule types.ModuleID, seqNr uint64) *types1.Message {
-	return &types1.Message{
+func Pong(destModule stdtypes.ModuleID, seqNr uint64) *types.Message {
+	return &types.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Pingpong{
-			Pingpong: &types2.Message{
-				Type: &types2.Message_Pong{
-					Pong: &types2.Pong{
+		Type: &types.Message_Pingpong{
+			Pingpong: &types1.Message{
+				Type: &types1.Message_Pong{
+					Pong: &types1.Pong{
 						SeqNr: seqNr,
 					},
 				},

@@ -3,11 +3,11 @@ package leaderselectionpolicy
 import (
 	"sort"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	"github.com/fxamacker/cbor/v2"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
 )

@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
@@ -31,7 +30,7 @@ func TestNode_Config(t *testing.T) {
 	)
 
 	// Convenience variable
-	noModules := make(map[types.ModuleID]modules.Module)
+	noModules := make(map[stdtypes.ModuleID]modules.Module)
 
 	c := DefaultNodeConfig()
 	assert.NoError(t, c.Validate(), "default config is not valid")
@@ -85,7 +84,7 @@ func TestNode_Run(t *testing.T) {
 				close(done)
 			}()
 
-			m := map[types.ModuleID]modules.Module{
+			m := map[stdtypes.ModuleID]modules.Module{
 				"mock1": mockModule1,
 				"mock2": mockModule2,
 			}
@@ -152,7 +151,7 @@ func TestNode_Backpressure(t *testing.T) {
 	n, err := NewNode(
 		"testnode",
 		nodeConfig,
-		map[types.ModuleID]modules.Module{
+		map[stdtypes.ModuleID]modules.Module{
 			"blabber":  blabberModule,
 			"consumer": consumerModule,
 		},

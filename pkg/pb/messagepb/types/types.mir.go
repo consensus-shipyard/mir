@@ -4,19 +4,19 @@ package messagepbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	messagepb "github.com/filecoin-project/mir/pkg/pb/messagepb"
-	types6 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Message struct {
-	DestModule types.ModuleID
+	DestModule stdtypes.ModuleID
 	Type       Message_Type
 }
 
@@ -37,28 +37,28 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 	}
 	switch pb := pb.(type) {
 	case *messagepb.Message_Iss:
-		return &Message_Iss{Iss: types1.ISSMessageFromPb(pb.Iss)}
+		return &Message_Iss{Iss: types.ISSMessageFromPb(pb.Iss)}
 	case *messagepb.Message_Bcb:
-		return &Message_Bcb{Bcb: types2.MessageFromPb(pb.Bcb)}
+		return &Message_Bcb{Bcb: types1.MessageFromPb(pb.Bcb)}
 	case *messagepb.Message_MultisigCollector:
-		return &Message_MultisigCollector{MultisigCollector: types3.MessageFromPb(pb.MultisigCollector)}
+		return &Message_MultisigCollector{MultisigCollector: types2.MessageFromPb(pb.MultisigCollector)}
 	case *messagepb.Message_Pingpong:
-		return &Message_Pingpong{Pingpong: types4.MessageFromPb(pb.Pingpong)}
+		return &Message_Pingpong{Pingpong: types3.MessageFromPb(pb.Pingpong)}
 	case *messagepb.Message_Checkpoint:
-		return &Message_Checkpoint{Checkpoint: types5.MessageFromPb(pb.Checkpoint)}
+		return &Message_Checkpoint{Checkpoint: types4.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_Orderer:
-		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
+		return &Message_Orderer{Orderer: types5.MessageFromPb(pb.Orderer)}
 	}
 	return nil
 }
 
 type Message_Iss struct {
-	Iss *types1.ISSMessage
+	Iss *types.ISSMessage
 }
 
 func (*Message_Iss) isMessage_Type() {}
 
-func (w *Message_Iss) Unwrap() *types1.ISSMessage {
+func (w *Message_Iss) Unwrap() *types.ISSMessage {
 	return w.Iss
 }
 
@@ -77,12 +77,12 @@ func (*Message_Iss) MirReflect() mirreflect.Type {
 }
 
 type Message_Bcb struct {
-	Bcb *types2.Message
+	Bcb *types1.Message
 }
 
 func (*Message_Bcb) isMessage_Type() {}
 
-func (w *Message_Bcb) Unwrap() *types2.Message {
+func (w *Message_Bcb) Unwrap() *types1.Message {
 	return w.Bcb
 }
 
@@ -101,12 +101,12 @@ func (*Message_Bcb) MirReflect() mirreflect.Type {
 }
 
 type Message_MultisigCollector struct {
-	MultisigCollector *types3.Message
+	MultisigCollector *types2.Message
 }
 
 func (*Message_MultisigCollector) isMessage_Type() {}
 
-func (w *Message_MultisigCollector) Unwrap() *types3.Message {
+func (w *Message_MultisigCollector) Unwrap() *types2.Message {
 	return w.MultisigCollector
 }
 
@@ -125,12 +125,12 @@ func (*Message_MultisigCollector) MirReflect() mirreflect.Type {
 }
 
 type Message_Pingpong struct {
-	Pingpong *types4.Message
+	Pingpong *types3.Message
 }
 
 func (*Message_Pingpong) isMessage_Type() {}
 
-func (w *Message_Pingpong) Unwrap() *types4.Message {
+func (w *Message_Pingpong) Unwrap() *types3.Message {
 	return w.Pingpong
 }
 
@@ -149,12 +149,12 @@ func (*Message_Pingpong) MirReflect() mirreflect.Type {
 }
 
 type Message_Checkpoint struct {
-	Checkpoint *types5.Message
+	Checkpoint *types4.Message
 }
 
 func (*Message_Checkpoint) isMessage_Type() {}
 
-func (w *Message_Checkpoint) Unwrap() *types5.Message {
+func (w *Message_Checkpoint) Unwrap() *types4.Message {
 	return w.Checkpoint
 }
 
@@ -173,12 +173,12 @@ func (*Message_Checkpoint) MirReflect() mirreflect.Type {
 }
 
 type Message_Orderer struct {
-	Orderer *types6.Message
+	Orderer *types5.Message
 }
 
 func (*Message_Orderer) isMessage_Type() {}
 
-func (w *Message_Orderer) Unwrap() *types6.Message {
+func (w *Message_Orderer) Unwrap() *types5.Message {
 	return w.Orderer
 }
 
@@ -201,7 +201,7 @@ func MessageFromPb(pb *messagepb.Message) *Message {
 		return nil
 	}
 	return &Message{
-		DestModule: (types.ModuleID)(pb.DestModule),
+		DestModule: (stdtypes.ModuleID)(pb.DestModule),
 		Type:       Message_TypeFromPb(pb.Type),
 	}
 }

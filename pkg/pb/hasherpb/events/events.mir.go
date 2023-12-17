@@ -3,18 +3,18 @@
 package hasherpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func Request(destModule types.ModuleID, data []*types1.HashData, origin *types1.HashOrigin) *types2.Event {
-	return &types2.Event{
+func Request(destModule stdtypes.ModuleID, data []*types.HashData, origin *types.HashOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Hasher{
-			Hasher: &types1.Event{
-				Type: &types1.Event_Request{
-					Request: &types1.Request{
+		Type: &types1.Event_Hasher{
+			Hasher: &types.Event{
+				Type: &types.Event_Request{
+					Request: &types.Request{
 						Data:   data,
 						Origin: origin,
 					},
@@ -24,13 +24,13 @@ func Request(destModule types.ModuleID, data []*types1.HashData, origin *types1.
 	}
 }
 
-func Result(destModule types.ModuleID, digests [][]uint8, origin *types1.HashOrigin) *types2.Event {
-	return &types2.Event{
+func Result(destModule stdtypes.ModuleID, digests [][]uint8, origin *types.HashOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Hasher{
-			Hasher: &types1.Event{
-				Type: &types1.Event_Result{
-					Result: &types1.Result{
+		Type: &types1.Event_Hasher{
+			Hasher: &types.Event{
+				Type: &types.Event_Result{
+					Result: &types.Result{
 						Digests: digests,
 						Origin:  origin,
 					},
@@ -40,13 +40,13 @@ func Result(destModule types.ModuleID, digests [][]uint8, origin *types1.HashOri
 	}
 }
 
-func RequestOne(destModule types.ModuleID, data *types1.HashData, origin *types1.HashOrigin) *types2.Event {
-	return &types2.Event{
+func RequestOne(destModule stdtypes.ModuleID, data *types.HashData, origin *types.HashOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Hasher{
-			Hasher: &types1.Event{
-				Type: &types1.Event_RequestOne{
-					RequestOne: &types1.RequestOne{
+		Type: &types1.Event_Hasher{
+			Hasher: &types.Event{
+				Type: &types.Event_RequestOne{
+					RequestOne: &types.RequestOne{
 						Data:   data,
 						Origin: origin,
 					},
@@ -56,13 +56,13 @@ func RequestOne(destModule types.ModuleID, data *types1.HashData, origin *types1
 	}
 }
 
-func ResultOne(destModule types.ModuleID, digest []uint8, origin *types1.HashOrigin) *types2.Event {
-	return &types2.Event{
+func ResultOne(destModule stdtypes.ModuleID, digest []uint8, origin *types.HashOrigin) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Hasher{
-			Hasher: &types1.Event{
-				Type: &types1.Event_ResultOne{
-					ResultOne: &types1.ResultOne{
+		Type: &types1.Event_Hasher{
+			Hasher: &types.Event{
+				Type: &types.Event_ResultOne{
+					ResultOne: &types.ResultOne{
 						Digest: digest,
 						Origin: origin,
 					},

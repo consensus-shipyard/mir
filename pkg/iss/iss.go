@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -49,7 +50,6 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -60,7 +60,7 @@ import (
 type ISS struct {
 
 	// The ID of the node executing this instance of the protocol.
-	ownID t.NodeID
+	ownID stdtypes.NodeID
 
 	// IDs of modules ISS interacts with.
 	moduleConfig ModuleConfig
@@ -83,7 +83,7 @@ type ISS struct {
 	epochs map[tt.EpochNr]*epochInfo
 
 	// Highest epoch numbers indicated in Checkpoint messages from each node.
-	nodeEpochMap map[t.NodeID]tt.EpochNr
+	nodeEpochMap map[stdtypes.NodeID]tt.EpochNr
 
 	// The memberships for the current epoch and the params.ConfigOffset following epochs
 	// (totalling params.ConfigOffset memberships).
@@ -138,7 +138,7 @@ type ISS struct {
 func New(
 
 	// ID of the node being instantiated with ISS.
-	ownID t.NodeID,
+	ownID stdtypes.NodeID,
 
 	// IDs of the modules ISS interacts with.
 	moduleConfig ModuleConfig,
@@ -190,7 +190,7 @@ func New(
 		logger:                  logger,
 		epoch:                   nil, // Initialized later.
 		epochs:                  make(map[tt.EpochNr]*epochInfo),
-		nodeEpochMap:            make(map[t.NodeID]tt.EpochNr),
+		nodeEpochMap:            make(map[stdtypes.NodeID]tt.EpochNr),
 		memberships:             startingChkp.Memberships(),
 		nextNewMembership:       nil,
 		commitLog:               make(map[tt.SeqNr]*CommitLogEntry),
@@ -230,7 +230,7 @@ func New(
 	// It invokes the appropriate handler depending on whether this data is
 	// an availability certificate (or the special abort value) or a common checkpoint.
 	isspbdsl.UponSBDeliver(iss.m,
-		func(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID, instanceId t.ModuleID) error {
+		func(sn tt.SeqNr, data []uint8, aborted bool, leader stdtypes.NodeID, instanceId stdtypes.ModuleID) error {
 			// If this is a delivery of an agreed-upon stable checkpoint, deliver without verification.
 			if instanceId.Sub().Sub() == "chkp" {
 				return iss.deliverCommonCheckpoint(data)
@@ -301,7 +301,7 @@ func New(
 	// Upon EpochProgress handle the event informing ISS that a node reached a certain epoch.
 	// This event can be, for example, emitted by the checkpoint protocol
 	// when it detects a node having reached a checkpoint for a certain epoch.
-	chkppbdsl.UponEpochProgress(iss.m, func(nodeID t.NodeID, epochNr tt.EpochNr) error {
+	chkppbdsl.UponEpochProgress(iss.m, func(nodeID stdtypes.NodeID, epochNr tt.EpochNr) error {
 		// Remember the highest epoch number for each node to detect
 		// later if the remote node is delayed too much and requires
 		// assistance in order to catch up through state transfer.
@@ -314,7 +314,7 @@ func New(
 	// applyStableCheckpoint handles a new stable checkpoint produced by the checkpoint protocol.
 	// It serializes and submits the checkpoint for agreement.
 	chkppbdsl.UponStableCheckpoint(iss.m,
-		func(sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+		func(sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[stdtypes.NodeID][]byte) error {
 			// Ignore old checkpoints.
 			if sn <= iss.lastPendingCheckpointSN {
 				iss.logger.Log(logging.LevelDebug, "Ignoring outdated stable checkpoint.", "sn", sn)
@@ -363,7 +363,7 @@ func New(
 			}
 
 			// Instantiate a CheckpointPPV module from the PreprepareValidator factory
-			PPVId := iss.moduleConfig.PPrepValidatorChkp.Then(t.ModuleID(fmt.Sprintf("%v", epoch)))
+			PPVId := iss.moduleConfig.PPrepValidatorChkp.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch)))
 			factorypbdsl.NewModule(iss.m,
 				iss.moduleConfig.PPrepValidatorChkp,
 				PPVId,
@@ -375,7 +375,7 @@ func New(
 			// Instantiate a new PBFT orderer.
 			factorypbdsl.NewModule(iss.m,
 				iss.moduleConfig.Ordering,
-				iss.moduleConfig.Ordering.Then(t.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
+				iss.moduleConfig.Ordering.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
 				tt.RetentionIndex(epoch),
 				orderers.InstanceParams(
 					seg,
@@ -408,7 +408,7 @@ func New(
 		// but hasn't obtained its starting checkpoint yet.)
 		// This is required to avoid sending old checkpoints to replicas
 		// that are not yet part of the system for those checkpoints.
-		var delayed []t.NodeID
+		var delayed []stdtypes.NodeID
 		for n := range membership.Nodes {
 			if epoch > iss.nodeEpochMap[n]+tt.EpochNr(iss.Params.RetainedEpochs) {
 				delayed = append(delayed, n)
@@ -431,7 +431,7 @@ func New(
 	})
 
 	chkppbdsl.UponStableCheckpointReceived(iss.m,
-		func(sender t.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[t.NodeID][]byte) error {
+		func(sender stdtypes.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[stdtypes.NodeID][]byte) error {
 			chkp := &checkpointpbtypes.StableCheckpoint{
 				Sn:       sn,
 				Snapshot: snapshot,
@@ -579,7 +579,7 @@ func InitialStateSnapshot(
 			ClientProgress: trantorpbtypes.ClientProgressFromPb(clientprogress.NewClientProgress(nil).Pb()),
 			LeaderPolicy:   leaderPolicyData,
 			// TODO: Revisit this when nil values are properly supported in generated types.
-			PreviousMembership: &trantorpbtypes.Membership{Nodes: make(map[t.NodeID]*trantorpbtypes.NodeIdentity)},
+			PreviousMembership: &trantorpbtypes.Membership{Nodes: make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)},
 		},
 	}, nil
 }
@@ -616,7 +616,7 @@ func (iss *ISS) startEpoch(epochNr tt.EpochNr) error {
 // initAvailability emits an event for the availability module to create a new submodule
 // corresponding to the current ISS epoch.
 func (iss *ISS) initAvailability() {
-	availabilityID := iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
+	availabilityID := iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	//events := make([]*eventpb.Event, 0)
 
 	factorypbdsl.NewModule(
@@ -656,12 +656,12 @@ func (iss *ISS) initOrderers() error {
 		// Instantiate a new PBFT orderer.
 		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.
-				Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).
-				Then(t.ModuleID(fmt.Sprintf("%v", i))),
+				Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).
+				Then(stdtypes.ModuleID(fmt.Sprintf("%v", i))),
 			tt.RetentionIndex(iss.epoch.Nr()),
 			orderers.InstanceParams(
 				seg,
-				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+				iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 				iss.epoch.Nr(),
 				iss.moduleConfig.PPrepValidator,
 			))
@@ -785,7 +785,7 @@ func (iss *ISS) advanceEpoch() error {
 	// iss.nextDeliveredSN is the first sequence number *not* included in the checkpoint,
 	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
 	// The membership used for the checkpoint tracker still must be the old membership.
-	chkpModuleID := iss.moduleConfig.Checkpoint.Then(t.ModuleID(fmt.Sprintf("%v", newEpochNr)))
+	chkpModuleID := iss.moduleConfig.Checkpoint.Then(stdtypes.ModuleID(fmt.Sprintf("%v", newEpochNr)))
 	factorypbdsl.NewModule(iss.m,
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
@@ -818,7 +818,7 @@ func (iss *ISS) advanceEpoch() error {
 }
 
 // verifyCert requests the availability module to verify the certificate from the preprepare message
-func (iss *ISS) verifyCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID) error {
+func (iss *ISS) verifyCert(sn tt.SeqNr, data []uint8, aborted bool, leader stdtypes.NodeID) error {
 	cert := &availabilitypb.Cert{}
 
 	// If decided data is not a valid certificate, consider the proposer faulty and deliver an empty certificate.
@@ -828,7 +828,7 @@ func (iss *ISS) verifyCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.Nod
 		return iss.deliverCert(sn, []byte{}, true, leader) // deliver empty certificate
 	}
 
-	apbdsl.VerifyCert(iss.m, iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+	apbdsl.VerifyCert(iss.m, iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 		apbtypes.CertFromPb(cert), &verifyCertContext{
 			sn:      sn,
 			data:    data,
@@ -842,7 +842,7 @@ func (iss *ISS) verifyCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.Nod
 // and requests the computation of its hash.
 // Note that applySBInstDeliver does not yet insert the entry to the commitLog. This will be done later.
 // Operation continues on reception of the HashResult event.
-func (iss *ISS) deliverCert(sn tt.SeqNr, data []uint8, aborted bool, leader t.NodeID) error {
+func (iss *ISS) deliverCert(sn tt.SeqNr, data []uint8, aborted bool, leader stdtypes.NodeID) error {
 
 	// Create a new preliminary log entry based on the delivered certificate and hash it.
 	// Note that, although tempting, the hash used internally by the SB implementation cannot be re-used.
@@ -983,7 +983,7 @@ func freeProposals(start tt.SeqNr, step tt.SeqNr, length int) map[tt.SeqNr][]byt
 func serializeLogEntryForHashing(entry *CommitLogEntry) [][]byte {
 
 	// Encode integer fields.
-	suspectBuf := []byte(entry.Suspect.Pb())
+	suspectBuf := entry.Suspect.Bytes()
 	snBuf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(snBuf, entry.Sn.Pb())
 
@@ -1002,7 +1002,7 @@ type verifyCertContext struct {
 	sn      tt.SeqNr
 	data    []uint8
 	aborted bool
-	leader  t.NodeID
+	leader  stdtypes.NodeID
 }
 
 type validateChechkpointContext struct {

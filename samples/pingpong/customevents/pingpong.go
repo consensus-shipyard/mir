@@ -12,8 +12,8 @@ import (
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	ppdsl "github.com/filecoin-project/mir/pkg/pb/pingpongpb/dsl"
 	"github.com/filecoin-project/mir/pkg/timer/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/pingpong/customevents/pingpongevents"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {

@@ -10,13 +10,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 func Factory(
 	mc common.ModuleConfig,
 	issParams *issconfig.ModuleParams,
-	ownID t.NodeID,
+	ownID stdtypes.NodeID,
 	logger logging.Logger,
 ) modules.PassiveModule {
 	if logger == nil {
@@ -28,7 +28,7 @@ func Factory(
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the Ordering protocol.
-			func(submoduleID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+			func(submoduleID stdtypes.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
@@ -36,8 +36,8 @@ func Factory(
 
 				// Load parameters from received protobuf
 				p := params.Type.(*factorypbtypes.GeneratorParams_PbftModule).PbftModule
-				availabilityID := t.ModuleID(p.AvailabilityId)
-				ppvID := t.ModuleID(p.PpvModuleId)
+				availabilityID := stdtypes.ModuleID(p.AvailabilityId)
+				ppvID := stdtypes.ModuleID(p.PpvModuleId)
 				submc.Ava = availabilityID
 				submc.PPrepValidator = ppvID
 				epoch := tt.EpochNr(p.Epoch)
@@ -51,7 +51,7 @@ func Factory(
 
 				// Select validity checker
 
-				if ppvID == t.ModuleID("pprepvalidatorchkp").Then(t.ModuleID(fmt.Sprintf("%v", epoch))) { // this must change but that's the scope of a different PR
+				if ppvID == stdtypes.ModuleID("pprepvalidatorchkp").Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch))) { // this must change but that's the scope of a different PR
 					// TODO: This is a dirty hack! Put (at least the relevant parts of) the configuration in params.
 					// Make the agreement on a checkpoint start immediately.
 					ordererConfig.MaxProposeDelay = 0

@@ -14,23 +14,22 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // Simulation represents a test deployment in the simulation runtime.
 type Simulation struct {
 	*testsim.Runtime
-	nodes map[t.NodeID]*SimNode
+	nodes map[stdtypes.NodeID]*SimNode
 }
 
 // EventDelayFn defines a function to provide event processing delay.
 type EventDelayFn func(e stdtypes.Event) time.Duration
 
-func NewSimulation(rnd *rand.Rand, nodeIDs []t.NodeID, delayFn EventDelayFn) *Simulation {
+func NewSimulation(rnd *rand.Rand, nodeIDs []stdtypes.NodeID, delayFn EventDelayFn) *Simulation {
 	s := &Simulation{
 		Runtime: testsim.NewRuntime(rnd),
-		nodes:   make(map[t.NodeID]*SimNode, len(nodeIDs)),
+		nodes:   make(map[stdtypes.NodeID]*SimNode, len(nodeIDs)),
 	}
 
 	for _, id := range nodeIDs {
@@ -40,24 +39,24 @@ func NewSimulation(rnd *rand.Rand, nodeIDs []t.NodeID, delayFn EventDelayFn) *Si
 	return s
 }
 
-func (s *Simulation) Node(id t.NodeID) *SimNode {
+func (s *Simulation) Node(id stdtypes.NodeID) *SimNode {
 	return s.nodes[id]
 }
 
 // SimNode represents a Mir node deployed in the simulation runtime.
 type SimNode struct {
 	*Simulation
-	id          t.NodeID
+	id          stdtypes.NodeID
 	delayFn     EventDelayFn
-	moduleChans map[t.ModuleID]*testsim.Chan
+	moduleChans map[stdtypes.ModuleID]*testsim.Chan
 }
 
-func newNode(s *Simulation, id t.NodeID, delayFn EventDelayFn) *SimNode {
+func newNode(s *Simulation, id stdtypes.NodeID, delayFn EventDelayFn) *SimNode {
 	n := &SimNode{
 		Simulation:  s,
 		id:          id,
 		delayFn:     delayFn,
-		moduleChans: make(map[t.ModuleID]*testsim.Chan),
+		moduleChans: make(map[stdtypes.ModuleID]*testsim.Chan),
 	}
 	return n
 }
@@ -65,8 +64,8 @@ func newNode(s *Simulation, id t.NodeID, delayFn EventDelayFn) *SimNode {
 // SendEvents notifies simulation about the list of emitted events on
 // behalf of the given process.
 func (n *SimNode) SendEvents(proc *testsim.Process, eventList *stdtypes.EventList) {
-	moduleIDs := make([]t.ModuleID, 0)
-	eventsMap := make(map[t.ModuleID]*stdtypes.EventList)
+	moduleIDs := make([]stdtypes.ModuleID, 0)
+	eventsMap := make(map[stdtypes.ModuleID]*stdtypes.EventList)
 
 	it := eventList.Iterator()
 	for e := it.Next(); e != nil; e = it.Next() {
@@ -111,7 +110,7 @@ func (n *SimNode) WrapModules(mods modules.Modules) modules.Modules {
 }
 
 // WrapModule wraps the module to be used in simulation.
-func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
+func (n *SimNode) WrapModule(id stdtypes.ModuleID, m modules.Module) modules.Module {
 	moduleChan := testsim.NewChan()
 	n.moduleChans[id.Top()] = moduleChan
 
@@ -131,7 +130,7 @@ func (n *SimNode) WrapModule(id t.ModuleID, m modules.Module) modules.Module {
 func (n *SimNode) Start(proc *testsim.Process) {
 	initEvents := stdtypes.EmptyList()
 	for m := range n.moduleChans {
-		initEvents.PushBack(&eventpb.Event{DestModule: m.Pb(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}})
+		initEvents.PushBack(&eventpb.Event{DestModule: m.String(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}})
 	}
 	n.SendEvents(proc, initEvents)
 }

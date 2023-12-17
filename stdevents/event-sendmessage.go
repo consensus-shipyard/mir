@@ -3,14 +3,13 @@ package stdevents
 import (
 	"fmt"
 
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type serializableSendMessage struct {
 	mirEvent
-	DestNodes        []t.NodeID
-	RemoteDestModule t.ModuleID
+	DestNodes        []stdtypes.NodeID
+	RemoteDestModule stdtypes.ModuleID
 	Payload          stdtypes.RawMessage
 }
 
@@ -25,8 +24,8 @@ func (ssm *serializableSendMessage) SendMessage() *SendMessage {
 
 type SendMessage struct {
 	mirEvent
-	DestNodes        []t.NodeID
-	RemoteDestModule t.ModuleID
+	DestNodes        []stdtypes.NodeID
+	RemoteDestModule stdtypes.ModuleID
 	Payload          stdtypes.Message
 }
 
@@ -46,9 +45,9 @@ func (e *SendMessage) serializable() (*serializableSendMessage, error) {
 
 func NewSendMessage(
 	message stdtypes.Message,
-	localDestModule t.ModuleID,
-	remoteDestModule t.ModuleID,
-	destNodes ...t.NodeID,
+	localDestModule stdtypes.ModuleID,
+	remoteDestModule stdtypes.ModuleID,
+	destNodes ...stdtypes.NodeID,
 ) *SendMessage {
 	return &SendMessage{
 		mirEvent:         mirEvent{DestModule: localDestModule},
@@ -59,24 +58,24 @@ func NewSendMessage(
 }
 
 func NewSendMessageWithSrc(
-	srcModule t.ModuleID,
+	srcModule stdtypes.ModuleID,
 	message stdtypes.Message,
-	localDestModule t.ModuleID,
-	remoteDestModule t.ModuleID,
-	destNodes ...t.NodeID,
+	localDestModule stdtypes.ModuleID,
+	remoteDestModule stdtypes.ModuleID,
+	destNodes ...stdtypes.NodeID,
 ) *SendMessage {
 	e := NewSendMessage(message, localDestModule, remoteDestModule, destNodes...)
 	e.SrcModule = srcModule
 	return e
 }
 
-func (e *SendMessage) NewSrc(newSrc t.ModuleID) stdtypes.Event {
+func (e *SendMessage) NewSrc(newSrc stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.SrcModule = newSrc
 	return &newE
 }
 
-func (e *SendMessage) NewDest(newDest t.ModuleID) stdtypes.Event {
+func (e *SendMessage) NewDest(newDest stdtypes.ModuleID) stdtypes.Event {
 	newE := *e
 	e.DestModule = newDest
 	return &newE

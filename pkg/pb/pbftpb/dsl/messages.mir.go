@@ -4,18 +4,18 @@ package pbftpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	types4 "github.com/filecoin-project/mir/pkg/orderers/types"
+	types3 "github.com/filecoin-project/mir/pkg/orderers/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/ordererpb/dsl"
-	types2 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for processing net messages.
 
-func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, handler func(from types1.NodeID, msg *M) error) {
-	dsl1.UponMessageReceived[*types2.Message_Pbft](m, func(from types1.NodeID, msg *types.Message) error {
+func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, handler func(from stdtypes.NodeID, msg *M) error) {
+	dsl1.UponMessageReceived[*types1.Message_Pbft](m, func(from stdtypes.NodeID, msg *types.Message) error {
 		w, ok := msg.Type.(W)
 		if !ok {
 			return nil
@@ -25,62 +25,62 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponPreprepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, data []uint8, aborted bool) error) {
-	UponMessageReceived[*types.Message_Preprepare](m, func(from types1.NodeID, msg *types.Preprepare) error {
+func UponPreprepareReceived(m dsl.Module, handler func(from stdtypes.NodeID, sn types2.SeqNr, view types3.ViewNr, data []uint8, aborted bool) error) {
+	UponMessageReceived[*types.Message_Preprepare](m, func(from stdtypes.NodeID, msg *types.Preprepare) error {
 		return handler(from, msg.Sn, msg.View, msg.Data, msg.Aborted)
 	})
 }
 
-func UponPrepareReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8) error) {
-	UponMessageReceived[*types.Message_Prepare](m, func(from types1.NodeID, msg *types.Prepare) error {
+func UponPrepareReceived(m dsl.Module, handler func(from stdtypes.NodeID, sn types2.SeqNr, view types3.ViewNr, digest []uint8) error) {
+	UponMessageReceived[*types.Message_Prepare](m, func(from stdtypes.NodeID, msg *types.Prepare) error {
 		return handler(from, msg.Sn, msg.View, msg.Digest)
 	})
 }
 
-func UponCommitReceived(m dsl.Module, handler func(from types1.NodeID, sn types3.SeqNr, view types4.ViewNr, digest []uint8) error) {
-	UponMessageReceived[*types.Message_Commit](m, func(from types1.NodeID, msg *types.Commit) error {
+func UponCommitReceived(m dsl.Module, handler func(from stdtypes.NodeID, sn types2.SeqNr, view types3.ViewNr, digest []uint8) error) {
+	UponMessageReceived[*types.Message_Commit](m, func(from stdtypes.NodeID, msg *types.Commit) error {
 		return handler(from, msg.Sn, msg.View, msg.Digest)
 	})
 }
 
-func UponDoneReceived(m dsl.Module, handler func(from types1.NodeID, digests [][]uint8) error) {
-	UponMessageReceived[*types.Message_Done](m, func(from types1.NodeID, msg *types.Done) error {
+func UponDoneReceived(m dsl.Module, handler func(from stdtypes.NodeID, digests [][]uint8) error) {
+	UponMessageReceived[*types.Message_Done](m, func(from stdtypes.NodeID, msg *types.Done) error {
 		return handler(from, msg.Digests)
 	})
 }
 
-func UponCatchUpRequestReceived(m dsl.Module, handler func(from types1.NodeID, digest []uint8, sn types3.SeqNr) error) {
-	UponMessageReceived[*types.Message_CatchUpRequest](m, func(from types1.NodeID, msg *types.CatchUpRequest) error {
+func UponCatchUpRequestReceived(m dsl.Module, handler func(from stdtypes.NodeID, digest []uint8, sn types2.SeqNr) error) {
+	UponMessageReceived[*types.Message_CatchUpRequest](m, func(from stdtypes.NodeID, msg *types.CatchUpRequest) error {
 		return handler(from, msg.Digest, msg.Sn)
 	})
 }
 
-func UponCatchUpResponseReceived(m dsl.Module, handler func(from types1.NodeID, resp *types.Preprepare) error) {
-	UponMessageReceived[*types.Message_CatchUpResponse](m, func(from types1.NodeID, msg *types.CatchUpResponse) error {
+func UponCatchUpResponseReceived(m dsl.Module, handler func(from stdtypes.NodeID, resp *types.Preprepare) error) {
+	UponMessageReceived[*types.Message_CatchUpResponse](m, func(from stdtypes.NodeID, msg *types.CatchUpResponse) error {
 		return handler(from, msg.Resp)
 	})
 }
 
-func UponSignedViewChangeReceived(m dsl.Module, handler func(from types1.NodeID, viewChange *types.ViewChange, signature []uint8) error) {
-	UponMessageReceived[*types.Message_SignedViewChange](m, func(from types1.NodeID, msg *types.SignedViewChange) error {
+func UponSignedViewChangeReceived(m dsl.Module, handler func(from stdtypes.NodeID, viewChange *types.ViewChange, signature []uint8) error) {
+	UponMessageReceived[*types.Message_SignedViewChange](m, func(from stdtypes.NodeID, msg *types.SignedViewChange) error {
 		return handler(from, msg.ViewChange, msg.Signature)
 	})
 }
 
-func UponPreprepareRequestReceived(m dsl.Module, handler func(from types1.NodeID, digest []uint8, sn types3.SeqNr) error) {
-	UponMessageReceived[*types.Message_PreprepareRequest](m, func(from types1.NodeID, msg *types.PreprepareRequest) error {
+func UponPreprepareRequestReceived(m dsl.Module, handler func(from stdtypes.NodeID, digest []uint8, sn types2.SeqNr) error) {
+	UponMessageReceived[*types.Message_PreprepareRequest](m, func(from stdtypes.NodeID, msg *types.PreprepareRequest) error {
 		return handler(from, msg.Digest, msg.Sn)
 	})
 }
 
-func UponMissingPreprepareReceived(m dsl.Module, handler func(from types1.NodeID, preprepare *types.Preprepare) error) {
-	UponMessageReceived[*types.Message_MissingPreprepare](m, func(from types1.NodeID, msg *types.MissingPreprepare) error {
+func UponMissingPreprepareReceived(m dsl.Module, handler func(from stdtypes.NodeID, preprepare *types.Preprepare) error) {
+	UponMessageReceived[*types.Message_MissingPreprepare](m, func(from stdtypes.NodeID, msg *types.MissingPreprepare) error {
 		return handler(from, msg.Preprepare)
 	})
 }
 
-func UponNewViewReceived(m dsl.Module, handler func(from types1.NodeID, view types4.ViewNr, viewChangeSenders []string, signedViewChanges []*types.SignedViewChange, preprepareSeqNrs []types3.SeqNr, preprepares []*types.Preprepare) error) {
-	UponMessageReceived[*types.Message_NewView](m, func(from types1.NodeID, msg *types.NewView) error {
+func UponNewViewReceived(m dsl.Module, handler func(from stdtypes.NodeID, view types3.ViewNr, viewChangeSenders []stdtypes.NodeID, signedViewChanges []*types.SignedViewChange, preprepareSeqNrs []types2.SeqNr, preprepares []*types.Preprepare) error) {
+	UponMessageReceived[*types.Message_NewView](m, func(from stdtypes.NodeID, msg *types.NewView) error {
 		return handler(from, msg.View, msg.ViewChangeSenders, msg.SignedViewChanges, msg.PreprepareSeqNrs, msg.Preprepares)
 	})
 }

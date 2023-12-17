@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
 )
 
@@ -37,7 +37,7 @@ type parsedArgs struct {
 
 	// ID of this node.
 	// The package github.com/hyperledger-labs/mir/pkg/types defines this and other types used by the library.
-	OwnID t.NodeID
+	OwnID stdtypes.NodeID
 
 	// If set, print debug output to stdout.
 	Verbose bool
@@ -68,16 +68,16 @@ func run() error {
 
 	// IDs of nodes that are part of the system.
 	// This example uses a static configuration of nodeNumber nodes.
-	nodeIDs := make([]t.NodeID, nodeNumber)
+	nodeIDs := make([]stdtypes.NodeID, nodeNumber)
 	for i := 0; i < nodeNumber; i++ {
-		nodeIDs[i] = t.NewNodeIDFromInt(i)
+		nodeIDs[i] = stdtypes.NewNodeIDFromInt(i)
 	}
 
 	// Construct membership, remembering own address.
-	membership := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
-	var ownAddr t.NodeAddress
+	membership := &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
+	var ownAddr stdtypes.NodeAddress
 	for i := range nodeIDs {
-		id := t.NewNodeIDFromInt(i)
+		id := stdtypes.NewNodeIDFromInt(i)
 		addr := grpctools.NewDummyMultiaddr(i + nodeBasePort)
 
 		if id == args.OwnID {
@@ -119,7 +119,7 @@ func run() error {
 	// control module reads the user input from the console and processes it.
 	control := newControlModule( /*isLeader=*/ args.OwnID == nodeIDs[leaderNode])
 
-	m := map[t.ModuleID]modules.Module{
+	m := map[stdtypes.ModuleID]modules.Module{
 		"net":     transportModule,
 		"crypto":  mirCrypto.New(&mirCrypto.DummyCrypto{DummySig: []byte{0}}),
 		"bcb":     bcbModule,
@@ -153,7 +153,7 @@ func parseArgs(args []string) *parsedArgs {
 	}
 
 	return &parsedArgs{
-		OwnID:   t.NodeID(*ownID),
+		OwnID:   stdtypes.NodeID(*ownID),
 		Verbose: *verbose,
 		Trace:   *trace,
 	}

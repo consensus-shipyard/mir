@@ -22,7 +22,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/types"
 	libp2putil "github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
@@ -30,25 +29,25 @@ type mockLibp2pCommunication struct {
 	t          *testing.T
 	params     Params
 	membership *trantorpbtypes.Membership
-	hosts      map[types.NodeID]host.Host
+	hosts      map[stdtypes.NodeID]host.Host
 	logger     logging.Logger
-	transports map[types.NodeID]*Transport
+	transports map[stdtypes.NodeID]*Transport
 }
 
 func newMockLibp2pCommunication(
 	t *testing.T,
 	params Params,
-	nodeIDs []types.NodeID,
+	nodeIDs []stdtypes.NodeID,
 	logger logging.Logger,
 ) *mockLibp2pCommunication {
 	lt := &mockLibp2pCommunication{
 		t:      t,
 		params: params,
 		membership: &trantorpbtypes.Membership{ // nolint:govet
-			make(map[types.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDs)),
+			make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity, len(nodeIDs)),
 		},
-		hosts:      make(map[types.NodeID]host.Host),
-		transports: make(map[types.NodeID]*Transport),
+		hosts:      make(map[stdtypes.NodeID]host.Host),
+		transports: make(map[stdtypes.NodeID]*Transport),
 		logger:     logger,
 	}
 
@@ -67,7 +66,7 @@ func newMockLibp2pCommunication(
 	return lt
 }
 
-func (m *mockLibp2pCommunication) getTransport(sourceID types.NodeID) *Transport {
+func (m *mockLibp2pCommunication) getTransport(sourceID stdtypes.NodeID) *Transport {
 	tr, ok := m.transports[sourceID]
 	if !ok {
 		m.t.Fatalf("failed to get transport for node: %v", sourceID)
@@ -75,7 +74,7 @@ func (m *mockLibp2pCommunication) getTransport(sourceID types.NodeID) *Transport
 	return tr
 }
 
-func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode types.NodeID) {
+func (m *mockLibp2pCommunication) disconnect(srcNode, dstNode stdtypes.NodeID) {
 	src := m.getTransport(srcNode)
 	dst := m.getTransport(dstNode)
 
@@ -136,8 +135,8 @@ func (m *mockLibp2pCommunication) StartAllTransports() {
 	}
 }
 
-func (m *mockLibp2pCommunication) MembershipOf(ids ...types.NodeID) *trantorpbtypes.Membership {
-	membership := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
+func (m *mockLibp2pCommunication) MembershipOf(ids ...stdtypes.NodeID) *trantorpbtypes.Membership {
+	membership := &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 	for _, id := range ids {
 		identity, ok := m.membership.Nodes[id]
 		if !ok {
@@ -148,7 +147,7 @@ func (m *mockLibp2pCommunication) MembershipOf(ids ...types.NodeID) *trantorpbty
 	return membership
 }
 
-func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Transport, *Transport, *Transport, *Transport) {
+func (m *mockLibp2pCommunication) FourTransports(nodeID ...stdtypes.NodeID) (*Transport, *Transport, *Transport, *Transport) {
 	if len(nodeID) != 4 {
 		m.t.Fatalf("want 4 node IDs, have %d", len(nodeID))
 	}
@@ -162,7 +161,7 @@ func (m *mockLibp2pCommunication) FourTransports(nodeID ...types.NodeID) (*Trans
 	return ts[0], ts[1], ts[2], ts[3]
 }
 
-func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 types.NodeID) {
+func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 stdtypes.NodeID) {
 	n1 := m.getTransport(nodeID1)
 	n2 := m.getTransport(nodeID2)
 
@@ -174,7 +173,7 @@ func (m *mockLibp2pCommunication) testEventuallyNotConnected(nodeID1, nodeID2 ty
 		10*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.NodeID) {
+func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 stdtypes.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
 
@@ -185,7 +184,7 @@ func (m *mockLibp2pCommunication) testNeverConnected(nodeID1, nodeID2 types.Node
 		5*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID2 types.NodeID) {
+func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID2 stdtypes.NodeID) {
 	src := m.getTransport(nodeID1)
 	dst := m.getTransport(nodeID2)
 
@@ -208,7 +207,7 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreamsBetween(nodeID1, nodeID
 		10*time.Second, 300*time.Millisecond)
 }
 
-func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeID) {
+func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...stdtypes.NodeID) {
 	for _, nodeID := range nodeIDs {
 		v := m.getTransport(nodeID)
 
@@ -221,12 +220,12 @@ func (m *mockLibp2pCommunication) testEventuallyNoStreams(nodeIDs ...types.NodeI
 	}
 }
 
-func (m *mockLibp2pCommunication) testThatSenderIs(events *stdtypes.EventList, nodeID types.NodeID) {
+func (m *mockLibp2pCommunication) testThatSenderIs(events *stdtypes.EventList, nodeID stdtypes.NodeID) {
 	tEvent, valid := events.Iterator().Next().(*eventpb.Event).Type.(*eventpb.Event_Transport)
 	require.True(m.t, valid)
 	msg, valid := tEvent.Transport.Type.(*transportpb.Event_MessageReceived)
 	require.True(m.t, valid)
-	require.Equal(m.t, msg.MessageReceived.From, nodeID.Pb())
+	require.Equal(m.t, msg.MessageReceived.From, string(nodeID.Bytes()))
 }
 
 // testEventuallyHasConnection tests that there is a connection between the nodes initiated by initiator.
@@ -235,7 +234,7 @@ func (m *mockLibp2pCommunication) testThatSenderIs(events *stdtypes.EventList, n
 // - there is a connection between initiator and responder nodes
 // - there is a stream from initiator to responder
 // - the stream is processed by the target protocol
-func (m *mockLibp2pCommunication) testEventuallyHasConnection(initiator, responder types.NodeID) {
+func (m *mockLibp2pCommunication) testEventuallyHasConnection(initiator, responder stdtypes.NodeID) {
 	n1 := m.getTransport(initiator)
 	n2 := m.getTransport(responder)
 
@@ -254,7 +253,7 @@ func (m *mockLibp2pCommunication) testEventuallyHasConnection(initiator, respond
 // - there is a stream from nodeID1 to nodeID2
 // - there is a stream from nodeID2 to nodeID1
 // - the streams are processed by the target protocol
-func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 types.NodeID) {
+func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 stdtypes.NodeID) {
 	n1 := m.getTransport(nodeID1)
 	n2 := m.getTransport(nodeID2)
 
@@ -291,7 +290,7 @@ func (m *mockLibp2pCommunication) getNumberOfStreams(v *Transport) int {
 	return n
 }
 
-func (m *mockLibp2pCommunication) printStreams(node types.NodeID) { // nolint
+func (m *mockLibp2pCommunication) printStreams(node stdtypes.NodeID) { // nolint
 	v := m.getTransport(node)
 	conns := v.host.Network().Conns()
 	for _, c := range conns {
@@ -353,9 +352,9 @@ func TestTransportStartStop(t *testing.T) {
 func TestConnectTwoNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
 	m.StartAllTransports()
@@ -382,9 +381,9 @@ func TestConnectTwoNodes(t *testing.T) {
 func TestCallSendWithoutConnect(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	m.StartAllTransports()
 
@@ -403,15 +402,15 @@ func TestCallSendWithoutConnect(t *testing.T) {
 func TestSendReceive(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	nodeC := types.NodeID("c")
-	nodeD := types.NodeID("d")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
+	nodeC := stdtypes.NodeID("c")
+	nodeD := stdtypes.NodeID("d")
 	// nodeE := types.NodeID("e")
 
 	testMsg := &messagepbtypes.Message{}
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAllTransports()
@@ -474,13 +473,13 @@ func TestSendReceive(t *testing.T) {
 func TestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	nodeC := types.NodeID("c")
-	nodeD := types.NodeID("d")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
+	nodeC := stdtypes.NodeID("c")
+	nodeD := stdtypes.NodeID("d")
 	// nodeE := types.NodeID("e")
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAllTransports()
@@ -542,12 +541,12 @@ func TestSendReceiveEmptyMessage(t *testing.T) { // nolint:unused
 func TestConnect(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
-	nodeC := types.NodeID("c")
-	nodeD := types.NodeID("d")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
+	nodeC := stdtypes.NodeID("c")
+	nodeD := stdtypes.NodeID("d")
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB, nodeC, nodeD}, logger)
 
 	a, b, c, d := m.FourTransports(nodeA, nodeB, nodeC, nodeD)
 	m.StartAllTransports()
@@ -602,12 +601,12 @@ func TestConnect(t *testing.T) {
 func TestMessaging(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
 
 	testMsg := &messagepbtypes.Message{}
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 
 	a := m.transports[nodeA]
 	require.Equal(t, nodeA, a.ownID)
@@ -716,12 +715,12 @@ func TestMessaging(t *testing.T) {
 func TestSendingReceiveWithWaitFor(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
 
 	testMsg := &messagepbtypes.Message{}
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
 	require.Equal(t, nodeA, a.ownID)
@@ -760,10 +759,10 @@ func TestSendingReceiveWithWaitFor(t *testing.T) {
 func TestNoConnectionsAfterStop(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
 	require.Equal(t, nodeA, a.ownID)
@@ -789,10 +788,10 @@ func TestNoConnectionsAfterStop(t *testing.T) {
 func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
 
-	m := newMockLibp2pCommunication(t, DefaultParams(), []types.NodeID{nodeA, nodeB}, logger)
+	m := newMockLibp2pCommunication(t, DefaultParams(), []stdtypes.NodeID{nodeA, nodeB}, logger)
 
 	a := m.transports[nodeA]
 	b := m.transports[nodeB]
@@ -856,22 +855,22 @@ func TestSendReceiveWithWaitForAndBlock(t *testing.T) {
 func TestOpeningConnectionAfterFail(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
-	nodeA := types.NodeID("a")
-	nodeB := types.NodeID("b")
+	nodeA := stdtypes.NodeID("a")
+	nodeB := stdtypes.NodeID("b")
 
 	hostAddrA := libp2putil.NewFreeHostAddr()
 	hostA := libp2putil.NewDummyHost(0, hostAddrA)
-	addrA := types.NodeAddress(libp2putil.NewDummyMultiaddr(0, hostAddrA))
+	addrA := stdtypes.NodeAddress(libp2putil.NewDummyMultiaddr(0, hostAddrA))
 	a := NewTransport(DefaultParams(), nodeA, hostA, logger, nil)
 
 	hostAddrB := libp2putil.NewFreeHostAddr()
 	hostB := libp2putil.NewDummyHostNoListen(1, hostAddrB)
-	addrB := types.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
+	addrB := stdtypes.NodeAddress(libp2putil.NewDummyMultiaddr(1, hostAddrB))
 	b := NewTransport(DefaultParams(), nodeB, hostB, logger, nil)
 
-	membershipA := &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)} // nolint:govet
-	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, "1"}          // nolint:govet
-	membershipA.Nodes[nodeB] = &trantorpbtypes.NodeIdentity{nodeB, addrB.String(), nil, "1"}          // nolint:govet
+	membershipA := &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity, 2)} // nolint:govet
+	membershipA.Nodes[nodeA] = &trantorpbtypes.NodeIdentity{nodeA, addrA.String(), nil, "1"}             // nolint:govet
+	membershipA.Nodes[nodeB] = &trantorpbtypes.NodeIdentity{nodeB, addrB.String(), nil, "1"}             // nolint:govet
 
 	require.Equal(t, nodeA, a.ownID)
 	require.Equal(t, nodeB, b.ownID)
@@ -879,9 +878,9 @@ func TestOpeningConnectionAfterFail(t *testing.T) {
 	m := &mockLibp2pCommunication{
 		t:          t,
 		params:     DefaultParams(),
-		membership: &trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity, 2)}, // nolint:govet
-		hosts:      make(map[types.NodeID]host.Host),
-		transports: make(map[types.NodeID]*Transport),
+		membership: &trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity, 2)}, // nolint:govet
+		hosts:      make(map[stdtypes.NodeID]host.Host),
+		transports: make(map[stdtypes.NodeID]*Transport),
 		logger:     logger,
 	}
 
@@ -933,9 +932,9 @@ func TestMessagingWithNewNodes(t *testing.T) {
 
 	N := 10 // number of nodes
 	M := 5  // number of new nodes
-	var nodes []types.NodeID
+	var nodes []stdtypes.NodeID
 	for i := 0; i < N+M; i++ {
-		nodes = append(nodes, types.NodeID(fmt.Sprint(i)))
+		nodes = append(nodes, stdtypes.NodeID(fmt.Sprint(i)))
 	}
 
 	m := newMockLibp2pCommunication(t, DefaultParams(), nodes, logger)
@@ -963,7 +962,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 	var received, sent int64
 	var senders, receivers sync.WaitGroup
 
-	sender := func(src, dst types.NodeID) {
+	sender := func(src, dst stdtypes.NodeID) {
 		defer senders.Done()
 
 		for i := 0; i < 100; i++ {
@@ -977,7 +976,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 		}
 	}
 
-	receiver := func(nodeID types.NodeID, events chan *stdtypes.EventList, stop chan struct{}) {
+	receiver := func(nodeID stdtypes.NodeID, events chan *stdtypes.EventList, stop chan struct{}) {
 		defer receivers.Done()
 
 		for {

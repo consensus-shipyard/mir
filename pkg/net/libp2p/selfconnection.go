@@ -8,13 +8,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // selfConnection represents a connection of a node to itself.
 // It bypasses the network completely and feeds sent messages directly into the code that handles message delivery.
 type selfConnection struct {
-	ownID       t.NodeID
+	ownID       stdtypes.NodeID
 	peerID      peer.ID
 	msgBuffer   chan *messagepb.Message
 	deliverChan chan<- *stdtypes.EventList
@@ -26,7 +25,7 @@ type selfConnection struct {
 // Addr is the own address and deliverChan is the channel to which delivered messages need to be written.
 // Messages sent to this connection will be buffered and eventually written to deliverChan in form of MessageDelivered
 // events (unless the buffer fills up, in which case sent messages will be dropped.)
-func newSelfConnection(params Params, ownID t.NodeID, ownAddr t.NodeAddress, deliverChan chan<- *stdtypes.EventList) (*selfConnection, error) {
+func newSelfConnection(params Params, ownID stdtypes.NodeID, ownAddr stdtypes.NodeAddress, deliverChan chan<- *stdtypes.EventList) (*selfConnection, error) {
 	addrInfo, err := peer.AddrInfoFromP2pAddr(ownAddr)
 	if err != nil {
 		return nil, es.Errorf("failed to parse address: %w", err)
@@ -109,7 +108,7 @@ func (conn *selfConnection) process() {
 			case <-conn.stop:
 				return
 			case conn.deliverChan <- stdtypes.ListOf(transportpbevents.MessageReceived(
-				t.ModuleID(msg.DestModule),
+				stdtypes.ModuleID(msg.DestModule),
 				conn.ownID,
 				messagepbtypes.MessageFromPb(msg)).Pb(),
 			):

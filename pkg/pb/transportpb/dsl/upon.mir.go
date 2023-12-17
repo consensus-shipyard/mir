@@ -7,7 +7,7 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for processing events.
@@ -23,13 +23,13 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponSendMessage(m dsl.Module, handler func(msg *types2.Message, destinations []types3.NodeID) error) {
+func UponSendMessage(m dsl.Module, handler func(msg *types2.Message, destinations []stdtypes.NodeID) error) {
 	UponEvent[*types.Event_SendMessage](m, func(ev *types.SendMessage) error {
 		return handler(ev.Msg, ev.Destinations)
 	})
 }
 
-func UponMessageReceived(m dsl.Module, handler func(from types3.NodeID, msg *types2.Message) error) {
+func UponMessageReceived(m dsl.Module, handler func(from stdtypes.NodeID, msg *types2.Message) error) {
 	UponEvent[*types.Event_MessageReceived](m, func(ev *types.MessageReceived) error {
 		return handler(ev.From, ev.Msg)
 	})

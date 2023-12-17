@@ -10,16 +10,15 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // workChans represents input channels for the modules within the Node.
 // the Node.process() method writes events to these channels to route them between the Node's modules.
-type workChans map[t.ModuleID]chan *stdtypes.EventList
+type workChans map[stdtypes.ModuleID]chan *stdtypes.EventList
 
 // Allocate and return a new workChans structure.
 func newWorkChans(modules modules.Modules) workChans {
-	wc := make(map[t.ModuleID]chan *stdtypes.EventList)
+	wc := make(map[stdtypes.ModuleID]chan *stdtypes.EventList)
 
 	for moduleID := range modules {
 		wc[moduleID] = make(chan *stdtypes.EventList)

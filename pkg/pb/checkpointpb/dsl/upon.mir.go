@@ -8,7 +8,7 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types4 "github.com/filecoin-project/mir/pkg/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for processing events.
@@ -24,13 +24,13 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponStableCheckpoint(m dsl.Module, handler func(sn types2.SeqNr, snapshot *types3.StateSnapshot, cert map[types4.NodeID][]uint8) error) {
+func UponStableCheckpoint(m dsl.Module, handler func(sn types2.SeqNr, snapshot *types3.StateSnapshot, cert map[stdtypes.NodeID][]uint8) error) {
 	UponEvent[*types.Event_StableCheckpoint](m, func(ev *types.StableCheckpoint) error {
 		return handler(ev.Sn, ev.Snapshot, ev.Cert)
 	})
 }
 
-func UponEpochProgress(m dsl.Module, handler func(nodeId types4.NodeID, epoch types2.EpochNr) error) {
+func UponEpochProgress(m dsl.Module, handler func(nodeId stdtypes.NodeID, epoch types2.EpochNr) error) {
 	UponEvent[*types.Event_EpochProgress](m, func(ev *types.EpochProgress) error {
 		return handler(ev.NodeId, ev.Epoch)
 	})

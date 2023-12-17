@@ -4,11 +4,11 @@ package transportpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types2 "github.com/filecoin-project/mir/codegen/model/types"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	types "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
-	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -116,7 +116,7 @@ func (*Event) MirReflect() mirreflect.Type {
 
 type SendMessage struct {
 	Msg          *types.Message
-	Destinations []types1.NodeID
+	Destinations []stdtypes.NodeID
 }
 
 func SendMessageFromPb(pb *transportpb.SendMessage) *SendMessage {
@@ -125,8 +125,8 @@ func SendMessageFromPb(pb *transportpb.SendMessage) *SendMessage {
 	}
 	return &SendMessage{
 		Msg: types.MessageFromPb(pb.Msg),
-		Destinations: types2.ConvertSlice(pb.Destinations, func(t string) types1.NodeID {
-			return (types1.NodeID)(t)
+		Destinations: types1.ConvertSlice(pb.Destinations, func(t string) stdtypes.NodeID {
+			return (stdtypes.NodeID)(t)
 		}),
 	}
 }
@@ -140,7 +140,7 @@ func (m *SendMessage) Pb() *transportpb.SendMessage {
 		if m.Msg != nil {
 			pbMessage.Msg = (m.Msg).Pb()
 		}
-		pbMessage.Destinations = types2.ConvertSlice(m.Destinations, func(t types1.NodeID) string {
+		pbMessage.Destinations = types1.ConvertSlice(m.Destinations, func(t stdtypes.NodeID) string {
 			return (string)(t)
 		})
 	}
@@ -153,7 +153,7 @@ func (*SendMessage) MirReflect() mirreflect.Type {
 }
 
 type MessageReceived struct {
-	From types1.NodeID
+	From stdtypes.NodeID
 	Msg  *types.Message
 }
 
@@ -162,7 +162,7 @@ func MessageReceivedFromPb(pb *transportpb.MessageReceived) *MessageReceived {
 		return nil
 	}
 	return &MessageReceived{
-		From: (types1.NodeID)(pb.From),
+		From: (stdtypes.NodeID)(pb.From),
 		Msg:  types.MessageFromPb(pb.Msg),
 	}
 }

@@ -3,6 +3,7 @@ package viewchange
 import (
 	"bytes"
 
+	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -27,7 +28,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
@@ -319,7 +319,7 @@ func IncludeViewChange( //nolint:gocognit
 	pbftpbdsl.UponNewViewReceived(m, func(
 		from t.NodeID,
 		view ot.ViewNr,
-		viewChangeSenders []string,
+		viewChangeSenders []t.NodeID,
 		signedViewChanges []*pbftpbtypes.SignedViewChange,
 		preprepareSeqNrs []tt.SeqNr,
 		preprepares []*pbftpbtypes.Preprepare,
@@ -612,7 +612,7 @@ func sendNewView(
 		pbftpbmsgs.NewView(
 			moduleConfig.Self,
 			view,
-			t.NodeIDSlicePb(viewChangeSenders),
+			viewChangeSenders,
 			signedViewChanges,
 			preprepareSeqNrs,
 			preprepares,
@@ -654,7 +654,7 @@ func applyMsgNewView(
 		moduleConfig.Crypto,
 		viewChangeData,
 		signatures,
-		t.NodeIDSlice(newView.ViewChangeSenders),
+		newView.ViewChangeSenders,
 		newView,
 	)
 

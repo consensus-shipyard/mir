@@ -3,20 +3,20 @@
 package mscpbmsgs
 
 import (
-	types4 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func RequestSigMessage(destModule types.ModuleID, txs []*types1.Transaction, reqId uint64) *types2.Message {
-	return &types2.Message{
+func RequestSigMessage(destModule stdtypes.ModuleID, txs []*types.Transaction, reqId uint64) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types2.Message_MultisigCollector{
-			MultisigCollector: &types3.Message{
-				Type: &types3.Message_RequestSig{
-					RequestSig: &types3.RequestSigMessage{
+		Type: &types1.Message_MultisigCollector{
+			MultisigCollector: &types2.Message{
+				Type: &types2.Message_RequestSig{
+					RequestSig: &types2.RequestSigMessage{
 						Txs:   txs,
 						ReqId: reqId,
 					},
@@ -26,13 +26,13 @@ func RequestSigMessage(destModule types.ModuleID, txs []*types1.Transaction, req
 	}
 }
 
-func SigMessage(destModule types.ModuleID, signature []uint8, reqId uint64) *types2.Message {
-	return &types2.Message{
+func SigMessage(destModule stdtypes.ModuleID, signature []uint8, reqId uint64) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types2.Message_MultisigCollector{
-			MultisigCollector: &types3.Message{
-				Type: &types3.Message_Sig{
-					Sig: &types3.SigMessage{
+		Type: &types1.Message_MultisigCollector{
+			MultisigCollector: &types2.Message{
+				Type: &types2.Message_Sig{
+					Sig: &types2.SigMessage{
 						Signature: signature,
 						ReqId:     reqId,
 					},
@@ -42,13 +42,13 @@ func SigMessage(destModule types.ModuleID, signature []uint8, reqId uint64) *typ
 	}
 }
 
-func RequestBatchMessage(destModule types.ModuleID, batchId types4.BatchID, reqId uint64) *types2.Message {
-	return &types2.Message{
+func RequestBatchMessage(destModule stdtypes.ModuleID, batchId types3.BatchID, reqId uint64) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types2.Message_MultisigCollector{
-			MultisigCollector: &types3.Message{
-				Type: &types3.Message_RequestBatch{
-					RequestBatch: &types3.RequestBatchMessage{
+		Type: &types1.Message_MultisigCollector{
+			MultisigCollector: &types2.Message{
+				Type: &types2.Message_RequestBatch{
+					RequestBatch: &types2.RequestBatchMessage{
 						BatchId: batchId,
 						ReqId:   reqId,
 					},
@@ -58,13 +58,13 @@ func RequestBatchMessage(destModule types.ModuleID, batchId types4.BatchID, reqI
 	}
 }
 
-func ProvideBatchMessage(destModule types.ModuleID, txs []*types1.Transaction, reqId uint64, batchId types4.BatchID) *types2.Message {
-	return &types2.Message{
+func ProvideBatchMessage(destModule stdtypes.ModuleID, txs []*types.Transaction, reqId uint64, batchId types3.BatchID) *types1.Message {
+	return &types1.Message{
 		DestModule: destModule,
-		Type: &types2.Message_MultisigCollector{
-			MultisigCollector: &types3.Message{
-				Type: &types3.Message_ProvideBatch{
-					ProvideBatch: &types3.ProvideBatchMessage{
+		Type: &types1.Message_MultisigCollector{
+			MultisigCollector: &types2.Message{
+				Type: &types2.Message_ProvideBatch{
+					ProvideBatch: &types2.ProvideBatchMessage{
 						Txs:     txs,
 						ReqId:   reqId,
 						BatchId: batchId,

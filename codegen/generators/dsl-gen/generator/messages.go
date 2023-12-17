@@ -2,6 +2,7 @@ package generator
 
 import (
 	"github.com/dave/jennifer/jen"
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/codegen/model/messages"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/filecoin-project/mir/codegen/model/types"
 	"github.com/filecoin-project/mir/codegen/util/jenutil"
 	"github.com/filecoin-project/mir/codegen/util/params"
-	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 

@@ -6,13 +6,13 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
-	types5 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -463,7 +463,7 @@ func (*ProvideTransactions) MirReflect() mirreflect.Type {
 }
 
 type RequestCertOrigin struct {
-	Module types2.ModuleID
+	Module stdtypes.ModuleID
 	Type   RequestCertOrigin_Type
 }
 
@@ -484,20 +484,20 @@ func RequestCertOrigin_TypeFromPb(pb availabilitypb.RequestCertOrigin_Type) Requ
 	}
 	switch pb := pb.(type) {
 	case *availabilitypb.RequestCertOrigin_ContextStore:
-		return &RequestCertOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestCertOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *availabilitypb.RequestCertOrigin_Dsl:
-		return &RequestCertOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestCertOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestCertOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types2.Origin
 }
 
 func (*RequestCertOrigin_ContextStore) isRequestCertOrigin_Type() {}
 
-func (w *RequestCertOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestCertOrigin_ContextStore) Unwrap() *types2.Origin {
 	return w.ContextStore
 }
 
@@ -516,12 +516,12 @@ func (*RequestCertOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestCertOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types3.Origin
 }
 
 func (*RequestCertOrigin_Dsl) isRequestCertOrigin_Type() {}
 
-func (w *RequestCertOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestCertOrigin_Dsl) Unwrap() *types3.Origin {
 	return w.Dsl
 }
 
@@ -544,7 +544,7 @@ func RequestCertOriginFromPb(pb *availabilitypb.RequestCertOrigin) *RequestCertO
 		return nil
 	}
 	return &RequestCertOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   RequestCertOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -569,7 +569,7 @@ func (*RequestCertOrigin) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionsOrigin struct {
-	Module types2.ModuleID
+	Module stdtypes.ModuleID
 	Type   RequestTransactionsOrigin_Type
 }
 
@@ -590,20 +590,20 @@ func RequestTransactionsOrigin_TypeFromPb(pb availabilitypb.RequestTransactionsO
 	}
 	switch pb := pb.(type) {
 	case *availabilitypb.RequestTransactionsOrigin_ContextStore:
-		return &RequestTransactionsOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &RequestTransactionsOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *availabilitypb.RequestTransactionsOrigin_Dsl:
-		return &RequestTransactionsOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &RequestTransactionsOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RequestTransactionsOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types2.Origin
 }
 
 func (*RequestTransactionsOrigin_ContextStore) isRequestTransactionsOrigin_Type() {}
 
-func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *RequestTransactionsOrigin_ContextStore) Unwrap() *types2.Origin {
 	return w.ContextStore
 }
 
@@ -622,12 +622,12 @@ func (*RequestTransactionsOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RequestTransactionsOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types3.Origin
 }
 
 func (*RequestTransactionsOrigin_Dsl) isRequestTransactionsOrigin_Type() {}
 
-func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *RequestTransactionsOrigin_Dsl) Unwrap() *types3.Origin {
 	return w.Dsl
 }
 
@@ -650,7 +650,7 @@ func RequestTransactionsOriginFromPb(pb *availabilitypb.RequestTransactionsOrigi
 		return nil
 	}
 	return &RequestTransactionsOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   RequestTransactionsOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -675,7 +675,7 @@ func (*RequestTransactionsOrigin) MirReflect() mirreflect.Type {
 }
 
 type VerifyCertOrigin struct {
-	Module types2.ModuleID
+	Module stdtypes.ModuleID
 	Type   VerifyCertOrigin_Type
 }
 
@@ -696,20 +696,20 @@ func VerifyCertOrigin_TypeFromPb(pb availabilitypb.VerifyCertOrigin_Type) Verify
 	}
 	switch pb := pb.(type) {
 	case *availabilitypb.VerifyCertOrigin_ContextStore:
-		return &VerifyCertOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &VerifyCertOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *availabilitypb.VerifyCertOrigin_Dsl:
-		return &VerifyCertOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &VerifyCertOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type VerifyCertOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types2.Origin
 }
 
 func (*VerifyCertOrigin_ContextStore) isVerifyCertOrigin_Type() {}
 
-func (w *VerifyCertOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *VerifyCertOrigin_ContextStore) Unwrap() *types2.Origin {
 	return w.ContextStore
 }
 
@@ -728,12 +728,12 @@ func (*VerifyCertOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyCertOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types3.Origin
 }
 
 func (*VerifyCertOrigin_Dsl) isVerifyCertOrigin_Type() {}
 
-func (w *VerifyCertOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *VerifyCertOrigin_Dsl) Unwrap() *types3.Origin {
 	return w.Dsl
 }
 
@@ -756,7 +756,7 @@ func VerifyCertOriginFromPb(pb *availabilitypb.VerifyCertOrigin) *VerifyCertOrig
 		return nil
 	}
 	return &VerifyCertOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   VerifyCertOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -801,18 +801,18 @@ func Cert_TypeFromPb(pb availabilitypb.Cert_Type) Cert_Type {
 	}
 	switch pb := pb.(type) {
 	case *availabilitypb.Cert_Mscs:
-		return &Cert_Mscs{Mscs: types5.CertsFromPb(pb.Mscs)}
+		return &Cert_Mscs{Mscs: types4.CertsFromPb(pb.Mscs)}
 	}
 	return nil
 }
 
 type Cert_Mscs struct {
-	Mscs *types5.Certs
+	Mscs *types4.Certs
 }
 
 func (*Cert_Mscs) isCert_Type() {}
 
-func (w *Cert_Mscs) Unwrap() *types5.Certs {
+func (w *Cert_Mscs) Unwrap() *types4.Certs {
 	return w.Mscs
 }
 

@@ -43,7 +43,7 @@ message PreprepareValidated {
 message ValidatePreprepareOrigin {
   option (mir.struct) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
   oneof type {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;

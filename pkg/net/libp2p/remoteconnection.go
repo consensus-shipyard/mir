@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -16,12 +17,11 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type remoteConnection struct {
 	params        Params
-	ownID         t.NodeID
+	ownID         stdtypes.NodeID
 	addrInfo      *peer.AddrInfo
 	logger        logging.Logger
 	host          host.Host
@@ -36,8 +36,8 @@ type remoteConnection struct {
 
 func newRemoteConnection(
 	params Params,
-	ownID t.NodeID,
-	addr t.NodeAddress,
+	ownID stdtypes.NodeID,
+	addr stdtypes.NodeAddress,
 	h host.Host,
 	logger logging.Logger,
 	stats Stats,
@@ -280,7 +280,7 @@ func (conn *remoteConnection) process() {
 					conn.logger.Log(logging.LevelError, "Could not encode message. Disconnecting.", "err", err)
 					return
 				}
-				statsLabel = string(t.ModuleID(msg.DestModule).Top())
+				statsLabel = string(stdtypes.ModuleID(msg.DestModule).Top())
 			}
 		}
 
@@ -365,13 +365,13 @@ func (conn *remoteConnection) closeStream() {
 	}
 }
 
-func encodeMessage(msg *messagepb.Message, nodeID t.NodeID) ([]byte, error) {
+func encodeMessage(msg *messagepb.Message, nodeID stdtypes.NodeID) ([]byte, error) {
 	p, err := proto.Marshal(msg)
 	if err != nil {
 		return nil, es.Errorf("failed to marshal message: %w", err)
 	}
 
-	tm := TransportMessage{nodeID.Pb(), p}
+	tm := TransportMessage{nodeID.Bytes(), p}
 	buf := new(bytes.Buffer)
 	if err = tm.MarshalCBOR(buf); err != nil {
 		return nil, es.Errorf("failed to CBOR marshal message: %w", err)

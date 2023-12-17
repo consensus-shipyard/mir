@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/orderers"
 	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
+	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/timer"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // System represents a Trantor system.
@@ -52,7 +52,7 @@ func (sys *System) Modules() modules.Modules {
 // WithModule associates the given module ID within the SMR system with the given module.
 // If a module with the given ID already exists, it is replaced.
 // WithModule returns the SMR system itself (not a copy of it), so calls can be chained.
-func (sys *System) WithModule(moduleID t.ModuleID, module modules.Module) *System {
+func (sys *System) WithModule(moduleID stdtypes.ModuleID, module modules.Module) *System {
 	sys.modules[moduleID] = module
 	return sys
 }
@@ -82,7 +82,7 @@ func (sys *System) Stop() {
 // The returned system's Modules method can be used to obtain the Mir modules to be passed to mir.NewNode.
 func New(
 	// The ID of this node.
-	ownID t.NodeID,
+	ownID stdtypes.NodeID,
 
 	// Network transport system to be used by Trantor to send and receive messages.
 	transport net.Transport,
@@ -113,7 +113,7 @@ func New(
 	hashImpl := crypto.SHA256
 
 	moduleConfig := DefaultModuleConfig()
-	trantorModules := make(map[t.ModuleID]modules.Module)
+	trantorModules := make(map[stdtypes.ModuleID]modules.Module)
 
 	// The mempool stores the incoming transactions waiting to be proposed.
 	// The simple mempool implementation stores all those transactions in memory.

@@ -20,14 +20,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/transactionreceiver"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // TestReplica represents one replica (that uses one instance of the mir.Node) in the test system.
 type TestReplica struct {
 
 	// ID of the replica as seen by the protocol.
-	ID t.NodeID
+	ID stdtypes.NodeID
 
 	// The modules that the node will run.
 	Modules modules.Modules
@@ -40,7 +39,7 @@ type TestReplica struct {
 	Config *mir.NodeConfig
 
 	// List of replica IDs constituting the (static) membership.
-	NodeIDs []t.NodeID
+	NodeIDs []stdtypes.NodeID
 
 	// List of replicas.
 	Membership *trantorpbtypes.Membership
@@ -55,7 +54,7 @@ type TestReplica struct {
 	NumFakeTXs int
 
 	// ID of the module to which fake transactions should be sent.
-	FakeTXDestModule t.ModuleID
+	FakeTXDestModule stdtypes.ModuleID
 }
 
 // EventLogFile returns the name of the file where the replica's event log is stored.
@@ -107,7 +106,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 	txreceiver := transactionreceiver.NewTransactionReceiver(node, tr.FakeTXDestModule, logging.Decorate(tr.Config.Logger, "TxRec: "))
 
 	// TODO: do not assume that node IDs are integers.
-	p, err := strconv.Atoi(tr.ID.Pb())
+	p, err := strconv.Atoi(string(tr.ID.Bytes()))
 	if err != nil {
 		return es.Errorf("error converting node ID %s: %w", tr.ID, err)
 	}
@@ -164,7 +163,7 @@ func (tr *TestReplica) Run(ctx context.Context) error {
 // Submits n fake transactions to node.
 // Aborts when stopC is closed.
 // Decrements wg when done.
-func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Node, destModule t.ModuleID, wg *sync.WaitGroup) {
+func (tr *TestReplica) submitFakeTransactions(ctx context.Context, node *mir.Node, destModule stdtypes.ModuleID, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if tr.Proc != nil {

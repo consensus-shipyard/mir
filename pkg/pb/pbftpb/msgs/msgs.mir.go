@@ -3,23 +3,23 @@
 package pbftpbmsgs
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/orderers/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/orderers/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, data []uint8, aborted bool) *types3.Message {
-	return &types3.Message{
+func Preprepare(destModule stdtypes.ModuleID, sn types.SeqNr, view types1.ViewNr, data []uint8, aborted bool) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_Preprepare{
-							Preprepare: &types5.Preprepare{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_Preprepare{
+							Preprepare: &types4.Preprepare{
 								Sn:      sn,
 								View:    view,
 								Data:    data,
@@ -33,15 +33,15 @@ func Preprepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, 
 	}
 }
 
-func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8) *types3.Message {
-	return &types3.Message{
+func Prepare(destModule stdtypes.ModuleID, sn types.SeqNr, view types1.ViewNr, digest []uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_Prepare{
-							Prepare: &types5.Prepare{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_Prepare{
+							Prepare: &types4.Prepare{
 								Sn:     sn,
 								View:   view,
 								Digest: digest,
@@ -54,15 +54,15 @@ func Prepare(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dig
 	}
 }
 
-func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, digest []uint8) *types3.Message {
-	return &types3.Message{
+func Commit(destModule stdtypes.ModuleID, sn types.SeqNr, view types1.ViewNr, digest []uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_Commit{
-							Commit: &types5.Commit{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_Commit{
+							Commit: &types4.Commit{
 								Sn:     sn,
 								View:   view,
 								Digest: digest,
@@ -75,15 +75,15 @@ func Commit(destModule types.ModuleID, sn types1.SeqNr, view types2.ViewNr, dige
 	}
 }
 
-func Done(destModule types.ModuleID, digests [][]uint8) *types3.Message {
-	return &types3.Message{
+func Done(destModule stdtypes.ModuleID, digests [][]uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_Done{
-							Done: &types5.Done{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_Done{
+							Done: &types4.Done{
 								Digests: digests,
 							},
 						},
@@ -94,15 +94,15 @@ func Done(destModule types.ModuleID, digests [][]uint8) *types3.Message {
 	}
 }
 
-func CatchUpRequest(destModule types.ModuleID, digest []uint8, sn types1.SeqNr) *types3.Message {
-	return &types3.Message{
+func CatchUpRequest(destModule stdtypes.ModuleID, digest []uint8, sn types.SeqNr) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_CatchUpRequest{
-							CatchUpRequest: &types5.CatchUpRequest{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_CatchUpRequest{
+							CatchUpRequest: &types4.CatchUpRequest{
 								Digest: digest,
 								Sn:     sn,
 							},
@@ -114,15 +114,15 @@ func CatchUpRequest(destModule types.ModuleID, digest []uint8, sn types1.SeqNr) 
 	}
 }
 
-func CatchUpResponse(destModule types.ModuleID, resp *types5.Preprepare) *types3.Message {
-	return &types3.Message{
+func CatchUpResponse(destModule stdtypes.ModuleID, resp *types4.Preprepare) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_CatchUpResponse{
-							CatchUpResponse: &types5.CatchUpResponse{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_CatchUpResponse{
+							CatchUpResponse: &types4.CatchUpResponse{
 								Resp: resp,
 							},
 						},
@@ -133,15 +133,15 @@ func CatchUpResponse(destModule types.ModuleID, resp *types5.Preprepare) *types3
 	}
 }
 
-func SignedViewChange(destModule types.ModuleID, viewChange *types5.ViewChange, signature []uint8) *types3.Message {
-	return &types3.Message{
+func SignedViewChange(destModule stdtypes.ModuleID, viewChange *types4.ViewChange, signature []uint8) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_SignedViewChange{
-							SignedViewChange: &types5.SignedViewChange{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_SignedViewChange{
+							SignedViewChange: &types4.SignedViewChange{
 								ViewChange: viewChange,
 								Signature:  signature,
 							},
@@ -153,15 +153,15 @@ func SignedViewChange(destModule types.ModuleID, viewChange *types5.ViewChange, 
 	}
 }
 
-func PreprepareRequest(destModule types.ModuleID, digest []uint8, sn types1.SeqNr) *types3.Message {
-	return &types3.Message{
+func PreprepareRequest(destModule stdtypes.ModuleID, digest []uint8, sn types.SeqNr) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_PreprepareRequest{
-							PreprepareRequest: &types5.PreprepareRequest{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_PreprepareRequest{
+							PreprepareRequest: &types4.PreprepareRequest{
 								Digest: digest,
 								Sn:     sn,
 							},
@@ -173,15 +173,15 @@ func PreprepareRequest(destModule types.ModuleID, digest []uint8, sn types1.SeqN
 	}
 }
 
-func MissingPreprepare(destModule types.ModuleID, preprepare *types5.Preprepare) *types3.Message {
-	return &types3.Message{
+func MissingPreprepare(destModule stdtypes.ModuleID, preprepare *types4.Preprepare) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_MissingPreprepare{
-							MissingPreprepare: &types5.MissingPreprepare{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_MissingPreprepare{
+							MissingPreprepare: &types4.MissingPreprepare{
 								Preprepare: preprepare,
 							},
 						},
@@ -192,15 +192,15 @@ func MissingPreprepare(destModule types.ModuleID, preprepare *types5.Preprepare)
 	}
 }
 
-func NewView(destModule types.ModuleID, view types2.ViewNr, viewChangeSenders []string, signedViewChanges []*types5.SignedViewChange, preprepareSeqNrs []types1.SeqNr, preprepares []*types5.Preprepare) *types3.Message {
-	return &types3.Message{
+func NewView(destModule stdtypes.ModuleID, view types1.ViewNr, viewChangeSenders []stdtypes.NodeID, signedViewChanges []*types4.SignedViewChange, preprepareSeqNrs []types.SeqNr, preprepares []*types4.Preprepare) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types3.Message_Orderer{
-			Orderer: &types4.Message{
-				Type: &types4.Message_Pbft{
-					Pbft: &types5.Message{
-						Type: &types5.Message_NewView{
-							NewView: &types5.NewView{
+		Type: &types2.Message_Orderer{
+			Orderer: &types3.Message{
+				Type: &types3.Message_Pbft{
+					Pbft: &types4.Message{
+						Type: &types4.Message_NewView{
+							NewView: &types4.NewView{
 								View:              view,
 								ViewChangeSenders: viewChangeSenders,
 								SignedViewChanges: signedViewChanges,

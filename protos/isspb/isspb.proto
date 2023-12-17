@@ -58,8 +58,8 @@ message SBDeliver {
   uint64 sn          = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   bytes  data        = 2;
   bool   aborted     = 3;
-  string leader      = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  string instance_id = 5 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  string leader      = 4 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
+  string instance_id = 5 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.ModuleID"];
 }
 
 message DeliverCert {

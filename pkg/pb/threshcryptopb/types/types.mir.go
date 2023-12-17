@@ -4,11 +4,11 @@ package threshcryptopbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
-	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -339,7 +339,7 @@ func (*SignShareResult) MirReflect() mirreflect.Type {
 }
 
 type SignShareOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   SignShareOrigin_Type
 }
 
@@ -360,20 +360,20 @@ func SignShareOrigin_TypeFromPb(pb threshcryptopb.SignShareOrigin_Type) SignShar
 	}
 	switch pb := pb.(type) {
 	case *threshcryptopb.SignShareOrigin_ContextStore:
-		return &SignShareOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
+		return &SignShareOrigin_ContextStore{ContextStore: types.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.SignShareOrigin_Dsl:
-		return &SignShareOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
+		return &SignShareOrigin_Dsl{Dsl: types1.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type SignShareOrigin_ContextStore struct {
-	ContextStore *types1.Origin
+	ContextStore *types.Origin
 }
 
 func (*SignShareOrigin_ContextStore) isSignShareOrigin_Type() {}
 
-func (w *SignShareOrigin_ContextStore) Unwrap() *types1.Origin {
+func (w *SignShareOrigin_ContextStore) Unwrap() *types.Origin {
 	return w.ContextStore
 }
 
@@ -392,12 +392,12 @@ func (*SignShareOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type SignShareOrigin_Dsl struct {
-	Dsl *types2.Origin
+	Dsl *types1.Origin
 }
 
 func (*SignShareOrigin_Dsl) isSignShareOrigin_Type() {}
 
-func (w *SignShareOrigin_Dsl) Unwrap() *types2.Origin {
+func (w *SignShareOrigin_Dsl) Unwrap() *types1.Origin {
 	return w.Dsl
 }
 
@@ -420,7 +420,7 @@ func SignShareOriginFromPb(pb *threshcryptopb.SignShareOrigin) *SignShareOrigin 
 		return nil
 	}
 	return &SignShareOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   SignShareOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -447,7 +447,7 @@ func (*SignShareOrigin) MirReflect() mirreflect.Type {
 type VerifyShare struct {
 	Data           [][]uint8
 	SignatureShare []uint8
-	NodeId         types.NodeID
+	NodeId         stdtypes.NodeID
 	Origin         *VerifyShareOrigin
 }
 
@@ -458,7 +458,7 @@ func VerifyShareFromPb(pb *threshcryptopb.VerifyShare) *VerifyShare {
 	return &VerifyShare{
 		Data:           pb.Data,
 		SignatureShare: pb.SignatureShare,
-		NodeId:         (types.NodeID)(pb.NodeId),
+		NodeId:         (stdtypes.NodeID)(pb.NodeId),
 		Origin:         VerifyShareOriginFromPb(pb.Origin),
 	}
 }
@@ -522,7 +522,7 @@ func (*VerifyShareResult) MirReflect() mirreflect.Type {
 }
 
 type VerifyShareOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   VerifyShareOrigin_Type
 }
 
@@ -543,20 +543,20 @@ func VerifyShareOrigin_TypeFromPb(pb threshcryptopb.VerifyShareOrigin_Type) Veri
 	}
 	switch pb := pb.(type) {
 	case *threshcryptopb.VerifyShareOrigin_ContextStore:
-		return &VerifyShareOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
+		return &VerifyShareOrigin_ContextStore{ContextStore: types.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.VerifyShareOrigin_Dsl:
-		return &VerifyShareOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
+		return &VerifyShareOrigin_Dsl{Dsl: types1.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type VerifyShareOrigin_ContextStore struct {
-	ContextStore *types1.Origin
+	ContextStore *types.Origin
 }
 
 func (*VerifyShareOrigin_ContextStore) isVerifyShareOrigin_Type() {}
 
-func (w *VerifyShareOrigin_ContextStore) Unwrap() *types1.Origin {
+func (w *VerifyShareOrigin_ContextStore) Unwrap() *types.Origin {
 	return w.ContextStore
 }
 
@@ -575,12 +575,12 @@ func (*VerifyShareOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyShareOrigin_Dsl struct {
-	Dsl *types2.Origin
+	Dsl *types1.Origin
 }
 
 func (*VerifyShareOrigin_Dsl) isVerifyShareOrigin_Type() {}
 
-func (w *VerifyShareOrigin_Dsl) Unwrap() *types2.Origin {
+func (w *VerifyShareOrigin_Dsl) Unwrap() *types1.Origin {
 	return w.Dsl
 }
 
@@ -603,7 +603,7 @@ func VerifyShareOriginFromPb(pb *threshcryptopb.VerifyShareOrigin) *VerifyShareO
 		return nil
 	}
 	return &VerifyShareOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   VerifyShareOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -702,7 +702,7 @@ func (*VerifyFullResult) MirReflect() mirreflect.Type {
 }
 
 type VerifyFullOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   VerifyFullOrigin_Type
 }
 
@@ -723,20 +723,20 @@ func VerifyFullOrigin_TypeFromPb(pb threshcryptopb.VerifyFullOrigin_Type) Verify
 	}
 	switch pb := pb.(type) {
 	case *threshcryptopb.VerifyFullOrigin_ContextStore:
-		return &VerifyFullOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
+		return &VerifyFullOrigin_ContextStore{ContextStore: types.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.VerifyFullOrigin_Dsl:
-		return &VerifyFullOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
+		return &VerifyFullOrigin_Dsl{Dsl: types1.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type VerifyFullOrigin_ContextStore struct {
-	ContextStore *types1.Origin
+	ContextStore *types.Origin
 }
 
 func (*VerifyFullOrigin_ContextStore) isVerifyFullOrigin_Type() {}
 
-func (w *VerifyFullOrigin_ContextStore) Unwrap() *types1.Origin {
+func (w *VerifyFullOrigin_ContextStore) Unwrap() *types.Origin {
 	return w.ContextStore
 }
 
@@ -755,12 +755,12 @@ func (*VerifyFullOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type VerifyFullOrigin_Dsl struct {
-	Dsl *types2.Origin
+	Dsl *types1.Origin
 }
 
 func (*VerifyFullOrigin_Dsl) isVerifyFullOrigin_Type() {}
 
-func (w *VerifyFullOrigin_Dsl) Unwrap() *types2.Origin {
+func (w *VerifyFullOrigin_Dsl) Unwrap() *types1.Origin {
 	return w.Dsl
 }
 
@@ -783,7 +783,7 @@ func VerifyFullOriginFromPb(pb *threshcryptopb.VerifyFullOrigin) *VerifyFullOrig
 		return nil
 	}
 	return &VerifyFullOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   VerifyFullOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -885,7 +885,7 @@ func (*RecoverResult) MirReflect() mirreflect.Type {
 }
 
 type RecoverOrigin struct {
-	Module types.ModuleID
+	Module stdtypes.ModuleID
 	Type   RecoverOrigin_Type
 }
 
@@ -906,20 +906,20 @@ func RecoverOrigin_TypeFromPb(pb threshcryptopb.RecoverOrigin_Type) RecoverOrigi
 	}
 	switch pb := pb.(type) {
 	case *threshcryptopb.RecoverOrigin_ContextStore:
-		return &RecoverOrigin_ContextStore{ContextStore: types1.OriginFromPb(pb.ContextStore)}
+		return &RecoverOrigin_ContextStore{ContextStore: types.OriginFromPb(pb.ContextStore)}
 	case *threshcryptopb.RecoverOrigin_Dsl:
-		return &RecoverOrigin_Dsl{Dsl: types2.OriginFromPb(pb.Dsl)}
+		return &RecoverOrigin_Dsl{Dsl: types1.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type RecoverOrigin_ContextStore struct {
-	ContextStore *types1.Origin
+	ContextStore *types.Origin
 }
 
 func (*RecoverOrigin_ContextStore) isRecoverOrigin_Type() {}
 
-func (w *RecoverOrigin_ContextStore) Unwrap() *types1.Origin {
+func (w *RecoverOrigin_ContextStore) Unwrap() *types.Origin {
 	return w.ContextStore
 }
 
@@ -938,12 +938,12 @@ func (*RecoverOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type RecoverOrigin_Dsl struct {
-	Dsl *types2.Origin
+	Dsl *types1.Origin
 }
 
 func (*RecoverOrigin_Dsl) isRecoverOrigin_Type() {}
 
-func (w *RecoverOrigin_Dsl) Unwrap() *types2.Origin {
+func (w *RecoverOrigin_Dsl) Unwrap() *types1.Origin {
 	return w.Dsl
 }
 
@@ -966,7 +966,7 @@ func RecoverOriginFromPb(pb *threshcryptopb.RecoverOrigin) *RecoverOrigin {
 		return nil
 	}
 	return &RecoverOrigin{
-		Module: (types.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   RecoverOrigin_TypeFromPb(pb.Type),
 	}
 }

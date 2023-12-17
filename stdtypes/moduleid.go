@@ -1,4 +1,4 @@
-package types
+package stdtypes
 
 import "strings"
 
@@ -17,8 +17,7 @@ const Separator = "/"
 // The rest of the ID can be used for any module-specific purposes.
 type ModuleID string
 
-// Pb converts a ModuleID to a type used in a Protobuf message.
-func (mid ModuleID) Pb() string {
+func (mid ModuleID) String() string {
 	return string(mid)
 }
 

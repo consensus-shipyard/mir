@@ -5,58 +5,58 @@ package availabilitypbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func RequestCert[C any](m dsl.Module, destModule types.ModuleID, context *C) {
+func RequestCert[C any](m dsl.Module, destModule stdtypes.ModuleID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.RequestCertOrigin{
+	origin := &types.RequestCertOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.RequestCertOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.RequestCertOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.RequestCert(destModule, origin))
 }
 
-func NewCert(m dsl.Module, destModule types.ModuleID, cert *types1.Cert, origin *types1.RequestCertOrigin) {
+func NewCert(m dsl.Module, destModule stdtypes.ModuleID, cert *types.Cert, origin *types.RequestCertOrigin) {
 	dsl.EmitMirEvent(m, events.NewCert(destModule, cert, origin))
 }
 
-func VerifyCert[C any](m dsl.Module, destModule types.ModuleID, cert *types1.Cert, context *C) {
+func VerifyCert[C any](m dsl.Module, destModule stdtypes.ModuleID, cert *types.Cert, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.VerifyCertOrigin{
+	origin := &types.VerifyCertOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.VerifyCertOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.VerifyCertOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.VerifyCert(destModule, cert, origin))
 }
 
-func CertVerified(m dsl.Module, destModule types.ModuleID, valid bool, err string, origin *types1.VerifyCertOrigin) {
+func CertVerified(m dsl.Module, destModule stdtypes.ModuleID, valid bool, err string, origin *types.VerifyCertOrigin) {
 	dsl.EmitMirEvent(m, events.CertVerified(destModule, valid, err, origin))
 }
 
-func RequestTransactions[C any](m dsl.Module, destModule types.ModuleID, cert *types1.Cert, context *C) {
+func RequestTransactions[C any](m dsl.Module, destModule stdtypes.ModuleID, cert *types.Cert, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
-	origin := &types1.RequestTransactionsOrigin{
+	origin := &types.RequestTransactionsOrigin{
 		Module: m.ModuleID(),
-		Type:   &types1.RequestTransactionsOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
+		Type:   &types.RequestTransactionsOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
 	dsl.EmitMirEvent(m, events.RequestTransactions(destModule, cert, origin))
 }
 
-func ProvideTransactions(m dsl.Module, destModule types.ModuleID, txs []*types2.Transaction, origin *types1.RequestTransactionsOrigin) {
+func ProvideTransactions(m dsl.Module, destModule stdtypes.ModuleID, txs []*types1.Transaction, origin *types.RequestTransactionsOrigin) {
 	dsl.EmitMirEvent(m, events.ProvideTransactions(destModule, txs, origin))
 }
 
-func ComputeCert(m dsl.Module, destModule types.ModuleID) {
+func ComputeCert(m dsl.Module, destModule stdtypes.ModuleID) {
 	dsl.EmitMirEvent(m, events.ComputeCert(destModule))
 }

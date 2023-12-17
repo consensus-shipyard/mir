@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
@@ -12,7 +13,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 var _ LocalTransportLayer = &LocalGrpcTransport{}

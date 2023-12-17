@@ -9,7 +9,7 @@ import (
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 func FuzzCheckpointForSig(f *testing.F) {
@@ -25,10 +25,10 @@ func FuzzSnapshotForHash(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, n int, e uint64, k, v string, data []byte) {
 		n = n % 5000
-		membership := trantorpbtypes.Membership{make(map[types.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
+		membership := trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 		for i := 0; i < n; i++ {
-			id := types.NodeID(fmt.Sprintf("%s/%s", k, strconv.Itoa(i)))
+			id := stdtypes.NodeID(fmt.Sprintf("%s/%s", k, strconv.Itoa(i)))
 			addr := fmt.Sprintf("%s%s", v, strconv.Itoa(i))
 			membership.Nodes[id] = &trantorpbtypes.NodeIdentity{
 				Id:     id,
@@ -44,7 +44,7 @@ func FuzzSnapshotForHash(f *testing.F) {
 			EpochConfig:    &cfg,
 			ClientProgress: &clProgress,
 			PreviousMembership: &trantorpbtypes.Membership{ // nolint:govet
-				make(map[types.NodeID]*trantorpbtypes.NodeIdentity),
+				make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity),
 			},
 		}}
 		_, err := serializeSnapshotForHash(&state)

@@ -14,17 +14,16 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type gzipWriter struct {
 	dest             *os.File
 	compressionLevel int
-	nodeID           t.NodeID
+	nodeID           stdtypes.NodeID
 	logger           logging.Logger
 }
 
-func NewGzipWriter(filename string, compressionLevel int, nodeID t.NodeID, logger logging.Logger) (EventWriter, error) {
+func NewGzipWriter(filename string, compressionLevel int, nodeID stdtypes.NodeID, logger logging.Logger) (EventWriter, error) {
 	dest, err := os.Create(filename + ".gz")
 	if err != nil {
 		return nil, es.Errorf("error creating event log file: %w", err)
@@ -54,7 +53,7 @@ func (w *gzipWriter) Write(record EventRecord) error {
 	}
 
 	return writeRecordedEvent(gzWriter, &recordingpb.Entry{
-		NodeId: w.nodeID.Pb(),
+		NodeId: string(w.nodeID.Bytes()),
 		Time:   record.Time,
 		Events: pbEvents,
 	})

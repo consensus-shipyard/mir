@@ -34,7 +34,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 const (
@@ -63,7 +62,7 @@ func BenchmarkIntegration(b *testing.B) {
 type TestConfig struct {
 	Info                string
 	RandomSeed          int64
-	NodeIDsWeight       map[t.NodeID]types.VoteWeight
+	NodeIDsWeight       map[stdtypes.NodeID]types.VoteWeight
 	NumClients          int
 	Transport           string
 	NumFakeTXs          int
@@ -186,8 +185,8 @@ func testIntegrationWithISS(tt *testing.T) {
 			}},
 		13: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (not messages sent, yes received) and holding the supermajority of stake",
 			&TestConfig{
-				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
-					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id stdtypes.NodeID) types.VoteWeight {
+					numericID, _ := strconv.ParseInt(string(id.Bytes()), 10, 64)
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
@@ -206,8 +205,8 @@ func testIntegrationWithISS(tt *testing.T) {
 			}},
 		14: {"Submit 100 fake transactions with 4 nodes in simulation, two of them crashed (no messages sent, yes received) but holding the minority of stake",
 			&TestConfig{
-				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
-					numericID, _ := strconv.ParseInt(id.Pb(), 10, 64)
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id stdtypes.NodeID) types.VoteWeight {
+					numericID, _ := strconv.ParseInt(string(id.Bytes()), 10, 64)
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
@@ -424,8 +423,8 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		return nil, es.Errorf("could not create a local crypto system: %w", err)
 	}
 
-	nodeModules := make(map[t.NodeID]modules.Modules)
-	fakeApps := make(map[t.NodeID]*deploytest.FakeApp)
+	nodeModules := make(map[stdtypes.NodeID]modules.Modules)
+	fakeApps := make(map[stdtypes.NodeID]*deploytest.FakeApp)
 
 	for i, nodeID := range nodeIDs {
 		nodeLogger := logging.Decorate(logger, fmt.Sprintf("Node %d: ", i))
@@ -509,7 +508,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		NumClients:       conf.NumClients,
 		NumFakeTXs:       conf.NumFakeTXs,
 		NumNetTXs:        conf.NumNetTXs,
-		FakeTXDestModule: t.ModuleID("mempool"),
+		FakeTXDestModule: stdtypes.ModuleID("mempool"),
 		Directory:        conf.Directory,
 		Logger:           logger,
 		FakeApps:         fakeApps,

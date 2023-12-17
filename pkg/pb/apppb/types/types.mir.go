@@ -5,10 +5,10 @@ package apppbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -167,7 +167,7 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type SnapshotRequest struct {
-	ReplyTo types.ModuleID
+	ReplyTo stdtypes.ModuleID
 }
 
 func SnapshotRequestFromPb(pb *apppb.SnapshotRequest) *SnapshotRequest {
@@ -175,7 +175,7 @@ func SnapshotRequestFromPb(pb *apppb.SnapshotRequest) *SnapshotRequest {
 		return nil
 	}
 	return &SnapshotRequest{
-		ReplyTo: (types.ModuleID)(pb.ReplyTo),
+		ReplyTo: (stdtypes.ModuleID)(pb.ReplyTo),
 	}
 }
 
@@ -225,7 +225,7 @@ func (*Snapshot) MirReflect() mirreflect.Type {
 }
 
 type RestoreState struct {
-	Checkpoint *types1.StableCheckpoint
+	Checkpoint *types.StableCheckpoint
 }
 
 func RestoreStateFromPb(pb *apppb.RestoreState) *RestoreState {
@@ -233,7 +233,7 @@ func RestoreStateFromPb(pb *apppb.RestoreState) *RestoreState {
 		return nil
 	}
 	return &RestoreState{
-		Checkpoint: types1.StableCheckpointFromPb(pb.Checkpoint),
+		Checkpoint: types.StableCheckpointFromPb(pb.Checkpoint),
 	}
 }
 
@@ -256,8 +256,8 @@ func (*RestoreState) MirReflect() mirreflect.Type {
 }
 
 type NewEpoch struct {
-	EpochNr        types2.EpochNr
-	ProtocolModule types.ModuleID
+	EpochNr        types1.EpochNr
+	ProtocolModule stdtypes.ModuleID
 }
 
 func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
@@ -265,8 +265,8 @@ func NewEpochFromPb(pb *apppb.NewEpoch) *NewEpoch {
 		return nil
 	}
 	return &NewEpoch{
-		EpochNr:        (types2.EpochNr)(pb.EpochNr),
-		ProtocolModule: (types.ModuleID)(pb.ProtocolModule),
+		EpochNr:        (types1.EpochNr)(pb.EpochNr),
+		ProtocolModule: (stdtypes.ModuleID)(pb.ProtocolModule),
 	}
 }
 

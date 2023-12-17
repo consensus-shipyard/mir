@@ -3,20 +3,20 @@
 package apppbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func SnapshotRequest(destModule types.ModuleID, replyTo types.ModuleID) *types1.Event {
-	return &types1.Event{
+func SnapshotRequest(destModule stdtypes.ModuleID, replyTo stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_App{
-			App: &types2.Event{
-				Type: &types2.Event_SnapshotRequest{
-					SnapshotRequest: &types2.SnapshotRequest{
+		Type: &types.Event_App{
+			App: &types1.Event{
+				Type: &types1.Event_SnapshotRequest{
+					SnapshotRequest: &types1.SnapshotRequest{
 						ReplyTo: replyTo,
 					},
 				},
@@ -25,13 +25,13 @@ func SnapshotRequest(destModule types.ModuleID, replyTo types.ModuleID) *types1.
 	}
 }
 
-func Snapshot(destModule types.ModuleID, appData []uint8) *types1.Event {
-	return &types1.Event{
+func Snapshot(destModule stdtypes.ModuleID, appData []uint8) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_App{
-			App: &types2.Event{
-				Type: &types2.Event_Snapshot{
-					Snapshot: &types2.Snapshot{
+		Type: &types.Event_App{
+			App: &types1.Event{
+				Type: &types1.Event_Snapshot{
+					Snapshot: &types1.Snapshot{
 						AppData: appData,
 					},
 				},
@@ -40,13 +40,13 @@ func Snapshot(destModule types.ModuleID, appData []uint8) *types1.Event {
 	}
 }
 
-func RestoreState(destModule types.ModuleID, checkpoint *types3.StableCheckpoint) *types1.Event {
-	return &types1.Event{
+func RestoreState(destModule stdtypes.ModuleID, checkpoint *types2.StableCheckpoint) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_App{
-			App: &types2.Event{
-				Type: &types2.Event_RestoreState{
-					RestoreState: &types2.RestoreState{
+		Type: &types.Event_App{
+			App: &types1.Event{
+				Type: &types1.Event_RestoreState{
+					RestoreState: &types1.RestoreState{
 						Checkpoint: checkpoint,
 					},
 				},
@@ -55,13 +55,13 @@ func RestoreState(destModule types.ModuleID, checkpoint *types3.StableCheckpoint
 	}
 }
 
-func NewEpoch(destModule types.ModuleID, epochNr types4.EpochNr, protocolModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func NewEpoch(destModule stdtypes.ModuleID, epochNr types3.EpochNr, protocolModule stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_App{
-			App: &types2.Event{
-				Type: &types2.Event_NewEpoch{
-					NewEpoch: &types2.NewEpoch{
+		Type: &types.Event_App{
+			App: &types1.Event{
+				Type: &types1.Event_NewEpoch{
+					NewEpoch: &types1.NewEpoch{
 						EpochNr:        epochNr,
 						ProtocolModule: protocolModule,
 					},

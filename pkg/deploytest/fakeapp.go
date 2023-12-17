@@ -10,10 +10,10 @@ import (
 	"fmt"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/serializing"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 // FakeApp represents a dummy stub application used for testing only.

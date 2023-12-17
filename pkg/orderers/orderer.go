@@ -21,7 +21,7 @@ import (
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // ============================================================
@@ -39,7 +39,7 @@ import (
 
 func NewOrdererModule(
 	moduleConfig common2.ModuleConfig,
-	ownID t.NodeID,
+	ownID stdtypes.NodeID,
 	segment *common2.Segment,
 	config *common.PBFTConfig,
 	logger logging.Logger) modules.PassiveModule {
@@ -81,7 +81,7 @@ func NewOrdererModule(
 
 }
 
-func newOrdererConfig(issParams *issconfig.ModuleParams, membership []t.NodeID, epochNr tt.EpochNr) *common.PBFTConfig {
+func newOrdererConfig(issParams *issconfig.ModuleParams, membership []stdtypes.NodeID, epochNr tt.EpochNr) *common.PBFTConfig {
 
 	// Return a new PBFT configuration with selected values from the ISS configuration.
 	return &common.PBFTConfig{
@@ -101,10 +101,10 @@ func newOrdererConfig(issParams *issconfig.ModuleParams, membership []t.NodeID, 
 // Takes a membership list and a Node ID and returns a new list of nodeIDs containing all IDs from the membership list,
 // except for (if present) the specified nID.
 // This is useful for obtaining the list of "other nodes" by removing the own ID from the membership.
-func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
+func removeNodeID(membership []stdtypes.NodeID, nID stdtypes.NodeID) []stdtypes.NodeID {
 
 	// Allocate the new node list.
-	others := make([]t.NodeID, 0, len(membership))
+	others := make([]stdtypes.NodeID, 0, len(membership))
 
 	// Add all membership IDs except for the specified one.
 	for _, nodeID := range membership {
@@ -119,14 +119,14 @@ func removeNodeID(membership []t.NodeID, nID t.NodeID) []t.NodeID {
 
 func InstanceParams(
 	segment *common2.Segment,
-	availabilityID t.ModuleID,
+	availabilityID stdtypes.ModuleID,
 	epoch tt.EpochNr,
-	PPVId t.ModuleID,
+	PPVId stdtypes.ModuleID,
 ) *factorypbtypes.GeneratorParams {
 	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
 		PbftModule: &ordererpbtypes.PBFTModule{
 			Segment:        segment.PbType(),
-			AvailabilityId: availabilityID.Pb(),
+			AvailabilityId: availabilityID.String(), // TODO: Figure out proper serialization of module IDs.
 			Epoch:          epoch.Pb(),
 			PpvModuleId:    string(PPVId),
 		},

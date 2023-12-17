@@ -3,28 +3,28 @@
 package eventpbevents
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/timer/types"
-	types3 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/timer/types"
+	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func Init(destModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func Init(destModule stdtypes.ModuleID) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Init{
-			Init: &types1.Init{},
+		Type: &types.Event_Init{
+			Init: &types.Init{},
 		},
 	}
 }
 
-func TimerDelay(destModule types.ModuleID, eventsToDelay []*types1.Event, delay types2.Duration) *types1.Event {
-	return &types1.Event{
+func TimerDelay(destModule stdtypes.ModuleID, eventsToDelay []*types.Event, delay types1.Duration) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Timer{
-			Timer: &types1.TimerEvent{
-				Type: &types1.TimerEvent_Delay{
-					Delay: &types1.TimerDelay{
+		Type: &types.Event_Timer{
+			Timer: &types.TimerEvent{
+				Type: &types.TimerEvent_Delay{
+					Delay: &types.TimerDelay{
 						EventsToDelay: eventsToDelay,
 						Delay:         delay,
 					},
@@ -34,13 +34,13 @@ func TimerDelay(destModule types.ModuleID, eventsToDelay []*types1.Event, delay 
 	}
 }
 
-func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, delay types2.Duration, retentionIndex types3.RetentionIndex) *types1.Event {
-	return &types1.Event{
+func TimerRepeat(destModule stdtypes.ModuleID, eventsToRepeat []*types.Event, delay types1.Duration, retentionIndex types2.RetentionIndex) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Timer{
-			Timer: &types1.TimerEvent{
-				Type: &types1.TimerEvent_Repeat{
-					Repeat: &types1.TimerRepeat{
+		Type: &types.Event_Timer{
+			Timer: &types.TimerEvent{
+				Type: &types.TimerEvent_Repeat{
+					Repeat: &types.TimerRepeat{
 						EventsToRepeat: eventsToRepeat,
 						Delay:          delay,
 						RetentionIndex: retentionIndex,
@@ -51,13 +51,13 @@ func TimerRepeat(destModule types.ModuleID, eventsToRepeat []*types1.Event, dela
 	}
 }
 
-func TimerGarbageCollect(destModule types.ModuleID, retentionIndex types3.RetentionIndex) *types1.Event {
-	return &types1.Event{
+func TimerGarbageCollect(destModule stdtypes.ModuleID, retentionIndex types2.RetentionIndex) *types.Event {
+	return &types.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Timer{
-			Timer: &types1.TimerEvent{
-				Type: &types1.TimerEvent_GarbageCollect{
-					GarbageCollect: &types1.TimerGarbageCollect{
+		Type: &types.Event_Timer{
+			Timer: &types.TimerEvent{
+				Type: &types.TimerEvent_GarbageCollect{
+					GarbageCollect: &types.TimerGarbageCollect{
 						RetentionIndex: retentionIndex,
 					},
 				},

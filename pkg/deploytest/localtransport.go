@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
-	t "github.com/filecoin-project/mir/pkg/types"
 )
 
 type LocalTransportLayer interface {

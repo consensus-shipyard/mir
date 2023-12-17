@@ -3,6 +3,8 @@ package stdtypes
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 // RetentionIndex represents an abstract notion of system progress used in garbage collection.
@@ -53,3 +55,6 @@ func isPrintableString(data []byte) bool {
 	//	return !strconv.IsPrint(r)
 	//})
 }
+
+// NodeAddress represents the address of a node.
+type NodeAddress multiaddr.Multiaddr

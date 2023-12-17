@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -14,12 +15,11 @@ import (
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/types"
 )
 
 type ModuleParams struct {
 	// The ID of this node.
-	OwnID types.NodeID
+	OwnID stdtypes.NodeID
 
 	// PBFT-specific configuration parameters (e.g. view change timeout, etc.)
 	Config *PBFTConfig
@@ -37,7 +37,7 @@ type State struct {
 	// while this node is behind (still in an older view) and cannot process these messages yet.
 	// Such messages end up in this buffer (if there is buffer space) for later processing.
 	// The buffer is checked after each view change.
-	MessageBuffers map[types.NodeID]*messagebuffer.MessageBuffer
+	MessageBuffers map[stdtypes.NodeID]*messagebuffer.MessageBuffer
 
 	// Tracks the state related to proposing availability certificates.
 	Proposal PbftProposalState

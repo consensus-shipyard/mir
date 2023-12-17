@@ -54,13 +54,13 @@ message StableCheckpoint {
 
   uint64                 sn       = 1  [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.SeqNr"];
   trantorpb.StateSnapshot snapshot = 2;
-  map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  map<string, bytes>     cert     = 3 [(mir.key_type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
 }
 
 message EpochProgress {
   option (mir.event) = true;
 
-  string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/stdtypes.NodeID"];
   uint64 epoch   = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.EpochNr"];
 }
 

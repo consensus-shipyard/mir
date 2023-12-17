@@ -5,10 +5,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
-func Factory(mc ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.PassiveModule {
+func Factory(mc ModuleConfig, ownID stdtypes.NodeID, logger logging.Logger) modules.PassiveModule {
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
@@ -18,7 +18,7 @@ func Factory(mc ModuleConfig, ownID t.NodeID, logger logging.Logger) modules.Pas
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the Checkpoint protocol.
-			func(submoduleID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+			func(submoduleID stdtypes.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
 
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := mc

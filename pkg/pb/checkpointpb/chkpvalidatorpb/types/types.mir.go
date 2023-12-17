@@ -7,13 +7,13 @@ import (
 	types3 "github.com/filecoin-project/mir/codegen/model/types"
 	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types6 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types4 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -200,7 +200,7 @@ func (*CheckpointValidated) MirReflect() mirreflect.Type {
 }
 
 type ValidateChkpOrigin struct {
-	Module types4.ModuleID
+	Module stdtypes.ModuleID
 	Type   ValidateChkpOrigin_Type
 }
 
@@ -221,20 +221,20 @@ func ValidateChkpOrigin_TypeFromPb(pb chkpvalidatorpb.ValidateChkpOrigin_Type) V
 	}
 	switch pb := pb.(type) {
 	case *chkpvalidatorpb.ValidateChkpOrigin_ContextStore:
-		return &ValidateChkpOrigin_ContextStore{ContextStore: types5.OriginFromPb(pb.ContextStore)}
+		return &ValidateChkpOrigin_ContextStore{ContextStore: types4.OriginFromPb(pb.ContextStore)}
 	case *chkpvalidatorpb.ValidateChkpOrigin_Dsl:
-		return &ValidateChkpOrigin_Dsl{Dsl: types6.OriginFromPb(pb.Dsl)}
+		return &ValidateChkpOrigin_Dsl{Dsl: types5.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type ValidateChkpOrigin_ContextStore struct {
-	ContextStore *types5.Origin
+	ContextStore *types4.Origin
 }
 
 func (*ValidateChkpOrigin_ContextStore) isValidateChkpOrigin_Type() {}
 
-func (w *ValidateChkpOrigin_ContextStore) Unwrap() *types5.Origin {
+func (w *ValidateChkpOrigin_ContextStore) Unwrap() *types4.Origin {
 	return w.ContextStore
 }
 
@@ -253,12 +253,12 @@ func (*ValidateChkpOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type ValidateChkpOrigin_Dsl struct {
-	Dsl *types6.Origin
+	Dsl *types5.Origin
 }
 
 func (*ValidateChkpOrigin_Dsl) isValidateChkpOrigin_Type() {}
 
-func (w *ValidateChkpOrigin_Dsl) Unwrap() *types6.Origin {
+func (w *ValidateChkpOrigin_Dsl) Unwrap() *types5.Origin {
 	return w.Dsl
 }
 
@@ -281,7 +281,7 @@ func ValidateChkpOriginFromPb(pb *chkpvalidatorpb.ValidateChkpOrigin) *ValidateC
 		return nil
 	}
 	return &ValidateChkpOrigin{
-		Module: (types4.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   ValidateChkpOrigin_TypeFromPb(pb.Type),
 	}
 }

@@ -3,18 +3,18 @@ package leaderselectionpolicy
 import (
 	"testing"
 
+	"github.com/filecoin-project/mir/stdtypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
 func TestSimpleLeaderPolicy(t *testing.T) {
 	// Create a SimpleLeaderPolicy with 3 nodes
-	nodes := testMembership([]types.NodeID{"node1", "node2", "node3"})
+	nodes := testMembership([]stdtypes.NodeID{"node1", "node2", "node3"})
 	policy := NewSimpleLeaderPolicy(nodes)
 
 	// Check that all nodes are returned as leaders
@@ -29,7 +29,7 @@ func TestSimpleLeaderPolicy(t *testing.T) {
 	require.Equal(t, expected, actual)
 
 	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set
-	newNodes := testMembership([]types.NodeID{"node4", "node5", "node6"})
+	newNodes := testMembership([]stdtypes.NodeID{"node4", "node5", "node6"})
 	pol, ok := policy.Reconfigure(newNodes).(*SimpleLeaderPolicy)
 	policy = pol
 	require.Equal(t, ok, true)
@@ -40,7 +40,7 @@ func TestSimpleLeaderPolicy(t *testing.T) {
 
 func TestBlackListLeaderPolicy(t *testing.T) {
 	// Create a BlacklistLeaderPolicy with 3 nodes and a minimum of 2 leaders
-	nodes := testMembership([]types.NodeID{"node1", "node2", "node3", "node4"})
+	nodes := testMembership([]stdtypes.NodeID{"node1", "node2", "node3", "node4"})
 	policy := NewBlackListLeaderPolicy(nodes)
 
 	// Check that all nodes are returned as leaders
@@ -50,34 +50,34 @@ func TestBlackListLeaderPolicy(t *testing.T) {
 
 	// Suspect a node and check that it is not returned as a leader
 	policy.Suspect(1, "node1")
-	expected = []types.NodeID{"node2", "node3", "node4"}
+	expected = []stdtypes.NodeID{"node2", "node3", "node4"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 
 	// Suspect another node and check that the previously suspected node is again returned as a leader.
 	policy.Suspect(2, "node4")
-	expected = []types.NodeID{"node2", "node3", "node1"}
+	expected = []stdtypes.NodeID{"node2", "node3", "node1"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 
 	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set.
-	policy, ok := policy.Reconfigure(testMembership([]types.NodeID{"node1", "node5"})).(*BlacklistLeaderPolicy)
+	policy, ok := policy.Reconfigure(testMembership([]stdtypes.NodeID{"node1", "node5"})).(*BlacklistLeaderPolicy)
 	require.Equal(t, ok, true)
-	expected = []types.NodeID{"node5", "node1"}
+	expected = []stdtypes.NodeID{"node5", "node1"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 
 	// Add one more node and check that the suspected node is removed again from the leader set.
-	policy, ok = policy.Reconfigure(testMembership([]types.NodeID{"node1", "node5", "node6"})).(*BlacklistLeaderPolicy)
+	policy, ok = policy.Reconfigure(testMembership([]stdtypes.NodeID{"node1", "node5", "node6"})).(*BlacklistLeaderPolicy)
 	require.Equal(t, ok, true)
-	expected = []types.NodeID{"node5", "node6"}
+	expected = []stdtypes.NodeID{"node5", "node6"}
 	actual = policy.Leaders()
 	require.Equal(t, expected, actual)
 }
 
 func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
-	policy := NewBlackListLeaderPolicy(testMembership([]types.NodeID{"node1", "node2", "node3"}))
-	policy.Suspected = map[types.NodeID]tt.EpochNr{
+	policy := NewBlackListLeaderPolicy(testMembership([]stdtypes.NodeID{"node1", "node2", "node3"}))
+	policy.Suspected = map[stdtypes.NodeID]tt.EpochNr{
 		"node1": 1,
 		"node2": 2,
 	}
@@ -96,7 +96,7 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 }
 
 func TestLeaderPolicy_OneNodeMembership(t *testing.T) {
-	simplePolicy := NewSimpleLeaderPolicy(testMembership([]types.NodeID{"node1"}))
+	simplePolicy := NewSimpleLeaderPolicy(testMembership([]stdtypes.NodeID{"node1"}))
 	// Verify that bytes() returns an error when membership is empty
 	bytes, _ := simplePolicy.Bytes()
 	// Verify that LeaderPolicyFromBytes() returns an error when passed an empty byte slice
@@ -105,7 +105,7 @@ func TestLeaderPolicy_OneNodeMembership(t *testing.T) {
 	assert.Equal(t, err, nil)
 	require.Equal(t, simplePolicy.Membership, reconstitutedSimpleLeaderPolicy.Membership)
 
-	blacklistPolicy := NewBlackListLeaderPolicy(testMembership([]types.NodeID{"node1"}))
+	blacklistPolicy := NewBlackListLeaderPolicy(testMembership([]stdtypes.NodeID{"node1"}))
 	bytes, _ = blacklistPolicy.Bytes()
 	// Verify that LeaderPolicyFromBytes() returns an error when passed an empty byte slice
 	reconstitutedPolicy, err = LeaderPolicyFromBytes(bytes)
@@ -116,7 +116,7 @@ func TestLeaderPolicy_OneNodeMembership(t *testing.T) {
 }
 
 func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
-	policy := NewBlackListLeaderPolicy(testMembership([]types.NodeID{"node1", "node2", "node3"}))
+	policy := NewBlackListLeaderPolicy(testMembership([]stdtypes.NodeID{"node1", "node2", "node3"}))
 	bytes, _ := policy.Bytes()
 	// check the first 8 bytes
 	policyType := bytes[0:len(Blacklist)]
@@ -133,8 +133,8 @@ func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
 	assert.Equal(t, policyLeaders, reconstitutedPolicyLeaders)
 }
 
-func testMembership(nodeIDs []types.NodeID) *trantorpbtypes.Membership {
-	m := trantorpbtypes.Membership{Nodes: map[types.NodeID]*trantorpbtypes.NodeIdentity{}}
+func testMembership(nodeIDs []stdtypes.NodeID) *trantorpbtypes.Membership {
+	m := trantorpbtypes.Membership{Nodes: map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity{}}
 	for _, nodeID := range nodeIDs {
 		m.Nodes[nodeID] = &trantorpbtypes.NodeIdentity{
 			Id:     nodeID,

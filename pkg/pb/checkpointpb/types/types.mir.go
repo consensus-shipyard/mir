@@ -4,13 +4,13 @@ package checkpointpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types3 "github.com/filecoin-project/mir/codegen/model/types"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/timer/types"
+	types3 "github.com/filecoin-project/mir/pkg/timer/types"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Message struct {
@@ -260,7 +260,7 @@ func (*Event) MirReflect() mirreflect.Type {
 type StableCheckpoint struct {
 	Sn       types.SeqNr
 	Snapshot *types1.StateSnapshot
-	Cert     map[types2.NodeID][]uint8
+	Cert     map[stdtypes.NodeID][]uint8
 }
 
 func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint {
@@ -270,8 +270,8 @@ func StableCheckpointFromPb(pb *checkpointpb.StableCheckpoint) *StableCheckpoint
 	return &StableCheckpoint{
 		Sn:       (types.SeqNr)(pb.Sn),
 		Snapshot: types1.StateSnapshotFromPb(pb.Snapshot),
-		Cert: types3.ConvertMap(pb.Cert, func(k string, v []uint8) (types2.NodeID, []uint8) {
-			return (types2.NodeID)(k), v
+		Cert: types2.ConvertMap(pb.Cert, func(k string, v []uint8) (stdtypes.NodeID, []uint8) {
+			return (stdtypes.NodeID)(k), v
 		}),
 	}
 }
@@ -286,7 +286,7 @@ func (m *StableCheckpoint) Pb() *checkpointpb.StableCheckpoint {
 		if m.Snapshot != nil {
 			pbMessage.Snapshot = (m.Snapshot).Pb()
 		}
-		pbMessage.Cert = types3.ConvertMap(m.Cert, func(k types2.NodeID, v []uint8) (string, []uint8) {
+		pbMessage.Cert = types2.ConvertMap(m.Cert, func(k stdtypes.NodeID, v []uint8) (string, []uint8) {
 			return (string)(k), v
 		})
 	}
@@ -299,7 +299,7 @@ func (*StableCheckpoint) MirReflect() mirreflect.Type {
 }
 
 type EpochProgress struct {
-	NodeId types2.NodeID
+	NodeId stdtypes.NodeID
 	Epoch  types.EpochNr
 }
 
@@ -308,7 +308,7 @@ func EpochProgressFromPb(pb *checkpointpb.EpochProgress) *EpochProgress {
 		return nil
 	}
 	return &EpochProgress{
-		NodeId: (types2.NodeID)(pb.NodeId),
+		NodeId: (stdtypes.NodeID)(pb.NodeId),
 		Epoch:  (types.EpochNr)(pb.Epoch),
 	}
 }
@@ -332,7 +332,7 @@ func (*EpochProgress) MirReflect() mirreflect.Type {
 
 type InstanceParams struct {
 	Membership       *types1.Membership
-	ResendPeriod     types4.Duration
+	ResendPeriod     types3.Duration
 	LeaderPolicyData []uint8
 	EpochConfig      *types1.EpochConfig
 }
@@ -343,7 +343,7 @@ func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
 	}
 	return &InstanceParams{
 		Membership:       types1.MembershipFromPb(pb.Membership),
-		ResendPeriod:     (types4.Duration)(pb.ResendPeriod),
+		ResendPeriod:     (types3.Duration)(pb.ResendPeriod),
 		LeaderPolicyData: pb.LeaderPolicyData,
 		EpochConfig:      types1.EpochConfigFromPb(pb.EpochConfig),
 	}

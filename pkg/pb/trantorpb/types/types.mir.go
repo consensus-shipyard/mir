@@ -7,8 +7,8 @@ import (
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Transaction struct {
@@ -170,7 +170,7 @@ func (*EpochConfig) MirReflect() mirreflect.Type {
 }
 
 type Membership struct {
-	Nodes map[types2.NodeID]*NodeIdentity
+	Nodes map[stdtypes.NodeID]*NodeIdentity
 }
 
 func MembershipFromPb(pb *trantorpb.Membership) *Membership {
@@ -178,8 +178,8 @@ func MembershipFromPb(pb *trantorpb.Membership) *Membership {
 		return nil
 	}
 	return &Membership{
-		Nodes: types1.ConvertMap(pb.Nodes, func(k string, v *trantorpb.NodeIdentity) (types2.NodeID, *NodeIdentity) {
-			return (types2.NodeID)(k), NodeIdentityFromPb(v)
+		Nodes: types1.ConvertMap(pb.Nodes, func(k string, v *trantorpb.NodeIdentity) (stdtypes.NodeID, *NodeIdentity) {
+			return (stdtypes.NodeID)(k), NodeIdentityFromPb(v)
 		}),
 	}
 }
@@ -190,7 +190,7 @@ func (m *Membership) Pb() *trantorpb.Membership {
 	}
 	pbMessage := &trantorpb.Membership{}
 	{
-		pbMessage.Nodes = types1.ConvertMap(m.Nodes, func(k types2.NodeID, v *NodeIdentity) (string, *trantorpb.NodeIdentity) {
+		pbMessage.Nodes = types1.ConvertMap(m.Nodes, func(k stdtypes.NodeID, v *NodeIdentity) (string, *trantorpb.NodeIdentity) {
 			return (string)(k), (v).Pb()
 		})
 	}
@@ -203,7 +203,7 @@ func (*Membership) MirReflect() mirreflect.Type {
 }
 
 type NodeIdentity struct {
-	Id     types2.NodeID
+	Id     stdtypes.NodeID
 	Addr   string
 	Key    []uint8
 	Weight types.VoteWeight
@@ -214,7 +214,7 @@ func NodeIdentityFromPb(pb *trantorpb.NodeIdentity) *NodeIdentity {
 		return nil
 	}
 	return &NodeIdentity{
-		Id:     (types2.NodeID)(pb.Id),
+		Id:     (stdtypes.NodeID)(pb.Id),
 		Addr:   pb.Addr,
 		Key:    pb.Key,
 		Weight: (types.VoteWeight)(pb.Weight),

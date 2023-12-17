@@ -3,21 +3,21 @@
 package batchdbpbevents
 
 import (
-	types1 "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/trantor/types"
-	types "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/availability/multisigcollector/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/trantor/types"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func LookupBatch(destModule types.ModuleID, batchId types1.BatchID, origin *types2.LookupBatchOrigin) *types3.Event {
-	return &types3.Event{
+func LookupBatch(destModule stdtypes.ModuleID, batchId types.BatchID, origin *types1.LookupBatchOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_BatchDb{
-			BatchDb: &types2.Event{
-				Type: &types2.Event_Lookup{
-					Lookup: &types2.LookupBatch{
+		Type: &types2.Event_BatchDb{
+			BatchDb: &types1.Event{
+				Type: &types1.Event_Lookup{
+					Lookup: &types1.LookupBatch{
 						BatchId: batchId,
 						Origin:  origin,
 					},
@@ -27,13 +27,13 @@ func LookupBatch(destModule types.ModuleID, batchId types1.BatchID, origin *type
 	}
 }
 
-func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types4.Transaction, origin *types2.LookupBatchOrigin) *types3.Event {
-	return &types3.Event{
+func LookupBatchResponse(destModule stdtypes.ModuleID, found bool, txs []*types3.Transaction, origin *types1.LookupBatchOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_BatchDb{
-			BatchDb: &types2.Event{
-				Type: &types2.Event_LookupResponse{
-					LookupResponse: &types2.LookupBatchResponse{
+		Type: &types2.Event_BatchDb{
+			BatchDb: &types1.Event{
+				Type: &types1.Event_LookupResponse{
+					LookupResponse: &types1.LookupBatchResponse{
 						Found:  found,
 						Txs:    txs,
 						Origin: origin,
@@ -44,13 +44,13 @@ func LookupBatchResponse(destModule types.ModuleID, found bool, txs []*types4.Tr
 	}
 }
 
-func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txs []*types4.Transaction, retentionIndex types5.RetentionIndex, origin *types2.StoreBatchOrigin) *types3.Event {
-	return &types3.Event{
+func StoreBatch(destModule stdtypes.ModuleID, batchId types.BatchID, txs []*types3.Transaction, retentionIndex types4.RetentionIndex, origin *types1.StoreBatchOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_BatchDb{
-			BatchDb: &types2.Event{
-				Type: &types2.Event_Store{
-					Store: &types2.StoreBatch{
+		Type: &types2.Event_BatchDb{
+			BatchDb: &types1.Event{
+				Type: &types1.Event_Store{
+					Store: &types1.StoreBatch{
 						BatchId:        batchId,
 						Txs:            txs,
 						RetentionIndex: retentionIndex,
@@ -62,13 +62,13 @@ func StoreBatch(destModule types.ModuleID, batchId types1.BatchID, txs []*types4
 	}
 }
 
-func BatchStored(destModule types.ModuleID, origin *types2.StoreBatchOrigin) *types3.Event {
-	return &types3.Event{
+func BatchStored(destModule stdtypes.ModuleID, origin *types1.StoreBatchOrigin) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_BatchDb{
-			BatchDb: &types2.Event{
-				Type: &types2.Event_Stored{
-					Stored: &types2.BatchStored{
+		Type: &types2.Event_BatchDb{
+			BatchDb: &types1.Event{
+				Type: &types1.Event_Stored{
+					Stored: &types1.BatchStored{
 						Origin: origin,
 					},
 				},
@@ -77,13 +77,13 @@ func BatchStored(destModule types.ModuleID, origin *types2.StoreBatchOrigin) *ty
 	}
 }
 
-func GarbageCollect(destModule types.ModuleID, retentionIndex types5.RetentionIndex) *types3.Event {
-	return &types3.Event{
+func GarbageCollect(destModule stdtypes.ModuleID, retentionIndex types4.RetentionIndex) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types3.Event_BatchDb{
-			BatchDb: &types2.Event{
-				Type: &types2.Event_GarbageCollect{
-					GarbageCollect: &types2.GarbageCollect{
+		Type: &types2.Event_BatchDb{
+			BatchDb: &types1.Event{
+				Type: &types1.Event_GarbageCollect{
+					GarbageCollect: &types1.GarbageCollect{
 						RetentionIndex: retentionIndex,
 					},
 				},

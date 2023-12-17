@@ -5,13 +5,13 @@ package pprepvalidatorpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types1 "github.com/filecoin-project/mir/codegen/model/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/contextstorepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/dslpb/types"
 	pprepvalidatorpb "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 	types "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 type Event struct {
@@ -188,7 +188,7 @@ func (*PreprepareValidated) MirReflect() mirreflect.Type {
 }
 
 type ValidatePreprepareOrigin struct {
-	Module types2.ModuleID
+	Module stdtypes.ModuleID
 	Type   ValidatePreprepareOrigin_Type
 }
 
@@ -209,20 +209,20 @@ func ValidatePreprepareOrigin_TypeFromPb(pb pprepvalidatorpb.ValidatePreprepareO
 	}
 	switch pb := pb.(type) {
 	case *pprepvalidatorpb.ValidatePreprepareOrigin_ContextStore:
-		return &ValidatePreprepareOrigin_ContextStore{ContextStore: types3.OriginFromPb(pb.ContextStore)}
+		return &ValidatePreprepareOrigin_ContextStore{ContextStore: types2.OriginFromPb(pb.ContextStore)}
 	case *pprepvalidatorpb.ValidatePreprepareOrigin_Dsl:
-		return &ValidatePreprepareOrigin_Dsl{Dsl: types4.OriginFromPb(pb.Dsl)}
+		return &ValidatePreprepareOrigin_Dsl{Dsl: types3.OriginFromPb(pb.Dsl)}
 	}
 	return nil
 }
 
 type ValidatePreprepareOrigin_ContextStore struct {
-	ContextStore *types3.Origin
+	ContextStore *types2.Origin
 }
 
 func (*ValidatePreprepareOrigin_ContextStore) isValidatePreprepareOrigin_Type() {}
 
-func (w *ValidatePreprepareOrigin_ContextStore) Unwrap() *types3.Origin {
+func (w *ValidatePreprepareOrigin_ContextStore) Unwrap() *types2.Origin {
 	return w.ContextStore
 }
 
@@ -241,12 +241,12 @@ func (*ValidatePreprepareOrigin_ContextStore) MirReflect() mirreflect.Type {
 }
 
 type ValidatePreprepareOrigin_Dsl struct {
-	Dsl *types4.Origin
+	Dsl *types3.Origin
 }
 
 func (*ValidatePreprepareOrigin_Dsl) isValidatePreprepareOrigin_Type() {}
 
-func (w *ValidatePreprepareOrigin_Dsl) Unwrap() *types4.Origin {
+func (w *ValidatePreprepareOrigin_Dsl) Unwrap() *types3.Origin {
 	return w.Dsl
 }
 
@@ -269,7 +269,7 @@ func ValidatePreprepareOriginFromPb(pb *pprepvalidatorpb.ValidatePreprepareOrigi
 		return nil
 	}
 	return &ValidatePreprepareOrigin{
-		Module: (types2.ModuleID)(pb.Module),
+		Module: (stdtypes.ModuleID)(pb.Module),
 		Type:   ValidatePreprepareOrigin_TypeFromPb(pb.Type),
 	}
 }
@@ -294,7 +294,7 @@ func (*ValidatePreprepareOrigin) MirReflect() mirreflect.Type {
 }
 
 type PPrepValidatorChkp struct {
-	Membership *types5.Membership
+	Membership *types4.Membership
 }
 
 func PPrepValidatorChkpFromPb(pb *pprepvalidatorpb.PPrepValidatorChkp) *PPrepValidatorChkp {
@@ -302,7 +302,7 @@ func PPrepValidatorChkpFromPb(pb *pprepvalidatorpb.PPrepValidatorChkp) *PPrepVal
 		return nil
 	}
 	return &PPrepValidatorChkp{
-		Membership: types5.MembershipFromPb(pb.Membership),
+		Membership: types4.MembershipFromPb(pb.Membership),
 	}
 }
 
