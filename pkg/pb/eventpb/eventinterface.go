@@ -7,9 +7,10 @@
 package eventpb
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/stdtypes"
-	"google.golang.org/protobuf/proto"
 )
 
 // Src returns the module that emitted the event.

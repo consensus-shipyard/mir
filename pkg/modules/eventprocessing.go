@@ -3,8 +3,9 @@ package modules
 import (
 	"runtime/debug"
 
-	"github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
+
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // ApplyEventsSequentially takes a list of events and applies the given applyEvent function to each event in the list.
