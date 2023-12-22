@@ -38,41 +38,48 @@ func (tm *Timer) EventsOut() <-chan *stdtypes.EventList {
 func (tm *Timer) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList) error {
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
-
-		// We only support proto events.
-		pbevent, ok := event.(*eventpb.Event)
-		if !ok {
-			return es.Errorf("Timer only supports proto events, received %T", event)
+		if err := tm.applyEvent(ctx, event); err != nil {
+			return err
 		}
+	}
+	return nil
+}
 
-		// Based on event type, invoke the appropriate Timer function.
-		// Note that events that later return to the event loop need to be copied in order to prevent a race condition
-		// when they are later stripped off their follow-ups, as this happens potentially concurrently
-		// with the original event being processed by the interceptor.
-		switch e := pbevent.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
-		case *eventpb.Event_Timer:
-			switch e := e.Timer.Type.(type) {
-			case *eventpb.TimerEvent_Delay:
-				tm.Delay(
-					ctx,
-					eventpb.List(e.Delay.EventsToDelay...),
-					types.Duration(e.Delay.Delay),
-				)
-			case *eventpb.TimerEvent_Repeat:
-				tm.Repeat(
-					ctx,
-					eventpb.List(e.Repeat.EventsToRepeat...),
-					types.Duration(e.Repeat.Delay),
-					tt.RetentionIndex(e.Repeat.RetentionIndex),
-				)
-			case *eventpb.TimerEvent_GarbageCollect:
-				tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
-			}
-		default:
-			return es.Errorf("unexpected type of Timer event: %T", pbevent.Type)
+func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
+
+	// We only support proto events.
+	pbevent, ok := event.(*eventpb.Event)
+	if !ok {
+		return es.Errorf("Timer only supports proto events, received %T", event)
+	}
+
+	// Based on event type, invoke the appropriate Timer function.
+	// Note that events that later return to the event loop need to be copied in order to prevent a race condition
+	// when they are later stripped off their follow-ups, as this happens potentially concurrently
+	// with the original event being processed by the interceptor.
+	switch e := pbevent.Type.(type) {
+	case *eventpb.Event_Init:
+		// no actions on init
+	case *eventpb.Event_Timer:
+		switch e := e.Timer.Type.(type) {
+		case *eventpb.TimerEvent_Delay:
+			tm.Delay(
+				ctx,
+				eventpb.List(e.Delay.EventsToDelay...),
+				types.Duration(e.Delay.Delay),
+			)
+		case *eventpb.TimerEvent_Repeat:
+			tm.Repeat(
+				ctx,
+				eventpb.List(e.Repeat.EventsToRepeat...),
+				types.Duration(e.Repeat.Delay),
+				tt.RetentionIndex(e.Repeat.RetentionIndex),
+			)
+		case *eventpb.TimerEvent_GarbageCollect:
+			tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
 		}
+	default:
+		return es.Errorf("unexpected type of Timer event: %T", pbevent.Type)
 	}
 
 	return nil
