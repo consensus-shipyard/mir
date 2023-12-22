@@ -5,11 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	"github.com/filecoin-project/mir/pkg/timer/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -19,7 +18,7 @@ type Timer struct {
 	eventsOut chan *stdtypes.EventList
 
 	retIndexMutex sync.RWMutex
-	retIndex      tt.RetentionIndex
+	retIndex      stdtypes.RetentionIndex
 }
 
 func New() *Timer {
@@ -47,17 +46,34 @@ func (tm *Timer) ApplyEvents(ctx context.Context, eventList *stdtypes.EventList)
 
 func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
-	// We only support proto events.
-	pbevent, ok := event.(*eventpb.Event)
-	if !ok {
-		return es.Errorf("Timer only supports proto events, received %T", event)
-	}
-
 	// Based on event type, invoke the appropriate Timer function.
 	// Note that events that later return to the event loop need to be copied in order to prevent a race condition
-	// when they are later stripped off their follow-ups, as this happens potentially concurrently
+	// when they are later, as this happens potentially concurrently
 	// with the original event being processed by the interceptor.
-	switch e := pbevent.Type.(type) {
+	switch e := event.(type) {
+	case *eventpb.Event:
+		// Support for legacy proto events. TODO: Remove this eventually.
+		if err := tm.applyLegacyPbEvent(ctx, e); err != nil {
+			return err
+		}
+	case *stdevents.Init:
+		// Nothing to initialize.
+	case *stdevents.TimerDelay:
+		tm.Delay(ctx, stdtypes.ListOf(e.Events...), e.Delay)
+	case *stdevents.TimerRepeat:
+		tm.Repeat(ctx, stdtypes.ListOf(e.Events...), e.Period, e.RetentionIndex)
+	case *stdevents.GarbageCollect:
+		tm.GarbageCollect(e.RetentionIndex)
+	default:
+		return es.Errorf("unexpected event type: %T", e)
+	}
+
+	return nil
+}
+
+// TODO: Remove this function when other modules are updated to use stdevents with the Timer.
+func (tm *Timer) applyLegacyPbEvent(ctx context.Context, event *eventpb.Event) error {
+	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
 	case *eventpb.Event_Timer:
@@ -66,22 +82,21 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 			tm.Delay(
 				ctx,
 				eventpb.List(e.Delay.EventsToDelay...),
-				types.Duration(e.Delay.Delay),
+				time.Duration(e.Delay.Delay),
 			)
 		case *eventpb.TimerEvent_Repeat:
 			tm.Repeat(
 				ctx,
 				eventpb.List(e.Repeat.EventsToRepeat...),
-				types.Duration(e.Repeat.Delay),
-				tt.RetentionIndex(e.Repeat.RetentionIndex),
+				time.Duration(e.Repeat.Delay),
+				stdtypes.RetentionIndex(e.Repeat.RetentionIndex),
 			)
 		case *eventpb.TimerEvent_GarbageCollect:
-			tm.GarbageCollect(tt.RetentionIndex(e.GarbageCollect.RetentionIndex))
+			tm.GarbageCollect(stdtypes.RetentionIndex(e.GarbageCollect.RetentionIndex))
 		}
 	default:
-		return es.Errorf("unexpected type of Timer event: %T", pbevent.Type)
+		return es.Errorf("unexpected type of Timer event: %T", event.Type)
 	}
-
 	return nil
 }
 
@@ -90,7 +105,7 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 func (tm *Timer) Delay(
 	ctx context.Context,
 	events *stdtypes.EventList,
-	delay types.Duration,
+	delay time.Duration,
 ) {
 
 	// This manual implementation has the following advantage over simply using time.AfterFunc:
@@ -98,7 +113,7 @@ func (tm *Timer) Delay(
 	// and does not still fire after a (potentially long) delay.
 	go func() {
 		select {
-		case <-time.After(time.Duration(delay)):
+		case <-time.After(delay):
 			// If the delay elapses before the context is canceled,
 			// try to write events to the output channel until the context is canceled.
 			select {
@@ -120,8 +135,8 @@ func (tm *Timer) Delay(
 func (tm *Timer) Repeat(
 	ctx context.Context,
 	events *stdtypes.EventList,
-	period types.Duration,
-	retIndex tt.RetentionIndex,
+	period time.Duration,
+	retIndex stdtypes.RetentionIndex,
 ) {
 	go func() {
 
@@ -157,7 +172,7 @@ func (tm *Timer) Repeat(
 // When GarbageCollect is called, the Timer stops repeatedly producing events associated with a retention index
 // smaller than retIndex.
 // If GarbageCollect already has been invoked with the same or higher retention index, the call has no effect.
-func (tm *Timer) GarbageCollect(retIndex tt.RetentionIndex) {
+func (tm *Timer) GarbageCollect(retIndex stdtypes.RetentionIndex) {
 	tm.retIndexMutex.Lock()
 	defer tm.retIndexMutex.Unlock()
 
@@ -167,7 +182,7 @@ func (tm *Timer) GarbageCollect(retIndex tt.RetentionIndex) {
 	}
 }
 
-func (tm *Timer) getRetIndex() tt.RetentionIndex {
+func (tm *Timer) getRetIndex() stdtypes.RetentionIndex {
 	tm.retIndexMutex.RLock()
 	defer tm.retIndexMutex.RUnlock()
 
