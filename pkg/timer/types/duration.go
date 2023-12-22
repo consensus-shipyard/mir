@@ -1,3 +1,5 @@
+// TODO: Eventually get rid of this type, when all modules use stdevents for the Timer.
+
 package types
 
 import (
