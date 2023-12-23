@@ -3,13 +3,13 @@ package orderers
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/factorymodule"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdmodules/factory"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -22,9 +22,9 @@ func Factory(
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
-	return factorymodule.New(
+	return factory.New(
 		mc.Self,
-		factorymodule.DefaultParams(
+		factory.DefaultParams(
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the Ordering protocol.
