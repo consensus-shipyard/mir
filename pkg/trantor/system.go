@@ -3,28 +3,25 @@ package trantor
 import (
 	"crypto"
 
-	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
-	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
-	"github.com/filecoin-project/mir/pkg/orderers"
-	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
-	"github.com/filecoin-project/mir/stdtypes"
-
-	"github.com/filecoin-project/mir/pkg/timer"
-
-	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-
 	"github.com/pkg/errors"
 
+	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	cv "github.com/filecoin-project/mir/pkg/checkpoint/chkpvalidator"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/iss"
 	"github.com/filecoin-project/mir/pkg/logging"
+	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/pkg/orderers"
+	ppv "github.com/filecoin-project/mir/pkg/orderers/common/pprepvalidator"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
+	"github.com/filecoin-project/mir/stdmodules/timer"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // System represents a Trantor system.

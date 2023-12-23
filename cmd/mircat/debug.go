@@ -10,10 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/filecoin-project/mir/pkg/timer"
-	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-	"github.com/filecoin-project/mir/stdtypes"
-
 	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -29,7 +25,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	"github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/stdmodules/timer"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // debug extracts events from the event log entries and submits them to a node instance

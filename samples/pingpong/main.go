@@ -11,8 +11,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/timer"
 	"github.com/filecoin-project/mir/samples/pingpong/customevents"
+	"github.com/filecoin-project/mir/stdmodules/timer"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
