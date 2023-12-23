@@ -54,9 +54,9 @@ func TestSerialization_SendMessage(t *testing.T) {
 	dummyMessage := fakeMessage{Content: "dummy message content"}
 	e := NewSendMessageWithSrc(
 		"srcModule",
-		&dummyMessage,
 		"localDestModule",
 		"remoteDestModule",
+		&dummyMessage,
 		"some", "node", "IDs",
 	)
 
