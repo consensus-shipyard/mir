@@ -21,6 +21,8 @@ const (
 	MessageReceivedEvent = "MessageReceived"
 	TimerDelayEvent      = "TimerDelay"
 	TimerRepeatEvent     = "TimerRepeat"
+	NewSubmoduleEvent    = "NewSubmodule"
+	GarbageCollectEvent  = "GarbageCollect"
 	TestStringEvent      = "TestString"
 	TestUint64Event      = "TestUint"
 )
@@ -46,6 +48,10 @@ func serialize(e any) ([]byte, error) {
 		evType = TimerDelayEvent
 	case *serializableTimerRepeat:
 		evType = TimerRepeatEvent
+	case *serializableNewSubmodule:
+		evType = NewSubmoduleEvent
+	case *GarbageCollect:
+		evType = GarbageCollectEvent
 	case *TestString:
 		evType = TestStringEvent
 	case *TestUint64:
@@ -115,6 +121,18 @@ func Deserialize(data []byte) (stdtypes.Event, error) {
 			return nil, err
 		}
 		return e.TimerRepeat(), nil
+	case NewSubmoduleEvent:
+		var e serializableNewSubmodule
+		if err := json.Unmarshal(se.EvData, &e); err != nil {
+			return nil, err
+		}
+		return e.NewSubmodule(), nil
+	case GarbageCollectEvent:
+		var e GarbageCollect
+		if err := json.Unmarshal(se.EvData, &e); err != nil {
+			return nil, err
+		}
+		return &e, nil
 	case TestStringEvent:
 		var e TestString
 		if err := json.Unmarshal(se.EvData, &e); err != nil {
