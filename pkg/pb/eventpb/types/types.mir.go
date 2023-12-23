@@ -3,10 +3,7 @@
 package eventpbtypes
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types19 "github.com/filecoin-project/mir/codegen/model/types"
 	types12 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
@@ -26,10 +23,9 @@ import (
 	types17 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
 	types13 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
-	types18 "github.com/filecoin-project/mir/pkg/timer/types"
-	types20 "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event struct {
@@ -55,8 +51,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *eventpb.Event_Init:
 		return &Event_Init{Init: InitFromPb(pb.Init)}
-	case *eventpb.Event_Timer:
-		return &Event_Timer{Timer: TimerEventFromPb(pb.Timer)}
 	case *eventpb.Event_Hasher:
 		return &Event_Hasher{Hasher: types.EventFromPb(pb.Hasher)}
 	case *eventpb.Event_Bcb:
@@ -89,6 +83,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_ChkpValidator{ChkpValidator: types14.EventFromPb(pb.ChkpValidator)}
 	case *eventpb.Event_PprepValiadtor:
 		return &Event_PprepValiadtor{PprepValiadtor: types15.EventFromPb(pb.PprepValiadtor)}
+	case *eventpb.Event_Serialized:
+		return &Event_Serialized{Serialized: pb.Serialized}
 	case *eventpb.Event_PingPong:
 		return &Event_PingPong{PingPong: types16.EventFromPb(pb.PingPong)}
 	case *eventpb.Event_TestingString:
@@ -123,30 +119,6 @@ func (w *Event_Init) Pb() eventpb.Event_Type {
 
 func (*Event_Init) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Init]()}
-}
-
-type Event_Timer struct {
-	Timer *TimerEvent
-}
-
-func (*Event_Timer) isEvent_Type() {}
-
-func (w *Event_Timer) Unwrap() *TimerEvent {
-	return w.Timer
-}
-
-func (w *Event_Timer) Pb() eventpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Timer == nil {
-		return &eventpb.Event_Timer{}
-	}
-	return &eventpb.Event_Timer{Timer: (w.Timer).Pb()}
-}
-
-func (*Event_Timer) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Timer]()}
 }
 
 type Event_Hasher struct {
@@ -533,6 +505,30 @@ func (*Event_PprepValiadtor) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_PprepValiadtor]()}
 }
 
+type Event_Serialized struct {
+	Serialized *eventpb.SerializedEvent
+}
+
+func (*Event_Serialized) isEvent_Type() {}
+
+func (w *Event_Serialized) Unwrap() *eventpb.SerializedEvent {
+	return w.Serialized
+}
+
+func (w *Event_Serialized) Pb() eventpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Serialized == nil {
+		return &eventpb.Event_Serialized{}
+	}
+	return &eventpb.Event_Serialized{Serialized: w.Serialized}
+}
+
+func (*Event_Serialized) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Serialized]()}
+}
+
 type Event_PingPong struct {
 	PingPong *types16.Event
 }
@@ -680,237 +676,4 @@ func (m *Init) Pb() *eventpb.Init {
 
 func (*Init) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Init]()}
-}
-
-type TimerEvent struct {
-	Type TimerEvent_Type
-}
-
-type TimerEvent_Type interface {
-	mirreflect.GeneratedType
-	isTimerEvent_Type()
-	Pb() eventpb.TimerEvent_Type
-}
-
-type TimerEvent_TypeWrapper[T any] interface {
-	TimerEvent_Type
-	Unwrap() *T
-}
-
-func TimerEvent_TypeFromPb(pb eventpb.TimerEvent_Type) TimerEvent_Type {
-	if pb == nil {
-		return nil
-	}
-	switch pb := pb.(type) {
-	case *eventpb.TimerEvent_Delay:
-		return &TimerEvent_Delay{Delay: TimerDelayFromPb(pb.Delay)}
-	case *eventpb.TimerEvent_Repeat:
-		return &TimerEvent_Repeat{Repeat: TimerRepeatFromPb(pb.Repeat)}
-	case *eventpb.TimerEvent_GarbageCollect:
-		return &TimerEvent_GarbageCollect{GarbageCollect: TimerGarbageCollectFromPb(pb.GarbageCollect)}
-	}
-	return nil
-}
-
-type TimerEvent_Delay struct {
-	Delay *TimerDelay
-}
-
-func (*TimerEvent_Delay) isTimerEvent_Type() {}
-
-func (w *TimerEvent_Delay) Unwrap() *TimerDelay {
-	return w.Delay
-}
-
-func (w *TimerEvent_Delay) Pb() eventpb.TimerEvent_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Delay == nil {
-		return &eventpb.TimerEvent_Delay{}
-	}
-	return &eventpb.TimerEvent_Delay{Delay: (w.Delay).Pb()}
-}
-
-func (*TimerEvent_Delay) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerEvent_Delay]()}
-}
-
-type TimerEvent_Repeat struct {
-	Repeat *TimerRepeat
-}
-
-func (*TimerEvent_Repeat) isTimerEvent_Type() {}
-
-func (w *TimerEvent_Repeat) Unwrap() *TimerRepeat {
-	return w.Repeat
-}
-
-func (w *TimerEvent_Repeat) Pb() eventpb.TimerEvent_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Repeat == nil {
-		return &eventpb.TimerEvent_Repeat{}
-	}
-	return &eventpb.TimerEvent_Repeat{Repeat: (w.Repeat).Pb()}
-}
-
-func (*TimerEvent_Repeat) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerEvent_Repeat]()}
-}
-
-type TimerEvent_GarbageCollect struct {
-	GarbageCollect *TimerGarbageCollect
-}
-
-func (*TimerEvent_GarbageCollect) isTimerEvent_Type() {}
-
-func (w *TimerEvent_GarbageCollect) Unwrap() *TimerGarbageCollect {
-	return w.GarbageCollect
-}
-
-func (w *TimerEvent_GarbageCollect) Pb() eventpb.TimerEvent_Type {
-	if w == nil {
-		return nil
-	}
-	if w.GarbageCollect == nil {
-		return &eventpb.TimerEvent_GarbageCollect{}
-	}
-	return &eventpb.TimerEvent_GarbageCollect{GarbageCollect: (w.GarbageCollect).Pb()}
-}
-
-func (*TimerEvent_GarbageCollect) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerEvent_GarbageCollect]()}
-}
-
-func TimerEventFromPb(pb *eventpb.TimerEvent) *TimerEvent {
-	if pb == nil {
-		return nil
-	}
-	return &TimerEvent{
-		Type: TimerEvent_TypeFromPb(pb.Type),
-	}
-}
-
-func (m *TimerEvent) Pb() *eventpb.TimerEvent {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &eventpb.TimerEvent{}
-	{
-		if m.Type != nil {
-			pbMessage.Type = (m.Type).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*TimerEvent) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerEvent]()}
-}
-
-type TimerDelay struct {
-	EventsToDelay []*Event
-	Delay         types18.Duration
-}
-
-func TimerDelayFromPb(pb *eventpb.TimerDelay) *TimerDelay {
-	if pb == nil {
-		return nil
-	}
-	return &TimerDelay{
-		EventsToDelay: types19.ConvertSlice(pb.EventsToDelay, func(t *eventpb.Event) *Event {
-			return EventFromPb(t)
-		}),
-		Delay: (types18.Duration)(pb.Delay),
-	}
-}
-
-func (m *TimerDelay) Pb() *eventpb.TimerDelay {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &eventpb.TimerDelay{}
-	{
-		pbMessage.EventsToDelay = types19.ConvertSlice(m.EventsToDelay, func(t *Event) *eventpb.Event {
-			return (t).Pb()
-		})
-		pbMessage.Delay = (uint64)(m.Delay)
-	}
-
-	return pbMessage
-}
-
-func (*TimerDelay) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerDelay]()}
-}
-
-type TimerRepeat struct {
-	EventsToRepeat []*Event
-	Delay          types18.Duration
-	RetentionIndex types20.RetentionIndex
-}
-
-func TimerRepeatFromPb(pb *eventpb.TimerRepeat) *TimerRepeat {
-	if pb == nil {
-		return nil
-	}
-	return &TimerRepeat{
-		EventsToRepeat: types19.ConvertSlice(pb.EventsToRepeat, func(t *eventpb.Event) *Event {
-			return EventFromPb(t)
-		}),
-		Delay:          (types18.Duration)(pb.Delay),
-		RetentionIndex: (types20.RetentionIndex)(pb.RetentionIndex),
-	}
-}
-
-func (m *TimerRepeat) Pb() *eventpb.TimerRepeat {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &eventpb.TimerRepeat{}
-	{
-		pbMessage.EventsToRepeat = types19.ConvertSlice(m.EventsToRepeat, func(t *Event) *eventpb.Event {
-			return (t).Pb()
-		})
-		pbMessage.Delay = (uint64)(m.Delay)
-		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
-	}
-
-	return pbMessage
-}
-
-func (*TimerRepeat) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerRepeat]()}
-}
-
-type TimerGarbageCollect struct {
-	RetentionIndex types20.RetentionIndex
-}
-
-func TimerGarbageCollectFromPb(pb *eventpb.TimerGarbageCollect) *TimerGarbageCollect {
-	if pb == nil {
-		return nil
-	}
-	return &TimerGarbageCollect{
-		RetentionIndex: (types20.RetentionIndex)(pb.RetentionIndex),
-	}
-}
-
-func (m *TimerGarbageCollect) Pb() *eventpb.TimerGarbageCollect {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &eventpb.TimerGarbageCollect{}
-	{
-		pbMessage.RetentionIndex = (uint64)(m.RetentionIndex)
-	}
-
-	return pbMessage
-}
-
-func (*TimerGarbageCollect) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.TimerGarbageCollect]()}
 }

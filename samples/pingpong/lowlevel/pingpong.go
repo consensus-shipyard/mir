@@ -4,19 +4,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -70,13 +68,13 @@ func (p *Pingpong) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error)
 
 func (p *Pingpong) applyInit() (*stdtypes.EventList, error) {
 	p.nextSn = 0
-	timerEvent := eventpbevents.TimerRepeat(
+	timerEvent := stdevents.NewTimerRepeat(
 		"timer",
-		[]*eventpbtypes.Event{eventpbtypes.EventFromPb(PingTimeEvent("pingpong"))},
-		types.Duration(time.Second),
+		time.Second,
 		0,
+		PingTimeEvent("pingpong"),
 	)
-	return stdtypes.ListOf(timerEvent.Pb()), nil
+	return stdtypes.ListOf(timerEvent), nil
 }
 
 func (p *Pingpong) applyPingTime(_ *pingpongpb.PingTime) (*stdtypes.EventList, error) {

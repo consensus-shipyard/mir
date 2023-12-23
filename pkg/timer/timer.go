@@ -53,7 +53,7 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 	switch e := event.(type) {
 	case *eventpb.Event:
 		// Support for legacy proto events. TODO: Remove this eventually.
-		if err := tm.applyLegacyPbEvent(ctx, e); err != nil {
+		if err := tm.applyLegacyPbEvent(e); err != nil {
 			return err
 		}
 	case *stdevents.Init:
@@ -72,28 +72,10 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 }
 
 // TODO: Remove this function when other modules are updated to use stdevents with the Timer.
-func (tm *Timer) applyLegacyPbEvent(ctx context.Context, event *eventpb.Event) error {
-	switch e := event.Type.(type) {
+func (tm *Timer) applyLegacyPbEvent(event *eventpb.Event) error {
+	switch event.Type.(type) {
 	case *eventpb.Event_Init:
 		// no actions on init
-	case *eventpb.Event_Timer:
-		switch e := e.Timer.Type.(type) {
-		case *eventpb.TimerEvent_Delay:
-			tm.Delay(
-				ctx,
-				eventpb.List(e.Delay.EventsToDelay...),
-				time.Duration(e.Delay.Delay),
-			)
-		case *eventpb.TimerEvent_Repeat:
-			tm.Repeat(
-				ctx,
-				eventpb.List(e.Repeat.EventsToRepeat...),
-				time.Duration(e.Repeat.Delay),
-				stdtypes.RetentionIndex(e.Repeat.RetentionIndex),
-			)
-		case *eventpb.TimerEvent_GarbageCollect:
-			tm.GarbageCollect(stdtypes.RetentionIndex(e.GarbageCollect.RetentionIndex))
-		}
 	default:
 		return es.Errorf("unexpected type of Timer event: %T", event.Type)
 	}

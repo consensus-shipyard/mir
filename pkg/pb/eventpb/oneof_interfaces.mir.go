@@ -3,8 +3,6 @@
 package eventpb
 
 import (
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-
 	apppb "github.com/filecoin-project/mir/pkg/pb/apppb"
 	availabilitypb "github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	batchdbpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb"
@@ -23,6 +21,7 @@ import (
 	testerpb "github.com/filecoin-project/mir/pkg/pb/testerpb"
 	threshcryptopb "github.com/filecoin-project/mir/pkg/pb/threshcryptopb"
 	transportpb "github.com/filecoin-project/mir/pkg/pb/transportpb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type Event_Type = isEvent_Type
@@ -34,10 +33,6 @@ type Event_TypeWrapper[T any] interface {
 
 func (w *Event_Init) Unwrap() *Init {
 	return w.Init
-}
-
-func (w *Event_Timer) Unwrap() *TimerEvent {
-	return w.Timer
 }
 
 func (w *Event_Hasher) Unwrap() *hasherpb.Event {
@@ -104,6 +99,10 @@ func (w *Event_PprepValiadtor) Unwrap() *pprepvalidatorpb.Event {
 	return w.PprepValiadtor
 }
 
+func (w *Event_Serialized) Unwrap() *SerializedEvent {
+	return w.Serialized
+}
+
 func (w *Event_PingPong) Unwrap() *pingpongpb.Event {
 	return w.PingPong
 }
@@ -118,23 +117,4 @@ func (w *Event_TestingUint) Unwrap() *wrapperspb.UInt64Value {
 
 func (w *Event_Tester) Unwrap() *testerpb.Tester {
 	return w.Tester
-}
-
-type TimerEvent_Type = isTimerEvent_Type
-
-type TimerEvent_TypeWrapper[T any] interface {
-	TimerEvent_Type
-	Unwrap() *T
-}
-
-func (w *TimerEvent_Delay) Unwrap() *TimerDelay {
-	return w.Delay
-}
-
-func (w *TimerEvent_Repeat) Unwrap() *TimerRepeat {
-	return w.Repeat
-}
-
-func (w *TimerEvent_GarbageCollect) Unwrap() *TimerGarbageCollect {
-	return w.GarbageCollect
 }

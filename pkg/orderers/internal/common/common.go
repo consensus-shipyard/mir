@@ -1,6 +1,9 @@
 package common
 
 import (
+	"time"
+
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -10,11 +13,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/orderers/common"
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
@@ -145,20 +145,20 @@ func (state *State) InitView(
 	}
 
 	// Set view change timeouts
-	eventpbdsl.TimerDelay(
+	stddsl.TimerDelay(
 		m,
 		moduleConfig.Timer,
-		[]*eventpbtypes.Event{pbftpbevents.ViewChangeSNTimeout(
+		computeTimeout(params.Config.ViewChangeSNTimeout, view),
+		pbftpbevents.ViewChangeSNTimeout(
 			moduleConfig.Self,
 			view,
-			uint64(state.NumCommitted(view)))},
-		computeTimeout(timertypes.Duration(params.Config.ViewChangeSNTimeout), view),
+			uint64(state.NumCommitted(view))).Pb(),
 	)
-	eventpbdsl.TimerDelay(
+	stddsl.TimerDelay(
 		m,
 		moduleConfig.Timer,
-		[]*eventpbtypes.Event{pbftpbevents.ViewChangeSegTimeout(moduleConfig.Self, uint64(view))}, // TODO Update proto message to use ViewNr
-		computeTimeout(timertypes.Duration(params.Config.ViewChangeSegmentTimeout), view),
+		computeTimeout(params.Config.ViewChangeSegmentTimeout, view),
+		pbftpbevents.ViewChangeSegTimeout(moduleConfig.Self, uint64(view)).Pb(), // TODO Update proto message to use ViewNr
 	)
 
 	state.View = view
@@ -205,7 +205,7 @@ func (state *State) LookUpPreprepare(sn tt.SeqNr, digest []byte) *pbftpbtypes.Pr
 
 // computeTimeout adapts a view change timeout to the view in which it is used.
 // This is to implement the doubling of timeouts on every view change.
-func computeTimeout(timeout timertypes.Duration, view ot.ViewNr) timertypes.Duration {
+func computeTimeout(timeout time.Duration, view ot.ViewNr) time.Duration {
 	timeout *= 1 << view
 	return timeout
 }

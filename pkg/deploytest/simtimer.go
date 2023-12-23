@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -15,14 +16,12 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
-	"github.com/filecoin-project/mir/pkg/timer/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
 
 type simTimerModule struct {
 	*SimNode
 	eventsOut chan *stdtypes.EventList
-	processes map[tt.RetentionIndex]*testsim.Process
+	processes map[stdtypes.RetentionIndex]*testsim.Process
 }
 
 // NewSimTimerModule returns a Timer modules to be used in simulation.
@@ -30,7 +29,7 @@ func NewSimTimerModule(node *SimNode) modules.ActiveModule {
 	return &simTimerModule{
 		SimNode:   node,
 		eventsOut: make(chan *stdtypes.EventList, 1),
-		processes: map[tt.RetentionIndex]*testsim.Process{},
+		processes: map[stdtypes.RetentionIndex]*testsim.Process{},
 	}
 }
 
@@ -49,40 +48,30 @@ func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *stdtypes.Ev
 
 func (m *simTimerModule) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
-	// We only support proto events.
-	pbevent, ok := event.(*eventpb.Event)
-	if !ok {
-		return es.Errorf("The simulation timer module only supports proto events, received %T", event)
-	}
-
-	switch e := pbevent.Type.(type) {
-	case *eventpb.Event_Init:
-		// no actions on init
-	case *eventpb.Event_Timer:
-		switch e := e.Timer.Type.(type) {
-		case *eventpb.TimerEvent_Delay:
-			evtsOut := eventpb.List(e.Delay.EventsToDelay...)
-			d := types.Duration(e.Delay.Delay)
-			m.delay(ctx, evtsOut, d)
-		case *eventpb.TimerEvent_Repeat:
-			evtsOut := eventpb.List(e.Repeat.EventsToRepeat...)
-			d := types.Duration(e.Repeat.Delay)
-			retIdx := tt.RetentionIndex(e.Repeat.RetentionIndex)
-			m.repeat(ctx, evtsOut, d, retIdx)
-		case *eventpb.TimerEvent_GarbageCollect:
-			retIdx := tt.RetentionIndex(e.GarbageCollect.RetentionIndex)
-			m.garbageCollect(retIdx)
+	switch evt := event.(type) {
+	case *eventpb.Event:
+		switch e := evt.Type.(type) {
+		case *eventpb.Event_Init:
+			// no actions on init
 		default:
-			return es.Errorf("unexpected type of Timer sub-event: %T", e)
+			return es.Errorf("unexpected type of Timer event: %T", e)
 		}
+	case *stdevents.TimerDelay:
+		evtsOut := stdtypes.ListOf(evt.Events...)
+		m.delay(ctx, evtsOut, evt.Delay)
+	case *stdevents.TimerRepeat:
+		evtsOut := stdtypes.ListOf(evt.Events...)
+		m.repeat(ctx, evtsOut, evt.Period, evt.RetentionIndex)
+	case *stdevents.GarbageCollect:
+		m.garbageCollect(evt.RetentionIndex)
 	default:
-		return es.Errorf("unexpected type of Timer event: %T", e)
+		return es.Errorf("Unsupported simulation event type: %T", event)
 	}
 
 	return nil
 }
 
-func (m *simTimerModule) delay(ctx context.Context, eventList *stdtypes.EventList, d types.Duration) {
+func (m *simTimerModule) delay(ctx context.Context, eventList *stdtypes.EventList, d time.Duration) {
 	proc := m.Spawn()
 
 	done := make(chan struct{})
@@ -97,7 +86,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *stdtypes.EventLis
 	go func() {
 		defer close(done)
 
-		if !proc.Delay(time.Duration(d)) {
+		if !proc.Delay(d) {
 			return
 		}
 
@@ -114,7 +103,7 @@ func (m *simTimerModule) delay(ctx context.Context, eventList *stdtypes.EventLis
 	}()
 }
 
-func (m *simTimerModule) repeat(ctx context.Context, eventList *stdtypes.EventList, d types.Duration, retIdx tt.RetentionIndex) {
+func (m *simTimerModule) repeat(ctx context.Context, eventList *stdtypes.EventList, d time.Duration, retIdx stdtypes.RetentionIndex) {
 	proc := m.Spawn()
 	m.processes[retIdx] = proc
 
@@ -147,7 +136,7 @@ func (m *simTimerModule) repeat(ctx context.Context, eventList *stdtypes.EventLi
 	}()
 }
 
-func (m *simTimerModule) garbageCollect(retIdx tt.RetentionIndex) {
+func (m *simTimerModule) garbageCollect(retIdx stdtypes.RetentionIndex) {
 	for i, proc := range m.processes {
 		if i < retIdx {
 			proc.Kill()

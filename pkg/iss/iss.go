@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -42,14 +43,12 @@ import (
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
@@ -529,7 +528,7 @@ func New(
 		// Since we are loading the complete state from a checkpoint,
 		// we prune all state related to anything before that checkpoint.
 		pruneIndex := chkp.Epoch()
-		eventpbdsl.TimerGarbageCollect(iss.m, iss.moduleConfig.Timer, tt.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
@@ -917,7 +916,7 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 	if pruneIndex > 0 { // "> 0" and not ">= 0", since only entries strictly smaller than the index are pruned.
 
 		// Prune timer, checkpointing, availability, orderers, and other modules.
-		eventpbdsl.TimerGarbageCollect(iss.m, iss.moduleConfig.Timer, tt.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
 		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
@@ -935,13 +934,13 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 		// Using a periodic PushCheckpoint event instead of directly starting a periodic re-transmission
 		// of StableCheckpoint messages makes it possible to stop sending checkpoints to nodes that caught up
 		// before the re-transmission is garbage-collected.
-		eventpbdsl.TimerRepeat(iss.m, iss.moduleConfig.Timer,
-			[]*eventpbtypes.Event{isspbevents.PushCheckpoint(iss.moduleConfig.Self)},
-			types.Duration(iss.Params.CatchUpTimerPeriod),
+		stddsl.TimerRepeat(iss.m, iss.moduleConfig.Timer,
+			iss.Params.CatchUpTimerPeriod,
 			// Note that we are not using the current epoch number here, because it is not relevant for checkpoints.
 			// Using pruneIndex makes sure that the re-transmission is stopped
 			// on every stable checkpoint (when another one is started).
-			tt.RetentionIndex(pruneIndex),
+			stdtypes.RetentionIndex(pruneIndex),
+			isspbevents.PushCheckpoint(iss.moduleConfig.Self).Pb(),
 		)
 
 	}

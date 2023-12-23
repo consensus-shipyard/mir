@@ -3,27 +3,24 @@ package catchup
 import (
 	"bytes"
 
+	"github.com/filecoin-project/mir/pkg/dsl"
+	"github.com/filecoin-project/mir/pkg/logging"
 	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
 	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
+	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
-	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-	t "github.com/filecoin-project/mir/stdtypes"
-
-	"github.com/filecoin-project/mir/pkg/dsl"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-
-	"github.com/filecoin-project/mir/pkg/logging"
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	"github.com/filecoin-project/mir/stdevents"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
+	"github.com/filecoin-project/mir/stdtypes"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func IncludeSegmentCheckpoint(
@@ -153,15 +150,16 @@ func applyMsgDone(
 	// We also set the catchingUp flag to prevent this code from executing more than once per PBFT instance.
 	state.SegmentCheckpoint.CatchingUp = true
 
-	eventpbdsl.TimerDelay(
+	stddsl.TimerDelay(
 		m,
 		moduleConfig.Timer,
-		[]*eventpbtypes.Event{eventpbevents.TimerRepeat(
+		params.Config.CatchUpDelay,
+		stdevents.NewTimerRepeat(
 			moduleConfig.Timer,
-			catchUpRequests(state, moduleConfig, doneNodes, state.SegmentCheckpoint.Digests()),
-			types.Duration(params.Config.CatchUpDelay),
-			tt.RetentionIndex(params.Config.EpochNr))},
-		types.Duration(params.Config.CatchUpDelay),
+			params.Config.CatchUpDelay,
+			stdtypes.RetentionIndex(params.Config.EpochNr),
+			catchUpRequests(state, moduleConfig, doneNodes, state.SegmentCheckpoint.Digests())...,
+		),
 	)
 
 	// TODO: Requesting all missing certificates from all the nodes known to have them right away is quite an overkill,
@@ -176,9 +174,9 @@ func catchUpRequests(
 	moduleConfig common2.ModuleConfig,
 	nodes []t.NodeID,
 	digests map[tt.SeqNr][]byte,
-) []*eventpbtypes.Event {
+) []stdtypes.Event {
 
-	catchUpRequests := make([]*eventpbtypes.Event, 0)
+	catchUpRequests := make([]stdtypes.Event, 0)
 
 	// Deterministically iterate through all the (sequence number, certificate) pairs
 	// received in a quorum of Done messages.
@@ -190,7 +188,7 @@ func catchUpRequests(
 				moduleConfig.Net,
 				pbftpbmsgs.CatchUpRequest(moduleConfig.Self, digest, sn),
 				nodes,
-			))
+			).Pb())
 		}
 		return true
 	})
@@ -277,15 +275,15 @@ func SendDoneMessages(
 	})
 
 	// Periodically send a Done message with the digests to all other nodes.
-	eventpbdsl.TimerRepeat(
+	stddsl.TimerRepeat(
 		m,
 		moduleConfig.Timer,
-		[]*eventpbtypes.Event{transportpbevents.SendMessage(
+		params.Config.DoneResendPeriod,
+		stdtypes.RetentionIndex(params.Config.EpochNr),
+		transportpbevents.SendMessage(
 			moduleConfig.Net,
 			pbftpbmsgs.Done(moduleConfig.Self, digests),
 			state.Segment.NodeIDs(),
-		)},
-		types.Duration(params.Config.DoneResendPeriod),
-		tt.RetentionIndex(params.Config.EpochNr),
+		).Pb(),
 	)
 }

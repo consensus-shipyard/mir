@@ -23,15 +23,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/common"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	mppbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/indexedlist"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 )
 
 type State struct {
@@ -158,11 +156,7 @@ func IncludeBatchCreation( // nolint:gocognit
 			cutBatch(origin)
 		} else {
 			reqID := storePendingRequest(origin)
-			eventpbdsl.TimerDelay(m,
-				mc.Timer,
-				[]*eventpbtypes.Event{mppbevents.BatchTimeout(mc.Self, uint64(reqID))},
-				timertypes.Duration(params.BatchTimeout),
-			)
+			stddsl.TimerDelay(m, mc.Timer, params.BatchTimeout, mppbevents.BatchTimeout(mc.Self, uint64(reqID)).Pb())
 		}
 	}
 

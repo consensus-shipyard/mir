@@ -4,8 +4,6 @@ package eventpbevents
 
 import (
 	types "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/timer/types"
-	types2 "github.com/filecoin-project/mir/pkg/trantor/types"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -14,54 +12,6 @@ func Init(destModule stdtypes.ModuleID) *types.Event {
 		DestModule: destModule,
 		Type: &types.Event_Init{
 			Init: &types.Init{},
-		},
-	}
-}
-
-func TimerDelay(destModule stdtypes.ModuleID, eventsToDelay []*types.Event, delay types1.Duration) *types.Event {
-	return &types.Event{
-		DestModule: destModule,
-		Type: &types.Event_Timer{
-			Timer: &types.TimerEvent{
-				Type: &types.TimerEvent_Delay{
-					Delay: &types.TimerDelay{
-						EventsToDelay: eventsToDelay,
-						Delay:         delay,
-					},
-				},
-			},
-		},
-	}
-}
-
-func TimerRepeat(destModule stdtypes.ModuleID, eventsToRepeat []*types.Event, delay types1.Duration, retentionIndex types2.RetentionIndex) *types.Event {
-	return &types.Event{
-		DestModule: destModule,
-		Type: &types.Event_Timer{
-			Timer: &types.TimerEvent{
-				Type: &types.TimerEvent_Repeat{
-					Repeat: &types.TimerRepeat{
-						EventsToRepeat: eventsToRepeat,
-						Delay:          delay,
-						RetentionIndex: retentionIndex,
-					},
-				},
-			},
-		},
-	}
-}
-
-func TimerGarbageCollect(destModule stdtypes.ModuleID, retentionIndex types2.RetentionIndex) *types.Event {
-	return &types.Event{
-		DestModule: destModule,
-		Type: &types.Event_Timer{
-			Timer: &types.TimerEvent{
-				Type: &types.TimerEvent_GarbageCollect{
-					GarbageCollect: &types.TimerGarbageCollect{
-						RetentionIndex: retentionIndex,
-					},
-				},
-			},
 		},
 	}
 }

@@ -38,9 +38,6 @@ message Event {
     // Special global event produced by the runtime itself and sent to each module on initialization.
     Init init = 2;
 
-    // Timer events are recursive and must be defined in this file for protobuf-specific reasons, see below.
-    TimerEvent timer = 3;
-
     // Module-specific events
             hasherpb.Event hasher          = 10;
                bcbpb.Event bcb             = 11;
@@ -59,6 +56,8 @@ message Event {
      chkpvalidatorpb.Event chkp_validator  = 24;
     pprepvalidatorpb.Event pprep_valiadtor = 25;
 
+    // Temporarily used by the Gzip event writer for inclusion of non-proto events in the proto-based event record.
+    SerializedEvent serialized = 100;
 
     // Events for code samples
     pingpongpb.Event ping_pong = 200;
@@ -74,49 +73,6 @@ message Init {
   option (mir.event) = true;
 }
 
-// ======================================================================
-// Timer events.
-// ======================================================================
-//
-// Those events, unfortunately, need to be defined in this very file, because they recursively contain top-level Events.
-// Protocol Buffers do not allow recursion across files, complaining about cyclic imports.
-// If timer events were defined separately, a cyclic import would be inevitable.
-// The main eventpb.proto file (this file) would need to include the timer event file,
-// since the timer event is an option of the Event's oneof type field.
-// But the timer event file also needs to import the main Event file, since timer events contain general Events.
-// The only way to express this mutual dependency is having all dependent events defined in a single file.
-
-message TimerEvent {
-  option (mir.event_class) = true;
-
-  oneof Type {
-    option (mir.event_type) = true;
-
-    TimerDelay  delay                   = 1;
-    TimerRepeat repeat                  = 2;
-    TimerGarbageCollect garbage_collect = 3;
-  }
-}
-
-message TimerDelay {
-  option (mir.event) = true;
-
-  // TODO: The field name must not be `events`, since it conflicts with a package name in the generated code.
-  //       This is a bug in the Mir code generator that should be fixed.
-  repeated Event events_to_delay  = 1;
-  uint64         delay            = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/timer/types.Duration"];
-}
-
-message TimerRepeat {
-  option (mir.event) = true;
-
-  repeated Event events_to_repeat = 1;
-  uint64         delay            = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/timer/types.Duration"];
-  uint64         retention_index  = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
-}
-
-message TimerGarbageCollect {
-  option (mir.event) = true;
-
-  uint64 retention_index = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
+message SerializedEvent {
+  bytes data = 1;
 }

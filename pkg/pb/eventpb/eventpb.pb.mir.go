@@ -9,7 +9,6 @@ import (
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_Init)(nil)),
-		reflect.TypeOf((*Event_Timer)(nil)),
 		reflect.TypeOf((*Event_Hasher)(nil)),
 		reflect.TypeOf((*Event_Bcb)(nil)),
 		reflect.TypeOf((*Event_Mempool)(nil)),
@@ -26,17 +25,10 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_Transport)(nil)),
 		reflect.TypeOf((*Event_ChkpValidator)(nil)),
 		reflect.TypeOf((*Event_PprepValiadtor)(nil)),
+		reflect.TypeOf((*Event_Serialized)(nil)),
 		reflect.TypeOf((*Event_PingPong)(nil)),
 		reflect.TypeOf((*Event_TestingString)(nil)),
 		reflect.TypeOf((*Event_TestingUint)(nil)),
 		reflect.TypeOf((*Event_Tester)(nil)),
-	}
-}
-
-func (*TimerEvent) ReflectTypeOptions() []reflect.Type {
-	return []reflect.Type{
-		reflect.TypeOf((*TimerEvent_Delay)(nil)),
-		reflect.TypeOf((*TimerEvent_Repeat)(nil)),
-		reflect.TypeOf((*TimerEvent_GarbageCollect)(nil)),
 	}
 }
