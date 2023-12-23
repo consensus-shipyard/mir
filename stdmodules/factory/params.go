@@ -1,4 +1,4 @@
-package factorymodule
+package factory
 
 import (
 	"github.com/filecoin-project/mir/pkg/modules"

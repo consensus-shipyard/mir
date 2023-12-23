@@ -1,4 +1,4 @@
-package factorymodule
+package factory
 
 import (
 	"fmt"

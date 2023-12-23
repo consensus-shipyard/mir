@@ -1,10 +1,10 @@
 package checkpoint
 
 import (
-	"github.com/filecoin-project/mir/pkg/factorymodule"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	"github.com/filecoin-project/mir/stdmodules/factory"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -12,9 +12,9 @@ func Factory(mc ModuleConfig, ownID stdtypes.NodeID, logger logging.Logger) modu
 	if logger == nil {
 		logger = logging.ConsoleErrorLogger
 	}
-	return factorymodule.New(
+	return factory.New(
 		mc.Self,
-		factorymodule.DefaultParams(
+		factory.DefaultParams(
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the Checkpoint protocol.
