@@ -99,7 +99,14 @@ func pbEventSlice(list *stdtypes.EventList) ([]*eventpb.Event, error) {
 	for event := iter.Next(); event != nil; event = iter.Next() {
 		pbevent, ok := event.(*eventpb.Event)
 		if !ok {
-			return nil, es.Errorf("Gzip event writer only supports proto events, received %T", event)
+			data, err := event.ToBytes()
+			if err != nil {
+				return nil, err
+			}
+			pbevent = &eventpb.Event{
+				DestModule: event.Dest().String(),
+				Type:       &eventpb.Event_Serialized{Serialized: &eventpb.SerializedEvent{Data: data}},
+			}
 		}
 		result = append(result, pbevent)
 	}
