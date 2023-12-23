@@ -9,8 +9,6 @@ import (
 	es "github.com/go-errors/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
@@ -20,8 +18,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/timer"
 	grpctools "github.com/filecoin-project/mir/pkg/util/grpc"
+	"github.com/filecoin-project/mir/stdmodules/timer"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 const (
