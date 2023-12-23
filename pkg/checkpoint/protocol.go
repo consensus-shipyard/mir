@@ -6,9 +6,9 @@ import (
 	"bytes"
 	"time"
 
-	es "github.com/go-errors/errors"
-
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	t "github.com/filecoin-project/mir/stdtypes"
+	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -18,20 +18,18 @@ import (
 	checkpointpbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbdsl "github.com/filecoin-project/mir/pkg/pb/trantorpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 const (
-	DefaultResendPeriod = types.Duration(time.Second)
+	DefaultResendPeriod = time.Second
 )
 
 type State struct {
@@ -126,11 +124,11 @@ func NewModule(
 		// Send a checkpoint message to all nodes.
 		chkpMessage := checkpointpbmsgs.Checkpoint(moduleConfig.Self, params.EpochConfig.EpochNr, params.EpochConfig.FirstSn, state.StateSnapshotHash, sig)
 		sortedMembership := maputil.GetSortedKeys(params.Membership.Nodes)
-		eventpbdsl.TimerRepeat(m,
-			"timer",
-			[]*eventpbtypes.Event{transportpbevents.SendMessage(moduleConfig.Net, chkpMessage, sortedMembership)},
+		stddsl.TimerRepeat(m,
+			"timer", // TODO: Put this value into moduleConfig.
 			params.ResendPeriod,
-			tt.RetentionIndex(params.EpochConfig.EpochNr),
+			stdtypes.RetentionIndex(params.EpochConfig.EpochNr),
+			transportpbevents.SendMessage(moduleConfig.Net, chkpMessage, sortedMembership).Pb(),
 		)
 
 		logger.Log(logging.LevelDebug, "Sending checkpoint message",

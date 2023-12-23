@@ -12,13 +12,11 @@
 package transactionreceiver
 
 import (
-	reflect "reflect"
-	sync "sync"
-
+	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
-	trantorpb "github.com/filecoin-project/mir/pkg/pb/trantorpb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

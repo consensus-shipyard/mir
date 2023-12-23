@@ -8,11 +8,9 @@ import (
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbevents "github.com/filecoin-project/mir/pkg/pb/eventpb/events"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	ppdsl "github.com/filecoin-project/mir/pkg/pb/pingpongpb/dsl"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	"github.com/filecoin-project/mir/samples/pingpong/customevents/pingpongevents"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -22,12 +20,7 @@ func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 	nextSN := uint64(0)
 
 	eventpbdsl.UponInit(m, func() error {
-		dsl.EmitMirEvent(m, eventpbevents.TimerRepeat(
-			"timer",
-			[]*eventpbtypes.Event{eventpbtypes.EventFromPb(PingTimeEvent("pingpong"))},
-			types.Duration(time.Second),
-			0,
-		))
+		stddsl.TimerRepeat(m, "timer", time.Second, 0, PingTimeEvent("pingpong"))
 		return nil
 	})
 

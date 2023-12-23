@@ -3,10 +3,9 @@ package viewchange
 import (
 	"bytes"
 
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
-
-	t "github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -17,8 +16,6 @@ import (
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	cryptopbdsl "github.com/filecoin-project/mir/pkg/pb/cryptopb/dsl"
 	cryptopbtypes "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	hasherpbtypes "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
@@ -27,10 +24,10 @@ import (
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
-	timertypes "github.com/filecoin-project/mir/pkg/timer/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 // ============================================================
@@ -54,14 +51,14 @@ func IncludeViewChange( //nolint:gocognit
 		// Repeatedly send the ViewChange message. Repeat until this instance of PBFT is garbage-collected,
 		// i.e., from the point of view of the PBFT protocol, effectively forever.
 
-		eventpbdsl.TimerRepeat(m, moduleConfig.Timer,
-			[]*eventpbtypes.Event{transportpbevents.SendMessage(
+		stddsl.TimerRepeat(m, moduleConfig.Timer,
+			params.Config.ViewChangeResendPeriod,
+			t.RetentionIndex(params.Config.EpochNr),
+			transportpbevents.SendMessage(
 				moduleConfig.Net,
 				pbftpbmsgs.SignedViewChange(moduleConfig.Self, context, signature),
 				[]t.NodeID{primary},
-			)},
-			timertypes.Duration(params.Config.ViewChangeResendPeriod),
-			tt.RetentionIndex(params.Config.EpochNr),
+			).Pb(),
 		)
 		return nil
 	})

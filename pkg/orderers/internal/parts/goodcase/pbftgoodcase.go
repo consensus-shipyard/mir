@@ -4,38 +4,30 @@ import (
 	"fmt"
 
 	es "github.com/go-errors/errors"
-
-	t "github.com/filecoin-project/mir/stdtypes"
-
-	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
-	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
-	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
-
-	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
-	"github.com/filecoin-project/mir/pkg/util/sliceutil"
-
-	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-
-	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
-
-	"github.com/filecoin-project/mir/pkg/dsl"
-	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
-	ppvpbdsl "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/dsl"
-	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
-	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
-
 	"google.golang.org/protobuf/proto"
 
+	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
-	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	common2 "github.com/filecoin-project/mir/pkg/orderers/common"
+	"github.com/filecoin-project/mir/pkg/orderers/internal/common"
+	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/catchup"
+	ot "github.com/filecoin-project/mir/pkg/orderers/types"
+	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
+	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
+	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
+	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
+	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
+	ppvpbdsl "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/dsl"
+	"github.com/filecoin-project/mir/pkg/pb/pbftpb"
+	pbftpbdsl "github.com/filecoin-project/mir/pkg/pb/pbftpb/dsl"
+	pbftpbevents "github.com/filecoin-project/mir/pkg/pb/pbftpb/events"
 	pbftpbmsgs "github.com/filecoin-project/mir/pkg/pb/pbftpb/msgs"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
+	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func IncludeGoodCase(
@@ -56,11 +48,15 @@ func IncludeGoodCase(
 			return err
 		}
 
-		eventpbdsl.TimerDelay(
+		stddsl.TimerDelay(
 			m,
 			moduleConfig.Timer,
-			[]*eventpbtypes.Event{pbftpbevents.ProposeTimeout(moduleConfig.Self, 1)},
-			types.Duration(params.Config.MaxProposeDelay),
+			params.Config.MaxProposeDelay,
+			pbftpbevents.ProposeTimeout(moduleConfig.Self, 1).Pb(),
+			// TODO: When proto event generation is consolidated, make sure that the ".Pb()" is not necessary anymore
+			//   (here and everywhere else).
+			// TODO: Rename the second argument of ProposeTimeout() to "numProposals", because "proposeTimeout"
+			//   is very deceiving.
 		)
 
 		// Set up timer for the first proposal.
@@ -261,10 +257,12 @@ func propose(
 		moduleConfig.Self,
 		uint64(state.Proposal.ProposalsMade+1))
 
-	eventpbdsl.TimerDelay(m,
+	stddsl.TimerDelay(
+		m,
 		moduleConfig.Timer,
-		[]*eventpbtypes.Event{timeoutEvent},
-		types.Duration(params.Config.MaxProposeDelay),
+		params.Config.MaxProposeDelay,
+		timeoutEvent.Pb(),
+		// TODO: When proto event generation is consolidated, make sure that the ".Pb()" is not necessary anymore.
 	)
 
 	return nil
@@ -543,14 +541,16 @@ func advanceSlotState(
 		// It will be ignored if any of those values change by the time the timer fires
 		// or if a quorum of nodes confirms having committed all certificates.
 		if !state.SegmentCheckpoint.Stable(state.Segment.Membership) {
-			eventpbdsl.TimerDelay(
+			stddsl.TimerDelay(
 				m,
 				moduleConfig.Timer,
-				[]*eventpbtypes.Event{pbftpbevents.ViewChangeSNTimeout(
+				params.Config.ViewChangeSNTimeout,
+				pbftpbevents.ViewChangeSNTimeout(
 					moduleConfig.Self,
 					state.View,
-					uint64(state.NumCommitted(state.View)))},
-				types.Duration(params.Config.ViewChangeSNTimeout))
+					uint64(state.NumCommitted(state.View)),
+				).Pb(),
+			)
 		}
 
 		// If all certificates have been committed (i.e. this is the last certificate to commit),

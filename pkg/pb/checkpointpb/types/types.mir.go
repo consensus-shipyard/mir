@@ -7,10 +7,10 @@ import (
 	types2 "github.com/filecoin-project/mir/codegen/model/types"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/timer/types"
 	types "github.com/filecoin-project/mir/pkg/trantor/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
+	"time"
 )
 
 type Message struct {
@@ -332,7 +332,7 @@ func (*EpochProgress) MirReflect() mirreflect.Type {
 
 type InstanceParams struct {
 	Membership       *types1.Membership
-	ResendPeriod     types3.Duration
+	ResendPeriod     time.Duration
 	LeaderPolicyData []uint8
 	EpochConfig      *types1.EpochConfig
 }
@@ -343,7 +343,7 @@ func InstanceParamsFromPb(pb *checkpointpb.InstanceParams) *InstanceParams {
 	}
 	return &InstanceParams{
 		Membership:       types1.MembershipFromPb(pb.Membership),
-		ResendPeriod:     (types3.Duration)(pb.ResendPeriod),
+		ResendPeriod:     (time.Duration)(pb.ResendPeriod),
 		LeaderPolicyData: pb.LeaderPolicyData,
 		EpochConfig:      types1.EpochConfigFromPb(pb.EpochConfig),
 	}

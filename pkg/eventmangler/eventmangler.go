@@ -9,9 +9,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	eventpbtypes "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -116,11 +115,11 @@ func NewModule(mc ModuleConfig, params *ModuleParams) (modules.PassiveModule, er
 
 		// Delay the event by the computed random time.
 		if delay > 0 {
-			eventpbdsl.TimerDelay(
+			stddsl.TimerDelay(
 				m,
 				mc.Timer,
-				[]*eventpbtypes.Event{eventpbtypes.EventFromPb(pbev.NewDest(mc.Dest).(*eventpb.Event))},
-				types.Duration(delay),
+				delay,
+				eventpbtypes.EventFromPb(pbev.NewDest(mc.Dest).(*eventpb.Event)).Pb(),
 			)
 		} else {
 			dsl.EmitEvent(m, pbev.NewDest(mc.Dest).(*eventpb.Event))

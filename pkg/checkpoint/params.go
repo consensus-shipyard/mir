@@ -1,8 +1,9 @@
 package checkpoint
 
 import (
+	"time"
+
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/timer/types"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -33,5 +34,5 @@ type ModuleParams struct {
 	LeaderPolicyData []byte
 
 	// Time interval for repeated retransmission of checkpoint messages.
-	ResendPeriod types.Duration
+	ResendPeriod time.Duration
 }
