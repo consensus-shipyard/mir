@@ -18,6 +18,14 @@ func (fm *fakeMessage) ToBytes() ([]byte, error) {
 	return json.Marshal(fm)
 }
 
+type fakeData struct {
+	Data string
+}
+
+func (fm *fakeData) ToBytes() ([]byte, error) {
+	return json.Marshal(fm)
+}
+
 func TestSerialization_Raw(t *testing.T) {
 	e := NewRawWithSrc("srcModule", "destModule", []byte{0, 1, 2})
 
@@ -128,6 +136,36 @@ func TestSerialization_TimerRepeat(t *testing.T) {
 	expected.Events[0] = dummyEvent1Raw
 	expected.Events[1] = dummyEvent2Raw
 	assert.Equal(t, &expected, restoredEvent)
+}
+
+func TestSerialization_NewSubmodule(t *testing.T) {
+	dummyParams := fakeData{Data: "Dummy new submodule params"}
+	e := NewNewSubmoduleWithSrc("srcModule", "destModule", "destModule/submodule", &dummyParams, 1)
+
+	data, err := e.ToBytes()
+	assert.NoError(t, err)
+
+	restoredEvent, err := Deserialize(data)
+	assert.NoError(t, err)
+
+	dummyParamsBytes, err := dummyParams.ToBytes()
+	assert.NoError(t, err)
+
+	expected := *e
+	expected.Params = stdtypes.RawData(dummyParamsBytes)
+	assert.Equal(t, &expected, restoredEvent)
+}
+
+func TestSerialization_GarbageCollect(t *testing.T) {
+	e := NewGarbageCollectWithSrc("srcModule", "destModule", 1)
+
+	data, err := e.ToBytes()
+	assert.NoError(t, err)
+
+	restoredEvent, err := Deserialize(data)
+	assert.NoError(t, err)
+
+	assert.Equal(t, e, restoredEvent)
 }
 
 func TestSerialization_TestString(t *testing.T) {
