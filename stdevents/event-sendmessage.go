@@ -44,9 +44,9 @@ func (e *SendMessage) serializable() (*serializableSendMessage, error) {
 }
 
 func NewSendMessage(
-	message stdtypes.Message,
 	localDestModule stdtypes.ModuleID,
 	remoteDestModule stdtypes.ModuleID,
+	message stdtypes.Message,
 	destNodes ...stdtypes.NodeID,
 ) *SendMessage {
 	return &SendMessage{
@@ -59,12 +59,12 @@ func NewSendMessage(
 
 func NewSendMessageWithSrc(
 	srcModule stdtypes.ModuleID,
-	message stdtypes.Message,
 	localDestModule stdtypes.ModuleID,
 	remoteDestModule stdtypes.ModuleID,
+	message stdtypes.Message,
 	destNodes ...stdtypes.NodeID,
 ) *SendMessage {
-	e := NewSendMessage(message, localDestModule, remoteDestModule, destNodes...)
+	e := NewSendMessage(localDestModule, remoteDestModule, message, destNodes...)
 	e.SrcModule = srcModule
 	return e
 }
