@@ -5,17 +5,16 @@ package factorypbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
-	types1 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	types "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func NewModule(m dsl.Module, destModule stdtypes.ModuleID, moduleId stdtypes.ModuleID, retentionIndex types.RetentionIndex, params *types1.GeneratorParams) {
+func NewModule(m dsl.Module, destModule stdtypes.ModuleID, moduleId stdtypes.ModuleID, retentionIndex stdtypes.RetentionIndex, params *types.GeneratorParams) {
 	dsl.EmitMirEvent(m, events.NewModule(destModule, moduleId, retentionIndex, params))
 }
 
-func GarbageCollect(m dsl.Module, destModule stdtypes.ModuleID, retentionIndex types.RetentionIndex) {
+func GarbageCollect(m dsl.Module, destModule stdtypes.ModuleID, retentionIndex stdtypes.RetentionIndex) {
 	dsl.EmitMirEvent(m, events.GarbageCollect(destModule, retentionIndex))
 }
