@@ -43,12 +43,12 @@ func NewPprepValidatorChkpFactory(mc ModuleConfig,
 	return factory.New(
 		mc.Self,
 		factory.DefaultParams(
-			func(submoduleID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+			func(submoduleID t.ModuleID, params any) (modules.PassiveModule, error) {
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
 				submc.Self = submoduleID
 				// Load parameters from received protobuf
-				p := params.Type.(*factorypbtypes.GeneratorParams_PpvModule).PpvModule
+				p := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_PpvModule).PpvModule
 
 				return NewModule(submc, NewCheckpointValidityChecker(hashImpl, chkpVerifier, p.Membership, configOffset, logger)), nil
 			},
