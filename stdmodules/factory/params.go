@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/filecoin-project/mir/pkg/modules"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -12,7 +11,8 @@ const (
 
 // ModuleGenerator is a function that generates a passive module from a module ID and the parameters.
 // The parameters format is defined in .proto files (see file: protos/factorypb/factorypb.proto).
-type ModuleGenerator func(id t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error)
+// TODO: Change the params type from any to stdtypes.Serializable when legacy proto events are not used with factory.
+type ModuleGenerator func(id t.ModuleID, params any) (modules.PassiveModule, error)
 
 // ModuleParams contains the parameters for creating a factory module.
 type ModuleParams struct {

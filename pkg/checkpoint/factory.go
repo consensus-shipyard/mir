@@ -18,14 +18,14 @@ func Factory(mc ModuleConfig, ownID stdtypes.NodeID, logger logging.Logger) modu
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the Checkpoint protocol.
-			func(submoduleID stdtypes.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+			func(submoduleID stdtypes.ModuleID, params any) (modules.PassiveModule, error) {
 
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
 				submc.Self = submoduleID
 
 				// Get the instance parameters
-				p := params.Type.(*factorypbtypes.GeneratorParams_Checkpoint).Checkpoint
+				p := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_Checkpoint).Checkpoint
 
 				chkpParams := &ModuleParams{
 					OwnID:            ownID,

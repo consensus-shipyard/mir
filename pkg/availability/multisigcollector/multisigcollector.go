@@ -57,10 +57,10 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 
 			// This function will be called whenever the factory module
 			// is asked to create a new instance of the multisig collector.
-			func(mscID t.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+			func(mscID t.ModuleID, params any) (modules.PassiveModule, error) {
 
 				// Extract the IDs of the nodes in the membership associated with this instance
-				mscParams := params.Type.(*factorypbtypes.GeneratorParams_MultisigCollector).MultisigCollector
+				mscParams := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_MultisigCollector).MultisigCollector
 
 				// Create a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
