@@ -4,12 +4,11 @@ package factorypbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types1 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
-	types4 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
@@ -119,7 +118,7 @@ func (*Event) MirReflect() mirreflect.Type {
 
 type NewModule struct {
 	ModuleId       stdtypes.ModuleID
-	RetentionIndex types.RetentionIndex
+	RetentionIndex stdtypes.RetentionIndex
 	Params         *GeneratorParams
 }
 
@@ -129,7 +128,7 @@ func NewModuleFromPb(pb *factorypb.NewModule) *NewModule {
 	}
 	return &NewModule{
 		ModuleId:       (stdtypes.ModuleID)(pb.ModuleId),
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (stdtypes.RetentionIndex)(pb.RetentionIndex),
 		Params:         GeneratorParamsFromPb(pb.Params),
 	}
 }
@@ -155,7 +154,7 @@ func (*NewModule) MirReflect() mirreflect.Type {
 }
 
 type GarbageCollect struct {
-	RetentionIndex types.RetentionIndex
+	RetentionIndex stdtypes.RetentionIndex
 }
 
 func GarbageCollectFromPb(pb *factorypb.GarbageCollect) *GarbageCollect {
@@ -163,7 +162,7 @@ func GarbageCollectFromPb(pb *factorypb.GarbageCollect) *GarbageCollect {
 		return nil
 	}
 	return &GarbageCollect{
-		RetentionIndex: (types.RetentionIndex)(pb.RetentionIndex),
+		RetentionIndex: (stdtypes.RetentionIndex)(pb.RetentionIndex),
 	}
 }
 
@@ -204,26 +203,26 @@ func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorPara
 	}
 	switch pb := pb.(type) {
 	case *factorypb.GeneratorParams_MultisigCollector:
-		return &GeneratorParams_MultisigCollector{MultisigCollector: types1.InstanceParamsFromPb(pb.MultisigCollector)}
+		return &GeneratorParams_MultisigCollector{MultisigCollector: types.InstanceParamsFromPb(pb.MultisigCollector)}
 	case *factorypb.GeneratorParams_Checkpoint:
-		return &GeneratorParams_Checkpoint{Checkpoint: types2.InstanceParamsFromPb(pb.Checkpoint)}
+		return &GeneratorParams_Checkpoint{Checkpoint: types1.InstanceParamsFromPb(pb.Checkpoint)}
 	case *factorypb.GeneratorParams_EchoTestModule:
 		return &GeneratorParams_EchoTestModule{EchoTestModule: EchoModuleParamsFromPb(pb.EchoTestModule)}
 	case *factorypb.GeneratorParams_PbftModule:
-		return &GeneratorParams_PbftModule{PbftModule: types3.PBFTModuleFromPb(pb.PbftModule)}
+		return &GeneratorParams_PbftModule{PbftModule: types2.PBFTModuleFromPb(pb.PbftModule)}
 	case *factorypb.GeneratorParams_PpvModule:
-		return &GeneratorParams_PpvModule{PpvModule: types4.PPrepValidatorChkpFromPb(pb.PpvModule)}
+		return &GeneratorParams_PpvModule{PpvModule: types3.PPrepValidatorChkpFromPb(pb.PpvModule)}
 	}
 	return nil
 }
 
 type GeneratorParams_MultisigCollector struct {
-	MultisigCollector *types1.InstanceParams
+	MultisigCollector *types.InstanceParams
 }
 
 func (*GeneratorParams_MultisigCollector) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_MultisigCollector) Unwrap() *types1.InstanceParams {
+func (w *GeneratorParams_MultisigCollector) Unwrap() *types.InstanceParams {
 	return w.MultisigCollector
 }
 
@@ -242,12 +241,12 @@ func (*GeneratorParams_MultisigCollector) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_Checkpoint struct {
-	Checkpoint *types2.InstanceParams
+	Checkpoint *types1.InstanceParams
 }
 
 func (*GeneratorParams_Checkpoint) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_Checkpoint) Unwrap() *types2.InstanceParams {
+func (w *GeneratorParams_Checkpoint) Unwrap() *types1.InstanceParams {
 	return w.Checkpoint
 }
 
@@ -290,12 +289,12 @@ func (*GeneratorParams_EchoTestModule) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_PbftModule struct {
-	PbftModule *types3.PBFTModule
+	PbftModule *types2.PBFTModule
 }
 
 func (*GeneratorParams_PbftModule) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_PbftModule) Unwrap() *types3.PBFTModule {
+func (w *GeneratorParams_PbftModule) Unwrap() *types2.PBFTModule {
 	return w.PbftModule
 }
 
@@ -314,12 +313,12 @@ func (*GeneratorParams_PbftModule) MirReflect() mirreflect.Type {
 }
 
 type GeneratorParams_PpvModule struct {
-	PpvModule *types4.PPrepValidatorChkp
+	PpvModule *types3.PPrepValidatorChkp
 }
 
 func (*GeneratorParams_PpvModule) isGeneratorParams_Type() {}
 
-func (w *GeneratorParams_PpvModule) Unwrap() *types4.PPrepValidatorChkp {
+func (w *GeneratorParams_PpvModule) Unwrap() *types3.PPrepValidatorChkp {
 	return w.PpvModule
 }
 

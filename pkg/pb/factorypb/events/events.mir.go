@@ -3,19 +3,18 @@
 package factorypbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	types "github.com/filecoin-project/mir/pkg/trantor/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
 )
 
-func NewModule(destModule stdtypes.ModuleID, moduleId stdtypes.ModuleID, retentionIndex types.RetentionIndex, params *types1.GeneratorParams) *types2.Event {
-	return &types2.Event{
+func NewModule(destModule stdtypes.ModuleID, moduleId stdtypes.ModuleID, retentionIndex stdtypes.RetentionIndex, params *types.GeneratorParams) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Factory{
-			Factory: &types1.Event{
-				Type: &types1.Event_NewModule{
-					NewModule: &types1.NewModule{
+		Type: &types1.Event_Factory{
+			Factory: &types.Event{
+				Type: &types.Event_NewModule{
+					NewModule: &types.NewModule{
 						ModuleId:       moduleId,
 						RetentionIndex: retentionIndex,
 						Params:         params,
@@ -26,13 +25,13 @@ func NewModule(destModule stdtypes.ModuleID, moduleId stdtypes.ModuleID, retenti
 	}
 }
 
-func GarbageCollect(destModule stdtypes.ModuleID, retentionIndex types.RetentionIndex) *types2.Event {
-	return &types2.Event{
+func GarbageCollect(destModule stdtypes.ModuleID, retentionIndex stdtypes.RetentionIndex) *types1.Event {
+	return &types1.Event{
 		DestModule: destModule,
-		Type: &types2.Event_Factory{
-			Factory: &types1.Event{
-				Type: &types1.Event_GarbageCollect{
-					GarbageCollect: &types1.GarbageCollect{
+		Type: &types1.Event_Factory{
+			Factory: &types.Event{
+				Type: &types.Event_GarbageCollect{
+					GarbageCollect: &types.GarbageCollect{
 						RetentionIndex: retentionIndex,
 					},
 				},

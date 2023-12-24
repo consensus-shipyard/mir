@@ -367,7 +367,7 @@ func New(
 			factorypbdsl.NewModule(iss.m,
 				iss.moduleConfig.PPrepValidatorChkp,
 				PPVId,
-				tt.RetentionIndex(epoch),
+				stdtypes.RetentionIndex(epoch),
 				ppv.InstanceParams(
 					seg.Membership,
 				))
@@ -376,7 +376,7 @@ func New(
 			factorypbdsl.NewModule(iss.m,
 				iss.moduleConfig.Ordering,
 				iss.moduleConfig.Ordering.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
-				tt.RetentionIndex(epoch),
+				stdtypes.RetentionIndex(epoch),
 				orderers.InstanceParams(
 					seg,
 					"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
@@ -529,9 +529,9 @@ func New(
 		// we prune all state related to anything before that checkpoint.
 		pruneIndex := chkp.Epoch()
 		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
 
 		return nil
 	})
@@ -623,7 +623,7 @@ func (iss *ISS) initAvailability() {
 		iss.m,
 		iss.moduleConfig.Availability,
 		availabilityID,
-		tt.RetentionIndex(iss.epoch.Nr()),
+		stdtypes.RetentionIndex(iss.epoch.Nr()),
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
 				MultisigCollector: &mscpbtypes.InstanceParams{
@@ -658,7 +658,7 @@ func (iss *ISS) initOrderers() error {
 			iss.moduleConfig.Ordering.
 				Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).
 				Then(stdtypes.ModuleID(fmt.Sprintf("%v", i))),
-			tt.RetentionIndex(iss.epoch.Nr()),
+			stdtypes.RetentionIndex(iss.epoch.Nr()),
 			orderers.InstanceParams(
 				seg,
 				iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
@@ -789,7 +789,7 @@ func (iss *ISS) advanceEpoch() error {
 	factorypbdsl.NewModule(iss.m,
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
-		tt.RetentionIndex(newEpochNr),
+		stdtypes.RetentionIndex(newEpochNr),
 		&factorypbtypes.GeneratorParams{
 			Type: &factorypbtypes.GeneratorParams_Checkpoint{
 				Checkpoint: &checkpointpbtypes.InstanceParams{
@@ -917,10 +917,10 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 
 		// Prune timer, checkpointing, availability, orderers, and other modules.
 		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, tt.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, tt.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
+		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, stdtypes.RetentionIndex(pruneIndex))
 		batchdbpbdsl.GarbageCollect(iss.m, iss.moduleConfig.BatchDB, tt.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.
