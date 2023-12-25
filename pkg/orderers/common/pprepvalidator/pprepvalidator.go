@@ -13,6 +13,7 @@ import (
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/stdmodules/factory"
 	t "github.com/filecoin-project/mir/stdtypes"
+	"google.golang.org/protobuf/proto"
 )
 
 // ModuleConfig sets the module ids.
@@ -48,9 +49,10 @@ func NewPprepValidatorChkpFactory(mc ModuleConfig,
 				submc := mc
 				submc.Self = submoduleID
 				// Load parameters from received protobuf
-				p := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_PpvModule).PpvModule
+				membership := (*trantorpbtypes.Membership)(params.(*PPVParams))
+				// TODO: Use a switch statement and check for a serialized form of the parameters.
 
-				return NewModule(submc, NewCheckpointValidityChecker(hashImpl, chkpVerifier, p.Membership, configOffset, logger)), nil
+				return NewModule(submc, NewCheckpointValidityChecker(hashImpl, chkpVerifier, membership, configOffset, logger)), nil
 			},
 		),
 		logger,
@@ -66,4 +68,10 @@ func InstanceParams(
 			Membership: membership,
 		},
 	}}
+}
+
+type PPVParams trantorpbtypes.Membership
+
+func (ppvp *PPVParams) ToBytes() ([]byte, error) {
+	return proto.Marshal((*trantorpbtypes.Membership)(ppvp).Pb())
 }

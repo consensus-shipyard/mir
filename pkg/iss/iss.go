@@ -364,13 +364,12 @@ func New(
 
 			// Instantiate a CheckpointPPV module from the PreprepareValidator factory
 			PPVId := iss.moduleConfig.PPrepValidatorChkp.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch)))
-			factorypbdsl.NewModule(iss.m,
+			stddsl.NewSubmodule(iss.m,
 				iss.moduleConfig.PPrepValidatorChkp,
 				PPVId,
+				(*ppv.PPVParams)(seg.Membership),
 				stdtypes.RetentionIndex(epoch),
-				ppv.InstanceParams(
-					seg.Membership,
-				))
+			)
 
 			// Instantiate a new PBFT orderer.
 			factorypbdsl.NewModule(iss.m,
