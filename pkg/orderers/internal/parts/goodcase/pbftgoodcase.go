@@ -3,6 +3,7 @@ package goodcase
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -14,7 +15,6 @@ import (
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
 	apbdsl "github.com/filecoin-project/mir/pkg/pb/availabilitypb/dsl"
 	availabilitypbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	hasherpbdsl "github.com/filecoin-project/mir/pkg/pb/hasherpb/dsl"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	ppvpbdsl "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/dsl"
@@ -42,7 +42,7 @@ func IncludeGoodCase(
 	// The Init event is expected to be the first event applied to the State,
 	// except for events read from the WAL at startup, which are expected to be applied even before the Init event.
 	// (At this time, the WAL is not used. TODO: Update this when wal is implemented.)
-	eventpbdsl.UponInit(m, func() error {
+	dsl.UponEvent(m, func(_ *stdevents.Init) error {
 		// Initialize the first PBFT view
 		if err := state.InitView(m, params, moduleConfig, 0, logger); err != nil {
 			return err

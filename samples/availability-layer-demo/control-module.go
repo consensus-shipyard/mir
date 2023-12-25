@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -41,41 +42,42 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *stdtypes.EventLis
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		// We only support proto events.
-		pbevent, ok := event.(*eventpb.Event)
-		if !ok {
-			return es.Errorf("Availability demo control module only supports proto events, received %T", event)
-		}
-
-		switch event := pbevent.Type.(type) {
-
-		case *eventpb.Event_Init:
+		switch event := event.(type) {
+		case *stdevents.Init:
 			go func() {
 				err := m.readConsole()
 				if err != nil {
 					panic(err)
 				}
 			}()
+		case *eventpb.Event:
+			switch event := event.Type.(type) {
 
-		case *eventpb.Event_Availability:
-			switch event := event.Availability.Type.(type) {
+			case *eventpb.Event_Availability:
+				switch event := event.Availability.Type.(type) {
 
-			case *availabilitypb.Event_NewCert:
-				certBytes, err := proto.Marshal(event.NewCert.Cert)
-				if err != nil {
-					return es.Errorf("error marshalling certificate: %w", err)
+				case *availabilitypb.Event_NewCert:
+					certBytes, err := proto.Marshal(event.NewCert.Cert)
+					if err != nil {
+						return es.Errorf("error marshalling certificate: %w", err)
+					}
+
+					fmt.Println(base64.StdEncoding.EncodeToString(certBytes))
+					close(m.readyForNextCommand)
+
+				case *availabilitypb.Event_ProvideTransactions:
+					for _, tx := range event.ProvideTransactions.Txs {
+						fmt.Println(string(tx.Data))
+					}
+					close(m.readyForNextCommand)
+				default:
+					return es.Errorf("unknown availability event type: %T", event)
 				}
-
-				fmt.Println(base64.StdEncoding.EncodeToString(certBytes))
-				close(m.readyForNextCommand)
-
-			case *availabilitypb.Event_ProvideTransactions:
-				for _, tx := range event.ProvideTransactions.Txs {
-					fmt.Println(string(tx.Data))
-				}
-				close(m.readyForNextCommand)
+			default:
+				return es.Errorf("unknown proto event type: %T", event)
 			}
-
+		default:
+			return es.Errorf("unknown event type: %T", event)
 		}
 	}
 

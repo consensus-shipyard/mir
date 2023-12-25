@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
@@ -128,6 +129,12 @@ func (m *simTransportModule) ApplyEvents(ctx context.Context, eventList *stdtype
 
 func (m *simTransportModule) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
+	// Ignore Init event.
+	_, ok := event.(*stdevents.Init)
+	if ok {
+		return nil
+	}
+
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
 	if !ok {
@@ -135,8 +142,6 @@ func (m *simTransportModule) applyEvent(ctx context.Context, event stdtypes.Even
 	}
 
 	switch e := pbevent.Type.(type) {
-	case *eventpb.Event_Init:
-		// do nothing
 	case *eventpb.Event_Transport:
 		switch e := e.Transport.Type.(type) {
 		case *transportpb.Event_SendMessage:

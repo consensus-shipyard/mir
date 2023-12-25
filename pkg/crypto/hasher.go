@@ -3,6 +3,7 @@ package crypto
 import (
 	"hash"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -37,6 +38,12 @@ func (hasher *Hasher) ApplyEvents(eventsIn *stdtypes.EventList) (*stdtypes.Event
 
 func (hasher *Hasher) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
+	// Ignore Init event.
+	_, ok := event.(*stdevents.Init)
+	if ok {
+		return stdtypes.EmptyList(), nil
+	}
+
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
 	if !ok {
@@ -44,9 +51,6 @@ func (hasher *Hasher) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 	}
 
 	switch e := pbevent.Type.(type) {
-	case *eventpb.Event_Init:
-		// no actions on init
-		return stdtypes.EmptyList(), nil
 	case *eventpb.Event_Hasher:
 		switch e := e.Hasher.Type.(type) {
 		case *hasherpb.Event_Request:

@@ -3,6 +3,7 @@
 package threshcrypto
 
 import (
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -27,6 +28,12 @@ func (c *MirModule) ApplyEvents(eventsIn *stdtypes.EventList) (*stdtypes.EventLi
 
 func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
+	// Ignore Init event.
+	_, ok := event.(*stdevents.Init)
+	if ok {
+		return stdtypes.EmptyList(), nil
+	}
+
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
 	if !ok {
@@ -34,9 +41,6 @@ func (c *MirModule) ApplyEvent(event stdtypes.Event) (*stdtypes.EventList, error
 	}
 
 	switch e := pbevent.Type.(type) {
-	case *eventpb.Event_Init:
-		// no actions on init
-		return stdtypes.EmptyList(), nil
 	case *eventpb.Event_ThreshCrypto:
 		return c.applyTCEvent(e.ThreshCrypto)
 	default:

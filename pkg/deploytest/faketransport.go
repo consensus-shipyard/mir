@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 
 	es "github.com/go-errors/errors"
@@ -44,6 +45,12 @@ func (fl *FakeLink) ApplyEvents(
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
+		// Ignore Init event.
+		_, ok := event.(*stdevents.Init)
+		if ok {
+			return nil
+		}
+
 		// We only support proto events.
 		pbevent, ok := event.(*eventpb.Event)
 		if !ok {
@@ -51,8 +58,6 @@ func (fl *FakeLink) ApplyEvents(
 		}
 
 		switch e := pbevent.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
 		case *eventpb.Event_Transport:
 			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
 			case *transportpbtypes.Event_SendMessage:

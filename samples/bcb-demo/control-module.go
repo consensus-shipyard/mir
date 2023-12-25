@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -33,15 +34,8 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *stdtypes.EventLis
 	iter := events.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
-		// We only support proto events.
-		pbevent, ok := event.(*eventpb.Event)
-		if !ok {
-			return es.Errorf("The bcb control module only supports proto events, received %T", event)
-		}
-
-		switch pbevent.Type.(type) {
-
-		case *eventpb.Event_Init:
+		switch evt := event.(type) {
+		case *stdevents.Init:
 			if m.isLeader {
 				go func() {
 					err := m.readMessageFromConsole()
@@ -52,22 +46,24 @@ func (m *controlModule) ApplyEvents(_ context.Context, events *stdtypes.EventLis
 			} else {
 				fmt.Println("Waiting for the message...")
 			}
-
-		case *eventpb.Event_Bcb:
-			bcbEvent := pbevent.Type.(*eventpb.Event_Bcb).Bcb
-			switch bcbEvent.Type.(type) {
-
-			case *bcbpb.Event_Deliver:
-				deliverEvent := bcbEvent.Type.(*bcbpb.Event_Deliver).Deliver
-				fmt.Println("Leader says: ", string(deliverEvent.Data))
+		case *eventpb.Event:
+			switch e := evt.Type.(type) {
+			case *eventpb.Event_Bcb:
+				switch bcbEvent := e.Bcb.Type.(type) {
+				case *bcbpb.Event_Deliver:
+					deliverEvent := bcbEvent.Deliver
+					fmt.Println("Leader says: ", string(deliverEvent.Data))
+				default:
+					return es.Errorf("unknown bcb event type: %T", e.Bcb.Type)
+				}
 
 			default:
-				return es.Errorf("unknown bcb event type: %T", bcbEvent.Type)
+				return es.Errorf("unknown proto event type: %T", evt.Type)
 			}
-
 		default:
-			return es.Errorf("unknown event type: %T", pbevent.Type)
+			return es.Errorf("unknown event type: %T", event)
 		}
+
 	}
 
 	return nil

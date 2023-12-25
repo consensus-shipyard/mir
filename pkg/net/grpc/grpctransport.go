@@ -12,6 +12,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -118,6 +119,8 @@ func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this funct
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
 		switch evt := event.(type) {
+		case *stdevents.Init:
+			// no actions on init
 		case *OutgoingMessage:
 			for _, destID := range evt.DestNodes {
 				msgData, err := evt.Data.ToBytes()
@@ -150,8 +153,6 @@ func (gt *Transport) ApplyEvents( //nolint:gocognit // TODO: Simplify this funct
 			}
 		case *eventpb.Event:
 			switch e := evt.Type.(type) {
-			case *eventpb.Event_Init:
-				// no actions on init
 			case *eventpb.Event_Transport:
 				switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
 				case *transportpbtypes.Event_SendMessage:

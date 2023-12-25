@@ -19,7 +19,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/modules/mockmodules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
 )
 
@@ -72,10 +71,10 @@ func TestNode_Run(t *testing.T) {
 			var wg sync.WaitGroup
 			wg.Add(2)
 
-			mockModule1.EXPECT().Event(&eventpb.Event{DestModule: "mock1", Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}).
+			mockModule1.EXPECT().Event(stdevents.NewInit("mock1")).
 				Do(func(_ any) { wg.Done() }).
 				Return(stdtypes.EmptyList(), nil)
-			mockModule2.EXPECT().Event(&eventpb.Event{DestModule: "mock2", Type: &eventpb.Event_Init{Init: &eventpb.Init{}}}).
+			mockModule2.EXPECT().Event(stdevents.NewInit("mock2")).
 				Do(func(_ any) { wg.Done() }).
 				Return(stdtypes.EmptyList(), nil)
 

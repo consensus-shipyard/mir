@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/stdtypes"
@@ -19,7 +20,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 )
 
@@ -509,11 +509,7 @@ func (n *Node) inputIsPaused() bool {
 func createInitEvents(m modules.Modules) *stdtypes.EventList {
 	initEvents := stdtypes.EmptyList()
 	for moduleID := range m {
-		// TODO: Use stdevents.Init instead of the old protobuf event.
-		initEvents.PushBack(&eventpb.Event{
-			DestModule: moduleID.String(),
-			Type:       &eventpb.Event_Init{Init: &eventpb.Init{}},
-		})
+		initEvents.PushBack(stdevents.NewInit(moduleID))
 	}
 	return initEvents
 }

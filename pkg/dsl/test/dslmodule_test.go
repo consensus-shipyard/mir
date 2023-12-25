@@ -174,7 +174,7 @@ func TestDslModule_ApplyEvents(t *testing.T) {
 		"test unknown event type": {
 			eventsIn:  stdtypes.ListOf(testerpbevents.Tester(mc.Self).Pb()),
 			eventsOut: stdtypes.EmptyList(),
-			err:       errors.New("unknown event type '*eventpb.Event_Tester'"),
+			err:       errors.New("unknown event type '*eventpb.Event'"),
 		},
 		"test failed condition": {
 			eventsIn:  stdtypes.ListOf(stdevents.NewTestUint64(mc.Self, 2000)),

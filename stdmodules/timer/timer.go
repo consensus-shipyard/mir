@@ -7,7 +7,6 @@ import (
 
 	es "github.com/go-errors/errors"
 
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 )
@@ -51,11 +50,6 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 	// when they are later, as this happens potentially concurrently
 	// with the original event being processed by the interceptor.
 	switch e := event.(type) {
-	case *eventpb.Event:
-		// Support for legacy proto events. TODO: Remove this eventually.
-		if err := tm.applyLegacyPbEvent(e); err != nil {
-			return err
-		}
 	case *stdevents.Init:
 		// Nothing to initialize.
 	case *stdevents.TimerDelay:
@@ -68,17 +62,6 @@ func (tm *Timer) applyEvent(ctx context.Context, event stdtypes.Event) error {
 		return es.Errorf("unexpected event type: %T", e)
 	}
 
-	return nil
-}
-
-// TODO: Remove this function when other modules are updated to use stdevents with the Timer.
-func (tm *Timer) applyLegacyPbEvent(event *eventpb.Event) error {
-	switch event.Type.(type) {
-	case *eventpb.Event_Init:
-		// no actions on init
-	default:
-		return es.Errorf("unexpected type of Timer event: %T", event.Type)
-	}
 	return nil
 }
 

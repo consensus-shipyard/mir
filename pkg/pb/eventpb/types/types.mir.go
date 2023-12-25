@@ -48,8 +48,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return nil
 	}
 	switch pb := pb.(type) {
-	case *eventpb.Event_Init:
-		return &Event_Init{Init: InitFromPb(pb.Init)}
 	case *eventpb.Event_Hasher:
 		return &Event_Hasher{Hasher: types.EventFromPb(pb.Hasher)}
 	case *eventpb.Event_Bcb:
@@ -92,30 +90,6 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Tester{Tester: types16.TesterFromPb(pb.Tester)}
 	}
 	return nil
-}
-
-type Event_Init struct {
-	Init *Init
-}
-
-func (*Event_Init) isEvent_Type() {}
-
-func (w *Event_Init) Unwrap() *Init {
-	return w.Init
-}
-
-func (w *Event_Init) Pb() eventpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Init == nil {
-		return &eventpb.Event_Init{}
-	}
-	return &eventpb.Event_Init{Init: (w.Init).Pb()}
-}
-
-func (*Event_Init) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Init]()}
 }
 
 type Event_Hasher struct {
@@ -625,28 +599,4 @@ func (m *Event) Pb() *eventpb.Event {
 
 func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event]()}
-}
-
-type Init struct{}
-
-func InitFromPb(pb *eventpb.Init) *Init {
-	if pb == nil {
-		return nil
-	}
-	return &Init{}
-}
-
-func (m *Init) Pb() *eventpb.Init {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &eventpb.Init{}
-	{
-	}
-
-	return pbMessage
-}
-
-func (*Init) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Init]()}
 }

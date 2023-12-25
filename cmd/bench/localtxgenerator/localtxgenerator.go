@@ -7,14 +7,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	es "github.com/go-errors/errors"
-
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 )
@@ -158,15 +156,8 @@ func (gen *LocalTXGen) ImplementsModule() {}
 // ApplyEvents returns an error on any event it receives, except fot the Init event, which it silently ignores.
 func (gen *LocalTXGen) ApplyEvents(_ context.Context, evts *stdtypes.EventList) error {
 	for _, evt := range evts.Slice() {
-
-		// We only support proto events.
-		pbevent, ok := evt.(*eventpb.Event)
-		if !ok {
-			return es.Errorf("Timer only supports proto events, but received %T", evt)
-		}
-
 		// Complain about anything else than an Init event.
-		if _, ok := pbevent.Type.(*eventpb.Event_Init); !ok {
+		if _, ok := evt.(*stdevents.Init); !ok {
 			return fmt.Errorf("local request generator cannot apply events other than Init")
 		}
 	}
