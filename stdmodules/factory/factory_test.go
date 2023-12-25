@@ -15,9 +15,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	factorypbevents "github.com/filecoin-project/mir/pkg/pb/factorypb/events"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
-	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/testlogger"
 )
@@ -62,11 +59,11 @@ func (em *echoModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
 	return New(
 		echoFactoryID,
-		DefaultParams(func(id stdtypes.ModuleID, params *factorypbtypes.GeneratorParams) (modules.PassiveModule, error) {
+		DefaultParams(func(id stdtypes.ModuleID, params any) (modules.PassiveModule, error) {
 			return &echoModule{
 				t:      t,
 				id:     id,
-				prefix: params.Type.(*factorypbtypes.GeneratorParams_EchoTestModule).EchoTestModule.Prefix,
+				prefix: string(params.(EchoModuleParams)),
 			}, nil
 		}),
 		logger)
@@ -82,12 +79,12 @@ func TestFactoryModule(t *testing.T) {
 
 		"00 Instantiate": func(t *testing.T) {
 			echoFactory = newEchoFactory(t, logger)
-			evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(factorypbevents.NewModule(
+			evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(stdevents.NewNewSubmodule(
 				echoFactoryID,
 				echoFactoryID.Then("inst0"),
-				0,
 				EchoModuleParams("Inst 0: "),
-			).Pb()))
+				0,
+			)))
 			assert.NoError(t, err)
 			assert.Equal(t, 1, evOut.Len())
 			assert.Equal(t, echoFactoryID, evOut.Slice()[0].Dest())
@@ -112,12 +109,12 @@ func TestFactoryModule(t *testing.T) {
 
 		"02 Instantiate many": func(t *testing.T) {
 			for i := 1; i <= 5; i++ {
-				evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(factorypbevents.NewModule(
+				evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(stdevents.NewNewSubmodule(
 					echoFactoryID,
 					echoFactoryID.Then(stdtypes.ModuleID(fmt.Sprintf("inst%d", i))),
-					tt.RetentionIndex(i),
 					EchoModuleParams(fmt.Sprintf("Inst %d: ", i)),
-				).Pb()))
+					stdtypes.RetentionIndex(i),
+				)))
 				assert.NoError(t, err)
 				assert.Equal(t, 1, evOut.Len())
 				assert.Equal(t, echoFactoryID, evOut.Slice()[0].Dest())
@@ -177,10 +174,10 @@ func TestFactoryModule(t *testing.T) {
 		},
 
 		"06 Garbage-collect some": func(t *testing.T) {
-			evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(factorypbevents.GarbageCollect(
+			evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(stdevents.NewGarbageCollect(
 				echoFactoryID,
 				3,
-			).Pb()))
+			)))
 			assert.NoError(t, err)
 			assert.Equal(t, 0, evOut.Len())
 		},
@@ -230,11 +227,17 @@ func TestFactoryModule(t *testing.T) {
 	})
 }
 
-func EchoModuleParams(prefix string) *factorypbtypes.GeneratorParams {
-	return &factorypbtypes.GeneratorParams{
-		Type: &factorypbtypes.GeneratorParams_EchoTestModule{
-			EchoTestModule: &factorypbtypes.EchoModuleParams{
-				Prefix: prefix,
-			},
-		}}
+//func EchoModuleParams(prefix string) *factorypbtypes.GeneratorParams {
+//	return &factorypbtypes.GeneratorParams{
+//		Type: &factorypbtypes.GeneratorParams_EchoTestModule{
+//			EchoTestModule: &factorypbtypes.EchoModuleParams{
+//				Prefix: prefix,
+//			},
+//		}}
+//}
+
+type EchoModuleParams string
+
+func (emp EchoModuleParams) ToBytes() ([]byte, error) {
+	return []byte(emp), nil
 }
