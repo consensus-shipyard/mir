@@ -45,7 +45,6 @@ import (
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
@@ -784,25 +783,22 @@ func (iss *ISS) advanceEpoch() error {
 	// i.e., as sequence numbers start at 0, the checkpoint includes the first iss.nextDeliveredSN sequence numbers.
 	// The membership used for the checkpoint tracker still must be the old membership.
 	chkpModuleID := iss.moduleConfig.Checkpoint.Then(stdtypes.ModuleID(fmt.Sprintf("%v", newEpochNr)))
-	factorypbdsl.NewModule(iss.m,
+	stddsl.NewSubmodule(iss.m,
 		iss.moduleConfig.Checkpoint,
 		chkpModuleID,
-		stdtypes.RetentionIndex(newEpochNr),
-		&factorypbtypes.GeneratorParams{
-			Type: &factorypbtypes.GeneratorParams_Checkpoint{
-				Checkpoint: &checkpointpbtypes.InstanceParams{
-					Membership:       oldMembership,
-					ResendPeriod:     checkpoint.DefaultResendPeriod,
-					LeaderPolicyData: leaderPolicyData,
-					EpochConfig: &trantorpbtypes.EpochConfig{ // nolint:govet
-						iss.epoch.Nr(),
-						iss.epoch.FirstSN(),
-						uint64(iss.epoch.Len()),
-						iss.memberships,
-					},
-				},
+		&checkpoint.ModuleParams{
+			OwnID:            iss.ownID,
+			Membership:       oldMembership,
+			ResendPeriod:     checkpoint.DefaultResendPeriod,
+			LeaderPolicyData: leaderPolicyData,
+			EpochConfig: &trantorpbtypes.EpochConfig{ // nolint:govet
+				iss.epoch.Nr(),
+				iss.epoch.FirstSN(),
+				uint64(iss.epoch.Len()),
+				iss.memberships,
 			},
 		},
+		stdtypes.RetentionIndex(newEpochNr),
 	)
 
 	// Ask the application for a state snapshot and have it send the result directly to the checkpoint module.
