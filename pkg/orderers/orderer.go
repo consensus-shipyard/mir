@@ -18,10 +18,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/orderers/internal/parts/goodcase"
 	viewchange2 "github.com/filecoin-project/mir/pkg/orderers/internal/parts/viewchange"
 	ot "github.com/filecoin-project/mir/pkg/orderers/types"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/stdtypes"
+	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================
@@ -117,18 +117,22 @@ func removeNodeID(membership []stdtypes.NodeID, nID stdtypes.NodeID) []stdtypes.
 	return others
 }
 
-func InstanceParams(
+func NewInstanceParams(
 	segment *common2.Segment,
 	availabilityID stdtypes.ModuleID,
 	epoch tt.EpochNr,
 	PPVId stdtypes.ModuleID,
-) *factorypbtypes.GeneratorParams {
-	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PbftModule{
-		PbftModule: &ordererpbtypes.PBFTModule{
-			Segment:        segment.PbType(),
-			AvailabilityId: availabilityID.String(), // TODO: Figure out proper serialization of module IDs.
-			Epoch:          epoch.Pb(),
-			PpvModuleId:    string(PPVId),
-		},
-	}}
+) *InstanceParams {
+	return (*InstanceParams)(&ordererpbtypes.PBFTModule{
+		Segment:        segment.PbType(),
+		AvailabilityId: availabilityID.String(), // TODO: Figure out proper serialization of module IDs.
+		Epoch:          epoch.Pb(),
+		PpvModuleId:    string(PPVId),
+	})
+}
+
+type InstanceParams ordererpbtypes.PBFTModule
+
+func (ip *InstanceParams) ToBytes() ([]byte, error) {
+	return proto.Marshal((*ordererpbtypes.PBFTModule)(ip).Pb())
 }

@@ -372,16 +372,17 @@ func New(
 			)
 
 			// Instantiate a new PBFT orderer.
-			factorypbdsl.NewModule(iss.m,
+			stddsl.NewSubmodule(iss.m,
 				iss.moduleConfig.Ordering,
 				iss.moduleConfig.Ordering.Then(stdtypes.ModuleID(fmt.Sprintf("%v", epoch))).Then("chkp"),
-				stdtypes.RetentionIndex(epoch),
-				orderers.InstanceParams(
+				orderers.NewInstanceParams(
 					seg,
 					"", // The checkpoint orderer should never talk to the availability module, as it has a set proposal.
 					epoch,
 					PPVId,
-				))
+				),
+				stdtypes.RetentionIndex(epoch),
+			)
 
 			return nil
 		})
@@ -653,17 +654,18 @@ func (iss *ISS) initOrderers() error {
 		iss.newEpochSN += tt.SeqNr(seg.Len())
 
 		// Instantiate a new PBFT orderer.
-		factorypbdsl.NewModule(iss.m, iss.moduleConfig.Ordering,
+		stddsl.NewSubmodule(iss.m, iss.moduleConfig.Ordering,
 			iss.moduleConfig.Ordering.
 				Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))).
 				Then(stdtypes.ModuleID(fmt.Sprintf("%v", i))),
-			stdtypes.RetentionIndex(iss.epoch.Nr()),
-			orderers.InstanceParams(
+			orderers.NewInstanceParams(
 				seg,
 				iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
 				iss.epoch.Nr(),
 				iss.moduleConfig.PPrepValidator,
-			))
+			),
+			stdtypes.RetentionIndex(iss.epoch.Nr()),
+		)
 
 		//Add the segment to the list of segments.
 		iss.epoch.Segments = append(iss.epoch.Segments, seg)
