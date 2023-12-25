@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -92,6 +93,8 @@ func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, 
 	switch evt := event.(type) {
 	case *eventpb.Event:
 		return fm.applyLegacyProtoEvent(evt)
+	case *stdevents.NewSubmodule:
+		return fm.NewSubmodule(evt.SubmoduleID, evt.Params, evt.RetentionIndex)
 	default:
 		return nil, es.Errorf("unexpected event type: %T", event)
 	}
