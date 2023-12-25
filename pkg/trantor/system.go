@@ -188,7 +188,6 @@ func New(
 	// It is created as a factory, since each checkpoint uses its own instance of the checkpointing protocol.
 	trantorModules[moduleConfig.Checkpointing] = checkpoint.Factory(
 		moduleConfig.ConfigureCheckpointing(),
-		ownID,
 		logging.Decorate(logger, "CHKP: "),
 	)
 
