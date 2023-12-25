@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
@@ -619,20 +620,16 @@ func (iss *ISS) initAvailability() {
 	availabilityID := iss.moduleConfig.Availability.Then(stdtypes.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr())))
 	//events := make([]*eventpb.Event, 0)
 
-	factorypbdsl.NewModule(
+	stddsl.NewSubmodule(
 		iss.m,
 		iss.moduleConfig.Availability,
 		availabilityID,
+		(*multisigcollector.InstanceParams)(&mscpbtypes.InstanceParams{
+			Epoch:       iss.epoch.Nr(),
+			Membership:  iss.memberships[0],
+			MaxRequests: uint64(iss.Params.SegmentLength),
+		}),
 		stdtypes.RetentionIndex(iss.epoch.Nr()),
-		&factorypbtypes.GeneratorParams{
-			Type: &factorypbtypes.GeneratorParams_MultisigCollector{
-				MultisigCollector: &mscpbtypes.InstanceParams{
-					Epoch:       iss.epoch.Nr(),
-					Membership:  iss.memberships[0],
-					MaxRequests: uint64(iss.Params.SegmentLength),
-				},
-			},
-		},
 	)
 
 	apbdsl.ComputeCert(iss.m, availabilityID)

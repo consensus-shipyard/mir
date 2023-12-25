@@ -10,9 +10,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	"github.com/filecoin-project/mir/stdmodules/factory"
 	t "github.com/filecoin-project/mir/stdtypes"
+	"google.golang.org/protobuf/proto"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.
@@ -60,7 +61,8 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 			func(mscID t.ModuleID, params any) (modules.PassiveModule, error) {
 
 				// Extract the IDs of the nodes in the membership associated with this instance
-				mscParams := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_MultisigCollector).MultisigCollector
+				// TODO: Use a switch statement and check for a serialized form of the parameters.
+				mscParams := (*mscpbtypes.InstanceParams)(params.(*InstanceParams))
 
 				// Create a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
@@ -89,4 +91,10 @@ func NewReconfigurableModule(mc ModuleConfig, paramsTemplate ModuleParams, logge
 		),
 		logger,
 	)
+}
+
+type InstanceParams mscpbtypes.InstanceParams
+
+func (ip *InstanceParams) ToBytes() ([]byte, error) {
+	return proto.Marshal((*mscpbtypes.InstanceParams)(ip).Pb())
 }
