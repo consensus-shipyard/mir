@@ -10,7 +10,6 @@ import "google/protobuf/wrappers.proto";
 import "bcbpb/bcbpb.proto";
 import "mempoolpb/mempoolpb.proto";
 import "availabilitypb/availabilitypb.proto";
-import "factorypb/factorypb.proto";
 import "availabilitypb/batchdbpb/batchdbpb.proto";
 import "batchfetcherpb/batchfetcherpb.proto";
 import "threshcryptopb/threshcryptopb.proto";
@@ -47,7 +46,6 @@ message Event {
       batchfetcherpb.Event batch_fetcher   = 15;
       threshcryptopb.Event thresh_crypto   = 16;
         checkpointpb.Event checkpoint      = 17;
-           factorypb.Event factory         = 18;
                isspb.Event iss             = 19;
            ordererpb.Event orderer         = 20;
             cryptopb.Event crypto          = 21;

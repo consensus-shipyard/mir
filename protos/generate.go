@@ -31,7 +31,6 @@ package protos
 //go:generate protoc-events mempoolpb/mempoolpb.proto
 //go:generate protoc-events availabilitypb/availabilitypb.proto
 //go:generate protoc-events availabilitypb/mscpb/mscpb.proto
-//go:generate protoc-events factorypb/factorypb.proto
 //go:generate protoc-events availabilitypb/batchdbpb/batchdbpb.proto
 //go:generate protoc-events batchfetcherpb/batchfetcherpb.proto
 //go:generate protoc-events threshcryptopb/threshcryptopb.proto
@@ -68,7 +67,6 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/pbftpb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/factorypb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/cryptopb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/apppb"

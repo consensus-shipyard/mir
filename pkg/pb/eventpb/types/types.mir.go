@@ -4,25 +4,24 @@ package eventpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types12 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
+	types11 "github.com/filecoin-project/mir/pkg/pb/apppb/types"
 	types4 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/batchdbpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types14 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
+	types13 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb/types"
 	types7 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	types11 "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
+	types10 "github.com/filecoin-project/mir/pkg/pb/cryptopb/types"
 	eventpb "github.com/filecoin-project/mir/pkg/pb/eventpb"
-	types8 "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/hasherpb/types"
-	types9 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
+	types8 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
-	types15 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
-	types10 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
-	types16 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
-	types17 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
+	types14 "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
+	types9 "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
+	types15 "github.com/filecoin-project/mir/pkg/pb/pingpongpb/types"
+	types16 "github.com/filecoin-project/mir/pkg/pb/testerpb/types"
 	types6 "github.com/filecoin-project/mir/pkg/pb/threshcryptopb/types"
-	types13 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
+	types12 "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	stdtypes "github.com/filecoin-project/mir/stdtypes"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -67,32 +66,30 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_ThreshCrypto{ThreshCrypto: types6.EventFromPb(pb.ThreshCrypto)}
 	case *eventpb.Event_Checkpoint:
 		return &Event_Checkpoint{Checkpoint: types7.EventFromPb(pb.Checkpoint)}
-	case *eventpb.Event_Factory:
-		return &Event_Factory{Factory: types8.EventFromPb(pb.Factory)}
 	case *eventpb.Event_Iss:
-		return &Event_Iss{Iss: types9.EventFromPb(pb.Iss)}
+		return &Event_Iss{Iss: types8.EventFromPb(pb.Iss)}
 	case *eventpb.Event_Orderer:
-		return &Event_Orderer{Orderer: types10.EventFromPb(pb.Orderer)}
+		return &Event_Orderer{Orderer: types9.EventFromPb(pb.Orderer)}
 	case *eventpb.Event_Crypto:
-		return &Event_Crypto{Crypto: types11.EventFromPb(pb.Crypto)}
+		return &Event_Crypto{Crypto: types10.EventFromPb(pb.Crypto)}
 	case *eventpb.Event_App:
-		return &Event_App{App: types12.EventFromPb(pb.App)}
+		return &Event_App{App: types11.EventFromPb(pb.App)}
 	case *eventpb.Event_Transport:
-		return &Event_Transport{Transport: types13.EventFromPb(pb.Transport)}
+		return &Event_Transport{Transport: types12.EventFromPb(pb.Transport)}
 	case *eventpb.Event_ChkpValidator:
-		return &Event_ChkpValidator{ChkpValidator: types14.EventFromPb(pb.ChkpValidator)}
+		return &Event_ChkpValidator{ChkpValidator: types13.EventFromPb(pb.ChkpValidator)}
 	case *eventpb.Event_PprepValiadtor:
-		return &Event_PprepValiadtor{PprepValiadtor: types15.EventFromPb(pb.PprepValiadtor)}
+		return &Event_PprepValiadtor{PprepValiadtor: types14.EventFromPb(pb.PprepValiadtor)}
 	case *eventpb.Event_Serialized:
 		return &Event_Serialized{Serialized: pb.Serialized}
 	case *eventpb.Event_PingPong:
-		return &Event_PingPong{PingPong: types16.EventFromPb(pb.PingPong)}
+		return &Event_PingPong{PingPong: types15.EventFromPb(pb.PingPong)}
 	case *eventpb.Event_TestingString:
 		return &Event_TestingString{TestingString: pb.TestingString}
 	case *eventpb.Event_TestingUint:
 		return &Event_TestingUint{TestingUint: pb.TestingUint}
 	case *eventpb.Event_Tester:
-		return &Event_Tester{Tester: types17.TesterFromPb(pb.Tester)}
+		return &Event_Tester{Tester: types16.TesterFromPb(pb.Tester)}
 	}
 	return nil
 }
@@ -313,37 +310,13 @@ func (*Event_Checkpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Checkpoint]()}
 }
 
-type Event_Factory struct {
-	Factory *types8.Event
-}
-
-func (*Event_Factory) isEvent_Type() {}
-
-func (w *Event_Factory) Unwrap() *types8.Event {
-	return w.Factory
-}
-
-func (w *Event_Factory) Pb() eventpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.Factory == nil {
-		return &eventpb.Event_Factory{}
-	}
-	return &eventpb.Event_Factory{Factory: (w.Factory).Pb()}
-}
-
-func (*Event_Factory) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Factory]()}
-}
-
 type Event_Iss struct {
-	Iss *types9.Event
+	Iss *types8.Event
 }
 
 func (*Event_Iss) isEvent_Type() {}
 
-func (w *Event_Iss) Unwrap() *types9.Event {
+func (w *Event_Iss) Unwrap() *types8.Event {
 	return w.Iss
 }
 
@@ -362,12 +335,12 @@ func (*Event_Iss) MirReflect() mirreflect.Type {
 }
 
 type Event_Orderer struct {
-	Orderer *types10.Event
+	Orderer *types9.Event
 }
 
 func (*Event_Orderer) isEvent_Type() {}
 
-func (w *Event_Orderer) Unwrap() *types10.Event {
+func (w *Event_Orderer) Unwrap() *types9.Event {
 	return w.Orderer
 }
 
@@ -386,12 +359,12 @@ func (*Event_Orderer) MirReflect() mirreflect.Type {
 }
 
 type Event_Crypto struct {
-	Crypto *types11.Event
+	Crypto *types10.Event
 }
 
 func (*Event_Crypto) isEvent_Type() {}
 
-func (w *Event_Crypto) Unwrap() *types11.Event {
+func (w *Event_Crypto) Unwrap() *types10.Event {
 	return w.Crypto
 }
 
@@ -410,12 +383,12 @@ func (*Event_Crypto) MirReflect() mirreflect.Type {
 }
 
 type Event_App struct {
-	App *types12.Event
+	App *types11.Event
 }
 
 func (*Event_App) isEvent_Type() {}
 
-func (w *Event_App) Unwrap() *types12.Event {
+func (w *Event_App) Unwrap() *types11.Event {
 	return w.App
 }
 
@@ -434,12 +407,12 @@ func (*Event_App) MirReflect() mirreflect.Type {
 }
 
 type Event_Transport struct {
-	Transport *types13.Event
+	Transport *types12.Event
 }
 
 func (*Event_Transport) isEvent_Type() {}
 
-func (w *Event_Transport) Unwrap() *types13.Event {
+func (w *Event_Transport) Unwrap() *types12.Event {
 	return w.Transport
 }
 
@@ -458,12 +431,12 @@ func (*Event_Transport) MirReflect() mirreflect.Type {
 }
 
 type Event_ChkpValidator struct {
-	ChkpValidator *types14.Event
+	ChkpValidator *types13.Event
 }
 
 func (*Event_ChkpValidator) isEvent_Type() {}
 
-func (w *Event_ChkpValidator) Unwrap() *types14.Event {
+func (w *Event_ChkpValidator) Unwrap() *types13.Event {
 	return w.ChkpValidator
 }
 
@@ -482,12 +455,12 @@ func (*Event_ChkpValidator) MirReflect() mirreflect.Type {
 }
 
 type Event_PprepValiadtor struct {
-	PprepValiadtor *types15.Event
+	PprepValiadtor *types14.Event
 }
 
 func (*Event_PprepValiadtor) isEvent_Type() {}
 
-func (w *Event_PprepValiadtor) Unwrap() *types15.Event {
+func (w *Event_PprepValiadtor) Unwrap() *types14.Event {
 	return w.PprepValiadtor
 }
 
@@ -530,12 +503,12 @@ func (*Event_Serialized) MirReflect() mirreflect.Type {
 }
 
 type Event_PingPong struct {
-	PingPong *types16.Event
+	PingPong *types15.Event
 }
 
 func (*Event_PingPong) isEvent_Type() {}
 
-func (w *Event_PingPong) Unwrap() *types16.Event {
+func (w *Event_PingPong) Unwrap() *types15.Event {
 	return w.PingPong
 }
 
@@ -602,12 +575,12 @@ func (*Event_TestingUint) MirReflect() mirreflect.Type {
 }
 
 type Event_Tester struct {
-	Tester *types17.Tester
+	Tester *types16.Tester
 }
 
 func (*Event_Tester) isEvent_Type() {}
 
-func (w *Event_Tester) Unwrap() *types17.Tester {
+func (w *Event_Tester) Unwrap() *types16.Tester {
 	return w.Tester
 }
 
