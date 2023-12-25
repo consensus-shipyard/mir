@@ -90,17 +90,35 @@ func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, 
 		return stdtypes.EmptyList(), nil
 	}
 
+	// Before applying an event for the factory itself, process all the buffered submodule events
+	// (as the factory event might change the submodules themselves).
+	eventsOut, err := fm.applySubmodulesEvents()
+	if err != nil {
+		return nil, err
+	}
+
+	var result *stdtypes.EventList
 	switch e := event.(type) {
 	case *eventpb.Event:
-		return fm.applyLegacyProtoEvent(e)
+		if result, err = fm.applyLegacyProtoEvent(e); err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(result)
 	case *stdevents.NewSubmodule:
-		return fm.NewSubmodule(e.SubmoduleID, e.Params, e.RetentionIndex)
+		if result, err = fm.NewSubmodule(e.SubmoduleID, e.Params, e.RetentionIndex); err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(result)
 	case *stdevents.GarbageCollect:
-		return fm.garbageCollect(e.RetentionIndex)
+		if result, err = fm.garbageCollect(e.RetentionIndex); err != nil {
+			return nil, err
+		}
+		eventsOut.PushBackList(result)
 	default:
 		return nil, es.Errorf("unexpected event type: %T", event)
 	}
 
+	return eventsOut, nil
 }
 
 func (fm *FactoryModule) applyLegacyProtoEvent(event *eventpb.Event) (*stdtypes.EventList, error) {
