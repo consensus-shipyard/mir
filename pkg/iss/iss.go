@@ -44,7 +44,6 @@ import (
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
-	factorypbdsl "github.com/filecoin-project/mir/pkg/pb/factorypb/dsl"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
@@ -529,9 +528,9 @@ func New(
 		// we prune all state related to anything before that checkpoint.
 		pruneIndex := chkp.Epoch()
 		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
 
 		return nil
 	})
@@ -911,10 +910,10 @@ func (iss *ISS) deliverCommonCheckpoint(chkpData []byte) error {
 
 		// Prune timer, checkpointing, availability, orderers, and other modules.
 		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Timer, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
-		factorypbdsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Checkpoint, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Availability, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.Ordering, stdtypes.RetentionIndex(pruneIndex))
+		stddsl.GarbageCollect(iss.m, iss.moduleConfig.PPrepValidatorChkp, stdtypes.RetentionIndex(pruneIndex))
 		batchdbpbdsl.GarbageCollect(iss.m, iss.moduleConfig.BatchDB, tt.RetentionIndex(pruneIndex))
 
 		// Prune epoch state.

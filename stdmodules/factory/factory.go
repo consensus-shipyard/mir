@@ -90,11 +90,13 @@ func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, 
 		return stdtypes.EmptyList(), nil
 	}
 
-	switch evt := event.(type) {
+	switch e := event.(type) {
 	case *eventpb.Event:
-		return fm.applyLegacyProtoEvent(evt)
+		return fm.applyLegacyProtoEvent(e)
 	case *stdevents.NewSubmodule:
-		return fm.NewSubmodule(evt.SubmoduleID, evt.Params, evt.RetentionIndex)
+		return fm.NewSubmodule(e.SubmoduleID, e.Params, e.RetentionIndex)
+	case *stdevents.GarbageCollect:
+		return fm.garbageCollect(e.RetentionIndex)
 	default:
 		return nil, es.Errorf("unexpected event type: %T", event)
 	}
