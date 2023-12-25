@@ -3,6 +3,7 @@ package dsl
 import (
 	"reflect"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 
 	cs "github.com/filecoin-project/mir/pkg/contextstore"
@@ -245,15 +246,13 @@ func (m *dslModuleImpl) ApplyEvents(evs *stdtypes.EventList) (*stdtypes.EventLis
 // For convenience, if this is used as the default event handler,
 // it is not considered an error to not have handlers for the Init event.
 func failExceptForInit(ev stdtypes.Event) error { //nolint
-	pbev, ok := ev.(*eventpb.Event)
+
+	_, ok := ev.(*stdevents.Init)
 	if !ok {
 		return es.Errorf("unknown event type '%T'", ev)
 	}
 
-	if reflect.TypeOf(pbev.Type) == reflectutil.TypeOf[*eventpb.Event_Init]() {
-		return nil
-	}
-	return es.Errorf("unknown event type '%T'", pbev.Type)
+	return nil
 }
 
 // The failExceptForInitAndTransport is just like failExceptForInit except
@@ -262,11 +261,7 @@ func failExceptForInit(ev stdtypes.Event) error { //nolint
 // transport events to modules that do not tolerate it.
 func failExceptForInitAndTransport(ev stdtypes.Event) error {
 	pbev, ok := ev.(*eventpb.Event)
-	if !ok {
-		return es.Errorf("unknown event type '%T'", ev)
-	}
-
-	if reflect.TypeOf(pbev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
+	if ok && reflect.TypeOf(pbev.Type) == reflectutil.TypeOf[*eventpb.Event_Transport]() {
 		return nil
 	}
 

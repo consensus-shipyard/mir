@@ -6,11 +6,11 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	ppdsl "github.com/filecoin-project/mir/pkg/pb/pingpongpb/dsl"
 	ppevents "github.com/filecoin-project/mir/pkg/pb/pingpongpb/events"
 	ppmsgs "github.com/filecoin-project/mir/pkg/pb/pingpongpb/msgs"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
+	"github.com/filecoin-project/mir/stdevents"
 	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
@@ -20,7 +20,7 @@ func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 	m := dsl.NewModule("pingpong")
 	nextSN := uint64(0)
 
-	eventpbdsl.UponInit(m, func() error {
+	dsl.UponEvent(m, func(_ *stdevents.Init) error {
 		stddsl.TimerRepeat(
 			m,
 			"timer",

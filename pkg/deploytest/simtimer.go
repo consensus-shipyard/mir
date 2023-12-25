@@ -14,7 +14,6 @@ import (
 	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
 )
 
@@ -49,13 +48,8 @@ func (m *simTimerModule) ApplyEvents(ctx context.Context, eventList *stdtypes.Ev
 func (m *simTimerModule) applyEvent(ctx context.Context, event stdtypes.Event) error {
 
 	switch evt := event.(type) {
-	case *eventpb.Event:
-		switch e := evt.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
-		default:
-			return es.Errorf("unexpected type of Timer event: %T", e)
-		}
+	case *stdevents.Init:
+		// no actions on init
 	case *stdevents.TimerDelay:
 		evtsOut := stdtypes.ListOf(evt.Events...)
 		m.delay(ctx, evtsOut, evt.Delay)

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -130,7 +130,7 @@ func (n *SimNode) WrapModule(id stdtypes.ModuleID, m modules.Module) modules.Mod
 func (n *SimNode) Start(proc *testsim.Process) {
 	initEvents := stdtypes.EmptyList()
 	for m := range n.moduleChans {
-		initEvents.PushBack(&eventpb.Event{DestModule: m.String(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}})
+		initEvents.PushBack(stdevents.NewInit(m))
 	}
 	n.SendEvents(proc, initEvents)
 }

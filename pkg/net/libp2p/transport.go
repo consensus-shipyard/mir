@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -75,6 +76,12 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *stdtypes.EventLis
 	iter := eventList.Iterator()
 	for event := iter.Next(); event != nil; event = iter.Next() {
 
+		// Ignore Init event.
+		_, ok := event.(*stdevents.Init)
+		if ok {
+			return nil
+		}
+
 		// We only support proto events.
 		pbevent, ok := event.(*eventpb.Event)
 		if !ok {
@@ -82,8 +89,6 @@ func (tr *Transport) ApplyEvents(_ context.Context, eventList *stdtypes.EventLis
 		}
 
 		switch e := pbevent.Type.(type) {
-		case *eventpb.Event_Init:
-			// no actions on init
 		case *eventpb.Event_Transport:
 			switch e := transportpbtypes.EventFromPb(e.Transport).Type.(type) {
 			case *transportpbtypes.Event_SendMessage:

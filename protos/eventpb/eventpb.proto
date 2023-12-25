@@ -34,9 +34,6 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    // Special global event produced by the runtime itself and sent to each module on initialization.
-    Init init = 2;
-
     // Module-specific events
             hasherpb.Event hasher          = 10;
                bcbpb.Event bcb             = 11;
@@ -65,10 +62,6 @@ message Event {
     google.protobuf.UInt64Value testingUint   = 302;
     testerpb.Tester tester = 303;
   }
-}
-
-message Init {
-  option (mir.event) = true;
 }
 
 message SerializedEvent {

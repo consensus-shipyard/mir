@@ -30,10 +30,6 @@ type Event_TypeWrapper[T any] interface {
 	Unwrap() *T
 }
 
-func (w *Event_Init) Unwrap() *Init {
-	return w.Init
-}
-
 func (w *Event_Hasher) Unwrap() *hasherpb.Event {
 	return w.Hasher
 }

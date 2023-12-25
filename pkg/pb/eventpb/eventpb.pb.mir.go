@@ -8,7 +8,6 @@ import (
 
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
-		reflect.TypeOf((*Event_Init)(nil)),
 		reflect.TypeOf((*Event_Hasher)(nil)),
 		reflect.TypeOf((*Event_Bcb)(nil)),
 		reflect.TypeOf((*Event_Mempool)(nil)),

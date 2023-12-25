@@ -97,11 +97,8 @@ func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, 
 
 	var result *stdtypes.EventList
 	switch e := event.(type) {
-	case *eventpb.Event:
-		if result, err = fm.applyLegacyProtoEvent(e); err != nil {
-			return nil, err
-		}
-		eventsOut.PushBackList(result)
+	case *stdevents.Init:
+		return stdtypes.EmptyList(), nil // Nothing to do at initialization.
 	case *stdevents.NewSubmodule:
 		if result, err = fm.NewSubmodule(e.SubmoduleID, e.Params, e.RetentionIndex); err != nil {
 			return nil, err
@@ -117,15 +114,6 @@ func (fm *FactoryModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, 
 	}
 
 	return eventsOut, nil
-}
-
-func (fm *FactoryModule) applyLegacyProtoEvent(event *eventpb.Event) (*stdtypes.EventList, error) {
-	switch e := event.Type.(type) {
-	case *eventpb.Event_Init:
-		return stdtypes.EmptyList(), nil // Nothing to do at initialization.
-	default:
-		return nil, es.Errorf("unsupported event type for factory module: %T", e)
-	}
 }
 
 // bufferSubmoduleEvent buffers event in a map where the keys are the moduleID and the values are lists of events.
@@ -251,10 +239,7 @@ func (fm *FactoryModule) NewSubmodule(
 	fm.moduleRetention[retIdx] = append(fm.moduleRetention[retIdx], id)
 
 	// Initialize new submodule.
-	eventsOut, err := fm.submodules[id].ApplyEvents(stdtypes.ListOf(
-		// TODO: Use new stdevent.Init instead of old protobuf event.
-		&eventpb.Event{DestModule: id.String(), Type: &eventpb.Event_Init{Init: &eventpb.Init{}}},
-	))
+	eventsOut, err := fm.submodules[id].ApplyEvents(stdtypes.ListOf(stdevents.NewInit(id)))
 	if err != nil {
 		return nil, err
 	}

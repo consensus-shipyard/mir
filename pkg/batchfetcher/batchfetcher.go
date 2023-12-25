@@ -16,13 +16,13 @@ import (
 	bfeventstypes "github.com/filecoin-project/mir/pkg/pb/batchfetcherpb/events"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/trantorpb"
 	trantorpbdsl "github.com/filecoin-project/mir/pkg/pb/trantorpb/dsl"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -192,7 +192,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 	})
 
 	// Explicitly ignore Init event. This prevents forwarding it to the destination module.
-	eventpbdsl.UponInit(m, func() error {
+	dsl.UponEvent(m, func(_ *stdevents.Init) error {
 		return nil
 	})
 

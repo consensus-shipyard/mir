@@ -38,6 +38,11 @@ func (p *Pingpong) ApplyEvents(evts *stdtypes.EventList) (*stdtypes.EventList, e
 
 func (p *Pingpong) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
+	// Ignore Init event.
+	_, ok := event.(*stdevents.Init)
+	if ok {
+		return stdtypes.EmptyList(), nil
+	}
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
 	if !ok {
@@ -45,8 +50,6 @@ func (p *Pingpong) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error)
 	}
 
 	switch e := pbevent.Type.(type) {
-	case *eventpb.Event_Init:
-		return p.applyInit()
 	case *eventpb.Event_Transport:
 		switch e := e.Transport.Type.(type) {
 		case *transportpb.Event_MessageReceived:

@@ -16,6 +16,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
+	"github.com/filecoin-project/mir/stdevents"
 	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
@@ -43,7 +44,6 @@ import (
 	chkppbdsl "github.com/filecoin-project/mir/pkg/pb/checkpointpb/dsl"
 	chkppbmsgs "github.com/filecoin-project/mir/pkg/pb/checkpointpb/msgs"
 	checkpointpbtypes "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
-	eventpbdsl "github.com/filecoin-project/mir/pkg/pb/eventpb/dsl"
 	isspbdsl "github.com/filecoin-project/mir/pkg/pb/isspb/dsl"
 	isspbevents "github.com/filecoin-project/mir/pkg/pb/isspb/events"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
@@ -212,7 +212,7 @@ func New(
 	// This event is only expected to be applied once at startup,
 	// after all the events stored in the WAL have been applied and before any other event has been applied.
 	// (At this time, the WAL is not used. TODO: Update this when wal is implemented.)
-	eventpbdsl.UponInit(iss.m, func() error {
+	dsl.UponEvent(iss.m, func(_ *stdevents.Init) error {
 
 		// Initialize application state according to the initial checkpoint.
 		apppbdsl.RestoreState(

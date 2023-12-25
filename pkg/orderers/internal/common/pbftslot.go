@@ -53,9 +53,9 @@ func NewPbftSlot(membership *trantorpbtypes.Membership) *PbftSlot {
 	return &PbftSlot{
 		Preprepare:          nil,
 		PrepareDigests:      make(map[t.NodeID][]byte),
-		ValidPrepareDigests: make(map[t.NodeID][]byte, 0),
+		ValidPrepareDigests: make(map[t.NodeID][]byte),
 		CommitDigests:       make(map[t.NodeID][]byte),
-		ValidCommitDigests:  make(map[t.NodeID][]byte, 0),
+		ValidCommitDigests:  make(map[t.NodeID][]byte),
 		Digest:              nil,
 		Preprepared:         false,
 		Prepared:            false,

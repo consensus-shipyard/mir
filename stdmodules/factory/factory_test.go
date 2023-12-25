@@ -14,7 +14,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/testlogger"
 )
@@ -42,15 +41,10 @@ func (em *echoModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 
 	assert.Equal(em.t, em.id, destModuleID)
 	switch e := event.(type) {
+	case *stdevents.Init:
+		return stdtypes.ListOf(stdevents.NewTestString(destModuleID.Top(), string(em.id)+" Init")), nil //nolint:goconst
 	case *stdevents.TestString:
 		return stdtypes.ListOf(stdevents.NewTestString(destModuleID.Top(), em.prefix+e.Value)), nil
-	case *eventpb.Event:
-		switch e.Type.(type) {
-		case *eventpb.Event_Init:
-			return stdtypes.ListOf(stdevents.NewTestString(destModuleID.Top(), string(em.id)+" Init")), nil //nolint:goconst
-		default:
-			return nil, es.Errorf("unknown echo module PB event type: %T", e)
-		}
 	default:
 		return nil, es.Errorf("unknown echo module event type: %T", event)
 	}

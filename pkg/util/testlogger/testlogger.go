@@ -25,7 +25,7 @@ type TestLogger struct {
 
 func New() *TestLogger {
 	return &TestLogger{
-		entries:       make(map[int]*testLogEntry, 0),
+		entries:       make(map[int]*testLogEntry),
 		entryIndex:    make(map[string]int),
 		internalMutex: sync.Mutex{},
 	}
