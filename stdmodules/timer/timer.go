@@ -106,7 +106,7 @@ func (tm *Timer) Repeat(
 	go func() {
 
 		// Create a ticker with the given period.
-		ticker := time.NewTicker(time.Duration(period))
+		ticker := time.NewTicker(period)
 		defer ticker.Stop()
 
 		// Repeat as long as this repetition task has not been garbage-collected.

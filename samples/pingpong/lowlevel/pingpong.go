@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"github.com/pkg/errors"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/pingpongpb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/stdevents"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -38,10 +38,9 @@ func (p *Pingpong) ApplyEvents(evts *stdtypes.EventList) (*stdtypes.EventList, e
 
 func (p *Pingpong) applyEvent(event stdtypes.Event) (*stdtypes.EventList, error) {
 
-	// Ignore Init event.
 	_, ok := event.(*stdevents.Init)
 	if ok {
-		return stdtypes.EmptyList(), nil
+		return p.applyInit()
 	}
 	// We only support proto events.
 	pbevent, ok := event.(*eventpb.Event)
