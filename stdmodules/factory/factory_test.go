@@ -157,7 +157,7 @@ func TestFactoryModule(t *testing.T) {
 			wrongEvent := stdevents.NewTestUint64(echoFactoryID, 42)
 			evOut, err := echoFactory.ApplyEvents(stdtypes.ListOf(wrongEvent))
 			if assert.Error(t, err) {
-				assert.Equal(t, fmt.Sprintf("The factory module only supports proto events, received %T", wrongEvent), err.Error())
+				assert.Equal(t, fmt.Sprintf("unexpected event type: %T", wrongEvent), err.Error())
 			}
 			assert.Nil(t, evOut)
 		},
@@ -226,15 +226,6 @@ func TestFactoryModule(t *testing.T) {
 		return true
 	})
 }
-
-//func EchoModuleParams(prefix string) *factorypbtypes.GeneratorParams {
-//	return &factorypbtypes.GeneratorParams{
-//		Type: &factorypbtypes.GeneratorParams_EchoTestModule{
-//			EchoTestModule: &factorypbtypes.EchoModuleParams{
-//				Prefix: prefix,
-//			},
-//		}}
-//}
 
 type EchoModuleParams string
 

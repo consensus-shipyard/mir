@@ -11,7 +11,6 @@ import (
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
-	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
 	hasherpb "github.com/filecoin-project/mir/pkg/pb/hasherpb"
 	isspb "github.com/filecoin-project/mir/pkg/pb/isspb"
 	mempoolpb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
@@ -65,10 +64,6 @@ func (w *Event_ThreshCrypto) Unwrap() *threshcryptopb.Event {
 
 func (w *Event_Checkpoint) Unwrap() *checkpointpb.Event {
 	return w.Checkpoint
-}
-
-func (w *Event_Factory) Unwrap() *factorypb.Event {
-	return w.Factory
 }
 
 func (w *Event_Iss) Unwrap() *isspb.Event {

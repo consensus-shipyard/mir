@@ -17,7 +17,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_BatchFetcher)(nil)),
 		reflect.TypeOf((*Event_ThreshCrypto)(nil)),
 		reflect.TypeOf((*Event_Checkpoint)(nil)),
-		reflect.TypeOf((*Event_Factory)(nil)),
 		reflect.TypeOf((*Event_Iss)(nil)),
 		reflect.TypeOf((*Event_Orderer)(nil)),
 		reflect.TypeOf((*Event_Crypto)(nil)),

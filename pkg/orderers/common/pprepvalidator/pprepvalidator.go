@@ -6,7 +6,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	ppvpbdsl "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/dsl"
 	ppvpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/pprepvalidatorpb/types"
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
@@ -58,16 +57,6 @@ func NewPprepValidatorChkpFactory(mc ModuleConfig,
 		logger,
 	)
 
-}
-
-func InstanceParams(
-	membership *trantorpbtypes.Membership,
-) *factorypbtypes.GeneratorParams {
-	return &factorypbtypes.GeneratorParams{Type: &factorypbtypes.GeneratorParams_PpvModule{
-		PpvModule: &ppvpbtypes.PPrepValidatorChkp{
-			Membership: membership,
-		},
-	}}
 }
 
 type PPVParams trantorpbtypes.Membership

@@ -13,7 +13,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
 )
 
@@ -22,7 +21,6 @@ import (
 // FactoryModule provides the basic functionality of "submodules".
 // It can be used to dynamically create and garbage-collect passive modules,
 // and it automatically forwards events to them.
-// See: protos/factorypb/factorypb.proto for details on the interface of the factory module itself.
 //
 // The forwarding mechanism is as follows:
 //  1. All events destined for an existing submodule are forwarded to it automatically regardless of the event type.
@@ -125,32 +123,6 @@ func (fm *FactoryModule) applyLegacyProtoEvent(event *eventpb.Event) (*stdtypes.
 	switch e := event.Type.(type) {
 	case *eventpb.Event_Init:
 		return stdtypes.EmptyList(), nil // Nothing to do at initialization.
-	case *eventpb.Event_Factory:
-
-		// Before applying an event for the factory itself, process all the buffered submodule events
-		// (as the factory event might change the submodules themselves).
-		submoduleOutputEvts, err := fm.applySubmodulesEvents()
-		if err != nil {
-			return nil, err
-		}
-
-		// Apply the factory event itself, appending its output to the result of submodule event processing.
-		switch e := factorypbtypes.EventFromPb(e.Factory).Type.(type) {
-		case *factorypbtypes.Event_NewModule:
-			evOut, err := fm.NewSubmodule(e.NewModule.ModuleId, e.NewModule.Params, e.NewModule.RetentionIndex)
-			if err != nil {
-				return nil, err
-			}
-			return submoduleOutputEvts.PushBackList(evOut), nil
-		case *factorypbtypes.Event_GarbageCollect:
-			evOut, err := fm.garbageCollect(e.GarbageCollect.RetentionIndex)
-			if err != nil {
-				return nil, err
-			}
-			return submoduleOutputEvts.PushBackList(evOut), nil
-		default:
-			return nil, es.Errorf("unsupported factory event subtype: %T", e)
-		}
 	default:
 		return nil, es.Errorf("unsupported event type for factory module: %T", e)
 	}
