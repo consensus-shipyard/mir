@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/orderers/common"
-	factorypbtypes "github.com/filecoin-project/mir/pkg/pb/factorypb/types"
+	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/stdmodules/factory"
 	"github.com/filecoin-project/mir/stdtypes"
@@ -35,7 +35,8 @@ func Factory(
 				submc.Self = submoduleID
 
 				// Load parameters from received protobuf
-				p := params.(*factorypbtypes.GeneratorParams).Type.(*factorypbtypes.GeneratorParams_PbftModule).PbftModule
+				// TODO: Use a switch statement and check for a serialized form of the parameters.
+				p := (*ordererpbtypes.PBFTModule)(params.(*InstanceParams))
 				availabilityID := stdtypes.ModuleID(p.AvailabilityId)
 				ppvID := stdtypes.ModuleID(p.PpvModuleId)
 				submc.Ava = availabilityID
