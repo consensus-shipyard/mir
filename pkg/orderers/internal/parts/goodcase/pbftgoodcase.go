@@ -3,7 +3,6 @@ package goodcase
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -26,6 +25,7 @@ import (
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	"github.com/filecoin-project/mir/stdevents"
 	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	t "github.com/filecoin-project/mir/stdtypes"
 )

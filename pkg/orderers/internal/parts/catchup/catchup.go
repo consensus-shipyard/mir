@@ -20,7 +20,6 @@ import (
 	"github.com/filecoin-project/mir/stdevents"
 	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	"github.com/filecoin-project/mir/stdtypes"
-	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func IncludeSegmentCheckpoint(
@@ -87,7 +86,7 @@ func IncludeSegmentCheckpoint(
 		return nil
 	})
 
-	pbftpbdsl.UponDoneReceived(m, func(from t.NodeID, digests [][]byte) error {
+	pbftpbdsl.UponDoneReceived(m, func(from stdtypes.NodeID, digests [][]byte) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -96,7 +95,7 @@ func IncludeSegmentCheckpoint(
 		return nil
 	})
 
-	pbftpbdsl.UponCatchUpRequestReceived(m, func(from t.NodeID, digest []uint8, sn tt.SeqNr) error {
+	pbftpbdsl.UponCatchUpRequestReceived(m, func(from stdtypes.NodeID, digest []uint8, sn tt.SeqNr) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -111,7 +110,7 @@ func IncludeSegmentCheckpoint(
 		return nil
 	})
 
-	pbftpbdsl.UponCatchUpResponseReceived(m, func(from t.NodeID, resp *pbftpbtypes.Preprepare) error {
+	pbftpbdsl.UponCatchUpResponseReceived(m, func(from stdtypes.NodeID, resp *pbftpbtypes.Preprepare) error {
 		if !sliceutil.Contains(params.Config.Membership, from) {
 			logger.Log(logging.LevelWarn, "sender %s is not a member.\n", from)
 			return nil
@@ -131,7 +130,7 @@ func applyMsgDone(
 	state *common.State,
 	params *common.ModuleParams,
 	moduleConfig common2.ModuleConfig,
-	doneDigests [][]byte, from t.NodeID) {
+	doneDigests [][]byte, from stdtypes.NodeID) {
 
 	// Register Done message.
 	state.SegmentCheckpoint.NodeDone(from, doneDigests, state.Segment)
@@ -172,7 +171,7 @@ func applyMsgDone(
 func catchUpRequests(
 	state *common.State,
 	moduleConfig common2.ModuleConfig,
-	nodes []t.NodeID,
+	nodes []stdtypes.NodeID,
 	digests map[tt.SeqNr][]byte,
 ) []stdtypes.Event {
 
@@ -206,7 +205,7 @@ func applyMsgCatchUpRequest(
 	moduleConfig common2.ModuleConfig,
 	digest []byte,
 	sn tt.SeqNr,
-	from t.NodeID,
+	from stdtypes.NodeID,
 ) {
 	if preprepare := state.LookUpPreprepare(sn, digest); preprepare != nil {
 
@@ -216,7 +215,7 @@ func applyMsgCatchUpRequest(
 			m,
 			moduleConfig.Net,
 			pbftpbmsgs.CatchUpResponse(moduleConfig.Self, preprepare),
-			[]t.NodeID{from})
+			[]stdtypes.NodeID{from})
 
 	}
 
@@ -231,7 +230,7 @@ func applyMsgCatchUpResponse(
 	state *common.State,
 	moduleConfig common2.ModuleConfig,
 	preprepare *pbftpbtypes.Preprepare,
-	_ t.NodeID,
+	_ stdtypes.NodeID,
 ) {
 
 	if preprepare == nil {

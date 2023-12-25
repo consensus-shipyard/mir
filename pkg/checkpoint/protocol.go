@@ -6,8 +6,6 @@ import (
 	"bytes"
 	"time"
 
-	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
-	t "github.com/filecoin-project/mir/stdtypes"
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -25,6 +23,7 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/membutil"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	"github.com/filecoin-project/mir/stdtypes"
 )
 
@@ -40,14 +39,14 @@ type State struct {
 	StateSnapshotHash []byte
 
 	// Set of nodes' valid checkpoint Signatures (these will make up a checkpoint certificate).
-	Signatures map[t.NodeID][]byte
+	Signatures map[stdtypes.NodeID][]byte
 
 	// Set of nodes from which a (potentially invalid) Checkpoint messages has been received
 	// (used to ignore duplicate messages).
-	SigReceived map[t.NodeID]struct{}
+	SigReceived map[stdtypes.NodeID]struct{}
 
 	// Set of Checkpoint messages that were received ahead of time.
-	PendingMessages map[t.NodeID]*checkpointpbtypes.Checkpoint
+	PendingMessages map[stdtypes.NodeID]*checkpointpbtypes.Checkpoint
 
 	// Flag ensuring that the stable checkpoint is only Announced once.
 	// Set to true when announcing a stable checkpoint for the first time.
@@ -72,9 +71,9 @@ func NewModule(
 			},
 		},
 		Announced:       false,
-		Signatures:      make(map[t.NodeID][]byte),
-		SigReceived:     make(map[t.NodeID]struct{}),
-		PendingMessages: make(map[t.NodeID]*checkpointpbtypes.Checkpoint),
+		Signatures:      make(map[stdtypes.NodeID][]byte),
+		SigReceived:     make(map[stdtypes.NodeID]struct{}),
+		PendingMessages: make(map[stdtypes.NodeID]*checkpointpbtypes.Checkpoint),
 	}
 
 	m := dsl.NewModule(moduleConfig.Self)
@@ -150,7 +149,7 @@ func NewModule(
 		return nil
 	})
 
-	cryptopbdsl.UponSigVerified(m, func(nodeId t.NodeID, err error, c *verificationContext) error {
+	cryptopbdsl.UponSigVerified(m, func(nodeId stdtypes.NodeID, err error, c *verificationContext) error {
 		if err != nil {
 			logger.Log(logging.LevelWarn, "Ignoring Checkpoint message. Invalid signature.", "source", nodeId, "error", err)
 			return nil
@@ -182,7 +181,7 @@ func NewModule(
 		return nil
 	})
 
-	checkpointpbdsl.UponCheckpointReceived(m, func(from t.NodeID, epoch tt.EpochNr, sn tt.SeqNr, snapshotHash []uint8, signature []uint8) error {
+	checkpointpbdsl.UponCheckpointReceived(m, func(from stdtypes.NodeID, epoch tt.EpochNr, sn tt.SeqNr, snapshotHash []uint8, signature []uint8) error {
 		return applyCheckpointReceived(m, params, state, moduleConfig, from, epoch, sn, snapshotHash, signature, logger)
 	})
 
@@ -216,7 +215,7 @@ func announceStable(m dsl.Module, p *ModuleParams, state *State, mc ModuleConfig
 	state.Announced = true
 
 	// Assemble a multisig certificate from the received valid signatures.
-	cert := make(map[t.NodeID][]byte)
+	cert := make(map[stdtypes.NodeID][]byte)
 	for node, sig := range state.Signatures {
 		cert[node] = sig
 	}
@@ -229,7 +228,7 @@ func applyCheckpointReceived(m dsl.Module,
 	p *ModuleParams,
 	state *State,
 	moduleConfig ModuleConfig,
-	from t.NodeID,
+	from stdtypes.NodeID,
 	epoch tt.EpochNr,
 	sn tt.SeqNr,
 	snapshotHash []uint8,

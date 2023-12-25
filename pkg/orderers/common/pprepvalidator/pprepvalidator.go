@@ -1,6 +1,8 @@
 package pprepvalidator
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/crypto"
 	"github.com/filecoin-project/mir/pkg/dsl"
@@ -11,13 +13,12 @@ import (
 	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/stdmodules/factory"
-	t "github.com/filecoin-project/mir/stdtypes"
-	"google.golang.org/protobuf/proto"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // ModuleConfig sets the module ids.
 type ModuleConfig struct {
-	Self t.ModuleID
+	Self stdtypes.ModuleID
 }
 
 // NewModule returns a passive module for the PreprepareValidator module.
@@ -43,7 +44,7 @@ func NewPprepValidatorChkpFactory(mc ModuleConfig,
 	return factory.New(
 		mc.Self,
 		factory.DefaultParams(
-			func(submoduleID t.ModuleID, params any) (modules.PassiveModule, error) {
+			func(submoduleID stdtypes.ModuleID, params any) (modules.PassiveModule, error) {
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := mc
 				submc.Self = submoduleID

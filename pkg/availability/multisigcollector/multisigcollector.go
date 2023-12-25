@@ -3,6 +3,8 @@ package multisigcollector
 import (
 	"math"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/common"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/batchreconstruction"
 	"github.com/filecoin-project/mir/pkg/availability/multisigcollector/internal/parts/certcreation"
@@ -13,7 +15,6 @@ import (
 	mscpbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	"github.com/filecoin-project/mir/stdmodules/factory"
 	t "github.com/filecoin-project/mir/stdtypes"
-	"google.golang.org/protobuf/proto"
 )
 
 // ModuleConfig sets the module ids. All replicas are expected to use identical module configurations.

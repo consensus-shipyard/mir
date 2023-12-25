@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package orderers
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	"github.com/filecoin-project/mir/pkg/dsl"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -21,7 +23,6 @@ import (
 	ordererpbtypes "github.com/filecoin-project/mir/pkg/pb/ordererpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/stdtypes"
-	"google.golang.org/protobuf/proto"
 )
 
 // ============================================================

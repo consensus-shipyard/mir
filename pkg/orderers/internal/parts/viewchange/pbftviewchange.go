@@ -3,7 +3,6 @@ package viewchange
 import (
 	"bytes"
 
-	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -27,6 +26,7 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
 

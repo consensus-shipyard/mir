@@ -15,14 +15,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
-	"github.com/filecoin-project/mir/stdevents"
-	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
+	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	"github.com/filecoin-project/mir/pkg/clientprogress"
 	"github.com/filecoin-project/mir/pkg/crypto"
@@ -51,6 +47,9 @@ import (
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/filecoin-project/mir/pkg/util/sliceutil"
+	"github.com/filecoin-project/mir/stdevents"
+	stddsl "github.com/filecoin-project/mir/stdevents/dsl"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // The ISS type represents the ISS protocol module to be used when instantiating a node.
