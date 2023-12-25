@@ -4,6 +4,7 @@ package factorypbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types6 "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	factorypb "github.com/filecoin-project/mir/pkg/pb/factorypb"
@@ -213,6 +214,8 @@ func GeneratorParams_TypeFromPb(pb factorypb.GeneratorParams_Type) GeneratorPara
 		return &GeneratorParams_PbftModule{PbftModule: types4.PBFTModuleFromPb(pb.PbftModule)}
 	case *factorypb.GeneratorParams_PpvModule:
 		return &GeneratorParams_PpvModule{PpvModule: types5.PPrepValidatorChkpFromPb(pb.PpvModule)}
+	case *factorypb.GeneratorParams_AccModule:
+		return &GeneratorParams_AccModule{AccModule: types6.InstanceParamsFromPb(pb.AccModule)}
 	}
 	return nil
 }
@@ -335,6 +338,30 @@ func (w *GeneratorParams_PpvModule) Pb() factorypb.GeneratorParams_Type {
 
 func (*GeneratorParams_PpvModule) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*factorypb.GeneratorParams_PpvModule]()}
+}
+
+type GeneratorParams_AccModule struct {
+	AccModule *types6.InstanceParams
+}
+
+func (*GeneratorParams_AccModule) isGeneratorParams_Type() {}
+
+func (w *GeneratorParams_AccModule) Unwrap() *types6.InstanceParams {
+	return w.AccModule
+}
+
+func (w *GeneratorParams_AccModule) Pb() factorypb.GeneratorParams_Type {
+	if w == nil {
+		return nil
+	}
+	if w.AccModule == nil {
+		return &factorypb.GeneratorParams_AccModule{}
+	}
+	return &factorypb.GeneratorParams_AccModule{AccModule: (w.AccModule).Pb()}
+}
+
+func (*GeneratorParams_AccModule) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*factorypb.GeneratorParams_AccModule]()}
 }
 
 func GeneratorParamsFromPb(pb *factorypb.GeneratorParams) *GeneratorParams {

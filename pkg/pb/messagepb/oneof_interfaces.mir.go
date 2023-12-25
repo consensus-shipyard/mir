@@ -3,6 +3,7 @@
 package messagepb
 
 import (
+	accountabilitypb "github.com/filecoin-project/mir/pkg/pb/accountabilitypb"
 	mscpb "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb"
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
@@ -40,4 +41,8 @@ func (w *Message_Checkpoint) Unwrap() *checkpointpb.Message {
 
 func (w *Message_Orderer) Unwrap() *ordererpb.Message {
 	return w.Orderer
+}
+
+func (w *Message_Accountability) Unwrap() *accountabilitypb.Message {
+	return w.Accountability
 }

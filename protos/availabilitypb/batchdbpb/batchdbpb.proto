@@ -75,13 +75,13 @@ message GarbageCollect {
 message LookupBatchOrigin {
   option (mir.event_class) = true;
 
-  string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-  oneof Type {
-    option (mir.event_type) = true;
+    string module = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+    oneof Type {
+      option (mir.event_type) = true;
 
-    contextstorepb.Origin context_store = 2;
-    dslpb.Origin          dsl           = 3;
-  }
+      contextstorepb.Origin context_store = 2;
+      dslpb.Origin          dsl           = 3;
+    }
 }
 
 message StoreBatchOrigin {

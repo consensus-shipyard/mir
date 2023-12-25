@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package accountabilitypb;
+
+option go_package = "github.com/filecoin-project/mir/pkg/pb/accountabilitypb";
+
+import "trantorpb/trantorpb.proto";
+
+import "net/codegen_extensions.proto";
+import "mir/codegen_extensions.proto";
+
+message PoM {
+  option (mir.struct) = true;
+
+  string node_id = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  SignedPredecision conflicting_msg_1 = 2;
+  SignedPredecision conflicting_msg_2 = 3;
+
+}
+
+message LightCertificate {
+  option (net.message) = true;
+  bytes data = 1;
+}
+
+message PoMs {
+  option (net.message) = true;
+
+  repeated PoM poms = 1;
+}
+
+message Message {
+  option (net.message_class) = true;
+
+  oneof type {
+    option (net.message_type) = true;
+
+    SignedPredecision signed_predecision = 1;
+    FullCertificate certificate          = 2;
+    PoMs poms                            = 3;
+    LightCertificate light_certificate   = 4;
+  }
+}
+
+message SignedPredecision {
+  option (net.message) = true;
+  option (mir.struct) = true;
+
+  bytes predecision = 1;
+  bytes signature = 2;
+}
+
+message FullCertificate {
+  option (net.message) = true;
+
+  bytes decision = 1;
+  map<string, bytes> signatures = 2 [(mir.key_type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+}
+
+message InstanceParams {
+  option (mir.struct) = true;
+
+  trantorpb.Membership membership = 1;
+  uint64      retention_index     = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/trantor/types.RetentionIndex"];
+}

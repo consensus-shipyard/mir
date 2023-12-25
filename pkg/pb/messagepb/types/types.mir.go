@@ -4,6 +4,7 @@ package messagepbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types7 "github.com/filecoin-project/mir/pkg/pb/accountabilitypb/types"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
@@ -48,6 +49,8 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 		return &Message_Checkpoint{Checkpoint: types5.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_Orderer:
 		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
+	case *messagepb.Message_Accountability:
+		return &Message_Accountability{Accountability: types7.MessageFromPb(pb.Accountability)}
 	}
 	return nil
 }
@@ -194,6 +197,30 @@ func (w *Message_Orderer) Pb() messagepb.Message_Type {
 
 func (*Message_Orderer) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Orderer]()}
+}
+
+type Message_Accountability struct {
+	Accountability *types7.Message
+}
+
+func (*Message_Accountability) isMessage_Type() {}
+
+func (w *Message_Accountability) Unwrap() *types7.Message {
+	return w.Accountability
+}
+
+func (w *Message_Accountability) Pb() messagepb.Message_Type {
+	if w == nil {
+		return nil
+	}
+	if w.Accountability == nil {
+		return &messagepb.Message_Accountability{}
+	}
+	return &messagepb.Message_Accountability{Accountability: (w.Accountability).Pb()}
+}
+
+func (*Message_Accountability) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Accountability]()}
 }
 
 func MessageFromPb(pb *messagepb.Message) *Message {
