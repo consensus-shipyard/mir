@@ -47,7 +47,6 @@ package protos
 //go:generate protoc-events blockchainpb/blockchainpb.proto
 //go:generate protoc-events blockchainpb/bcmpb/bcmpb.proto
 //go:generate protoc-events blockchainpb/minerpb/minerpb.proto
-//go:generate protoc-events blockchainpb/tpmpb/tpmpb.proto
 //go:generate protoc-events blockchainpb/communicationpb/communicationpb.proto
 //go:generate protoc-events blockchainpb/synchronizerpb/synchronizerpb.proto
 //go:generate protoc-events blockchainpb/applicationpb/applicationpb.proto
@@ -88,7 +87,6 @@ package protos
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
-//go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
 //go:generate std-gen "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"

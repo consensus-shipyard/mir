@@ -14,7 +14,6 @@ import (
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
 	synchronizerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
-	tpmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/tpmpb"
 	checkpointpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb"
 	chkpvalidatorpb "github.com/filecoin-project/mir/pkg/pb/checkpointpb/chkpvalidatorpb"
 	cryptopb "github.com/filecoin-project/mir/pkg/pb/cryptopb"
@@ -120,10 +119,6 @@ func (w *Event_Bcm) Unwrap() *bcmpb.Event {
 
 func (w *Event_Miner) Unwrap() *minerpb.Event {
 	return w.Miner
-}
-
-func (w *Event_Tpm) Unwrap() *tpmpb.Event {
-	return w.Tpm
 }
 
 func (w *Event_Communication) Unwrap() *communicationpb.Event {

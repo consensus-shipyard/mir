@@ -5,6 +5,7 @@ package interceptorpbevents
 import (
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -40,7 +41,7 @@ func NewOrphan(destModule types.ModuleID, orphan *blockchainpb.Block) *types1.Ev
 	}
 }
 
-func AppUpdate(destModule types.ModuleID, state int64) *types1.Event {
+func AppUpdate(destModule types.ModuleID, state *statepb.State) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Bcinterceptor{

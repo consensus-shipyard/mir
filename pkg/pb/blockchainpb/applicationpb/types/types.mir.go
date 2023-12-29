@@ -4,8 +4,10 @@ package applicationpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -31,10 +33,16 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *applicationpb.Event_NewHead:
 		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
+	case *applicationpb.Event_VerifyBlockRequest:
+		return &Event_VerifyBlockRequest{VerifyBlockRequest: VerifyBlockRequestFromPb(pb.VerifyBlockRequest)}
+	case *applicationpb.Event_VerifyBlockResponse:
+		return &Event_VerifyBlockResponse{VerifyBlockResponse: VerifyBlockResponseFromPb(pb.VerifyBlockResponse)}
 	case *applicationpb.Event_PayloadRequest:
 		return &Event_PayloadRequest{PayloadRequest: PayloadRequestFromPb(pb.PayloadRequest)}
 	case *applicationpb.Event_PayloadResponse:
 		return &Event_PayloadResponse{PayloadResponse: PayloadResponseFromPb(pb.PayloadResponse)}
+	case *applicationpb.Event_ForkUpdate:
+		return &Event_ForkUpdate{ForkUpdate: ForkUpdateFromPb(pb.ForkUpdate)}
 	}
 	return nil
 }
@@ -61,6 +69,54 @@ func (w *Event_NewHead) Pb() applicationpb.Event_Type {
 
 func (*Event_NewHead) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_NewHead]()}
+}
+
+type Event_VerifyBlockRequest struct {
+	VerifyBlockRequest *VerifyBlockRequest
+}
+
+func (*Event_VerifyBlockRequest) isEvent_Type() {}
+
+func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlockRequest {
+	return w.VerifyBlockRequest
+}
+
+func (w *Event_VerifyBlockRequest) Pb() applicationpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.VerifyBlockRequest == nil {
+		return &applicationpb.Event_VerifyBlockRequest{}
+	}
+	return &applicationpb.Event_VerifyBlockRequest{VerifyBlockRequest: (w.VerifyBlockRequest).Pb()}
+}
+
+func (*Event_VerifyBlockRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_VerifyBlockRequest]()}
+}
+
+type Event_VerifyBlockResponse struct {
+	VerifyBlockResponse *VerifyBlockResponse
+}
+
+func (*Event_VerifyBlockResponse) isEvent_Type() {}
+
+func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlockResponse {
+	return w.VerifyBlockResponse
+}
+
+func (w *Event_VerifyBlockResponse) Pb() applicationpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.VerifyBlockResponse == nil {
+		return &applicationpb.Event_VerifyBlockResponse{}
+	}
+	return &applicationpb.Event_VerifyBlockResponse{VerifyBlockResponse: (w.VerifyBlockResponse).Pb()}
+}
+
+func (*Event_VerifyBlockResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_VerifyBlockResponse]()}
 }
 
 type Event_PayloadRequest struct {
@@ -109,6 +165,30 @@ func (w *Event_PayloadResponse) Pb() applicationpb.Event_Type {
 
 func (*Event_PayloadResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_PayloadResponse]()}
+}
+
+type Event_ForkUpdate struct {
+	ForkUpdate *ForkUpdate
+}
+
+func (*Event_ForkUpdate) isEvent_Type() {}
+
+func (w *Event_ForkUpdate) Unwrap() *ForkUpdate {
+	return w.ForkUpdate
+}
+
+func (w *Event_ForkUpdate) Pb() applicationpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.ForkUpdate == nil {
+		return &applicationpb.Event_ForkUpdate{}
+	}
+	return &applicationpb.Event_ForkUpdate{ForkUpdate: (w.ForkUpdate).Pb()}
+}
+
+func (*Event_ForkUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_ForkUpdate]()}
 }
 
 func EventFromPb(pb *applicationpb.Event) *Event {
@@ -165,6 +245,113 @@ func (m *NewHead) Pb() *applicationpb.NewHead {
 
 func (*NewHead) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.NewHead]()}
+}
+
+type VerifyBlockRequest struct {
+	RequestId uint64
+	Block     *blockchainpb.Block
+}
+
+func VerifyBlockRequestFromPb(pb *applicationpb.VerifyBlockRequest) *VerifyBlockRequest {
+	if pb == nil {
+		return nil
+	}
+	return &VerifyBlockRequest{
+		RequestId: pb.RequestId,
+		Block:     pb.Block,
+	}
+}
+
+func (m *VerifyBlockRequest) Pb() *applicationpb.VerifyBlockRequest {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &applicationpb.VerifyBlockRequest{}
+	{
+		pbMessage.RequestId = m.RequestId
+		if m.Block != nil {
+			pbMessage.Block = m.Block
+		}
+	}
+
+	return pbMessage
+}
+
+func (*VerifyBlockRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlockRequest]()}
+}
+
+type VerifyBlockResponse struct {
+	RequestId uint64
+	Ok        bool
+}
+
+func VerifyBlockResponseFromPb(pb *applicationpb.VerifyBlockResponse) *VerifyBlockResponse {
+	if pb == nil {
+		return nil
+	}
+	return &VerifyBlockResponse{
+		RequestId: pb.RequestId,
+		Ok:        pb.Ok,
+	}
+}
+
+func (m *VerifyBlockResponse) Pb() *applicationpb.VerifyBlockResponse {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &applicationpb.VerifyBlockResponse{}
+	{
+		pbMessage.RequestId = m.RequestId
+		pbMessage.Ok = m.Ok
+	}
+
+	return pbMessage
+}
+
+func (*VerifyBlockResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlockResponse]()}
+}
+
+type ForkUpdate struct {
+	RemovedChain *blockchainpb.Blockchain
+	AddedChain   *blockchainpb.Blockchain
+	ForkState    *statepb.State
+}
+
+func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
+	if pb == nil {
+		return nil
+	}
+	return &ForkUpdate{
+		RemovedChain: pb.RemovedChain,
+		AddedChain:   pb.AddedChain,
+		ForkState:    pb.ForkState,
+	}
+}
+
+func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &applicationpb.ForkUpdate{}
+	{
+		if m.RemovedChain != nil {
+			pbMessage.RemovedChain = m.RemovedChain
+		}
+		if m.AddedChain != nil {
+			pbMessage.AddedChain = m.AddedChain
+		}
+		if m.ForkState != nil {
+			pbMessage.ForkState = m.ForkState
+		}
+	}
+
+	return pbMessage
+}
+
+func (*ForkUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.ForkUpdate]()}
 }
 
 type PayloadRequest struct {

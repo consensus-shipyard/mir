@@ -13,10 +13,22 @@ func (w *Event_NewHead) Unwrap() *NewHead {
 	return w.NewHead
 }
 
+func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlockRequest {
+	return w.VerifyBlockRequest
+}
+
+func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlockResponse {
+	return w.VerifyBlockResponse
+}
+
 func (w *Event_PayloadRequest) Unwrap() *PayloadRequest {
 	return w.PayloadRequest
 }
 
 func (w *Event_PayloadResponse) Unwrap() *PayloadResponse {
 	return w.PayloadResponse
+}
+
+func (w *Event_ForkUpdate) Unwrap() *ForkUpdate {
+	return w.ForkUpdate
 }

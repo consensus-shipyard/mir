@@ -6,6 +6,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -204,7 +205,7 @@ func (*NewOrphan) MirReflect() mirreflect.Type {
 }
 
 type AppUpdate struct {
-	State int64
+	State *statepb.State
 }
 
 func AppUpdateFromPb(pb *interceptorpb.AppUpdate) *AppUpdate {
@@ -222,7 +223,9 @@ func (m *AppUpdate) Pb() *interceptorpb.AppUpdate {
 	}
 	pbMessage := &interceptorpb.AppUpdate{}
 	{
-		pbMessage.State = m.State
+		if m.State != nil {
+			pbMessage.State = m.State
+		}
 	}
 
 	return pbMessage

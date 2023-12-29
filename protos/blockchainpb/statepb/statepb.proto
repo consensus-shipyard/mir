@@ -6,5 +6,5 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb
 
 message State {
   // application specific state
-  int64 counter = 1;
+  repeated string message_history = 1;
 }

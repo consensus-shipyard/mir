@@ -5,6 +5,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -25,6 +27,7 @@ import (
 var (
 	ErrParentNotFound    = errors.New("parent not found")
 	ErrNodeAlreadyInTree = errors.New("node already in tree")
+	ErrRollback          = errors.New("rollback - should never happen")
 )
 
 type bcmBlock struct {
@@ -35,20 +38,144 @@ type bcmBlock struct {
 }
 
 type bcmModule struct {
-	m           *dsl.Module
-	blocks      []bcmBlock // IMPORTANT: only to be used for visualization, not for actual block lookup
-	leaves      map[uint64]*bcmBlock
-	head        *bcmBlock
-	genesis     *bcmBlock
-	checkpoints map[uint64]*bcmBlock
-	blockCount  uint64
-	logger      logging.Logger
+	m                *dsl.Module
+	blocks           []bcmBlock // IMPORTANT: only to be used for visualization, not for actual block lookup
+	leaves           map[uint64]*bcmBlock
+	head             *bcmBlock
+	genesis          *bcmBlock
+	checkpoints      map[uint64]*bcmBlock
+	blockCount       uint64
+	currentScanCount uint64
+	logger           logging.Logger
 }
 
-func (bcm *bcmModule) handleNewHead(newHead *blockchainpb.BlockInternal) {
-	bcm.logger.Log(logging.LevelInfo, "Head changed", "head", utils.FormatBlockId(newHead.Block.BlockId))
-	applicationpbdsl.NewHead(*bcm.m, "application", newHead.Block.BlockId)
-	minerpbdsl.NewHead(*bcm.m, "miner", newHead.Block.BlockId)
+func (bcm *bcmModule) handleNewHeadSideEffects(newHead, oldHead *bcmBlock) {
+	bcm.logger.Log(logging.LevelInfo, "Head changed", "head", utils.FormatBlockId(newHead.block.Block.BlockId))
+	// compute delta
+	removeChain, addChain, err := bcm.computeDelta(oldHead, newHead)
+
+	bcm.logger.Log(logging.LevelInfo, "Delta chains", "addChain", formatChain(addChain), "removeChain", formatChain(removeChain))
+
+	if err != nil {
+		// should never happen
+		bcm.logger.Log(logging.LevelError, "Error computing delta", "error", err)
+		panic(err)
+	}
+
+	// get fork state
+	forkBlock, ok := bcm.checkpoints[addChain[0].BlockId]
+	if !ok {
+		bcm.logger.Log(logging.LevelError, "Failed to get fork block")
+	}
+
+	forkState := forkBlock.block.State
+
+	applicationpbdsl.ForkUpdate(*bcm.m, "application", &blockchainpb.Blockchain{
+		Blocks: removeChain[1:],
+	}, &blockchainpb.Blockchain{
+		Blocks: addChain[1:],
+	}, forkState)
+	// applicationpbdsl.NewHead(*bcm.m, "application", newHead.block.Block.BlockId)
+	minerpbdsl.NewHead(*bcm.m, "miner", newHead.block.Block.BlockId)
+}
+
+func formatChain(chain []*blockchainpb.Block) string {
+	ids := make([]string, len(chain))
+	for i, block := range chain {
+		ids[i] = fmt.Sprint(block.BlockId)
+	}
+
+	return strings.Join(ids, ", ")
+}
+
+func reverse[S ~[]T, T any](slice S) S {
+	slices.Reverse(slice)
+	return slice
+}
+
+func (bcm *bcmModule) computeDelta(removeHead *bcmBlock, addHead *bcmBlock) ([]*blockchainpb.Block, []*blockchainpb.Block, error) {
+	bcm.logger.Log(logging.LevelDebug, "Computing Delta", "removeHead", removeHead.block.Block.BlockId, "addHead", addHead.block.Block.BlockId)
+
+	// short circuit for most simple cases
+	if removeHead.block.Block.GetBlockId() == addHead.block.Block.GetBlockId() {
+		// no delta
+		return []*blockchainpb.Block{addHead.block.GetBlock()}, []*blockchainpb.Block{addHead.block.GetBlock()}, nil
+	} else if addHead.block.Block.GetPreviousBlockId() == removeHead.block.Block.GetBlockId() {
+		// just appending
+		return []*blockchainpb.Block{removeHead.block.GetBlock()}, []*blockchainpb.Block{removeHead.block.GetBlock(), addHead.block.GetBlock()}, nil
+	} else if removeHead.block.Block.GetPreviousBlockId() == addHead.block.Block.GetBlockId() {
+		// rollbacks should never happen
+		return nil, nil, ErrRollback
+	}
+
+	// traverse backwards from both heads until we find a common ancestor
+	// current ancecor is given when we find a block was already scanned by the other traversal
+	// this is the case if
+	initialScanCount := bcm.currentScanCount
+
+	removeChain := make([]*blockchainpb.Block, 0)
+	addChain := make([]*blockchainpb.Block, 0)
+
+	currRemove := removeHead
+	currAdd := addHead
+
+	// TODO: consider weird cases like when they only have the genesis block in common
+	// at least one hasn't reached the end yet
+	for (currRemove != nil) || (currAdd != nil) {
+		bcm.logger.Log(logging.LevelDebug, "add", "chain", formatChain(addChain))
+		bcm.logger.Log(logging.LevelDebug, "remove", "chain", formatChain(removeChain))
+
+		// handle remove step
+		if currRemove != nil {
+
+			removeChain = append(removeChain, currRemove.block.GetBlock())
+
+			// check for intersection
+			if currRemove.scanCount > initialScanCount {
+				// remove chain intersects with add chain, remove chain is ok, add chain needs to be truncated
+				// find currRemove in addChain
+				currRemoveBlockId := currRemove.block.Block.GetBlockId()
+				index := slices.IndexFunc(addChain, func(i *blockchainpb.Block) bool { return i.BlockId == currRemoveBlockId })
+				if index == -1 {
+					// should never happen
+					bcm.logger.Log(logging.LevelError, "Intersection trucation failed (remove intersection case) - this should never happen", "blockId", utils.FormatBlockId(currRemoveBlockId))
+					panic("Intersection trucation failed (remove into add intersection case)")
+				}
+				return reverse(removeChain), reverse(addChain[:index+1]), nil
+			}
+
+			currRemove.scanCount = initialScanCount + 1
+			currRemove = currRemove.parent
+		}
+
+		// handle add step
+		if currAdd != nil {
+
+			addChain = append(addChain, currAdd.block.GetBlock())
+
+			// check for intersection
+			if currAdd.scanCount > initialScanCount {
+				// add chain intersects with remove chain, add chain is ok, remove chain needs to be truncated
+				// find addRemove in removeChain
+				currAddBlockId := currAdd.block.Block.GetBlockId()
+				index := slices.IndexFunc(removeChain, func(i *blockchainpb.Block) bool { return i.BlockId == currAddBlockId })
+				if index == -1 {
+					// should never happen
+					bcm.logger.Log(logging.LevelError, "Intersection trucation failed (add intersection case) - this should never happen", "blockId", utils.FormatBlockId(currAddBlockId))
+					panic("Intersection trucation failed (add into remove intersection case)")
+				}
+				return reverse(removeChain[:index+1]), reverse(addChain), nil
+			}
+
+			currAdd.scanCount = initialScanCount + 1
+			currAdd = currAdd.parent
+		}
+
+	}
+
+	// if we get here, we didn't find a common ancestor, this should never happen
+	bcm.logger.Log(logging.LevelError, "Intersection not found - this should never happen")
+	panic("intersection not found - this should never happen")
 }
 
 // traversalFunc should return true if traversal should continue, false otherwise
@@ -56,13 +183,10 @@ func (bcm *bcmModule) handleNewHead(newHead *blockchainpb.BlockInternal) {
 // if it should continue but there are no more blocks, the function will return nil
 // if an error is thrown, the traversal is aborted and nil is returned
 func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock) (bool, error)) *bcmBlock {
-	currentScanCount := uint64(0) // to mark nodes that have been scanned in this round
+	bcm.currentScanCount = bcm.currentScanCount + 1
 	queue := make([]*bcmBlock, 0)
 	for _, v := range bcm.leaves {
 		queue = append(queue, v)
-		if v.scanCount > currentScanCount {
-			currentScanCount = v.scanCount
-		}
 	}
 	for len(queue) > 0 {
 		// pop from queue
@@ -70,7 +194,7 @@ func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock)
 		queue = queue[1:]
 
 		// mark as scanned
-		curr.scanCount = currentScanCount + 1
+		curr.scanCount = bcm.currentScanCount
 
 		if match, err := traversalFunc(curr); err != nil {
 			return nil
@@ -79,7 +203,7 @@ func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock)
 		}
 
 		// add curr's parents to queue if it hasn't been scanned yet
-		if curr.parent != nil && curr.parent.scanCount <= currentScanCount {
+		if curr.parent != nil && curr.parent.scanCount <= bcm.currentScanCount {
 			queue = append(queue, curr.parent)
 		}
 	}
@@ -167,8 +291,8 @@ func (bcm *bcmModule) findBlock(blockId uint64) *bcmBlock {
 	})
 }
 
-func (bcm *bcmModule) getHead() *blockchainpb.BlockInternal {
-	return bcm.head.block
+func (bcm *bcmModule) getHead() *bcmBlock {
+	return bcm.head
 }
 
 func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
@@ -196,7 +320,7 @@ func (bcm *bcmModule) handleNewBlock(block *blockchainpb.Block) {
 
 	// if head changed, trigger get tpm to prep new block
 	if newHead := bcm.getHead(); newHead != currentHead {
-		bcm.handleNewHead(newHead)
+		bcm.handleNewHeadSideEffects(newHead, currentHead)
 	}
 
 	// send to chainviewer
@@ -234,7 +358,7 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpb.Block) {
 
 	// if head changed, trigger get tpm to prep new block (only need to do this once)
 	if newHead := bcm.getHead(); newHead != currentHead {
-		bcm.handleNewHead(newHead)
+		bcm.handleNewHeadSideEffects(newHead, currentHead)
 	}
 
 	// send to chainviewer
@@ -262,28 +386,7 @@ func (bcm *bcmModule) sendTreeUpdate() {
 	interceptorpbdsl.TreeUpdate(*bcm.m, "devnull", &blockTree, bcm.head.block.Block.BlockId)
 }
 
-func formatBlockInts(blocks []*blockchainpb.BlockInternal) []string {
-	blockIds := make([]string, 0, len(blocks))
-	for _, v := range blocks {
-		stateText := "no state"
-		if v.State != nil {
-			stateText = v.State.String()
-		}
-		blockIds = append(blockIds, fmt.Sprintf("%d - %s", v.Block.BlockId, stateText))
-	}
-	return blockIds
-}
-
 func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, sourceModule t.ModuleID) error {
-	// for debugging
-	// TODO: remove
-	checkpoints := make([]*blockchainpb.BlockInternal, 0, len(bcm.checkpoints))
-
-	for _, value := range bcm.checkpoints {
-		checkpoints = append(checkpoints, value.block)
-	}
-
-	bcm.logger.Log(logging.LevelInfo, "Received get head to checkpoint chain request", "requestId", requestID, "checkpoints", formatBlockInts(checkpoints))
 	chain := make([]*blockchainpb.BlockInternal, 0)
 
 	// start with head
@@ -306,7 +409,6 @@ func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, so
 		chain[i], chain[j] = chain[j], chain[i]
 	}
 
-	bcm.logger.Log(logging.LevelDebug, "Sending chain for state comp", "requestId", requestID, "chain", formatBlockInts(chain), "checkpoint", formatBlockInts([]*blockchainpb.BlockInternal{currentBlock.block}))
 	bcmpbdsl.GetHeadToCheckpointChainResponse(*bcm.m, sourceModule, requestID, chain)
 
 	return nil
@@ -341,7 +443,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 	genesis := &blockchainpb.Block{
 		BlockId:         0,
 		PreviousBlockId: 0,
-		Payload:         &payloadpb.Payload{AddMinus: 0},
+		Payload:         &payloadpb.Payload{Message: "GENESIS", Timestamp: 0},
 		Timestamp:       0, // unix 0
 	}
 
@@ -351,7 +453,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		block: &blockchainpb.BlockInternal{
 			Block: genesis,
 			State: &statepb.State{
-				Counter: 0,
+				MessageHistory: []string{genesis.Payload.GetMessage()}, // TODO: this is ugly af - have application define genesis and base state
 			},
 		},
 		parent: nil,
@@ -360,14 +462,15 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 
 	// init bcm genisis block
 	bcm := bcmModule{
-		m:           &m,
-		blocks:      []bcmBlock{genesisBcm},
-		leaves:      make(map[uint64]*bcmBlock),
-		head:        &genesisBcm,
-		genesis:     &genesisBcm,
-		checkpoints: make(map[uint64]*bcmBlock),
-		blockCount:  1,
-		logger:      logger,
+		m:                &m,
+		blocks:           []bcmBlock{genesisBcm},
+		leaves:           make(map[uint64]*bcmBlock),
+		head:             &genesisBcm,
+		genesis:          &genesisBcm,
+		checkpoints:      make(map[uint64]*bcmBlock),
+		blockCount:       1,
+		currentScanCount: 0,
+		logger:           logger,
 	}
 
 	// add genesis to leaves and checkpoints

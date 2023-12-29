@@ -4,8 +4,10 @@ package applicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -15,10 +17,22 @@ func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
 	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
 }
 
+func VerifyBlockRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, block *blockchainpb.Block) {
+	dsl.EmitMirEvent(m, events.VerifyBlockRequest(destModule, requestId, block))
+}
+
+func VerifyBlockResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, ok bool) {
+	dsl.EmitMirEvent(m, events.VerifyBlockResponse(destModule, requestId, ok))
+}
+
 func PayloadRequest(m dsl.Module, destModule types.ModuleID, headId uint64) {
 	dsl.EmitMirEvent(m, events.PayloadRequest(destModule, headId))
 }
 
 func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, payload *payloadpb.Payload) {
 	dsl.EmitMirEvent(m, events.PayloadResponse(destModule, headId, payload))
+}
+
+func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain *blockchainpb.Blockchain, addedChain *blockchainpb.Blockchain, forkState *statepb.State) {
+	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, forkState))
 }

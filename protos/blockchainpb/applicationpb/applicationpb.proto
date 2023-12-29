@@ -6,6 +6,8 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applica
 
 import "mir/codegen_extensions.proto";
 import "blockchainpb/payloadpb/payloadpb.proto";
+import "blockchainpb/statepb/statepb.proto";
+import "blockchainpb/blockchainpb.proto";
 
 message Event {
   option (mir.event_class) = true;
@@ -13,19 +15,48 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    NewHead           new_head          = 1;
-    PayloadRequest    payload_request   = 2;
-    PayloadResponse   payload_response  = 3;
-
+    // Application-application events
+    NewHead                   new_head              = 10;
+    VerifyBlockRequest        verify_block_request  = 11;
+    VerifyBlockResponse       verify_block_response = 12;
+    
+    // Transaction management application events
+    PayloadRequest            payload_request       = 20;
+    PayloadResponse           payload_response      = 21;
+    ForkUpdate                fork_update           = 22;
   }
 }
 
+// Application-application events
 message NewHead {
   option (mir.event) = true;
   
   uint64 head_id = 1;
 }
 
+message VerifyBlockRequest {
+  option (mir.event) = true;
+  
+  uint64              request_id  = 1;
+  blockchainpb.Block  block       = 2;
+}
+
+message VerifyBlockResponse {
+  option (mir.event) = true;
+
+  uint64  request_id  = 1;
+  bool    ok          = 2;
+}
+
+message ForkUpdate {
+  option (mir.event) = true;
+
+  blockchainpb.Blockchain removed_chain = 1;
+  blockchainpb.Blockchain added_chain   = 2;
+  statepb.State           fork_state    = 3;
+}
+
+// Transaction management application events
 message PayloadRequest {
   option (mir.event) = true;
 

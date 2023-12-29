@@ -25,7 +25,6 @@ import "transportpb/transportpb.proto";
 import "testerpb/testerpb.proto";
 import "blockchainpb/bcmpb/bcmpb.proto";
 import "blockchainpb/minerpb/minerpb.proto";
-import "blockchainpb/tpmpb/tpmpb.proto";
 import "blockchainpb/communicationpb/communicationpb.proto";
 import "blockchainpb/synchronizerpb/synchronizerpb.proto";
 import "blockchainpb/applicationpb/applicationpb.proto";
@@ -73,10 +72,9 @@ message Event {
     // Events for blockchain 
     bcmpb.Event           bcm           = 201;
     minerpb.Event         miner         = 202;
-    tpmpb.Event           tpm           = 203;
-    communicationpb.Event communication = 204;
-    synchronizerpb.Event  synchronizer  = 205;
-    applicationpb.Event   application   = 206;
+    communicationpb.Event communication = 203;
+    synchronizerpb.Event  synchronizer  = 204;
+    applicationpb.Event   application   = 205;
 
     // Events for blockchain interceptor
     interceptorpb.Event   bcinterceptor = 210;

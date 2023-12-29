@@ -6,6 +6,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -34,7 +35,7 @@ func UponNewOrphan(m dsl.Module, handler func(orphan *blockchainpb.Block) error)
 	})
 }
 
-func UponAppUpdate(m dsl.Module, handler func(state int64) error) {
+func UponAppUpdate(m dsl.Module, handler func(state *statepb.State) error) {
 	UponEvent[*types.Event_AppUpdate](m, func(ev *types.AppUpdate) error {
 		return handler(ev.State)
 	})

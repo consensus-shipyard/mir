@@ -90,7 +90,7 @@ func main() {
 			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
 			// "tpm":           NewTPM(logging.Decorate(logger, "TPM:\t")),
-			"application":  application.NewApplication(logging.Decorate(logger, "App:\t")),
+			"application":  application.NewApplication(logging.Decorate(logger, "App:\t"), string(ownNodeID)),
 			"synchronizer": NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
 			"timer":        timer,
 			"mangler":      mangler,

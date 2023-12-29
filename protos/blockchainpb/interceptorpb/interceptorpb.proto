@@ -5,6 +5,7 @@ package interceptorpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb";
 
 import "blockchainpb/blockchainpb.proto";
+import "blockchainpb/statepb/statepb.proto";
 import "mir/codegen_extensions.proto";
 
 message Event {
@@ -35,5 +36,5 @@ message NewOrphan {
 message AppUpdate {
     option (mir.event) = true;
 
-    int64   state     = 1;
+    statepb.State state = 1;
 }

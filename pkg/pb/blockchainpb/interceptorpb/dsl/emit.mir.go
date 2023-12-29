@@ -6,6 +6,7 @@ import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/events"
+	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -19,6 +20,6 @@ func NewOrphan(m dsl.Module, destModule types.ModuleID, orphan *blockchainpb.Blo
 	dsl.EmitMirEvent(m, events.NewOrphan(destModule, orphan))
 }
 
-func AppUpdate(m dsl.Module, destModule types.ModuleID, state int64) {
+func AppUpdate(m dsl.Module, destModule types.ModuleID, state *statepb.State) {
 	dsl.EmitMirEvent(m, events.AppUpdate(destModule, state))
 }
