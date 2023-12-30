@@ -81,3 +81,15 @@ button {
     margin-top: 5px;
     overflow: auto;
 }
+
+/* EditableText*/
+/* Style for spans with text content */
+.editable-text-span {
+    border: 1px solid #000;
+}
+
+/* Style for empty spans with padding */
+.editable-text-span:empty {
+    padding-left: 10px;
+    padding-right: 10px;
+}
