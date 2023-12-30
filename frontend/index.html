@@ -326,7 +326,8 @@
         const closeConnection = () => {
             console.log('Closing connection from button');
             if (ws) {
-                ws.close()
+                declineIncomingLog();
+                ws.close();
 
                 // Send the response on the WebSocket
                 let webSocketResponse = {
