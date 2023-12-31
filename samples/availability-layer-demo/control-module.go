@@ -8,21 +8,18 @@ import (
 	"os"
 	"strings"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/stdtypes"
-
-	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
-	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
-	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-
 	"google.golang.org/protobuf/proto"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/availabilitypb"
 	apbevents "github.com/filecoin-project/mir/pkg/pb/availabilitypb/events"
+	apbtypes "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
+	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type controlModule struct {

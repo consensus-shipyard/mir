@@ -12,15 +12,12 @@ import (
 	"net"
 	"sync"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
-
-	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	mirnet "github.com/filecoin-project/mir/pkg/net"
@@ -30,6 +27,8 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 const (

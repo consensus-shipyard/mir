@@ -8,13 +8,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/testsim"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type simTimerModule struct {
@@ -114,7 +113,7 @@ func (m *simTimerModule) repeat(ctx context.Context, eventList *stdtypes.EventLi
 		defer close(done)
 
 		for {
-			if !proc.Delay(time.Duration(d)) {
+			if !proc.Delay(d) {
 				return
 			}
 
