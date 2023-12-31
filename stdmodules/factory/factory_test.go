@@ -50,7 +50,7 @@ func (em *echoModule) applyEvent(event stdtypes.Event) (*stdtypes.EventList, err
 	}
 }
 
-func newEchoFactory(t *testing.T, logger logging.Logger) *FactoryModule {
+func newEchoFactory(t *testing.T, logger logging.Logger) modules.PassiveModule {
 	return New(
 		echoFactoryID,
 		DefaultParams(func(id stdtypes.ModuleID, params any) (modules.PassiveModule, error) {

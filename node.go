@@ -12,15 +12,14 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 var ErrStopped = fmt.Errorf("stopped at caller request")
