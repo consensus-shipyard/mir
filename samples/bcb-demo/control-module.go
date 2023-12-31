@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
-
-	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 type controlModule struct {

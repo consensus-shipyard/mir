@@ -3,17 +3,16 @@ package factory
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/stdevents"
 	es "github.com/go-errors/errors"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/messagebuffer"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/pkg/pb/transportpb"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // TODO: Add support for active modules as well.
