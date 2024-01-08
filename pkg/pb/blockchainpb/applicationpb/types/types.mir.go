@@ -43,6 +43,8 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 		return &Event_PayloadResponse{PayloadResponse: PayloadResponseFromPb(pb.PayloadResponse)}
 	case *applicationpb.Event_ForkUpdate:
 		return &Event_ForkUpdate{ForkUpdate: ForkUpdateFromPb(pb.ForkUpdate)}
+	case *applicationpb.Event_MessageInput:
+		return &Event_MessageInput{MessageInput: MessageInputFromPb(pb.MessageInput)}
 	}
 	return nil
 }
@@ -189,6 +191,30 @@ func (w *Event_ForkUpdate) Pb() applicationpb.Event_Type {
 
 func (*Event_ForkUpdate) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_ForkUpdate]()}
+}
+
+type Event_MessageInput struct {
+	MessageInput *MessageInput
+}
+
+func (*Event_MessageInput) isEvent_Type() {}
+
+func (w *Event_MessageInput) Unwrap() *MessageInput {
+	return w.MessageInput
+}
+
+func (w *Event_MessageInput) Pb() applicationpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.MessageInput == nil {
+		return &applicationpb.Event_MessageInput{}
+	}
+	return &applicationpb.Event_MessageInput{MessageInput: (w.MessageInput).Pb()}
+}
+
+func (*Event_MessageInput) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_MessageInput]()}
 }
 
 func EventFromPb(pb *applicationpb.Event) *Event {
@@ -415,4 +441,33 @@ func (m *PayloadResponse) Pb() *applicationpb.PayloadResponse {
 
 func (*PayloadResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.PayloadResponse]()}
+}
+
+type MessageInput struct {
+	Text string
+}
+
+func MessageInputFromPb(pb *applicationpb.MessageInput) *MessageInput {
+	if pb == nil {
+		return nil
+	}
+	return &MessageInput{
+		Text: pb.Text,
+	}
+}
+
+func (m *MessageInput) Pb() *applicationpb.MessageInput {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &applicationpb.MessageInput{}
+	{
+		pbMessage.Text = m.Text
+	}
+
+	return pbMessage
+}
+
+func (*MessageInput) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.MessageInput]()}
 }

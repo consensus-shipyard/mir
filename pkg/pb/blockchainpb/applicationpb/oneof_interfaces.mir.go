@@ -32,3 +32,7 @@ func (w *Event_PayloadResponse) Unwrap() *PayloadResponse {
 func (w *Event_ForkUpdate) Unwrap() *ForkUpdate {
 	return w.ForkUpdate
 }
+
+func (w *Event_MessageInput) Unwrap() *MessageInput {
+	return w.MessageInput
+}

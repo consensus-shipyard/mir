@@ -59,3 +59,9 @@ func UponForkUpdate(m dsl.Module, handler func(removedChain *blockchainpb.Blockc
 		return handler(ev.RemovedChain, ev.AddedChain, ev.ForkState)
 	})
 }
+
+func UponMessageInput(m dsl.Module, handler func(text string) error) {
+	UponEvent[*types.Event_MessageInput](m, func(ev *types.MessageInput) error {
+		return handler(ev.Text)
+	})
+}

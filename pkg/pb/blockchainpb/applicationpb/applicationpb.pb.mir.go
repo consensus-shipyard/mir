@@ -14,5 +14,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_PayloadRequest)(nil)),
 		reflect.TypeOf((*Event_PayloadResponse)(nil)),
 		reflect.TypeOf((*Event_ForkUpdate)(nil)),
+		reflect.TypeOf((*Event_MessageInput)(nil)),
 	}
 }

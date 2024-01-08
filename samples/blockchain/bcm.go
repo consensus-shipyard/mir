@@ -4,9 +4,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -16,10 +14,10 @@ import (
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
 	interceptorpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/dsl"
 	minerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
+	"github.com/filecoin-project/mir/samples/blockchain/application"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"golang.org/x/exp/maps"
 )
@@ -51,11 +49,9 @@ type bcmModule struct {
 
 func (bcm *bcmModule) handleNewHeadSideEffects(newHead, oldHead *bcmBlock) {
 	bcm.logger.Log(logging.LevelInfo, "Head changed", "head", utils.FormatBlockId(newHead.block.Block.BlockId))
+
 	// compute delta
 	removeChain, addChain, err := bcm.computeDelta(oldHead, newHead)
-
-	bcm.logger.Log(logging.LevelInfo, "Delta chains", "addChain", formatChain(addChain), "removeChain", formatChain(removeChain))
-
 	if err != nil {
 		// should never happen
 		bcm.logger.Log(logging.LevelError, "Error computing delta", "error", err)
@@ -77,15 +73,6 @@ func (bcm *bcmModule) handleNewHeadSideEffects(newHead, oldHead *bcmBlock) {
 	}, forkState)
 	// applicationpbdsl.NewHead(*bcm.m, "application", newHead.block.Block.BlockId)
 	minerpbdsl.NewHead(*bcm.m, "miner", newHead.block.Block.BlockId)
-}
-
-func formatChain(chain []*blockchainpb.Block) string {
-	ids := make([]string, len(chain))
-	for i, block := range chain {
-		ids[i] = fmt.Sprint(block.BlockId)
-	}
-
-	return strings.Join(ids, ", ")
 }
 
 func reverse[S ~[]T, T any](slice S) S {
@@ -122,8 +109,6 @@ func (bcm *bcmModule) computeDelta(removeHead *bcmBlock, addHead *bcmBlock) ([]*
 	// TODO: consider weird cases like when they only have the genesis block in common
 	// at least one hasn't reached the end yet
 	for (currRemove != nil) || (currAdd != nil) {
-		bcm.logger.Log(logging.LevelDebug, "add", "chain", formatChain(addChain))
-		bcm.logger.Log(logging.LevelDebug, "remove", "chain", formatChain(removeChain))
 
 		// handle remove step
 		if currRemove != nil {
@@ -443,18 +428,16 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 	genesis := &blockchainpb.Block{
 		BlockId:         0,
 		PreviousBlockId: 0,
-		Payload:         &payloadpb.Payload{Message: "GENESIS", Timestamp: 0},
+		Payload:         nil,
 		Timestamp:       0, // unix 0
 	}
 
-	hash := utils.HashBlock(genesis)
+	hash := uint64(0) // utils.HashBlock(genesis)
 	genesis.BlockId = hash
 	genesisBcm := bcmBlock{
 		block: &blockchainpb.BlockInternal{
 			Block: genesis,
-			State: &statepb.State{
-				MessageHistory: []string{genesis.Payload.GetMessage()}, // TODO: this is ugly af - have application define genesis and base state
-			},
+			State: application.InitialState,
 		},
 		parent: nil,
 		depth:  0,

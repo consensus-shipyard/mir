@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -9,9 +10,11 @@ import (
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventmangler"
+	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
+	applicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/timer"
@@ -89,12 +92,11 @@ func main() {
 			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
 			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
-			// "tpm":           NewTPM(logging.Decorate(logger, "TPM:\t")),
-			"application":  application.NewApplication(logging.Decorate(logger, "App:\t"), string(ownNodeID)),
-			"synchronizer": NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
-			"timer":        timer,
-			"mangler":      mangler,
-			"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor
+			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), string(ownNodeID)),
+			"synchronizer":  NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
+			"timer":         timer,
+			"mangler":       mangler,
+			"devnull":       modules.NullPassive{}, // for messages that are actually destined for the interceptor
 		},
 		wsinterceptor.NewWsInterceptor(
 			func(e *eventpb.Event) bool {
@@ -112,22 +114,43 @@ func main() {
 		panic(err)
 	}
 
-	// Run the node for 5 seconds.
+	ctx := context.Background()
+
 	nodeError := make(chan error)
 	go func() {
-		nodeError <- node.Run(context.Background())
+		nodeError <- node.Run(ctx)
 	}()
 	fmt.Println("Mir node running.")
 
 	// block until nodeError receives an error
 	// fmt.Printf("timer started\n")
 
-	fmt.Printf("Mir node stopped: %v\n", <-nodeError)
+	// fmt.Printf("Mir node stopped: %v\n", <-nodeError)
 
-	// Dead code below
+	// ================================================================================
+	// Read chat messages from stdin and submit them as transactions.
+	// ================================================================================
 
-	// time.Sleep(5 * time.Second)
-	// fmt.Printf("timer up")
+	scanner := bufio.NewScanner(os.Stdin)
+
+	// Prompt for chat message input.
+	fmt.Println("Type in your messages and press 'Enter' to send.")
+
+	// Read chat message from stdin.
+	for scanner.Scan() {
+		fmt.Println("Gimme more")
+		// Submit the chat message as transaction payload to the mempool module.
+		if err := node.InjectEvents(ctx, events.ListOf(
+			applicationpbevents.MessageInput("application", scanner.Text()).Pb(),
+		)); err != nil {
+			// Print error if occurred.
+			fmt.Println(err)
+		}
+
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Error reading input: %v\n", err)
+	}
 
 	// Stop the node.
 	node.Stop()

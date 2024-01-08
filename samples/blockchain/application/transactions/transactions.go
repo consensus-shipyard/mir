@@ -2,9 +2,7 @@ package transactions
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
-	"time"
 
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	"github.com/mitchellh/hashstructure"
@@ -36,22 +34,23 @@ func New(name string) *TransactionManager {
 func (tm *TransactionManager) GetPayload() *payloadpb.Payload {
 	// return oldest transaction, where timestamp is a field in the payload
 	if len(tm.transactions) == 0 {
-		// TODO: this only makes sense for the test - remove it
-		payload := &payloadpb.Payload{
-			Message:   fmt.Sprintf("%s: %d", tm.name, tm.ownTransactionCounter),
-			Timestamp: time.Now().UnixNano(),
-		}
-		hash, err := hashstructure.Hash(payload, nil)
-		if err != nil {
-			// just panicing - only for testing anyways...
-			panic(fmt.Errorf("error hashing payload: %w", err))
-		}
-		tm.transactions = append(tm.transactions, transaction{
-			hash:    hash,
-			payload: payload,
-		})
-		tm.ownTransactionCounter++
-		return payload
+		return nil
+		// // TODO: this only makes sense for the test - remove it
+		// payload := &payloadpb.Payload{
+		// 	Message:   fmt.Sprintf("%s: %d", tm.name, tm.ownTransactionCounter),
+		// 	Timestamp: time.Now().UnixNano(),
+		// }
+		// hash, err := hashstructure.Hash(payload, nil)
+		// if err != nil {
+		// 	// just panicing - only for testing anyways...
+		// 	panic(fmt.Errorf("error hashing payload: %w", err))
+		// }
+		// tm.transactions = append(tm.transactions, transaction{
+		// 	hash:    hash,
+		// 	payload: payload,
+		// })
+		// tm.ownTransactionCounter++
+		// return payload
 	}
 	// sort by timestamp
 	// TODO: keep it sorted

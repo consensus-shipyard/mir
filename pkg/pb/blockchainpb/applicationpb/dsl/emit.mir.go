@@ -36,3 +36,7 @@ func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, pay
 func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain *blockchainpb.Blockchain, addedChain *blockchainpb.Blockchain, forkState *statepb.State) {
 	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, forkState))
 }
+
+func MessageInput(m dsl.Module, destModule types.ModuleID, text string) {
+	dsl.EmitMirEvent(m, events.MessageInput(destModule, text))
+}

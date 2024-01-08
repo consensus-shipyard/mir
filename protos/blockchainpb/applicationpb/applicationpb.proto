@@ -24,6 +24,9 @@ message Event {
     PayloadRequest            payload_request       = 20;
     PayloadResponse           payload_response      = 21;
     ForkUpdate                fork_update           = 22;
+  
+    // Message input
+    MessageInput              message_input         = 30;
   }
 }
 
@@ -68,4 +71,12 @@ message PayloadResponse {
   
   uint64            head_id = 1;
   payloadpb.Payload payload = 2;
+}
+
+// Message input events
+
+message MessageInput {
+  option (mir.event) = true;
+
+  string  text  = 1;
 }

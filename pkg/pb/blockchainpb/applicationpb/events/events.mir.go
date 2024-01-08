@@ -105,3 +105,18 @@ func ForkUpdate(destModule types.ModuleID, removedChain *blockchainpb.Blockchain
 		},
 	}
 }
+
+func MessageInput(destModule types.ModuleID, text string) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Application{
+			Application: &types2.Event{
+				Type: &types2.Event_MessageInput{
+					MessageInput: &types2.MessageInput{
+						Text: text,
+					},
+				},
+			},
+		},
+	}
+}
