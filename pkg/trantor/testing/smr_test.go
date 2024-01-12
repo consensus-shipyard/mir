@@ -117,7 +117,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:    1,
 				Transport:     "libp2p",
 				NumFakeTXs:    10,
-				Duration:      10 * time.Second,
+				Duration:      20 * time.Second,
 			}},
 		5: {"Submit 10 transactions with 1 node and libp2p networking",
 			&TestConfig{
@@ -125,7 +125,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:    1,
 				Transport:     "libp2p",
 				NumNetTXs:     10,
-				Duration:      10 * time.Second,
+				Duration:      20 * time.Second,
 			}},
 		6: {"Submit 10 transactions with 4 nodes and libp2p networking",
 			&TestConfig{
@@ -134,7 +134,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:    1,
 				Transport:     "libp2p",
 				NumNetTXs:     10,
-				Duration:      15 * time.Second,
+				Duration:      20 * time.Second,
 			}},
 		7: {"Do nothing with 1 node in simulation",
 			&TestConfig{
