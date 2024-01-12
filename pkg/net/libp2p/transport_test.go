@@ -263,7 +263,12 @@ func (m *mockLibp2pCommunication) testEventuallyConnected(nodeID1, nodeID2 stdty
 			return network.Connected == n1.host.Network().Connectedness(n2.host.ID()) &&
 				m.streamExist(n1, n2) && m.streamExist(n2, n1)
 		},
-		15*time.Second, 100*time.Millisecond)
+		60*time.Second, 200*time.Millisecond)
+	// One minute seems like way too much, but we observed cases where connection attempts kept failing
+	// for over 30 seconds.
+	// TODO: there is something fishy about this.
+	//       It only started occurring after updating quic-go from 0.33.0 to 0.39.4,
+	//       as part of a libp2p update from 0.27.8 to 0.32.2.
 }
 
 func (m *mockLibp2pCommunication) testConnectionsEmpty() {
@@ -654,9 +659,9 @@ func TestMessaging(t *testing.T) {
 	received := 0
 	disconnect := make(chan struct{})
 
-	testTimeDuration := time.Duration(15)
-	testTimer := time.NewTimer(testTimeDuration * time.Second)
-	disconnectTimer := time.NewTimer(testTimeDuration / 3 * time.Second)
+	testTimeDuration := 15 * time.Second
+	testTimer := time.NewTimer(testTimeDuration)
+	disconnectTimer := time.NewTimer(testTimeDuration / 3)
 
 	wg.Add(1)
 	go func() {
