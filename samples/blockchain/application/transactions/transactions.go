@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -34,23 +35,7 @@ func New(name string) *TransactionManager {
 func (tm *TransactionManager) GetPayload() *payloadpb.Payload {
 	// return oldest transaction, where timestamp is a field in the payload
 	if len(tm.transactions) == 0 {
-		return nil
-		// // TODO: this only makes sense for the test - remove it
-		// payload := &payloadpb.Payload{
-		// 	Message:   fmt.Sprintf("%s: %d", tm.name, tm.ownTransactionCounter),
-		// 	Timestamp: time.Now().UnixNano(),
-		// }
-		// hash, err := hashstructure.Hash(payload, nil)
-		// if err != nil {
-		// 	// just panicing - only for testing anyways...
-		// 	panic(fmt.Errorf("error hashing payload: %w", err))
-		// }
-		// tm.transactions = append(tm.transactions, transaction{
-		// 	hash:    hash,
-		// 	payload: payload,
-		// })
-		// tm.ownTransactionCounter++
-		// return payload
+		return config.EmptyPayload
 	}
 	// sort by timestamp
 	// TODO: keep it sorted

@@ -156,3 +156,18 @@ func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *statep
 		},
 	}
 }
+
+func InitBlockchain(destModule types.ModuleID, initialState *statepb.State) *types1.Event {
+	return &types1.Event{
+		DestModule: destModule,
+		Type: &types1.Event_Bcm{
+			Bcm: &types2.Event{
+				Type: &types2.Event_InitBlockchain{
+					InitBlockchain: &types2.InitBlockchain{
+						InitialState: initialState,
+					},
+				},
+			},
+		},
+	}
+}

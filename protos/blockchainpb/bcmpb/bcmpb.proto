@@ -25,6 +25,8 @@ message Event {
     GetHeadToCheckpointChainRequest   get_head_to_checkpoint_chain_request  = 7;
     GetHeadToCheckpointChainResponse  get_head_to_checkpoint_chain_response = 8;
     RegisterCheckpoint                register_checkpoint                   = 9;
+
+    InitBlockchain                    init_blockchain                       = 100;
   }
 }
 
@@ -95,4 +97,10 @@ message RegisterCheckpoint {
 
   uint64        block_id  = 1;
   statepb.State state     = 2;
+}
+
+message InitBlockchain {
+  option (mir.event) = true;
+
+  statepb.State initial_state = 1;
 }

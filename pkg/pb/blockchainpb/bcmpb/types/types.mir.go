@@ -49,6 +49,8 @@ func Event_TypeFromPb(pb bcmpb.Event_Type) Event_Type {
 		return &Event_GetHeadToCheckpointChainResponse{GetHeadToCheckpointChainResponse: GetHeadToCheckpointChainResponseFromPb(pb.GetHeadToCheckpointChainResponse)}
 	case *bcmpb.Event_RegisterCheckpoint:
 		return &Event_RegisterCheckpoint{RegisterCheckpoint: RegisterCheckpointFromPb(pb.RegisterCheckpoint)}
+	case *bcmpb.Event_InitBlockchain:
+		return &Event_InitBlockchain{InitBlockchain: InitBlockchainFromPb(pb.InitBlockchain)}
 	}
 	return nil
 }
@@ -267,6 +269,30 @@ func (w *Event_RegisterCheckpoint) Pb() bcmpb.Event_Type {
 
 func (*Event_RegisterCheckpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_RegisterCheckpoint]()}
+}
+
+type Event_InitBlockchain struct {
+	InitBlockchain *InitBlockchain
+}
+
+func (*Event_InitBlockchain) isEvent_Type() {}
+
+func (w *Event_InitBlockchain) Unwrap() *InitBlockchain {
+	return w.InitBlockchain
+}
+
+func (w *Event_InitBlockchain) Pb() bcmpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.InitBlockchain == nil {
+		return &bcmpb.Event_InitBlockchain{}
+	}
+	return &bcmpb.Event_InitBlockchain{InitBlockchain: (w.InitBlockchain).Pb()}
+}
+
+func (*Event_InitBlockchain) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_InitBlockchain]()}
 }
 
 func EventFromPb(pb *bcmpb.Event) *Event {
@@ -597,4 +623,35 @@ func (m *RegisterCheckpoint) Pb() *bcmpb.RegisterCheckpoint {
 
 func (*RegisterCheckpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.RegisterCheckpoint]()}
+}
+
+type InitBlockchain struct {
+	InitialState *statepb.State
+}
+
+func InitBlockchainFromPb(pb *bcmpb.InitBlockchain) *InitBlockchain {
+	if pb == nil {
+		return nil
+	}
+	return &InitBlockchain{
+		InitialState: pb.InitialState,
+	}
+}
+
+func (m *InitBlockchain) Pb() *bcmpb.InitBlockchain {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &bcmpb.InitBlockchain{}
+	{
+		if m.InitialState != nil {
+			pbMessage.InitialState = m.InitialState
+		}
+	}
+
+	return pbMessage
+}
+
+func (*InitBlockchain) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.InitBlockchain]()}
 }

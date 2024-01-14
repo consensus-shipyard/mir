@@ -15,27 +15,25 @@ import (
 	interceptorpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/dsl"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/application/transactions"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
-type localState struct {
-	head  uint64
-	state *statepb.State
-}
-
 type ApplicationModule struct {
-	m                  *dsl.Module
-	currentState       *localState
-	logger             logging.Logger
-	tm                 *transactions.TransactionManager
-	name               string
-	openPayloadRequest bool // request id
+	m      *dsl.Module
+	logger logging.Logger
+	tm     *transactions.TransactionManager
+	name   string
 }
 
 // application-application events
 
 func applyBlockToState(state *statepb.State, block *blockchainpb.Block) *statepb.State {
+	// empty block, just skip
+	if block.Payload.Message == "" {
+		return state
+	}
 	return &statepb.State{
 		MessageHistory: append(state.MessageHistory, block.Payload.Message),
 	}
@@ -66,10 +64,6 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockcha
 	blockId := addedChain.GetBlocks()[len(addedChain.GetBlocks())-1].BlockId
 	bcmpbdsl.RegisterCheckpoint(*am.m, "bcm", blockId, state)
 	interceptorpbdsl.AppUpdate(*am.m, "devnull", state)
-	am.currentState = &localState{
-		head:  blockId,
-		state: state,
-	}
 
 	// print state
 	fmt.Printf("=== STATE ===\n")
@@ -83,42 +77,30 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockcha
 
 // transaction management events
 
-func (am *ApplicationModule) providePayload() error {
-	payload := am.tm.GetPayload()
-	if payload == nil {
-		// no payloads to provide, will respond as soon as new paylod is available
-		am.openPayloadRequest = true // set flag s.t. payload response will be sent as soon as there is a payload available
-		return nil
-	}
-
-	applicationpbdsl.PayloadResponse(*am.m, "miner", am.currentState.head, payload) // not using head id anywhere so we can get rid of it
-	am.openPayloadRequest = false
-
-	return nil
-}
-
 func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
-	// NOTE: reject request for head that doesn't match current head?
 	am.logger.Log(logging.LevelDebug, "Processing payload request", "headId", utils.FormatBlockId(head_id))
 
-	return am.providePayload()
+	payload := am.tm.GetPayload()
+
+	applicationpbdsl.PayloadResponse(*am.m, "miner", head_id, payload) // not using head id anywhere so we can get rid of it
+
+	return nil
 }
 
 func NewApplication(logger logging.Logger, name string) modules.PassiveModule {
 
 	m := dsl.NewModule("application")
 	am := &ApplicationModule{
-		m: &m,
-		currentState: &localState{
-			head:  0,
-			state: InitialState,
-		},
+		m:      &m,
 		logger: logger,
 		name:   name,
 		tm:     transactions.New(name),
 	}
 
 	dsl.UponInit(m, func() error {
+		// init blockchain
+		bcmpbdsl.InitBlockchain(*am.m, "bcm", config.InitialState)
+
 		return nil
 	})
 
@@ -130,10 +112,6 @@ func NewApplication(logger logging.Logger, name string) modules.PassiveModule {
 			Message:   text,
 			Timestamp: time.Now().Unix(),
 		})
-
-		if am.openPayloadRequest {
-			return am.providePayload()
-		}
 
 		return nil
 	})

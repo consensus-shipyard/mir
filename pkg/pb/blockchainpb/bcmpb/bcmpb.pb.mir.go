@@ -17,5 +17,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_GetHeadToCheckpointChainRequest)(nil)),
 		reflect.TypeOf((*Event_GetHeadToCheckpointChainResponse)(nil)),
 		reflect.TypeOf((*Event_RegisterCheckpoint)(nil)),
+		reflect.TypeOf((*Event_InitBlockchain)(nil)),
 	}
 }

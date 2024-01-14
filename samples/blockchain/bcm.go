@@ -17,7 +17,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/application"
+	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"golang.org/x/exp/maps"
 )
@@ -26,6 +26,7 @@ var (
 	ErrParentNotFound    = errors.New("parent not found")
 	ErrNodeAlreadyInTree = errors.New("node already in tree")
 	ErrRollback          = errors.New("rollback - should never happen")
+	ErrUninitialized     = errors.New("uninitialized - the application must initialize the blockchain first by sending it a initBlockchain message")
 )
 
 type bcmBlock struct {
@@ -45,6 +46,16 @@ type bcmModule struct {
 	blockCount       uint64
 	currentScanCount uint64
 	logger           logging.Logger
+	initialized      bool
+}
+
+func (bcm *bcmModule) checkInitialization() error {
+	if !bcm.initialized {
+		bcm.logger.Log(logging.LevelError, ErrUninitialized.Error())
+		return ErrUninitialized
+	}
+
+	return nil
 }
 
 func (bcm *bcmModule) handleNewHeadSideEffects(newHead, oldHead *bcmBlock) {
@@ -197,7 +208,7 @@ func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock)
 
 // TODO: might need to add some "cleanup" to handle very old leaves in case this grows too much
 func (bcm *bcmModule) addBlock(block *blockchainpb.Block) error {
-	bcm.logger.Log(logging.LevelInfo, "Adding block...", "blockId", utils.FormatBlockId(block.BlockId))
+	bcm.logger.Log(logging.LevelInfo, "Adding block...", "blockId", utils.FormatBlockId(block.BlockId), "parentId", utils.FormatBlockId(block.PreviousBlockId))
 
 	// check if block is already in the leaves, reject if so
 	if _, ok := bcm.leaves[block.BlockId]; ok {
@@ -231,6 +242,7 @@ func (bcm *bcmModule) addBlock(block *blockchainpb.Block) error {
 
 	if hit := bcm.blockTreeTraversal(func(currBlock *bcmBlock) (bool, error) {
 		// check if curr matches the block to be added - if so, ignore
+		bcm.logger.Log(logging.LevelDebug, "Traversing - checking block", "blockId", utils.FormatBlockId(block.BlockId), "currBlockId", utils.FormatBlockId(currBlock.block.Block.BlockId))
 		if currBlock.block.Block.BlockId == block.BlockId {
 			bcm.logger.Log(logging.LevelDebug, "Block already in tree", "blockId", utils.FormatBlockId(block.BlockId))
 			return true, ErrNodeAlreadyInTree
@@ -372,6 +384,10 @@ func (bcm *bcmModule) sendTreeUpdate() {
 }
 
 func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, sourceModule t.ModuleID) error {
+	if err := bcm.checkInitialization(); err != nil {
+		return err
+	}
+
 	chain := make([]*blockchainpb.BlockInternal, 0)
 
 	// start with head
@@ -402,7 +418,11 @@ func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, so
 
 func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepb.State) error {
 	bcm.logger.Log(logging.LevelInfo, "Received register checkpoint", "blockId", utils.FormatBlockId(block_id))
+	if err := bcm.checkInitialization(); err != nil {
+		return err
+	}
 	if _, ok := bcm.checkpoints[block_id]; ok {
+
 		bcm.logger.Log(logging.LevelDebug, "Checkpoint already registered - ignore", "blockId", utils.FormatBlockId(block_id))
 		return nil
 	}
@@ -421,8 +441,8 @@ func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepb.S
 	return nil
 }
 
-func NewBCM(logger logging.Logger) modules.PassiveModule {
-	m := dsl.NewModule("bcm")
+func (bcm *bcmModule) handleInitBlockchain(initialState *statepb.State) error {
+	// initialize blockchain
 
 	// making up a genisis block
 	genesis := &blockchainpb.Block{
@@ -432,57 +452,79 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		Timestamp:       0, // unix 0
 	}
 
-	hash := uint64(0) // utils.HashBlock(genesis)
+	hash := utils.HashBlock(genesis) //uint64(0)
 	genesis.BlockId = hash
 	genesisBcm := bcmBlock{
 		block: &blockchainpb.BlockInternal{
 			Block: genesis,
-			State: application.InitialState,
+			State: config.InitialState,
 		},
 		parent: nil,
 		depth:  0,
 	}
 
+	bcm.head = &genesisBcm
+	bcm.genesis = &genesisBcm
+
+	bcm.blocks = []bcmBlock{genesisBcm}
+	bcm.leaves[hash] = &genesisBcm
+	bcm.checkpoints[hash] = &genesisBcm
+
+	bcm.initialized = true
+
+	// initialized, start operations
+
+	bcm.logger.Log(logging.LevelInfo, "Initialized blockchain")
+
+	applicationpbdsl.NewHead(*bcm.m, "application", hash)
+	minerpbdsl.NewHead(*bcm.m, "miner", hash)
+
+	return nil
+}
+
+func NewBCM(logger logging.Logger) modules.PassiveModule {
+	m := dsl.NewModule("bcm")
+
 	// init bcm genisis block
 	bcm := bcmModule{
 		m:                &m,
-		blocks:           []bcmBlock{genesisBcm},
+		blocks:           nil, // will be initialized in handleInitBlockchain, triggered by application
 		leaves:           make(map[uint64]*bcmBlock),
-		head:             &genesisBcm,
-		genesis:          &genesisBcm,
+		head:             nil, // will be initialized in handleInitBlockchain, triggered by application
+		genesis:          nil, // will be initialized in handleInitBlockchain, triggered by application
 		checkpoints:      make(map[uint64]*bcmBlock),
 		blockCount:       1,
 		currentScanCount: 0,
 		logger:           logger,
+		initialized:      false,
 	}
 
-	// add genesis to leaves and checkpoints
-	bcm.leaves[hash] = bcm.head
-	bcm.checkpoints[hash] = bcm.head
-
 	dsl.UponInit(m, func() error {
-
-		// start with genesis block
-		applicationpbdsl.NewHead(m, "application", hash)
-		// start mining on genesis block
-		minerpbdsl.NewHead(m, "miner", hash)
-
 		return nil
 	})
 
 	bcmpbdsl.UponNewBlock(m, func(block *blockchainpb.Block) error {
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
 		bcm.handleNewBlock(block)
 		return nil
 	})
 
 	bcmpbdsl.UponNewChain(m, func(blocks []*blockchainpb.Block) error {
 		bcm.logger.Log(logging.LevelInfo, "Received chain from synchronizer")
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
 		bcm.handleNewChain(blocks)
 		return nil
 	})
 
 	bcmpbdsl.UponGetBlockRequest(m, func(requestID string, sourceModule t.ModuleID, blockID uint64) error {
 		bcm.logger.Log(logging.LevelInfo, "Received get block request", "requestId", requestID, "sourceModule", sourceModule)
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
 		// check if block is in tree
 		hit := bcm.findBlock(blockID)
 
@@ -500,6 +542,9 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 
 	bcmpbdsl.UponGetChainRequest(m, func(requestID string, sourceModule t.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error {
 		bcm.logger.Log(logging.LevelInfo, "Received get chain request", "requestId", requestID, "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
 		chain := make([]*blockchainpb.Block, 0)
 		// for easier lookup...
 		sourceBlockIdsMap := make(map[uint64]uint64)
@@ -546,6 +591,8 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 
 	bcmpbdsl.UponGetHeadToCheckpointChainRequest(m, bcm.handleGetHeadToCheckpointChainRequest)
 	bcmpbdsl.UponRegisterCheckpoint(m, bcm.handleRegisterCheckpoint)
+
+	bcmpbdsl.UponInitBlockchain(m, bcm.handleInitBlockchain)
 
 	return m
 }

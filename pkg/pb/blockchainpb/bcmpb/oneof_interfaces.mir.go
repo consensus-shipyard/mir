@@ -44,3 +44,7 @@ func (w *Event_GetHeadToCheckpointChainResponse) Unwrap() *GetHeadToCheckpointCh
 func (w *Event_RegisterCheckpoint) Unwrap() *RegisterCheckpoint {
 	return w.RegisterCheckpoint
 }
+
+func (w *Event_InitBlockchain) Unwrap() *InitBlockchain {
+	return w.InitBlockchain
+}

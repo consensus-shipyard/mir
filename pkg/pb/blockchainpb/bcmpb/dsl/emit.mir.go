@@ -47,3 +47,7 @@ func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, r
 func RegisterCheckpoint(m dsl.Module, destModule types.ModuleID, blockId uint64, state *statepb.State) {
 	dsl.EmitMirEvent(m, events.RegisterCheckpoint(destModule, blockId, state))
 }
+
+func InitBlockchain(m dsl.Module, destModule types.ModuleID, initialState *statepb.State) {
+	dsl.EmitMirEvent(m, events.InitBlockchain(destModule, initialState))
+}

@@ -77,3 +77,9 @@ func UponRegisterCheckpoint(m dsl.Module, handler func(blockId uint64, state *st
 		return handler(ev.BlockId, ev.State)
 	})
 }
+
+func UponInitBlockchain(m dsl.Module, handler func(initialState *statepb.State) error) {
+	UponEvent[*types.Event_InitBlockchain](m, func(ev *types.InitBlockchain) error {
+		return handler(ev.InitialState)
+	})
+}
