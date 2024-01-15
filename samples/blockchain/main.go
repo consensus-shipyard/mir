@@ -92,7 +92,7 @@ func main() {
 			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
 			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
-			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), string(ownNodeID)),
+			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
 			"synchronizer":  NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
 			"timer":         timer,
 			"mangler":       mangler,

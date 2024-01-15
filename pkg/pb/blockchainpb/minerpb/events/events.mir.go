@@ -3,19 +3,19 @@
 package minerpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func BlockRequest(destModule types.ModuleID, headId uint64, payload *payloadpb.Payload) *types1.Event {
-	return &types1.Event{
+func BlockRequest(destModule types.ModuleID, headId uint64, payload *types1.Payload) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Miner{
-			Miner: &types2.Event{
-				Type: &types2.Event_BlockRequest{
-					BlockRequest: &types2.BlockRequest{
+		Type: &types2.Event_Miner{
+			Miner: &types3.Event{
+				Type: &types3.Event_BlockRequest{
+					BlockRequest: &types3.BlockRequest{
 						HeadId:  headId,
 						Payload: payload,
 					},
@@ -25,13 +25,13 @@ func BlockRequest(destModule types.ModuleID, headId uint64, payload *payloadpb.P
 	}
 }
 
-func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
-	return &types1.Event{
+func NewHead(destModule types.ModuleID, headId uint64) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Miner{
-			Miner: &types2.Event{
-				Type: &types2.Event_NewHead{
-					NewHead: &types2.NewHead{
+		Type: &types2.Event_Miner{
+			Miner: &types3.Event{
+				Type: &types3.Event_NewHead{
+					NewHead: &types3.NewHead{
 						HeadId: headId,
 					},
 				},

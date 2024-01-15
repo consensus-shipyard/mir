@@ -4,13 +4,13 @@ package communicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/events"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func NewBlock(m dsl.Module, destModule types.ModuleID, block *blockchainpb.Block) {
+func NewBlock(m dsl.Module, destModule types.ModuleID, block *types1.Block) {
 	dsl.EmitMirEvent(m, events.NewBlock(destModule, block))
 }

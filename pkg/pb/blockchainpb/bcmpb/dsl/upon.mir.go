@@ -4,11 +4,11 @@ package bcmpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types3 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -24,61 +24,61 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponNewBlock(m dsl.Module, handler func(block *blockchainpb.Block) error) {
+func UponNewBlock(m dsl.Module, handler func(block *types2.Block) error) {
 	UponEvent[*types.Event_NewBlock](m, func(ev *types.NewBlock) error {
 		return handler(ev.Block)
 	})
 }
 
-func UponNewChain(m dsl.Module, handler func(blocks []*blockchainpb.Block) error) {
+func UponNewChain(m dsl.Module, handler func(blocks []*types2.Block) error) {
 	UponEvent[*types.Event_NewChain](m, func(ev *types.NewChain) error {
 		return handler(ev.Blocks)
 	})
 }
 
-func UponGetBlockRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID, blockId uint64) error) {
+func UponGetBlockRequest(m dsl.Module, handler func(requestId string, sourceModule types3.ModuleID, blockId uint64) error) {
 	UponEvent[*types.Event_GetBlockRequest](m, func(ev *types.GetBlockRequest) error {
 		return handler(ev.RequestId, ev.SourceModule, ev.BlockId)
 	})
 }
 
-func UponGetBlockResponse(m dsl.Module, handler func(requestId string, found bool, block *blockchainpb.Block) error) {
+func UponGetBlockResponse(m dsl.Module, handler func(requestId string, found bool, block *types2.Block) error) {
 	UponEvent[*types.Event_GetBlockResponse](m, func(ev *types.GetBlockResponse) error {
 		return handler(ev.RequestId, ev.Found, ev.Block)
 	})
 }
 
-func UponGetChainRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
+func UponGetChainRequest(m dsl.Module, handler func(requestId string, sourceModule types3.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
 	UponEvent[*types.Event_GetChainRequest](m, func(ev *types.GetChainRequest) error {
 		return handler(ev.RequestId, ev.SourceModule, ev.EndBlockId, ev.SourceBlockIds)
 	})
 }
 
-func UponGetChainResponse(m dsl.Module, handler func(requestId string, success bool, chain []*blockchainpb.Block) error) {
+func UponGetChainResponse(m dsl.Module, handler func(requestId string, success bool, chain []*types2.Block) error) {
 	UponEvent[*types.Event_GetChainResponse](m, func(ev *types.GetChainResponse) error {
 		return handler(ev.RequestId, ev.Success, ev.Chain)
 	})
 }
 
-func UponGetHeadToCheckpointChainRequest(m dsl.Module, handler func(requestId string, sourceModule types2.ModuleID) error) {
+func UponGetHeadToCheckpointChainRequest(m dsl.Module, handler func(requestId string, sourceModule types3.ModuleID) error) {
 	UponEvent[*types.Event_GetHeadToCheckpointChainRequest](m, func(ev *types.GetHeadToCheckpointChainRequest) error {
 		return handler(ev.RequestId, ev.SourceModule)
 	})
 }
 
-func UponGetHeadToCheckpointChainResponse(m dsl.Module, handler func(requestId string, chain []*blockchainpb.BlockInternal) error) {
+func UponGetHeadToCheckpointChainResponse(m dsl.Module, handler func(requestId string, chain []*types2.BlockInternal) error) {
 	UponEvent[*types.Event_GetHeadToCheckpointChainResponse](m, func(ev *types.GetHeadToCheckpointChainResponse) error {
 		return handler(ev.RequestId, ev.Chain)
 	})
 }
 
-func UponRegisterCheckpoint(m dsl.Module, handler func(blockId uint64, state *statepb.State) error) {
+func UponRegisterCheckpoint(m dsl.Module, handler func(blockId uint64, state *types4.State) error) {
 	UponEvent[*types.Event_RegisterCheckpoint](m, func(ev *types.RegisterCheckpoint) error {
 		return handler(ev.BlockId, ev.State)
 	})
 }
 
-func UponInitBlockchain(m dsl.Module, handler func(initialState *statepb.State) error) {
+func UponInitBlockchain(m dsl.Module, handler func(initialState *types4.State) error) {
 	UponEvent[*types.Event_InitBlockchain](m, func(ev *types.InitBlockchain) error {
 		return handler(ev.InitialState)
 	})

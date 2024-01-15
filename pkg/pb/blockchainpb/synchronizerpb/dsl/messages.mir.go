@@ -4,8 +4,8 @@ package synchronizerpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	dsl1 "github.com/filecoin-project/mir/pkg/pb/messagepb/dsl"
 	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types1 "github.com/filecoin-project/mir/pkg/types"
@@ -30,7 +30,7 @@ func UponChainRequestReceived(m dsl.Module, handler func(from types1.NodeID, req
 	})
 }
 
-func UponChainResponseReceived(m dsl.Module, handler func(from types1.NodeID, requestId string, found bool, chain []*blockchainpb.Block) error) {
+func UponChainResponseReceived(m dsl.Module, handler func(from types1.NodeID, requestId string, found bool, chain []*types3.Block) error) {
 	UponMessageReceived[*types.Message_ChainResponse](m, func(from types1.NodeID, msg *types.ChainResponse) error {
 		return handler(from, msg.RequestId, msg.Found, msg.Chain)
 	})

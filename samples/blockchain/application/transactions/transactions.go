@@ -4,38 +4,33 @@ import (
 	"cmp"
 	"slices"
 
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	"github.com/filecoin-project/mir/samples/blockchain/application/config"
+	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	"github.com/mitchellh/hashstructure"
 )
 
 type transaction struct {
 	hash    uint64
-	payload *payloadpb.Payload
+	payload *payloadpbtypes.Payload
 }
 
 type TransactionManager struct {
-	transactions          []transaction // sorted by timestamp
-	name                  string
-	ownTransactionCounter uint64
+	transactions []transaction // sorted by timestamp
 }
 
 func (tm *TransactionManager) PoolSize() int {
 	return len(tm.transactions)
 }
 
-func New(name string) *TransactionManager {
+func New() *TransactionManager {
 	return &TransactionManager{
-		transactions:          []transaction{},
-		name:                  name,
-		ownTransactionCounter: 0,
+		transactions: []transaction{},
 	}
 }
 
-func (tm *TransactionManager) GetPayload() *payloadpb.Payload {
+func (tm *TransactionManager) GetPayload() *payloadpbtypes.Payload {
 	// return oldest transaction, where timestamp is a field in the payload
 	if len(tm.transactions) == 0 {
-		return config.EmptyPayload
+		return nil
 	}
 	// sort by timestamp
 	// TODO: keep it sorted
@@ -45,7 +40,7 @@ func (tm *TransactionManager) GetPayload() *payloadpb.Payload {
 	return tm.transactions[0].payload
 }
 
-func (tm *TransactionManager) AddPayload(payload *payloadpb.Payload) error {
+func (tm *TransactionManager) AddPayload(payload *payloadpbtypes.Payload) error {
 	hash, err := hashstructure.Hash(payload, nil)
 	if err != nil {
 		return err
@@ -68,7 +63,7 @@ func (tm *TransactionManager) AddPayload(payload *payloadpb.Payload) error {
 	return nil
 }
 
-func (tm *TransactionManager) RemovePayload(payload *payloadpb.Payload) error {
+func (tm *TransactionManager) RemovePayload(payload *payloadpbtypes.Payload) error {
 	hash, err := hashstructure.Hash(payload, nil)
 	if err != nil {
 		return err

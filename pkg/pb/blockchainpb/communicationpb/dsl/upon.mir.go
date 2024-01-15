@@ -4,8 +4,8 @@ package communicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -22,7 +22,7 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponNewBlock(m dsl.Module, handler func(block *blockchainpb.Block) error) {
+func UponNewBlock(m dsl.Module, handler func(block *types2.Block) error) {
 	UponEvent[*types.Event_NewBlock](m, func(ev *types.NewBlock) error {
 		return handler(ev.Block)
 	})

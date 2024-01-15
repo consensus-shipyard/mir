@@ -3,20 +3,20 @@
 package interceptorpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func TreeUpdate(destModule types.ModuleID, tree *blockchainpb.Blocktree, headId uint64) *types1.Event {
-	return &types1.Event{
+func TreeUpdate(destModule types.ModuleID, tree *types1.Blocktree, headId uint64) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcinterceptor{
-			Bcinterceptor: &types2.Event{
-				Type: &types2.Event_TreeUpdate{
-					TreeUpdate: &types2.TreeUpdate{
+		Type: &types2.Event_Bcinterceptor{
+			Bcinterceptor: &types3.Event{
+				Type: &types3.Event_TreeUpdate{
+					TreeUpdate: &types3.TreeUpdate{
 						Tree:   tree,
 						HeadId: headId,
 					},
@@ -26,13 +26,13 @@ func TreeUpdate(destModule types.ModuleID, tree *blockchainpb.Blocktree, headId 
 	}
 }
 
-func NewOrphan(destModule types.ModuleID, orphan *blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func NewOrphan(destModule types.ModuleID, orphan *types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcinterceptor{
-			Bcinterceptor: &types2.Event{
-				Type: &types2.Event_NewOrphan{
-					NewOrphan: &types2.NewOrphan{
+		Type: &types2.Event_Bcinterceptor{
+			Bcinterceptor: &types3.Event{
+				Type: &types3.Event_NewOrphan{
+					NewOrphan: &types3.NewOrphan{
 						Orphan: orphan,
 					},
 				},
@@ -41,13 +41,13 @@ func NewOrphan(destModule types.ModuleID, orphan *blockchainpb.Block) *types1.Ev
 	}
 }
 
-func AppUpdate(destModule types.ModuleID, state *statepb.State) *types1.Event {
-	return &types1.Event{
+func AppUpdate(destModule types.ModuleID, state *types4.State) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcinterceptor{
-			Bcinterceptor: &types2.Event{
-				Type: &types2.Event_AppUpdate{
-					AppUpdate: &types2.AppUpdate{
+		Type: &types2.Event_Bcinterceptor{
+			Bcinterceptor: &types3.Event{
+				Type: &types3.Event_AppUpdate{
+					AppUpdate: &types3.AppUpdate{
 						State: state,
 					},
 				},

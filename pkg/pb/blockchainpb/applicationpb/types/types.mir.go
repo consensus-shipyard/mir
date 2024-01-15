@@ -4,10 +4,10 @@ package applicationpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -275,7 +275,7 @@ func (*NewHead) MirReflect() mirreflect.Type {
 
 type VerifyBlockRequest struct {
 	RequestId uint64
-	Block     *blockchainpb.Block
+	Block     *types.Block
 }
 
 func VerifyBlockRequestFromPb(pb *applicationpb.VerifyBlockRequest) *VerifyBlockRequest {
@@ -284,7 +284,7 @@ func VerifyBlockRequestFromPb(pb *applicationpb.VerifyBlockRequest) *VerifyBlock
 	}
 	return &VerifyBlockRequest{
 		RequestId: pb.RequestId,
-		Block:     pb.Block,
+		Block:     types.BlockFromPb(pb.Block),
 	}
 }
 
@@ -296,7 +296,7 @@ func (m *VerifyBlockRequest) Pb() *applicationpb.VerifyBlockRequest {
 	{
 		pbMessage.RequestId = m.RequestId
 		if m.Block != nil {
-			pbMessage.Block = m.Block
+			pbMessage.Block = (m.Block).Pb()
 		}
 	}
 
@@ -340,9 +340,9 @@ func (*VerifyBlockResponse) MirReflect() mirreflect.Type {
 }
 
 type ForkUpdate struct {
-	RemovedChain *blockchainpb.Blockchain
-	AddedChain   *blockchainpb.Blockchain
-	ForkState    *statepb.State
+	RemovedChain *types.Blockchain
+	AddedChain   *types.Blockchain
+	ForkState    *types1.State
 }
 
 func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
@@ -350,9 +350,9 @@ func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
 		return nil
 	}
 	return &ForkUpdate{
-		RemovedChain: pb.RemovedChain,
-		AddedChain:   pb.AddedChain,
-		ForkState:    pb.ForkState,
+		RemovedChain: types.BlockchainFromPb(pb.RemovedChain),
+		AddedChain:   types.BlockchainFromPb(pb.AddedChain),
+		ForkState:    types1.StateFromPb(pb.ForkState),
 	}
 }
 
@@ -363,13 +363,13 @@ func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
 	pbMessage := &applicationpb.ForkUpdate{}
 	{
 		if m.RemovedChain != nil {
-			pbMessage.RemovedChain = m.RemovedChain
+			pbMessage.RemovedChain = (m.RemovedChain).Pb()
 		}
 		if m.AddedChain != nil {
-			pbMessage.AddedChain = m.AddedChain
+			pbMessage.AddedChain = (m.AddedChain).Pb()
 		}
 		if m.ForkState != nil {
-			pbMessage.ForkState = m.ForkState
+			pbMessage.ForkState = (m.ForkState).Pb()
 		}
 	}
 
@@ -411,7 +411,7 @@ func (*PayloadRequest) MirReflect() mirreflect.Type {
 
 type PayloadResponse struct {
 	HeadId  uint64
-	Payload *payloadpb.Payload
+	Payload *types2.Payload
 }
 
 func PayloadResponseFromPb(pb *applicationpb.PayloadResponse) *PayloadResponse {
@@ -420,7 +420,7 @@ func PayloadResponseFromPb(pb *applicationpb.PayloadResponse) *PayloadResponse {
 	}
 	return &PayloadResponse{
 		HeadId:  pb.HeadId,
-		Payload: pb.Payload,
+		Payload: types2.PayloadFromPb(pb.Payload),
 	}
 }
 
@@ -432,7 +432,7 @@ func (m *PayloadResponse) Pb() *applicationpb.PayloadResponse {
 	{
 		pbMessage.HeadId = m.HeadId
 		if m.Payload != nil {
-			pbMessage.Payload = m.Payload
+			pbMessage.Payload = (m.Payload).Pb()
 		}
 	}
 

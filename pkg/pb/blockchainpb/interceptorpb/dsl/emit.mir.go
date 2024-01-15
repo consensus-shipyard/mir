@@ -4,22 +4,22 @@ package interceptorpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/events"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func TreeUpdate(m dsl.Module, destModule types.ModuleID, tree *blockchainpb.Blocktree, headId uint64) {
+func TreeUpdate(m dsl.Module, destModule types.ModuleID, tree *types1.Blocktree, headId uint64) {
 	dsl.EmitMirEvent(m, events.TreeUpdate(destModule, tree, headId))
 }
 
-func NewOrphan(m dsl.Module, destModule types.ModuleID, orphan *blockchainpb.Block) {
+func NewOrphan(m dsl.Module, destModule types.ModuleID, orphan *types1.Block) {
 	dsl.EmitMirEvent(m, events.NewOrphan(destModule, orphan))
 }
 
-func AppUpdate(m dsl.Module, destModule types.ModuleID, state *statepb.State) {
+func AppUpdate(m dsl.Module, destModule types.ModuleID, state *types2.State) {
 	dsl.EmitMirEvent(m, events.AppUpdate(destModule, state))
 }

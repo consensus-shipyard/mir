@@ -4,19 +4,19 @@ package bcmpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func NewBlock(m dsl.Module, destModule types.ModuleID, block *blockchainpb.Block) {
+func NewBlock(m dsl.Module, destModule types.ModuleID, block *types1.Block) {
 	dsl.EmitMirEvent(m, events.NewBlock(destModule, block))
 }
 
-func NewChain(m dsl.Module, destModule types.ModuleID, blocks []*blockchainpb.Block) {
+func NewChain(m dsl.Module, destModule types.ModuleID, blocks []*types1.Block) {
 	dsl.EmitMirEvent(m, events.NewChain(destModule, blocks))
 }
 
@@ -24,7 +24,7 @@ func GetBlockRequest(m dsl.Module, destModule types.ModuleID, requestId string, 
 	dsl.EmitMirEvent(m, events.GetBlockRequest(destModule, requestId, sourceModule, blockId))
 }
 
-func GetBlockResponse(m dsl.Module, destModule types.ModuleID, requestId string, found bool, block *blockchainpb.Block) {
+func GetBlockResponse(m dsl.Module, destModule types.ModuleID, requestId string, found bool, block *types1.Block) {
 	dsl.EmitMirEvent(m, events.GetBlockResponse(destModule, requestId, found, block))
 }
 
@@ -32,7 +32,7 @@ func GetChainRequest(m dsl.Module, destModule types.ModuleID, requestId string, 
 	dsl.EmitMirEvent(m, events.GetChainRequest(destModule, requestId, sourceModule, endBlockId, sourceBlockIds))
 }
 
-func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, success bool, chain []*blockchainpb.Block) {
+func GetChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, success bool, chain []*types1.Block) {
 	dsl.EmitMirEvent(m, events.GetChainResponse(destModule, requestId, success, chain))
 }
 
@@ -40,14 +40,14 @@ func GetHeadToCheckpointChainRequest(m dsl.Module, destModule types.ModuleID, re
 	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainRequest(destModule, requestId, sourceModule))
 }
 
-func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, chain []*blockchainpb.BlockInternal) {
+func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, chain []*types1.BlockInternal) {
 	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainResponse(destModule, requestId, chain))
 }
 
-func RegisterCheckpoint(m dsl.Module, destModule types.ModuleID, blockId uint64, state *statepb.State) {
+func RegisterCheckpoint(m dsl.Module, destModule types.ModuleID, blockId uint64, state *types2.State) {
 	dsl.EmitMirEvent(m, events.RegisterCheckpoint(destModule, blockId, state))
 }
 
-func InitBlockchain(m dsl.Module, destModule types.ModuleID, initialState *statepb.State) {
+func InitBlockchain(m dsl.Module, destModule types.ModuleID, initialState *types2.State) {
 	dsl.EmitMirEvent(m, events.InitBlockchain(destModule, initialState))
 }

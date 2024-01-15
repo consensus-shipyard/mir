@@ -4,7 +4,19 @@ package statepb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb";
 
+import "mir/codegen_extensions.proto";
+
 message State {
+  option (mir.struct) = true;
+  
   // application specific state
-  repeated string message_history = 1;
+  repeated string             message_history       = 1;
+  repeated LastSentTimestamp  last_sent_timestamps  = 2;
+}
+
+message LastSentTimestamp {
+  option (mir.struct) = true;
+  
+  string  node_id   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  int64   timestamp = 2;
 }

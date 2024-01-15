@@ -10,10 +10,10 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	synchronizerpbmsgs "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/msgs"
+	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
@@ -56,7 +56,7 @@ type syncRequest struct {
 	nodesContacted []int // index of node in otherNodes
 }
 
-func (sm *synchronizerModule) registerSyncRequest(block *blockchainpb.Block, leaves []uint64) (string, error) {
+func (sm *synchronizerModule) registerSyncRequest(block *blockchainpbtypes.Block, leaves []uint64) (string, error) {
 	requestId := fmt.Sprint(block.BlockId) + "-" + string(sm.nodeID)
 	// check if request already exists
 	if _, ok := sm.syncRequests[requestId]; ok {
@@ -102,7 +102,7 @@ func (sm *synchronizerModule) contactNextNode(requestID string) error {
 	return nil
 }
 
-func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpb.Block, leaveIds []uint64) error {
+func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpbtypes.Block, leaveIds []uint64) error {
 
 	// register request
 	requestId, err := sm.registerSyncRequest(orphanBlock, leaveIds)
@@ -127,7 +127,7 @@ func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpb.Block,
 	return nil
 }
 
-func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, requestID string, found bool, chain []*blockchainpb.Block) error {
+func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, requestID string, found bool, chain []*blockchainpbtypes.Block) error {
 	// check if request exists
 	request, ok := sm.syncRequests[requestID]
 	if !ok {
@@ -190,7 +190,7 @@ func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestI
 
 }
 
-func (sm *synchronizerModule) handleGetChainResponse(requestID string, found bool, chain []*blockchainpb.Block) error {
+func (sm *synchronizerModule) handleGetChainResponse(requestID string, found bool, chain []*blockchainpbtypes.Block) error {
 	request, ok := sm.getRequests[requestID]
 	if !ok {
 		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", requestID, "mangle", sm.mangle)

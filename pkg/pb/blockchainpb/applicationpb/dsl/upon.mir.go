@@ -4,10 +4,10 @@ package applicationpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -30,7 +30,7 @@ func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
 	})
 }
 
-func UponVerifyBlockRequest(m dsl.Module, handler func(requestId uint64, block *blockchainpb.Block) error) {
+func UponVerifyBlockRequest(m dsl.Module, handler func(requestId uint64, block *types2.Block) error) {
 	UponEvent[*types.Event_VerifyBlockRequest](m, func(ev *types.VerifyBlockRequest) error {
 		return handler(ev.RequestId, ev.Block)
 	})
@@ -48,13 +48,13 @@ func UponPayloadRequest(m dsl.Module, handler func(headId uint64) error) {
 	})
 }
 
-func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *payloadpb.Payload) error) {
+func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *types3.Payload) error) {
 	UponEvent[*types.Event_PayloadResponse](m, func(ev *types.PayloadResponse) error {
 		return handler(ev.HeadId, ev.Payload)
 	})
 }
 
-func UponForkUpdate(m dsl.Module, handler func(removedChain *blockchainpb.Blockchain, addedChain *blockchainpb.Blockchain, forkState *statepb.State) error) {
+func UponForkUpdate(m dsl.Module, handler func(removedChain *types2.Blockchain, addedChain *types2.Blockchain, forkState *types4.State) error) {
 	UponEvent[*types.Event_ForkUpdate](m, func(ev *types.ForkUpdate) error {
 		return handler(ev.RemovedChain, ev.AddedChain, ev.ForkState)
 	})

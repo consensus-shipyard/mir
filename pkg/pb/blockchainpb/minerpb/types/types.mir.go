@@ -5,7 +5,7 @@ package minerpbtypes
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -114,7 +114,7 @@ func (*Event) MirReflect() mirreflect.Type {
 
 type BlockRequest struct {
 	HeadId  uint64
-	Payload *payloadpb.Payload
+	Payload *types.Payload
 }
 
 func BlockRequestFromPb(pb *minerpb.BlockRequest) *BlockRequest {
@@ -123,7 +123,7 @@ func BlockRequestFromPb(pb *minerpb.BlockRequest) *BlockRequest {
 	}
 	return &BlockRequest{
 		HeadId:  pb.HeadId,
-		Payload: pb.Payload,
+		Payload: types.PayloadFromPb(pb.Payload),
 	}
 }
 
@@ -135,7 +135,7 @@ func (m *BlockRequest) Pb() *minerpb.BlockRequest {
 	{
 		pbMessage.HeadId = m.HeadId
 		if m.Payload != nil {
-			pbMessage.Payload = m.Payload
+			pbMessage.Payload = (m.Payload).Pb()
 		}
 	}
 

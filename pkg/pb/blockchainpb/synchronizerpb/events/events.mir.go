@@ -3,19 +3,19 @@
 package synchronizerpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func SyncRequest(destModule types.ModuleID, orphanBlock *blockchainpb.Block, leaveIds []uint64) *types1.Event {
-	return &types1.Event{
+func SyncRequest(destModule types.ModuleID, orphanBlock *types1.Block, leaveIds []uint64) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Synchronizer{
-			Synchronizer: &types2.Event{
-				Type: &types2.Event_SyncRequest{
-					SyncRequest: &types2.SyncRequest{
+		Type: &types2.Event_Synchronizer{
+			Synchronizer: &types3.Event{
+				Type: &types3.Event_SyncRequest{
+					SyncRequest: &types3.SyncRequest{
 						OrphanBlock: orphanBlock,
 						LeaveIds:    leaveIds,
 					},

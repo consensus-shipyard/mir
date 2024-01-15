@@ -3,20 +3,20 @@
 package bcmpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewBlock(destModule types.ModuleID, block *blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func NewBlock(destModule types.ModuleID, block *types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_NewBlock{
-					NewBlock: &types2.NewBlock{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_NewBlock{
+					NewBlock: &types3.NewBlock{
 						Block: block,
 					},
 				},
@@ -25,13 +25,13 @@ func NewBlock(destModule types.ModuleID, block *blockchainpb.Block) *types1.Even
 	}
 }
 
-func NewChain(destModule types.ModuleID, blocks []*blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func NewChain(destModule types.ModuleID, blocks []*types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_NewChain{
-					NewChain: &types2.NewChain{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_NewChain{
+					NewChain: &types3.NewChain{
 						Blocks: blocks,
 					},
 				},
@@ -40,13 +40,13 @@ func NewChain(destModule types.ModuleID, blocks []*blockchainpb.Block) *types1.E
 	}
 }
 
-func GetBlockRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, blockId uint64) *types1.Event {
-	return &types1.Event{
+func GetBlockRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, blockId uint64) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetBlockRequest{
-					GetBlockRequest: &types2.GetBlockRequest{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetBlockRequest{
+					GetBlockRequest: &types3.GetBlockRequest{
 						RequestId:    requestId,
 						SourceModule: sourceModule,
 						BlockId:      blockId,
@@ -57,13 +57,13 @@ func GetBlockRequest(destModule types.ModuleID, requestId string, sourceModule t
 	}
 }
 
-func GetBlockResponse(destModule types.ModuleID, requestId string, found bool, block *blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func GetBlockResponse(destModule types.ModuleID, requestId string, found bool, block *types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetBlockResponse{
-					GetBlockResponse: &types2.GetBlockResponse{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetBlockResponse{
+					GetBlockResponse: &types3.GetBlockResponse{
 						RequestId: requestId,
 						Found:     found,
 						Block:     block,
@@ -74,13 +74,13 @@ func GetBlockResponse(destModule types.ModuleID, requestId string, found bool, b
 	}
 }
 
-func GetChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) *types1.Event {
-	return &types1.Event{
+func GetChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetChainRequest{
-					GetChainRequest: &types2.GetChainRequest{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetChainRequest{
+					GetChainRequest: &types3.GetChainRequest{
 						RequestId:      requestId,
 						SourceModule:   sourceModule,
 						EndBlockId:     endBlockId,
@@ -92,13 +92,13 @@ func GetChainRequest(destModule types.ModuleID, requestId string, sourceModule t
 	}
 }
 
-func GetChainResponse(destModule types.ModuleID, requestId string, success bool, chain []*blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func GetChainResponse(destModule types.ModuleID, requestId string, success bool, chain []*types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetChainResponse{
-					GetChainResponse: &types2.GetChainResponse{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetChainResponse{
+					GetChainResponse: &types3.GetChainResponse{
 						RequestId: requestId,
 						Success:   success,
 						Chain:     chain,
@@ -109,13 +109,13 @@ func GetChainResponse(destModule types.ModuleID, requestId string, success bool,
 	}
 }
 
-func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID) *types1.Event {
-	return &types1.Event{
+func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetHeadToCheckpointChainRequest{
-					GetHeadToCheckpointChainRequest: &types2.GetHeadToCheckpointChainRequest{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetHeadToCheckpointChainRequest{
+					GetHeadToCheckpointChainRequest: &types3.GetHeadToCheckpointChainRequest{
 						RequestId:    requestId,
 						SourceModule: sourceModule,
 					},
@@ -125,13 +125,13 @@ func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string
 	}
 }
 
-func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*blockchainpb.BlockInternal) *types1.Event {
-	return &types1.Event{
+func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*types1.BlockInternal) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_GetHeadToCheckpointChainResponse{
-					GetHeadToCheckpointChainResponse: &types2.GetHeadToCheckpointChainResponse{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetHeadToCheckpointChainResponse{
+					GetHeadToCheckpointChainResponse: &types3.GetHeadToCheckpointChainResponse{
 						RequestId: requestId,
 						Chain:     chain,
 					},
@@ -141,13 +141,13 @@ func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId strin
 	}
 }
 
-func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *statepb.State) *types1.Event {
-	return &types1.Event{
+func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *types4.State) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_RegisterCheckpoint{
-					RegisterCheckpoint: &types2.RegisterCheckpoint{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_RegisterCheckpoint{
+					RegisterCheckpoint: &types3.RegisterCheckpoint{
 						BlockId: blockId,
 						State:   state,
 					},
@@ -157,13 +157,13 @@ func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *statep
 	}
 }
 
-func InitBlockchain(destModule types.ModuleID, initialState *statepb.State) *types1.Event {
-	return &types1.Event{
+func InitBlockchain(destModule types.ModuleID, initialState *types4.State) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Bcm{
-			Bcm: &types2.Event{
-				Type: &types2.Event_InitBlockchain{
-					InitBlockchain: &types2.InitBlockchain{
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_InitBlockchain{
+					InitBlockchain: &types3.InitBlockchain{
 						InitialState: initialState,
 					},
 				},

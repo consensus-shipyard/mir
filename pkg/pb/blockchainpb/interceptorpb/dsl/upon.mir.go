@@ -4,9 +4,9 @@ package interceptorpbdsl
 
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -23,19 +23,19 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponTreeUpdate(m dsl.Module, handler func(tree *blockchainpb.Blocktree, headId uint64) error) {
+func UponTreeUpdate(m dsl.Module, handler func(tree *types2.Blocktree, headId uint64) error) {
 	UponEvent[*types.Event_TreeUpdate](m, func(ev *types.TreeUpdate) error {
 		return handler(ev.Tree, ev.HeadId)
 	})
 }
 
-func UponNewOrphan(m dsl.Module, handler func(orphan *blockchainpb.Block) error) {
+func UponNewOrphan(m dsl.Module, handler func(orphan *types2.Block) error) {
 	UponEvent[*types.Event_NewOrphan](m, func(ev *types.NewOrphan) error {
 		return handler(ev.Orphan)
 	})
 }
 
-func UponAppUpdate(m dsl.Module, handler func(state *statepb.State) error) {
+func UponAppUpdate(m dsl.Module, handler func(state *types3.State) error) {
 	UponEvent[*types.Event_AppUpdate](m, func(ev *types.AppUpdate) error {
 		return handler(ev.State)
 	})

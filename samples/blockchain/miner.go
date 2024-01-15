@@ -8,13 +8,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	applicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	bcmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
 	communicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"github.com/go-errors/errors"
@@ -27,7 +27,7 @@ const (
 
 type blockRequest struct {
 	HeadId  uint64
-	Payload *payloadpb.Payload
+	Payload *payloadpbtypes.Payload
 }
 
 type minerModule struct {
@@ -58,7 +58,7 @@ func (m *minerModule) ApplyEvents(context context.Context, eventList *events.Eve
 		case *eventpb.Event_Application:
 			switch e := e.Application.Type.(type) {
 			case *applicationpb.Event_PayloadResponse:
-				m.blockRequests <- blockRequest{e.PayloadResponse.GetHeadId(), e.PayloadResponse.GetPayload()}
+				m.blockRequests <- blockRequest{e.PayloadResponse.HeadId, payloadpbtypes.PayloadFromPb(e.PayloadResponse.Payload)}
 				return nil
 			default:
 				return errors.Errorf("unknown event: %T", e)
@@ -66,7 +66,7 @@ func (m *minerModule) ApplyEvents(context context.Context, eventList *events.Eve
 		case *eventpb.Event_Miner:
 			switch e := e.Miner.Type.(type) {
 			case *minerpb.Event_NewHead:
-				m.eventsOut <- events.ListOf(applicationpbevents.PayloadRequest("application", e.NewHead.GetHeadId()).Pb())
+				m.eventsOut <- events.ListOf(applicationpbevents.PayloadRequest("application", e.NewHead.HeadId).Pb())
 			default:
 				return errors.Errorf("unknown miner event: %T", e)
 			}
@@ -93,7 +93,7 @@ func (m *minerModule) mineWorkerManager() {
 				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
 				return
 			case <-time.After(delay):
-				block := &blockchainpb.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: time.Now().Unix()}
+				block := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: time.Now().Unix()}
 				hash, err := hashstructure.Hash(block, nil)
 				if err != nil {
 					m.logger.Log(logging.LevelError, "Failed to hash block", "error", err)

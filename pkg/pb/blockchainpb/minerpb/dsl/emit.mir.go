@@ -5,13 +5,13 @@ package minerpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/events"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for emitting events.
 
-func BlockRequest(m dsl.Module, destModule types.ModuleID, headId uint64, payload *payloadpb.Payload) {
+func BlockRequest(m dsl.Module, destModule types.ModuleID, headId uint64, payload *types1.Payload) {
 	dsl.EmitMirEvent(m, events.BlockRequest(destModule, headId, payload))
 }
 

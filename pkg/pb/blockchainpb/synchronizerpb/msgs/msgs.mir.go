@@ -3,8 +3,8 @@
 package synchronizerpbmsgs
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -26,7 +26,7 @@ func ChainRequest(destModule types.ModuleID, requestId string, blockId uint64, l
 	}
 }
 
-func ChainResponse(destModule types.ModuleID, requestId string, found bool, chain []*blockchainpb.Block) *types1.Message {
+func ChainResponse(destModule types.ModuleID, requestId string, found bool, chain []*types3.Block) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{

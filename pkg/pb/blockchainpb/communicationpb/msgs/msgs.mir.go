@@ -3,19 +3,19 @@
 package communicationpbmsgs
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewBlockMessage(destModule types.ModuleID, block *blockchainpb.Block) *types1.Message {
-	return &types1.Message{
+func NewBlockMessage(destModule types.ModuleID, block *types1.Block) *types2.Message {
+	return &types2.Message{
 		DestModule: destModule,
-		Type: &types1.Message_Communicationpb{
-			Communicationpb: &types2.Message{
-				Type: &types2.Message_NewBlock{
-					NewBlock: &types2.NewBlockMessage{
+		Type: &types2.Message_Communicationpb{
+			Communicationpb: &types3.Message{
+				Type: &types3.Message_NewBlock{
+					NewBlock: &types3.NewBlockMessage{
 						Block: block,
 					},
 				},

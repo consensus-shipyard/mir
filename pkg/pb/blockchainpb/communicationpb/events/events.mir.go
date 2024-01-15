@@ -3,19 +3,19 @@
 package communicationpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewBlock(destModule types.ModuleID, block *blockchainpb.Block) *types1.Event {
-	return &types1.Event{
+func NewBlock(destModule types.ModuleID, block *types1.Block) *types2.Event {
+	return &types2.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Communication{
-			Communication: &types2.Event{
-				Type: &types2.Event_NewBlock{
-					NewBlock: &types2.NewBlock{
+		Type: &types2.Event_Communication{
+			Communication: &types3.Event{
+				Type: &types3.Event_NewBlock{
+					NewBlock: &types3.NewBlock{
 						Block: block,
 					},
 				},

@@ -4,8 +4,8 @@ package communicationpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	communicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -87,7 +87,7 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type NewBlock struct {
-	Block *blockchainpb.Block
+	Block *types.Block
 }
 
 func NewBlockFromPb(pb *communicationpb.NewBlock) *NewBlock {
@@ -95,7 +95,7 @@ func NewBlockFromPb(pb *communicationpb.NewBlock) *NewBlock {
 		return nil
 	}
 	return &NewBlock{
-		Block: pb.Block,
+		Block: types.BlockFromPb(pb.Block),
 	}
 }
 
@@ -106,7 +106,7 @@ func (m *NewBlock) Pb() *communicationpb.NewBlock {
 	pbMessage := &communicationpb.NewBlock{}
 	{
 		if m.Block != nil {
-			pbMessage.Block = m.Block
+			pbMessage.Block = (m.Block).Pb()
 		}
 	}
 
@@ -195,7 +195,7 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type NewBlockMessage struct {
-	Block *blockchainpb.Block
+	Block *types.Block
 }
 
 func NewBlockMessageFromPb(pb *communicationpb.NewBlockMessage) *NewBlockMessage {
@@ -203,7 +203,7 @@ func NewBlockMessageFromPb(pb *communicationpb.NewBlockMessage) *NewBlockMessage
 		return nil
 	}
 	return &NewBlockMessage{
-		Block: pb.Block,
+		Block: types.BlockFromPb(pb.Block),
 	}
 }
 
@@ -214,7 +214,7 @@ func (m *NewBlockMessage) Pb() *communicationpb.NewBlockMessage {
 	pbMessage := &communicationpb.NewBlockMessage{}
 	{
 		if m.Block != nil {
-			pbMessage.Block = m.Block
+			pbMessage.Block = (m.Block).Pb()
 		}
 	}
 

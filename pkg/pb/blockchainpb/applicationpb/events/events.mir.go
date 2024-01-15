@@ -3,10 +3,10 @@
 package applicationpbevents
 
 import (
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
-	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -26,7 +26,7 @@ func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
 	}
 }
 
-func VerifyBlockRequest(destModule types.ModuleID, requestId uint64, block *blockchainpb.Block) *types1.Event {
+func VerifyBlockRequest(destModule types.ModuleID, requestId uint64, block *types3.Block) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
@@ -73,7 +73,7 @@ func PayloadRequest(destModule types.ModuleID, headId uint64) *types1.Event {
 	}
 }
 
-func PayloadResponse(destModule types.ModuleID, headId uint64, payload *payloadpb.Payload) *types1.Event {
+func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types4.Payload) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
@@ -89,7 +89,7 @@ func PayloadResponse(destModule types.ModuleID, headId uint64, payload *payloadp
 	}
 }
 
-func ForkUpdate(destModule types.ModuleID, removedChain *blockchainpb.Blockchain, addedChain *blockchainpb.Blockchain, forkState *statepb.State) *types1.Event {
+func ForkUpdate(destModule types.ModuleID, removedChain *types3.Blockchain, addedChain *types3.Blockchain, forkState *types5.State) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{

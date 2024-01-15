@@ -4,8 +4,10 @@ package synchronizerpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	synchronizerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -87,7 +89,7 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type SyncRequest struct {
-	OrphanBlock *blockchainpb.Block
+	OrphanBlock *types.Block
 	LeaveIds    []uint64
 }
 
@@ -96,7 +98,7 @@ func SyncRequestFromPb(pb *synchronizerpb.SyncRequest) *SyncRequest {
 		return nil
 	}
 	return &SyncRequest{
-		OrphanBlock: pb.OrphanBlock,
+		OrphanBlock: types.BlockFromPb(pb.OrphanBlock),
 		LeaveIds:    pb.LeaveIds,
 	}
 }
@@ -108,7 +110,7 @@ func (m *SyncRequest) Pb() *synchronizerpb.SyncRequest {
 	pbMessage := &synchronizerpb.SyncRequest{}
 	{
 		if m.OrphanBlock != nil {
-			pbMessage.OrphanBlock = m.OrphanBlock
+			pbMessage.OrphanBlock = (m.OrphanBlock).Pb()
 		}
 		pbMessage.LeaveIds = m.LeaveIds
 	}
@@ -261,7 +263,7 @@ func (*ChainRequest) MirReflect() mirreflect.Type {
 type ChainResponse struct {
 	RequestId string
 	Found     bool
-	Chain     []*blockchainpb.Block
+	Chain     []*types.Block
 }
 
 func ChainResponseFromPb(pb *synchronizerpb.ChainResponse) *ChainResponse {
@@ -271,7 +273,9 @@ func ChainResponseFromPb(pb *synchronizerpb.ChainResponse) *ChainResponse {
 	return &ChainResponse{
 		RequestId: pb.RequestId,
 		Found:     pb.Found,
-		Chain:     pb.Chain,
+		Chain: types1.ConvertSlice(pb.Chain, func(t *blockchainpb.Block) *types.Block {
+			return types.BlockFromPb(t)
+		}),
 	}
 }
 
@@ -283,7 +287,9 @@ func (m *ChainResponse) Pb() *synchronizerpb.ChainResponse {
 	{
 		pbMessage.RequestId = m.RequestId
 		pbMessage.Found = m.Found
-		pbMessage.Chain = m.Chain
+		pbMessage.Chain = types1.ConvertSlice(m.Chain, func(t *types.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
 	}
 
 	return pbMessage

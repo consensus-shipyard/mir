@@ -9,12 +9,13 @@ import (
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/dsl"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
 	interceptorpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/dsl"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
-	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	statepbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/application/transactions"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
@@ -24,44 +25,67 @@ type ApplicationModule struct {
 	m      *dsl.Module
 	logger logging.Logger
 	tm     *transactions.TransactionManager
-	name   string
+	nodeID t.NodeID
 }
 
 // application-application events
 
-func applyBlockToState(state *statepb.State, block *blockchainpb.Block) *statepb.State {
-	// empty block, just skip
-	if block.Payload.Message == "" {
-		return state
+func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block) *statepbtypes.State {
+	sender := block.Payload.Sender
+	timeStamps := state.LastSentTimestamps
+	msgHistory := state.MessageHistory
+
+	for i, lt := range timeStamps {
+		if lt.NodeId == sender {
+			if lt.Timestamp > block.Payload.Timestamp {
+				panic("invalid ordering - there is a block that should never have been accepted")
+			}
+
+			// remove old timestamp, if it exists
+			timeStamps[i] = timeStamps[len(state.LastSentTimestamps)-1]
+			timeStamps = timeStamps[:len(state.LastSentTimestamps)-1]
+		}
 	}
-	return &statepb.State{
-		MessageHistory: append(state.MessageHistory, block.Payload.Message),
+
+	timeStamps = append(timeStamps, &statepbtypes.LastSentTimestamp{
+		NodeId:    sender,
+		Timestamp: block.Payload.Timestamp,
+	})
+
+	// empty block, just skip
+	if block.Payload.Message != "" {
+		msgHistory = append(msgHistory, block.Payload.Message)
+	}
+
+	return &statepbtypes.State{
+		MessageHistory:     msgHistory,
+		LastSentTimestamps: timeStamps,
 	}
 }
 
-func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockchainpb.Blockchain, forkState *statepb.State) error {
+func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockchainpbtypes.Blockchain, forkState *statepbtypes.State) error {
 	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.tm.PoolSize())
 
 	// add "remove chain" transactions to pool
-	for _, block := range removedChain.GetBlocks() {
+	for _, block := range removedChain.Blocks {
 		am.tm.AddPayload(block.Payload)
 	}
 
 	// remove "add chain" transactions from pool
-	for _, block := range addedChain.GetBlocks() {
+	for _, block := range addedChain.Blocks {
 		am.tm.RemovePayload(block.Payload)
 	}
 
 	// apply state to fork state
 	state := forkState
-	for _, block := range addedChain.GetBlocks() {
+	for _, block := range addedChain.Blocks {
 		state = applyBlockToState(state, block)
 	}
 
 	am.logger.Log(logging.LevelInfo, "Pool after fork", "poolSize", am.tm.PoolSize())
 
 	// register checkpoint
-	blockId := addedChain.GetBlocks()[len(addedChain.GetBlocks())-1].BlockId
+	blockId := addedChain.Blocks[len(addedChain.Blocks)-1].BlockId
 	bcmpbdsl.RegisterCheckpoint(*am.m, "bcm", blockId, state)
 	interceptorpbdsl.AppUpdate(*am.m, "devnull", state)
 
@@ -82,19 +106,27 @@ func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 
 	payload := am.tm.GetPayload()
 
+	if payload == nil {
+		payload = &payloadpbtypes.Payload{
+			Message:   "",
+			Timestamp: time.Now().Unix(),
+			Sender:    am.nodeID,
+		}
+	}
+
 	applicationpbdsl.PayloadResponse(*am.m, "miner", head_id, payload) // not using head id anywhere so we can get rid of it
 
 	return nil
 }
 
-func NewApplication(logger logging.Logger, name string) modules.PassiveModule {
+func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModule {
 
 	m := dsl.NewModule("application")
 	am := &ApplicationModule{
 		m:      &m,
 		logger: logger,
-		name:   name,
-		tm:     transactions.New(name),
+		nodeID: nodeID,
+		tm:     transactions.New(),
 	}
 
 	dsl.UponInit(m, func() error {
@@ -108,9 +140,10 @@ func NewApplication(logger logging.Logger, name string) modules.PassiveModule {
 	applicationpbdsl.UponForkUpdate(m, am.handleForkUpdate)
 
 	applicationpbdsl.UponMessageInput(m, func(text string) error {
-		am.tm.AddPayload(&payloadpb.Payload{
+		am.tm.AddPayload(&payloadpbtypes.Payload{
 			Message:   text,
 			Timestamp: time.Now().Unix(),
+			Sender:    am.nodeID,
 		})
 
 		return nil

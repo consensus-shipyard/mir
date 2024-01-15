@@ -4,9 +4,9 @@ package interceptorpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
-	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -140,7 +140,7 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type TreeUpdate struct {
-	Tree   *blockchainpb.Blocktree
+	Tree   *types.Blocktree
 	HeadId uint64
 }
 
@@ -149,7 +149,7 @@ func TreeUpdateFromPb(pb *interceptorpb.TreeUpdate) *TreeUpdate {
 		return nil
 	}
 	return &TreeUpdate{
-		Tree:   pb.Tree,
+		Tree:   types.BlocktreeFromPb(pb.Tree),
 		HeadId: pb.HeadId,
 	}
 }
@@ -161,7 +161,7 @@ func (m *TreeUpdate) Pb() *interceptorpb.TreeUpdate {
 	pbMessage := &interceptorpb.TreeUpdate{}
 	{
 		if m.Tree != nil {
-			pbMessage.Tree = m.Tree
+			pbMessage.Tree = (m.Tree).Pb()
 		}
 		pbMessage.HeadId = m.HeadId
 	}
@@ -174,7 +174,7 @@ func (*TreeUpdate) MirReflect() mirreflect.Type {
 }
 
 type NewOrphan struct {
-	Orphan *blockchainpb.Block
+	Orphan *types.Block
 }
 
 func NewOrphanFromPb(pb *interceptorpb.NewOrphan) *NewOrphan {
@@ -182,7 +182,7 @@ func NewOrphanFromPb(pb *interceptorpb.NewOrphan) *NewOrphan {
 		return nil
 	}
 	return &NewOrphan{
-		Orphan: pb.Orphan,
+		Orphan: types.BlockFromPb(pb.Orphan),
 	}
 }
 
@@ -193,7 +193,7 @@ func (m *NewOrphan) Pb() *interceptorpb.NewOrphan {
 	pbMessage := &interceptorpb.NewOrphan{}
 	{
 		if m.Orphan != nil {
-			pbMessage.Orphan = m.Orphan
+			pbMessage.Orphan = (m.Orphan).Pb()
 		}
 	}
 
@@ -205,7 +205,7 @@ func (*NewOrphan) MirReflect() mirreflect.Type {
 }
 
 type AppUpdate struct {
-	State *statepb.State
+	State *types1.State
 }
 
 func AppUpdateFromPb(pb *interceptorpb.AppUpdate) *AppUpdate {
@@ -213,7 +213,7 @@ func AppUpdateFromPb(pb *interceptorpb.AppUpdate) *AppUpdate {
 		return nil
 	}
 	return &AppUpdate{
-		State: pb.State,
+		State: types1.StateFromPb(pb.State),
 	}
 }
 
@@ -224,7 +224,7 @@ func (m *AppUpdate) Pb() *interceptorpb.AppUpdate {
 	pbMessage := &interceptorpb.AppUpdate{}
 	{
 		if m.State != nil {
-			pbMessage.State = m.State
+			pbMessage.State = (m.State).Pb()
 		}
 	}
 

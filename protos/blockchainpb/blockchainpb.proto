@@ -4,19 +4,27 @@ package blockchainpb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb";
 
+import "mir/codegen_extensions.proto";
+
 import "blockchainpb/payloadpb/payloadpb.proto";
 import "blockchainpb/statepb/statepb.proto";
 
 message Blocktree {
+  option (mir.struct) = true;
+  
   repeated Block    blocks  = 1;
   repeated uint64   leaves  = 2;
 }
 
 message Blockchain {
+  option (mir.struct) = true;
+  
   repeated Block blocks = 1; // ordered, no forks -> the 'current' chain
 }
 
 message Block {
+  option (mir.struct) = true;
+  
   uint64        block_id            = 1;
   uint64        previous_block_id   = 2;
   payloadpb.Payload payload         = 3;
@@ -25,6 +33,8 @@ message Block {
 }
 
 message BlockInternal {
+  option (mir.struct) = true;
+
   Block         block = 1;
   statepb.State state = 2;
 }
