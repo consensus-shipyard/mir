@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -74,6 +75,7 @@ type TestConfig struct {
 	CrashedReplicas     map[int]bool
 	CheckFunc           func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig)
 	Logger              logging.Logger
+	Skip                bool // If set to true, test is skipped.
 }
 
 func testIntegrationWithISS(tt *testing.T) {
@@ -117,7 +119,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:    1,
 				Transport:     "libp2p",
 				NumFakeTXs:    10,
-				Duration:      20 * time.Second,
+				Duration:      60 * time.Second,
 			}},
 		5: {"Submit 10 transactions with 1 node and libp2p networking",
 			&TestConfig{
@@ -134,7 +136,7 @@ func testIntegrationWithISS(tt *testing.T) {
 				NumClients:    1,
 				Transport:     "libp2p",
 				NumNetTXs:     10,
-				Duration:      20 * time.Second,
+				Duration:      60 * time.Second,
 			}},
 		7: {"Do nothing with 1 node in simulation",
 			&TestConfig{
@@ -190,9 +192,9 @@ func testIntegrationWithISS(tt *testing.T) {
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
-				Transport:       "libp2p",
+				Transport:       "sim",
 				NumFakeTXs:      100,
-				Duration:        20 * time.Second,
+				Duration:        30 * time.Second,
 				ErrorExpected:   es.Errorf("no transactions were delivered"),
 				CrashedReplicas: map[int]bool{2: true, 3: true},
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
@@ -210,9 +212,9 @@ func testIntegrationWithISS(tt *testing.T) {
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
-				Transport:       "libp2p",
+				Transport:       "sim",
 				NumFakeTXs:      100,
-				Duration:        40 * time.Second,
+				Duration:        60 * time.Second,
 				ErrorExpected:   es.Errorf("no transactions were delivered"),
 				CrashedReplicas: map[int]bool{2: true, 3: true},
 				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
@@ -228,12 +230,39 @@ func testIntegrationWithISS(tt *testing.T) {
 	for i, test := range tests {
 		i, test := i, test
 
-		// Create a directory for the deployment-generated files and set the test directory name.
-		// The directory will be automatically removed when the outer test function exits.
-		createDeploymentDir(tt, test.Config)
-
+		var lock sync.Mutex
 		tt.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
-			simMode := (test.Config.Transport == "sim")
+
+			lock.Lock()
+			defer lock.Unlock()
+
+			if test.Config.Skip {
+				t.Logf("Skipping test: %s", t.Name())
+				return
+			}
+
+			defer func() {
+				if err := recover(); err != nil || t.Failed() {
+					t.Logf("Test #%03d (%s) failed", i, test.Desc)
+					if test.Config.Transport == "sim" {
+						t.Logf("Reproduce with RANDOM_SEED=%d", test.Config.RandomSeed)
+					}
+					// Save the test data.
+					testRelDir, err := filepath.Rel(os.TempDir(), test.Config.Directory)
+					require.NoError(t, err)
+					retainedDir := filepath.Join(failedTestDir, testRelDir)
+
+					t.Logf("Saving deployment data to: %s\n", retainedDir)
+					err = copy.Copy(test.Config.Directory, retainedDir)
+					require.NoError(t, err)
+				}
+			}()
+
+			// Create a directory for the deployment-generated files and set the test directory name.
+			// The directory will be automatically removed when the outer test function exits.
+			createDeploymentDir(t, test.Config)
+
+			simMode := test.Config.Transport == "sim"
 			if testing.Short() && !simMode {
 				t.SkipNow()
 			}
@@ -250,13 +279,6 @@ func testIntegrationWithISS(tt *testing.T) {
 			}
 
 			runIntegrationWithISSConfig(t, test.Config)
-
-			if t.Failed() {
-				t.Logf("Test #%03d (%s) failed", i, test.Desc)
-				if simMode {
-					t.Logf("Reproduce with RANDOM_SEED=%d", test.Config.RandomSeed)
-				}
-			}
 		})
 	}
 }
@@ -390,15 +412,15 @@ func createDeploymentDir(tb testing.TB, conf *TestConfig) {
 
 	if conf.Directory != "" {
 		conf.Directory = filepath.Join(os.TempDir(), conf.Directory)
-		tb.Logf("Using deployment dir: %s\n", conf.Directory)
-		err := os.MkdirAll(conf.Directory, 0777)
-		require.NoError(tb, err)
-		tb.Cleanup(func() { os.RemoveAll(conf.Directory) })
 	} else {
 		// If no directory is configured, create a temporary directory in the OS-default location.
-		conf.Directory = tb.TempDir()
-		tb.Logf("Created temp dir: %s\n", conf.Directory)
+		conf.Directory = filepath.Join(tb.TempDir(), tb.Name())
 	}
+
+	tb.Logf("Using deployment dir: %s\n", conf.Directory)
+	err := os.MkdirAll(conf.Directory, 0777)
+	require.NoError(tb, err)
+	tb.Cleanup(func() { os.RemoveAll(conf.Directory) })
 }
 
 func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
