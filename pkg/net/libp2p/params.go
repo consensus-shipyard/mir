@@ -30,9 +30,9 @@ func DefaultParams() Params {
 	return Params{
 		ProtocolID:           "/mir/0.0.1",
 		ConnectionTTL:        DefaultConnectionTTL,
-		ConnectionBufferSize: 128,
+		ConnectionBufferSize: 512,
 		StreamWriteTimeout:   100 * time.Millisecond,
-		ReconnectionPeriod:   time.Second,
+		ReconnectionPeriod:   3 * time.Second,
 		MaxDataPerWrite:      100 * 1024, // 100 kiB
 		MinComplainPeriod:    time.Second,
 	}
