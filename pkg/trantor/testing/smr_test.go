@@ -38,7 +38,8 @@ import (
 )
 
 const (
-	failedTestDir = "failed-test-data"
+	failedTestDir    = "failed-test-data"
+	simTransportName = "sim"
 )
 
 func TestIntegration(t *testing.T) {
@@ -141,20 +142,20 @@ func testIntegrationWithISS(tt *testing.T) {
 		7: {"Do nothing with 1 node in simulation",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
-				Transport:     "sim",
+				Transport:     simTransportName,
 				Duration:      4 * time.Second,
 			}},
 		8: {"Do nothing with 4 nodes in simulation, one of them slow",
 			&TestConfig{
 				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
-				Transport:           "sim",
+				Transport:           simTransportName,
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
 		9: {"Submit 10 fake transactions with 1 node in simulation",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
-				Transport:     "sim",
+				Transport:     simTransportName,
 				NumFakeTXs:    10,
 				Directory:     "mirbft-deployment-test",
 				Duration:      4 * time.Second,
@@ -163,7 +164,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
 				NumClients:    1,
-				Transport:     "sim",
+				Transport:     simTransportName,
 				NumFakeTXs:    10,
 				Directory:     "mirbft-deployment-test",
 				Duration:      4 * time.Second,
@@ -172,7 +173,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
 				NumClients:    0,
-				Transport:     "sim",
+				Transport:     simTransportName,
 				NumFakeTXs:    100,
 				Duration:      20 * time.Second,
 			}},
@@ -180,7 +181,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			&TestConfig{
 				NodeIDsWeight:       deploytest.NewNodeIDsDefaultWeights(4),
 				NumClients:          0,
-				Transport:           "sim",
+				Transport:           simTransportName,
 				NumFakeTXs:          100,
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
@@ -192,7 +193,7 @@ func testIntegrationWithISS(tt *testing.T) {
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(numericID)))) // ensures last 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
-				Transport:       "sim",
+				Transport:       simTransportName,
 				NumFakeTXs:      100,
 				Duration:        30 * time.Second,
 				ErrorExpected:   es.Errorf("no transactions were delivered"),
@@ -212,7 +213,7 @@ func testIntegrationWithISS(tt *testing.T) {
 					return types.VoteWeight(fmt.Sprintf("%d0000000000000000000", pow2(int(4-numericID)))) // ensures first 2 nodes weight is greater than twice the sum of the others'
 				}),
 				NumClients:      0,
-				Transport:       "sim",
+				Transport:       simTransportName,
 				NumFakeTXs:      100,
 				Duration:        60 * time.Second,
 				ErrorExpected:   es.Errorf("no transactions were delivered"),
@@ -244,7 +245,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			defer func() {
 				if err := recover(); err != nil || t.Failed() {
 					t.Logf("Test #%03d (%s) failed", i, test.Desc)
-					if test.Config.Transport == "sim" {
+					if test.Config.Transport == simTransportName {
 						t.Logf("Reproduce with RANDOM_SEED=%d", test.Config.RandomSeed)
 					}
 					// Save the test data.
@@ -262,7 +263,7 @@ func testIntegrationWithISS(tt *testing.T) {
 			// The directory will be automatically removed when the outer test function exits.
 			createDeploymentDir(t, test.Config)
 
-			simMode := test.Config.Transport == "sim"
+			simMode := test.Config.Transport == simTransportName
 			if testing.Short() && !simMode {
 				t.SkipNow()
 			}
@@ -428,7 +429,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	logger := deploytest.NewLogger(conf.Logger)
 
 	var simulation *deploytest.Simulation
-	if conf.Transport == "sim" {
+	if conf.Transport == simTransportName {
 		r := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
 		eventDelayFn := func(e stdtypes.Event) time.Duration {
 			// TODO: Make min and max event processing delay configurable
