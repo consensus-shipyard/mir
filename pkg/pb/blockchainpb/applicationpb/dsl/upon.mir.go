@@ -5,9 +5,9 @@ package applicationpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 )
 
@@ -30,15 +30,15 @@ func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
 	})
 }
 
-func UponVerifyBlockRequest(m dsl.Module, handler func(requestId uint64, block *types2.Block) error) {
-	UponEvent[*types.Event_VerifyBlockRequest](m, func(ev *types.VerifyBlockRequest) error {
-		return handler(ev.RequestId, ev.Block)
+func UponVerifyBlocksRequest(m dsl.Module, handler func(checkpointState *types2.State, chainCheckpointToStart []*types3.Block, chainToVerify []*types3.Block) error) {
+	UponEvent[*types.Event_VerifyBlockRequest](m, func(ev *types.VerifyBlocksRequest) error {
+		return handler(ev.CheckpointState, ev.ChainCheckpointToStart, ev.ChainToVerify)
 	})
 }
 
-func UponVerifyBlockResponse(m dsl.Module, handler func(requestId uint64, ok bool) error) {
-	UponEvent[*types.Event_VerifyBlockResponse](m, func(ev *types.VerifyBlockResponse) error {
-		return handler(ev.RequestId, ev.Ok)
+func UponVerifyBlocksResponse(m dsl.Module, handler func(verifiedBlocks []*types3.Block) error) {
+	UponEvent[*types.Event_VerifyBlockResponse](m, func(ev *types.VerifyBlocksResponse) error {
+		return handler(ev.VerifiedBlocks)
 	})
 }
 
@@ -48,15 +48,15 @@ func UponPayloadRequest(m dsl.Module, handler func(headId uint64) error) {
 	})
 }
 
-func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *types3.Payload) error) {
+func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *types4.Payload) error) {
 	UponEvent[*types.Event_PayloadResponse](m, func(ev *types.PayloadResponse) error {
 		return handler(ev.HeadId, ev.Payload)
 	})
 }
 
-func UponForkUpdate(m dsl.Module, handler func(removedChain *types2.Blockchain, addedChain *types2.Blockchain, forkState *types4.State) error) {
+func UponForkUpdate(m dsl.Module, handler func(removedChain *types3.Blockchain, addedChain *types3.Blockchain, checkpointToForkRoot *types3.Blockchain, checkpointState *types2.State) error) {
 	UponEvent[*types.Event_ForkUpdate](m, func(ev *types.ForkUpdate) error {
-		return handler(ev.RemovedChain, ev.AddedChain, ev.ForkState)
+		return handler(ev.RemovedChain, ev.AddedChain, ev.CheckpointToForkRoot, ev.CheckpointState)
 	})
 }
 

@@ -17,8 +17,8 @@ message Event {
 
     // Application-application events
     NewHead                   new_head              = 10;
-    VerifyBlockRequest        verify_block_request  = 11;
-    VerifyBlockResponse       verify_block_response = 12;
+    VerifyBlocksRequest       verify_block_request  = 11;
+    VerifyBlocksResponse      verify_block_response = 12;
     
     // Transaction management application events
     PayloadRequest            payload_request       = 20;
@@ -37,26 +37,27 @@ message NewHead {
   uint64 head_id = 1;
 }
 
-message VerifyBlockRequest {
+message VerifyBlocksRequest {
   option (mir.event) = true;
   
-  uint64              request_id  = 1;
-  blockchainpb.Block  block       = 2;
+  statepb.State                 checkpoint_state            = 1;
+  repeated blockchainpb.Block   chain_checkpoint_to_start   = 2;
+  repeated blockchainpb.Block   chain_to_verify             = 3;
 }
 
-message VerifyBlockResponse {
+message VerifyBlocksResponse {
   option (mir.event) = true;
 
-  uint64  request_id  = 1;
-  bool    ok          = 2;
+  repeated blockchainpb.Block   verified_blocks = 1;
 }
 
 message ForkUpdate {
   option (mir.event) = true;
 
-  blockchainpb.Blockchain removed_chain = 1;
-  blockchainpb.Blockchain added_chain   = 2;
-  statepb.State           fork_state    = 3;
+  blockchainpb.Blockchain removed_chain           = 1;
+  blockchainpb.Blockchain added_chain             = 2;
+  blockchainpb.Blockchain checkpoint_to_fork_root = 3;
+  statepb.State           checkpoint_state        = 4;
 }
 
 // Transaction management application events

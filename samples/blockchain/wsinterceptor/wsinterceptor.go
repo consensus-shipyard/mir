@@ -1,4 +1,4 @@
-package wsInterceptor
+package wsinterceptor
 
 import (
 	"github.com/filecoin-project/mir/pkg/events"

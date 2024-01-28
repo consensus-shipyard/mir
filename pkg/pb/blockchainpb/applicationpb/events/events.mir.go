@@ -4,9 +4,9 @@ package applicationpbevents
 
 import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types5 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types5 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
@@ -26,15 +26,16 @@ func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
 	}
 }
 
-func VerifyBlockRequest(destModule types.ModuleID, requestId uint64, block *types3.Block) *types1.Event {
+func VerifyBlocksRequest(destModule types.ModuleID, checkpointState *types3.State, chainCheckpointToStart []*types4.Block, chainToVerify []*types4.Block) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
 			Application: &types2.Event{
 				Type: &types2.Event_VerifyBlockRequest{
-					VerifyBlockRequest: &types2.VerifyBlockRequest{
-						RequestId: requestId,
-						Block:     block,
+					VerifyBlockRequest: &types2.VerifyBlocksRequest{
+						CheckpointState:        checkpointState,
+						ChainCheckpointToStart: chainCheckpointToStart,
+						ChainToVerify:          chainToVerify,
 					},
 				},
 			},
@@ -42,15 +43,14 @@ func VerifyBlockRequest(destModule types.ModuleID, requestId uint64, block *type
 	}
 }
 
-func VerifyBlockResponse(destModule types.ModuleID, requestId uint64, ok bool) *types1.Event {
+func VerifyBlocksResponse(destModule types.ModuleID, verifiedBlocks []*types4.Block) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
 			Application: &types2.Event{
 				Type: &types2.Event_VerifyBlockResponse{
-					VerifyBlockResponse: &types2.VerifyBlockResponse{
-						RequestId: requestId,
-						Ok:        ok,
+					VerifyBlockResponse: &types2.VerifyBlocksResponse{
+						VerifiedBlocks: verifiedBlocks,
 					},
 				},
 			},
@@ -73,7 +73,7 @@ func PayloadRequest(destModule types.ModuleID, headId uint64) *types1.Event {
 	}
 }
 
-func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types4.Payload) *types1.Event {
+func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types5.Payload) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
@@ -89,16 +89,17 @@ func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types4.P
 	}
 }
 
-func ForkUpdate(destModule types.ModuleID, removedChain *types3.Blockchain, addedChain *types3.Blockchain, forkState *types5.State) *types1.Event {
+func ForkUpdate(destModule types.ModuleID, removedChain *types4.Blockchain, addedChain *types4.Blockchain, checkpointToForkRoot *types4.Blockchain, checkpointState *types3.State) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{
 			Application: &types2.Event{
 				Type: &types2.Event_ForkUpdate{
 					ForkUpdate: &types2.ForkUpdate{
-						RemovedChain: removedChain,
-						AddedChain:   addedChain,
-						ForkState:    forkState,
+						RemovedChain:         removedChain,
+						AddedChain:           addedChain,
+						CheckpointToForkRoot: checkpointToForkRoot,
+						CheckpointState:      checkpointState,
 					},
 				},
 			},

@@ -4,10 +4,12 @@ package applicationpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types2 "github.com/filecoin-project/mir/codegen/model/types"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
-	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -34,9 +36,9 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 	case *applicationpb.Event_NewHead:
 		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
 	case *applicationpb.Event_VerifyBlockRequest:
-		return &Event_VerifyBlockRequest{VerifyBlockRequest: VerifyBlockRequestFromPb(pb.VerifyBlockRequest)}
+		return &Event_VerifyBlockRequest{VerifyBlockRequest: VerifyBlocksRequestFromPb(pb.VerifyBlockRequest)}
 	case *applicationpb.Event_VerifyBlockResponse:
-		return &Event_VerifyBlockResponse{VerifyBlockResponse: VerifyBlockResponseFromPb(pb.VerifyBlockResponse)}
+		return &Event_VerifyBlockResponse{VerifyBlockResponse: VerifyBlocksResponseFromPb(pb.VerifyBlockResponse)}
 	case *applicationpb.Event_PayloadRequest:
 		return &Event_PayloadRequest{PayloadRequest: PayloadRequestFromPb(pb.PayloadRequest)}
 	case *applicationpb.Event_PayloadResponse:
@@ -74,12 +76,12 @@ func (*Event_NewHead) MirReflect() mirreflect.Type {
 }
 
 type Event_VerifyBlockRequest struct {
-	VerifyBlockRequest *VerifyBlockRequest
+	VerifyBlockRequest *VerifyBlocksRequest
 }
 
 func (*Event_VerifyBlockRequest) isEvent_Type() {}
 
-func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlockRequest {
+func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlocksRequest {
 	return w.VerifyBlockRequest
 }
 
@@ -98,12 +100,12 @@ func (*Event_VerifyBlockRequest) MirReflect() mirreflect.Type {
 }
 
 type Event_VerifyBlockResponse struct {
-	VerifyBlockResponse *VerifyBlockResponse
+	VerifyBlockResponse *VerifyBlocksResponse
 }
 
 func (*Event_VerifyBlockResponse) isEvent_Type() {}
 
-func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlockResponse {
+func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlocksResponse {
 	return w.VerifyBlockResponse
 }
 
@@ -273,76 +275,89 @@ func (*NewHead) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.NewHead]()}
 }
 
-type VerifyBlockRequest struct {
-	RequestId uint64
-	Block     *types.Block
+type VerifyBlocksRequest struct {
+	CheckpointState        *types.State
+	ChainCheckpointToStart []*types1.Block
+	ChainToVerify          []*types1.Block
 }
 
-func VerifyBlockRequestFromPb(pb *applicationpb.VerifyBlockRequest) *VerifyBlockRequest {
+func VerifyBlocksRequestFromPb(pb *applicationpb.VerifyBlocksRequest) *VerifyBlocksRequest {
 	if pb == nil {
 		return nil
 	}
-	return &VerifyBlockRequest{
-		RequestId: pb.RequestId,
-		Block:     types.BlockFromPb(pb.Block),
+	return &VerifyBlocksRequest{
+		CheckpointState: types.StateFromPb(pb.CheckpointState),
+		ChainCheckpointToStart: types2.ConvertSlice(pb.ChainCheckpointToStart, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
+		ChainToVerify: types2.ConvertSlice(pb.ChainToVerify, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
 	}
 }
 
-func (m *VerifyBlockRequest) Pb() *applicationpb.VerifyBlockRequest {
+func (m *VerifyBlocksRequest) Pb() *applicationpb.VerifyBlocksRequest {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &applicationpb.VerifyBlockRequest{}
+	pbMessage := &applicationpb.VerifyBlocksRequest{}
 	{
-		pbMessage.RequestId = m.RequestId
-		if m.Block != nil {
-			pbMessage.Block = (m.Block).Pb()
+		if m.CheckpointState != nil {
+			pbMessage.CheckpointState = (m.CheckpointState).Pb()
 		}
+		pbMessage.ChainCheckpointToStart = types2.ConvertSlice(m.ChainCheckpointToStart, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
+		pbMessage.ChainToVerify = types2.ConvertSlice(m.ChainToVerify, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
 	}
 
 	return pbMessage
 }
 
-func (*VerifyBlockRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlockRequest]()}
+func (*VerifyBlocksRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlocksRequest]()}
 }
 
-type VerifyBlockResponse struct {
-	RequestId uint64
-	Ok        bool
+type VerifyBlocksResponse struct {
+	VerifiedBlocks []*types1.Block
 }
 
-func VerifyBlockResponseFromPb(pb *applicationpb.VerifyBlockResponse) *VerifyBlockResponse {
+func VerifyBlocksResponseFromPb(pb *applicationpb.VerifyBlocksResponse) *VerifyBlocksResponse {
 	if pb == nil {
 		return nil
 	}
-	return &VerifyBlockResponse{
-		RequestId: pb.RequestId,
-		Ok:        pb.Ok,
+	return &VerifyBlocksResponse{
+		VerifiedBlocks: types2.ConvertSlice(pb.VerifiedBlocks, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
 	}
 }
 
-func (m *VerifyBlockResponse) Pb() *applicationpb.VerifyBlockResponse {
+func (m *VerifyBlocksResponse) Pb() *applicationpb.VerifyBlocksResponse {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &applicationpb.VerifyBlockResponse{}
+	pbMessage := &applicationpb.VerifyBlocksResponse{}
 	{
-		pbMessage.RequestId = m.RequestId
-		pbMessage.Ok = m.Ok
+		pbMessage.VerifiedBlocks = types2.ConvertSlice(m.VerifiedBlocks, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
 	}
 
 	return pbMessage
 }
 
-func (*VerifyBlockResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlockResponse]()}
+func (*VerifyBlocksResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlocksResponse]()}
 }
 
 type ForkUpdate struct {
-	RemovedChain *types.Blockchain
-	AddedChain   *types.Blockchain
-	ForkState    *types1.State
+	RemovedChain         *types1.Blockchain
+	AddedChain           *types1.Blockchain
+	CheckpointToForkRoot *types1.Blockchain
+	CheckpointState      *types.State
 }
 
 func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
@@ -350,9 +365,10 @@ func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
 		return nil
 	}
 	return &ForkUpdate{
-		RemovedChain: types.BlockchainFromPb(pb.RemovedChain),
-		AddedChain:   types.BlockchainFromPb(pb.AddedChain),
-		ForkState:    types1.StateFromPb(pb.ForkState),
+		RemovedChain:         types1.BlockchainFromPb(pb.RemovedChain),
+		AddedChain:           types1.BlockchainFromPb(pb.AddedChain),
+		CheckpointToForkRoot: types1.BlockchainFromPb(pb.CheckpointToForkRoot),
+		CheckpointState:      types.StateFromPb(pb.CheckpointState),
 	}
 }
 
@@ -368,8 +384,11 @@ func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
 		if m.AddedChain != nil {
 			pbMessage.AddedChain = (m.AddedChain).Pb()
 		}
-		if m.ForkState != nil {
-			pbMessage.ForkState = (m.ForkState).Pb()
+		if m.CheckpointToForkRoot != nil {
+			pbMessage.CheckpointToForkRoot = (m.CheckpointToForkRoot).Pb()
+		}
+		if m.CheckpointState != nil {
+			pbMessage.CheckpointState = (m.CheckpointState).Pb()
 		}
 	}
 
@@ -411,7 +430,7 @@ func (*PayloadRequest) MirReflect() mirreflect.Type {
 
 type PayloadResponse struct {
 	HeadId  uint64
-	Payload *types2.Payload
+	Payload *types3.Payload
 }
 
 func PayloadResponseFromPb(pb *applicationpb.PayloadResponse) *PayloadResponse {
@@ -420,7 +439,7 @@ func PayloadResponseFromPb(pb *applicationpb.PayloadResponse) *PayloadResponse {
 	}
 	return &PayloadResponse{
 		HeadId:  pb.HeadId,
-		Payload: types2.PayloadFromPb(pb.Payload),
+		Payload: types3.PayloadFromPb(pb.Payload),
 	}
 }
 

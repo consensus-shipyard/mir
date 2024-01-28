@@ -5,9 +5,9 @@ package applicationpbdsl
 import (
 	dsl "github.com/filecoin-project/mir/pkg/dsl"
 	events "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
@@ -17,24 +17,24 @@ func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
 	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
 }
 
-func VerifyBlockRequest(m dsl.Module, destModule types.ModuleID, requestId uint64, block *types1.Block) {
-	dsl.EmitMirEvent(m, events.VerifyBlockRequest(destModule, requestId, block))
+func VerifyBlocksRequest(m dsl.Module, destModule types.ModuleID, checkpointState *types1.State, chainCheckpointToStart []*types2.Block, chainToVerify []*types2.Block) {
+	dsl.EmitMirEvent(m, events.VerifyBlocksRequest(destModule, checkpointState, chainCheckpointToStart, chainToVerify))
 }
 
-func VerifyBlockResponse(m dsl.Module, destModule types.ModuleID, requestId uint64, ok bool) {
-	dsl.EmitMirEvent(m, events.VerifyBlockResponse(destModule, requestId, ok))
+func VerifyBlocksResponse(m dsl.Module, destModule types.ModuleID, verifiedBlocks []*types2.Block) {
+	dsl.EmitMirEvent(m, events.VerifyBlocksResponse(destModule, verifiedBlocks))
 }
 
 func PayloadRequest(m dsl.Module, destModule types.ModuleID, headId uint64) {
 	dsl.EmitMirEvent(m, events.PayloadRequest(destModule, headId))
 }
 
-func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, payload *types2.Payload) {
+func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, payload *types3.Payload) {
 	dsl.EmitMirEvent(m, events.PayloadResponse(destModule, headId, payload))
 }
 
-func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain *types1.Blockchain, addedChain *types1.Blockchain, forkState *types3.State) {
-	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, forkState))
+func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain *types2.Blockchain, addedChain *types2.Blockchain, checkpointToForkRoot *types2.Blockchain, checkpointState *types1.State) {
+	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, checkpointToForkRoot, checkpointState))
 }
 
 func MessageInput(m dsl.Module, destModule types.ModuleID, text string) {

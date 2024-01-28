@@ -63,7 +63,7 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 	}
 }
 
-func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockchainpbtypes.Blockchain, forkState *statepbtypes.State) error {
+func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, chain *blockchainpbtypes.Blockchain, checkpointState *statepbtypes.State) error {
 	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.tm.PoolSize())
 
 	// add "remove chain" transactions to pool
@@ -76,8 +76,12 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockcha
 		am.tm.RemovePayload(block.Payload)
 	}
 
-	// apply state to fork state
-	state := forkState
+	state := checkpointState
+	// compute state at fork roo
+	for _, block := range chain.Blocks {
+		state = applyBlockToState(state, block)
+	}
+	// compute state at new head
 	for _, block := range addedChain.Blocks {
 		state = applyBlockToState(state, block)
 	}
@@ -95,6 +99,41 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain *blockcha
 		fmt.Println(msg)
 	}
 	fmt.Printf("=============\nEnter new message: \n")
+
+	return nil
+}
+
+func (am *ApplicationModule) handleVerifyBlocksRequest(checkpointState *statepbtypes.State, chainCheckpointToStart, chainToVerify []*blockchainpbtypes.Block) error {
+	am.logger.Log(logging.LevelDebug, "Processing verify block request")
+
+	timeStamps := checkpointState.LastSentTimestamps
+
+	chain := append(chainCheckpointToStart, chainToVerify...) // chainCheckpointToStart wouldn't need to be verified, but we need it to get the timestamps
+
+	for _, block := range chain {
+		// verify block
+		for i, lt := range timeStamps {
+			if lt.NodeId == block.Payload.Sender {
+				if lt.Timestamp > block.Payload.Timestamp {
+					// block in chain invalid, don't respond
+					return nil
+				}
+
+				// remove old timestamp, if it exists
+				timeStamps[i] = timeStamps[len(timeStamps)-1]
+				timeStamps = timeStamps[:len(timeStamps)-1]
+			}
+
+			// add new timestamp
+			timeStamps = append(timeStamps, &statepbtypes.LastSentTimestamp{
+				NodeId:    block.Payload.Sender,
+				Timestamp: block.Payload.Timestamp,
+			})
+		}
+	}
+
+	// if no blocks are invalid, responds with chain
+	applicationpbdsl.VerifyBlocksResponse(*am.m, "bcm", chainToVerify)
 
 	return nil
 }
@@ -138,6 +177,7 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 
 	applicationpbdsl.UponPayloadRequest(m, am.handlePayloadRequest)
 	applicationpbdsl.UponForkUpdate(m, am.handleForkUpdate)
+	applicationpbdsl.UponVerifyBlocksRequest(m, am.handleVerifyBlocksRequest)
 
 	applicationpbdsl.UponMessageInput(m, func(text string) error {
 		am.tm.AddPayload(&payloadpbtypes.Payload{

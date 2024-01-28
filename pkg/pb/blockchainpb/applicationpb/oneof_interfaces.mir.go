@@ -13,11 +13,11 @@ func (w *Event_NewHead) Unwrap() *NewHead {
 	return w.NewHead
 }
 
-func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlockRequest {
+func (w *Event_VerifyBlockRequest) Unwrap() *VerifyBlocksRequest {
 	return w.VerifyBlockRequest
 }
 
-func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlockResponse {
+func (w *Event_VerifyBlockResponse) Unwrap() *VerifyBlocksResponse {
 	return w.VerifyBlockResponse
 }
 
