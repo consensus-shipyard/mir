@@ -570,8 +570,9 @@ func (*GetHeadToCheckpointChainRequest) MirReflect() mirreflect.Type {
 }
 
 type GetHeadToCheckpointChainResponse struct {
-	RequestId string
-	Chain     []*types.BlockInternal
+	RequestId       string
+	Chain           []*types.Block
+	CheckpointState *types3.State
 }
 
 func GetHeadToCheckpointChainResponseFromPb(pb *bcmpb.GetHeadToCheckpointChainResponse) *GetHeadToCheckpointChainResponse {
@@ -580,9 +581,10 @@ func GetHeadToCheckpointChainResponseFromPb(pb *bcmpb.GetHeadToCheckpointChainRe
 	}
 	return &GetHeadToCheckpointChainResponse{
 		RequestId: pb.RequestId,
-		Chain: types1.ConvertSlice(pb.Chain, func(t *blockchainpb.BlockInternal) *types.BlockInternal {
-			return types.BlockInternalFromPb(t)
+		Chain: types1.ConvertSlice(pb.Chain, func(t *blockchainpb.Block) *types.Block {
+			return types.BlockFromPb(t)
 		}),
+		CheckpointState: types3.StateFromPb(pb.CheckpointState),
 	}
 }
 
@@ -593,9 +595,12 @@ func (m *GetHeadToCheckpointChainResponse) Pb() *bcmpb.GetHeadToCheckpointChainR
 	pbMessage := &bcmpb.GetHeadToCheckpointChainResponse{}
 	{
 		pbMessage.RequestId = m.RequestId
-		pbMessage.Chain = types1.ConvertSlice(m.Chain, func(t *types.BlockInternal) *blockchainpb.BlockInternal {
+		pbMessage.Chain = types1.ConvertSlice(m.Chain, func(t *types.Block) *blockchainpb.Block {
 			return (t).Pb()
 		})
+		if m.CheckpointState != nil {
+			pbMessage.CheckpointState = (m.CheckpointState).Pb()
+		}
 	}
 
 	return pbMessage

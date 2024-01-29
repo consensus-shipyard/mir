@@ -66,9 +66,9 @@ func UponGetHeadToCheckpointChainRequest(m dsl.Module, handler func(requestId st
 	})
 }
 
-func UponGetHeadToCheckpointChainResponse(m dsl.Module, handler func(requestId string, chain []*types2.BlockInternal) error) {
+func UponGetHeadToCheckpointChainResponse(m dsl.Module, handler func(requestId string, chain []*types2.Block, checkpointState *types4.State) error) {
 	UponEvent[*types.Event_GetHeadToCheckpointChainResponse](m, func(ev *types.GetHeadToCheckpointChainResponse) error {
-		return handler(ev.RequestId, ev.Chain)
+		return handler(ev.RequestId, ev.Chain, ev.CheckpointState)
 	})
 }
 

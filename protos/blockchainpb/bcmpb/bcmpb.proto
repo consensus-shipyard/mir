@@ -88,8 +88,9 @@ message GetHeadToCheckpointChainRequest {
 message GetHeadToCheckpointChainResponse {
   option (mir.event) = true;
 
-  string                                request_id    = 1;
-  repeated blockchainpb.BlockInternal   chain         = 3; // from checkpoint to head
+  string                        request_id        = 1;
+  repeated blockchainpb.Block   chain             = 2; // from checkpoint to head
+  statepb.State                 checkpoint_state  = 3;
 }
 
 message RegisterCheckpoint {

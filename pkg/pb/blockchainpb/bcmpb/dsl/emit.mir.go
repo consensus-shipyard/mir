@@ -40,8 +40,8 @@ func GetHeadToCheckpointChainRequest(m dsl.Module, destModule types.ModuleID, re
 	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainRequest(destModule, requestId, sourceModule))
 }
 
-func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, chain []*types1.BlockInternal) {
-	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainResponse(destModule, requestId, chain))
+func GetHeadToCheckpointChainResponse(m dsl.Module, destModule types.ModuleID, requestId string, chain []*types1.Block, checkpointState *types2.State) {
+	dsl.EmitMirEvent(m, events.GetHeadToCheckpointChainResponse(destModule, requestId, chain, checkpointState))
 }
 
 func RegisterCheckpoint(m dsl.Module, destModule types.ModuleID, blockId uint64, state *types2.State) {

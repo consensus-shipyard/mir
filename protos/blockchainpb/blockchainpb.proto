@@ -7,7 +7,6 @@ option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb";
 import "mir/codegen_extensions.proto";
 
 import "blockchainpb/payloadpb/payloadpb.proto";
-import "blockchainpb/statepb/statepb.proto";
 
 message Blocktree {
   option (mir.struct) = true;
@@ -30,11 +29,4 @@ message Block {
   payloadpb.Payload payload         = 3;
   
   int64 timestamp                   = 4;
-}
-
-message BlockInternal {
-  option (mir.struct) = true;
-
-  Block         block = 1;
-  statepb.State state = 2;
 }

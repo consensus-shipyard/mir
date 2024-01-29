@@ -7,7 +7,6 @@ import (
 	types "github.com/filecoin-project/mir/codegen/model/types"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
 
@@ -118,40 +117,4 @@ func (m *Block) Pb() *blockchainpb.Block {
 
 func (*Block) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*blockchainpb.Block]()}
-}
-
-type BlockInternal struct {
-	Block *Block
-	State *types2.State
-}
-
-func BlockInternalFromPb(pb *blockchainpb.BlockInternal) *BlockInternal {
-	if pb == nil {
-		return nil
-	}
-	return &BlockInternal{
-		Block: BlockFromPb(pb.Block),
-		State: types2.StateFromPb(pb.State),
-	}
-}
-
-func (m *BlockInternal) Pb() *blockchainpb.BlockInternal {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &blockchainpb.BlockInternal{}
-	{
-		if m.Block != nil {
-			pbMessage.Block = (m.Block).Pb()
-		}
-		if m.State != nil {
-			pbMessage.State = (m.State).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*BlockInternal) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*blockchainpb.BlockInternal]()}
 }

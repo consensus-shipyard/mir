@@ -125,15 +125,16 @@ func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string
 	}
 }
 
-func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*types1.BlockInternal) *types2.Event {
+func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*types1.Block, checkpointState *types4.State) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Bcm{
 			Bcm: &types3.Event{
 				Type: &types3.Event_GetHeadToCheckpointChainResponse{
 					GetHeadToCheckpointChainResponse: &types3.GetHeadToCheckpointChainResponse{
-						RequestId: requestId,
-						Chain:     chain,
+						RequestId:       requestId,
+						Chain:           chain,
+						CheckpointState: checkpointState,
 					},
 				},
 			},
