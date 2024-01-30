@@ -4,9 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/debugger"
 	"os"
 	"time"
+
+	"github.com/filecoin-project/mir/pkg/debugger"
 
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/eventlog"
