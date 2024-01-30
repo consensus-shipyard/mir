@@ -81,13 +81,13 @@ func (bcm *bcmModule) handleNewHead(newHead, oldHead *bcmBlock) {
 		bcm.logger.Log(logging.LevelError, "Failed to get fork parent - this should not happen", "blockId", utils.FormatBlockId(addChain[0].BlockId))
 		panic(err)
 	}
-	chain, checkpointState := bcm.getChainFromCheckpointToBlock(forkRoot)
+	checkpointToForkRootChain, checkpointState := bcm.getChainFromCheckpointToBlock(forkRoot)
 
-	applicationpbdsl.ForkUpdate(*bcm.m, "application", &blockchainpbtypes.Blockchain{
-		Blocks: removeChain[1:],
-	}, &blockchainpbtypes.Blockchain{
-		Blocks: addChain[1:],
-	}, &blockchainpbtypes.Blockchain{Blocks: chain}, checkpointState)
+	applicationpbdsl.ForkUpdate(*bcm.m, "application",
+		removeChain[1:],
+		addChain[1:],
+		checkpointToForkRootChain,
+		checkpointState)
 
 	minerpbdsl.NewHead(*bcm.m, "miner", newHead.block.BlockId)
 }
@@ -487,7 +487,6 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		head:             nil, // will be initialized in handleInitBlockchain, triggered by application
 		genesis:          nil, // will be initialized in handleInitBlockchain, triggered by application
 		checkpoints:      make(map[uint64]*bcmBlock),
-		blockCount:       1,
 		currentScanCount: 0,
 		logger:           logger,
 		initialized:      false,

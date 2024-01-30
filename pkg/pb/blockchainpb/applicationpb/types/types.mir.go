@@ -354,9 +354,9 @@ func (*VerifyBlocksResponse) MirReflect() mirreflect.Type {
 }
 
 type ForkUpdate struct {
-	RemovedChain         *types1.Blockchain
-	AddedChain           *types1.Blockchain
-	CheckpointToForkRoot *types1.Blockchain
+	RemovedChain         []*types1.Block
+	AddedChain           []*types1.Block
+	CheckpointToForkRoot []*types1.Block
 	CheckpointState      *types.State
 }
 
@@ -365,10 +365,16 @@ func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
 		return nil
 	}
 	return &ForkUpdate{
-		RemovedChain:         types1.BlockchainFromPb(pb.RemovedChain),
-		AddedChain:           types1.BlockchainFromPb(pb.AddedChain),
-		CheckpointToForkRoot: types1.BlockchainFromPb(pb.CheckpointToForkRoot),
-		CheckpointState:      types.StateFromPb(pb.CheckpointState),
+		RemovedChain: types2.ConvertSlice(pb.RemovedChain, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
+		AddedChain: types2.ConvertSlice(pb.AddedChain, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
+		CheckpointToForkRoot: types2.ConvertSlice(pb.CheckpointToForkRoot, func(t *blockchainpb.Block) *types1.Block {
+			return types1.BlockFromPb(t)
+		}),
+		CheckpointState: types.StateFromPb(pb.CheckpointState),
 	}
 }
 
@@ -378,15 +384,15 @@ func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
 	}
 	pbMessage := &applicationpb.ForkUpdate{}
 	{
-		if m.RemovedChain != nil {
-			pbMessage.RemovedChain = (m.RemovedChain).Pb()
-		}
-		if m.AddedChain != nil {
-			pbMessage.AddedChain = (m.AddedChain).Pb()
-		}
-		if m.CheckpointToForkRoot != nil {
-			pbMessage.CheckpointToForkRoot = (m.CheckpointToForkRoot).Pb()
-		}
+		pbMessage.RemovedChain = types2.ConvertSlice(m.RemovedChain, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
+		pbMessage.AddedChain = types2.ConvertSlice(m.AddedChain, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
+		pbMessage.CheckpointToForkRoot = types2.ConvertSlice(m.CheckpointToForkRoot, func(t *types1.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
 		if m.CheckpointState != nil {
 			pbMessage.CheckpointState = (m.CheckpointState).Pb()
 		}

@@ -47,39 +47,6 @@ func (*Blocktree) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*blockchainpb.Blocktree]()}
 }
 
-type Blockchain struct {
-	Blocks []*Block
-}
-
-func BlockchainFromPb(pb *blockchainpb.Blockchain) *Blockchain {
-	if pb == nil {
-		return nil
-	}
-	return &Blockchain{
-		Blocks: types.ConvertSlice(pb.Blocks, func(t *blockchainpb.Block) *Block {
-			return BlockFromPb(t)
-		}),
-	}
-}
-
-func (m *Blockchain) Pb() *blockchainpb.Blockchain {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &blockchainpb.Blockchain{}
-	{
-		pbMessage.Blocks = types.ConvertSlice(m.Blocks, func(t *Block) *blockchainpb.Block {
-			return (t).Pb()
-		})
-	}
-
-	return pbMessage
-}
-
-func (*Blockchain) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*blockchainpb.Blockchain]()}
-}
-
 type Block struct {
 	BlockId         uint64
 	PreviousBlockId uint64

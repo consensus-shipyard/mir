@@ -54,7 +54,7 @@ func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *type
 	})
 }
 
-func UponForkUpdate(m dsl.Module, handler func(removedChain *types3.Blockchain, addedChain *types3.Blockchain, checkpointToForkRoot *types3.Blockchain, checkpointState *types2.State) error) {
+func UponForkUpdate(m dsl.Module, handler func(removedChain []*types3.Block, addedChain []*types3.Block, checkpointToForkRoot []*types3.Block, checkpointState *types2.State) error) {
 	UponEvent[*types.Event_ForkUpdate](m, func(ev *types.ForkUpdate) error {
 		return handler(ev.RemovedChain, ev.AddedChain, ev.CheckpointToForkRoot, ev.CheckpointState)
 	})

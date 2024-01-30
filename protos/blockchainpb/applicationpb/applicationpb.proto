@@ -54,10 +54,10 @@ message VerifyBlocksResponse {
 message ForkUpdate {
   option (mir.event) = true;
 
-  blockchainpb.Blockchain removed_chain           = 1;
-  blockchainpb.Blockchain added_chain             = 2;
-  blockchainpb.Blockchain checkpoint_to_fork_root = 3;
-  statepb.State           checkpoint_state        = 4;
+  repeated blockchainpb.Block removed_chain           = 1;
+  repeated blockchainpb.Block added_chain             = 2;
+  repeated blockchainpb.Block checkpoint_to_fork_root = 3;
+  statepb.State               checkpoint_state        = 4;
 }
 
 // Transaction management application events

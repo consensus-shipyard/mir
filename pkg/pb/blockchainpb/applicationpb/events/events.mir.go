@@ -89,7 +89,7 @@ func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types5.P
 	}
 }
 
-func ForkUpdate(destModule types.ModuleID, removedChain *types4.Blockchain, addedChain *types4.Blockchain, checkpointToForkRoot *types4.Blockchain, checkpointState *types3.State) *types1.Event {
+func ForkUpdate(destModule types.ModuleID, removedChain []*types4.Block, addedChain []*types4.Block, checkpointToForkRoot []*types4.Block, checkpointState *types3.State) *types1.Event {
 	return &types1.Event{
 		DestModule: destModule,
 		Type: &types1.Event_Application{

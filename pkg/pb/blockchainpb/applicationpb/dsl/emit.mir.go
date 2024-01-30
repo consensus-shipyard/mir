@@ -33,7 +33,7 @@ func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, pay
 	dsl.EmitMirEvent(m, events.PayloadResponse(destModule, headId, payload))
 }
 
-func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain *types2.Blockchain, addedChain *types2.Blockchain, checkpointToForkRoot *types2.Blockchain, checkpointState *types1.State) {
+func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain []*types2.Block, addedChain []*types2.Block, checkpointToForkRoot []*types2.Block, checkpointState *types1.State) {
 	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, checkpointToForkRoot, checkpointState))
 }
 

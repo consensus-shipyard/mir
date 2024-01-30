@@ -65,34 +65,34 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 	}
 }
 
-func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, chain *blockchainpbtypes.Blockchain, checkpointState *statepbtypes.State) error {
+func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpointToForkRootChain []*blockchainpbtypes.Block, checkpointState *statepbtypes.State) error {
 	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.tm.PoolSize())
 
 	// add "remove chain" transactions to pool
-	for _, block := range removedChain.Blocks {
+	for _, block := range removedChain {
 		am.tm.AddPayload(block.Payload)
 	}
 
 	// remove "add chain" transactions from pool
-	for _, block := range addedChain.Blocks {
+	for _, block := range addedChain {
 		am.tm.RemovePayload(block.Payload)
 	}
 
 	state := checkpointState
 	// compute state at fork roo
 	// skip first as checkpoint state already 'included' its payload
-	for _, block := range chain.Blocks[1:] {
+	for _, block := range checkpointToForkRootChain[1:] {
 		state = applyBlockToState(state, block)
 	}
 	// compute state at new head
-	for _, block := range addedChain.Blocks {
+	for _, block := range addedChain {
 		state = applyBlockToState(state, block)
 	}
 
 	am.logger.Log(logging.LevelInfo, "Pool after fork", "poolSize", am.tm.PoolSize())
 
 	// register checkpoint
-	blockId := addedChain.Blocks[len(addedChain.Blocks)-1].BlockId
+	blockId := addedChain[len(addedChain)-1].BlockId
 	bcmpbdsl.RegisterCheckpoint(*am.m, "bcm", blockId, state)
 	interceptorpbdsl.AppUpdate(*am.m, "devnull", state)
 
