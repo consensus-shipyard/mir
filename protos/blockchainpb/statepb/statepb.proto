@@ -5,6 +5,7 @@ package statepb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb";
 
 import "mir/codegen_extensions.proto";
+import "google/protobuf/timestamp.proto";
 
 message State {
   option (mir.struct) = true;
@@ -17,6 +18,6 @@ message State {
 message LastSentTimestamp {
   option (mir.struct) = true;
   
-  string  node_id   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
-  int64   timestamp = 2;
+  string                    node_id   = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  google.protobuf.Timestamp timestamp = 2;
 }

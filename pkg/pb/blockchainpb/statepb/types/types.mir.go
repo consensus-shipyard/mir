@@ -8,6 +8,7 @@ import (
 	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
 	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type State struct {
@@ -48,7 +49,7 @@ func (*State) MirReflect() mirreflect.Type {
 
 type LastSentTimestamp struct {
 	NodeId    types1.NodeID
-	Timestamp int64
+	Timestamp *timestamppb.Timestamp
 }
 
 func LastSentTimestampFromPb(pb *statepb.LastSentTimestamp) *LastSentTimestamp {
@@ -68,7 +69,9 @@ func (m *LastSentTimestamp) Pb() *statepb.LastSentTimestamp {
 	pbMessage := &statepb.LastSentTimestamp{}
 	{
 		pbMessage.NodeId = (string)(m.NodeId)
-		pbMessage.Timestamp = m.Timestamp
+		if m.Timestamp != nil {
+			pbMessage.Timestamp = m.Timestamp
+		}
 	}
 
 	return pbMessage

@@ -7,11 +7,12 @@ import (
 	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
 	types "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Payload struct {
 	Message   string
-	Timestamp int64
+	Timestamp *timestamppb.Timestamp
 	Sender    types.NodeID
 }
 
@@ -33,7 +34,9 @@ func (m *Payload) Pb() *payloadpb.Payload {
 	pbMessage := &payloadpb.Payload{}
 	{
 		pbMessage.Message = m.Message
-		pbMessage.Timestamp = m.Timestamp
+		if m.Timestamp != nil {
+			pbMessage.Timestamp = m.Timestamp
+		}
 		pbMessage.Sender = (string)(m.Sender)
 	}
 

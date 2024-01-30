@@ -5,8 +5,8 @@ package blockchainpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb";
 
 import "mir/codegen_extensions.proto";
-
 import "blockchainpb/payloadpb/payloadpb.proto";
+import "google/protobuf/timestamp.proto";
 
 message Blocktree {
   option (mir.struct) = true;
@@ -24,9 +24,9 @@ message Blockchain {
 message Block {
   option (mir.struct) = true;
   
-  uint64        block_id            = 1;
-  uint64        previous_block_id   = 2;
-  payloadpb.Payload payload         = 3;
+  uint64                    block_id          = 1;
+  uint64                    previous_block_id = 2;
+  payloadpb.Payload         payload           = 3;
   
-  int64 timestamp                   = 4;
+  google.protobuf.Timestamp timestamp         = 4;
 }

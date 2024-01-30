@@ -5,6 +5,7 @@ package main
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -21,6 +22,7 @@ import (
 	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"golang.org/x/exp/maps"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -445,7 +447,7 @@ func (bcm *bcmModule) handleInitBlockchain(initialState *statepbtypes.State) err
 		BlockId:         0,
 		PreviousBlockId: 0,
 		Payload:         &payloadpbtypes.Payload{},
-		Timestamp:       0, // unix 0
+		Timestamp:       timestamppb.New(time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)), // unix 0
 	}
 
 	hash := utils.HashBlock(genesis) //uint64(0)

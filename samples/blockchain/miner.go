@@ -19,6 +19,7 @@ import (
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"github.com/go-errors/errors"
 	"github.com/mitchellh/hashstructure"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -93,7 +94,7 @@ func (m *minerModule) mineWorkerManager() {
 				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
 				return
 			case <-time.After(delay):
-				block := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: time.Now().Unix()}
+				block := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: timestamppb.Now()}
 				hash, err := hashstructure.Hash(block, nil)
 				if err != nil {
 					m.logger.Log(logging.LevelError, "Failed to hash block", "error", err)

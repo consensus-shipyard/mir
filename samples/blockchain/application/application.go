@@ -4,7 +4,6 @@ package application
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -19,6 +18,7 @@ import (
 	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/application/transactions"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ApplicationModule struct {
@@ -35,9 +35,11 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 	timeStamps := state.LastSentTimestamps
 	msgHistory := state.MessageHistory
 
+	// why is this necessary? it should be verified already
 	for i, lt := range timeStamps {
 		if lt.NodeId == sender {
-			if lt.Timestamp > block.Payload.Timestamp {
+			ltTimestamp := lt.Timestamp.AsTime()
+			if ltTimestamp.After(block.Payload.Timestamp.AsTime()) {
 				panic("invalid ordering - there is a block that should never have been accepted")
 			}
 
@@ -78,7 +80,8 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, chain *b
 
 	state := checkpointState
 	// compute state at fork roo
-	for _, block := range chain.Blocks {
+	// skip first as checkpoint state already 'included' its payload
+	for _, block := range chain.Blocks[1:] {
 		state = applyBlockToState(state, block)
 	}
 	// compute state at new head
@@ -111,10 +114,12 @@ func (am *ApplicationModule) handleVerifyBlocksRequest(checkpointState *statepbt
 	chain := append(chainCheckpointToStart, chainToVerify...) // chainCheckpointToStart wouldn't need to be verified, but we need it to get the timestamps
 
 	for _, block := range chain {
+		blockTs := block.Payload.Timestamp.AsTime()
 		// verify block
 		for i, lt := range timeStamps {
+			ltTimestamp := lt.Timestamp.AsTime()
 			if lt.NodeId == block.Payload.Sender {
-				if lt.Timestamp > block.Payload.Timestamp {
+				if ltTimestamp.After(blockTs) {
 					// block in chain invalid, don't respond
 					return nil
 				}
@@ -148,7 +153,7 @@ func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 	if payload == nil {
 		payload = &payloadpbtypes.Payload{
 			Message:   "",
-			Timestamp: time.Now().Unix(),
+			Timestamp: timestamppb.Now(),
 			Sender:    am.nodeID,
 		}
 	}
@@ -182,7 +187,7 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 	applicationpbdsl.UponMessageInput(m, func(text string) error {
 		am.tm.AddPayload(&payloadpbtypes.Payload{
 			Message:   text,
-			Timestamp: time.Now().Unix(),
+			Timestamp: timestamppb.Now(),
 			Sender:    am.nodeID,
 		})
 

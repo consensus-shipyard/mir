@@ -1,7 +1,6 @@
 package transactions
 
 import (
-	"cmp"
 	"slices"
 
 	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
@@ -35,7 +34,7 @@ func (tm *TransactionManager) GetPayload() *payloadpbtypes.Payload {
 	// sort by timestamp
 	// TODO: keep it sorted
 	slices.SortFunc(tm.transactions, func(i, j transaction) int {
-		return cmp.Compare[int64](i.payload.Timestamp, j.payload.Timestamp)
+		return i.payload.Timestamp.AsTime().Compare(j.payload.Timestamp.AsTime())
 	})
 	return tm.transactions[0].payload
 }

@@ -8,6 +8,7 @@ import (
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Blocktree struct {
@@ -83,7 +84,7 @@ type Block struct {
 	BlockId         uint64
 	PreviousBlockId uint64
 	Payload         *types1.Payload
-	Timestamp       int64
+	Timestamp       *timestamppb.Timestamp
 }
 
 func BlockFromPb(pb *blockchainpb.Block) *Block {
@@ -109,7 +110,9 @@ func (m *Block) Pb() *blockchainpb.Block {
 		if m.Payload != nil {
 			pbMessage.Payload = (m.Payload).Pb()
 		}
-		pbMessage.Timestamp = m.Timestamp
+		if m.Timestamp != nil {
+			pbMessage.Timestamp = m.Timestamp
+		}
 	}
 
 	return pbMessage

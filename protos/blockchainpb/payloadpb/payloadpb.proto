@@ -5,12 +5,14 @@ package payloadpb;
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb";
 
 import "mir/codegen_extensions.proto";
+import "google/protobuf/timestamp.proto";
 
+ 
 message Payload {
   option (mir.struct) = true;
   
   // application specific payload
-  string  message   = 1;
-  int64   timestamp = 2;
-  string  sender    = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string                      message   = 1;
+  google.protobuf.Timestamp   timestamp = 2;
+  string                      sender    = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
 }
