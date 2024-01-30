@@ -2,9 +2,9 @@ package debugger
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -19,7 +19,6 @@ import (
 const (
 	ReadBufferSize  = 1024
 	WriteBufferSize = 1024
-	BasePort        = 8080
 )
 
 type WSWriter struct {
@@ -27,40 +26,40 @@ type WSWriter struct {
 	conn        *websocket.Conn
 	upgrader    websocket.Upgrader
 	eventSignal chan map[string]interface{}
+	WSMessage   struct {
+		Type  string `json:"Type"`
+		Value string `json:"Value"`
+	}
 }
 
 // InterceptorInit initializes the interceptor according to input boolean
 // The interceptor is set to nil if the user decides to not use the debugger
 func InterceptorInit(
-	debugger bool,
 	ownID t.NodeID,
+	port string,
 ) (*eventlog.Recorder, error) {
+	// writerFactory creates and returns a WebSocket-based event writer
+	writerFactory := func(_ string, ownID t.NodeID, _ logging.Logger) (eventlog.EventWriter, error) {
+		return newWSWriter(fmt.Sprintf(":%s", port)), nil
+	}
+
 	var interceptor *eventlog.Recorder
 	var err error
-	if debugger {
-		interceptor, err = eventlog.NewRecorder(
-			ownID,
-			fmt.Sprintf("./node%s", ownID),
-			logging.ConsoleInfoLogger,
-			eventlog.EventWriterOpt(writerFactory),
-			eventlog.SyncWriteOpt(),
-		)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("Interceptor created successfully")
-	} else {
-		interceptor = nil
-		err = nil
+	interceptor, err = eventlog.NewRecorder(
+		ownID,
+		fmt.Sprintf("./node%s", ownID),
+		logging.ConsoleInfoLogger,
+		eventlog.EventWriterOpt(writerFactory),
+		eventlog.SyncWriteOpt(),
+	)
+	if err != nil {
+		panic(err)
 	}
 	return interceptor, err
 }
 
 // Flush does nothing at the moment
 func (wsw *WSWriter) Flush() error {
-	if wsw.conn == nil {
-		return nil
-	}
 	return nil
 }
 
@@ -80,7 +79,6 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		time.Sleep(time.Millisecond * 100)
 	}
 	if list.Len() == 0 {
-		fmt.Println("No events to print.")
 		return list, nil
 	}
 
@@ -107,8 +105,8 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		}
 
 		eventAction := <-wsw.eventSignal
-		actionType, _ := eventAction["type"].(string)
-		value, _ := eventAction["value"].(string)
+		actionType, _ := eventAction["Type"].(string)
+		value, _ := eventAction["Value"].(string)
 		acceptedEvents, _ = EventAction(actionType, value, acceptedEvents, event)
 	}
 	return acceptedEvents, nil
@@ -133,7 +131,6 @@ func (wsw *WSWriter) HandleClientSignal(signal map[string]interface{}) {
 
 // newWSWriter creates a new WSWriter that establishes a websocket connection
 func newWSWriter(port string) *WSWriter {
-	fmt.Println("Starting newWSWriter")
 
 	// Create a new WSWriter object
 	wsWriter := &WSWriter{
@@ -144,44 +141,50 @@ func newWSWriter(port string) *WSWriter {
 		eventSignal: make(chan map[string]interface{}),
 	}
 
-	// Create an Async go routine that waits for the connection
-	go func() {
-		http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			wsWriter.upgrader.CheckOrigin = func(r *http.Request) bool { return true } // Allow opening the connection by HTML file
-			conn, err := wsWriter.upgrader.Upgrade(w, r, nil)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		wsWriter.upgrader.CheckOrigin = func(r *http.Request) bool { return true } // Allow opening the connection by HTML file
+		conn, err := wsWriter.upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		wsWriter.conn = conn
+		defer func() {
+			err := wsWriter.Close()
+			if err != nil {
+				panic(err)
+			}
+		}() // Ensure the connection is closed when the function exits
+
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil || messageType != websocket.TextMessage {
+				break
+			}
+
+			var signal map[string]interface{}
+			err = json.Unmarshal(message, &signal)
 			if err != nil {
 				panic(err)
 			}
 
-			fmt.Println("WebSocket connection established")
+			signalType, typeOk := signal["Type"].(string)
+			signalValue, valueOk := signal["Value"].(string)
+			if !typeOk || !valueOk {
+				panic(fmt.Sprintf("Invalid signal format: Type or Value key missing or not a string in %+v", signal))
+			}
 
-			// Update the attribute of the WSWriter object with the established connection
-			wsWriter.conn = conn
-			// go routine for incoming messages
-			go func() {
-				defer func(conn *websocket.Conn) {
-					err := conn.Close()
-					if err != nil {
-						panic(err)
-					}
-				}(conn) // Ensure the connection is closed when the function exits
+			// Check if the signal is a 'close' command
+			if signalType == "close" && signalValue == "" {
+				break
+			}
 
-				for {
-					_, message, err := conn.ReadMessage()
-					if err != nil {
-						break
-					}
+			wsWriter.HandleClientSignal(signal)
+		}
+	})
 
-					var signal map[string]interface{}
-					err = json.Unmarshal(message, &signal)
-					if err != nil {
-						continue
-					}
-					wsWriter.HandleClientSignal(signal)
-				}
-			}()
-		})
-
+	// Create an Async go routine that waits for the connection
+	go func() {
 		server := &http.Server{
 			Addr:         port,
 			Handler:      nil,
@@ -191,21 +194,9 @@ func newWSWriter(port string) *WSWriter {
 		}
 
 		err := server.ListenAndServe()
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			panic(err)
 		}
-		select {}
 	}()
 	return wsWriter
-}
-
-// writerFactory creates and returns a WebSocket-based event writer
-// It determines the port for the WebSocket server based on the given nodeID and a base port value
-func writerFactory(_ string, nodeID t.NodeID, _ logging.Logger) (eventlog.EventWriter, error) {
-	ownPort, err := strconv.Atoi(string(nodeID))
-	if err != nil {
-		panic(err)
-	}
-	ownPort += BasePort
-	return newWSWriter(fmt.Sprintf(":%d", ownPort)), nil
 }
