@@ -90,7 +90,7 @@ func main() {
 		map[t.ModuleID]modules.Module{
 			"transport":     transport,
 			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
-			"miner":         NewMiner(ownNodeID, logging.Decorate(logger, "Miner:\t")),
+			"miner":         NewMiner(ownNodeID, 0.2, logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
 			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
 			"synchronizer":  NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
