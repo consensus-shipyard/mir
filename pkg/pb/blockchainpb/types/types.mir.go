@@ -7,6 +7,7 @@ import (
 	types "github.com/filecoin-project/mir/codegen/model/types"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -52,6 +53,7 @@ type Block struct {
 	PreviousBlockId uint64
 	Payload         *types1.Payload
 	Timestamp       *timestamppb.Timestamp
+	MinerId         types2.NodeID
 }
 
 func BlockFromPb(pb *blockchainpb.Block) *Block {
@@ -63,6 +65,7 @@ func BlockFromPb(pb *blockchainpb.Block) *Block {
 		PreviousBlockId: pb.PreviousBlockId,
 		Payload:         types1.PayloadFromPb(pb.Payload),
 		Timestamp:       pb.Timestamp,
+		MinerId:         (types2.NodeID)(pb.MinerId),
 	}
 }
 
@@ -80,6 +83,7 @@ func (m *Block) Pb() *blockchainpb.Block {
 		if m.Timestamp != nil {
 			pbMessage.Timestamp = m.Timestamp
 		}
+		pbMessage.MinerId = (string)(m.MinerId)
 	}
 
 	return pbMessage

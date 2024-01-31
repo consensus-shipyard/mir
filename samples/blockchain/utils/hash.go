@@ -6,7 +6,8 @@ import (
 )
 
 func HashBlock(block *blockchainpbtypes.Block) uint64 {
-	hashBlock := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: block.PreviousBlockId, Payload: block.Payload, Timestamp: block.Timestamp}
+	hashBlock := *block
+	hashBlock.BlockId = 0
 	hash, err := hashstructure.Hash(hashBlock, nil)
 	if err != nil {
 		panic(err)

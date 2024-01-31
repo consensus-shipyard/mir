@@ -436,6 +436,7 @@ func (bcm *bcmModule) handleInitBlockchain(initialState *statepbtypes.State) err
 		PreviousBlockId: 0,
 		Payload:         &payloadpbtypes.Payload{},
 		Timestamp:       timestamppb.New(time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)), // unix 0
+		MinerId:         "",                                                        // no node mined this block, leaving node id empty
 	}
 
 	hash := utils.HashBlock(genesis) //uint64(0)

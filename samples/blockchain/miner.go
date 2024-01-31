@@ -16,6 +16,7 @@ import (
 	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
+	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"github.com/go-errors/errors"
 	"github.com/mitchellh/hashstructure"
@@ -32,13 +33,15 @@ type blockRequest struct {
 }
 
 type minerModule struct {
+	nodeID        t.NodeID // id of this node
 	blockRequests chan blockRequest
 	eventsOut     chan *events.EventList
 	logger        logging.Logger
 }
 
-func NewMiner(logger logging.Logger) modules.ActiveModule {
+func NewMiner(nodeID t.NodeID, logger logging.Logger) modules.ActiveModule {
 	return &minerModule{
+		nodeID:        nodeID,
 		blockRequests: make(chan blockRequest),
 		eventsOut:     make(chan *events.EventList),
 		logger:        logger,
@@ -94,7 +97,7 @@ func (m *minerModule) mineWorkerManager() {
 				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
 				return
 			case <-time.After(delay):
-				block := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: timestamppb.Now()}
+				block := &blockchainpbtypes.Block{BlockId: 0, PreviousBlockId: blockRequest.HeadId, Payload: blockRequest.Payload, Timestamp: timestamppb.Now(), MinerId: m.nodeID}
 				hash, err := hashstructure.Hash(block, nil)
 				if err != nil {
 					m.logger.Log(logging.LevelError, "Failed to hash block", "error", err)

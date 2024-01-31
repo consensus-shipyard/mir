@@ -20,7 +20,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/timer"
 	t "github.com/filecoin-project/mir/pkg/types"
 	application "github.com/filecoin-project/mir/samples/blockchain/application"
-	wsinterceptor "github.com/filecoin-project/mir/samples/blockchain/wsInterceptor"
+	"github.com/filecoin-project/mir/samples/blockchain/wsInterceptor"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func main() {
 		map[t.ModuleID]modules.Module{
 			"transport":     transport,
 			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
-			"miner":         NewMiner(logging.Decorate(logger, "Miner:\t")),
+			"miner":         NewMiner(ownNodeID, logging.Decorate(logger, "Miner:\t")),
 			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
 			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
 			"synchronizer":  NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
@@ -98,7 +98,7 @@ func main() {
 			"mangler":       mangler,
 			"devnull":       modules.NullPassive{}, // for messages that are actually destined for the interceptor
 		},
-		wsinterceptor.NewWsInterceptor(
+		wsInterceptor.NewWsInterceptor(
 			func(e *eventpb.Event) bool {
 				switch e.Type.(type) {
 				case *eventpb.Event_Bcinterceptor:
