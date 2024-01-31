@@ -9,7 +9,6 @@ import (
 func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_TreeUpdate)(nil)),
-		reflect.TypeOf((*Event_NewOrphan)(nil)),
-		reflect.TypeOf((*Event_AppUpdate)(nil)),
+		reflect.TypeOf((*Event_StateUpdate)(nil)),
 	}
 }

@@ -14,26 +14,19 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    TreeUpdate      tree_update     = 1;
-    NewOrphan       new_orphan      = 2;
-    AppUpdate       app_update      = 3;
+    TreeUpdate  tree_update   = 1;
+    StateUpdate state_update  = 2;
   }
 }
 
 message TreeUpdate {
     option (mir.event) = true;
 
-    blockchainpb.Blocktree  tree    = 1;
-    uint64                  head_id = 2;
+    repeated blockchainpb.Block blocks  = 1;
+    uint64                      head_id = 2;
 }
 
-message NewOrphan {
-    option (mir.event) = true;
-    
-    blockchainpb.Block orphan = 1;
-}
-
-message AppUpdate {
+message StateUpdate {
     option (mir.event) = true;
 
     statepb.State state = 1;

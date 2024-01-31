@@ -48,7 +48,6 @@ type bcmModule struct {
 	head             *bcmBlock
 	genesis          *bcmBlock
 	checkpoints      map[uint64]*bcmBlock
-	blockCount       uint64
 	currentScanCount uint64
 	logger           logging.Logger
 	initialized      bool
@@ -239,7 +238,6 @@ func (bcm *bcmModule) addBlock(block *blockchainpbtypes.Block) error {
 		if blockNode.depth > bcm.head.depth { // update head only if new block is deeper, i.e. is the longest chain
 			bcm.head = &blockNode
 		}
-		bcm.blockCount++
 		return nil
 	}
 
@@ -265,7 +263,6 @@ func (bcm *bcmModule) addBlock(block *blockchainpbtypes.Block) error {
 			if blockNode.depth > bcm.head.depth { // update head only if new block is deeper, i.e. is the longest chain
 				bcm.head = &blockNode
 			}
-			bcm.blockCount++
 			return true, nil
 		}
 
@@ -360,17 +357,8 @@ func (bcm *bcmModule) sendTreeUpdate() {
 		}
 		return blocks
 	}()
-	leaves := func() []uint64 {
-		leaves := make([]uint64, 0, len(bcm.leaves))
-		for _, v := range bcm.leaves {
-			leaves = append(leaves, v.block.BlockId)
-		}
-		return leaves
-	}()
 
-	blockTree := blockchainpbtypes.Blocktree{Blocks: blocks, Leaves: leaves}
-
-	interceptorpbdsl.TreeUpdate(*bcm.m, "devnull", &blockTree, bcm.head.block.BlockId)
+	interceptorpbdsl.TreeUpdate(*bcm.m, "devnull", blocks, bcm.head.block.BlockId)
 }
 
 func (bcm *bcmModule) getChainFromCheckpointToBlock(block *bcmBlock) ([]*blockchainpbtypes.Block, *statepbtypes.State) {
@@ -405,7 +393,7 @@ func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, so
 		return nil
 	} else if checkpointState == nil {
 		bcm.logger.Log(logging.LevelError, "Linked head up with checkpoint but state is missing - this should not happen", "head", utils.FormatBlockId(bcm.head.block.BlockId))
-		panic(errors.New("Linked head up with checkpoint but state is missing - this should not happen"))
+		panic(errors.New("linked head up with checkpoint but state is missing - this should not happen"))
 	}
 
 	bcmpbdsl.GetHeadToCheckpointChainResponse(*bcm.m, sourceModule, requestID, chain, checkpointState)

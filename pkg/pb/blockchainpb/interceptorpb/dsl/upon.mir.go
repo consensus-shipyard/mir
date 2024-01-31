@@ -23,20 +23,14 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponTreeUpdate(m dsl.Module, handler func(tree *types2.Blocktree, headId uint64) error) {
+func UponTreeUpdate(m dsl.Module, handler func(blocks []*types2.Block, headId uint64) error) {
 	UponEvent[*types.Event_TreeUpdate](m, func(ev *types.TreeUpdate) error {
-		return handler(ev.Tree, ev.HeadId)
+		return handler(ev.Blocks, ev.HeadId)
 	})
 }
 
-func UponNewOrphan(m dsl.Module, handler func(orphan *types2.Block) error) {
-	UponEvent[*types.Event_NewOrphan](m, func(ev *types.NewOrphan) error {
-		return handler(ev.Orphan)
-	})
-}
-
-func UponAppUpdate(m dsl.Module, handler func(state *types3.State) error) {
-	UponEvent[*types.Event_AppUpdate](m, func(ev *types.AppUpdate) error {
+func UponStateUpdate(m dsl.Module, handler func(state *types3.State) error) {
+	UponEvent[*types.Event_StateUpdate](m, func(ev *types.StateUpdate) error {
 		return handler(ev.State)
 	})
 }

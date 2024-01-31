@@ -10,14 +10,14 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func TreeUpdate(destModule types.ModuleID, tree *types1.Blocktree, headId uint64) *types2.Event {
+func TreeUpdate(destModule types.ModuleID, blocks []*types1.Block, headId uint64) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Bcinterceptor{
 			Bcinterceptor: &types3.Event{
 				Type: &types3.Event_TreeUpdate{
 					TreeUpdate: &types3.TreeUpdate{
-						Tree:   tree,
+						Blocks: blocks,
 						HeadId: headId,
 					},
 				},
@@ -26,28 +26,13 @@ func TreeUpdate(destModule types.ModuleID, tree *types1.Blocktree, headId uint64
 	}
 }
 
-func NewOrphan(destModule types.ModuleID, orphan *types1.Block) *types2.Event {
+func StateUpdate(destModule types.ModuleID, state *types4.State) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Bcinterceptor{
 			Bcinterceptor: &types3.Event{
-				Type: &types3.Event_NewOrphan{
-					NewOrphan: &types3.NewOrphan{
-						Orphan: orphan,
-					},
-				},
-			},
-		},
-	}
-}
-
-func AppUpdate(destModule types.ModuleID, state *types4.State) *types2.Event {
-	return &types2.Event{
-		DestModule: destModule,
-		Type: &types2.Event_Bcinterceptor{
-			Bcinterceptor: &types3.Event{
-				Type: &types3.Event_AppUpdate{
-					AppUpdate: &types3.AppUpdate{
+				Type: &types3.Event_StateUpdate{
+					StateUpdate: &types3.StateUpdate{
 						State: state,
 					},
 				},

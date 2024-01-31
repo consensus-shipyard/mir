@@ -13,10 +13,6 @@ func (w *Event_TreeUpdate) Unwrap() *TreeUpdate {
 	return w.TreeUpdate
 }
 
-func (w *Event_NewOrphan) Unwrap() *NewOrphan {
-	return w.NewOrphan
-}
-
-func (w *Event_AppUpdate) Unwrap() *AppUpdate {
-	return w.AppUpdate
+func (w *Event_StateUpdate) Unwrap() *StateUpdate {
+	return w.StateUpdate
 }

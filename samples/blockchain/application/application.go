@@ -94,7 +94,7 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpoi
 	// register checkpoint
 	blockId := addedChain[len(addedChain)-1].BlockId
 	bcmpbdsl.RegisterCheckpoint(*am.m, "bcm", blockId, state)
-	interceptorpbdsl.AppUpdate(*am.m, "devnull", state)
+	interceptorpbdsl.StateUpdate(*am.m, "devnull", state)
 
 	// print state
 	fmt.Printf("=== STATE ===\n")

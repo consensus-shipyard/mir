@@ -12,14 +12,10 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func TreeUpdate(m dsl.Module, destModule types.ModuleID, tree *types1.Blocktree, headId uint64) {
-	dsl.EmitMirEvent(m, events.TreeUpdate(destModule, tree, headId))
+func TreeUpdate(m dsl.Module, destModule types.ModuleID, blocks []*types1.Block, headId uint64) {
+	dsl.EmitMirEvent(m, events.TreeUpdate(destModule, blocks, headId))
 }
 
-func NewOrphan(m dsl.Module, destModule types.ModuleID, orphan *types1.Block) {
-	dsl.EmitMirEvent(m, events.NewOrphan(destModule, orphan))
-}
-
-func AppUpdate(m dsl.Module, destModule types.ModuleID, state *types2.State) {
-	dsl.EmitMirEvent(m, events.AppUpdate(destModule, state))
+func StateUpdate(m dsl.Module, destModule types.ModuleID, state *types2.State) {
+	dsl.EmitMirEvent(m, events.StateUpdate(destModule, state))
 }

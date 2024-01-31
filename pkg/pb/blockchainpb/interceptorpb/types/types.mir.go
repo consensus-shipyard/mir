@@ -4,8 +4,10 @@ package interceptorpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 )
@@ -32,10 +34,8 @@ func Event_TypeFromPb(pb interceptorpb.Event_Type) Event_Type {
 	switch pb := pb.(type) {
 	case *interceptorpb.Event_TreeUpdate:
 		return &Event_TreeUpdate{TreeUpdate: TreeUpdateFromPb(pb.TreeUpdate)}
-	case *interceptorpb.Event_NewOrphan:
-		return &Event_NewOrphan{NewOrphan: NewOrphanFromPb(pb.NewOrphan)}
-	case *interceptorpb.Event_AppUpdate:
-		return &Event_AppUpdate{AppUpdate: AppUpdateFromPb(pb.AppUpdate)}
+	case *interceptorpb.Event_StateUpdate:
+		return &Event_StateUpdate{StateUpdate: StateUpdateFromPb(pb.StateUpdate)}
 	}
 	return nil
 }
@@ -64,52 +64,28 @@ func (*Event_TreeUpdate) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_TreeUpdate]()}
 }
 
-type Event_NewOrphan struct {
-	NewOrphan *NewOrphan
+type Event_StateUpdate struct {
+	StateUpdate *StateUpdate
 }
 
-func (*Event_NewOrphan) isEvent_Type() {}
+func (*Event_StateUpdate) isEvent_Type() {}
 
-func (w *Event_NewOrphan) Unwrap() *NewOrphan {
-	return w.NewOrphan
+func (w *Event_StateUpdate) Unwrap() *StateUpdate {
+	return w.StateUpdate
 }
 
-func (w *Event_NewOrphan) Pb() interceptorpb.Event_Type {
+func (w *Event_StateUpdate) Pb() interceptorpb.Event_Type {
 	if w == nil {
 		return nil
 	}
-	if w.NewOrphan == nil {
-		return &interceptorpb.Event_NewOrphan{}
+	if w.StateUpdate == nil {
+		return &interceptorpb.Event_StateUpdate{}
 	}
-	return &interceptorpb.Event_NewOrphan{NewOrphan: (w.NewOrphan).Pb()}
+	return &interceptorpb.Event_StateUpdate{StateUpdate: (w.StateUpdate).Pb()}
 }
 
-func (*Event_NewOrphan) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_NewOrphan]()}
-}
-
-type Event_AppUpdate struct {
-	AppUpdate *AppUpdate
-}
-
-func (*Event_AppUpdate) isEvent_Type() {}
-
-func (w *Event_AppUpdate) Unwrap() *AppUpdate {
-	return w.AppUpdate
-}
-
-func (w *Event_AppUpdate) Pb() interceptorpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.AppUpdate == nil {
-		return &interceptorpb.Event_AppUpdate{}
-	}
-	return &interceptorpb.Event_AppUpdate{AppUpdate: (w.AppUpdate).Pb()}
-}
-
-func (*Event_AppUpdate) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_AppUpdate]()}
+func (*Event_StateUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.Event_StateUpdate]()}
 }
 
 func EventFromPb(pb *interceptorpb.Event) *Event {
@@ -140,7 +116,7 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type TreeUpdate struct {
-	Tree   *types.Blocktree
+	Blocks []*types.Block
 	HeadId uint64
 }
 
@@ -149,7 +125,9 @@ func TreeUpdateFromPb(pb *interceptorpb.TreeUpdate) *TreeUpdate {
 		return nil
 	}
 	return &TreeUpdate{
-		Tree:   types.BlocktreeFromPb(pb.Tree),
+		Blocks: types1.ConvertSlice(pb.Blocks, func(t *blockchainpb.Block) *types.Block {
+			return types.BlockFromPb(t)
+		}),
 		HeadId: pb.HeadId,
 	}
 }
@@ -160,9 +138,9 @@ func (m *TreeUpdate) Pb() *interceptorpb.TreeUpdate {
 	}
 	pbMessage := &interceptorpb.TreeUpdate{}
 	{
-		if m.Tree != nil {
-			pbMessage.Tree = (m.Tree).Pb()
-		}
+		pbMessage.Blocks = types1.ConvertSlice(m.Blocks, func(t *types.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
 		pbMessage.HeadId = m.HeadId
 	}
 
@@ -173,55 +151,24 @@ func (*TreeUpdate) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.TreeUpdate]()}
 }
 
-type NewOrphan struct {
-	Orphan *types.Block
+type StateUpdate struct {
+	State *types2.State
 }
 
-func NewOrphanFromPb(pb *interceptorpb.NewOrphan) *NewOrphan {
+func StateUpdateFromPb(pb *interceptorpb.StateUpdate) *StateUpdate {
 	if pb == nil {
 		return nil
 	}
-	return &NewOrphan{
-		Orphan: types.BlockFromPb(pb.Orphan),
+	return &StateUpdate{
+		State: types2.StateFromPb(pb.State),
 	}
 }
 
-func (m *NewOrphan) Pb() *interceptorpb.NewOrphan {
+func (m *StateUpdate) Pb() *interceptorpb.StateUpdate {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &interceptorpb.NewOrphan{}
-	{
-		if m.Orphan != nil {
-			pbMessage.Orphan = (m.Orphan).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*NewOrphan) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.NewOrphan]()}
-}
-
-type AppUpdate struct {
-	State *types1.State
-}
-
-func AppUpdateFromPb(pb *interceptorpb.AppUpdate) *AppUpdate {
-	if pb == nil {
-		return nil
-	}
-	return &AppUpdate{
-		State: types1.StateFromPb(pb.State),
-	}
-}
-
-func (m *AppUpdate) Pb() *interceptorpb.AppUpdate {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &interceptorpb.AppUpdate{}
+	pbMessage := &interceptorpb.StateUpdate{}
 	{
 		if m.State != nil {
 			pbMessage.State = (m.State).Pb()
@@ -231,6 +178,6 @@ func (m *AppUpdate) Pb() *interceptorpb.AppUpdate {
 	return pbMessage
 }
 
-func (*AppUpdate) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.AppUpdate]()}
+func (*StateUpdate) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*interceptorpb.StateUpdate]()}
 }
