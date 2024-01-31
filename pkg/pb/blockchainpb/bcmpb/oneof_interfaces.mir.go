@@ -17,14 +17,6 @@ func (w *Event_NewChain) Unwrap() *NewChain {
 	return w.NewChain
 }
 
-func (w *Event_GetBlockRequest) Unwrap() *GetBlockRequest {
-	return w.GetBlockRequest
-}
-
-func (w *Event_GetBlockResponse) Unwrap() *GetBlockResponse {
-	return w.GetBlockResponse
-}
-
 func (w *Event_GetChainRequest) Unwrap() *GetChainRequest {
 	return w.GetChainRequest
 }

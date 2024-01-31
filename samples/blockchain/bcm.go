@@ -499,25 +499,25 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		return bcm.handleNewChain(blocks)
 	})
 
-	bcmpbdsl.UponGetBlockRequest(m, func(requestID string, sourceModule t.ModuleID, blockID uint64) error {
-		bcm.logger.Log(logging.LevelInfo, "Received get block request", "requestId", requestID, "sourceModule", sourceModule)
-		if err := bcm.checkInitialization(); err != nil {
-			return err
-		}
-		// check if block is in tree
-		hit, err := bcm.findBlock(blockID)
+	// bcmpbdsl.UponGetBlockRequest(m, func(requestID string, sourceModule t.ModuleID, blockID uint64) error {
+	// 	bcm.logger.Log(logging.LevelInfo, "Received get block request", "requestId", requestID, "sourceModule", sourceModule)
+	// 	if err := bcm.checkInitialization(); err != nil {
+	// 		return err
+	// 	}
+	// 	// check if block is in tree
+	// 	hit, err := bcm.findBlock(blockID)
 
-		if err != nil {
-			bcm.logger.Log(logging.LevelDebug, "Block not found", "requestId", requestID, "error", err)
-			bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, false, nil)
-			return nil
-		}
+	// 	if err != nil {
+	// 		bcm.logger.Log(logging.LevelDebug, "Block not found", "requestId", requestID, "error", err)
+	// 		bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, false, nil)
+	// 		return nil
+	// 	}
 
-		bcm.logger.Log(logging.LevelDebug, "Found block in tree", "requestId", requestID)
-		bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, true, hit.block)
+	// 	bcm.logger.Log(logging.LevelDebug, "Found block in tree", "requestId", requestID)
+	// 	bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, true, hit.block)
 
-		return nil
-	})
+	// 	return nil
+	// })
 
 	bcmpbdsl.UponGetChainRequest(m, func(requestID string, sourceModule t.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error {
 		bcm.logger.Log(logging.LevelInfo, "Received get chain request", "requestId", requestID, "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
@@ -534,7 +534,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 
 		if err != nil {
 			bcm.logger.Log(logging.LevelDebug, "Block not found - can't build chain", "requestId", requestID, "error", err)
-			bcmpbdsl.GetBlockResponse(*bcm.m, sourceModule, requestID, false, nil)
+			bcmpbdsl.GetChainResponse(*bcm.m, sourceModule, requestID, false, nil)
 			return nil
 		}
 

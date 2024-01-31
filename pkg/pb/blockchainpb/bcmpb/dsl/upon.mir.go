@@ -36,18 +36,6 @@ func UponNewChain(m dsl.Module, handler func(blocks []*types2.Block) error) {
 	})
 }
 
-func UponGetBlockRequest(m dsl.Module, handler func(requestId string, sourceModule types3.ModuleID, blockId uint64) error) {
-	UponEvent[*types.Event_GetBlockRequest](m, func(ev *types.GetBlockRequest) error {
-		return handler(ev.RequestId, ev.SourceModule, ev.BlockId)
-	})
-}
-
-func UponGetBlockResponse(m dsl.Module, handler func(requestId string, found bool, block *types2.Block) error) {
-	UponEvent[*types.Event_GetBlockResponse](m, func(ev *types.GetBlockResponse) error {
-		return handler(ev.RequestId, ev.Found, ev.Block)
-	})
-}
-
 func UponGetChainRequest(m dsl.Module, handler func(requestId string, sourceModule types3.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error) {
 	UponEvent[*types.Event_GetChainRequest](m, func(ev *types.GetChainRequest) error {
 		return handler(ev.RequestId, ev.SourceModule, ev.EndBlockId, ev.SourceBlockIds)

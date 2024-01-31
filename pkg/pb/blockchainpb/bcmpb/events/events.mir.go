@@ -40,40 +40,6 @@ func NewChain(destModule types.ModuleID, blocks []*types1.Block) *types2.Event {
 	}
 }
 
-func GetBlockRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, blockId uint64) *types2.Event {
-	return &types2.Event{
-		DestModule: destModule,
-		Type: &types2.Event_Bcm{
-			Bcm: &types3.Event{
-				Type: &types3.Event_GetBlockRequest{
-					GetBlockRequest: &types3.GetBlockRequest{
-						RequestId:    requestId,
-						SourceModule: sourceModule,
-						BlockId:      blockId,
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetBlockResponse(destModule types.ModuleID, requestId string, found bool, block *types1.Block) *types2.Event {
-	return &types2.Event{
-		DestModule: destModule,
-		Type: &types2.Event_Bcm{
-			Bcm: &types3.Event{
-				Type: &types3.Event_GetBlockResponse{
-					GetBlockResponse: &types3.GetBlockResponse{
-						RequestId: requestId,
-						Found:     found,
-						Block:     block,
-					},
-				},
-			},
-		},
-	}
-}
-
 func GetChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID, endBlockId uint64, sourceBlockIds []uint64) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,

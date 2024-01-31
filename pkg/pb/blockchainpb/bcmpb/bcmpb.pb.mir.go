@@ -10,8 +10,6 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 	return []reflect.Type{
 		reflect.TypeOf((*Event_NewBlock)(nil)),
 		reflect.TypeOf((*Event_NewChain)(nil)),
-		reflect.TypeOf((*Event_GetBlockRequest)(nil)),
-		reflect.TypeOf((*Event_GetBlockResponse)(nil)),
 		reflect.TypeOf((*Event_GetChainRequest)(nil)),
 		reflect.TypeOf((*Event_GetChainResponse)(nil)),
 		reflect.TypeOf((*Event_GetHeadToCheckpointChainRequest)(nil)),

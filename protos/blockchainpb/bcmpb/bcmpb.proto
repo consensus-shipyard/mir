@@ -18,8 +18,6 @@ message Event {
     NewBlock                          new_block                             = 1;
     NewChain                          new_chain                             = 2;
 
-    GetBlockRequest                   get_block_request                     = 3;
-    GetBlockResponse                  get_block_response                    = 4;
     GetChainRequest                   get_chain_request                     = 5;
     GetChainResponse                  get_chain_response                    = 6;
     GetHeadToCheckpointChainRequest   get_head_to_checkpoint_chain_request  = 7;
@@ -41,23 +39,6 @@ message NewChain {
   
   // chain segment ordered blocks[0]<-blocks[1]<-blocks[2]...
   repeated blockchainpb.Block blocks = 1;
-}
-
-message GetBlockRequest {
-  option (mir.event) = true;
-
-  string  request_id    = 1;
-  string  source_module = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-  
-  uint64  block_id      = 3;
-}
-
-message GetBlockResponse {
-  option (mir.event) = true;
-
-  string              request_id  = 1;
-  bool                found       = 2;
-  blockchainpb.Block  block       = 3;
 }
 
 message GetChainRequest {

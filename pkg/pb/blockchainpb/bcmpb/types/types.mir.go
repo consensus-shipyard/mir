@@ -37,10 +37,6 @@ func Event_TypeFromPb(pb bcmpb.Event_Type) Event_Type {
 		return &Event_NewBlock{NewBlock: NewBlockFromPb(pb.NewBlock)}
 	case *bcmpb.Event_NewChain:
 		return &Event_NewChain{NewChain: NewChainFromPb(pb.NewChain)}
-	case *bcmpb.Event_GetBlockRequest:
-		return &Event_GetBlockRequest{GetBlockRequest: GetBlockRequestFromPb(pb.GetBlockRequest)}
-	case *bcmpb.Event_GetBlockResponse:
-		return &Event_GetBlockResponse{GetBlockResponse: GetBlockResponseFromPb(pb.GetBlockResponse)}
 	case *bcmpb.Event_GetChainRequest:
 		return &Event_GetChainRequest{GetChainRequest: GetChainRequestFromPb(pb.GetChainRequest)}
 	case *bcmpb.Event_GetChainResponse:
@@ -103,54 +99,6 @@ func (w *Event_NewChain) Pb() bcmpb.Event_Type {
 
 func (*Event_NewChain) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_NewChain]()}
-}
-
-type Event_GetBlockRequest struct {
-	GetBlockRequest *GetBlockRequest
-}
-
-func (*Event_GetBlockRequest) isEvent_Type() {}
-
-func (w *Event_GetBlockRequest) Unwrap() *GetBlockRequest {
-	return w.GetBlockRequest
-}
-
-func (w *Event_GetBlockRequest) Pb() bcmpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.GetBlockRequest == nil {
-		return &bcmpb.Event_GetBlockRequest{}
-	}
-	return &bcmpb.Event_GetBlockRequest{GetBlockRequest: (w.GetBlockRequest).Pb()}
-}
-
-func (*Event_GetBlockRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetBlockRequest]()}
-}
-
-type Event_GetBlockResponse struct {
-	GetBlockResponse *GetBlockResponse
-}
-
-func (*Event_GetBlockResponse) isEvent_Type() {}
-
-func (w *Event_GetBlockResponse) Unwrap() *GetBlockResponse {
-	return w.GetBlockResponse
-}
-
-func (w *Event_GetBlockResponse) Pb() bcmpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.GetBlockResponse == nil {
-		return &bcmpb.Event_GetBlockResponse{}
-	}
-	return &bcmpb.Event_GetBlockResponse{GetBlockResponse: (w.GetBlockResponse).Pb()}
-}
-
-func (*Event_GetBlockResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetBlockResponse]()}
 }
 
 type Event_GetChainRequest struct {
@@ -386,78 +334,6 @@ func (m *NewChain) Pb() *bcmpb.NewChain {
 
 func (*NewChain) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.NewChain]()}
-}
-
-type GetBlockRequest struct {
-	RequestId    string
-	SourceModule types2.ModuleID
-	BlockId      uint64
-}
-
-func GetBlockRequestFromPb(pb *bcmpb.GetBlockRequest) *GetBlockRequest {
-	if pb == nil {
-		return nil
-	}
-	return &GetBlockRequest{
-		RequestId:    pb.RequestId,
-		SourceModule: (types2.ModuleID)(pb.SourceModule),
-		BlockId:      pb.BlockId,
-	}
-}
-
-func (m *GetBlockRequest) Pb() *bcmpb.GetBlockRequest {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &bcmpb.GetBlockRequest{}
-	{
-		pbMessage.RequestId = m.RequestId
-		pbMessage.SourceModule = (string)(m.SourceModule)
-		pbMessage.BlockId = m.BlockId
-	}
-
-	return pbMessage
-}
-
-func (*GetBlockRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetBlockRequest]()}
-}
-
-type GetBlockResponse struct {
-	RequestId string
-	Found     bool
-	Block     *types.Block
-}
-
-func GetBlockResponseFromPb(pb *bcmpb.GetBlockResponse) *GetBlockResponse {
-	if pb == nil {
-		return nil
-	}
-	return &GetBlockResponse{
-		RequestId: pb.RequestId,
-		Found:     pb.Found,
-		Block:     types.BlockFromPb(pb.Block),
-	}
-}
-
-func (m *GetBlockResponse) Pb() *bcmpb.GetBlockResponse {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &bcmpb.GetBlockResponse{}
-	{
-		pbMessage.RequestId = m.RequestId
-		pbMessage.Found = m.Found
-		if m.Block != nil {
-			pbMessage.Block = (m.Block).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*GetBlockResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetBlockResponse]()}
 }
 
 type GetChainRequest struct {
