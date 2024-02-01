@@ -16,26 +16,56 @@ import (
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/blockchain/application/config"
-	"github.com/filecoin-project/mir/samples/blockchain/application/transactions"
+	"github.com/filecoin-project/mir/samples/blockchain/application/payloads"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+/**
+ * Application module
+ * ==================
+ *
+ * The application module is reponsible for performing the actual application logic and to interact with users or other applications.
+ * It does not hold any state, but instead relies on the blockchain manager module (BCM) to store the state.
+ * However, the application needs to compute the state.
+ * Also, the application module is responsible for providing payloads for new blocks.
+ *
+ * The application module must perform the following tasks:
+ * 1. Initialize the blockchain by sending it the initial state in an InitBlockchain event to the BCM.
+ * 2. When it receives a PayloadRequest event, it must provide a payload for the next block. This payload can be empty.
+ * 3. When it receives a ForkUpdate event, it must compute the state at the new head of the blockchain.
+ *    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
+ *	  A checkpoint is a block stored by the BCM that has a state stored with it.
+ * 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at a application level and respond with a VerifyBlocksResponse event.
+ *    Whether or not not the blocks link together correctly is verified by the BCM.
+ *
+ * This application module implements a simple chat application.
+ * It takes new messages from the user (MessageInput event) and combines them with a sender id and "sent" timestamp as payloads.
+ * These payloads are stored in the payload manager (see applicaion/payloads/payloads.go).
+ * The state is the list of all messages that have been sent and timestamps for when each sender last sent a message.
+ * At the application level, a chain is valid if the timestamps are monotonically increasing for each sender.
+ */
+
 type ApplicationModule struct {
 	m      *dsl.Module
+	pm     *payloads.PayloadManager // store for payloads
+	nodeID t.NodeID                 // to set sender in payload
 	logger logging.Logger
-	tm     *transactions.TransactionManager
-	nodeID t.NodeID
 }
 
 // application-application events
 
+/**
+* Helper functions
+ */
+
+// helper function that applies a block's payload to the given state, thereby computing the new state
 func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block) *statepbtypes.State {
 	sender := block.Payload.Sender
 	timeStamps := state.LastSentTimestamps
 	msgHistory := state.MessageHistory
 
-	// why is this necessary? it should be verified already
+	// TODO: is this necessary? it should be verified already
 	for i, lt := range timeStamps {
 		if lt.NodeId == sender {
 			ltTimestamp := lt.Timestamp.AsTime()
@@ -65,17 +95,25 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 	}
 }
 
+/**
+* Mir event handlers
+ */
+
+// TODO: rename - fork is confusing
+
+// Handler called by BCM when the head changes.
+// It handles cases where the head changes because the canonical chain was extended as well as cases where the canonical chain changes because of a fork.
 func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpointToForkRootChain []*blockchainpbtypes.Block, checkpointState *statepbtypes.State) error {
-	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.tm.PoolSize())
+	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.pm.PoolSize())
 
 	// add "remove chain" transactions to pool
 	for _, block := range removedChain {
-		am.tm.AddPayload(block.Payload)
+		am.pm.AddPayload(block.Payload)
 	}
 
 	// remove "add chain" transactions from pool
 	for _, block := range addedChain {
-		am.tm.RemovePayload(block.Payload)
+		am.pm.RemovePayload(block.Payload)
 	}
 
 	state := checkpointState
@@ -89,7 +127,7 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpoi
 		state = applyBlockToState(state, block)
 	}
 
-	am.logger.Log(logging.LevelInfo, "Pool after fork", "poolSize", am.tm.PoolSize())
+	am.logger.Log(logging.LevelInfo, "Pool after fork", "poolSize", am.pm.PoolSize())
 
 	// register checkpoint
 	blockId := addedChain[len(addedChain)-1].BlockId
@@ -106,6 +144,9 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpoi
 	return nil
 }
 
+// Handler called by BCM when a chain needs to be verified.
+// The checks are purely at the application level.
+// In this implementation, it simply checks that the timestamps are monotonically increasing for each sender.
 func (am *ApplicationModule) handleVerifyBlocksRequest(checkpointState *statepbtypes.State, chainCheckpointToStart, chainToVerify []*blockchainpbtypes.Block) error {
 	am.logger.Log(logging.LevelDebug, "Processing verify block request")
 
@@ -143,13 +184,14 @@ func (am *ApplicationModule) handleVerifyBlocksRequest(checkpointState *statepbt
 	return nil
 }
 
-// transaction management events
-
+// Handler called by the miner when it needs a payload for the next block.
 func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 	am.logger.Log(logging.LevelDebug, "Processing payload request", "headId", utils.FormatBlockId(head_id))
 
-	payload := am.tm.GetPayload()
+	payload := am.pm.GetPayload()
 
+	// if no payload is available, create empty payload
+	// this is important to ensure that all nodes are always mining new blocks
 	if payload == nil {
 		payload = &payloadpbtypes.Payload{
 			Message:   "",
@@ -158,7 +200,7 @@ func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 		}
 	}
 
-	applicationpbdsl.PayloadResponse(*am.m, "miner", head_id, payload) // not using head id anywhere so we can get rid of it
+	applicationpbdsl.PayloadResponse(*am.m, "miner", head_id, payload)
 
 	return nil
 }
@@ -170,7 +212,7 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 		m:      &m,
 		logger: logger,
 		nodeID: nodeID,
-		tm:     transactions.New(),
+		pm:     payloads.New(),
 	}
 
 	dsl.UponInit(m, func() error {
@@ -185,7 +227,7 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 	applicationpbdsl.UponVerifyBlocksRequest(m, am.handleVerifyBlocksRequest)
 
 	applicationpbdsl.UponMessageInput(m, func(text string) error {
-		am.tm.AddPayload(&payloadpbtypes.Payload{
+		am.pm.AddPayload(&payloadpbtypes.Payload{
 			Message:   text,
 			Timestamp: timestamppb.Now(),
 			Sender:    am.nodeID,
