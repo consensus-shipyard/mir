@@ -9,15 +9,15 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func SyncRequest(destModule types.ModuleID, orphanBlock *types1.Block, leaveIds []uint64) *types2.Event {
+func SyncRequest(destModule types.ModuleID, orphanBlock *types1.Block, leaveNodeIds []uint64) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Synchronizer{
 			Synchronizer: &types3.Event{
 				Type: &types3.Event_SyncRequest{
 					SyncRequest: &types3.SyncRequest{
-						OrphanBlock: orphanBlock,
-						LeaveIds:    leaveIds,
+						OrphanBlock:  orphanBlock,
+						LeaveNodeIds: leaveNodeIds,
 					},
 				},
 			},

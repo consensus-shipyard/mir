@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	applicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/events"
 	bcmpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/events"
-	communicationpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/events"
+	broadcastpbevents "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb/events"
 	"github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
 	payloadpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
@@ -127,8 +127,8 @@ func (m *minerModule) mineWorkerManager() {
 				}
 				block.BlockId = hash
 				// Send block to BCM and broadcast module
-				m.logger.Log(logging.LevelInfo, "Block mined", "headId", utils.FormatBlockId(hash), "parentId", utils.FormatBlockId(blockRequest.HeadId))
-				m.eventsOut <- events.ListOf(bcmpbevents.NewBlock("bcm", block).Pb(), communicationpbevents.NewBlock("communication", block).Pb())
+				m.logger.Log(logging.LevelInfo, "Block mined", "blockId", utils.FormatBlockId(hash), "parentId", utils.FormatBlockId(blockRequest.HeadId))
+				m.eventsOut <- events.ListOf(bcmpbevents.NewBlock("bcm", block).Pb(), broadcastpbevents.NewBlock("broadcast", block).Pb())
 				return
 			}
 		}()

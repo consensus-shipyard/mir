@@ -9,16 +9,16 @@ import (
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func ChainRequest(destModule types.ModuleID, requestId string, blockId uint64, leaveIds []uint64) *types1.Message {
+func ChainRequest(destModule types.ModuleID, requestId string, blockId uint64, leaveNodeIds []uint64) *types1.Message {
 	return &types1.Message{
 		DestModule: destModule,
 		Type: &types1.Message_Synchronizer{
 			Synchronizer: &types2.Message{
 				Type: &types2.Message_ChainRequest{
 					ChainRequest: &types2.ChainRequest{
-						RequestId: requestId,
-						BlockId:   blockId,
-						LeaveIds:  leaveIds,
+						RequestId:    requestId,
+						BlockId:      blockId,
+						LeaveNodeIds: leaveNodeIds,
 					},
 				},
 			},

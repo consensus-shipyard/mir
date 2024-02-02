@@ -10,7 +10,7 @@ import (
 	bcbpb "github.com/filecoin-project/mir/pkg/pb/bcbpb"
 	applicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb"
 	bcmpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb"
-	communicationpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb"
+	broadcastpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb"
 	interceptorpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb"
 	minerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb"
 	synchronizerpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb"
@@ -121,8 +121,8 @@ func (w *Event_Miner) Unwrap() *minerpb.Event {
 	return w.Miner
 }
 
-func (w *Event_Communication) Unwrap() *communicationpb.Event {
-	return w.Communication
+func (w *Event_Broadcast) Unwrap() *broadcastpb.Event {
+	return w.Broadcast
 }
 
 func (w *Event_Synchronizer) Unwrap() *synchronizerpb.Event {

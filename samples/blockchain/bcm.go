@@ -19,7 +19,6 @@ import (
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -296,9 +295,9 @@ func (bcm *bcmModule) processNewChain(blocks []*blockchainpbtypes.Block) error {
 	parent, _ := bcm.findBlock(blocks[0].PreviousBlockId)
 	if parent == nil {
 		bcm.logger.Log(logging.LevelError, "Parent not found. Could be invalid chain/block or we are missing a part. Sending sync req to sync end of chain.", "blockId", utils.FormatBlockId(blocks[0].BlockId))
-		leavesPlusGenesis := append(maps.Keys(bcm.leaves), bcm.genesis.block.BlockId)
-		bcm.logger.Log(logging.LevelDebug, "Sending sync request", "blockId", utils.FormatBlockId(blocks[len(blocks)-1].BlockId), "leaves+genesis", utils.FormatBlockIdSlice(leavesPlusGenesis))
-		synchronizerpbdsl.SyncRequest(*bcm.m, "synchronizer", blocks[len(blocks)-1], leavesPlusGenesis)
+		connectionNodeIDs := append(maps.Keys(bcm.leaves), bcm.genesis.block.BlockId)
+		bcm.logger.Log(logging.LevelDebug, "Sending sync request", "blockId", utils.FormatBlockId(blocks[len(blocks)-1].BlockId), "leaves+genesis", utils.FormatBlockIdSlice(connectionNodeIDs))
+		synchronizerpbdsl.SyncRequest(*bcm.m, "synchronizer", blocks[len(blocks)-1], connectionNodeIDs)
 		return nil
 	}
 
@@ -502,7 +501,7 @@ func (bcm *bcmModule) handleInitBlockchain(initialState *statepbtypes.State) err
 	genesis.BlockId = hash
 	genesisBcm := bcmBlock{
 		block:  genesis,
-		state:  config.InitialState,
+		state:  initialState,
 		parent: nil,
 		depth:  0,
 	}

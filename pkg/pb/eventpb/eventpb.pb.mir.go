@@ -29,7 +29,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_PingPong)(nil)),
 		reflect.TypeOf((*Event_Bcm)(nil)),
 		reflect.TypeOf((*Event_Miner)(nil)),
-		reflect.TypeOf((*Event_Communication)(nil)),
+		reflect.TypeOf((*Event_Broadcast)(nil)),
 		reflect.TypeOf((*Event_Synchronizer)(nil)),
 		reflect.TypeOf((*Event_Application)(nil)),
 		reflect.TypeOf((*Event_Bcinterceptor)(nil)),

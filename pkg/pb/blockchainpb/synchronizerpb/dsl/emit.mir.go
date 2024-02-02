@@ -11,6 +11,6 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func SyncRequest(m dsl.Module, destModule types.ModuleID, orphanBlock *types1.Block, leaveIds []uint64) {
-	dsl.EmitMirEvent(m, events.SyncRequest(destModule, orphanBlock, leaveIds))
+func SyncRequest(m dsl.Module, destModule types.ModuleID, orphanBlock *types1.Block, leaveNodeIds []uint64) {
+	dsl.EmitMirEvent(m, events.SyncRequest(destModule, orphanBlock, leaveNodeIds))
 }

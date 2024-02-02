@@ -88,15 +88,15 @@ func main() {
 		ownNodeID,
 		mir.DefaultNodeConfig(),
 		map[t.ModuleID]modules.Module{
-			"transport":     transport,
-			"bcm":           NewBCM(logging.Decorate(logger, "BCM:\t")),
-			"miner":         NewMiner(ownNodeID, 0.2, logging.Decorate(logger, "Miner:\t")),
-			"communication": NewCommunication(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
-			"application":   application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
-			"synchronizer":  NewSynchronizer(ownNodeID, otherNodes, false, logging.Decorate(logger, "Sync:\t")),
-			"timer":         timer,
-			"mangler":       mangler,
-			"devnull":       modules.NullPassive{}, // for messages that are actually destined for the interceptor
+			"transport":    transport,
+			"bcm":          NewBCM(logging.Decorate(logger, "BCM:\t")),
+			"miner":        NewMiner(ownNodeID, 0.2, logging.Decorate(logger, "Miner:\t")),
+			"broadcast":    NewBroadcast(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
+			"application":  application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
+			"synchronizer": NewSynchronizer(ownNodeID, otherNodes, logging.Decorate(logger, "Sync:\t")),
+			"timer":        timer,
+			"mangler":      mangler,
+			"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor
 		},
 		wsInterceptor.NewWsInterceptor(
 			func(e *eventpb.Event) bool {

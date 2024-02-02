@@ -7,22 +7,22 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	bcmpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/dsl"
-	communicationpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/dsl"
-	communicationpbmsgs "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/msgs"
+	broadcastpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb/dsl"
+	broadcastpbmsgs "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb/msgs"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
-func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
-	m := dsl.NewModule("communication")
+func NewBroadcast(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
+	m := dsl.NewModule("broadcast")
 
 	dsl.UponInit(m, func() error {
 		return nil
 	})
 
-	communicationpbdsl.UponNewBlock(m, func(block *blockchainpbtypes.Block) error {
+	broadcastpbdsl.UponNewBlock(m, func(block *blockchainpbtypes.Block) error {
 		// take the block and send it to all other nodes
 
 		logger.Log(logging.LevelDebug, "broadcasting block", "blockId", utils.FormatBlockId(block.BlockId), "manlge", mangle)
@@ -30,16 +30,16 @@ func NewCommunication(otherNodes []t.NodeID, mangle bool, logger logging.Logger)
 		if mangle {
 			// send via mangles
 			for _, node := range otherNodes {
-				transportpbdsl.SendMessage(m, "mangler", communicationpbmsgs.NewBlockMessage("communication", block), []t.NodeID{node})
+				transportpbdsl.SendMessage(m, "mangler", broadcastpbmsgs.NewBlockMessage("broadcast", block), []t.NodeID{node})
 			}
 		} else {
-			transportpbdsl.SendMessage(m, "transport", communicationpbmsgs.NewBlockMessage("communication", block), otherNodes)
+			transportpbdsl.SendMessage(m, "transport", broadcastpbmsgs.NewBlockMessage("broadcast", block), otherNodes)
 		}
 
 		return nil
 	})
 
-	communicationpbdsl.UponNewBlockMessageReceived(m, func(from t.NodeID, block *blockchainpbtypes.Block) error {
+	broadcastpbdsl.UponNewBlockMessageReceived(m, func(from t.NodeID, block *blockchainpbtypes.Block) error {
 		logger.Log(logging.LevelDebug, "new block received", "blockId", utils.FormatBlockId(block.BlockId))
 
 		bcmpbdsl.NewBlock(m, "bcm", block)

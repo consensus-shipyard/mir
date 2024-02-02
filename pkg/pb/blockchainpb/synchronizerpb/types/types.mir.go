@@ -89,8 +89,8 @@ func (*Event) MirReflect() mirreflect.Type {
 }
 
 type SyncRequest struct {
-	OrphanBlock *types.Block
-	LeaveIds    []uint64
+	OrphanBlock  *types.Block
+	LeaveNodeIds []uint64
 }
 
 func SyncRequestFromPb(pb *synchronizerpb.SyncRequest) *SyncRequest {
@@ -98,8 +98,8 @@ func SyncRequestFromPb(pb *synchronizerpb.SyncRequest) *SyncRequest {
 		return nil
 	}
 	return &SyncRequest{
-		OrphanBlock: types.BlockFromPb(pb.OrphanBlock),
-		LeaveIds:    pb.LeaveIds,
+		OrphanBlock:  types.BlockFromPb(pb.OrphanBlock),
+		LeaveNodeIds: pb.LeaveNodeIds,
 	}
 }
 
@@ -112,7 +112,7 @@ func (m *SyncRequest) Pb() *synchronizerpb.SyncRequest {
 		if m.OrphanBlock != nil {
 			pbMessage.OrphanBlock = (m.OrphanBlock).Pb()
 		}
-		pbMessage.LeaveIds = m.LeaveIds
+		pbMessage.LeaveNodeIds = m.LeaveNodeIds
 	}
 
 	return pbMessage
@@ -226,9 +226,9 @@ func (*Message) MirReflect() mirreflect.Type {
 }
 
 type ChainRequest struct {
-	RequestId string
-	BlockId   uint64
-	LeaveIds  []uint64
+	RequestId    string
+	BlockId      uint64
+	LeaveNodeIds []uint64
 }
 
 func ChainRequestFromPb(pb *synchronizerpb.ChainRequest) *ChainRequest {
@@ -236,9 +236,9 @@ func ChainRequestFromPb(pb *synchronizerpb.ChainRequest) *ChainRequest {
 		return nil
 	}
 	return &ChainRequest{
-		RequestId: pb.RequestId,
-		BlockId:   pb.BlockId,
-		LeaveIds:  pb.LeaveIds,
+		RequestId:    pb.RequestId,
+		BlockId:      pb.BlockId,
+		LeaveNodeIds: pb.LeaveNodeIds,
 	}
 }
 
@@ -250,7 +250,7 @@ func (m *ChainRequest) Pb() *synchronizerpb.ChainRequest {
 	{
 		pbMessage.RequestId = m.RequestId
 		pbMessage.BlockId = m.BlockId
-		pbMessage.LeaveIds = m.LeaveIds
+		pbMessage.LeaveNodeIds = m.LeaveNodeIds
 	}
 
 	return pbMessage

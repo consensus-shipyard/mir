@@ -19,9 +19,33 @@ import (
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
-const (
-	STRIKE_THRESHOLD = 2
-)
+/**
+ * Synchronizer module
+ * ===================
+ *
+ * The synchronizer module assists the blockchain manager (BCM) in resolving cases whe BCM receives an orphan block.
+ * That is, a block that cannot be linked to the blockchain because the blockchain does not contain the block that the orphan block is linked to.
+ * To do this, the synchronizer module communicates with other nodes to get the missing blocks.
+ *
+ * Terminology:
+ * - internal sync request: a request to synchronize a chain segment that was initiated by this node
+ * - external sync request: a request to synchronize a chain segment that was initiated by another node
+ *
+ * The synchronizer module performs the following tasks:
+ * For internal sync requests:
+ * 1. When it receives a SyncRequest event, it must register the request and send a ChainRequest message to another node.
+ *    It asks one node after another.
+ * 2. When it receives a successful ChainResponse message, it sends the blockchain manager (BCM) the chain fixing the missing bit with a Chain event.
+ *	  It then deletes the request.
+ * 3. When it receives a failed ChainResponse message, it sends a ChainRequest message to the next node.
+ *    If there are no more nodes to ask, it deletes the request.
+ *
+ * For external sync requests:
+ * 1. When it receives a ChainRequest message, it must register the request and send a GetChainRequest event to the BCM.
+ * 2. The BCM will respond with a GetChainResponse event. The synchronizer then responds to the node that sent the ChainRequest message with a ChainResponse message.
+ *
+ * IMPORTANT: This module assumes that all other nodes resppond to requests and that no messages are lost.
+ */
 
 var (
 	ErrRequestAlreadyExists  = errors.New("request already exists")
@@ -34,36 +58,41 @@ var (
 // rn it would just get stuck on such a node...
 
 type synchronizerModule struct {
-	m            *dsl.Module
-	nodeID       t.NodeID // id of this node
-	syncRequests map[string]*syncRequest
-	getRequests  map[string]*getRequest
-	otherNodes   []t.NodeID // we remove nodes that we presume have crashed (see strikeList) // TODO: add a timeout to 're-add' them? exponential backoff?
-	// stikeList    map[t.NodeID]int // a node gets a strike whenever it failed to handle a request, after STRIKE_THRESHOLD strikes it is removed from the otherNodes. Set to 0 if it handles a request successfully
-	mangle         bool
-	internalLogger logging.Logger
-	externaLogger  logging.Logger
+	m              *dsl.Module
+	nodeID         t.NodeID                // id of this node
+	syncRequests   map[string]*syncRequest // map to keep track of sync requests - for internal sync requests
+	getRequests    map[string]*getRequest  // map to keep track of get requests - for external sync request
+	otherNodes     []t.NodeID              // ids of all other nodes
+	internalLogger logging.Logger          // logger for internal sync requests
+	externaLogger  logging.Logger          // logger for external sync requests
 }
 
 /*************************
- * Outgoing sync requests
+ * Internal sync requests
  *************************/
 
+// struct to keep track of sync requests
+// it hold all information needed to send sync requests to other nodes and keeps track of which nodes have already been contacted
 type syncRequest struct {
-	requestID      string
-	blockID        uint64
-	leaveIDs       []uint64
-	nodesContacted []int // index of node in otherNodes
+	requestID         string   // id of the request, used as key in syncRequests map
+	blockID           uint64   // id of the blocks that cannot be linked to the blockchain
+	connectionNodeIDs []uint64 // ids of the block
+	nodesContacted    []int    // index of node in otherNodes
 }
 
-func (sm *synchronizerModule) registerSyncRequest(block *blockchainpbtypes.Block, leaves []uint64) (string, error) {
+/**
+ * Helper functions for internal requests
+ */
+
+// registers a sync request
+func (sm *synchronizerModule) registerSyncRequest(block *blockchainpbtypes.Block, connectionNodeIDs []uint64) (string, error) {
 	requestId := fmt.Sprint(block.BlockId) + "-" + string(sm.nodeID)
 	// check if request already exists
 	if _, ok := sm.syncRequests[requestId]; ok {
 		return "", ErrRequestAlreadyExists
 	}
 
-	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: block.BlockId, leaveIDs: leaves, nodesContacted: []int{}}
+	sm.syncRequests[requestId] = &syncRequest{requestID: requestId, blockID: block.BlockId, connectionNodeIDs: connectionNodeIDs, nodesContacted: []int{}}
 
 	return requestId, nil
 }
@@ -84,43 +113,43 @@ func (sm *synchronizerModule) contactNextNode(requestID string) error {
 
 	} else {
 		// get next node
-		// NOTE: stupid to keep an array of indices but it's more flexible in case I want to change the way I pick the next node
 		nextNodeIndex = (request.nodesContacted[len(request.nodesContacted)-1] + 1) % len(sm.otherNodes)
 	}
 
 	request.nodesContacted = append(request.nodesContacted, nextNodeIndex)
 	nextNode := sm.otherNodes[nextNodeIndex]
 
-	sm.internalLogger.Log(logging.LevelDebug, "asking node for block", "block", utils.FormatBlockId(request.blockID), "node", nextNode, "mangle", sm.mangle)
+	sm.internalLogger.Log(logging.LevelDebug, "asking node for block", "block", utils.FormatBlockId(request.blockID), "node", nextNode)
+
 	// send request
-	if sm.mangle {
-		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.ChainRequest("synchronizer", requestID, request.blockID, request.leaveIDs), []t.NodeID{nextNode})
-	} else {
-		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainRequest("synchronizer", requestID, request.blockID, request.leaveIDs), []t.NodeID{nextNode})
-	}
+	transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainRequest("synchronizer", requestID, request.blockID, request.connectionNodeIDs), []t.NodeID{nextNode})
 
 	return nil
 }
 
-func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpbtypes.Block, leaveIds []uint64) error {
+/**
+ * Mir handlers for internal requests
+ */
+
+func (sm *synchronizerModule) handleSyncRequest(orphanBlock *blockchainpbtypes.Block, connectionNodeIDs []uint64) error {
 
 	// register request
-	requestId, err := sm.registerSyncRequest(orphanBlock, leaveIds)
+	requestId, err := sm.registerSyncRequest(orphanBlock, connectionNodeIDs)
 	if err != nil {
 		switch err {
 		case ErrRequestAlreadyExists:
 			// ignore request
-			sm.internalLogger.Log(logging.LevelDebug, "sync request already exists", "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "leaveIds", utils.FormatBlockIdSlice(leaveIds))
+			sm.internalLogger.Log(logging.LevelDebug, "sync request already exists", "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "connectionNodeIDs", utils.FormatBlockIdSlice(connectionNodeIDs))
 			return nil
 		default:
-			sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "leaveIds", utils.FormatBlockIdSlice(leaveIds))
+			sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "connectionNodeIDs", utils.FormatBlockIdSlice(connectionNodeIDs))
 			return err
 		}
 	}
 
 	if err := sm.contactNextNode(requestId); err != nil {
 		// could check for 'ErrNoMoreNodes' here but there should always be at least one node
-		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "leaveIds", utils.FormatBlockIdSlice(leaveIds))
+		sm.internalLogger.Log(logging.LevelError, "sync registration failed", "error", err.Error(), "orphanBlock", utils.FormatBlockId(orphanBlock.BlockId), "connectionNodeIDs", utils.FormatBlockIdSlice(connectionNodeIDs))
 		return err
 	}
 
@@ -136,7 +165,7 @@ func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, request
 	}
 
 	if !found {
-		// check whether the response came fromt he last node we contacted
+		// check whether the response came from he last node we contacted
 		// NOTE: this is getting messy
 		if sm.otherNodes[request.nodesContacted[len(request.nodesContacted)-1]] != from {
 			// there is still a request out in the ether - don't send another one
@@ -145,13 +174,11 @@ func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, request
 		}
 		// send request to the next node
 		if err := sm.contactNextNode(requestID); err == ErrNoMoreNodes {
-			sm.internalLogger.Log(logging.LevelError, "no more nodes to contact - forgetting request - shouldn't happen if not mangling", "error", err.Error(), "requestId", requestID, "mangle", sm.mangle)
+			sm.internalLogger.Log(logging.LevelError, "no more nodes to contact - forgetting request - shouldn't happen ", "error", err.Error(), "requestId", requestID)
 			delete(sm.syncRequests, requestID)
-			if !sm.mangle {
-				panic(err) // NOTE: this should never happen as long as we don't start mangling
-			}
 		} else if err != nil {
-			sm.internalLogger.Log(logging.LevelError, "Unexpected error contacting next node", "error", err.Error(), "requestId", requestID, "mangle", sm.mangle)
+			sm.internalLogger.Log(logging.LevelError, "Unexpected error contacting next node", "error", err.Error(), "requestId", requestID)
+			// TODO: should we actually fail here?
 			panic(err)
 		}
 
@@ -166,17 +193,21 @@ func (sm *synchronizerModule) handleChainResponseReceived(from t.NodeID, request
 }
 
 /*************************
- * Outgoing sync requests
+ * External sync requests
  *************************/
 type getRequest struct {
 	requestID string
 	from      t.NodeID
 }
 
-func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestID string, blockID uint64, leaveIds []uint64) error {
+/**
+ * Mir handlers for external requests
+ */
+
+func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestID string, blockID uint64, connectionNodeIDs []uint64) error {
 	// check if request is already being processed
 	if _, ok := sm.getRequests[requestID]; ok {
-		sm.externaLogger.Log(logging.LevelError, "Get block request already exists", "from", from, "requestId", requestID, "mangle", sm.mangle)
+		sm.externaLogger.Log(logging.LevelError, "Get block request already exists", "from", from, "requestId", requestID)
 		return nil
 	}
 
@@ -184,7 +215,7 @@ func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestI
 	sm.getRequests[requestID] = &getRequest{requestID: requestID, from: from}
 
 	// send get request to blockchain manager
-	bcmpbdsl.GetChainRequest(*sm.m, "bcm", requestID, "synchronizer", blockID, leaveIds)
+	bcmpbdsl.GetChainRequest(*sm.m, "bcm", requestID, "synchronizer", blockID, connectionNodeIDs)
 
 	return nil
 
@@ -193,18 +224,14 @@ func (sm *synchronizerModule) handleChainRequestReceived(from t.NodeID, requestI
 func (sm *synchronizerModule) handleGetChainResponse(requestID string, found bool, chain []*blockchainpbtypes.Block) error {
 	request, ok := sm.getRequests[requestID]
 	if !ok {
-		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", requestID, "mangle", sm.mangle)
+		sm.externaLogger.Log(logging.LevelError, "Unknown get block request", "requestId", requestID)
 		return ErrUnkownGetBlockRequest
 	}
 
-	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", requestID, "found", found, "mangle", sm.mangle)
+	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", requestID, "found", found)
 
 	// respond to sync request
-	if sm.mangle {
-		transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})
-	} else {
-		transportpbdsl.SendMessage(*sm.m, "mangler", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})
-	}
+	transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})
 
 	// delete request
 	delete(sm.getRequests, requestID)
@@ -212,7 +239,7 @@ func (sm *synchronizerModule) handleGetChainResponse(requestID string, found boo
 	return nil
 }
 
-func NewSynchronizer(nodeID t.NodeID, otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
+func NewSynchronizer(nodeID t.NodeID, otherNodes []t.NodeID, logger logging.Logger) modules.PassiveModule {
 	m := dsl.NewModule("synchronizer")
 	var sm = synchronizerModule{
 		m:              &m,
@@ -220,7 +247,6 @@ func NewSynchronizer(nodeID t.NodeID, otherNodes []t.NodeID, mangle bool, logger
 		getRequests:    make(map[string]*getRequest),
 		syncRequests:   make(map[string]*syncRequest),
 		otherNodes:     otherNodes,
-		mangle:         mangle,
 		internalLogger: logging.Decorate(logger, "Intern - "),
 		externaLogger:  logging.Decorate(logger, "External - "),
 	}
@@ -229,13 +255,13 @@ func NewSynchronizer(nodeID t.NodeID, otherNodes []t.NodeID, mangle bool, logger
 		return nil
 	})
 
-	// outgoing sync requests
-	synchronizerpbdsl.UponSyncRequest(m, sm.handleSyncRequest)
-	synchronizerpbdsl.UponChainResponseReceived(m, sm.handleChainResponseReceived)
-
-	// for incoming sync requests
+	// internal sync requests
 	synchronizerpbdsl.UponChainRequestReceived(m, sm.handleChainRequestReceived)
 	bcmpbdsl.UponGetChainResponse(m, sm.handleGetChainResponse)
+
+	// external sync requests
+	synchronizerpbdsl.UponSyncRequest(m, sm.handleSyncRequest)
+	synchronizerpbdsl.UponChainResponseReceived(m, sm.handleChainResponseReceived)
 
 	return m
 }

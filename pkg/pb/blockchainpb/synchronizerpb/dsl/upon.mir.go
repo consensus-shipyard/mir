@@ -22,8 +22,8 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponSyncRequest(m dsl.Module, handler func(orphanBlock *types2.Block, leaveIds []uint64) error) {
+func UponSyncRequest(m dsl.Module, handler func(orphanBlock *types2.Block, leaveNodeIds []uint64) error) {
 	UponEvent[*types.Event_SyncRequest](m, func(ev *types.SyncRequest) error {
-		return handler(ev.OrphanBlock, ev.LeaveIds)
+		return handler(ev.OrphanBlock, ev.LeaveNodeIds)
 	})
 }

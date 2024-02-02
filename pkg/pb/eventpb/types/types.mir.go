@@ -12,7 +12,7 @@ import (
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
 	types22 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
 	types18 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/bcmpb/types"
-	types20 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types20 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb/types"
 	types23 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/interceptorpb/types"
 	types19 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/minerpb/types"
 	types21 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
@@ -101,8 +101,8 @@ func Event_TypeFromPb(pb eventpb.Event_Type) Event_Type {
 		return &Event_Bcm{Bcm: types18.EventFromPb(pb.Bcm)}
 	case *eventpb.Event_Miner:
 		return &Event_Miner{Miner: types19.EventFromPb(pb.Miner)}
-	case *eventpb.Event_Communication:
-		return &Event_Communication{Communication: types20.EventFromPb(pb.Communication)}
+	case *eventpb.Event_Broadcast:
+		return &Event_Broadcast{Broadcast: types20.EventFromPb(pb.Broadcast)}
 	case *eventpb.Event_Synchronizer:
 		return &Event_Synchronizer{Synchronizer: types21.EventFromPb(pb.Synchronizer)}
 	case *eventpb.Event_Application:
@@ -623,28 +623,28 @@ func (*Event_Miner) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Miner]()}
 }
 
-type Event_Communication struct {
-	Communication *types20.Event
+type Event_Broadcast struct {
+	Broadcast *types20.Event
 }
 
-func (*Event_Communication) isEvent_Type() {}
+func (*Event_Broadcast) isEvent_Type() {}
 
-func (w *Event_Communication) Unwrap() *types20.Event {
-	return w.Communication
+func (w *Event_Broadcast) Unwrap() *types20.Event {
+	return w.Broadcast
 }
 
-func (w *Event_Communication) Pb() eventpb.Event_Type {
+func (w *Event_Broadcast) Pb() eventpb.Event_Type {
 	if w == nil {
 		return nil
 	}
-	if w.Communication == nil {
-		return &eventpb.Event_Communication{}
+	if w.Broadcast == nil {
+		return &eventpb.Event_Broadcast{}
 	}
-	return &eventpb.Event_Communication{Communication: (w.Communication).Pb()}
+	return &eventpb.Event_Broadcast{Broadcast: (w.Broadcast).Pb()}
 }
 
-func (*Event_Communication) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Communication]()}
+func (*Event_Broadcast) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*eventpb.Event_Broadcast]()}
 }
 
 type Event_Synchronizer struct {

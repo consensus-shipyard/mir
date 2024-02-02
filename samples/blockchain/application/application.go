@@ -15,7 +15,6 @@ import (
 	statepbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/application/config"
 	"github.com/filecoin-project/mir/samples/blockchain/application/payloads"
 	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -217,7 +216,10 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 
 	dsl.UponInit(m, func() error {
 		// init blockchain
-		bcmpbdsl.InitBlockchain(*am.m, "bcm", config.InitialState)
+		bcmpbdsl.InitBlockchain(*am.m, "bcm", &statepbtypes.State{
+			MessageHistory:     []string{},
+			LastSentTimestamps: []*statepbtypes.LastSentTimestamp{},
+		})
 
 		return nil
 	})

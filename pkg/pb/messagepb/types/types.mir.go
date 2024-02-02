@@ -6,7 +6,7 @@ import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
 	types3 "github.com/filecoin-project/mir/pkg/pb/availabilitypb/mscpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/bcbpb/types"
-	types7 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/communicationpb/types"
+	types7 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/broadcastpb/types"
 	types8 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/checkpointpb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/isspb/types"
@@ -50,8 +50,8 @@ func Message_TypeFromPb(pb messagepb.Message_Type) Message_Type {
 		return &Message_Checkpoint{Checkpoint: types5.MessageFromPb(pb.Checkpoint)}
 	case *messagepb.Message_Orderer:
 		return &Message_Orderer{Orderer: types6.MessageFromPb(pb.Orderer)}
-	case *messagepb.Message_Communicationpb:
-		return &Message_Communicationpb{Communicationpb: types7.MessageFromPb(pb.Communicationpb)}
+	case *messagepb.Message_Broadcast:
+		return &Message_Broadcast{Broadcast: types7.MessageFromPb(pb.Broadcast)}
 	case *messagepb.Message_Synchronizer:
 		return &Message_Synchronizer{Synchronizer: types8.MessageFromPb(pb.Synchronizer)}
 	}
@@ -202,28 +202,28 @@ func (*Message_Orderer) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Orderer]()}
 }
 
-type Message_Communicationpb struct {
-	Communicationpb *types7.Message
+type Message_Broadcast struct {
+	Broadcast *types7.Message
 }
 
-func (*Message_Communicationpb) isMessage_Type() {}
+func (*Message_Broadcast) isMessage_Type() {}
 
-func (w *Message_Communicationpb) Unwrap() *types7.Message {
-	return w.Communicationpb
+func (w *Message_Broadcast) Unwrap() *types7.Message {
+	return w.Broadcast
 }
 
-func (w *Message_Communicationpb) Pb() messagepb.Message_Type {
+func (w *Message_Broadcast) Pb() messagepb.Message_Type {
 	if w == nil {
 		return nil
 	}
-	if w.Communicationpb == nil {
-		return &messagepb.Message_Communicationpb{}
+	if w.Broadcast == nil {
+		return &messagepb.Message_Broadcast{}
 	}
-	return &messagepb.Message_Communicationpb{Communicationpb: (w.Communicationpb).Pb()}
+	return &messagepb.Message_Broadcast{Broadcast: (w.Broadcast).Pb()}
 }
 
-func (*Message_Communicationpb) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Communicationpb]()}
+func (*Message_Broadcast) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*messagepb.Message_Broadcast]()}
 }
 
 type Message_Synchronizer struct {

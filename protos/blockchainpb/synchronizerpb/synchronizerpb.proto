@@ -23,7 +23,7 @@ message SyncRequest {
   option (mir.event) = true;
   
   blockchainpb.Block  orphan_block  = 1;
-  repeated uint64     leave_ids     = 2;
+  repeated uint64     leave_node_ids     = 2;
 }
 
 message Message {
@@ -40,9 +40,9 @@ message Message {
 message ChainRequest {
   option (net.message) = true;
   
-  string          request_id  = 1;
-  uint64          block_id    = 2;
-  repeated uint64 leave_ids   = 3;
+  string          request_id      = 1;
+  uint64          block_id        = 2;
+  repeated uint64 leave_node_ids  = 3;
 }
 
 message ChainResponse {
