@@ -1,4 +1,4 @@
-package wsserver
+package wsServer
 
 import (
 	"fmt"
@@ -10,6 +10,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
+
+/**
+ * Websocket server
+ * =================
+ *
+ * A simple websocket server which accepts connections and sends messages to all connected clients.
+ * The messages are sent to the server through a channel.
+ *
+ * Note: This is a very shotty implementation. For example, it crashes if a client disconnects.
+ * It is only intended for debugging purposes.
+ */
 
 type WsMessage struct {
 	MessageType int
