@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"context"
+	"flag"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -23,35 +25,76 @@ import (
 	"github.com/filecoin-project/mir/samples/blockchain/wsInterceptor"
 )
 
+// Flags
+var disableMangle = flag.Bool("disableMangle", false, "Disable mangling of messages")
+var dropRate = flag.Float64("dropRate", 0.05, "The rate at which to drop messages")
+var minDelay = flag.Float64("minDelay", 0.001, "The minimum delay to add to messages [seconds]")
+var maxDelay = flag.Float64("maxDelay", 1, "The minimum delay to add to messages [seconds]")
+var numberOfNodes = flag.Int("numberOfNodes", -1, "The number of nodes in the network [1, inf] REQUIRED")
+var nodeID = flag.Int("nodeID", -1, "The ID of the node [0, numberOfNodes-1] REQUIRED")
+
 func main() {
-	fmt.Println("Starting blockchain")
+	// Parse command line flags
+	flag.Parse()
 
-	logger := logging.ConsoleDebugLogger
+	requiredFlags := []string{"numberOfNodes", "nodeID"}
+	flagsSet := make(map[string]bool)
+	missedRequiredFlags := false
 
-	numberOfNodes, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
-	idInput := os.Args[2]
-	ownID, err := strconv.Atoi(idInput)
-	if err != nil {
-		panic(err)
-	}
-	ownNodeID := t.NodeID(idInput)
+	// Check which flags are set
+	flag.Visit(func(f *flag.Flag) {
+		flagsSet[f.Name] = true
+	})
 
-	mangle := false
-	if len(os.Args) >= 4 {
-		mangle, err = strconv.ParseBool(os.Args[3])
-		if err != nil {
-			panic(err)
+	// Check for missed required flags
+	for _, f := range requiredFlags {
+		if !flagsSet[f] {
+			fmt.Printf("Flag %s is required\n", f)
+			missedRequiredFlags = true
 		}
 	}
 
-	nodes := make(map[t.NodeID]*trantorpbtypes.NodeIdentity, numberOfNodes)
-	allNodeIds := make([]t.NodeID, numberOfNodes)
-	otherNodes := make([]t.NodeID, numberOfNodes-1)
+	// Exit if missing any required flag
+	if missedRequiredFlags {
+		os.Exit(2)
+	}
+
+	// Check for valid flag values
+	if *numberOfNodes < 1 {
+		fmt.Printf("Number of nodes must be greater than 0.\n")
+		os.Exit(2)
+	} else if *nodeID < 0 || *nodeID >= *numberOfNodes {
+		fmt.Printf("Node ID must be between 0 and numberOfNodes-1.\n")
+		os.Exit(2)
+	} else if *minDelay < 0 {
+		fmt.Printf("Minimum delay must be greater than or equal to 0.\n")
+		os.Exit(2)
+	} else if *maxDelay < 0 {
+		fmt.Printf("Maximum delay must be greater than or equal to 0.\n")
+		os.Exit(2)
+	} else if *minDelay > *maxDelay {
+		fmt.Printf("Minimum delay must be less than or equal to maximum delay.\n")
+		os.Exit(2)
+	} else if *dropRate < 0 || *dropRate > 1 {
+		fmt.Printf("Drop rate must be between 0 and 1.\n")
+		os.Exit(2)
+	} else if *disableMangle && (flagsSet["dropRate"] || flagsSet["minDelay"] || flagsSet["maxDelay"]) {
+		fmt.Printf("WARNING: Settings for drop rate, minimum delay, and maximum delay are ignored when mangling is disabled.\n")
+	}
+
+	ownNodeID := t.NodeID(strconv.Itoa(*nodeID))
+
+	// Setting up node
+	fmt.Println("Starting longest chain consensus protocol...")
+
+	logger := logging.ConsoleDebugLogger
+
+	// determine "other" nodes for this node
+	nodes := make(map[t.NodeID]*trantorpbtypes.NodeIdentity, *numberOfNodes)
+	allNodeIds := make([]t.NodeID, *numberOfNodes)
+	otherNodes := make([]t.NodeID, *numberOfNodes-1)
 	otherNodesIndex := 0
-	for i := 0; i < numberOfNodes; i++ {
+	for i := 0; i < *numberOfNodes; i++ {
 		nodeIdStr := strconv.Itoa(i)
 		nodeId := t.NodeID(nodeIdStr)
 		allNodeIds[i] = nodeId
@@ -63,7 +106,7 @@ func main() {
 	}
 	membership := &trantorpbtypes.Membership{Nodes: nodes}
 
-	// Instantiate network trnasport module and establish connections.
+	// Instantiate network transport module and establish connections.
 	transport, err := grpc.NewTransport(ownNodeID, membership.Nodes[ownNodeID].Addr, logging.ConsoleInfoLogger)
 	if err != nil {
 		panic(err)
@@ -73,31 +116,36 @@ func main() {
 	}
 	transport.Connect(membership)
 
-	timer := timer.New()
+	modules := map[t.ModuleID]modules.Module{
+		"transport":    transport,
+		"bcm":          NewBCM(logging.Decorate(logger, "BCM:\t")),
+		"miner":        NewMiner(ownNodeID, 0.2, logging.Decorate(logger, "Miner:\t")),
+		"broadcast":    NewBroadcast(otherNodes, !*disableMangle, logging.Decorate(logger, "Comm:\t")),
+		"application":  application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
+		"synchronizer": NewSynchronizer(ownNodeID, otherNodes, logging.Decorate(logger, "Sync:\t")),
+		"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor
+	}
 
-	mangler, err := eventmangler.NewModule(
-		eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
-		&eventmangler.ModuleParams{MinDelay: time.Second / 1000, MaxDelay: 1 * time.Second, DropRate: 0.05},
-	)
-	if err != nil {
-		panic(err)
+	if !*disableMangle {
+		minDelayDuration := time.Duration(int64(math.Round(*minDelay * float64(time.Second))))
+		maxDelayDuration := time.Duration(int64(math.Round(*maxDelay * float64(time.Second))))
+		manglerModule, err := eventmangler.NewModule(
+			eventmangler.ModuleConfig{Self: "mangler", Dest: "transport", Timer: "timer"},
+			&eventmangler.ModuleParams{MinDelay: minDelayDuration, MaxDelay: maxDelayDuration, DropRate: float32(*dropRate)},
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		modules["timer"] = timer.New()
+		modules["mangler"] = manglerModule
 	}
 
 	// Instantiate Mir node.
 	node, err := mir.NewNode(
 		ownNodeID,
 		mir.DefaultNodeConfig(),
-		map[t.ModuleID]modules.Module{
-			"transport":    transport,
-			"bcm":          NewBCM(logging.Decorate(logger, "BCM:\t")),
-			"miner":        NewMiner(ownNodeID, 0.2, logging.Decorate(logger, "Miner:\t")),
-			"broadcast":    NewBroadcast(otherNodes, mangle, logging.Decorate(logger, "Comm:\t")),
-			"application":  application.NewApplication(logging.Decorate(logger, "App:\t"), ownNodeID),
-			"synchronizer": NewSynchronizer(ownNodeID, otherNodes, logging.Decorate(logger, "Sync:\t")),
-			"timer":        timer,
-			"mangler":      mangler,
-			"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor
-		},
+		modules,
 		wsInterceptor.NewWsInterceptor(
 			func(e *eventpb.Event) bool {
 				switch e.Type.(type) {
@@ -107,7 +155,7 @@ func main() {
 					return false
 				}
 			},
-			8080+ownID,
+			8080+*nodeID,
 			logging.Decorate(logger, "WSInter:\t"),
 		))
 	if err != nil {
