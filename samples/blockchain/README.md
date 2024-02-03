@@ -4,55 +4,50 @@ LCC is a modular implementation of a longest chain consensus protocol modelling 
 
 It provides the core elements with only the actual buisiness logic to be implemented by an application module.
 
-It consists of the following core modules:
-
-- **Blockchain Management Module (BCM)**
-
-  It forms the core of the system and is responsible for managing the blockchain.
-
-- **Miner Module**
-
-  Mines new blocks simulating proof-of-work.
-
-- **Synchronizer Module**
-
-  Resolves issues when new blocks are to be added to the blockchain but their parent blocks are unknown to this node's BCM.
-
-- **Broadcast Module**
-
-Broadcasts newly mined blocks to all other nodes.
-It can also simulate network delay and dropped messages.
-
-and additional modules:
-
-- **gRPC Transport Module**
-
-Used for communication between nodes.
-
-- **Event Mangler**
-
-Used by the broadcast module to simulate network delay and dropped messages.
-
-- **Timer Module**
-
-Used by the Miner to simulate proof-of-work.
-
-Further, it also allows includes an interceptor which intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
-An example of how to use the information provided the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
-
-(TODO - fix link!)
-
 ## Architecture
 
+The system consists of the following core modules:
+
+- **Blockchain Management Module (BCM):**
+  It forms the core of the system and is responsible for managing the blockchain.
+
+- **Miner Module:**
+  Mines new blocks simulating proof-of-work.
+
+- **Synchronizer Module:**
+  Resolves issues when new blocks are to be added to the blockchain but their parent blocks are unknown to this node's BCM.
+
+- **Broadcast Module:**
+  Broadcasts newly mined blocks to all other nodes.
+  It can also simulate network delay and dropped messages.
+
+and the following supporting modules:
+
+- **gRPC Transport Module:**
+  Used for communication between nodes.
+
+- **Event Mangler Module:**
+  Used by the broadcast module to simulate network delay and dropped messages.
+
+- **Timer Module:**
+  Used by the Miner to simulate proof-of-work.
+
+Lastly, a user implemented **Application Module** handles all business logic.
+In particular, it need compute the state of the blockchain, verify transactions and provide transactions to the miner.
+
+The following drawing depicts the relationship between the different modules at a high level.
+
+**Note:** The event mangler module and the timer module were omitted for simplicity.
+
 ```mermaid
-flowchart TB;
+flowchart LR;
 
 subgraph Longest Chain Consensus
 BCM[Blockchain Management \n Module]
 Miner[Miner \n Module]
 Synchronizer[Synchronizer \n Module]
+Transport[gRPC Transport \n Module]
 Broadcast[Broadcast \n Module]
-Transport[Transport \n Module]
 
 end
 
@@ -71,41 +66,20 @@ BCM <--> Synchronizer
 Synchronizer <--> Transport
 ```
 
-```mermaid
-sequenceDiagram
-    Broadcast ->> BCM: NewBlock
-    Note over BCM: Check that the block can be connected to the block tree
-    opt if it cannot connect the chain
-    BCM ->> Synchronizer: SyncRequest
-    Note over Synchronizer: Get missing blocks from other nodes, details omitted
-    Synchronizer ->> BCM: SyncResponse
-    end
-    BCM ->> Application: VerifyChainRequest
-    Note over Application: Verify that payloads are valid
-    Application ->> BCM: VerifyChainRespose
-    Note over BCM: Add blocks of chain to block tree, verify that they link together
+Further, it also includes an interceptor which intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
+An example of how to use the information provided the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
 
-
-    opt if head changes
-    BCM ->> Miner: NewHead
-    Note over Miner: Abort current mining operation, prepare to mine on new head
-    Miner ->> Application: PayloadRequest
-    Application ->> Miner: PayloadResponse
-    Note over Miner: Start mining on new head
-    BCM ->> Application: ForkUpdate
-    Note over Application: Compute state for new head
-    Application ->> BCM: RegisterCheckpoint
-    end
-```
+(TODO - fix link!)
 
 ### Blockchain Management Module (BCM)
 
 The blockchain manager module is responsible for managing the blockchain.
 It keeps track of all blocks and links them together to form a tree.
-In particular, it keeps track of the head of the blockchain, all leaves and so-called checkpoints.
+In particular, it keeps track of the head of the blockchain, all leaves, and so-called checkpoints.
 A checkpoint is a block stored by the BCM that has a state stored with it.
 Technically, checkpoints are not necessary as the state can be computed from the blocks.
 However, it is convenient to not have to recompute the state from the genesis block every time it is needed.
+
 The BCM must perform the following tasks:
 
 1. Initialize the blockchain by receiving an InitBlockchain event from the application module which contains the initial state that is associated with the genesis block.
@@ -126,6 +100,7 @@ The miner module is responsible for mining new blocks.
 It simulates the process of mining a block by waiting for a random amount of time and then broadcasting the mined block.
 This random amount of time is sampled from an exponential distribution with a mean of `expMinuteFactor` minutes.
 The mining is orchestrated by a separate goroutine (mineWorkerManager), so that the miner module can continue to receive and process events.
+
 The operation of the miner module at a high level is as follows:
 
 1. When it is notified of a new head (NewHead event), it prepares to mine the next block by sending a PayloadRequest event to the application module.
@@ -203,6 +178,35 @@ The interceptor proto defines two such events:
 
 - TreeUpdate: This event is sent by the blockchain manager (BCM) when the blockchain is updated. It contains all blocks in the blockchain and the id of the new head.
 - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
+
+## Operation
+
+```mermaid
+sequenceDiagram
+    Broadcast ->> BCM: NewBlock
+    Note over BCM: Check that the block can be connected to the block tree
+    opt if it cannot the block to the blocktree
+    BCM ->> Synchronizer: SyncRequest
+    Note over Synchronizer: Get missing blocks from other nodes, details omitted
+    Synchronizer ->> BCM: SyncResponse
+    end
+    BCM ->> Application: VerifyChainRequest
+    Note over Application: Verify that payloads are valid
+    Application ->> BCM: VerifyChainRespose
+    Note over BCM: Add blocks of chain to block tree, verify that they link together
+
+
+    opt if head changes
+    BCM ->> Miner: NewHead
+    Note over Miner: Abort current mining operation, prepare to mine on new head
+    Miner ->> Application: PayloadRequest
+    Application ->> Miner: PayloadResponse
+    Note over Miner: Start mining on new head
+    BCM ->> Application: ForkUpdate
+    Note over Application: Compute state for new head
+    Application ->> BCM: RegisterCheckpoint
+    end
+```
 
 ## How to use
 
