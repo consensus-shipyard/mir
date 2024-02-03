@@ -4,6 +4,7 @@ package application
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -147,34 +148,27 @@ func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpoi
 // The checks are purely at the application level.
 // In this implementation, it simply checks that the timestamps are monotonically increasing for each sender.
 func (am *ApplicationModule) handleVerifyBlocksRequest(checkpointState *statepbtypes.State, chainCheckpointToStart, chainToVerify []*blockchainpbtypes.Block) error {
-	am.logger.Log(logging.LevelDebug, "Processing verify block request")
+	am.logger.Log(logging.LevelDebug, "Processing verify blocks request", "checkpoint", utils.FormatBlockId(chainCheckpointToStart[0].BlockId), "first block to verify", utils.FormatBlockId(chainToVerify[0].BlockId), "last block to verify", utils.FormatBlockId(chainToVerify[len(chainToVerify)-1].BlockId))
 
-	timeStamps := checkpointState.LastSentTimestamps
+	timestampMap := make(map[t.NodeID]time.Time)
+	for _, lt := range checkpointState.LastSentTimestamps {
+		timestampMap[lt.NodeId] = lt.Timestamp.AsTime()
+	}
 
 	chain := append(chainCheckpointToStart, chainToVerify...) // chainCheckpointToStart wouldn't need to be verified, but we need it to get the timestamps
 
 	for _, block := range chain {
 		blockTs := block.Payload.Timestamp.AsTime()
 		// verify block
-		for i, lt := range timeStamps {
-			ltTimestamp := lt.Timestamp.AsTime()
-			if lt.NodeId == block.Payload.Sender {
-				if ltTimestamp.After(blockTs) {
-					// block in chain invalid, don't respond
-					return nil
-				}
-
-				// remove old timestamp, if it exists
-				timeStamps[i] = timeStamps[len(timeStamps)-1]
-				timeStamps = timeStamps[:len(timeStamps)-1]
+		if ts, ok := timestampMap[block.Payload.Sender]; ok {
+			if ts.After(blockTs) {
+				// block in chain invalid, don't respond
+				return nil
 			}
-
-			// add new timestamp
-			timeStamps = append(timeStamps, &statepbtypes.LastSentTimestamp{
-				NodeId:    block.Payload.Sender,
-				Timestamp: block.Payload.Timestamp,
-			})
 		}
+
+		// update timestamp
+		timestampMap[block.Payload.Sender] = blockTs
 	}
 
 	// if no blocks are invalid, responds with chain
