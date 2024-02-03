@@ -183,12 +183,26 @@ The interceptor proto defines two such events:
 
 ```mermaid
 sequenceDiagram
+    Application ->> BCM: InitBlockchain
+
+    BCM ->> Miner: NewHead
+    Miner ->> Application: PayloadRequest
+    Application ->> Miner: PayloadResponse
+    Note over Miner: Start mining
+
+    loop
+    alt receiving new block from another node
     Broadcast ->> BCM: NewBlock
+    else this node's miner mined a new block
+    Miner ->> Broadcast: NewBlock
+    Miner ->> BCM: NewBlock
+    end
+
     Note over BCM: Check that the block can be connected to the block tree
     opt if it cannot the block to the blocktree
     BCM ->> Synchronizer: SyncRequest
     Note over Synchronizer: Get missing blocks from other nodes, details omitted
-    Synchronizer ->> BCM: SyncResponse
+    Synchronizer ->> BCM: NewChain
     end
     BCM ->> Application: VerifyChainRequest
     Note over Application: Verify that payloads are valid
@@ -197,16 +211,60 @@ sequenceDiagram
 
 
     opt if head changes
+    par
     BCM ->> Miner: NewHead
     Note over Miner: Abort current mining operation, prepare to mine on new head
     Miner ->> Application: PayloadRequest
     Application ->> Miner: PayloadResponse
     Note over Miner: Start mining on new head
+    and
     BCM ->> Application: ForkUpdate
     Note over Application: Compute state for new head
     Application ->> BCM: RegisterCheckpoint
     end
+    end
+    end
 ```
+
+**Note**: In the sequence diagram above, the dotted boxes have a different meaning depending on the label in the top left corner:
+
+- loop: The sequence in the box repeates indefinitely or until the condition int the brackets holds.
+- alt: The two boxes making up this box describe two alternative sequences.
+- opt: The sequence in the box is optional.
+  It is performed if the condition in the boxes holds.
+- par: The two boxes making up this box describe two sequences that are performed in parallel.
+
+```mermaid
+sequenceDiagram
+
+box Initiator Node
+participant BCM (I)
+participant Synchronizer (I)
+end
+
+box Other Node(s)
+participant Synchronizer
+participant BCM
+end
+
+Note over BCM (I): Cannot connect block
+BCM (I) ->> Synchronizer (I): SyncRequest
+
+loop: until successful, one node at a time
+Synchronizer (I) ->> Synchronizer: ChainRequest
+Synchronizer ->> BCM: GetChainRequest
+BCM ->> Synchronizer: GetChainResponse (successful/unsuccessful)
+Synchronizer ->> Synchronizer (I): ChainResponse (successful/unsuccessful)
+end
+Synchronizer (I) ->> BCM (I): NewChain
+```
+
+### Glossary
+
+- **Blocktree**:
+  Tree of all nodes logically.
+- **Head**:
+  Last block of the canonical (longest) chain.
 
 ## How to use
 
