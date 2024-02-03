@@ -41,10 +41,6 @@ func Event_TypeFromPb(pb bcmpb.Event_Type) Event_Type {
 		return &Event_GetChainRequest{GetChainRequest: GetChainRequestFromPb(pb.GetChainRequest)}
 	case *bcmpb.Event_GetChainResponse:
 		return &Event_GetChainResponse{GetChainResponse: GetChainResponseFromPb(pb.GetChainResponse)}
-	case *bcmpb.Event_GetHeadToCheckpointChainRequest:
-		return &Event_GetHeadToCheckpointChainRequest{GetHeadToCheckpointChainRequest: GetHeadToCheckpointChainRequestFromPb(pb.GetHeadToCheckpointChainRequest)}
-	case *bcmpb.Event_GetHeadToCheckpointChainResponse:
-		return &Event_GetHeadToCheckpointChainResponse{GetHeadToCheckpointChainResponse: GetHeadToCheckpointChainResponseFromPb(pb.GetHeadToCheckpointChainResponse)}
 	case *bcmpb.Event_RegisterCheckpoint:
 		return &Event_RegisterCheckpoint{RegisterCheckpoint: RegisterCheckpointFromPb(pb.RegisterCheckpoint)}
 	case *bcmpb.Event_InitBlockchain:
@@ -147,54 +143,6 @@ func (w *Event_GetChainResponse) Pb() bcmpb.Event_Type {
 
 func (*Event_GetChainResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetChainResponse]()}
-}
-
-type Event_GetHeadToCheckpointChainRequest struct {
-	GetHeadToCheckpointChainRequest *GetHeadToCheckpointChainRequest
-}
-
-func (*Event_GetHeadToCheckpointChainRequest) isEvent_Type() {}
-
-func (w *Event_GetHeadToCheckpointChainRequest) Unwrap() *GetHeadToCheckpointChainRequest {
-	return w.GetHeadToCheckpointChainRequest
-}
-
-func (w *Event_GetHeadToCheckpointChainRequest) Pb() bcmpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.GetHeadToCheckpointChainRequest == nil {
-		return &bcmpb.Event_GetHeadToCheckpointChainRequest{}
-	}
-	return &bcmpb.Event_GetHeadToCheckpointChainRequest{GetHeadToCheckpointChainRequest: (w.GetHeadToCheckpointChainRequest).Pb()}
-}
-
-func (*Event_GetHeadToCheckpointChainRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetHeadToCheckpointChainRequest]()}
-}
-
-type Event_GetHeadToCheckpointChainResponse struct {
-	GetHeadToCheckpointChainResponse *GetHeadToCheckpointChainResponse
-}
-
-func (*Event_GetHeadToCheckpointChainResponse) isEvent_Type() {}
-
-func (w *Event_GetHeadToCheckpointChainResponse) Unwrap() *GetHeadToCheckpointChainResponse {
-	return w.GetHeadToCheckpointChainResponse
-}
-
-func (w *Event_GetHeadToCheckpointChainResponse) Pb() bcmpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.GetHeadToCheckpointChainResponse == nil {
-		return &bcmpb.Event_GetHeadToCheckpointChainResponse{}
-	}
-	return &bcmpb.Event_GetHeadToCheckpointChainResponse{GetHeadToCheckpointChainResponse: (w.GetHeadToCheckpointChainResponse).Pb()}
-}
-
-func (*Event_GetHeadToCheckpointChainResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetHeadToCheckpointChainResponse]()}
 }
 
 type Event_RegisterCheckpoint struct {
@@ -411,79 +359,6 @@ func (m *GetChainResponse) Pb() *bcmpb.GetChainResponse {
 
 func (*GetChainResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetChainResponse]()}
-}
-
-type GetHeadToCheckpointChainRequest struct {
-	RequestId    string
-	SourceModule types2.ModuleID
-}
-
-func GetHeadToCheckpointChainRequestFromPb(pb *bcmpb.GetHeadToCheckpointChainRequest) *GetHeadToCheckpointChainRequest {
-	if pb == nil {
-		return nil
-	}
-	return &GetHeadToCheckpointChainRequest{
-		RequestId:    pb.RequestId,
-		SourceModule: (types2.ModuleID)(pb.SourceModule),
-	}
-}
-
-func (m *GetHeadToCheckpointChainRequest) Pb() *bcmpb.GetHeadToCheckpointChainRequest {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &bcmpb.GetHeadToCheckpointChainRequest{}
-	{
-		pbMessage.RequestId = m.RequestId
-		pbMessage.SourceModule = (string)(m.SourceModule)
-	}
-
-	return pbMessage
-}
-
-func (*GetHeadToCheckpointChainRequest) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetHeadToCheckpointChainRequest]()}
-}
-
-type GetHeadToCheckpointChainResponse struct {
-	RequestId       string
-	Chain           []*types.Block
-	CheckpointState *types3.State
-}
-
-func GetHeadToCheckpointChainResponseFromPb(pb *bcmpb.GetHeadToCheckpointChainResponse) *GetHeadToCheckpointChainResponse {
-	if pb == nil {
-		return nil
-	}
-	return &GetHeadToCheckpointChainResponse{
-		RequestId: pb.RequestId,
-		Chain: types1.ConvertSlice(pb.Chain, func(t *blockchainpb.Block) *types.Block {
-			return types.BlockFromPb(t)
-		}),
-		CheckpointState: types3.StateFromPb(pb.CheckpointState),
-	}
-}
-
-func (m *GetHeadToCheckpointChainResponse) Pb() *bcmpb.GetHeadToCheckpointChainResponse {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &bcmpb.GetHeadToCheckpointChainResponse{}
-	{
-		pbMessage.RequestId = m.RequestId
-		pbMessage.Chain = types1.ConvertSlice(m.Chain, func(t *types.Block) *blockchainpb.Block {
-			return (t).Pb()
-		})
-		if m.CheckpointState != nil {
-			pbMessage.CheckpointState = (m.CheckpointState).Pb()
-		}
-	}
-
-	return pbMessage
-}
-
-func (*GetHeadToCheckpointChainResponse) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetHeadToCheckpointChainResponse]()}
 }
 
 type RegisterCheckpoint struct {

@@ -75,39 +75,6 @@ func GetChainResponse(destModule types.ModuleID, requestId string, success bool,
 	}
 }
 
-func GetHeadToCheckpointChainRequest(destModule types.ModuleID, requestId string, sourceModule types.ModuleID) *types2.Event {
-	return &types2.Event{
-		DestModule: destModule,
-		Type: &types2.Event_Bcm{
-			Bcm: &types3.Event{
-				Type: &types3.Event_GetHeadToCheckpointChainRequest{
-					GetHeadToCheckpointChainRequest: &types3.GetHeadToCheckpointChainRequest{
-						RequestId:    requestId,
-						SourceModule: sourceModule,
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetHeadToCheckpointChainResponse(destModule types.ModuleID, requestId string, chain []*types1.Block, checkpointState *types4.State) *types2.Event {
-	return &types2.Event{
-		DestModule: destModule,
-		Type: &types2.Event_Bcm{
-			Bcm: &types3.Event{
-				Type: &types3.Event_GetHeadToCheckpointChainResponse{
-					GetHeadToCheckpointChainResponse: &types3.GetHeadToCheckpointChainResponse{
-						RequestId:       requestId,
-						Chain:           chain,
-						CheckpointState: checkpointState,
-					},
-				},
-			},
-		},
-	}
-}
-
 func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *types4.State) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,

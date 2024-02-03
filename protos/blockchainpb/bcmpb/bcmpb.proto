@@ -20,9 +20,7 @@ message Event {
 
     GetChainRequest                   get_chain_request                     = 5;
     GetChainResponse                  get_chain_response                    = 6;
-    GetHeadToCheckpointChainRequest   get_head_to_checkpoint_chain_request  = 7;
-    GetHeadToCheckpointChainResponse  get_head_to_checkpoint_chain_response = 8;
-    RegisterCheckpoint                register_checkpoint                   = 9;
+    RegisterCheckpoint                register_checkpoint                   = 7;
 
     InitBlockchain                    init_blockchain                       = 100;
   }
@@ -57,21 +55,6 @@ message GetChainResponse {
   string                        request_id  = 1;
   bool                          success     = 2;
   repeated blockchainpb.Block   chain       = 3; // sorted from oldest to youngest
-}
-
-message GetHeadToCheckpointChainRequest {
-  option (mir.event) = true;
-
-  string                        request_id    = 1;
-  string                        source_module = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
-}
-
-message GetHeadToCheckpointChainResponse {
-  option (mir.event) = true;
-
-  string                        request_id        = 1;
-  repeated blockchainpb.Block   chain             = 2; // from checkpoint to head
-  statepb.State                 checkpoint_state  = 3;
 }
 
 message RegisterCheckpoint {

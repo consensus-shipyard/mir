@@ -25,14 +25,6 @@ func (w *Event_GetChainResponse) Unwrap() *GetChainResponse {
 	return w.GetChainResponse
 }
 
-func (w *Event_GetHeadToCheckpointChainRequest) Unwrap() *GetHeadToCheckpointChainRequest {
-	return w.GetHeadToCheckpointChainRequest
-}
-
-func (w *Event_GetHeadToCheckpointChainResponse) Unwrap() *GetHeadToCheckpointChainResponse {
-	return w.GetHeadToCheckpointChainResponse
-}
-
 func (w *Event_RegisterCheckpoint) Unwrap() *RegisterCheckpoint {
 	return w.RegisterCheckpoint
 }

@@ -24,6 +24,31 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+/**
+ * Blockchain Manager Module (BCM)
+ * ===============================
+ *
+ * The blockchain manager module is responsible for managing the blockchain.
+ * It keeps track of all blocks and links them together to form a tree.
+ * In particular, it keeps track of the head of the blockchain, all leaves and so-called checkpoints.
+ * A checkpoint is a block stored by the BCM that has a state stored with it.
+ * Technically, checkpoints are not necessary as the state can be computed from the blocks.
+ * However, it is convenient to not have to recompute the state from the genesis block every time it is needed.
+ *
+ * The BCM must perform the following tasks:
+ * 1. Initialize the blockchain by receiving an InitBlockchain event from the application module which contains the initial state that is associated with the genesis block.
+ * 2. Add new blocks to the blockchain. If a block is added that has a parent that is not in the blockchain, the BCM requests the missing block from the synchronizer.
+ *    Blocks that are missing their parent are called orphans.
+ *    All blocks added to the blockchain are verified in two steps:
+ *    - It has the application module verify that the payloads are valid given the chain that the block is part of.
+ *    - The BCM must verify that the blocks link together correctly.
+ *   Additionally, it sends a TreeUpdate event to the interceptor module. This is solely for debugging/visualization purposes and not necessary for the operation of the blockchain.
+ * 3. Register checkpoints when receiving a RegisterCheckpoint event from the application module.
+ * 4. It must provide the synchronizer with chains when requested. This is to resolve orphan blocks in other nodes.
+ * 5. When the head changes, it sends a ForkUpdate event to the application module. This event contains all information necessary for the application to compute the state at the new head
+ *    as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
+ */
+
 var (
 	ErrParentNotFound    = errors.New("parent not found")
 	ErrNodeAlreadyInTree = errors.New("node already in tree")
@@ -346,6 +371,8 @@ func (bcm *bcmModule) sendTreeUpdate() {
  */
 
 func (bcm *bcmModule) handleVerifyBlocksResponse(blocks []*blockchainpbtypes.Block) error {
+	bcm.logger.Log(logging.LevelDebug, "Received verify blocks response", "first block", utils.FormatBlockId(blocks[0].BlockId), "last block", utils.FormatBlockId(blocks[len(blocks)-1].BlockId))
+
 	currentHead := bcm.head
 	// insert block
 	for _, block := range blocks {
@@ -388,29 +415,9 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpbtypes.Block) error {
 		return nil
 	}
 
-	bcm.logger.Log(logging.LevelDebug, "Adding new chain", "first block", utils.FormatBlockId(blocks[0].BlockId), "second block", utils.FormatBlockId(blocks[len(blocks)-1].BlockId))
+	bcm.logger.Log(logging.LevelDebug, "Adding new chain", "first block", utils.FormatBlockId(blocks[0].BlockId), "last block", utils.FormatBlockId(blocks[len(blocks)-1].BlockId))
 
 	return bcm.processNewChain(blocks)
-}
-
-func (bcm *bcmModule) handleGetHeadToCheckpointChainRequest(requestID string, sourceModule t.ModuleID) error {
-	if err := bcm.checkInitialization(); err != nil {
-		return err
-	}
-
-	chain, checkpointState := bcm.getChainFromCheckpointToBlock(bcm.head)
-	if chain == nil {
-		bcm.logger.Log(logging.LevelError, "Cannot link head up with checkpoints", "head", utils.FormatBlockId(bcm.head.block.BlockId))
-		return nil
-	} else if checkpointState == nil {
-		bcm.logger.Log(logging.LevelError, "Linked head up with checkpoint but state is missing - this should not happen", "head", utils.FormatBlockId(bcm.head.block.BlockId))
-		panic(errors.New("linked head up with checkpoint but state is missing - this should not happen"))
-	}
-
-	bcmpbdsl.GetHeadToCheckpointChainResponse(*bcm.m, sourceModule, requestID, chain, checkpointState)
-
-	return nil
-
 }
 
 func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepbtypes.State) error {
@@ -567,14 +574,6 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 			return err
 		}
 		return bcm.handleGetChainRequest(requestID, sourceModule, endBlockId, sourceBlockIds)
-	})
-
-	bcmpbdsl.UponGetHeadToCheckpointChainRequest(m, func(requestId string, sourceModule t.ModuleID) error {
-		bcm.logger.Log(logging.LevelTrace, "Received get head to checkpoint chain request")
-		if err := bcm.checkInitialization(); err != nil {
-			return err
-		}
-		return bcm.handleGetHeadToCheckpointChainRequest(requestId, sourceModule)
 	})
 
 	bcmpbdsl.UponRegisterCheckpoint(m, bcm.handleRegisterCheckpoint)
