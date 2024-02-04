@@ -2,11 +2,14 @@
 
 Longest-Chain Consensus is a modular implementation of a longest-chain consensus protocol modeling proof-of-work.
 
+The goal of this system is to provide a simple modular blockchain run on a fixed set of nodes.
+
 It provides the core elements with only the actual business logic to be implemented by an application module.
 
-## Goal
+## Overview
 
-The goal of this system is to provide a simple modular blockchain run on a fixed set of nodes.
+We will first outline the different parts that make up the system.
+How these elements interact with each other will be described in [Operation](#operation) and a more detailed description of every elements can be found in [Modules](#modules).
 
 Each node has a set of core modules running the blockchain and an application module that runs the business logic and provides certain functionality to the core modules.
 
@@ -18,40 +21,11 @@ The blocks making up the blockchain contain the following:
 - **timestamp:** Timestamp of when the block was mined.
 - **miner id:** Identifier of the node that mined the block.
 
-## Architecture
-
-The system consists of the following core modules:
-
-- **Blockchain Management Module (BCM):**
-  It forms the core of the system and is responsible for managing the blockchain.
-
-- **Miner Module:**
-  Mines new blocks simulating proof-of-work.
-
-- **Synchronizer Module:**
-  Resolves issues when new blocks are to be added to the blockchain but their parent blocks are unknown to this node's BCM.
-
-- **Broadcast Module:**
-  Broadcasts newly mined blocks to all other nodes.
-  It can also simulate network delay and dropped messages.
-
-and the following supporting modules:
-
-- **gRPC Transport Module:**
-  Used for communication between nodes.
-
-- **Event Mangler Module:**
-  Used by the broadcast module to simulate network delay and dropped messages.
-
-- **Timer Module:**
-  Used by the Miner to simulate proof-of-work.
-
-Lastly, a user-implemented **Application Module** handles all business logic.
-In particular, it needs to compute the state of the blockchain, verify transactions and provide transactions to the miner.
-
-The following drawing depicts the relationship between the different modules at a high level.
-
-**Note:** The event mangler module and the timer module were omitted for simplicity.
+Every node keeps track of all nodes that it knows of.
+At the very beginning, this is solely the genesis block.
+After a couple of blocks have been mined, all nodes together form a tree of blocks.
+Whichever leaf of this tree is the deepest is called the head and the chain of blocks from the genesis block to this leave is the canonical chain.
+The payloads of all the blocks in the canonical chain together define the current state stored in the blockchain.
 
 ```mermaid
 flowchart LR;
@@ -80,10 +54,165 @@ BCM <--> Synchronizer
 Synchronizer <--> Transport
 ```
 
-Further, it also includes an interceptor that intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
+(Note that the event mangler module and the timer module were omitted from the diagram above for simplicity.)
+
+The nodes consists of the following core modules:
+
+- **Blockchain Management Module (BCM):**
+  It forms the core of the system and is responsible for managing the blockchain.
+
+- **Miner Module:**
+  Mines new blocks simulating proof-of-work.
+
+- **Synchronizer Module:**
+  Resolves issues when new blocks are to be added to the blockchain but their parent blocks are unknown to this node's BCM.
+
+- **Broadcast Module:**
+  Broadcasts newly mined blocks to all other nodes.
+  It can also simulate network delay and dropped messages.
+
+and the following supporting modules (provided by mir):
+
+- **gRPC Transport Module:**
+  Used for communication between nodes.
+
+- **Event Mangler Module:**
+  Used by the broadcast module to simulate network delay and dropped messages.
+
+- **Timer Module:**
+  Used by the Miner to simulate proof-of-work.
+
+Lastly, a user-implemented **Application Module** handles all business logic.
+In particular, it needs to compute the state of the blockchain, verify transactions and provide transactions to the miner.
+
+Next to the modules, it also includes an interceptor that intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
 An example of how to use the information provided by the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
 
 (TODO - fix link!)
+
+## Operation
+
+We will now walk though how the different modules interact with each other.
+At the start, the application module must initialize the BCM by sending it an _InitBlockchain_ event which contains the initial state.
+The BCM creates a genesis block with an empty payload and stores it together with the initial state.
+It then instruct the miner module to start mining via a _NewHead_ event.
+In order to start mining, the miner module request a payload (_PayloadRequest_) from the application module.
+The miner now starts to mine and the initialization sequence of the node is completed.
+
+Now, the node will remain inactive (other than mining a block) until a new block has been mined.
+This block can either be mined by this node's miner or by another node's miner.
+In the first case, the miner will send the new block to its BCM and brodcast the block to all other nodes via the broadcast module (_NewBlock_ event).
+
+The BCM will then check whether or not it can connect this block to its tree of blocks.
+If it cannot connect the block, we call it an orphan block.
+Such cases can occur if the block's parent was mined by another node and the broadcast message of for this block has not (yet) reached this node.
+The BCM will try to resolve these problems with the help of the synchronizer, which would coordinate with other nodes to get the missing blocks.
+This procedure will be described below.
+
+The BCM now potentially has multiple blocks to add; the new block and possibly a chain of additional blocks from the synchronizer.
+Since the blocks might not be trusted since they could have been mined from another node, we must verify it.
+This happens in two ways:
+
+1. The BCM sends all the blocks together with some additional information to the application module (_VerifyChainRequest_).
+   The application then verifies that the payloads are valid.
+   This logic is application specific.
+2. The BCM verifies that the nodes link together correctly.
+
+The BCM can now add all new blocks to the block tree.
+If the canonical chain changes, i.e. there is a new head, it instructs the miner to start mining on the new head (_NewHead_ event).
+Also, it informas the application about the new head (_HeadChange_ event).
+This event contains some additional information about how the canonical chain changes.
+For example, if an different branch of the tree is now the canonical chain, it also includes which blocks are no longer part of the canonical chain.
+This allows for the application to resubmit these payloads if desired.
+In any case, the application will compute the state corresponding to the new head and register it in the BCM (_RegisterCheckpoint_).
+
+**Note**: In the sequence diagrams, the boxes with a dotted outline have a different meaning depending on the label in the top left corner:
+
+- loop: The sequence in the box repeats indefinitely or until the condition in the brackets holds.
+- alt: The two boxes making up this box describe two alternative sequences.
+- opt: The sequence in the box is optional.
+  It is performed if the condition in the boxes holds.
+- par: The two boxes making up this box describe two sequences that are performed in parallel.
+
+```mermaid
+sequenceDiagram
+    Application ->> BCM: InitBlockchain
+
+    BCM ->> Miner: NewHead
+    Miner ->> Application: PayloadRequest
+    Application ->> Miner: PayloadResponse
+    Note over Miner: Start mining
+
+    loop
+    alt receiving new block from another node
+    Broadcast ->> BCM: NewBlock
+    else this node's miner mined a new block
+    Miner ->> Broadcast: NewBlock
+    Miner ->> BCM: NewBlock
+    end
+
+    Note over BCM: Check that the block can be connected to the block tree
+    opt if it cannot the block to the blocktree
+    BCM ->> Synchronizer: SyncRequest
+    Note over Synchronizer: Get missing blocks from other nodes, details omitted
+    Synchronizer ->> BCM: NewChain
+    end
+    BCM ->> Application: VerifyChainRequest
+    Note over Application: Verify that payloads are valid
+    Application ->> BCM: VerifyChainRespose
+    Note over BCM: Add blocks of chain to block tree, verify that they link together
+
+    opt if head changes
+    par
+    BCM ->> Miner: NewHead
+    Note over Miner: Abort current mining operation, prepare to mine on new head
+    Miner ->> Application: PayloadRequest
+    Application ->> Miner: PayloadResponse
+    Note over Miner: Start mining on new head
+    and
+    BCM ->> Application: HeadChange
+    Note over Application: Compute state for new head
+    Application ->> BCM: RegisterCheckpoint
+    end
+    end
+    end
+```
+
+The functionality of the synchronizer was already outlined above.
+This part will go into more detail on how the synchronizer resolves orphan blocks.
+Every _SyncRequest_ from the BCM contains the id of the orphan block and a collection of id of block that the BCM has in its tree.
+With this information, the synchronizer asks one node after another to give it a chain which connects the orphan block to one of the known blocks (_ChainRequest_).
+The other node's synchronizers then query their BCM via a _GetChainRequest_ for such a segment and forward the answer back to the initiator's synchronizer.
+The responses can be unseuccessful.
+It that case, the synchronizer asks the next node.
+When a successful response is received, the synchronizer instructs the BCM to add the new chain to the block tree (_NewChain_ event).
+
+```mermaid
+sequenceDiagram
+
+box Initiator Node
+participant BCM (I)
+participant Synchronizer (I)
+end
+
+box Other Node(s)
+participant Synchronizer
+participant BCM
+end
+
+Note over BCM (I): Cannot connect block
+BCM (I) ->> Synchronizer (I): SyncRequest
+
+loop: until successful, one node at a time
+Synchronizer (I) ->> Synchronizer: ChainRequest
+Synchronizer ->> BCM: GetChainRequest
+BCM ->> Synchronizer: GetChainResponse (successful/unsuccessful)
+Synchronizer ->> Synchronizer (I): ChainResponse (successful/unsuccessful)
+end
+Synchronizer (I) ->> BCM (I): NewChain
+```
+
+## Modules
 
 ### Blockchain Management Module (BCM)
 
@@ -108,8 +237,8 @@ The BCM must perform the following tasks:
 
 3. Register checkpoints when receiving a RegisterCheckpoint event from the application module.
 4. It must provide the synchronizer with chains when requested. This is to resolve orphan blocks in other nodes.
-5. When the head changes, it sends a HeadChange event to the application module. This event contains all information necessary for the application to compute the state at the new head
-   as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
+5. When the head changes, it sends a HeadChange event to the application module.
+   This event contains all information necessary for the application to compute the state at the new head as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
 
 ### Miner Module
 
@@ -196,86 +325,6 @@ The interceptor proto defines two such events:
 
 - TreeUpdate: This event is sent by the blockchain manager (BCM) when the blockchain is updated. It contains all blocks in the blockchain and the id of the new head.
 - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
-
-## Operation
-
-**Note**: In the sequence diagrams, the boxes with a dotted outline have a different meaning depending on the label in the top left corner:
-
-- loop: The sequence in the box repeats indefinitely or until the condition in the brackets holds.
-- alt: The two boxes making up this box describe two alternative sequences.
-- opt: The sequence in the box is optional.
-  It is performed if the condition in the boxes holds.
-- par: The two boxes making up this box describe two sequences that are performed in parallel.
-
-```mermaid
-sequenceDiagram
-    Application ->> BCM: InitBlockchain
-
-    BCM ->> Miner: NewHead
-    Miner ->> Application: PayloadRequest
-    Application ->> Miner: PayloadResponse
-    Note over Miner: Start mining
-
-    loop
-    alt receiving new block from another node
-    Broadcast ->> BCM: NewBlock
-    else this node's miner mined a new block
-    Miner ->> Broadcast: NewBlock
-    Miner ->> BCM: NewBlock
-    end
-
-    Note over BCM: Check that the block can be connected to the block tree
-    opt if it cannot the block to the blocktree
-    BCM ->> Synchronizer: SyncRequest
-    Note over Synchronizer: Get missing blocks from other nodes, details omitted
-    Synchronizer ->> BCM: NewChain
-    end
-    BCM ->> Application: VerifyChainRequest
-    Note over Application: Verify that payloads are valid
-    Application ->> BCM: VerifyChainRespose
-    Note over BCM: Add blocks of chain to block tree, verify that they link together
-
-
-    opt if head changes
-    par
-    BCM ->> Miner: NewHead
-    Note over Miner: Abort current mining operation, prepare to mine on new head
-    Miner ->> Application: PayloadRequest
-    Application ->> Miner: PayloadResponse
-    Note over Miner: Start mining on new head
-    and
-    BCM ->> Application: HeadChange
-    Note over Application: Compute state for new head
-    Application ->> BCM: RegisterCheckpoint
-    end
-    end
-    end
-```
-
-```mermaid
-sequenceDiagram
-
-box Initiator Node
-participant BCM (I)
-participant Synchronizer (I)
-end
-
-box Other Node(s)
-participant Synchronizer
-participant BCM
-end
-
-Note over BCM (I): Cannot connect block
-BCM (I) ->> Synchronizer (I): SyncRequest
-
-loop: until successful, one node at a time
-Synchronizer (I) ->> Synchronizer: ChainRequest
-Synchronizer ->> BCM: GetChainRequest
-BCM ->> Synchronizer: GetChainResponse (successful/unsuccessful)
-Synchronizer ->> Synchronizer (I): ChainResponse (successful/unsuccessful)
-end
-Synchronizer (I) ->> BCM (I): NewChain
-```
 
 ### Glossary
 
