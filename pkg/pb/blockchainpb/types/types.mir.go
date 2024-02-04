@@ -4,56 +4,19 @@ package blockchainpbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types "github.com/filecoin-project/mir/codegen/model/types"
 	blockchainpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb"
-	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types2 "github.com/filecoin-project/mir/pkg/types"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type Blocktree struct {
-	Blocks []*Block
-	Leaves []uint64
-}
-
-func BlocktreeFromPb(pb *blockchainpb.Blocktree) *Blocktree {
-	if pb == nil {
-		return nil
-	}
-	return &Blocktree{
-		Blocks: types.ConvertSlice(pb.Blocks, func(t *blockchainpb.Block) *Block {
-			return BlockFromPb(t)
-		}),
-		Leaves: pb.Leaves,
-	}
-}
-
-func (m *Blocktree) Pb() *blockchainpb.Blocktree {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &blockchainpb.Blocktree{}
-	{
-		pbMessage.Blocks = types.ConvertSlice(m.Blocks, func(t *Block) *blockchainpb.Block {
-			return (t).Pb()
-		})
-		pbMessage.Leaves = m.Leaves
-	}
-
-	return pbMessage
-}
-
-func (*Blocktree) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*blockchainpb.Blocktree]()}
-}
-
 type Block struct {
 	BlockId         uint64
 	PreviousBlockId uint64
-	Payload         *types1.Payload
+	Payload         *types.Payload
 	Timestamp       *timestamppb.Timestamp
-	MinerId         types2.NodeID
+	MinerId         types1.NodeID
 }
 
 func BlockFromPb(pb *blockchainpb.Block) *Block {
@@ -63,9 +26,9 @@ func BlockFromPb(pb *blockchainpb.Block) *Block {
 	return &Block{
 		BlockId:         pb.BlockId,
 		PreviousBlockId: pb.PreviousBlockId,
-		Payload:         types1.PayloadFromPb(pb.Payload),
+		Payload:         types.PayloadFromPb(pb.Payload),
 		Timestamp:       pb.Timestamp,
-		MinerId:         (types2.NodeID)(pb.MinerId),
+		MinerId:         (types1.NodeID)(pb.MinerId),
 	}
 }
 

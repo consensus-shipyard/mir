@@ -23,15 +23,16 @@ type System struct {
 }
 
 func New(
-	ownId t.NodeID,
-	application modules.Module,
-	disableMangle bool,
-	dropRate float64,
-	minDelay float64,
-	maxDelay float64,
-	numberOfNodes int,
-	logger logging.Logger,
-	transportLogger logging.Logger,
+	ownId t.NodeID, // id of this node
+	application modules.Module, // application module to use - see samples/blockchain-chat/application for example
+	disableMangle bool, // whether to disable mangling of messages
+	dropRate float64, // the rate at which to drop messages
+	minDelay float64, // minimum delay by which to delay messages [seconds]
+	maxDelay float64, // maximum delay by which to delay messages [seconds]
+	exponentialMiningFactor float64, // factor for exponential distribution for random mining duration
+	numberOfNodes int, // number of nodes in the network
+	logger logging.Logger, // logger to be used by the system
+	transportLogger logging.Logger, // logger to be used by the transport exlusively
 ) *System {
 	// determine "other" nodes for this node
 	nodes := make(map[t.NodeID]*trantorpbtypes.NodeIdentity, numberOfNodes)
@@ -63,7 +64,7 @@ func New(
 	modules := modules.Modules{
 		"transport":    transport,
 		"bcm":          bcm.NewBCM(logging.Decorate(logger, "BCM:\t")),
-		"miner":        miner.NewMiner(ownId, 0.2, logging.Decorate(logger, "Miner:\t")),
+		"miner":        miner.NewMiner(ownId, exponentialMiningFactor, logging.Decorate(logger, "Miner:\t")),
 		"broadcast":    broadcast.NewBroadcast(otherNodes, !disableMangle, logging.Decorate(logger, "Comm:\t")),
 		"synchronizer": synchronizer.NewSynchronizer(ownId, otherNodes, logging.Decorate(logger, "Sync:\t")),
 		"devnull":      modules.NullPassive{}, // for messages that are actually destined for the interceptor

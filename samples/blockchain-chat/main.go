@@ -20,12 +20,15 @@ import (
 )
 
 // Flags
-var disableMangle = flag.Bool("disableMangle", false, "Disable mangling of messages")
-var dropRate = flag.Float64("dropRate", 0.05, "The rate at which to drop messages")
-var minDelay = flag.Float64("minDelay", 0.001, "The minimum delay to add to messages [seconds]")
-var maxDelay = flag.Float64("maxDelay", 1, "The minimum delay to add to messages [seconds]")
-var numberOfNodes = flag.Int("numberOfNodes", -1, "The number of nodes in the network [1, inf] REQUIRED")
-var nodeID = flag.Int("nodeID", -1, "The ID of the node [0, numberOfNodes-1] REQUIRED")
+var (
+	disableMangle           = flag.Bool("disableMangle", false, "Disable mangling of messages")
+	dropRate                = flag.Float64("dropRate", 0.05, "The rate at which to drop messages")
+	minDelay                = flag.Float64("minDelay", 0.001, "The minimum delay by which to delay messages between nodes [seconds]")
+	maxDelay                = flag.Float64("maxDelay", 1, "The maximum delay by which to delay messages between nodes [seconds]")
+	exponentialMiningFactor = flag.Float64("expMiningFactor", 0.2, "Factor for exponential distribution for random mining duration")
+	numberOfNodes           = flag.Int("numberOfNodes", -1, "The number of nodes in the network [1, inf] REQUIRED")
+	nodeID                  = flag.Int("nodeID", -1, "The ID of the node [0, numberOfNodes-1] REQUIRED")
+)
 
 func main() {
 	// Parse command line flags
@@ -90,6 +93,7 @@ func main() {
 		*dropRate,
 		*minDelay,
 		*maxDelay,
+		*exponentialMiningFactor,
 		*numberOfNodes,
 		logger,
 		logging.Decorate(logging.ConsoleInfoLogger, "Transport:\t"))
