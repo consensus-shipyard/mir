@@ -1,10 +1,10 @@
 package wsInterceptor
 
 import (
+	"github.com/filecoin-project/mir/pkg/blockchain/wsInterceptor/wsServer"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
-	wsServer "github.com/filecoin-project/mir/samples/blockchain/wsinterceptor/wsServer.go"
 	"google.golang.org/protobuf/proto"
 )
 

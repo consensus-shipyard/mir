@@ -1,12 +1,11 @@
-// blockchain manager
-
-package main
+package bcm
 
 import (
 	"errors"
 	"slices"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/blockchain/utils"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -19,7 +18,6 @@ import (
 	synchronizerpbdsl "github.com/filecoin-project/mir/pkg/pb/blockchainpb/synchronizerpb/dsl"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

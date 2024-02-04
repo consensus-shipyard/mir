@@ -1,10 +1,11 @@
-package main
+package miner
 
 import (
 	"context"
 	"math/rand"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/blockchain/utils"
 	"github.com/filecoin-project/mir/pkg/events"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -17,7 +18,6 @@ import (
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/eventpb"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/utils"
 	"github.com/go-errors/errors"
 	"github.com/mitchellh/hashstructure"
 	"google.golang.org/protobuf/types/known/timestamppb"

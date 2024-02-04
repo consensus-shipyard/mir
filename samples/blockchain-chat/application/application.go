@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/blockchain/utils"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -16,8 +17,7 @@ import (
 	statepbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/application/payloads"
-	"github.com/filecoin-project/mir/samples/blockchain/utils"
+	"github.com/filecoin-project/mir/samples/blockchain-chat/application/payloads"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -197,7 +197,7 @@ func (am *ApplicationModule) handlePayloadRequest(head_id uint64) error {
 	return nil
 }
 
-func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModule {
+func NewApplication(nodeID t.NodeID, logger logging.Logger) modules.Module {
 
 	m := dsl.NewModule("application")
 	am := &ApplicationModule{

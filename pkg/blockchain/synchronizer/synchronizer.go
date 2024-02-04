@@ -1,12 +1,11 @@
-// blockchain manager
-
-package main
+package synchronizer
 
 import (
 	"errors"
 	"fmt"
 	"math/rand"
 
+	"github.com/filecoin-project/mir/pkg/blockchain/utils"
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
@@ -16,7 +15,6 @@ import (
 	blockchainpbtypes "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
 	transportpbdsl "github.com/filecoin-project/mir/pkg/pb/transportpb/dsl"
 	t "github.com/filecoin-project/mir/pkg/types"
-	"github.com/filecoin-project/mir/samples/blockchain/utils"
 )
 
 /**
