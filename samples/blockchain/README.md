@@ -1,8 +1,22 @@
-# Longest Chain Consensus
+# Longest-Chain Consensus
 
-LCC is a modular implementation of a longest chain consensus protocol modelling proof-of-work.
+Longest-Chain Consensus is a modular implementation of a longest-chain consensus protocol modeling proof-of-work.
 
-It provides the core elements with only the actual buisiness logic to be implemented by an application module.
+It provides the core elements with only the actual business logic to be implemented by an application module.
+
+## Goal
+
+The goal of this system is to provide a simple modular blockchain run on a fixed set of nodes.
+
+Each node has a set of core modules running the blockchain and an application module that runs the business logic and provides certain functionality to the core modules.
+
+The blocks making up the blockchain contain the following:
+
+- **block id:** Identifier of a block, computed by hashing the block with the block id set to 0.
+- **previous block id:** Identifier of the predecessor block.
+- **payload:** An application dependant payload.
+- **timestamp:** Timestamp of when the block was mined.
+- **miner id:** Identifier of the node that mined the block.
 
 ## Architecture
 
@@ -32,8 +46,8 @@ and the following supporting modules:
 - **Timer Module:**
   Used by the Miner to simulate proof-of-work.
 
-Lastly, a user implemented **Application Module** handles all business logic.
-In particular, it need compute the state of the blockchain, verify transactions and provide transactions to the miner.
+Lastly, a user-implemented **Application Module** handles all business logic.
+In particular, it needs to compute the state of the blockchain, verify transactions and provide transactions to the miner.
 
 The following drawing depicts the relationship between the different modules at a high level.
 
@@ -66,8 +80,8 @@ BCM <--> Synchronizer
 Synchronizer <--> Transport
 ```
 
-Further, it also includes an interceptor which intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
-An example of how to use the information provided the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
+Further, it also includes an interceptor that intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
+An example of how to use the information provided by the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
 
 (TODO - fix link!)
 
@@ -86,12 +100,15 @@ The BCM must perform the following tasks:
 2. Add new blocks to the blockchain. If a block is added that has a parent that is not in the blockchain, the BCM requests the missing block from the synchronizer.
    Blocks that are missing their parent are called orphans.
    All blocks added to the blockchain are verified in two steps:
+
    - It has the application module verify that the payloads are valid given the chain that the block is part of.
    - The BCM must verify that the blocks link together correctly.
-     Additionally, it sends a TreeUpdate event to the interceptor module. This is solely for debugging/visualization purposes and not necessary for the operation of the blockchain.
+
+   Additionally, it sends a TreeUpdate event to the interceptor module. This is solely for debugging/visualization purposes and is not necessary for the operation of the blockchain.
+
 3. Register checkpoints when receiving a RegisterCheckpoint event from the application module.
 4. It must provide the synchronizer with chains when requested. This is to resolve orphan blocks in other nodes.
-5. When the head changes, it sends a ForkUpdate event to the application module. This event contains all information necessary for the application to compute the state at the new head
+5. When the head changes, it sends a HeadChange event to the application module. This event contains all information necessary for the application to compute the state at the new head
    as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
 
 ### Miner Module
@@ -99,7 +116,7 @@ The BCM must perform the following tasks:
 The miner module is responsible for mining new blocks.
 It simulates the process of mining a block by waiting for a random amount of time and then broadcasting the mined block.
 This random amount of time is sampled from an exponential distribution with a mean of `expMinuteFactor` minutes.
-The mining is orchestrated by a separate goroutine (mineWorkerManager), so that the miner module can continue to receive and process events.
+The mining is orchestrated by a separate goroutine (mineWorkerManager) so that the miner module can continue to receive and process events.
 
 The operation of the miner module at a high level is as follows:
 
@@ -112,13 +129,13 @@ The operation of the miner module at a high level is as follows:
 ### Broadcast Module
 
 The broadcast module is responsible for broadcasting new blocks to all other nodes.
-It either does this directly via the transport module or via the mangler (parameter mangle).
-If the mangler is used, messages might will be dropped and delayed.
+It either does this directly via the transport module or the mangler (parameter mangle).
+If the mangler is used, messages might be dropped and delayed.
 
 ### Synchronizer Module
 
-The synchronizer module assists the blockchain manager (BCM) in resolving cases whe BCM receives an orphan block.
-That is, a block that cannot be linked to the blockchain because the blockchain does not contain the block that the orphan block is linked to.
+The synchronizer module assists the blockchain manager (BCM) in resolving cases when BCM receives an orphan block.
+That is a block that cannot be linked to the blockchain because the blockchain does not contain the block that the orphan block is linked to.
 To do this, the synchronizer module communicates with other nodes to get the missing blocks.
 
 Terminology:
@@ -141,37 +158,38 @@ For external sync requests:
 
 1. When it receives a ChainRequest message, it must register the request and send a GetChainRequest event to the BCM.
 2. The BCM will respond with a GetChainResponse event. The synchronizer then responds to the node that sent the ChainRequest message with a ChainResponse message.
-   IMPORTANT: This module assumes that all other nodes resppond to requests and that no messages are lost.
+
+**IMPORTANT:** This module assumes that all other nodes respond to requests and that no messages are lost.
 
 ### Application Module
 
-The application module is reponsible for performing the actual application logic and to interact with users or other applications.
-It does not hold any state, but instead relies on the blockchain manager module (BCM) to store the state.
+The application module is responsible for performing the actual application logic and interacting with users.
+It does not hold any persistent state but instead relies on the blockchain manager module (BCM) to store the state.
 However, the application needs to compute the state.
 Also, the application module is responsible for providing payloads for new blocks.
 
 The application module must perform the following tasks:
 
-1. Initialize the blockchain by sending it the initial state in an InitBlockchain event to the BCM.
-2. When it receives a PayloadRequest event, it must provide a payload for the next block. This payload can be empty.
-3. When it receives a ForkUpdate event, it must compute the state at the new head of the blockchain.
+1. Initialize the blockchain by sending it to the initial state in an InitBlockchain event to the BCM.
+2. When it receives a PayloadRequest event, it must provide a payload for the next block.
+   Even if no payloads are available, a payload must be provided, however, this payload can be empty.
+3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
    A checkpoint is a block stored by the BCM that has a state stored with it.
-4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at a application level and respond with a VerifyBlocksResponse event.
-   Whether or not not the blocks link together correctly is verified by the BCM.
+4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
+   Whether or not the blocks link together correctly is verified by the BCM.
 
-This application module implements a simple chat application.
-It takes new messages from the user (MessageInput event) and combines them with a sender id and "sent" timestamp as payloads.
-These payloads are stored in the payload manager (see applicaion/payloads/payloads.go).
-The state is the list of all messages that have been sent and timestamps for when each sender last sent a message.
-At the application level, a chain is valid if the timestamps are monotonically increasing for each sender.
+An example of such an application is the (lcc-chat-app)[link] that is in the samples directory.
+As the name implies, it implements a simple chat application.
+
+[Note - different end]
 
 ### Websocket Interceptor
 
 The websocket interceptor intercepts all events and sends them to a websocket server.
 Any connected client can then receive these events by subscribing to the websocket server.
-The interceptor proto defines events which are specificly intended for the interceptor and not used by the actual blockchain.
-Since these events don't have a destination module, they are sent to the "devnull" module.
+The interceptor proto defines events that are specifically intended for the interceptor and not used by the actual blockchain.
+Since these events don't have a destination module, they are sent to the "null" module (a module that simply ignores all incoming events).
 However, all events are intercepted and sent to the websocket server. The interceptor proto is simply for "extra" events.
 
 The interceptor proto defines two such events:
@@ -180,6 +198,14 @@ The interceptor proto defines two such events:
 - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
 
 ## Operation
+
+**Note**: In the sequence diagrams, the boxes with a dotted outline have a different meaning depending on the label in the top left corner:
+
+- loop: The sequence in the box repeats indefinitely or until the condition in the brackets holds.
+- alt: The two boxes making up this box describe two alternative sequences.
+- opt: The sequence in the box is optional.
+  It is performed if the condition in the boxes holds.
+- par: The two boxes making up this box describe two sequences that are performed in parallel.
 
 ```mermaid
 sequenceDiagram
@@ -218,21 +244,13 @@ sequenceDiagram
     Application ->> Miner: PayloadResponse
     Note over Miner: Start mining on new head
     and
-    BCM ->> Application: ForkUpdate
+    BCM ->> Application: HeadChange
     Note over Application: Compute state for new head
     Application ->> BCM: RegisterCheckpoint
     end
     end
     end
 ```
-
-**Note**: In the sequence diagram above, the dotted boxes have a different meaning depending on the label in the top left corner:
-
-- loop: The sequence in the box repeates indefinitely or until the condition int the brackets holds.
-- alt: The two boxes making up this box describe two alternative sequences.
-- opt: The sequence in the box is optional.
-  It is performed if the condition in the boxes holds.
-- par: The two boxes making up this box describe two sequences that are performed in parallel.
 
 ```mermaid
 sequenceDiagram
@@ -262,10 +280,60 @@ Synchronizer (I) ->> BCM (I): NewChain
 ### Glossary
 
 - **Blocktree**:
-  Tree of all nodes logically.
+  Tree of all blocks with each block logically connected to its predecessor.
 - **Head**:
   Last block of the canonical (longest) chain.
 
 ## How to use
 
+In order to use the longest-chain consensus system, ... [add after restucture].
+
 ## Example: Chat App
+
+An example of how to use the longest-chain consensus is the Chat App [...here....].
+Users can enter input through standard input line by line and the system replicates all messages in the same order across all nodes.
+It enforces that all messages sent from the same sender appear in the history in a monotonically increasing order of submission time.
+
+[Add note: node id ~=~ sender id]
+
+#### Payload
+
+In this application, the payloads consist of a message, the sender id (id of the sender node) and a submission timestamp.
+
+#### State
+
+The state consists of the message history and a collection of "last sent" timestamps, one for each sender/node, where the timestamp corresponds to the submission time of the last message of this sender.
+
+#### Applying Blocks
+
+When applying a block to a state, the message in the payload is appended to the message history and the "last sent" timestamp corresponding to the sender is updated.
+
+#### Verifying Blocks
+
+To verify a block, the application verifies that the submission timestamp
+
+#### Providing Payloads
+
+Each node's application keeps track of all messages that were submitted to it.
+Additionally, if a fork happens and the branch changes, it
+
+### Visualization
+
+For this chat application, there exists an accompanying browser-based visualization tool that utilizes the aforementioned websocket interceptor.
+The interface provides insight into the state of the different nodes.
+In particular, it visualizes the block tree stored in every node, what node is the current head per node and the current message history (i.e., state corresponding to the current head).
+
+For each node, the visualizer displays the current state of each node.
+In the box at the top, you see the state corresponding to the current head.
+Right below it, you can see the id of the current head (truncated for readability) and the message part of the head's payload.
+The biggest part of the window is filled with the block tree that is stored by the node.
+It shows how the blocks are connected and the current head is marked with a red border.
+To more easily compare the trees, each block's background color is dependent on its id.
+
+![visualizer](./images/visualizers.png)
+
+Every single blocks shows the following information:
+
+![visualizer block](./images/visualizer_block.png)
+
+## Conclusion
