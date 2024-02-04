@@ -36,8 +36,8 @@ import (
  * 3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
  *    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
  *	  A checkpoint is a block stored by the BCM that has a state stored with it.
- * 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at a application level and respond with a VerifyBlocksResponse event.
- *    Whether or not not the blocks link together correctly is verified by the BCM.
+ * 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
+ *    Whether or not the blocks link together correctly is verified by the BCM.
  *
  * This application module implements a simple chat application.
  * It takes new messages from the user (MessageInput event) and combines them with a sender id and "sent" timestamp as payloads.

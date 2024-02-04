@@ -1,6 +1,6 @@
-# Longest-Chain Consensus
+# Blockchain System
 
-Longest-Chain Consensus is a modular implementation of a longest-chain consensus protocol modeling proof-of-work.
+This "Blockchain System" is a modular implementation of a longest-chain consensus protocol modeling proof-of-work.
 
 The goal of this system is to provide a simple modular blockchain run on a fixed set of nodes.
 
@@ -9,7 +9,7 @@ It provides the core elements with only the actual business logic to be implemen
 ## Overview
 
 We will first outline the different parts that make up the system.
-How these elements interact with each other will be described in [Operation](#operation) and a more detailed description of every elements can be found in [Modules](#modules).
+How these elements interact with each other will be described in [Operation](#operation) and a more detailed description of every element can be found in [Modules](#modules).
 
 Each node has a set of core modules running the blockchain and an application module that runs the business logic and provides certain functionality to the core modules.
 
@@ -56,7 +56,7 @@ Synchronizer <--> Transport
 
 (Note that the event mangler module and the timer module were omitted from the diagram above for simplicity.)
 
-The nodes consists of the following core modules:
+The nodes consist of the following core modules:
 
 - **Blockchain Management Module (BCM):**
   It forms the core of the system and is responsible for managing the blockchain.
@@ -92,21 +92,21 @@ An example of how to use the information provided by the interception can be fou
 
 ## Operation
 
-We will now walk though how the different modules interact with each other.
+We will now walk through how the different modules interact with each other.
 At the start, the application module must initialize the BCM by sending it an _InitBlockchain_ event which contains the initial state.
 The BCM creates a genesis block with an empty payload and stores it together with the initial state.
-It then instruct the miner module to start mining via a _NewHead_ event.
-In order to start mining, the miner module request a payload (_PayloadRequest_) from the application module.
+It then instructs the miner module to start mining via a _NewHead_ event.
+In order to start mining, the miner module requests a payload (_PayloadRequest_) from the application module.
 The miner now starts to mine and the initialization sequence of the node is completed.
 
 Now, the node will remain inactive (other than mining a block) until a new block has been mined.
 This block can either be mined by this node's miner or by another node's miner.
-In the first case, the miner will send the new block to its BCM and brodcast the block to all other nodes via the broadcast module (_NewBlock_ event).
+In the first case, the miner will send the new block to its BCM and broadcast the block to all other nodes via the broadcast module (_NewBlock_ event).
 
 The BCM will then check whether or not it can connect this block to its tree of blocks.
 If it cannot connect the block, we call it an orphan block.
-Such cases can occur if the block's parent was mined by another node and the broadcast message of for this block has not (yet) reached this node.
-The BCM will try to resolve these problems with the help of the synchronizer, which would coordinate with other nodes to get the missing blocks.
+Such cases can occur if the block's parent was mined by another node and the broadcast message for this block has not (yet) reached this node.
+The BCM will try to resolve these problems with the help of the synchronizer, which will coordinate with other nodes to get the missing blocks.
 This procedure will be described below.
 
 The BCM now potentially has multiple blocks to add; the new block and possibly a chain of additional blocks from the synchronizer.
@@ -115,14 +115,14 @@ This happens in two ways:
 
 1. The BCM sends all the blocks together with some additional information to the application module (_VerifyChainRequest_).
    The application then verifies that the payloads are valid.
-   This logic is application specific.
+   This logic is application-specific.
 2. The BCM verifies that the nodes link together correctly.
 
 The BCM can now add all new blocks to the block tree.
 If the canonical chain changes, i.e. there is a new head, it instructs the miner to start mining on the new head (_NewHead_ event).
-Also, it informas the application about the new head (_HeadChange_ event).
+Also, it informs the application about the new head (_HeadChange_ event).
 This event contains some additional information about how the canonical chain changes.
-For example, if an different branch of the tree is now the canonical chain, it also includes which blocks are no longer part of the canonical chain.
+For example, if a different branch of the tree is now the canonical chain, it also includes which blocks are no longer part of the canonical chain.
 This allows for the application to resubmit these payloads if desired.
 In any case, the application will compute the state corresponding to the new head and register it in the BCM (_RegisterCheckpoint_).
 
@@ -180,11 +180,11 @@ sequenceDiagram
 
 The functionality of the synchronizer was already outlined above.
 This part will go into more detail on how the synchronizer resolves orphan blocks.
-Every _SyncRequest_ from the BCM contains the id of the orphan block and a collection of id of block that the BCM has in its tree.
-With this information, the synchronizer asks one node after another to give it a chain which connects the orphan block to one of the known blocks (_ChainRequest_).
+Every _SyncRequest_ from the BCM contains the id of the orphan block and a collection of id of the block that the BCM has in its tree.
+With this information, the synchronizer asks one node after another to give it a chain that connects the orphan block to one of the known blocks (_ChainRequest_).
 The other node's synchronizers then query their BCM via a _GetChainRequest_ for such a segment and forward the answer back to the initiator's synchronizer.
-The responses can be unseuccessful.
-It that case, the synchronizer asks the next node.
+The responses can be unsuccessful.
+In that case, the synchronizer asks the next node.
 When a successful response is received, the synchronizer instructs the BCM to add the new chain to the block tree (_NewChain_ event).
 
 ```mermaid
@@ -308,7 +308,7 @@ The application module must perform the following tasks:
 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
    Whether or not the blocks link together correctly is verified by the BCM.
 
-An example of such an application is the (lcc-chat-app)[link] that is in the samples directory.
+An example of such an application is the [Blockchain Chat App](../../samples/blockchain-chat/) that is in the samples directory.
 As the name implies, it implements a simple chat application.
 
 [Note - different end]
@@ -326,45 +326,67 @@ The interceptor proto defines two such events:
 - TreeUpdate: This event is sent by the blockchain manager (BCM) when the blockchain is updated. It contains all blocks in the blockchain and the id of the new head.
 - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
 
-### Glossary
-
-- **Blocktree**:
-  Tree of all blocks with each block logically connected to its predecessor.
-- **Head**:
-  Last block of the canonical (longest) chain.
-
 ## How to use
 
-In order to use the longest-chain consensus system, ... [add after restucture].
+To use the blockchain system, you must first define your application's state and payloads in `statepb.proto` and `payloadpb.proto` files.
+
+Next, you must implement an application module that performs the following actions:
+
+1. Initialize the blockchain by sending it an initial state in an InitBlockchain event to the BCM.
+2. When it receives a PayloadRequest event, it must provide a payload for the next block. This payload can be empty.
+3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
+   This state is then registered with the BCM by sending it a RegisterCheckpoint event.
+   A checkpoint is a block stored by the BCM that has a state stored with it.
+4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
+   Whether or not the blocks link together correctly is verified by the BCM.
+
+See the example chat app as a reference.
 
 ## Example: Chat App
 
-An example of how to use the longest-chain consensus is the Chat App [...here....].
+An example of how to use the longest-chain consensus is the [Blockchain Chat App](../../samples/blockchain-chat/).
 Users can enter input through standard input line by line and the system replicates all messages in the same order across all nodes.
 It enforces that all messages sent from the same sender appear in the history in a monotonically increasing order of submission time.
 
-[Add note: node id ~=~ sender id]
+### Specification of the Chat App
 
-#### Payload
+The following lists the key specifications of the chat app.
 
-In this application, the payloads consist of a message, the sender id (id of the sender node) and a submission timestamp.
+- **Payload:**
+  The payloads consist of a message, the sender id (id of the node from which the message was sent) and a submission timestamp.
 
-#### State
+- **State:**
+  The state consists of the message history and a collection of "last sent" timestamps, one for each sender/node, where the timestamp corresponds to the submission time of the last message of this sender.
 
-The state consists of the message history and a collection of "last sent" timestamps, one for each sender/node, where the timestamp corresponds to the submission time of the last message of this sender.
+- **Applying Blocks:**
+  When applying a block to a state, the message in the payload is appended to the message history and the "last sent" timestamp corresponding to the sender is updated.
 
-#### Applying Blocks
+- **Verifying Blocks:**
+  To verify a block, the application verifies that the submission timestamp
 
-When applying a block to a state, the message in the payload is appended to the message history and the "last sent" timestamp corresponding to the sender is updated.
+- **Providing Payloads:**
+  Each node's application keeps track of all messages that were submitted to it.
+  Additionally, if a fork happens and the branch changes, it
 
-#### Verifying Blocks
+### Running the chat app
 
-To verify a block, the application verifies that the submission timestamp
+To run the chat app, you can run the following in multiple terminals, once for each node
 
-#### Providing Payloads
+```
+go run . -numberOfNodes <number of nodes in the network> -nodeID <id of this node - [0, numberOfNodes-1]>
+```
 
-Each node's application keeps track of all messages that were submitted to it.
-Additionally, if a fork happens and the branch changes, it
+Further, you can add the following options to modify the characteristics of the system(s).
+If they are not set, default values will be used
+
+- **-disableMangle:**
+  Disables all mangling of the messages between the nodes.
+- **-dropRate:** The rate at which to drop messages between nodes. (Ignored if _disableMangle_ is set.)
+- **-minDelay:** The minimum delay by which to delay messages between nodes. (Ignored if _disableMangle_ is set.)
+- **-maxDelay:** The maximum delay by which to delay messages between nodes. (Ignored if _disableMangle_ is set.)
+- **-expMiningFactor:** Factor for exponential distribution for random mining duration.
+
+If `tmux` is installed, you can simply run `./run.sh` to start a network of 4 nodes with reasonable options set.
 
 ### Visualization
 
@@ -381,7 +403,19 @@ To more easily compare the trees, each block's background color is dependent on 
 
 ![visualizer](./images/visualizers.png)
 
-Every single blocks shows the following information:
+Every single block displays the following information:
+
+- **Block ID**
+- **Miner ID:** The id of the node that mined the block.
+- **Sent Timestamp:**
+  The time at which the message was sent.
+  This information is part of the payload.
+  Not to be confused with the time at which the block was mined.
+- **Payload Message**:
+  The message that is part of the payload.
+- **Sender ID:**
+  The id of the node from which the message was sent.
+  This information is part of the payload.
 
 ![visualizer block](./images/visualizer_block.png)
 
