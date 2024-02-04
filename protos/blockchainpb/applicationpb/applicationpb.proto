@@ -15,26 +15,15 @@ message Event {
   oneof type {
     option (mir.event_type) = true;
 
-    // Application-application events
-    NewHead                   new_head              = 10;
-    VerifyBlocksRequest       verify_block_request  = 11;
-    VerifyBlocksResponse      verify_block_response = 12;
-    
-    // Transaction management application events
-    PayloadRequest            payload_request       = 20;
-    PayloadResponse           payload_response      = 21;
-    ForkUpdate                fork_update           = 22;
+    VerifyBlocksRequest       verify_block_request  = 1;
+    VerifyBlocksResponse      verify_block_response = 2;
+    PayloadRequest            payload_request       = 3;
+    PayloadResponse           payload_response      = 4;
+    HeadChange                head_change           = 5;
   
     // Message input
-    MessageInput              message_input         = 30;
+    MessageInput              message_input         = 10;
   }
-}
-
-// Application-application events
-message NewHead {
-  option (mir.event) = true;
-  
-  uint64 head_id = 1;
 }
 
 message VerifyBlocksRequest {
@@ -51,7 +40,7 @@ message VerifyBlocksResponse {
   repeated blockchainpb.Block   verified_blocks = 1;
 }
 
-message ForkUpdate {
+message HeadChange {
   option (mir.event) = true;
 
   repeated blockchainpb.Block removed_chain           = 1;
@@ -60,7 +49,6 @@ message ForkUpdate {
   statepb.State               checkpoint_state        = 4;
 }
 
-// Transaction management application events
 message PayloadRequest {
   option (mir.event) = true;
 

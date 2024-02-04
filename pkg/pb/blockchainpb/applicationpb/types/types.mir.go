@@ -33,8 +33,6 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 		return nil
 	}
 	switch pb := pb.(type) {
-	case *applicationpb.Event_NewHead:
-		return &Event_NewHead{NewHead: NewHeadFromPb(pb.NewHead)}
 	case *applicationpb.Event_VerifyBlockRequest:
 		return &Event_VerifyBlockRequest{VerifyBlockRequest: VerifyBlocksRequestFromPb(pb.VerifyBlockRequest)}
 	case *applicationpb.Event_VerifyBlockResponse:
@@ -43,36 +41,12 @@ func Event_TypeFromPb(pb applicationpb.Event_Type) Event_Type {
 		return &Event_PayloadRequest{PayloadRequest: PayloadRequestFromPb(pb.PayloadRequest)}
 	case *applicationpb.Event_PayloadResponse:
 		return &Event_PayloadResponse{PayloadResponse: PayloadResponseFromPb(pb.PayloadResponse)}
-	case *applicationpb.Event_ForkUpdate:
-		return &Event_ForkUpdate{ForkUpdate: ForkUpdateFromPb(pb.ForkUpdate)}
+	case *applicationpb.Event_HeadChange:
+		return &Event_HeadChange{HeadChange: HeadChangeFromPb(pb.HeadChange)}
 	case *applicationpb.Event_MessageInput:
 		return &Event_MessageInput{MessageInput: MessageInputFromPb(pb.MessageInput)}
 	}
 	return nil
-}
-
-type Event_NewHead struct {
-	NewHead *NewHead
-}
-
-func (*Event_NewHead) isEvent_Type() {}
-
-func (w *Event_NewHead) Unwrap() *NewHead {
-	return w.NewHead
-}
-
-func (w *Event_NewHead) Pb() applicationpb.Event_Type {
-	if w == nil {
-		return nil
-	}
-	if w.NewHead == nil {
-		return &applicationpb.Event_NewHead{}
-	}
-	return &applicationpb.Event_NewHead{NewHead: (w.NewHead).Pb()}
-}
-
-func (*Event_NewHead) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_NewHead]()}
 }
 
 type Event_VerifyBlockRequest struct {
@@ -171,28 +145,28 @@ func (*Event_PayloadResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_PayloadResponse]()}
 }
 
-type Event_ForkUpdate struct {
-	ForkUpdate *ForkUpdate
+type Event_HeadChange struct {
+	HeadChange *HeadChange
 }
 
-func (*Event_ForkUpdate) isEvent_Type() {}
+func (*Event_HeadChange) isEvent_Type() {}
 
-func (w *Event_ForkUpdate) Unwrap() *ForkUpdate {
-	return w.ForkUpdate
+func (w *Event_HeadChange) Unwrap() *HeadChange {
+	return w.HeadChange
 }
 
-func (w *Event_ForkUpdate) Pb() applicationpb.Event_Type {
+func (w *Event_HeadChange) Pb() applicationpb.Event_Type {
 	if w == nil {
 		return nil
 	}
-	if w.ForkUpdate == nil {
-		return &applicationpb.Event_ForkUpdate{}
+	if w.HeadChange == nil {
+		return &applicationpb.Event_HeadChange{}
 	}
-	return &applicationpb.Event_ForkUpdate{ForkUpdate: (w.ForkUpdate).Pb()}
+	return &applicationpb.Event_HeadChange{HeadChange: (w.HeadChange).Pb()}
 }
 
-func (*Event_ForkUpdate) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_ForkUpdate]()}
+func (*Event_HeadChange) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event_HeadChange]()}
 }
 
 type Event_MessageInput struct {
@@ -244,35 +218,6 @@ func (m *Event) Pb() *applicationpb.Event {
 
 func (*Event) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.Event]()}
-}
-
-type NewHead struct {
-	HeadId uint64
-}
-
-func NewHeadFromPb(pb *applicationpb.NewHead) *NewHead {
-	if pb == nil {
-		return nil
-	}
-	return &NewHead{
-		HeadId: pb.HeadId,
-	}
-}
-
-func (m *NewHead) Pb() *applicationpb.NewHead {
-	if m == nil {
-		return nil
-	}
-	pbMessage := &applicationpb.NewHead{}
-	{
-		pbMessage.HeadId = m.HeadId
-	}
-
-	return pbMessage
-}
-
-func (*NewHead) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.NewHead]()}
 }
 
 type VerifyBlocksRequest struct {
@@ -353,18 +298,18 @@ func (*VerifyBlocksResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.VerifyBlocksResponse]()}
 }
 
-type ForkUpdate struct {
+type HeadChange struct {
 	RemovedChain         []*types1.Block
 	AddedChain           []*types1.Block
 	CheckpointToForkRoot []*types1.Block
 	CheckpointState      *types.State
 }
 
-func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
+func HeadChangeFromPb(pb *applicationpb.HeadChange) *HeadChange {
 	if pb == nil {
 		return nil
 	}
-	return &ForkUpdate{
+	return &HeadChange{
 		RemovedChain: types2.ConvertSlice(pb.RemovedChain, func(t *blockchainpb.Block) *types1.Block {
 			return types1.BlockFromPb(t)
 		}),
@@ -378,11 +323,11 @@ func ForkUpdateFromPb(pb *applicationpb.ForkUpdate) *ForkUpdate {
 	}
 }
 
-func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
+func (m *HeadChange) Pb() *applicationpb.HeadChange {
 	if m == nil {
 		return nil
 	}
-	pbMessage := &applicationpb.ForkUpdate{}
+	pbMessage := &applicationpb.HeadChange{}
 	{
 		pbMessage.RemovedChain = types2.ConvertSlice(m.RemovedChain, func(t *types1.Block) *blockchainpb.Block {
 			return (t).Pb()
@@ -401,8 +346,8 @@ func (m *ForkUpdate) Pb() *applicationpb.ForkUpdate {
 	return pbMessage
 }
 
-func (*ForkUpdate) MirReflect() mirreflect.Type {
-	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.ForkUpdate]()}
+func (*HeadChange) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*applicationpb.HeadChange]()}
 }
 
 type PayloadRequest struct {

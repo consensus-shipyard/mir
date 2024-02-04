@@ -33,7 +33,7 @@ import (
  * The application module must perform the following tasks:
  * 1. Initialize the blockchain by sending it the initial state in an InitBlockchain event to the BCM.
  * 2. When it receives a PayloadRequest event, it must provide a payload for the next block. This payload can be empty.
- * 3. When it receives a ForkUpdate event, it must compute the state at the new head of the blockchain.
+ * 3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
  *    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
  *	  A checkpoint is a block stored by the BCM that has a state stored with it.
  * 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at a application level and respond with a VerifyBlocksResponse event.
@@ -65,7 +65,6 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 	timeStamps := state.LastSentTimestamps
 	msgHistory := state.MessageHistory
 
-	// TODO: is this necessary? it should be verified already
 	for i, lt := range timeStamps {
 		if lt.NodeId == sender {
 			ltTimestamp := lt.Timestamp.AsTime()
@@ -103,7 +102,7 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 
 // Handler called by BCM when the head changes.
 // It handles cases where the head changes because the canonical chain was extended as well as cases where the canonical chain changes because of a fork.
-func (am *ApplicationModule) handleForkUpdate(removedChain, addedChain, checkpointToForkRootChain []*blockchainpbtypes.Block, checkpointState *statepbtypes.State) error {
+func (am *ApplicationModule) handleHeadChange(removedChain, addedChain, checkpointToForkRootChain []*blockchainpbtypes.Block, checkpointState *statepbtypes.State) error {
 	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.pm.PoolSize())
 
 	// add "remove chain" transactions to pool
@@ -219,7 +218,7 @@ func NewApplication(logger logging.Logger, nodeID t.NodeID) modules.PassiveModul
 	})
 
 	applicationpbdsl.UponPayloadRequest(m, am.handlePayloadRequest)
-	applicationpbdsl.UponForkUpdate(m, am.handleForkUpdate)
+	applicationpbdsl.UponHeadChange(m, am.handleHeadChange)
 	applicationpbdsl.UponVerifyBlocksRequest(m, am.handleVerifyBlocksRequest)
 
 	applicationpbdsl.UponMessageInput(m, func(text string) error {

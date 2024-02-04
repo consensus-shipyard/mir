@@ -3,36 +3,21 @@
 package applicationpbevents
 
 import (
-	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
+	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/applicationpb/types"
 	types5 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
-	types3 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
-	types4 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
-	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
+	types1 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb/types"
+	types2 "github.com/filecoin-project/mir/pkg/pb/blockchainpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/types"
 )
 
-func NewHead(destModule types.ModuleID, headId uint64) *types1.Event {
-	return &types1.Event{
+func VerifyBlocksRequest(destModule types.ModuleID, checkpointState *types1.State, chainCheckpointToStart []*types2.Block, chainToVerify []*types2.Block) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_NewHead{
-					NewHead: &types2.NewHead{
-						HeadId: headId,
-					},
-				},
-			},
-		},
-	}
-}
-
-func VerifyBlocksRequest(destModule types.ModuleID, checkpointState *types3.State, chainCheckpointToStart []*types4.Block, chainToVerify []*types4.Block) *types1.Event {
-	return &types1.Event{
-		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_VerifyBlockRequest{
-					VerifyBlockRequest: &types2.VerifyBlocksRequest{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_VerifyBlockRequest{
+					VerifyBlockRequest: &types4.VerifyBlocksRequest{
 						CheckpointState:        checkpointState,
 						ChainCheckpointToStart: chainCheckpointToStart,
 						ChainToVerify:          chainToVerify,
@@ -43,13 +28,13 @@ func VerifyBlocksRequest(destModule types.ModuleID, checkpointState *types3.Stat
 	}
 }
 
-func VerifyBlocksResponse(destModule types.ModuleID, verifiedBlocks []*types4.Block) *types1.Event {
-	return &types1.Event{
+func VerifyBlocksResponse(destModule types.ModuleID, verifiedBlocks []*types2.Block) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_VerifyBlockResponse{
-					VerifyBlockResponse: &types2.VerifyBlocksResponse{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_VerifyBlockResponse{
+					VerifyBlockResponse: &types4.VerifyBlocksResponse{
 						VerifiedBlocks: verifiedBlocks,
 					},
 				},
@@ -58,13 +43,13 @@ func VerifyBlocksResponse(destModule types.ModuleID, verifiedBlocks []*types4.Bl
 	}
 }
 
-func PayloadRequest(destModule types.ModuleID, headId uint64) *types1.Event {
-	return &types1.Event{
+func PayloadRequest(destModule types.ModuleID, headId uint64) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_PayloadRequest{
-					PayloadRequest: &types2.PayloadRequest{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_PayloadRequest{
+					PayloadRequest: &types4.PayloadRequest{
 						HeadId: headId,
 					},
 				},
@@ -73,13 +58,13 @@ func PayloadRequest(destModule types.ModuleID, headId uint64) *types1.Event {
 	}
 }
 
-func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types5.Payload) *types1.Event {
-	return &types1.Event{
+func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types5.Payload) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_PayloadResponse{
-					PayloadResponse: &types2.PayloadResponse{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_PayloadResponse{
+					PayloadResponse: &types4.PayloadResponse{
 						HeadId:  headId,
 						Payload: payload,
 					},
@@ -89,13 +74,13 @@ func PayloadResponse(destModule types.ModuleID, headId uint64, payload *types5.P
 	}
 }
 
-func ForkUpdate(destModule types.ModuleID, removedChain []*types4.Block, addedChain []*types4.Block, checkpointToForkRoot []*types4.Block, checkpointState *types3.State) *types1.Event {
-	return &types1.Event{
+func HeadChange(destModule types.ModuleID, removedChain []*types2.Block, addedChain []*types2.Block, checkpointToForkRoot []*types2.Block, checkpointState *types1.State) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_ForkUpdate{
-					ForkUpdate: &types2.ForkUpdate{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_HeadChange{
+					HeadChange: &types4.HeadChange{
 						RemovedChain:         removedChain,
 						AddedChain:           addedChain,
 						CheckpointToForkRoot: checkpointToForkRoot,
@@ -107,13 +92,13 @@ func ForkUpdate(destModule types.ModuleID, removedChain []*types4.Block, addedCh
 	}
 }
 
-func MessageInput(destModule types.ModuleID, text string) *types1.Event {
-	return &types1.Event{
+func MessageInput(destModule types.ModuleID, text string) *types3.Event {
+	return &types3.Event{
 		DestModule: destModule,
-		Type: &types1.Event_Application{
-			Application: &types2.Event{
-				Type: &types2.Event_MessageInput{
-					MessageInput: &types2.MessageInput{
+		Type: &types3.Event_Application{
+			Application: &types4.Event{
+				Type: &types4.Event_MessageInput{
+					MessageInput: &types4.MessageInput{
 						Text: text,
 					},
 				},

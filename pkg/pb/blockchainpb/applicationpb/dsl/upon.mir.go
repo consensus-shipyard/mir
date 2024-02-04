@@ -24,12 +24,6 @@ func UponEvent[W types.Event_TypeWrapper[Ev], Ev any](m dsl.Module, handler func
 	})
 }
 
-func UponNewHead(m dsl.Module, handler func(headId uint64) error) {
-	UponEvent[*types.Event_NewHead](m, func(ev *types.NewHead) error {
-		return handler(ev.HeadId)
-	})
-}
-
 func UponVerifyBlocksRequest(m dsl.Module, handler func(checkpointState *types2.State, chainCheckpointToStart []*types3.Block, chainToVerify []*types3.Block) error) {
 	UponEvent[*types.Event_VerifyBlockRequest](m, func(ev *types.VerifyBlocksRequest) error {
 		return handler(ev.CheckpointState, ev.ChainCheckpointToStart, ev.ChainToVerify)
@@ -54,8 +48,8 @@ func UponPayloadResponse(m dsl.Module, handler func(headId uint64, payload *type
 	})
 }
 
-func UponForkUpdate(m dsl.Module, handler func(removedChain []*types3.Block, addedChain []*types3.Block, checkpointToForkRoot []*types3.Block, checkpointState *types2.State) error) {
-	UponEvent[*types.Event_ForkUpdate](m, func(ev *types.ForkUpdate) error {
+func UponHeadChange(m dsl.Module, handler func(removedChain []*types3.Block, addedChain []*types3.Block, checkpointToForkRoot []*types3.Block, checkpointState *types2.State) error) {
+	UponEvent[*types.Event_HeadChange](m, func(ev *types.HeadChange) error {
 		return handler(ev.RemovedChain, ev.AddedChain, ev.CheckpointToForkRoot, ev.CheckpointState)
 	})
 }

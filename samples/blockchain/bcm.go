@@ -45,7 +45,7 @@ import (
  *   Additionally, it sends a TreeUpdate event to the interceptor module. This is solely for debugging/visualization purposes and not necessary for the operation of the blockchain.
  * 3. Register checkpoints when receiving a RegisterCheckpoint event from the application module.
  * 4. It must provide the synchronizer with chains when requested. This is to resolve orphan blocks in other nodes.
- * 5. When the head changes, it sends a ForkUpdate event to the application module. This event contains all information necessary for the application to compute the state at the new head
+ * 5. When the head changes, it sends a HeadChange event to the application module. This event contains all information necessary for the application to compute the state at the new head
  *    as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
  */
 
@@ -150,7 +150,7 @@ func (bcm *bcmModule) handleNewHead(newHead, oldHead *bcmBlock) {
 	}
 	checkpointToForkRootChain, checkpointState := bcm.getChainFromCheckpointToBlock(forkRoot)
 
-	applicationpbdsl.ForkUpdate(*bcm.m, "application",
+	applicationpbdsl.HeadChange(*bcm.m, "application",
 		removeChain[1:],
 		addChain[1:],
 		checkpointToForkRootChain,

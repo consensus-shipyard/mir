@@ -8,13 +8,6 @@ import "mir/codegen_extensions.proto";
 import "blockchainpb/payloadpb/payloadpb.proto";
 import "google/protobuf/timestamp.proto";
 
-message Blocktree {
-  option (mir.struct) = true;
-  
-  repeated Block    blocks  = 1;
-  repeated uint64   leaves  = 2;
-}
-
 message Block {
   option (mir.struct) = true;
   

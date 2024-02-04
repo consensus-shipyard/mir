@@ -13,10 +13,6 @@ import (
 
 // Module-specific dsl functions for emitting events.
 
-func NewHead(m dsl.Module, destModule types.ModuleID, headId uint64) {
-	dsl.EmitMirEvent(m, events.NewHead(destModule, headId))
-}
-
 func VerifyBlocksRequest(m dsl.Module, destModule types.ModuleID, checkpointState *types1.State, chainCheckpointToStart []*types2.Block, chainToVerify []*types2.Block) {
 	dsl.EmitMirEvent(m, events.VerifyBlocksRequest(destModule, checkpointState, chainCheckpointToStart, chainToVerify))
 }
@@ -33,8 +29,8 @@ func PayloadResponse(m dsl.Module, destModule types.ModuleID, headId uint64, pay
 	dsl.EmitMirEvent(m, events.PayloadResponse(destModule, headId, payload))
 }
 
-func ForkUpdate(m dsl.Module, destModule types.ModuleID, removedChain []*types2.Block, addedChain []*types2.Block, checkpointToForkRoot []*types2.Block, checkpointState *types1.State) {
-	dsl.EmitMirEvent(m, events.ForkUpdate(destModule, removedChain, addedChain, checkpointToForkRoot, checkpointState))
+func HeadChange(m dsl.Module, destModule types.ModuleID, removedChain []*types2.Block, addedChain []*types2.Block, checkpointToForkRoot []*types2.Block, checkpointState *types1.State) {
+	dsl.EmitMirEvent(m, events.HeadChange(destModule, removedChain, addedChain, checkpointToForkRoot, checkpointState))
 }
 
 func MessageInput(m dsl.Module, destModule types.ModuleID, text string) {
