@@ -25,7 +25,7 @@ type WSWriter struct {
 	// ... websocket server variables ...
 	conn        *websocket.Conn
 	upgrader    websocket.Upgrader
-	eventSignal chan map[string]interface{}
+	eventSignal chan map[string]string
 	WSMessage   struct {
 		Type  string `json:"Type"`
 		Value string `json:"Value"`
@@ -105,9 +105,7 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		}
 
 		eventAction := <-wsw.eventSignal
-		actionType, _ := eventAction["Type"].(string)
-		value, _ := eventAction["Value"].(string)
-		acceptedEvents, _ = EventAction(actionType, value, acceptedEvents, event)
+		acceptedEvents, _ = EventAction(eventAction["Type"], eventAction["Value"], acceptedEvents, event)
 	}
 	return acceptedEvents, nil
 }
@@ -125,7 +123,7 @@ func EventAction(
 	return acceptedEvents, nil
 }
 
-func (wsw *WSWriter) HandleClientSignal(signal map[string]interface{}) {
+func (wsw *WSWriter) HandleClientSignal(signal map[string]string) {
 	wsw.eventSignal <- signal
 }
 
@@ -138,7 +136,7 @@ func newWSWriter(port string) *WSWriter {
 			ReadBufferSize:  ReadBufferSize,
 			WriteBufferSize: WriteBufferSize,
 		},
-		eventSignal: make(chan map[string]interface{}),
+		eventSignal: make(chan map[string]string),
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -162,20 +160,14 @@ func newWSWriter(port string) *WSWriter {
 				break
 			}
 
-			var signal map[string]interface{}
+			var signal map[string]string
 			err = json.Unmarshal(message, &signal)
 			if err != nil {
 				panic(err)
 			}
 
-			signalType, typeOk := signal["Type"].(string)
-			signalValue, valueOk := signal["Value"].(string)
-			if !typeOk || !valueOk {
-				panic(fmt.Sprintf("Invalid signal format: Type or Value key missing or not a string in %+v", signal))
-			}
-
 			// Check if the signal is a 'close' command
-			if signalType == "close" && signalValue == "" {
+			if signal["Type"] == "close" && signal["Value"] == "" {
 				break
 			}
 
