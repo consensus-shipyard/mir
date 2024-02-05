@@ -1,8 +1,8 @@
 package wsServer
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
@@ -60,7 +60,8 @@ func (wss *WsServer) handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wsc *connection) wsConnection() {
-	log.Println("wsConnection")
+	wsc.server.logger.Log(logging.LevelInfo, "New WS connection", "total connections: ", len(wsc.server.connections))
+	ctx, cancel := context.WithCancel(context.Background()) // new context for new mining
 	//  close connection
 	defer wsc.ws.Close()
 	// close up channels and remove connection
@@ -70,21 +71,31 @@ func (wsc *connection) wsConnection() {
 		close(wsc.sendChan)
 		wsc.server.connectionsLock.Unlock()
 	}()
+	defer cancel() // cancel context for event sending loop
 
 	// sending msgs
 	go func() {
 		for {
-			message := <-wsc.sendChan
-			err := wsc.ws.WriteMessage(message.MessageType, message.Payload)
-			if err != nil {
-				wsc.server.logger.Log(logging.LevelError, "Error sending WS message: ", err)
+			select {
+			case <-ctx.Done():
+				return
+			case message := <-wsc.sendChan:
+				err := wsc.ws.WriteMessage(message.MessageType, message.Payload)
+				if err != nil {
+					wsc.server.logger.Log(logging.LevelError, "Error sending WS message: ", err)
+				}
 			}
 		}
 	}()
 
 	// "receiving" msgs
 	for {
-		wsc.ws.ReadMessage()
+		msgType, _, err := wsc.ws.ReadMessage()
+		// catching all erros but actually only interested in "going away" errors
+		if msgType == websocket.CloseMessage || err != nil {
+			wsc.server.logger.Log(logging.LevelWarn, "WS connection closed")
+			return
+		}
 		wsc.server.logger.Log(logging.LevelWarn, "Received WS message - ignored")
 	}
 }
@@ -119,9 +130,11 @@ func (wss *WsServer) setupHttpRoutes() {
 func (wss *WsServer) sendHandler() {
 	for {
 		message := <-wss.SendChan
+		wss.connectionsLock.Lock()
 		for _, conn := range wss.connections {
 			conn.sendChan <- message
 		}
+		wss.connectionsLock.Unlock()
 	}
 }
 
