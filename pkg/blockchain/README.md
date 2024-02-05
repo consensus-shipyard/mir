@@ -400,6 +400,8 @@ The following lists the key specifications of the chat app:
 
 ### Running the chat app
 
+> All commands listed here are intended to be run in [this directory](../../samples/blockchain-chat/).
+
 To run the chat app, you can run the following in multiple terminals, once for each node
 
 ```
@@ -419,6 +421,8 @@ If they are not set, default values will be used
 If `tmux` is installed, you can run `./run.sh` to start a network of 4 nodes with reasonable options set.
 
 ### Visualization
+
+> The visualization tool can be found [here](https://github.com/komplexon3/longest-chain-project/tree/main/chain-visualizer).
 
 For this chat application, there exists an accompanying browser-based visualization tool that utilizes the aforementioned websocket interceptor.
 The visualizer provides insight into the state of the different nodes.
@@ -451,5 +455,3 @@ Every single block displays the following information:
   Note that this information is part of the payload.
 
 ![visualizer block](./images/visualizer_block.png)
-
-## Conclusion
