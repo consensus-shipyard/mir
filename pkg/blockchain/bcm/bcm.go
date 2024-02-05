@@ -490,6 +490,14 @@ func (bcm *bcmModule) handleGetChainRequest(requestID string, sourceModule t.Mod
 
 }
 
+func (bcm *bcmModule) handleGetChainToHeadRequest(sourceModule t.ModuleID) error {
+	bcm.logger.Log(logging.LevelInfo, "Received get chain to head request", "sourceModule", sourceModule)
+	chain, checkpontState := bcm.getChainFromCheckpointToBlock(bcm.head)
+	bcmpbdsl.GetChainToHeadResponse(*bcm.m, sourceModule, chain, checkpontState)
+	return nil
+
+}
+
 func (bcm *bcmModule) handleInitBlockchain(initialState *statepbtypes.State) error {
 	// initialize blockchain
 
@@ -572,6 +580,13 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 			return err
 		}
 		return bcm.handleGetChainRequest(requestID, sourceModule, endBlockId, sourceBlockIds)
+	})
+
+	bcmpbdsl.UponGetChainToHeadRequest(m, func(sourceModule t.ModuleID) error {
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
+		return bcm.handleGetChainToHeadRequest(sourceModule)
 	})
 
 	bcmpbdsl.UponRegisterCheckpoint(m, bcm.handleRegisterCheckpoint)

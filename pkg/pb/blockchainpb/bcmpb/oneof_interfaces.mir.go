@@ -29,6 +29,14 @@ func (w *Event_RegisterCheckpoint) Unwrap() *RegisterCheckpoint {
 	return w.RegisterCheckpoint
 }
 
+func (w *Event_GetChainToHeadRequest) Unwrap() *GetChainToHeadRequest {
+	return w.GetChainToHeadRequest
+}
+
+func (w *Event_GetChainToHeadResponse) Unwrap() *GetChainToHeadResponse {
+	return w.GetChainToHeadResponse
+}
+
 func (w *Event_InitBlockchain) Unwrap() *InitBlockchain {
 	return w.InitBlockchain
 }

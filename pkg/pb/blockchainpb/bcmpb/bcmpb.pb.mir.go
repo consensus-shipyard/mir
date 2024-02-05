@@ -13,6 +13,8 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_GetChainRequest)(nil)),
 		reflect.TypeOf((*Event_GetChainResponse)(nil)),
 		reflect.TypeOf((*Event_RegisterCheckpoint)(nil)),
+		reflect.TypeOf((*Event_GetChainToHeadRequest)(nil)),
+		reflect.TypeOf((*Event_GetChainToHeadResponse)(nil)),
 		reflect.TypeOf((*Event_InitBlockchain)(nil)),
 	}
 }

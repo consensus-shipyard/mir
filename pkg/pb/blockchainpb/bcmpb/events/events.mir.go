@@ -91,6 +91,37 @@ func RegisterCheckpoint(destModule types.ModuleID, blockId uint64, state *types4
 	}
 }
 
+func GetChainToHeadRequest(destModule types.ModuleID, sourceModule types.ModuleID) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetChainToHeadRequest{
+					GetChainToHeadRequest: &types3.GetChainToHeadRequest{
+						SourceModule: sourceModule,
+					},
+				},
+			},
+		},
+	}
+}
+
+func GetChainToHeadResponse(destModule types.ModuleID, chain []*types1.Block, checkpointState *types4.State) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Bcm{
+			Bcm: &types3.Event{
+				Type: &types3.Event_GetChainToHeadResponse{
+					GetChainToHeadResponse: &types3.GetChainToHeadResponse{
+						Chain:           chain,
+						CheckpointState: checkpointState,
+					},
+				},
+			},
+		},
+	}
+}
+
 func InitBlockchain(destModule types.ModuleID, initialState *types4.State) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,

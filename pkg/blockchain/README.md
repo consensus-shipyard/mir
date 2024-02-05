@@ -216,6 +216,16 @@ end
 Synchronizer (I) ->> BCM (I): NewChain
 ```
 
+Also, at any point in time, the application can get the current state at the head of the blockchain by sending a _GetChainToHeadRequest_ to the BCM.
+The response to this will include a chain of blocks from a checkpoint to the current head and the state associated with the checkpoint.
+Using this information, the application can compute the current state.
+
+```mermaid
+sequenceDiagram
+Application ->> BCM: GetChainToHeadRequest
+BCM ->> Application: GetChainToHeadResponse
+```
+
 ## Modules
 
 ### Blockchain Management Module (BCM)

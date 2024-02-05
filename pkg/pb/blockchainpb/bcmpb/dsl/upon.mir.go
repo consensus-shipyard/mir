@@ -54,6 +54,18 @@ func UponRegisterCheckpoint(m dsl.Module, handler func(blockId uint64, state *ty
 	})
 }
 
+func UponGetChainToHeadRequest(m dsl.Module, handler func(sourceModule types3.ModuleID) error) {
+	UponEvent[*types.Event_GetChainToHeadRequest](m, func(ev *types.GetChainToHeadRequest) error {
+		return handler(ev.SourceModule)
+	})
+}
+
+func UponGetChainToHeadResponse(m dsl.Module, handler func(chain []*types2.Block, checkpointState *types4.State) error) {
+	UponEvent[*types.Event_GetChainToHeadResponse](m, func(ev *types.GetChainToHeadResponse) error {
+		return handler(ev.Chain, ev.CheckpointState)
+	})
+}
+
 func UponInitBlockchain(m dsl.Module, handler func(initialState *types4.State) error) {
 	UponEvent[*types.Event_InitBlockchain](m, func(ev *types.InitBlockchain) error {
 		return handler(ev.InitialState)

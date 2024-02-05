@@ -43,6 +43,10 @@ func Event_TypeFromPb(pb bcmpb.Event_Type) Event_Type {
 		return &Event_GetChainResponse{GetChainResponse: GetChainResponseFromPb(pb.GetChainResponse)}
 	case *bcmpb.Event_RegisterCheckpoint:
 		return &Event_RegisterCheckpoint{RegisterCheckpoint: RegisterCheckpointFromPb(pb.RegisterCheckpoint)}
+	case *bcmpb.Event_GetChainToHeadRequest:
+		return &Event_GetChainToHeadRequest{GetChainToHeadRequest: GetChainToHeadRequestFromPb(pb.GetChainToHeadRequest)}
+	case *bcmpb.Event_GetChainToHeadResponse:
+		return &Event_GetChainToHeadResponse{GetChainToHeadResponse: GetChainToHeadResponseFromPb(pb.GetChainToHeadResponse)}
 	case *bcmpb.Event_InitBlockchain:
 		return &Event_InitBlockchain{InitBlockchain: InitBlockchainFromPb(pb.InitBlockchain)}
 	}
@@ -167,6 +171,54 @@ func (w *Event_RegisterCheckpoint) Pb() bcmpb.Event_Type {
 
 func (*Event_RegisterCheckpoint) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_RegisterCheckpoint]()}
+}
+
+type Event_GetChainToHeadRequest struct {
+	GetChainToHeadRequest *GetChainToHeadRequest
+}
+
+func (*Event_GetChainToHeadRequest) isEvent_Type() {}
+
+func (w *Event_GetChainToHeadRequest) Unwrap() *GetChainToHeadRequest {
+	return w.GetChainToHeadRequest
+}
+
+func (w *Event_GetChainToHeadRequest) Pb() bcmpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.GetChainToHeadRequest == nil {
+		return &bcmpb.Event_GetChainToHeadRequest{}
+	}
+	return &bcmpb.Event_GetChainToHeadRequest{GetChainToHeadRequest: (w.GetChainToHeadRequest).Pb()}
+}
+
+func (*Event_GetChainToHeadRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetChainToHeadRequest]()}
+}
+
+type Event_GetChainToHeadResponse struct {
+	GetChainToHeadResponse *GetChainToHeadResponse
+}
+
+func (*Event_GetChainToHeadResponse) isEvent_Type() {}
+
+func (w *Event_GetChainToHeadResponse) Unwrap() *GetChainToHeadResponse {
+	return w.GetChainToHeadResponse
+}
+
+func (w *Event_GetChainToHeadResponse) Pb() bcmpb.Event_Type {
+	if w == nil {
+		return nil
+	}
+	if w.GetChainToHeadResponse == nil {
+		return &bcmpb.Event_GetChainToHeadResponse{}
+	}
+	return &bcmpb.Event_GetChainToHeadResponse{GetChainToHeadResponse: (w.GetChainToHeadResponse).Pb()}
+}
+
+func (*Event_GetChainToHeadResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.Event_GetChainToHeadResponse]()}
 }
 
 type Event_InitBlockchain struct {
@@ -359,6 +411,73 @@ func (m *GetChainResponse) Pb() *bcmpb.GetChainResponse {
 
 func (*GetChainResponse) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetChainResponse]()}
+}
+
+type GetChainToHeadRequest struct {
+	SourceModule types2.ModuleID
+}
+
+func GetChainToHeadRequestFromPb(pb *bcmpb.GetChainToHeadRequest) *GetChainToHeadRequest {
+	if pb == nil {
+		return nil
+	}
+	return &GetChainToHeadRequest{
+		SourceModule: (types2.ModuleID)(pb.SourceModule),
+	}
+}
+
+func (m *GetChainToHeadRequest) Pb() *bcmpb.GetChainToHeadRequest {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &bcmpb.GetChainToHeadRequest{}
+	{
+		pbMessage.SourceModule = (string)(m.SourceModule)
+	}
+
+	return pbMessage
+}
+
+func (*GetChainToHeadRequest) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetChainToHeadRequest]()}
+}
+
+type GetChainToHeadResponse struct {
+	Chain           []*types.Block
+	CheckpointState *types3.State
+}
+
+func GetChainToHeadResponseFromPb(pb *bcmpb.GetChainToHeadResponse) *GetChainToHeadResponse {
+	if pb == nil {
+		return nil
+	}
+	return &GetChainToHeadResponse{
+		Chain: types1.ConvertSlice(pb.Chain, func(t *blockchainpb.Block) *types.Block {
+			return types.BlockFromPb(t)
+		}),
+		CheckpointState: types3.StateFromPb(pb.CheckpointState),
+	}
+}
+
+func (m *GetChainToHeadResponse) Pb() *bcmpb.GetChainToHeadResponse {
+	if m == nil {
+		return nil
+	}
+	pbMessage := &bcmpb.GetChainToHeadResponse{}
+	{
+		pbMessage.Chain = types1.ConvertSlice(m.Chain, func(t *types.Block) *blockchainpb.Block {
+			return (t).Pb()
+		})
+		if m.CheckpointState != nil {
+			pbMessage.CheckpointState = (m.CheckpointState).Pb()
+		}
+	}
+
+	return pbMessage
+}
+
+func (*GetChainToHeadResponse) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*bcmpb.GetChainToHeadResponse]()}
 }
 
 type RegisterCheckpoint struct {
