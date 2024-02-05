@@ -1,12 +1,7 @@
 package grpc
 
 import (
-	"math"
 	"time"
-)
-
-const (
-	DefaultConnectionTTL = time.Duration(math.MaxInt64 - iota)
 )
 
 type Params struct {

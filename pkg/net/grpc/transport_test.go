@@ -166,24 +166,23 @@ func (m *mockGrpcCommunication) testConnected(nodeID1, nodeID2 stdtypes.NodeID, 
 }
 
 // TestNewTransport tests that the transport can be created.
-func XTestNewTransport(t *testing.T) {
+func TestNewTransport(t *testing.T) {
 	_, err := NewTransport(DefaultParams(), "a", mockAddr(0), logging.ConsoleDebugLogger, nil)
 	require.NoError(t, err)
 }
 
 // TestTransportStartStop tests that the transport can be started and stopped.
-func XTestTransportStartStop(t *testing.T) {
+func TestTransportStartStop(t *testing.T) {
 	tr, err := NewTransport(DefaultParams(), "a", mockAddr(0), logging.ConsoleDebugLogger, nil)
 	require.NoError(t, err)
 
 	err = tr.Start()
 	require.NoError(t, err)
-	time.Sleep(500 * time.Millisecond)
 	tr.Stop()
 }
 
 // TestConnectTwoNodes that two nodes can be connected.
-func XTestConnectTwoNodes(t *testing.T) {
+func TestConnectTwoNodes(t *testing.T) {
 	logger := logging.ConsoleDebugLogger
 
 	nodeA := stdtypes.NodeID("a")
@@ -201,11 +200,8 @@ func XTestConnectTwoNodes(t *testing.T) {
 	a.Connect(initialNodes)
 	b.Connect(initialNodes)
 
-	time.Sleep(3 * time.Second)
-
 	m.testConnected(nodeA, nodeB, 10*time.Second)
 
-	time.Sleep(3 * time.Second)
 	m.StopAllTransports()
 }
 
