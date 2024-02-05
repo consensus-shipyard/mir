@@ -1,22 +1,19 @@
-package libp2p
+package grpc
 
 import (
 	es "github.com/go-errors/errors"
-	"github.com/libp2p/go-libp2p/core/peer"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
 	messagepbtypes "github.com/filecoin-project/mir/pkg/pb/messagepb/types"
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
+	"github.com/filecoin-project/mir/stdevents"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // selfConnection represents a connection of a node to itself.
 // It bypasses the network completely and feeds sent messages directly into the code that handles message delivery.
 type selfConnection struct {
-	ownID       stdtypes.NodeID
-	peerID      peer.ID
-	msgBuffer   chan *messagepb.Message
+	ownAddr     string
+	msgBuffer   chan *GrpcMessage
 	deliverChan chan<- *stdtypes.EventList
 	stop        chan struct{}
 	done        chan struct{}
@@ -26,16 +23,10 @@ type selfConnection struct {
 // Addr is the own address and deliverChan is the channel to which delivered messages need to be written.
 // Messages sent to this connection will be buffered and eventually written to deliverChan in form of MessageDelivered
 // events (unless the buffer fills up, in which case sent messages will be dropped.)
-func newSelfConnection(params Params, ownID stdtypes.NodeID, ownAddr stdtypes.NodeAddress, deliverChan chan<- *stdtypes.EventList) (*selfConnection, error) {
-	addrInfo, err := peer.AddrInfoFromP2pAddr(ownAddr)
-	if err != nil {
-		return nil, es.Errorf("failed to parse address: %w", err)
-	}
-
+func newSelfConnection(params Params, ownAddr string, deliverChan chan<- *stdtypes.EventList) (*selfConnection, error) {
 	conn := &selfConnection{
-		ownID:       ownID,
-		peerID:      addrInfo.ID,
-		msgBuffer:   make(chan *messagepb.Message, params.ConnectionBufferSize),
+		ownAddr:     ownAddr,
+		msgBuffer:   make(chan *GrpcMessage, params.ConnectionBufferSize),
 		deliverChan: deliverChan,
 		stop:        make(chan struct{}),
 		done:        make(chan struct{}),
@@ -46,14 +37,14 @@ func newSelfConnection(params Params, ownID stdtypes.NodeID, ownAddr stdtypes.No
 	return conn, nil
 }
 
-// PeerID returns the peer ID of the node itself, as it is itself on the other side of the connection.
-func (conn *selfConnection) PeerID() peer.ID {
-	return conn.peerID
+// Address returns the network address of the node itself, as it is itself on the other side of the connection.
+func (conn *selfConnection) Address() string {
+	return conn.ownAddr
 }
 
 // Send feeds the given message directly to the sink of delivered messages.
 // Send is non-blocking and if the buffer for delivered messages is full, the message is dropped.
-func (conn *selfConnection) Send(msg *messagepb.Message) error {
+func (conn *selfConnection) Send(msg *GrpcMessage) error {
 
 	select {
 	case conn.msgBuffer <- msg:
@@ -104,15 +95,30 @@ func (conn *selfConnection) process() {
 		select {
 		case <-conn.stop:
 			return
-		case msg := <-conn.msgBuffer:
+		case grpcMsg := <-conn.msgBuffer:
+
+			var rcvEvent stdtypes.Event
+			var destModule stdtypes.ModuleID
+			switch msg := grpcMsg.Type.(type) {
+			case *GrpcMessage_PbMsg:
+				rcvEvent = transportpbevents.MessageReceived(
+					destModule,
+					stdtypes.NodeID(grpcMsg.Sender),
+					messagepbtypes.MessageFromPb(msg.PbMsg),
+				).Pb()
+			case *GrpcMessage_RawMsg:
+				destModule = stdtypes.ModuleID(msg.RawMsg.DestModule)
+				rcvEvent = stdevents.NewMessageReceived(
+					destModule,
+					stdtypes.NodeID(grpcMsg.Sender),
+					stdtypes.RawMessage(msg.RawMsg.Data),
+				)
+			}
+
 			select {
 			case <-conn.stop:
 				return
-			case conn.deliverChan <- stdtypes.ListOf(transportpbevents.MessageReceived(
-				stdtypes.ModuleID(msg.DestModule),
-				conn.ownID,
-				messagepbtypes.MessageFromPb(msg)).Pb(),
-			):
+			case conn.deliverChan <- stdtypes.ListOf(rcvEvent):
 				// Nothing to do in this case, message has been delivered.
 			}
 		}

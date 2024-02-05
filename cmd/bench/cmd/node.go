@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strconv"
 	"time"
 
 	es "github.com/go-errors/errors"
@@ -19,21 +18,19 @@ import (
 	manet "github.com/multiformats/go-multiaddr/net"
 	"github.com/spf13/cobra"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/cmd/bench/localtxgenerator"
 	"github.com/filecoin-project/mir/cmd/bench/stats"
 	"github.com/filecoin-project/mir/pkg/deploytest"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
-	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/pkg/rendezvous"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	"github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 const (
@@ -97,12 +94,6 @@ func runNode() error {
 		return es.Errorf("could not load parameters from file '%s': %w", configFileName, err)
 	}
 
-	// Parse own ID.
-	ownNumericID, err := strconv.Atoi(id)
-	if err != nil {
-		return es.Errorf("unable to convert node ID: %w", err)
-	}
-
 	// Check if own id is in the membership
 	initialMembership := params.Trantor.Iss.InitialMembership
 	if _, ok := initialMembership.Nodes[stdtypes.NodeID(id)]; !ok {
@@ -122,20 +113,14 @@ func runNode() error {
 		return es.Errorf("could not create listen address: %w", err)
 	}
 
-	// Create libp2p host
-	h, err := libp2p.NewDummyHostWithPrivKey(
-		stdtypes.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
-		libp2p.NewDummyHostKey(ownNumericID),
-	)
-	if err != nil {
-		return es.Errorf("failed to create libp2p host: %w", err)
-	}
-
 	// Initialize tracking of networking statistics.
 	netStats := stats.NewNetStats(time.Second)
 
-	// Initialize the libp2p transport subsystem.
-	transport := libp2p2.NewTransport(params.Trantor.Net, ownID, h, logger, netStats)
+	// Initialize the grpc transport subsystem.
+	transport, err := grpc.NewTransport(params.Trantor.Net, ownID, listenAddr.String(), logger, netStats)
+	if err != nil {
+		return es.Errorf("failed to create grpc transport: %w", err)
+	}
 
 	// Instantiate the crypto module.
 	localCryptoSystem, err := deploytest.NewLocalCryptoSystem("pseudo", membership.GetIDs(initialMembership), logger)

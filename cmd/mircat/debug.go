@@ -26,7 +26,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/pb/recordingpb"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
-	"github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/stdmodules/timer"
 	"github.com/filecoin-project/mir/stdtypes"
 )
@@ -40,7 +39,7 @@ func debug(args *arguments) error {
 	for _, nID := range args.membership {
 		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{
 			Id:     nID,
-			Addr:   libp2p.NewDummyHostAddr(0, 0).String(),
+			Addr:   "", // TODO: THIS EMPTY ADDRESS MIGHT BREAK STUFF!!! Make sure the code still works.
 			Key:    nil,
 			Weight: "1",
 		}

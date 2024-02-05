@@ -27,8 +27,6 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
 	"github.com/filecoin-project/mir"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -36,13 +34,13 @@ import (
 	lsp "github.com/filecoin-project/mir/pkg/iss/leaderselectionpolicy"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/membership"
-	libp2p2 "github.com/filecoin-project/mir/pkg/net/libp2p"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
 	mempoolpbevents "github.com/filecoin-project/mir/pkg/pb/mempoolpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
 	"github.com/filecoin-project/mir/pkg/util/errstack"
-	"github.com/filecoin-project/mir/pkg/util/libp2p"
+	"github.com/filecoin-project/mir/stdtypes"
 )
 
 // parsedArgs represents parsed command-line parameters passed to the program.
@@ -109,13 +107,6 @@ func run() error {
 	// Load system membership info: IDs, addresses, ports, etc...
 	// ================================================================================
 
-	// For the dummy chat application, we require node IDs to be numeric,
-	// as other metadata is derived from node IDs.
-	ownNumericID, err := strconv.Atoi(string(args.OwnID))
-	if err != nil {
-		return errors.Wrap(err, "node IDs must be numeric in the sample app")
-	}
-
 	// Load initial system membership from the file indicated through the command line.
 	initialAddrs, err := membership.FromFileName(args.InitMembershipFile)
 	if err != nil {
@@ -147,19 +138,10 @@ func run() error {
 	trantorParams := trantor.DefaultParams(initialMembership)
 	trantorParams.Iss.LeaderSelectionPolicy = lsp.Simple
 
-	// Create a dummy libp2p host for network communication (this is why we need a numeric ID)
-	h, err := libp2p.NewDummyHostWithPrivKey(
-		stdtypes.NodeAddress(libp2p.NewDummyMultiaddr(ownNumericID, listenAddr)),
-		libp2p.NewDummyHostKey(ownNumericID),
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to create libp2p host")
-	}
-
 	// Initialize the libp2p transport subsystem.
-	transport := libp2p2.NewTransport(trantorParams.Net, args.OwnID, h, logger, nil)
+	transport, err := grpc.NewTransport(trantorParams.Net, args.OwnID, listenAddr.String(), logger, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to create libp2p transport")
+		return errors.Wrap(err, "failed to create grpc transport")
 	}
 
 	// Create a dummy crypto implementation that locally generates all keys in a pseudo-random manner.

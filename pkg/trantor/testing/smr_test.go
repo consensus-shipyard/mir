@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/mir/pkg/eventmangler"
+	"github.com/filecoin-project/mir/pkg/net/grpc"
 	"github.com/filecoin-project/mir/stdtypes"
 
 	"github.com/filecoin-project/mir/pkg/trantor/types"
@@ -31,7 +32,6 @@ import (
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net/libp2p"
 	"github.com/filecoin-project/mir/pkg/testsim"
 	"github.com/filecoin-project/mir/pkg/trantor"
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
@@ -46,10 +46,6 @@ func TestIntegration(t *testing.T) {
 	defer goleak.VerifyNone(t,
 		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/deploytest.newSimModule"),
 		goleak.IgnoreTopFunction("github.com/filecoin-project/mir/pkg/testsim.(*Chan).recv"),
-
-		// Problems with this started occurring after an update to a new version of the quic implementation.
-		// Assuming it has nothing to do with Mir or Trantor.
-		goleak.IgnoreTopFunction("github.com/libp2p/go-libp2p/p2p/transport/quicreuse.(*reuse).gc"),
 
 		// If an observable is not exhausted when checking an event trace...
 		goleak.IgnoreTopFunction("github.com/reactivex/rxgo/v2.Item.SendContext"),
@@ -114,28 +110,28 @@ func testIntegrationWithISS(tt *testing.T) {
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
-		4: {"Submit 10 fake transactions with 4 nodes and libp2p networking",
+		4: {"Submit 10 fake transactions with 4 nodes and grpc networking",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
 				NumClients:    1,
-				Transport:     "libp2p",
+				Transport:     "grpc",
 				NumFakeTXs:    10,
-				Duration:      60 * time.Second,
+				Duration:      20 * time.Second,
 			}},
-		5: {"Submit 10 transactions with 1 node and libp2p networking",
+		5: {"Submit 10 transactions with 1 node and grpc networking",
 			&TestConfig{
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(1),
 				NumClients:    1,
-				Transport:     "libp2p",
+				Transport:     "grpc",
 				NumNetTXs:     10,
 				Duration:      20 * time.Second,
 			}},
-		6: {"Submit 10 transactions with 4 nodes and libp2p networking",
+		6: {"Submit 10 transactions with 4 nodes and grpc networking",
 			&TestConfig{
-				Info:          "libp2p 10 transactions and 4 nodes",
+				Info:          "grpc 10 transactions and 4 nodes",
 				NodeIDsWeight: deploytest.NewNodeIDsDefaultWeights(4),
 				NumClients:    1,
-				Transport:     "libp2p",
+				Transport:     "grpc",
 				NumNetTXs:     10,
 				Duration:      60 * time.Second,
 			}},
@@ -496,7 +492,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			trantor.Params{
 				Mempool:      mempoolParams,
 				Iss:          tConf.Iss,
-				Net:          libp2p.Params{},
+				Net:          grpc.DefaultParams(),
 				Availability: avParamsTemplate,
 			},
 			nodeLogger,

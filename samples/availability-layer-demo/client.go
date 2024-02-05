@@ -93,7 +93,7 @@ func run() error {
 		}
 	}
 
-	transport, err := grpc.NewTransport(args.OwnID, ownAddr.String(), logger)
+	transport, err := grpc.NewTransport(grpc.DefaultParams(), args.OwnID, ownAddr.String(), logger, nil)
 	if err != nil {
 		return es.Errorf("failed to get network transport %w", err)
 	}

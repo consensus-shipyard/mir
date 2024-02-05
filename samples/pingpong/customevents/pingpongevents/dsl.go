@@ -6,13 +6,18 @@ import (
 	es "github.com/go-errors/errors"
 
 	"github.com/filecoin-project/mir/pkg/dsl"
-	"github.com/filecoin-project/mir/pkg/net/grpc"
+	"github.com/filecoin-project/mir/stdevents"
 	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func UponGRPCMessage[M any](m dsl.Module, handler func(msg *M, from t.NodeID) error) {
-	dsl.UponEvent(m, func(msgRecEvent *grpc.MessageReceived) error {
-		msg, err := ParseMessage(msgRecEvent.Data())
+	dsl.UponEvent(m, func(msgRecEvent *stdevents.MessageReceived) error {
+		data, err := msgRecEvent.Payload.ToBytes()
+		if err != nil {
+			return es.Errorf("could not retrieve data from received message: %w", err)
+		}
+
+		msg, err := ParseMessage(data)
 		if err != nil {
 			return es.Errorf("failed parsing message: %w", err)
 		}
@@ -40,6 +45,6 @@ func UponGRPCMessage[M any](m dsl.Module, handler func(msg *M, from t.NodeID) er
 			return nil
 		}
 
-		return handler(message, msgRecEvent.SourceNode)
+		return handler(message, msgRecEvent.Sender)
 	})
 }

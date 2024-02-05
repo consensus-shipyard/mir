@@ -1,21 +1,15 @@
-package libp2p
-
-import (
-	"github.com/libp2p/go-libp2p/core/peer"
-
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
-)
+package grpc
 
 // connection represents a connection to a (local or remote) peer.
 type connection interface {
 
-	// PeerID returns the libp2p peer ID of the other side of this connection.
-	PeerID() peer.ID
+	// Address returns the network address of the other side of this connection.
+	Address() string
 
 	// Send makes a non-blocking attempt to send a message to this connection.
 	// Send might use internal buffering. Thus, even if it returns nil,
 	// the message might not have yet been physically sent.
-	Send(message *messagepb.Message) error
+	Send(message *GrpcMessage) error
 
 	// Close closes the connection. No data will be sent to the underlying stream after Close returns.
 	Close()

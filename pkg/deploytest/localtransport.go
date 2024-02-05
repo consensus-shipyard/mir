@@ -21,7 +21,7 @@ type LocalTransportLayer interface {
 }
 
 // NewLocalTransportLayer creates an instance of LocalTransportLayer suitable for tests.
-// transportType is one of: "sim", "fake", "grpc", or "libp2p".
+// transportType is one of: "sim", "fake", or "grpc".
 func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDsWeight map[t.NodeID]types.VoteWeight, logger logging.Logger) (LocalTransportLayer, error) {
 	switch transportType {
 	case "sim":
@@ -34,8 +34,6 @@ func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDsWeight
 		return NewFakeTransport(nodeIDsWeight), nil
 	case "grpc":
 		return NewLocalGrpcTransport(nodeIDsWeight, logger)
-	case "libp2p":
-		return NewLocalLibp2pTransport(nodeIDsWeight, logger), nil
 	default:
 		return nil, es.Errorf("unexpected transport type: %v", transportType)
 	}
