@@ -6,7 +6,6 @@ import (
 
 	"github.com/filecoin-project/mir/pkg/dsl"
 	"github.com/filecoin-project/mir/pkg/modules"
-	"github.com/filecoin-project/mir/pkg/net/grpc"
 	ppdsl "github.com/filecoin-project/mir/pkg/pb/pingpongpb/dsl"
 	"github.com/filecoin-project/mir/samples/pingpong/customevents/pingpongevents"
 	"github.com/filecoin-project/mir/stdevents"
@@ -35,11 +34,11 @@ func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 		}
 
 		// Send PING message.
-		dsl.EmitEvent(m, grpc.NewOutgoingMessage(
-			pingpongevents.Message(pingpongevents.Ping{SeqNr: nextSN}),
+		dsl.EmitEvent(m, stdevents.NewSendMessage(
 			"transport",
 			"pingpong",
-			[]t.NodeID{destNodeID},
+			pingpongevents.Message(pingpongevents.Ping{SeqNr: nextSN}),
+			destNodeID,
 		))
 		nextSN++
 		return nil
@@ -48,11 +47,11 @@ func NewPingPong(ownNodeID t.NodeID) modules.PassiveModule {
 	pingpongevents.UponGRPCMessage(m, func(ping *pingpongevents.Ping, from t.NodeID) error {
 		fmt.Printf("Received ping from %s: %d\n", from, ping.SeqNr)
 
-		dsl.EmitEvent(m, grpc.NewOutgoingMessage(
-			pingpongevents.Message(&pingpongevents.Pong{SeqNr: ping.SeqNr}),
+		dsl.EmitEvent(m, stdevents.NewSendMessage(
 			"transport",
 			"pingpong",
-			[]t.NodeID{from},
+			pingpongevents.Message(&pingpongevents.Pong{SeqNr: ping.SeqNr}),
+			from,
 		))
 		return nil
 	})

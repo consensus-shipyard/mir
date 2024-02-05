@@ -24,7 +24,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	"github.com/filecoin-project/mir/pkg/testsim"
-	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 type MessageDelayFn func(from, to stdtypes.NodeID) time.Duration
@@ -62,7 +61,7 @@ func (st *SimTransport) Membership() *trantorpbtypes.Membership {
 	for nID := range st.nodes {
 		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			nID,
-			libp2p.NewDummyHostAddr(0, 0).String(),
+			"",
 			nil,
 			st.nodeIDsWeight[nID],
 		}

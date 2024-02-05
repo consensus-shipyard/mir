@@ -4,19 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 
-	t "github.com/filecoin-project/mir/stdtypes"
-
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
 	tt "github.com/filecoin-project/mir/pkg/trantor/types"
-	libp2ptools "github.com/filecoin-project/mir/pkg/util/libp2p"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 func FromFileName(fileName string) (*trantorpbtypes.Membership, error) {
@@ -127,10 +124,6 @@ func DummyMultiAddrs(membershipIn *trantorpbtypes.Membership) (*trantorpbtypes.M
 	membershipOut := &trantorpbtypes.Membership{make(map[t.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 
 	for nodeID, identity := range membershipIn.Nodes {
-		numericID, err := strconv.Atoi(string(nodeID))
-		if err != nil {
-			return nil, es.Errorf("node IDs must be numeric in the sample app: %w", err)
-		}
 
 		newAddr, err := multiaddr.NewMultiaddr(identity.Addr)
 		if err != nil {
@@ -139,7 +132,8 @@ func DummyMultiAddrs(membershipIn *trantorpbtypes.Membership) (*trantorpbtypes.M
 
 		membershipOut.Nodes[nodeID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			identity.Id,
-			libp2ptools.NewDummyMultiaddr(numericID, newAddr).String(),
+
+			newAddr.String(),
 			nil,
 			"1",
 		}

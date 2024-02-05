@@ -1,61 +1,59 @@
-package libp2p
+package grpc
 
 import (
-	"bytes"
 	"context"
-	"errors"
+	"fmt"
 	"sync"
-	"time"
 
 	es "github.com/go-errors/errors"
-	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/libp2p/go-libp2p/core/network"
-	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-yamux/v4"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/filecoin-project/mir/stdtypes"
-
 	"github.com/filecoin-project/mir/pkg/logging"
-	"github.com/filecoin-project/mir/pkg/pb/messagepb"
+	"github.com/filecoin-project/mir/pkg/net"
+	"github.com/filecoin-project/mir/stdtypes"
+)
+
+const (
+	// Maximum size of a gRPC message
+	maxMessageSize = 1073741824
 )
 
 type remoteConnection struct {
-	params        Params
-	ownID         stdtypes.NodeID
-	addrInfo      *peer.AddrInfo
-	logger        logging.Logger
-	host          host.Host
-	stream        network.Stream
-	msgBuffer     chan *messagepb.Message
-	stop          chan struct{}
-	done          chan struct{}
+	params Params
+
+	// The address of the target node.
+	// It must already be in a format accepted by grpc.DialContext
+	// (can be produced by manet.DialArgs from a Multiaddress)
+	addr string
+
+	msgBuffer chan *GrpcMessage
+	stop      chan struct{}
+	done      chan struct{}
+
+	clientConn    *grpc.ClientConn
+	msgSink       GrpcTransport_ListenClient
 	connectedCond *sync.Cond
 
-	stats Stats
+	stats  net.Stats
+	logger logging.Logger
 }
 
 func newRemoteConnection(
 	params Params,
-	ownID stdtypes.NodeID,
-	addr stdtypes.NodeAddress,
-	h host.Host,
+	addr string,
 	logger logging.Logger,
-	stats Stats,
+	stats net.Stats,
 ) (*remoteConnection, error) {
-	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
-	if err != nil {
-		return nil, es.Errorf("failed to parse address: %w", err)
-	}
 	conn := &remoteConnection{
 		params:        params,
-		ownID:         ownID,
-		addrInfo:      addrInfo,
+		addr:          addr,
 		logger:        logger,
 		stats:         stats,
-		host:          h,
-		stream:        nil,
-		msgBuffer:     make(chan *messagepb.Message, params.ConnectionBufferSize),
+		clientConn:    nil,
+		msgSink:       nil,
+		msgBuffer:     make(chan *GrpcMessage, params.ConnectionBufferSize),
 		stop:          make(chan struct{}),
 		done:          make(chan struct{}),
 		connectedCond: sync.NewCond(&sync.Mutex{}),
@@ -64,21 +62,21 @@ func newRemoteConnection(
 	return conn, nil
 }
 
-// PeerID returns the libp2p peer ID of the other side of this connection.
-func (conn *remoteConnection) PeerID() peer.ID {
-	return conn.addrInfo.ID
+// Address returns the network address of the other side of this connection.
+func (conn *remoteConnection) Address() string {
+	return conn.addr
 }
 
 // Send makes a non-blocking attempt to send a message to this connection.
 // Send might use internal buffering. Thus, even if it returns nil,
 // the message might not have yet been sent to the network.
-func (conn *remoteConnection) Send(msg *messagepb.Message) error {
+func (conn *remoteConnection) Send(msg *GrpcMessage) error {
 
 	select {
 	case conn.msgBuffer <- msg:
 		return nil
 	default:
-		return es.Errorf("send buffer full (" + conn.addrInfo.String() + ")")
+		return es.Errorf("send buffer full (" + conn.addr + ")")
 	}
 }
 
@@ -119,7 +117,7 @@ func (conn *remoteConnection) Wait() (chan error, func()) {
 		defer conn.connectedCond.L.Unlock()
 
 		// Wait while
-		for conn.stream == nil && !abort {
+		for conn.clientConn == nil && !abort {
 			// the connection has not yet been established and the caller of Wait has not called the abort function
 			select {
 			case <-conn.stop:
@@ -169,7 +167,7 @@ func (conn *remoteConnection) connect() error {
 	}()
 
 	// Retry connecting until we succeed.
-	for conn.stream == nil {
+	for conn.clientConn == nil {
 
 		select {
 		case <-conn.stop:
@@ -178,11 +176,12 @@ func (conn *remoteConnection) connect() error {
 		default:
 
 			// Try connecting to the peer.
-			if err := conn.tryConnecting(ctx); err != nil {
+			if err := conn.tryConnecting(); err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -190,22 +189,48 @@ func (conn *remoteConnection) connect() error {
 // It blocks until it succeeds or, if it fails, at least for ReconnectionPeriod (unless the connection is closing).
 // tryConnecting returns nil on success or if it is meaningful to retry connecting (i.e., call tryConnecting again).
 // It only returns a non-nil error if it is not meaningful to retry.
-func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
+func (conn *remoteConnection) tryConnecting() error {
 
-	// Try creating a network stream.
-	conn.host.Peerstore().AddAddrs(conn.addrInfo.ID, conn.addrInfo.Addrs, conn.params.ConnectionTTL)
-	stream, err := conn.host.NewStream(ctx, conn.addrInfo.ID, conn.params.ProtocolID)
+	conn.logger.Log(logging.LevelDebug, fmt.Sprintf("Connecting to node: %s", conn.addr))
 
-	// If connecting failed, wait a moment before returning.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), conn.params.ReconnectionPeriod)
+	defer cancel()
+
+	// Set general gRPC dial options.
+	dialOpts := []grpc.DialOption{
+		grpc.WithBlock(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxMessageSize), grpc.MaxCallSendMsgSize(maxMessageSize)),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	}
+
+	// Set up a gRPC connection.
+	clientConn, err := grpc.DialContext(timeoutCtx, conn.addr, dialOpts...)
+	if err != nil {
+		conn.logger.Log(logging.LevelWarn, "Failed dialing.", "addr", conn.addr, "err", err)
+		return nil // Returning indicates that another attempt to connect should be made.
+	}
+
+	// Register client stub.
+	client := NewGrpcTransportClient(clientConn)
+
+	// Remotely invoke the Listen function on the other node's gRPC server.
+	// As this is "stream of requests"-type RPC, it returns a message sink.
+	// We don't use timeoutCtx here, as we need the msgSink to survive even after the timeout.
+	msgSink, err := client.Listen(context.Background())
+	if err != nil {
+		if cerr := clientConn.Close(); cerr != nil {
+			conn.logger.Log(logging.LevelWarn, fmt.Sprintf("Failed to close connection: %v", cerr))
+		}
+		return nil // Returning indicates that another attempt to connect should be made.
+	}
+
+	// If connecting failed, wait until the reconnection timeout expires before returning.
 	// (tryConnecting is likely to be called again immediately if it fails.)
-	after := time.NewTimer(conn.params.ReconnectionPeriod)
-	defer after.Stop()
-
 	if err != nil {
 		select {
 		case <-conn.stop:
-			return es.Errorf("context canceled")
-		case <-after.C:
+			return es.Errorf("connection closing")
+		case <-timeoutCtx.Done():
 			conn.logger.Log(logging.LevelWarn, "Failed connecting.", "err", err)
 			return nil
 		}
@@ -214,7 +239,8 @@ func (conn *remoteConnection) tryConnecting(ctx context.Context) error {
 	// If connecting succeeded, save the new stream
 	// and notify any goroutines waiting for the connection establishment (Wait method).
 	conn.connectedCond.L.Lock()
-	conn.stream = stream
+	conn.clientConn = clientConn
+	conn.msgSink = msgSink
 	conn.connectedCond.Broadcast()
 	conn.connectedCond.L.Unlock()
 	return nil
@@ -236,14 +262,11 @@ func (conn *remoteConnection) process() {
 	// When processing finishes, close the underlying stream and signal to the Stop method that it can return.
 	// Note that the defer order is thus inverted.
 	defer close(conn.done)
-	defer conn.closeStream()
+	defer conn.closeClientConn()
 
-	// Data to be sent to the connection.
-	// If nil, a new message from conn.msgBuffer will be read, encoded, and stored here.
-	var msgData []byte
-
-	// Label to associate the data with. Only relevant for recording statistics.
-	var statsLabel string
+	// Message to be sent to the connection.
+	// If nil, a new message from conn.msgBuffer will be read, and stored here.
+	var grpcMessage *GrpcMessage
 
 	for {
 		// The processing loop runs indefinitely (until interrupted by explicitly returning).
@@ -259,7 +282,7 @@ func (conn *remoteConnection) process() {
 		}
 
 		// Create a network connection if there is none.
-		if conn.stream == nil {
+		if conn.clientConn == nil {
 			if err := conn.connect(); err != nil {
 				// Unless the connection is closing, connect() will keep retrying to connect indefinitely.
 				// Thus, if it returns an error, it means that there is no point in continuing the processing.
@@ -268,114 +291,71 @@ func (conn *remoteConnection) process() {
 			}
 		}
 
-		// Get the next message and encode it if there is no pending unsent message.
-		if msgData == nil {
+		// Get the next message if there is no pending unsent message.
+		if grpcMessage == nil {
 			select {
 			case <-conn.stop:
 				return
-			case msg := <-conn.msgBuffer:
-				// Encode message to a byte slice.
-				var err error
-				msgData, err = encodeMessage(msg, conn.ownID)
-				if err != nil {
-					conn.logger.Log(logging.LevelError, "Could not encode message. Disconnecting.", "err", err)
-					return
-				}
-				statsLabel = string(stdtypes.ModuleID(msg.DestModule).Top())
+			case grpcMessage = <-conn.msgBuffer:
 			}
 		}
 
 		// Write the encoded data to the network stream.
-		if err := conn.writeDataToStream(msgData, statsLabel); err != nil {
+		if err := conn.sendGrpcMessage(grpcMessage); err != nil {
 			// If writing fails, close the stream, such that a new one will be re-established in the next iteration.
-			conn.logger.Log(logging.LevelWarn, "Failed sending data.", "err", err)
-			conn.closeStream()
+			conn.logger.Log(logging.LevelWarn, "Failed sending message.", "err", err)
+			conn.closeClientConn()
 		} else {
 			// On success, clear the pending message (that has just been sent)
 			// so a new one can be read from the msbBuffer on the next iteration.
-			msgData = nil
+			grpcMessage = nil
 		}
 	}
 }
 
-// writeDataToStream writes data to the underlying network stream.
+// sendGrpcMessage writes data to the underlying network stream.
 // It blocks until all data is written, the connection closes, or an error occurs.
-// In the first case, writeDataToStream returns nil. Otherwise, it returns the corresponding error.
-// The statsLabel denotes the label under which to record this write in the statistics, if applicable.
-func (conn *remoteConnection) writeDataToStream(data []byte, statsLabel string) error {
+// In the first case, sendGrpcMessage returns nil. Otherwise, it returns the corresponding error.
+func (conn *remoteConnection) sendGrpcMessage(grpcMessage *GrpcMessage) error {
 
-	// Retry sending data until:
-	// - all data is sent, or
-	// - the connection closes, or
-	// - an error occurs.
-	for {
-
-		// Set a timeout for the data to be written, so the conn.stream.Write call does not block forever.
-		// This is required so that we can periodically check the conn.stop channel.
-		if err := conn.stream.SetWriteDeadline(time.Now().Add(conn.params.StreamWriteTimeout)); err != nil {
-			return es.Errorf("could not set stream write deadline")
-		}
-
-		// Try writing a chunk of data to the underlying network stream.
-		var bytesWritten int
-		var err error
-		if len(data) > conn.params.MaxDataPerWrite {
-			bytesWritten, err = conn.stream.Write(data[:conn.params.MaxDataPerWrite])
-		} else {
-			bytesWritten, err = conn.stream.Write(data)
-		}
-		data = data[bytesWritten:]
-
-		// Gather statistics if applicable.
-		if bytesWritten > 0 && conn.stats != nil {
-			conn.stats.Sent(bytesWritten, statsLabel)
-		}
-
-		if err == nil && len(data) == 0 {
-			// If all data was successfully written, return.
-			return nil
-		} else if errors.Is(err, yamux.ErrTimeout) {
-			// If a timeout occurred, check if the connection has not been closed in the meantime.
-			// If the connection is still open, retry sending the rest of the data in the next iteration.
-
-			select {
-			case <-conn.stop:
-				return es.Errorf("connection closing")
-			default:
-			}
-
-		} else if err != nil {
-			// If any other error occurred, just return it.
-			return es.Errorf("failed sending data: %w", err)
-		}
+	// Label to associate the data with. Only relevant for recording statistics.
+	var statsLabel string
+	switch m := grpcMessage.Type.(type) {
+	case *GrpcMessage_PbMsg:
+		statsLabel = string(stdtypes.ModuleID(m.PbMsg.DestModule).Top())
+	case *GrpcMessage_RawMsg:
+		statsLabel = string(stdtypes.ModuleID(m.RawMsg.DestModule).Top())
+	default:
+		panic(es.Errorf("unsupported message type: %T", grpcMessage.Type))
 	}
+
+	if err := conn.msgSink.Send(grpcMessage); err != nil {
+		return es.Errorf("failed sending grpc message: %w", err)
+	}
+
+	if conn.stats != nil {
+		conn.stats.Sent(proto.Size(grpcMessage), statsLabel)
+	}
+
+	return nil
 }
 
-// closeStream closes the underlying network stream if it is open.
-func (conn *remoteConnection) closeStream() {
+// closeClientConn closes the underlying network connection if it is open.
+func (conn *remoteConnection) closeClientConn() {
 
-	if conn.stream != nil {
-		if err := conn.stream.Close(); err != nil {
-			conn.logger.Log(logging.LevelWarn, "Failed closing stream.", "err", err)
+	if conn.clientConn != nil {
+		if err := conn.msgSink.CloseSend(); err != nil {
+			conn.logger.Log(logging.LevelWarn, "Failed closing grpc client.", "err", err)
+		}
+		if err := conn.clientConn.Close(); err != nil {
+			conn.logger.Log(logging.LevelWarn, "Failed closing grpc client connection.", "err", err)
 		}
 
-		// conn.stream == nil is used as a condition in the Wait method and thus needs to be guarded by the lock.
+		// conn.clientConn == nil is used as a condition in the Wait method and thus needs to be guarded by the lock.
+		// Also, conn.clientConn and conn.msgSink are expected both to be nil or both to be non-nil.
 		conn.connectedCond.L.Lock()
-		conn.stream = nil
+		conn.clientConn = nil
+		conn.msgSink = nil
 		conn.connectedCond.L.Unlock()
 	}
-}
-
-func encodeMessage(msg *messagepb.Message, nodeID stdtypes.NodeID) ([]byte, error) {
-	p, err := proto.Marshal(msg)
-	if err != nil {
-		return nil, es.Errorf("failed to marshal message: %w", err)
-	}
-
-	tm := TransportMessage{nodeID.Bytes(), p}
-	buf := new(bytes.Buffer)
-	if err = tm.MarshalCBOR(buf); err != nil {
-		return nil, es.Errorf("failed to CBOR marshal message: %w", err)
-	}
-	return buf.Bytes(), nil
 }

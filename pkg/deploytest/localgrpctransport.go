@@ -3,9 +3,6 @@ package deploytest
 import (
 	"fmt"
 
-	"github.com/filecoin-project/mir/pkg/trantor/types"
-	t "github.com/filecoin-project/mir/stdtypes"
-
 	es "github.com/go-errors/errors"
 	"github.com/multiformats/go-multiaddr"
 
@@ -13,6 +10,8 @@ import (
 	"github.com/filecoin-project/mir/pkg/net"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
+	"github.com/filecoin-project/mir/pkg/trantor/types"
+	t "github.com/filecoin-project/mir/stdtypes"
 )
 
 var _ LocalTransportLayer = &LocalGrpcTransport{}
@@ -49,9 +48,11 @@ func NewLocalGrpcTransport(nodeIDsWeight map[t.NodeID]types.VoteWeight, logger l
 
 func (t *LocalGrpcTransport) Link(sourceID t.NodeID) (net.Transport, error) {
 	return grpc.NewTransport(
+		grpc.DefaultParams(),
 		sourceID,
 		t.membership.Nodes[sourceID].Addr,
 		logging.Decorate(t.logger, fmt.Sprintf("gRPC: Node %v: ", sourceID)),
+		nil,
 	)
 }
 

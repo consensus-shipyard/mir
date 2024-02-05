@@ -29,7 +29,7 @@ func main() {
 	ownID := stdtypes.NodeID(os.Args[1])
 
 	// Instantiate network trnasport module and establish connections.
-	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
+	transport, err := grpc.NewTransport(grpc.DefaultParams(), ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger, nil)
 	if err != nil {
 		panic(err)
 	}

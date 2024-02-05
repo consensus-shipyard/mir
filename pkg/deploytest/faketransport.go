@@ -28,7 +28,6 @@ import (
 	transportpbevents "github.com/filecoin-project/mir/pkg/pb/transportpb/events"
 	transportpbtypes "github.com/filecoin-project/mir/pkg/pb/transportpb/types"
 	trantorpbtypes "github.com/filecoin-project/mir/pkg/pb/trantorpb/types"
-	"github.com/filecoin-project/mir/pkg/util/libp2p"
 )
 
 type FakeLink struct {
@@ -164,8 +163,7 @@ func (ft *FakeTransport) Membership() *trantorpbtypes.Membership {
 	for nID := range ft.Buffers {
 		membership.Nodes[nID] = &trantorpbtypes.NodeIdentity{ // nolint:govet
 			nID,
-			libp2p.NewDummyHostAddr(0,
-				0).String(),
+			"",
 			nil,
 			ft.nodeIDsWeight[nID],
 		}
