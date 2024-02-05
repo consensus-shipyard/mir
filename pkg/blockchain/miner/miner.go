@@ -115,7 +115,7 @@ func (m *minerModule) mineWorkerManager() {
 			select {
 			case <-ctx.Done():
 				// Mining aborted. Do nothing.
-				m.logger.Log(logging.LevelDebug, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
+				m.logger.Log(logging.LevelInfo, "Mining aborted", "headId", utils.FormatBlockId(blockRequest.HeadId))
 				return
 			case <-time.After(delay):
 				// Mining completed. Create block and broadcast.

@@ -105,7 +105,7 @@ func applyBlockToState(state *statepbtypes.State, block *blockchainpbtypes.Block
 // Handler called by BCM when the head changes.
 // It handles cases where the head changes because the canonical chain was extended as well as cases where the canonical chain changes because of a fork.
 func (am *ApplicationModule) handleHeadChange(removedChain, addedChain, checkpointToForkRootChain []*blockchainpbtypes.Block, checkpointState *statepbtypes.State) error {
-	am.logger.Log(logging.LevelInfo, "Processing fork update", "poolSize", am.pm.PoolSize())
+	am.logger.Log(logging.LevelDebug, "Processing fork update", "poolSize", am.pm.PoolSize())
 
 	// add "remove chain" transactions to pool
 	for _, block := range removedChain {
@@ -128,7 +128,7 @@ func (am *ApplicationModule) handleHeadChange(removedChain, addedChain, checkpoi
 		state = applyBlockToState(state, block)
 	}
 
-	am.logger.Log(logging.LevelInfo, "Pool after fork", "poolSize", am.pm.PoolSize())
+	am.logger.Log(logging.LevelDebug, "Pool after fork", "poolSize", am.pm.PoolSize())
 
 	// register checkpoint
 	blockId := addedChain[len(addedChain)-1].BlockId

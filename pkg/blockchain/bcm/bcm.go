@@ -130,7 +130,7 @@ func (bcm *bcmModule) blockTreeTraversal(traversalFunc func(currBlock *bcmBlock)
 }
 
 func (bcm *bcmModule) handleNewHead(newHead, oldHead *bcmBlock) {
-	bcm.logger.Log(logging.LevelInfo, "Head changed", "head", utils.FormatBlockId(newHead.block.BlockId))
+	bcm.logger.Log(logging.LevelInfo, "Head changed", "old head", utils.FormatBlockId(oldHead.block.BlockId), "new head", utils.FormatBlockId(newHead.block.BlockId))
 	// TODO: short circuit if newHead is oldHead's parent
 
 	// compute delta where removeChain is the chain leading to the old head and addChain is the chain leading to the new head
@@ -245,7 +245,7 @@ func (bcm *bcmModule) computeDelta(removeHead *bcmBlock, addHead *bcmBlock) ([]*
 
 // TODO: might need to add some "cleanup" to handle very old leaves in case this grows too much
 func (bcm *bcmModule) addBlock(block *blockchainpbtypes.Block) error {
-	bcm.logger.Log(logging.LevelInfo, "Adding block...", "blockId", utils.FormatBlockId(block.BlockId), "parentId", utils.FormatBlockId(block.PreviousBlockId))
+	bcm.logger.Log(logging.LevelInfo, "Adding new block", "blockId", utils.FormatBlockId(block.BlockId), "parentId", utils.FormatBlockId(block.PreviousBlockId))
 
 	// check if block is already in the leaves, reject if so
 	if _, ok := bcm.leaves[block.BlockId]; ok {
@@ -300,7 +300,7 @@ func (bcm *bcmModule) addBlock(block *blockchainpbtypes.Block) error {
 
 		return false, nil
 	}); err != nil {
-		bcm.logger.Log(logging.LevelInfo, "Couldn't find parent", "blockId", utils.FormatBlockId(block.BlockId), "error", err)
+		bcm.logger.Log(logging.LevelWarn, "Couldn't find parent", "blockId", utils.FormatBlockId(block.BlockId), "error", err)
 		return err
 	}
 
@@ -422,7 +422,7 @@ func (bcm *bcmModule) handleNewChain(blocks []*blockchainpbtypes.Block) error {
 }
 
 func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepbtypes.State) error {
-	bcm.logger.Log(logging.LevelInfo, "Received register checkpoint", "blockId", utils.FormatBlockId(block_id))
+	bcm.logger.Log(logging.LevelDebug, "Received register checkpoint", "blockId", utils.FormatBlockId(block_id))
 	if err := bcm.checkInitialization(); err != nil {
 		return err
 	}
@@ -447,7 +447,7 @@ func (bcm *bcmModule) handleRegisterCheckpoint(block_id uint64, state *statepbty
 }
 
 func (bcm *bcmModule) handleGetChainRequest(requestID string, sourceModule t.ModuleID, endBlockId uint64, sourceBlockIds []uint64) error {
-	bcm.logger.Log(logging.LevelInfo, "Received get chain request", "requestId", requestID, "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
+	bcm.logger.Log(logging.LevelDebug, "Received get chain request", "requestId", requestID, "sourceModule", sourceModule, "endBlockId", utils.FormatBlockId(endBlockId), "sourceBlockIds", utils.FormatBlockIdSlice(sourceBlockIds))
 
 	chain := make([]*blockchainpbtypes.Block, 0)
 	// for easier lookup...
@@ -494,7 +494,7 @@ func (bcm *bcmModule) handleGetChainRequest(requestID string, sourceModule t.Mod
 }
 
 func (bcm *bcmModule) handleGetChainToHeadRequest(sourceModule t.ModuleID) error {
-	bcm.logger.Log(logging.LevelInfo, "Received get chain to head request", "sourceModule", sourceModule)
+	bcm.logger.Log(logging.LevelDebug, "Received get chain to head request", "sourceModule", sourceModule)
 	chain, checkpontState := bcm.getChainFromCheckpointToBlock(bcm.head)
 	bcmpbdsl.GetChainToHeadResponse(*bcm.m, sourceModule, chain, checkpontState)
 	return nil
@@ -571,7 +571,7 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 	})
 
 	bcmpbdsl.UponNewChain(m, func(blocks []*blockchainpbtypes.Block) error {
-		bcm.logger.Log(logging.LevelInfo, "Received chain from synchronizer")
+		bcm.logger.Log(logging.LevelDebug, "Received chain from synchronizer")
 		if err := bcm.checkInitialization(); err != nil {
 			return err
 		}
@@ -592,11 +592,21 @@ func NewBCM(logger logging.Logger) modules.PassiveModule {
 		return bcm.handleGetChainToHeadRequest(sourceModule)
 	})
 
-	bcmpbdsl.UponRegisterCheckpoint(m, bcm.handleRegisterCheckpoint)
+	bcmpbdsl.UponRegisterCheckpoint(m, func(block_id uint64, state *statepbtypes.State) error {
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
+		return bcm.handleRegisterCheckpoint(block_id, state)
+	})
+
+	applicationpbdsl.UponVerifyBlocksResponse(m, func(blocks []*blockchainpbtypes.Block) error {
+		if err := bcm.checkInitialization(); err != nil {
+			return err
+		}
+		return bcm.handleVerifyBlocksResponse(blocks)
+	})
 
 	bcmpbdsl.UponInitBlockchain(m, bcm.handleInitBlockchain)
-
-	applicationpbdsl.UponVerifyBlocksResponse(m, bcm.handleVerifyBlocksResponse)
 
 	return m
 }

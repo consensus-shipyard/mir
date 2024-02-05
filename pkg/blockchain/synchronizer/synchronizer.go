@@ -226,7 +226,7 @@ func (sm *synchronizerModule) handleGetChainResponse(requestID string, found boo
 		return ErrUnkownGetBlockRequest
 	}
 
-	sm.externaLogger.Log(logging.LevelInfo, "Responsing to block request", "requestId", requestID, "found", found)
+	sm.externaLogger.Log(logging.LevelDebug, "Responsing to block request", "requestId", requestID, "found", found)
 
 	// respond to sync request
 	transportpbdsl.SendMessage(*sm.m, "transport", synchronizerpbmsgs.ChainResponse("synchronizer", requestID, found, chain), []t.NodeID{request.from})

@@ -77,7 +77,7 @@ func (wsc *connection) wsConnection() {
 			message := <-wsc.sendChan
 			err := wsc.ws.WriteMessage(message.MessageType, message.Payload)
 			if err != nil {
-				log.Println(err)
+				wsc.server.logger.Log(logging.LevelError, "Error sending WS message: ", err)
 			}
 		}
 	}()
@@ -94,7 +94,7 @@ func (wss *WsServer) handleWs(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Upgrade failed: %v", err)
+		wss.logger.Log(logging.LevelError, "Upgrade failed: ", err)
 		return
 	}
 	wss.connectionsLock.Lock()
@@ -126,10 +126,12 @@ func (wss *WsServer) sendHandler() {
 }
 
 func (wss *WsServer) StartServers() {
-	log.Println("Starting servers...")
+	wss.logger.Log(logging.LevelInfo, "Starting servers...")
 	wss.setupHttpRoutes()
 	go wss.sendHandler()
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", wss.port), nil))
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", wss.port), nil); err != nil {
+		wss.logger.Log(logging.LevelError, "ListenAndServe: ", err)
+	}
 }
 
 func NewWsServer(port int, logger logging.Logger) *WsServer {
