@@ -22,28 +22,30 @@ import (
 )
 
 /**
- * Application module
- * ==================
- *
- * The application module is reponsible for performing the actual application logic and to interact with users or other applications.
- * It does not hold any state, but instead relies on the blockchain manager module (BCM) to store the state.
- * However, the application needs to compute the state.
- * Also, the application module is responsible for providing payloads for new blocks.
- *
- * The application module must perform the following tasks:
- * 1. Initialize the blockchain by sending it the initial state in an InitBlockchain event to the BCM.
- * 2. When it receives a PayloadRequest event, it must provide a payload for the next block. This payload can be empty.
- * 3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
- *    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
- *	  A checkpoint is a block stored by the BCM that has a state stored with it.
- * 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
- *    Whether or not the blocks link together correctly is verified by the BCM.
- *
- * This application module implements a simple chat application.
- * It takes new messages from the user (MessageInput event) and combines them with a sender id and "sent" timestamp as payloads.
- * These payloads are stored in the payload manager (see applicaion/payloads/payloads.go).
- * The state is the list of all messages that have been sent and timestamps for when each sender last sent a message.
- * At the application level, a chain is valid if the timestamps are monotonically increasing for each sender.
+* Application module
+* ==================
+*
+* The application module is reponsible for performing the actual application logic and to interact with users or other applications.
+* It does not hold any state, but instead relies on the blockchain manager module (BCM) to store the state.
+* However, the application is responsible for computing the state given a chain of blocks and a state associated with the first block in the chain.
+* Also, the application module manages payloads and must provide payloads for new blocks to the miner.
+*
+* The application module must perform the following tasks:
+* 1. Initialize the blockchain by sending the initial state to the BCM in an InitBlockchain event.
+* 2. When it receives a PayloadRequest event, it must provide a payload for the next block.
+*	 Even if no payloads are available, a payload **must** be provided. However, this payload can be empty.
+* 3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
+*    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
+*	 (A checkpoint is a block stored by the BCM that has a state stored with it.)
+*    Additionally, the information provided in the _HeadChange_ event might be useful for the payload management.
+* 4. When it receives a VerifyBlocksRequest event, it must verify that the given chain is valid at an application level and respond with a VerifyBlocksResponse event.
+*    Whether or not the blocks link together correctly is verified by the BCM.
+*
+* This application module implements a simple chat application.
+* It takes new messages from the user (MessageInput event) and combines them with a sender id and "sent" timestamp as payloads.
+* These payloads are stored in the payload manager (see applicaion/payloads/payloads.go).
+* The state is the list of all messages that have been sent and timestamps for when each sender last sent a message.
+* At the application level, a chain is valid if the timestamps are monotonically increasing for each sender.
  */
 
 type ApplicationModule struct {

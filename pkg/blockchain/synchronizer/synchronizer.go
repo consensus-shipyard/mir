@@ -22,7 +22,7 @@ import (
  * ===================
  *
  * The synchronizer module assists the blockchain manager (BCM) in resolving cases whe BCM receives an orphan block.
- * That is, a block that cannot be linked to the blockchain because the blockchain does not contain the block that the orphan block is linked to.
+ * An orphan block is a block that cannot be linked to the blockchain because the blockchain does not contain the block that the orphan block is linked to.
  * To do this, the synchronizer module communicates with other nodes to get the missing blocks.
  *
  * Terminology:
@@ -33,16 +33,16 @@ import (
  * For internal sync requests:
  * 1. When it receives a SyncRequest event, it must register the request and send a ChainRequest message to another node.
  *    It asks one node after another.
- * 2. When it receives a successful ChainResponse message, it sends the blockchain manager (BCM) the chain fixing the missing bit with a Chain event.
+ * 2. When it receives a successful ChainResponse message, it sends the blockchain manager (BCM) the chain fixing the missing bit with a NewChain event.
  *	  It then deletes the request.
- * 3. When it receives a failed ChainResponse message, it sends a ChainRequest message to the next node.
+ * 3. When it receives a unsuccessful ChainResponse message, it sends a ChainRequest message to the next node.
  *    If there are no more nodes to ask, it deletes the request.
  *
  * For external sync requests:
  * 1. When it receives a ChainRequest message, it must register the request and send a GetChainRequest event to the BCM.
  * 2. The BCM will respond with a GetChainResponse event. The synchronizer then responds to the node that sent the ChainRequest message with a ChainResponse message.
  *
- * IMPORTANT: This module assumes that all other nodes resppond to requests and that no messages are lost.
+ * IMPORTANT: This module assumes that all other nodes resppond to requests. For this reason, the messages send by the synchronizer do not go through the mangler.
  */
 
 var (

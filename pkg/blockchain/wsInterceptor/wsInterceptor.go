@@ -9,20 +9,23 @@ import (
 )
 
 /**
- * Websocket interceptor
- * =====================
- *
- * The websocket interceptor intercepts all events and sends them to a websocket server.
- * Any connected client can then receive these events by subscribing to the websocket server.
- *
- * The interceptor proto defines events which are specificly intended for the interceptor and not used by the actual blockchain.
- * Since these events don't have a destination module, they are sent to the "devnull" module.
- * However, all events are intercepted and sent to the websocket server. The interceptor proto is simply for "extra" events.
- *
- * The interceptor proto defines two such events:
- * - TreeUpdate: This event is sent by the blockchain manager (BCM) when the blockchain is updated. It contains all blocks in the blockchain and the id of the new head.
- * - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
- */
+* Websocket interceptor
+* =====================
+*
+* The websocket interceptor intercepts all events and sends them to a websocket server.
+* Any connected client can then receive these events by subscribing to the websocket server.
+*
+* The interceptor proto file defines events which are specificly intended for the interceptor and not used by the actual blockchain.
+* Since these events technically don't have a destination module, they are sent to the "null" module.
+* However, all events are intercepted and sent to the websocket server.
+The interceptor proto is simply for "extra" events.
+*
+* The interceptor proto defines two such events:
+* - TreeUpdate: This event is sent by the blockchain manager (BCM) when the blockchain is updated. It contains all blocks in the blockchain and the id of the new head.
+* - StateUpdate: This event is sent by the application when it computes the state for the newest head of the blockchain.
+*
+* Important note: This is a very simple implementation and it fails to properly handle connections which causes a crash when subscribers disconnect.
+*/
 
 type eventFilterFn func(*eventpb.Event) bool
 

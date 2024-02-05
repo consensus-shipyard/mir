@@ -41,10 +41,13 @@ import (
  *    - It has the application module verify that the payloads are valid given the chain that the block is part of.
  *    - The BCM must verify that the blocks link together correctly.
  *   Additionally, it sends a TreeUpdate event to the interceptor module. This is solely for debugging/visualization purposes and not necessary for the operation of the blockchain.
+ *   Also, it instructs the miner to start mining on the new head (NewHead event).
  * 3. Register checkpoints when receiving a RegisterCheckpoint event from the application module.
  * 4. It must provide the synchronizer with chains when requested. This is to resolve orphan blocks in other nodes.
  * 5. When the head changes, it sends a HeadChange event to the application module. This event contains all information necessary for the application to compute the state at the new head
  *    as well as information about which payloads are now part of the canonical (i.e., longest) and which ones are no longer part of the canonical chain.
+ * 6. Provide a chain of blocks from a checkpoint to the current head and the state associated with the checkpoint when receiving a GetChainToHeadRequest.
+ *	  This is used by the application to query the current state.
  */
 
 var (

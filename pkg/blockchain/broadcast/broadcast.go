@@ -22,6 +22,8 @@ import (
 * The broadcast module is responsible for broadcasting new blocks to all other nodes.
 * It either does this directly via the transport module or via the mangler (parameter mangle).
 * If the mangler is used, messages might will be dropped and delayed.
+* How many messages should be dropped can be configured by the parameter `dropRate`
+* and the delay can be configured by the parameters `minDelay` and `maxDelay`.
  */
 
 func NewBroadcast(otherNodes []t.NodeID, mangle bool, logger logging.Logger) modules.PassiveModule {
