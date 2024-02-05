@@ -6,6 +6,10 @@ The goal of this system is to provide a simple modular blockchain run on a fixed
 
 It provides the core elements with only the actual business logic to be implemented by an application module.
 
+> #### Important
+>
+> This system is only intended for **demonstration purposes**.
+
 ## Overview
 
 We will first outline the different parts that make up the system.
@@ -86,7 +90,7 @@ Lastly, a user-implemented **Application Module** handles all business logic.
 In particular, it needs to compute the state of the blockchain, verify transactions and provide transactions to the miner.
 
 Next to the modules, it also includes an interceptor that intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
-An example of how to use the information provided by the interception can be found [here](https://github.com/komplexon3/longest-chain-project).
+An example of how to use the information provided by the interception can be found [here](https://github.com/komplexon3/longest-chain-project/tree/main/chain-visualizer).
 
 (TODO - fix link!)
 
@@ -99,7 +103,7 @@ It then instructs the miner module to start mining via a _NewHead_ event.
 In order to start mining, the miner module requests a payload (_PayloadRequest_) from the application module.
 The miner now starts to mine and the initialization sequence of the node is completed.
 
-Now, the node will remain inactive (other than mining a block) until a new block has been mined.
+After this, the node will remain inactive (other than mining a block) until a new block has been mined.
 This block can either be mined by this node's miner or by another node's miner.
 In the first case, the miner will send the new block to its BCM and broadcast the block to all other nodes via the broadcast module (_NewBlock_ event).
 
