@@ -31,11 +31,11 @@ import (
  * In particular, it keeps track of the head of the blockchain, all leaves and so-called checkpoints.
  * A checkpoint is a block stored by the BCM that has a state stored with it.
  * Technically, checkpoints are not necessary as the state can be computed from the blocks.
- * However, it is convenient to not have to recompute the state from the genesis block every time it is needed.
+ * However, it is convenient not to have to recompute the state from the genesis block every time it is needed.
  *
  * The BCM must perform the following tasks:
  * 1. Initialize the blockchain by receiving an InitBlockchain event from the application module which contains the initial state that is associated with the genesis block.
- * 2. Add new blocks to the blockchain. If a block is added that has a parent that is not in the blockchain, the BCM requests the missing block from the synchronizer.
+ * 2. Add new blocks to the blockchain. If a block with a parent that that is not in the blockchain is added, the BCM requests the missing block from the synchronizer.
  *    Blocks that are missing their parent are called orphans.
  *    All blocks added to the blockchain are verified in two steps:
  *    - It has the application module verify that the payloads are valid given the chain that the block is part of.

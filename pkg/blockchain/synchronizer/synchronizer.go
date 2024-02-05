@@ -40,7 +40,7 @@ import (
  *
  * For external sync requests:
  * 1. When it receives a ChainRequest message, it must register the request and send a GetChainRequest event to the BCM.
- * 2. The BCM will respond with a GetChainResponse event. The synchronizer then responds to the node that sent the ChainRequest message with a ChainResponse message.
+ * 2. WHen the BCM responds with a GetChainResponse event, the synchronizer responds to the node that sent the ChainRequest message with a ChainResponse message.
  *
  * IMPORTANT: This module assumes that all other nodes resppond to requests. For this reason, the messages send by the synchronizer do not go through the mangler.
  */

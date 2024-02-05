@@ -28,7 +28,7 @@ The blocks making up the blockchain contain the following:
 Every node keeps track of all nodes that it knows of.
 At the very beginning, this is solely the genesis block.
 After a couple of blocks have been mined, all nodes together form a tree of blocks.
-Whichever leaf of this tree is the deepest is called the head and the chain of blocks from the genesis block to this leave is the canonical chain.
+Whichever leaf of this tree is the deepest is called the head, and the chain of blocks from the genesis block to this leaf is the canonical chain.
 The payloads of all the blocks in the canonical chain together define the current state stored in the blockchain.
 
 ```mermaid
@@ -67,7 +67,7 @@ The nodes consist of the following core modules:
   Mines new blocks by simulating proof-of-work.
 
 - **Synchronizer Module:**
-  Resolves issues when new blocks are to be added to the blockchain but their parent blocks are unknown to this node's BCM.
+  Resolves issues when new blocks are to be added to the blockchain, but their parent blocks are unknown to this node's BCM.
 
 - **Broadcast Module:**
   Broadcasts newly mined blocks to all other nodes.
@@ -85,7 +85,7 @@ and the following supporting modules (provided by mir):
   Used by the Miner to simulate proof-of-work.
 
 Lastly, a user-implemented **Application Module** handles all business logic.
-In particular, it needs to compute the state of the blockchain, verify transactions and provide transactions to the miner.
+In particular, it needs to compute the state of the blockchain, verify payloads, and provide payloads to the miner.
 
 Next to the modules, it also includes an interceptor that intercepts all communication between different modules and allows for visualization/debugging tools to consume this communication via a websocket connection.
 An example of how to use the information provided by the interception can be found [here](https://github.com/komplexon3/longest-chain-project/tree/main/chain-visualizer).
@@ -95,11 +95,11 @@ An example of how to use the information provided by the interception can be fou
 ## Operation
 
 We will now walk through how the different modules interact with each other.
-At the start, the application module must initialize the BCM by sending it an _InitBlockchain_ event which contains the initial state.
+At the start, the application module must initialize the BCM by sending it an _InitBlockchain_ event, which contains the initial state.
 The BCM creates a genesis block with an empty payload and stores it together with the initial state.
 It then instructs the miner module to start mining via a _NewHead_ event.
-In order to start mining, the miner module requests a payload (_PayloadRequest_) from the application module.
-The miner now starts to mine and the initialization sequence of the node is completed.
+To start mining, the miner module requests a payload (_PayloadRequest_) from the application module.
+The miner now starts to mine, and the initialization sequence of the node is completed.
 
 After this, the node will remain inactive (other than mining a block) until a new block has been mined.
 This block was either mined by this node's miner or by another node's miner.
@@ -229,7 +229,7 @@ Note over Application: Compute state from checkpoint state and chain to head
 
 ## Modules
 
-After outlining the modules that make up a node and describing how they interact with each other, the following will describe the modules' functionality in a bit more detail.
+After outlining the modules that make up a node and describing how they interact, the following will describe the modules' functionality in a bit more detail.
 
 ### Blockchain Management Module (BCM)
 
@@ -238,12 +238,12 @@ It keeps track of all blocks and links them together to form a tree.
 In particular, it keeps track of the genesis block, the head of the blockchain, all leaves, and so-called checkpoints.
 A checkpoint is a block stored by the BCM that has a state stored with it.
 Technically, checkpoints are not necessary as the state can be computed from the blocks.
-However, it is convenient to not have to recompute the state from the genesis block every time it is needed.
+However, it is convenient not to have to recompute the state from the genesis block every time it is needed.
 
 The BCM must perform the following tasks:
 
-1. Initialize the blockchain by receiving an _InitBlockchain_ event from the application module which contains the initial state that is associated with the genesis block.
-2. Add new blocks to the blockchain. If a block is added that has a parent that is not in the blockchain, the BCM requests the missing block from the synchronizer.
+1. Initialize the blockchain by receiving an _InitBlockchain_ event from the application module, which contains the initial state that is associated with the genesis block.
+2. Add new blocks to the blockchain. If a block with a parent that is not in the blockchain is added, the BCM requests the missing block from the synchronizer.
    Blocks that are missing their parent are called orphans.
    All blocks added to the blockchain are verified in two steps:
 
@@ -267,11 +267,11 @@ It simulates the process of mining a block by waiting for a random amount of tim
 This random amount of time is sampled from an exponential distribution with a mean of `expMinuteFactor` minutes.
 The mining is orchestrated by a separate goroutine (`mineWorkerManager`) such that the miner module can continue to receive and process events.
 
-The operation of the miner module at a is as follows:
+The operation of the miner module is as follows:
 
-1. When it is notified of a new head (_NewHead_ event), it prepares to mine the next block by sending a PayloadRequest event to the application module.
+1. When it is notified of a new head (_NewHead_ event), it prepares to mine the next block by sending a _PayloadRequest_ event to the application module.
    If it is already mining a block, it aborts the ongoing mining operation.
-2. When it receives the PayloadResponse containing a payload for the next block, it starts mining a new block with the received payload.
+2. When it receives the _PayloadResponse_ containing a payload for the next block, it starts mining a new block with the received payload.
 3. When it mines a new block, it broadcasts it to all other modules by sending a _NewBlock_ message to the broadcast module.
    It also shares the block with the blockchain manager module (BCM) by sending a _NewBlock_ event to it.
 
@@ -306,8 +306,7 @@ For internal sync requests:
 For external sync requests:
 
 1. When it receives a _ChainRequest_ message, it must register the request and send a _GetChainRequest_ event to the BCM.
-2. The BCM will respond with a _GetChainResponse_ event.
-   The synchronizer then responds to the node that sent the _ChainRequest_ message with a _ChainResponse_ message.
+2. When the BCM responds with a _GetChainResponse_ event, the synchronizer responds to the node that sent the _ChainRequest_ message with a _ChainResponse_ message.
 
 **IMPORTANT:**
 This module assumes that all other nodes respond to requests.
@@ -324,7 +323,7 @@ The application module must perform the following tasks:
 
 1. Initialize the blockchain by sending the initial state to the BCM in an _InitBlockchain_ event.
 2. When it receives a _PayloadRequest_ event, it must provide a payload for the next block.
-   Even if no payloads are available, a payload must be provided, however, this payload can be empty.
+   Even if no payloads are available, a payload must be provided; however, this payload can be empty.
 3. When it receives a _HeadChange_ event, it must compute the state at the new head of the blockchain.
    This state is then registered with the BCM by sending it a _RegisterCheckpoint_ event.
    A checkpoint is a block stored by the BCM that has a state stored with it.
@@ -343,7 +342,7 @@ Since these events technically don't have a destination module, they are sent to
 However, all events are intercepted and sent to the websocket server.
 The interceptor proto is simply for "extra" events.
 
-The interceptor proto defines two such dedicated events:
+For this implementation, there are two such dedicated events:
 
 - _TreeUpdate_: This event is sent by the blockchain manager (BCM) when the blockchain is updated.
   It contains all blocks in the blockchain and the id of the new head.
@@ -364,7 +363,7 @@ Next, you must implement an application module that performs the following actio
    However, this payload can be empty.
 3. When it receives a _HeadChange_ event, it must compute the state at the new head of the blockchain.
    This state must then be registered with the BCM by sending it a _RegisterCheckpoint_ event.
-   Additionally, the information provided in the _HeadChange_ event might be useful for the payload management.
+   Additionally, the information provided in the _HeadChange_ event might be useful for payload management.
 4. When it receives a _VerifyBlocksRequest_ event, it must verify that the given chain is valid at an application level and respond with a _VerifyBlocksResponse_ event.
 
 See the example blockchain chat app as a reference.
@@ -430,7 +429,7 @@ In the box at the top, you see the chat/message history.
 Right below it, you can see the id of the current head (truncated for readability) and the message part of the head's payload.
 The biggest part of the window is filled with the block tree that is stored by the node's BCM.
 It shows how the blocks are connected and the current head is marked with a red border.
-To more easily compare the trees, each block's background color is derived from its id.
+To compare the trees more easily, each block's background color is derived from its id.
 
 ![visualizer](./images/visualizers.png)
 

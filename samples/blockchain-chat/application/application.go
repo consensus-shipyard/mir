@@ -33,7 +33,7 @@ import (
 * The application module must perform the following tasks:
 * 1. Initialize the blockchain by sending the initial state to the BCM in an InitBlockchain event.
 * 2. When it receives a PayloadRequest event, it must provide a payload for the next block.
-*	 Even if no payloads are available, a payload **must** be provided. However, this payload can be empty.
+*	 Even if no payloads are available, a payload **must** be provided; however, this payload can be empty.
 * 3. When it receives a HeadChange event, it must compute the state at the new head of the blockchain.
 *    This state is then registered with the BCM by sending it a RegisterCheckpoint event.
 *	 (A checkpoint is a block stored by the BCM that has a state stored with it.)
