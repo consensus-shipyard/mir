@@ -1,0 +1,83 @@
+/* index */
+body {
+    background-color: rgba(139, 152, 161, 0.24);
+}
+
+/* App */
+.message-containers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 50%));
+    padding: 10px;
+}
+
+/* WebSocketConsole */
+.sub-screen {
+    border: 1px solid #ddd; /* Lighter border color */
+    padding: 15px;
+    margin: 15px;
+    background-color: #f9f9f9; /* Lighter background color */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle box shadow */
+    font-family: 'Arial', sans-serif; /* Choose a suitable font family */
+}
+
+p {
+    margin-bottom: 10px; /* Add some space between paragraphs */
+}
+
+.log-screen {
+    max-height: 400px; /* Limit the height to make it more visually appealing */
+    overflow: auto;
+    font-size: 14px; /* Adjust font size for better readability */
+}
+
+.error-screen {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px; /* Increase font size for emphasis */
+    color: #c0392b; /* Darker red color */
+}
+
+.incoming-log-div {
+    margin-top: 15px;
+}
+
+.delay-div {
+    display: flex;
+    align-items: center; /* Align items vertically in the center */
+    margin-top: 0; /* Remove top margin for inline alignment with other buttons */
+}
+
+button {
+    margin-right: 10px;
+}
+
+.incoming-log-screen {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+.incoming-log-buttons {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.incoming-log-screen,
+.log-screen {
+    white-space: pre-wrap; /* Preserve whitespace and wrap text */
+    font-family: 'Courier New', monospace; /* Use a monospaced font for better alignment */
+    font-size: 14px;
+    color: #333; /* Dark text color */
+}
+
+.json-message {
+    padding: 10px;
+    background-color: #f0f0f0; /* Light background color for JSON messages */
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: auto;
+}

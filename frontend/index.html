@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Libraries and Scripts-->
+    <!--Load React Libraries-->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.19.3/babel.js"></script>
+
+    <!--Load Styles-->
+    <link rel="stylesheet" type="text/css" href="index.css">
+
+    <title>WebSocket Demo</title>
+
+</head>
+<body>
+
+<div id="root"></div>
+
+<script data-plugins="transform-modules-umd" type="text/babel" data-presets="react" data-type="module">
+    // Import React and its hooks
+    const { useState, useEffect } = React;
+
+    // WebSocketConsole component
+    const WebSocketConsole = ({ port }) => {
+        const [ws, setWs] = useState(null);
+        const [incomingMessage, setIncomingMessage] = useState('');
+        const [errors, setErrors] = useState([]);
+        const [loggedMessages, setLoggedMessages] = useState([]);
+
+        // After the element rendering, connect to the given websocket port
+        useEffect(() => {
+            const newWs = new WebSocket(`ws://localhost:${port}/ws`);
+
+            newWs.addEventListener('open', handleOpenWebSocket);
+            newWs.addEventListener('message', handleMessageWebSocket);
+            newWs.addEventListener('close', handleCloseWebSocket);
+            newWs.addEventListener('error', handleErrorWebSocket);
+
+            setWs(newWs);
+            return () => {
+                console.log("launching webSocket cleaning up part");
+                if (ws) {
+                    ws.close();
+                    ws.removeEventListener('open', handleOpenWebSocket);
+                    ws.removeEventListener('message', handleMessageWebSocket);
+                    ws.removeEventListener('close', handleCloseWebSocket);
+                    ws.removeEventListener('error', handleErrorWebSocket);
+                }
+            };
+        }, []);
+
+        function handleOpenWebSocket(){
+            const message = `WebSocket connection for Port ${port} established.`
+            setLoggedMessages(prevMessages => [...prevMessages, message]);
+            console.log(message);
+
+            // Clear error messages
+            setErrors([]);
+        }
+
+        function handleMessageWebSocket(event){
+            const message = decomposeJSON(JSON.parse(event.data));
+            console.log("currently in sync and waiting", port);
+            setIncomingMessage(message);
+        }
+
+        function handleErrorWebSocket(event) {
+            const message = `WebSocket error. See console for further details`;
+            console.error(event.valueOf());
+            console.log(errors);
+            setErrors(prevErrors => [...prevErrors, message]);
+        }
+
+        function handleCloseWebSocket() {
+            const message = `WebSocket connection ended`;
+            setErrors(prevErrors => [...prevErrors, message]);
+            console.log(`WebSocket connection for Port ${port} closed.`);
+        }
+
+        const decomposeJSON = (message) => {
+            return JSON.stringify(message, null, 2);
+        }
+
+        const acceptIncomingLog = () => {
+            if(incomingMessage === ""){
+                return;
+            }
+            console.log("new message accepted on port: ", port);
+
+            // Accept Log and clear the input
+            setLoggedMessages(prevMessages => [...prevMessages, incomingMessage]);
+            setIncomingMessage("");
+
+            // Send the response on the WebSocket
+            let webSocketResponse = {
+                "Type": "accept",
+                "Value": ""
+            };
+            const webSocketResponseJSON = JSON.stringify(webSocketResponse);
+            ws.send(webSocketResponseJSON);
+        };
+
+        const declineIncomingLog = () => {
+            if(incomingMessage === ""){
+                return;
+            }
+
+            // Decline Log and clear the input
+            setIncomingMessage("");
+
+            // Send the response on the WebSocket
+            let webSocketResponse = {
+                "Type": "decline",
+                "Value": ""
+            };
+            const webSocketResponseJSON = JSON.stringify(webSocketResponse);
+            ws.send(webSocketResponseJSON);
+        };
+
+        return (
+            <div id="sub-screen" className="sub-screen">
+                <p className="websocket-console-title">
+                    WebSocket Console for Port {port}:
+                </p>
+
+                <div className="error-screen">
+                    {errors.map((error, index) => (
+                        <p key={index}>{error}</p>
+                    ))}
+                </div>
+
+                <div id="incoming-log-div" className="incoming-log-div">
+                    Incoming Log:
+                    <div id="incoming-log-placeholder" className="incoming-log-screen json-message">
+                        <pre>{incomingMessage}</pre>
+                    </div>
+                    <div id="incoming-log-buttons" className="incoming-log-buttons">
+                        <button onClick={acceptIncomingLog}>Accept</button>
+                        <button onClick={declineIncomingLog}>Decline</button>
+                    </div>
+                </div>
+
+                <div id="logged-messages-div" className="logged-messages-div">
+                    Accepted Logs:
+                    <div id="log-placeholder" className="log-screen json-message">
+                        {loggedMessages.map((log, index) => (
+                            <p key={index}>{log}</p>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // App component
+    const App = () => {
+        const [webSocketConsoles, setWebSocketConsoles] = useState({});
+        const [port, setPort] = useState('');
+
+        const connectWebSocket = () => {
+            if (port === '' || port in webSocketConsoles) {
+                alert('Port already connected or empty');
+                return;
+            }
+
+            console.log('Starting : ', port);
+            const newWebSocketConsoles = { ...webSocketConsoles };
+            newWebSocketConsoles[port] = <WebSocketConsole key={port} port={port} />;
+
+            setWebSocketConsoles(newWebSocketConsoles);
+            setPort('');
+        };
+
+        return (
+            <div>
+                <div>
+                    Enter Port Number:
+                    <label>
+                        <input type="text" value={port} onChange={(e) => setPort(e.target.value)} />
+                    </label>
+                    <button onClick={connectWebSocket}>Connect</button>
+                </div>
+
+                <div className="message-containers" id="message-containers">
+                    {Object.values(webSocketConsoles)}
+                </div>
+            </div>
+        );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(
+        <App />
+    );
+</script>
+
+</body>
+</html>
