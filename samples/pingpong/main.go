@@ -43,7 +43,7 @@ func main() {
 			fmt.Println("Node ID must be provided in debug mode")
 			os.Exit(1)
 		}
-		interceptor, err = debugger.NewWebSocketDebugger(ownID, *debugPort) // replace ownID with port number
+		interceptor, err = debugger.NewWebSocketDebugger(ownID, *debugPort, logging.ConsoleInfoLogger) // replace ownID with port number
 		if err != nil {
 			panic(err)
 		}

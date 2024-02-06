@@ -37,10 +37,11 @@ type WSWriter struct {
 func NewWebSocketDebugger(
 	ownID t.NodeID,
 	port string,
+	logger logging.Logger,
 ) (*eventlog.Recorder, error) {
 	// writerFactory creates and returns a WebSocket-based event writer
-	writerFactory := func(_ string, ownID t.NodeID, _ logging.Logger) (eventlog.EventWriter, error) {
-		return newWSWriter(fmt.Sprintf(":%s", port)), nil
+	writerFactory := func(_ string, ownID t.NodeID, l logging.Logger) (eventlog.EventWriter, error) {
+		return newWSWriter(fmt.Sprintf(":%s", port), l), nil
 	}
 
 	var interceptor *eventlog.Recorder
@@ -48,7 +49,7 @@ func NewWebSocketDebugger(
 	interceptor, err = eventlog.NewRecorder(
 		ownID,
 		fmt.Sprintf("./node%s", ownID),
-		logging.ConsoleInfoLogger,
+		logger,
 		eventlog.EventWriterOpt(writerFactory),
 		eventlog.SyncWriteOpt(),
 	)
@@ -71,12 +72,12 @@ func (wsw *WSWriter) Close() error {
 	return wsw.conn.Close()
 }
 
-// Write sends every event to the frontend and then wits for a message detailing how to proceed with that event
+// Write sends every event to the frontend and then waits for a message detailing how to proceed with that event
 // The returned EventList contains the accepted events
 func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, error) {
 	for wsw.conn == nil {
 		wsw.logger.Log(logging.LevelInfo, "No connection")
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 100) // TODO: Why do we sleep here? Do we need it?
 	}
 	if list.Len() == 0 {
 		return list, nil
@@ -128,7 +129,7 @@ func (wsw *WSWriter) HandleClientSignal(signal map[string]string) {
 }
 
 // newWSWriter creates a new WSWriter that establishes a websocket connection
-func newWSWriter(port string) *WSWriter {
+func newWSWriter(port string, logger logging.Logger) *WSWriter {
 
 	// Create a new WSWriter object
 	wsWriter := &WSWriter{
@@ -137,7 +138,7 @@ func newWSWriter(port string) *WSWriter {
 			WriteBufferSize: WriteBufferSize,
 		},
 		eventSignal: make(chan map[string]string),
-		logger:      logging.ConsoleInfoLogger,
+		logger:      logger,
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
