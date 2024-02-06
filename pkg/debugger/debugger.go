@@ -30,11 +30,11 @@ type WSWriter struct {
 		Type  string `json:"Type"`
 		Value string `json:"Value"`
 	}
+	logger logging.Logger
 }
 
-// InterceptorInit initializes the interceptor according to input boolean
-// The interceptor is set to nil if the user decides to not use the debugger
-func InterceptorInit(
+// NewWebSocketDebugger initializes the interceptor for a given node and uses the given port for the WebSocket connection
+func NewWebSocketDebugger(
 	ownID t.NodeID,
 	port string,
 ) (*eventlog.Recorder, error) {
@@ -53,7 +53,7 @@ func InterceptorInit(
 		eventlog.SyncWriteOpt(),
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return interceptor, err
 }
@@ -75,7 +75,7 @@ func (wsw *WSWriter) Close() error {
 // The returned EventList contains the accepted events
 func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, error) {
 	for wsw.conn == nil {
-		fmt.Println("No connection.")
+		wsw.logger.Log(logging.LevelInfo, "No connection")
 		time.Sleep(time.Millisecond * 100)
 	}
 	if list.Len() == 0 {
@@ -137,6 +137,7 @@ func newWSWriter(port string) *WSWriter {
 			WriteBufferSize: WriteBufferSize,
 		},
 		eventSignal: make(chan map[string]string),
+		logger:      logging.ConsoleInfoLogger,
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
