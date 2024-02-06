@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/filecoin-project/mir/pkg/debugger"
+
 	"github.com/filecoin-project/mir"
+	"github.com/filecoin-project/mir/pkg/eventlog"
 	"github.com/filecoin-project/mir/pkg/logging"
 	"github.com/filecoin-project/mir/pkg/modules"
 	"github.com/filecoin-project/mir/pkg/net/grpc"
@@ -18,17 +22,42 @@ import (
 
 func main() {
 	fmt.Println("Starting ping-pong.")
-
 	// Manually create system membership with just 2 nodes.
 	membership := &trantorpbtypes.Membership{map[t.NodeID]*trantorpbtypes.NodeIdentity{ // nolint:govet
 		"0": {"0", "/ip4/127.0.0.1/tcp/10000", nil, "1"}, // nolint:govet
 		"1": {"1", "/ip4/127.0.0.1/tcp/10001", nil, "1"}, // nolint:govet
 	}}
 
-	// Get own ID from command line.
-	ownID := t.NodeID(os.Args[1])
+	debug := flag.Bool("d", false, "Enable debug mode")
+	debugPort := flag.String("port", "", "Debug port number")
+	flag.Parse()
+	var ownID t.NodeID
+	var interceptor *eventlog.Recorder
+	var err error
 
-	// Instantiate network trnasport module and establish connections.
+	if *debug {
+		// In debug mode, expect the next argument to be the node ID
+		if flag.NArg() > 0 {
+			ownID = t.NodeID(flag.Arg(0))
+		} else {
+			fmt.Println("Node ID must be provided in debug mode")
+			os.Exit(1)
+		}
+		interceptor, err = debugger.NewWebSocketDebugger(ownID, *debugPort, logging.ConsoleInfoLogger) // replace ownID with port number
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// If not in debug mode, use the first argument as the node ID
+		if len(os.Args) > 1 {
+			ownID = t.NodeID(os.Args[1])
+		} else {
+			fmt.Println("Node ID must be provided")
+			os.Exit(1)
+		}
+	}
+
+	// Instantiate network transport module and establish connections.
 	transport, err := grpc.NewTransport(ownID, membership.Nodes[ownID].Addr, logging.ConsoleWarnLogger)
 	if err != nil {
 		panic(err)
@@ -48,7 +77,7 @@ func main() {
 			"pingpong": lowlevel.NewPingPong(ownID),
 			"timer":    timer.New(),
 		},
-		nil,
+		interceptor,
 	)
 	if err != nil {
 		panic(err)
@@ -60,7 +89,7 @@ func main() {
 		nodeError <- node.Run(context.Background())
 	}()
 	fmt.Println("Mir node running.")
-	time.Sleep(5 * time.Second)
+	time.Sleep(50 * time.Second)
 
 	// Stop the node.
 	node.Stop()
