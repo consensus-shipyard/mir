@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/gorilla/websocket"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -126,17 +128,18 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 	iter := list.Iterator()
 
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		// Create a new JSON object with a timestamp field
-		timestamp := time.Now()
-		logData := map[string]interface{}{
-			"event":     event,
-			"timestamp": timestamp,
-		}
-
-		// Marshal the JSON data
-		message, err := json.Marshal(logData)
+		// Assuming 'event' is a Protobuf message
+		eventJSON, err := protojson.Marshal(event)
 		if err != nil {
-			panic(err)
+			return list, fmt.Errorf("error marshaling event to JSON: %w", err)
+		}
+		timestamp := time.Now()
+		message, err := json.Marshal(map[string]interface{}{
+			"event":     string(eventJSON),
+			"timestamp": timestamp,
+		})
+		if err != nil {
+			return list, fmt.Errorf("error marshaling eventJSON and timestamp to JSON: %w", err)
 		}
 
 		// Send the JSON message over WebSocket
@@ -145,7 +148,10 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		}
 
 		action := <-wsw.eventSignal
-		acceptedEvents, _ = eventAction(action["Type"], action["Value"], acceptedEvents, event)
+		acceptedEvents, err = eventAction(action["Type"], action["Value"], acceptedEvents, event)
+		if err != nil {
+			return list, err
+		}
 	}
 	return acceptedEvents, nil
 }
@@ -157,12 +163,28 @@ func (wsw *WSWriter) HandleClientSignal(signal map[string]string) {
 // EventAction decides, based on the input what exactly is done next with the current event
 func eventAction(
 	actionType string,
-	_ string,
+	value string,
 	acceptedEvents *events.EventList,
 	currentEvent *eventpb.Event,
 ) (*events.EventList, error) {
 	if actionType == "accept" {
 		acceptedEvents.PushBack(currentEvent)
+	} else if actionType == "replace" {
+		type ValueFormat struct {
+			EventJSON string    `json:"event"`
+			Timestamp time.Time `json:"timestamp"` // Assuming timestamp is of type time.Time
+		}
+		var input ValueFormat
+		err := json.Unmarshal([]byte(value), &input)
+		if err != nil {
+			return acceptedEvents, fmt.Errorf("error unmarshalling value to ValueFormat: %w", err)
+		}
+		var modifiedEvent eventpb.Event
+		err = protojson.Unmarshal([]byte(input.EventJSON), &modifiedEvent)
+		if err != nil {
+			return acceptedEvents, fmt.Errorf("error unmarshalling modified event using protojson: %w", err)
+		}
+		acceptedEvents.PushBack(&modifiedEvent)
 	}
 	return acceptedEvents, nil
 }
