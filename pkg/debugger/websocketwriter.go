@@ -47,7 +47,7 @@ func newWSWriter(port string, logger logging.Logger) *WSWriter {
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsWriter.upgrader.CheckOrigin = func(r *http.Request) bool { return true } // Allow opening the connection by HTML file
+		wsWriter.upgrader.CheckOrigin = func(_ *http.Request) bool { return true } // Allow opening the connection by HTML file
 		conn, err := wsWriter.upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			panic(err)
