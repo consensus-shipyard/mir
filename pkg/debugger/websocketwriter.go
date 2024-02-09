@@ -172,7 +172,7 @@ func eventAction(
 	} else if actionType == "replace" {
 		type ValueFormat struct {
 			EventJSON string    `json:"event"`
-			Timestamp time.Time `json:"timestamp"` // Assuming timestamp is of type time.Time
+			Timestamp time.Time `json:"timestamp"`
 		}
 		var input ValueFormat
 		err := json.Unmarshal([]byte(value), &input)
