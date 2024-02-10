@@ -115,7 +115,7 @@ func (wsw *WSWriter) Close() error {
 
 // Write sends every event to the frontend and then waits for a message detailing how to proceed with that event
 // The returned EventList contains the accepted events
-func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, error) {
+func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.EventList, error) {
 	for wsw.conn == nil {
 		wsw.logger.Log(logging.LevelInfo, "No connection")
 		time.Sleep(time.Millisecond * 100) // TODO: Why do we sleep here? Do we need it?
@@ -133,7 +133,6 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		if err != nil {
 			return list, fmt.Errorf("error marshaling event to JSON: %w", err)
 		}
-		timestamp := time.Now()
 		message, err := json.Marshal(map[string]interface{}{
 			"event":     string(eventJSON),
 			"timestamp": timestamp,
@@ -171,8 +170,8 @@ func eventAction(
 		acceptedEvents.PushBack(currentEvent)
 	} else if actionType == "replace" {
 		type ValueFormat struct {
-			EventJSON string    `json:"event"`
-			Timestamp time.Time `json:"timestamp"`
+			EventJSON string `json:"event"`
+			Timestamp int64  `json:"timestamp"`
 		}
 		var input ValueFormat
 		err := json.Unmarshal([]byte(value), &input)
