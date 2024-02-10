@@ -977,7 +977,7 @@ func TestMessagingWithNewNodes(t *testing.T) {
 		}
 	}
 
-	receiver := func(nodeID types.NodeID, events chan *events.EventList, stop chan struct{}) {
+	receiver := func(_ types.NodeID, events chan *events.EventList, stop chan struct{}) {
 		defer receivers.Done()
 
 		for {

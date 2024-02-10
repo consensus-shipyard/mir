@@ -21,7 +21,7 @@ func MirOrigin(contextID ContextID) *dslpbtypes.Origin {
 
 // UponInit invokes handler when the module is initialized.
 func UponInit(m Module, handler func() error) {
-	UponEvent[*eventpb.Event_Init](m, func(ev *eventpb.Init) error {
+	UponEvent[*eventpb.Event_Init](m, func(_ *eventpb.Init) error {
 		return handler()
 	})
 }

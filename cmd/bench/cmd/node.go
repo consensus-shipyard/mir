@@ -51,7 +51,7 @@ var (
 	nodeCmd = &cobra.Command{
 		Use:   "node",
 		Short: "Start a Mir node",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if err := runNode(); !es.Is(err, mir.ErrStopped) {
 				return err
 			}

@@ -15,7 +15,7 @@ func NewWebSocketDebugger(
 	logger logging.Logger,
 ) (*eventlog.Recorder, error) {
 	// writerFactory creates and returns a WebSocket-based event writer
-	writerFactory := func(_ string, ownID t.NodeID, l logging.Logger) (eventlog.EventWriter, error) {
+	writerFactory := func(_ string, _ t.NodeID, l logging.Logger) (eventlog.EventWriter, error) {
 		return newWSWriter(fmt.Sprintf(":%s", port), l), nil
 	}
 

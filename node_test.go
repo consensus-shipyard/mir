@@ -270,7 +270,7 @@ func (c *consumer) ImplementsModule() {}
 // ApplyEvents increments a counter and sleeps for a given duration (set at module instantiation)
 // for each event in the given list.
 func (c *consumer) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
-	evtsOut, err := modules.ApplyEventsSequentially(evts, func(event *eventpb.Event) (*events.EventList, error) {
+	evtsOut, err := modules.ApplyEventsSequentially(evts, func(_ *eventpb.Event) (*events.EventList, error) {
 		atomic.AddUint64(&c.numProcessed, 1)
 		time.Sleep(c.delay)
 		return events.EmptyList(), nil
