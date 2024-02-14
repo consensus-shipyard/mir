@@ -89,7 +89,7 @@ func NewModule(mc ModuleConfig, epochNr tt.EpochNr, clientProgress *clientprogre
 
 	// The DeliverCert handler requests the transactions referenced by the received availability certificate
 	// from the availability layer.
-	isspbdsl.UponDeliverCert(m, func(sn tt.SeqNr, cert *apbtypes.Cert, empty bool) error {
+	isspbdsl.UponDeliverCert(m, func(_ tt.SeqNr, cert *apbtypes.Cert, empty bool) error {
 		// Create an empty output item and enqueue it immediately.
 		// Actual output will be delayed until the transactions have been received.
 		// This is necessary to preserve the order of incoming and outgoing events.

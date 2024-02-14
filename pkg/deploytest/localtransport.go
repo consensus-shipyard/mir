@@ -25,7 +25,7 @@ type LocalTransportLayer interface {
 func NewLocalTransportLayer(sim *Simulation, transportType string, nodeIDsWeight map[t.NodeID]types.VoteWeight, logger logging.Logger) (LocalTransportLayer, error) {
 	switch transportType {
 	case "sim":
-		messageDelayFn := func(from, to t.NodeID) time.Duration {
+		messageDelayFn := func(_, _ t.NodeID) time.Duration {
 			// TODO: Make min and max message delay configurable
 			return testsim.RandDuration(sim.Rand, 0, 10*time.Millisecond)
 		}

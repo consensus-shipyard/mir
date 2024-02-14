@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/gorilla/websocket"
 
 	"github.com/filecoin-project/mir/pkg/events"
@@ -45,7 +47,7 @@ func newWSWriter(port string, logger logging.Logger) *WSWriter {
 	}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsWriter.upgrader.CheckOrigin = func(r *http.Request) bool { return true } // Allow opening the connection by HTML file
+		wsWriter.upgrader.CheckOrigin = func(_ *http.Request) bool { return true } // Allow opening the connection by HTML file
 		conn, err := wsWriter.upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			panic(err)
@@ -113,7 +115,7 @@ func (wsw *WSWriter) Close() error {
 
 // Write sends every event to the frontend and then waits for a message detailing how to proceed with that event
 // The returned EventList contains the accepted events
-func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, error) {
+func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.EventList, error) {
 	for wsw.conn == nil {
 		wsw.logger.Log(logging.LevelInfo, "No connection")
 		time.Sleep(time.Millisecond * 100) // TODO: Why do we sleep here? Do we need it?
@@ -126,17 +128,17 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 	iter := list.Iterator()
 
 	for event := iter.Next(); event != nil; event = iter.Next() {
-		// Create a new JSON object with a timestamp field
-		timestamp := time.Now()
-		logData := map[string]interface{}{
-			"event":     event,
-			"timestamp": timestamp,
-		}
-
-		// Marshal the JSON data
-		message, err := json.Marshal(logData)
+		// Assuming 'event' is a Protobuf message
+		eventJSON, err := protojson.Marshal(event)
 		if err != nil {
-			panic(err)
+			return list, fmt.Errorf("error marshaling event to JSON: %w", err)
+		}
+		message, err := json.Marshal(map[string]interface{}{
+			"event":     string(eventJSON),
+			"timestamp": timestamp,
+		})
+		if err != nil {
+			return list, fmt.Errorf("error marshaling eventJSON and timestamp to JSON: %w", err)
 		}
 
 		// Send the JSON message over WebSocket
@@ -145,7 +147,10 @@ func (wsw *WSWriter) Write(list *events.EventList, _ int64) (*events.EventList, 
 		}
 
 		action := <-wsw.eventSignal
-		acceptedEvents, _ = eventAction(action["Type"], action["Value"], acceptedEvents, event)
+		acceptedEvents, err = eventAction(action["Type"], action["Value"], acceptedEvents, event)
+		if err != nil {
+			return list, err
+		}
 	}
 	return acceptedEvents, nil
 }
@@ -157,12 +162,28 @@ func (wsw *WSWriter) HandleClientSignal(signal map[string]string) {
 // EventAction decides, based on the input what exactly is done next with the current event
 func eventAction(
 	actionType string,
-	_ string,
+	value string,
 	acceptedEvents *events.EventList,
 	currentEvent *eventpb.Event,
 ) (*events.EventList, error) {
 	if actionType == "accept" {
 		acceptedEvents.PushBack(currentEvent)
+	} else if actionType == "replace" {
+		type ValueFormat struct {
+			EventJSON string `json:"event"`
+			Timestamp int64  `json:"timestamp"`
+		}
+		var input ValueFormat
+		err := json.Unmarshal([]byte(value), &input)
+		if err != nil {
+			return acceptedEvents, fmt.Errorf("error unmarshalling value to ValueFormat: %w", err)
+		}
+		var modifiedEvent eventpb.Event
+		err = protojson.Unmarshal([]byte(input.EventJSON), &modifiedEvent)
+		if err != nil {
+			return acceptedEvents, fmt.Errorf("error unmarshalling modified event using protojson: %w", err)
+		}
+		acceptedEvents.PushBack(&modifiedEvent)
 	}
 	return acceptedEvents, nil
 }

@@ -93,7 +93,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 		return nil
 	})
 
-	cryptopbdsl.UponSignResult(m, func(signature []byte, context *signStartMessageContext) error {
+	cryptopbdsl.UponSignResult(m, func(signature []byte, _ *signStartMessageContext) error {
 		if !state.sentEcho {
 			state.sentEcho = true
 			transportpbdsl.SendMessage(m, mc.Net, bcbpbmsgs.EchoMessage(mc.Self, signature), []t.NodeID{params.Leader})
@@ -132,7 +132,7 @@ func NewModule(mc ModuleConfig, params *ModuleParams, nodeID t.NodeID) modules.P
 	})
 
 	// upon event <al, Deliver | p, [FINAL, m, Σ]> do
-	bcbpbdsl.UponFinalMessageReceived(m, func(from t.NodeID, data []byte, signers []t.NodeID, signatures [][]byte) error {
+	bcbpbdsl.UponFinalMessageReceived(m, func(_ t.NodeID, data []byte, signers []t.NodeID, signatures [][]byte) error {
 		// if #({p ∈ Π | Σ[p] != ⊥ ∧ verifysig(p, bcb||p||ECHO||m, Σ[p])}) > (N+f)/2 and delivered = FALSE do
 		if len(signers) == len(signatures) && len(signers) > (params.GetN()+params.GetF())/2 && !state.delivered {
 			signedMessage := [][]byte{params.InstanceUID, []byte("ECHO"), data}

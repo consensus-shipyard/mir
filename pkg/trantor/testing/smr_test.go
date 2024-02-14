@@ -409,7 +409,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 	var simulation *deploytest.Simulation
 	if conf.Transport == "sim" {
 		r := rand.New(rand.NewSource(conf.RandomSeed)) // nolint: gosec
-		eventDelayFn := func(e *eventpb.Event) time.Duration {
+		eventDelayFn := func(_ *eventpb.Event) time.Duration {
 			// TODO: Make min and max event processing delay configurable
 			return testsim.RandDuration(r, 0, time.Microsecond)
 		}

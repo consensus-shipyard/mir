@@ -77,7 +77,7 @@ func NewRecorder(
 		fileCount: 1,
 		newDests:  OneFileLogger(),
 		path:      path,
-		filter: func(event *eventpb.Event) bool {
+		filter: func(_ *eventpb.Event) bool {
 			// Record all events by default.
 			return true
 		},

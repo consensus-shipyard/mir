@@ -111,7 +111,7 @@ func IncludeBatchCreation( // nolint:gocognit
 		batchSize := 0
 		txCount := 0
 
-		txIDs, txs, _ := state.Iterator.NextWhile(func(txID tt.TxID, tx *trantorpbtypes.Transaction) bool {
+		txIDs, txs, _ := state.Iterator.NextWhile(func(_ tt.TxID, tx *trantorpbtypes.Transaction) bool {
 			if txCount < params.MaxTransactionsInBatch && batchSize+len(tx.Data) <= params.MaxPayloadInBatch {
 				txCount++
 				state.NumUnproposed--
@@ -182,7 +182,7 @@ func IncludeBatchCreation( // nolint:gocognit
 			//   ClientProgress - for each client, list of pending transactions sorted by TxNo - that
 			//   would make pruning significantly more efficient.
 			state.ClientProgress.LoadPb(clientProgress.Pb())
-			_, removedTXs := state.Transactions.RemoveSelected(func(txID tt.TxID, tx *trantorpbtypes.Transaction) bool {
+			_, removedTXs := state.Transactions.RemoveSelected(func(_ tt.TxID, tx *trantorpbtypes.Transaction) bool {
 				return state.ClientProgress.Contains(tx.ClientId, tx.TxNo)
 			})
 			for _, tx := range removedTXs {
