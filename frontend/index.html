@@ -60,7 +60,7 @@
         }
 
         function handleMessageWebSocket(event){
-            const message = decomposeJSON(JSON.parse(event.data));
+            const message = decomposeJSON(event.data);
             console.log("currently in sync and waiting", port);
             setIncomingMessage(message);
         }
@@ -79,7 +79,16 @@
         }
 
         const decomposeJSON = (message) => {
-            return JSON.stringify(message, null, 2);
+            // Note: This decompose function is closely tied to the composition in websocketwriter.go.
+            // We expect the following structure:
+            // {
+            //      event: string(message),
+            //      timestamp: "sending_timestamp"
+            // }
+            // Here, we need to perform double parsing because we need to re-deparse the 'message' as it was originally in another JSON format.
+            let parsedMessage = JSON.parse(message);
+            parsedMessage.event = JSON.parse(parsedMessage.event);
+            return JSON.stringify(parsedMessage, null, 2);
         }
 
         const acceptIncomingLog = () => {
