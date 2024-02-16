@@ -28,6 +28,7 @@
         const [editableText, setEditableText] = useState('');
         const [errors, setErrors] = useState([]);
         const [loggedMessages, setLoggedMessages] = useState([]);
+        const [syncConnection, setSyncConnection] = useState(true);
         let incomingMessageJSON= useRef({});
 
         // After the element rendering, connect to the given websocket port
@@ -60,6 +61,19 @@
             }
         }, [incomingMessage]);
 
+        // Need a different useEffect, due to the different dependency set
+        useEffect(() => {
+            if (ws) {
+                ws.addEventListener('message', handleMessageWebSocket);
+            }
+
+            return () => {
+                if (ws) {
+                    ws.removeEventListener('message', handleMessageWebSocket);
+                }
+            };
+        }, [syncConnection]);
+
         function handleOpenWebSocket(){
             const message = `WebSocket connection for Port ${port} established.`
             setLoggedMessages(prevMessages => [...prevMessages, message]);
@@ -71,8 +85,15 @@
 
         function handleMessageWebSocket(event){
             const message = decomposeJSON(event.data);
-            console.log("currently in sync and waiting", port);
-            setIncomingMessage(message); // This will launch the useEffect dependent on IncomingMessage
+            if( syncConnection === true ){
+                // Sync mode
+                console.log("currently in sync and waiting", port);
+                setIncomingMessage(message); // This will launch the useEffect dependent on IncomingMessage
+            }
+            else {
+                // Async mode
+                acceptAsyncIncomingLog(message);
+            }
         }
 
         function handleErrorWebSocket(event) {
@@ -115,6 +136,24 @@
 
             // Accept ORIGINAL Log (without modifications)
             setLoggedMessages(prevMessages => [...prevMessages, incomingMessage]);
+
+            // Send the response on the WebSocket
+            let webSocketResponse = {
+                "Type": "accept",
+                "Value": ""
+            };
+            const webSocketResponseJSON = JSON.stringify(webSocketResponse);
+            ws.send(webSocketResponseJSON);
+
+            // Clear the input
+            clearIncomingLogMessages();
+        };
+
+        const acceptAsyncIncomingLog = (message) => {
+            console.log("new message async accepted on port: ", port);
+
+            // Accept ORIGINAL Log (without modifications and automatically)
+            setLoggedMessages(prevMessages => [...prevMessages, message]);
 
             // Send the response on the WebSocket
             let webSocketResponse = {
@@ -339,8 +378,24 @@
             }
         }
 
+        const changeSyncronization = () => {
+            console.log("changing syncronization of port: ", port);
+            if (syncConnection) {
+                // Changing to Async mode
+                acceptIncomingLog(); // Accept also the existing incoming log
+            }
+            setSyncConnection(!syncConnection);
+        }
+
         return (
             <div id="sub-screen" className="sub-screen">
+                <label className="switch">
+                    <input type="checkbox" id="sync-switch-input" checked={syncConnection} onChange={changeSyncronization} />
+                    <div className="slider round">
+                        <span className="on">Sync</span>
+                        <span className="off">Async</span>
+                    </div>
+                </label>
                 <button onClick={closeConnection} className="close-button">Close Connection</button>
                 <p className="websocket-console-title">
                     WebSocket Console for Port {port}:
