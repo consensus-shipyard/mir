@@ -4,15 +4,17 @@ package statepbtypes
 
 import (
 	mirreflect "github.com/filecoin-project/mir/codegen/mirreflect"
-	types "github.com/filecoin-project/mir/codegen/model/types"
+	types1 "github.com/filecoin-project/mir/codegen/model/types"
+	payloadpb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb"
+	types "github.com/filecoin-project/mir/pkg/pb/blockchainpb/payloadpb/types"
 	statepb "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb"
-	types1 "github.com/filecoin-project/mir/pkg/types"
+	types2 "github.com/filecoin-project/mir/pkg/types"
 	reflectutil "github.com/filecoin-project/mir/pkg/util/reflectutil"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type State struct {
-	MessageHistory     []string
+	History            []*types.Payload
 	LastSentTimestamps []*LastSentTimestamp
 }
 
@@ -21,8 +23,10 @@ func StateFromPb(pb *statepb.State) *State {
 		return nil
 	}
 	return &State{
-		MessageHistory: pb.MessageHistory,
-		LastSentTimestamps: types.ConvertSlice(pb.LastSentTimestamps, func(t *statepb.LastSentTimestamp) *LastSentTimestamp {
+		History: types1.ConvertSlice(pb.History, func(t *payloadpb.Payload) *types.Payload {
+			return types.PayloadFromPb(t)
+		}),
+		LastSentTimestamps: types1.ConvertSlice(pb.LastSentTimestamps, func(t *statepb.LastSentTimestamp) *LastSentTimestamp {
 			return LastSentTimestampFromPb(t)
 		}),
 	}
@@ -34,8 +38,10 @@ func (m *State) Pb() *statepb.State {
 	}
 	pbMessage := &statepb.State{}
 	{
-		pbMessage.MessageHistory = m.MessageHistory
-		pbMessage.LastSentTimestamps = types.ConvertSlice(m.LastSentTimestamps, func(t *LastSentTimestamp) *statepb.LastSentTimestamp {
+		pbMessage.History = types1.ConvertSlice(m.History, func(t *types.Payload) *payloadpb.Payload {
+			return (t).Pb()
+		})
+		pbMessage.LastSentTimestamps = types1.ConvertSlice(m.LastSentTimestamps, func(t *LastSentTimestamp) *statepb.LastSentTimestamp {
 			return (t).Pb()
 		})
 	}
@@ -48,7 +54,7 @@ func (*State) MirReflect() mirreflect.Type {
 }
 
 type LastSentTimestamp struct {
-	NodeId    types1.NodeID
+	NodeId    types2.NodeID
 	Timestamp *timestamppb.Timestamp
 }
 
@@ -57,7 +63,7 @@ func LastSentTimestampFromPb(pb *statepb.LastSentTimestamp) *LastSentTimestamp {
 		return nil
 	}
 	return &LastSentTimestamp{
-		NodeId:    (types1.NodeID)(pb.NodeId),
+		NodeId:    (types2.NodeID)(pb.NodeId),
 		Timestamp: pb.Timestamp,
 	}
 }

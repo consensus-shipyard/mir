@@ -4,6 +4,7 @@ package statepb;
 
 option go_package = "github.com/filecoin-project/mir/pkg/pb/blockchainpb/statepb";
 
+import "blockchainpb/payloadpb/payloadpb.proto";
 import "mir/codegen_extensions.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -11,7 +12,7 @@ message State {
   option (mir.struct) = true;
   
   // application specific state
-  repeated string             message_history       = 1;
+  repeated payloadpb.Payload  history               = 1;
   repeated LastSentTimestamp  last_sent_timestamps  = 2;
 }
 
