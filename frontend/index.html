@@ -76,7 +76,7 @@
 
         function handleOpenWebSocket(){
             const message = `WebSocket connection for Port ${port} established.`
-            setLoggedMessages(prevMessages => [...prevMessages, message]);
+            addLoggedMessage(message);
             console.log(message);
 
             // Clear error messages
@@ -109,6 +109,10 @@
             console.log(`WebSocket connection for Port ${port} closed.`);
         }
 
+        const addLoggedMessage = (newMessage) => {
+            setLoggedMessages(prevMessages => [newMessage, ...prevMessages]);
+        }
+
         const decomposeJSON = (message) => {
             // Note: This decompose function is closely tied to the composition in websocketwriter.go.
             // We expect the following structure:
@@ -135,7 +139,7 @@
             console.log("new message accepted on port: ", port);
 
             // Accept ORIGINAL Log (without modifications)
-            setLoggedMessages(prevMessages => [...prevMessages, incomingMessage]);
+            addLoggedMessage(incomingMessage);
 
             // Send the response on the WebSocket
             let webSocketResponse = {
@@ -153,7 +157,7 @@
             console.log("new message async accepted on port: ", port);
 
             // Accept ORIGINAL Log (without modifications and automatically)
-            setLoggedMessages(prevMessages => [...prevMessages, message]);
+            addLoggedMessage(message);
 
             // Send the response on the WebSocket
             let webSocketResponse = {
@@ -174,7 +178,7 @@
 
             // Accept REPLACED Log
             const acceptingModifiedMessage = JSON.stringify(incomingMessageJSON.current, null, 2)
-            setLoggedMessages(prevMessages => [...prevMessages, acceptingModifiedMessage]);
+            addLoggedMessage(acceptingModifiedMessage);
 
             // Send the response on the WebSocket
 
