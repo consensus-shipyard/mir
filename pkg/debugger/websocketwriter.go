@@ -117,8 +117,8 @@ func (wsw *WSWriter) Close() error {
 // The returned EventList contains the accepted events
 func (wsw *WSWriter) Write(list *events.EventList, timestamp int64) (*events.EventList, error) {
 	for wsw.conn == nil {
-		wsw.logger.Log(logging.LevelInfo, "No connection")
-		time.Sleep(time.Millisecond * 100) // TODO: Why do we sleep here? Do we need it?
+		wsw.logger.Log(logging.LevelInfo, "Waiting interface connection to proceed")
+		time.Sleep(time.Millisecond * 100) // Sleep as backoff strategy, TODO: Discuss better strategy if needed
 	}
 	if list.Len() == 0 {
 		return list, nil
