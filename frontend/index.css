@@ -82,6 +82,14 @@ button {
     overflow: auto;
 }
 
+.log-message {
+    padding: 10px;
+    border: 1px solid #000;
+    border-radius: 5px;
+    margin-top: 5px;
+    overflow: auto;
+}
+
 /* Close connection button*/
 .close-button {
     background-color: #c0392b; /* Red color */
