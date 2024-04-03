@@ -20,10 +20,8 @@ The first intended use of Mir is as a scalable and efficient
 and, potentially, as a Byzantine fault-tolerant ordering service in Hyperledger Fabric.
 However, Mir hopes to be a building block of a next generation of distributed systems, being used by many applications.
 
-Currently Mir includes an implementation of the [Trantor](/pkg/trantor) modular state machine replication system,
-but work is under way to bring other protocols into Mir such as
-[Granite](#515) and
-[Alea-BFT](https://github.com/abread/mir/tree/alea/pkg/alea).
+Currently Mir includes an implementation of the [Trantor](/pkg/trantor) modular state machine replication system.
+It has also been used to implement and evaluate the [Alea-BFT protocol](https://github.com/abread/mir/tree/alea/pkg/alea).
 
 ## Nodes, Modules, and Events
 
