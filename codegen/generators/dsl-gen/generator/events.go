@@ -317,7 +317,7 @@ func generateDslFunctionForHandlingSimpleEvent(eventNode *events.EventNode, upon
 
 func GetDslOriginOption(origin *events.Origin) (*types.OneofOption, bool) {
 	return sliceutil.Any(
-		sliceutil.Filter(origin.TypeOneof.Options, func(i int, opt *types.OneofOption) bool {
+		sliceutil.Filter(origin.TypeOneof.Options, func(_ int, opt *types.OneofOption) bool {
 			return opt.Name() == "Dsl"
 		}),
 	)

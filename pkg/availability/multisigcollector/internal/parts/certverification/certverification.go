@@ -81,7 +81,7 @@ func IncludeVerificationOfCertificates(
 	})
 
 	// When the signatures in a certificate are verified, output the result of certificate verification.
-	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []t.NodeID, errs []error, allOK bool, context *verifySigsInCertContext) error {
+	cryptopbdsl.UponSigsVerified(m, func(_ []t.NodeID, _ []error, allOK bool, context *verifySigsInCertContext) error {
 		reqID := context.reqID
 
 		if _, ok := state.RequestState[reqID]; !ok {

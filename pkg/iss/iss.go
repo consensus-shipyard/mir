@@ -429,7 +429,7 @@ func New(
 	})
 
 	chkppbdsl.UponStableCheckpointReceived(iss.m,
-		func(sender stdtypes.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[stdtypes.NodeID][]byte) error {
+		func(_ stdtypes.NodeID, sn tt.SeqNr, snapshot *trantorpbtypes.StateSnapshot, cert map[stdtypes.NodeID][]byte) error {
 			chkp := &checkpointpbtypes.StableCheckpoint{
 				Sn:       sn,
 				Snapshot: snapshot,
