@@ -15,7 +15,7 @@ import (
 func FuzzCheckpointForSig(f *testing.F) {
 	f.Add(uint64(0), uint64(0), []byte("13242342342342"))
 
-	f.Fuzz(func(t *testing.T, s, n uint64, data []byte) {
+	f.Fuzz(func(_ *testing.T, s, n uint64, data []byte) {
 		serializeCheckpointForSig(tt.EpochNr(s), tt.SeqNr(n), data)
 	})
 }
@@ -23,7 +23,7 @@ func FuzzCheckpointForSig(f *testing.F) {
 func FuzzSnapshotForHash(f *testing.F) {
 	f.Add(100, uint64(0), "/ip4/7.7.7.7/tcp/1234/p2p/QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N", "127.0.0.1:3333", []byte("13242342342342"))
 
-	f.Fuzz(func(t *testing.T, n int, e uint64, k, v string, data []byte) {
+	f.Fuzz(func(_ *testing.T, n int, e uint64, k, v string, data []byte) {
 		n = n % 5000
 		membership := trantorpbtypes.Membership{make(map[stdtypes.NodeID]*trantorpbtypes.NodeIdentity)} // nolint:govet
 

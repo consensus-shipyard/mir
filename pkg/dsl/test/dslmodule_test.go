@@ -283,7 +283,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []stdtypes.NodeID, errs []error, allOK bool, context *uint64) error {
+	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []stdtypes.NodeID, _ []error, allOK bool, context *uint64) error {
 		if allOK {
 			for _, nodeID := range nodeIDs {
 				EmitTestingString(m, mc.Verified, fmt.Sprintf("%v: %v verified", *context, nodeID))
@@ -292,7 +292,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 		return nil
 	})
 
-	cryptopbdsl.UponSigsVerified(m, func(nodeIDs []stdtypes.NodeID, errs []error, allOK bool, context *uint64) error {
+	cryptopbdsl.UponSigsVerified(m, func(_ []stdtypes.NodeID, _ []error, allOK bool, context *uint64) error {
 		if allOK {
 			EmitTestingUint(m, mc.Verified, *context)
 		}
@@ -304,7 +304,7 @@ func newContextTestingModule(mc *contextTestingModuleModuleConfig) dsl.Module {
 
 func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 	testCases := map[string]func(mc *contextTestingModuleModuleConfig, m dsl.Module){
-		"empty": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {},
+		"empty": func(_ *contextTestingModuleModuleConfig, _ dsl.Module) {},
 
 		"request response": func(mc *contextTestingModuleModuleConfig, m dsl.Module) {
 			eventsOut, err := m.ApplyEvents(stdtypes.ListOf(stdevents.NewTestString(mc.Self, "hello")))
@@ -404,7 +404,7 @@ func TestDslModule_ContextRecoveryAndCleanup(t *testing.T) {
 
 	for testName, tc := range testCases {
 		tc := tc
-		t.Run(testName, func(t *testing.T) {
+		t.Run(testName, func(_ *testing.T) {
 			mc := defaultContextTestingModuleConfig()
 			m := newContextTestingModule(mc)
 			tc(mc, m)

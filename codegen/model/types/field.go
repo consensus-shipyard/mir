@@ -46,17 +46,17 @@ type Fields []*Field
 
 // FuncParamsPbTypes returns a list of field lowercase names followed by their pb types.
 func (fs Fields) FuncParamsPbTypes() []jen.Code {
-	return sliceutil.Transform(fs, func(i int, f *Field) jen.Code { return f.FuncParamPbType() })
+	return sliceutil.Transform(fs, func(_ int, f *Field) jen.Code { return f.FuncParamPbType() })
 }
 
 // FuncParamsMirTypes returns a list of field lowercase names followed by their mir types.
 func (fs Fields) FuncParamsMirTypes() []jen.Code {
-	return sliceutil.Transform(fs, func(i int, f *Field) jen.Code { return f.FuncParamMirType() })
+	return sliceutil.Transform(fs, func(_ int, f *Field) jen.Code { return f.FuncParamMirType() })
 }
 
 // FuncParamsIDs returns a list of fields lowercase names as identifiers, without the types.
 func (fs Fields) FuncParamsIDs() []jen.Code {
-	return sliceutil.Transform(fs, func(i int, f *Field) jen.Code { return jen.Id(f.LowercaseName()) })
+	return sliceutil.Transform(fs, func(_ int, f *Field) jen.Code { return jen.Id(f.LowercaseName()) })
 }
 
 // ByName returns the field with the given name (or nil if there is no such field).
