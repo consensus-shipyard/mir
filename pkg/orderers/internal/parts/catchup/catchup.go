@@ -268,7 +268,7 @@ func SendDoneMessages(
 
 	// Collect the preprepare digests of all committed certificates.
 	digests := make([][]byte, 0, state.Segment.Len())
-	maputil.IterateSorted(state.Slots[state.View], func(sn tt.SeqNr, slot *common.PbftSlot) bool {
+	maputil.IterateSorted(state.Slots[state.View], func(_ tt.SeqNr, slot *common.PbftSlot) bool {
 		digests = append(digests, slot.Digest)
 		return true
 	})

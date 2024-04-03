@@ -39,7 +39,7 @@ var (
 	clientCmd = &cobra.Command{
 		Use:   "client",
 		Short: "Generate and submit transactions to a Mir cluster",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runClient()
 		},
 	}

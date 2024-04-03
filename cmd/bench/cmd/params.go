@@ -34,7 +34,7 @@ var (
 	paramsCmd = &cobra.Command{
 		Use:   "params",
 		Short: "generate parameters",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return generateParams(args)
 		},
 	}

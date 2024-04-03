@@ -80,7 +80,7 @@ func TestIndexedList_RemoveSelected(t *testing.T) {
 	il.Append([]string{"a", "b", "c"}, []int{0, 1, 2})
 	assert.Equal(t, 3, il.Len())
 
-	keys, vals := il.RemoveSelected(func(key string, val int) bool {
+	keys, vals := il.RemoveSelected(func(key string, _ int) bool {
 		return key == "b" || key == "c"
 	})
 	assert.Equal(t, []string{"b", "c"}, keys)
@@ -149,7 +149,7 @@ func TestIterator_NextWhile(t *testing.T) {
 	// Condition allowing all elements to be traversed.
 	iter := il.Iterator(0)
 	sum := 0
-	keys, vals, ok := iter.NextWhile(func(key string, val int) bool {
+	keys, vals, ok := iter.NextWhile(func(_ string, val int) bool {
 		if sum+val <= 10 {
 			sum += val
 			return true
@@ -171,7 +171,7 @@ func TestIterator_NextWhile(t *testing.T) {
 	// Condition allowing only part of the elements to be traversed.
 	iter = il.Iterator(0)
 	sum = 0
-	keys, vals, ok = iter.NextWhile(func(key string, val int) bool {
+	keys, vals, ok = iter.NextWhile(func(_ string, val int) bool {
 		if sum+val <= 1 {
 			sum += val
 			return true
